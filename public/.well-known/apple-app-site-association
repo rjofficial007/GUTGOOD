@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "6TX866N9JP.com.gutgood.app",
+        "paths": [
+          "/auth-completed",
+          "/__/auth/action",
+          "/__/auth/links"
+        ]
+      }
+    ]
+  }
+}

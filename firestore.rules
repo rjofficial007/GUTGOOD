@@ -1,0 +1,117 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Checks if the requester is the owner of the user profile
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Helper: validates the client-written premium fields.
+    // Premium is managed CLIENT-SIDE via the RevenueCat SDK entitlement check;
+    // the app mirrors that entitlement into the profile so it is available
+    // cross-device and to the aiProxy quota check. Shape is validated here so
+    // garbage values can't be stored even from a tampered client.
+    function isValidPremiumFields() {
+      let premium = request.resource.data.get('isPremium', false);
+      let status = request.resource.data.get('subscriptionStatus', 'free');
+      return premium is bool
+        && status is string
+        && status in ['free', 'premium']
+        // Consistency: a paid flag must not carry the 'free' status.
+        && (premium == false || status == 'premium');
+    }
+
+    // Shape validation for chat messages written by clients (audit §3.3 —
+    // prevents oversized/garbage documents and cost blowups).
+    function isValidChatMessage() {
+      return request.resource.data.role in ['user', 'ai']
+        && request.resource.data.text is string
+        && request.resource.data.text.size() < 20000
+        && request.resource.data.get('imageUrls', []) is list
+        && request.resource.data.get('imageUrls', []).size() <= 4
+        && request.resource.size() < 512 * 1024;
+    }
+
+    match /user_profiles/{userId} {
+      allow read: if isOwner(userId);
+
+      // Premium fields (isPremium / subscriptionStatus) are client-managed via
+      // the RevenueCat SDK entitlement check (client-side premium model) and
+      // are shape-validated by isValidPremiumFields().
+      allow create: if isOwner(userId)
+        && isValidPremiumFields()
+        && request.resource.size() < 200 * 1024;
+
+      allow update: if isOwner(userId)
+        && isValidPremiumFields()
+        && request.resource.size() < 200 * 1024;
+
+      allow delete: if isOwner(userId);
+
+      match /chat_history/{docId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidChatMessage();
+        allow update: if isOwner(userId) && isValidChatMessage();
+        allow delete: if isOwner(userId);
+      }
+
+      match /scan_history/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
+        allow delete: if isOwner(userId);
+      }
+
+      match /meal_logs/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwner(userId);
+      }
+
+      match /symptom_logs/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwner(userId);
+      }
+
+      match /saved_foods/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwner(userId);
+      }
+
+      match /insights/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
+        allow delete: if isOwner(userId);
+      }
+
+      // Usage counters are server-authoritative now: the aiProxy Cloud
+      // Function (Admin SDK) consumes them transactionally. Clients may only
+      // READ their own usage for the paywall fast-path — never write it.
+      // (Closes the "reset your own counters" bypass from audit §3.1.)
+      match /daily_usage/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
+      match /pattern_data/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
+      }
+
+      // Idempotency markers written only by the mergeAnonymousAccount Cloud
+      // Function (Admin SDK bypasses rules). Clients can read but never forge.
+      match /merges/{anonUid} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+    }
+
+    // Explicit default-deny for anything not matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

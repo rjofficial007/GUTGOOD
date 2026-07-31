@@ -1,0 +1,168 @@
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/auth/data/utils/auth_error_handler.dart';
+import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
+import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
+import 'package:provider/provider.dart';
+
+import '../../../../core/constants/app_assets.dart';
+import '../../../../core/constants/app_strings.dart';
+
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final appStateService = sl<AppStateService>();
+    appStateService.pendingMergeConflict.addListener(_onMergeConflict);
+  }
+
+  @override
+  void dispose() {
+    final appStateService = sl<AppStateService>();
+    appStateService.pendingMergeConflict.removeListener(_onMergeConflict);
+    super.dispose();
+  }
+
+  void _onMergeConflict() async {
+    final conflict = sl<AppStateService>().pendingMergeConflict.value;
+    if (conflict == null || !mounted) return;
+
+    final appState = sl<AppStateService>();
+    if (!appState.claimMergePrompt()) return;
+    appState.setPendingMergeConflict(null);
+
+    try {
+      final shouldMerge = await showMergeConfirmationSheet(context, conflict['email'] ?? '');
+      if (!mounted) return;
+      final authNotifier = context.read<GutAuthNotifier>();
+      if (shouldMerge == true) {
+        try {
+          await authNotifier.confirmMerge(conflict['anonymousUid']!, conflict['permanentUid']!);
+          // 🟢 Fix: GoRouter's redirect handles navigation automatically.
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('We signed you in, but couldn\'t fully restore your previous data.')));
+          }
+        }
+      } else if (shouldMerge == false) {
+        await authNotifier.abandonMerge();
+      }
+    } finally {
+      appState.releaseMergePrompt();
+    }
+  }
+
+  Future<void> _handleGetStarted(BuildContext context, GutAuthNotifier authNotifier) async {
+    try {
+      await authNotifier.signInAnonymously();
+    } catch (e) {
+      if (context.mounted) {
+        final message = AuthErrorHandler.mapException(e);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authNotifier = context.watch<GutAuthNotifier>();
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      const Spacer(flex: 2),
+
+                      // Logo
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppSizes.r20),
+                        child: Image.asset(AppAssets.appIcon, height: 100.0.w, width: 100.0.w),
+                      ),
+                      Gap.h40,
+
+                      // Content
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: AppSizes.p8),
+                        child: Column(
+                          children: [
+                            Text(
+                              AppStrings.foodIsMedicine,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.displayLg.copyWith(fontSize: 60.0.sp, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
+                            ),
+                            Gap.h24,
+                            Text(
+                              AppStrings.understandBodyNeeds,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w400, color: context.appColorScheme.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(flex: 3),
+                      Text(
+                        AppStrings.healthDisclaimer,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 10.0.sp),
+                      ),
+                      Gap.h20,
+                      // Buttons
+                      Column(
+                        children: [
+                          GutButton(
+                            label: AppStrings.getStarted,
+                            suffixIcon: AppIcons.arrowRight,
+                            isLoading: authNotifier.isLoading,
+                            onTap: authNotifier.isLoading ? null : () => _handleGetStarted(context, authNotifier),
+                          ),
+                          Gap.h20,
+                          RichText(
+                            text: TextSpan(
+                              style: context.body.copyWith(color: context.appColorScheme.textSecondary),
+                              children: [
+                                TextSpan(text: '${AppStrings.alreadyHaveAccount} '),
+                                TextSpan(
+                                  text: AppStrings.signIn,
+                                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary),
+                                  recognizer: TapGestureRecognizer()..onTap = () => showAuthBottomSheet(context),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      Gap.h20,
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,86 @@
+name: gutgood
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 0.0.1+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.9
+  firebase_core: ^4.12.1
+  firebase_crashlytics: ^5.2.6
+  firebase_analytics: ^12.4.5
+  firebase_auth: ^6.5.6
+  cloud_functions: ^6.3.5
+  cloud_firestore: ^6.7.1
+  flutter_animate: ^4.5.2
+  firebase_storage: ^13.4.5
+  firebase_remote_config: ^6.5.5
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.1.0
+  purchases_flutter: ^10.6.0
+  go_router: ^17.3.0
+  cached_network_image: ^3.4.1
+  flutter_image_compress: ^2.5.1
+  shared_preferences: ^2.5.5
+  crypto: ^3.0.7
+  flutter_markdown_plus: ^1.0.12
+  image_picker: ^1.2.3
+  permission_handler: ^12.0.3
+  lucide_icons_flutter: ^3.1.15
+  logger: ^2.7.0
+  dio: ^5.11.0
+  mobile_scanner: ^7.4.0
+  intl: ^0.20.3
+  flutter_local_notifications: ^22.2.0
+  flutter_timezone: ^5.1.0
+  timezone: ^0.11.1
+  get_it: ^9.2.1
+  provider: ^6.1.5+1
+  equatable: ^2.1.0
+  app_links: ^7.2.1
+  shimmer: ^3.0.0
+  share_plus: 12.0.2
+  package_info_plus: 9.0.1
+  device_info_plus: 12.3.0
+  url_launcher: ^6.3.2
+  http: ^1.6.0
+  in_app_review: ^2.0.12
+  upgrader: ^13.6.0
+  uuid: ^4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^6.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  uses-material-design: true
+
+#  config:
+#    enable-swift-package-manager: false
+
+  assets:
+    - assets/images/
+    - assets/fonts/
+

@@ -1,0 +1,275 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/services/remote_config_service.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:uuid/uuid.dart';
+
+/// Thrown when the server-side free-tier gate rejects the request (HTTP 429).
+/// The UI maps this to the paywall — the single source of truth for limits is
+/// now the backend, which removes the old client-tampering vector.
+class AiQuotaExceededException implements Exception {
+  final String type; // 'chat' | 'scan'
+  final String message;
+  const AiQuotaExceededException({required this.type, this.message = 'Daily free limit reached.'});
+
+  @override
+  String toString() => 'AiQuotaExceededException($type): $message';
+}
+
+/// Generic AI proxy failure (network, upstream, or protocol errors).
+class AiServiceException implements Exception {
+  final String message;
+  final int? statusCode;
+  const AiServiceException(this.message, {this.statusCode});
+
+  @override
+  String toString() => 'AiServiceException($statusCode): $message';
+}
+
+/// The caller has no active Firebase session to authenticate the proxy with.
+class AiAuthException implements Exception {
+  const AiAuthException();
+
+  @override
+  String toString() => 'AiAuthException: no authenticated user.';
+}
+
+abstract class AiService {
+  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images});
+
+  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType});
+
+  Future<String> summarizeHistory(List<ChatMessage> history, {String? previousSummary});
+}
+
+/// Secure OpenAI client talking exclusively to the `aiProxy` Cloud Function.
+///
+/// PRD §3d compliance:
+///  - The OpenAI API key never exists on-device (replaces the previous
+///    Remote-Config-delivered key, which was extractable from the client).
+///  - Every request carries a Firebase ID token; the function verifies it and
+///    enforces the free-tier limits server-side (tamper-proof).
+class AiServiceImpl implements AiService {
+  final Dio _dio;
+  final FirebaseAuth _auth;
+  final RemoteConfigService _config;
+
+  AiServiceImpl({required Dio dio, required FirebaseAuth auth, required RemoteConfigService config}) : _dio = dio, _auth = auth, _config = config;
+
+  static const int _maxRetries = 2;
+
+  Future<Map<String, String>> _buildHeaders(String idempotencyKey) async {
+    final user = _auth.currentUser;
+    if (user == null) throw const AiAuthException();
+    final token = await user.getIdToken();
+    if (token == null || token.isEmpty) throw const AiAuthException();
+    return {'Authorization': 'Bearer $token', 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey};
+  }
+
+  List<Map<String, String>> _historyToPayload(List<ChatMessage> history) {
+    return history.where((m) => m.text.isNotEmpty).map((m) => {'role': m.role == 'user' ? 'user' : 'assistant', 'content': m.text}).toList();
+  }
+
+  Never _throwForStatus(int status, String body) {
+    String message = 'Unexpected AI proxy error ($status).';
+    String type = 'chat';
+    try {
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      message = (decoded['message'] ?? decoded['error'] ?? message).toString();
+      type = (decoded['type'] ?? type).toString();
+      if (status == 429 || decoded['error'] == 'quota_exceeded') {
+        throw AiQuotaExceededException(type: type, message: message);
+      }
+    } catch (e) {
+      if (e is AiQuotaExceededException) rethrow;
+    }
+    if (status == 401 || status == 403) throw const AiAuthException();
+    throw AiServiceException(message, statusCode: status);
+  }
+
+  bool _isRetryable(DioException e) {
+    return e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError || e.type == DioExceptionType.sendTimeout;
+  }
+
+  @override
+  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images}) async* {
+    final idempotencyKey = const Uuid().v4();
+    final headers = await _buildHeaders(idempotencyKey);
+
+    final body = jsonEncode({
+      'mode': 'stream',
+      'systemInstruction': systemInstruction,
+      'messages': _historyToPayload(history),
+      'userText': userText,
+      if (images != null && images.isNotEmpty) 'images': images.map((b) => base64Encode(b)).toList(),
+      'model': _config.openAIModel,
+      'usageType': (images != null && images.isNotEmpty) ? 'scan' : 'chat',
+      'idempotencyKey': idempotencyKey,
+    });
+
+    Log.d('AiService: streaming via proxy (history: ${history.length}, images: ${images?.length ?? 0})');
+
+    final Response<ResponseBody> response;
+    try {
+      response = await _dio.post<ResponseBody>(
+        _config.aiProxyUrl,
+        data: body,
+        options: Options(responseType: ResponseType.stream, headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(minutes: 4), validateStatus: (_) => true),
+      );
+    } on DioException catch (e) {
+      throw AiServiceException(e.message ?? 'Connection failed.', statusCode: e.response?.statusCode);
+    }
+
+    final status = response.statusCode ?? 500;
+    if (status != 200) {
+      final errorBody = await _readErrorBody(response.data);
+      _throwForStatus(status, errorBody);
+    }
+
+    final stream = response.data?.stream;
+    if (stream == null) throw const AiServiceException('Empty response stream.');
+
+    // Parse the SSE frames emitted by the proxy: data: {"d":"delta"}\n\n
+    String buffer = '';
+    bool sawDone = false;
+
+    await for (final chunk in stream) {
+      buffer += utf8.decode(chunk, allowMalformed: true);
+
+      int newlineIndex;
+      while ((newlineIndex = buffer.indexOf('\n')) != -1) {
+        final line = buffer.substring(0, newlineIndex).trim();
+        buffer = buffer.substring(newlineIndex + 1);
+
+        if (!line.startsWith('data:')) continue;
+        final data = line.substring(5).trim();
+        if (data.isEmpty) continue;
+        if (data == '[DONE]') {
+          sawDone = true;
+          break;
+        }
+
+        try {
+          final decoded = jsonDecode(data) as Map<String, dynamic>;
+          if (decoded['error'] != null) {
+            throw AiServiceException(decoded['error'].toString());
+          }
+          final delta = decoded['d'];
+          if (delta is String && delta.isNotEmpty) yield delta;
+        } catch (e) {
+          if (e is AiServiceException) rethrow;
+          // Incomplete JSON frame — ignore; the next chunk completes it.
+        }
+      }
+      if (sawDone) break;
+    }
+
+    // Flush any trailing frame that arrived without a newline terminator.
+    final tail = buffer.trim();
+    if (!sawDone && tail.startsWith('data:')) {
+      final data = tail.substring(5).trim();
+      if (data.isNotEmpty && data != '[DONE]') {
+        try {
+          final decoded = jsonDecode(data) as Map<String, dynamic>;
+          if (decoded['error'] != null) throw AiServiceException(decoded['error'].toString());
+          final delta = decoded['d'];
+          if (delta is String && delta.isNotEmpty) yield delta;
+        } catch (e) {
+          if (e is AiServiceException) rethrow;
+        }
+      }
+    }
+  }
+
+  Future<String> _readErrorBody(ResponseBody? body) async {
+    if (body == null) return '';
+    try {
+      final bytes = await body.stream.expand((c) => c).toList();
+      return utf8.decode(bytes, allowMalformed: true);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  @override
+  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType = 'system'}) async {
+    Log.d('AiService: generating content (mode: json, usageType: $usageType)');
+
+    final idempotencyKey = const Uuid().v4();
+    final headers = await _buildHeaders(idempotencyKey);
+
+    final body = jsonEncode({
+      'mode': 'json',
+      'systemInstruction': systemInstruction,
+      'prompt': prompt,
+      if (imageBytes != null) 'images': [base64Encode(imageBytes)],
+      'model': _config.openAIModel,
+      'usageType': usageType,
+      'idempotencyKey': idempotencyKey,
+    });
+
+    int attempts = 0;
+    while (true) {
+      attempts++;
+      try {
+        final response = await _dio.post<String>(
+          _config.aiProxyUrl,
+          data: body,
+          options: Options(headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(seconds: 90), validateStatus: (_) => true),
+        );
+
+        final status = response.statusCode ?? 500;
+        if (status != 200) _throwForStatus(status, response.data ?? '');
+
+        final decoded = jsonDecode(response.data ?? '{}') as Map<String, dynamic>;
+        return (decoded['text'] ?? '').toString();
+      } on DioException catch (e, st) {
+        // Retry only when the request provably never reached / completed at the
+        // server; the idempotency key guards the rare ambiguous case.
+        Log.e('AiService: content generation failed (attempt $attempts/$_maxRetries)', error: e, stackTrace: st);
+        if (attempts >= _maxRetries || !_isRetryable(e)) {
+          throw AiServiceException(e.message ?? 'Connection failed.', statusCode: e.response?.statusCode);
+        }
+        await Future.delayed(Duration(seconds: attempts * 2));
+      }
+    }
+  }
+
+  @override
+  Future<String> summarizeHistory(List<ChatMessage> history, {String? previousSummary}) async {
+    if (history.isEmpty) return previousSummary ?? '';
+
+    // 🟢 Fix: Use toAiMap() to avoid payload-too-large (502) errors.
+    final List<Map<String, dynamic>> historyMaps = history.map((m) => m.toAiMap()).toList();
+    final String historyJson = jsonEncode(historyMaps);
+
+    final priorContext = previousSummary != null && previousSummary.isNotEmpty ? 'PREVIOUS SUMMARY (fold new info into this, don\'t discard it): $previousSummary\n\n' : '';
+
+    final prompt = '${priorContext}Update the summary using this additional chat history. Keep it to 2-3 sentences total covering the user\'s food choices, symptoms, and goals:\n\n$historyJson';
+
+    final idempotencyKey = const Uuid().v4();
+    try {
+      final headers = await _buildHeaders(idempotencyKey);
+      final response = await _dio.post<String>(
+        _config.aiProxyUrl,
+        data: jsonEncode({'mode': 'plain', 'prompt': prompt, 'model': _config.openAIModel, 'usageType': 'system', 'idempotencyKey': idempotencyKey}),
+        options: Options(headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(seconds: 60), validateStatus: (_) => true),
+      );
+
+      if (response.statusCode != 200) {
+        Log.w('AiService: summarize failed with status ${response.statusCode}');
+        return previousSummary ?? '';
+      }
+      final decoded = jsonDecode(response.data ?? '{}') as Map<String, dynamic>;
+      return (decoded['text'] ?? previousSummary ?? '').toString();
+    } catch (e) {
+      Log.e('AiService: History summarization failed', error: e);
+      return previousSummary ?? '';
+    }
+  }
+}

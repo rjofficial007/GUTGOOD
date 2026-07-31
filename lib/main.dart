@@ -1,0 +1,126 @@
+import 'dart:ui';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:gutgood/core/router/app_router.dart';
+import 'package:gutgood/core/theme/app_theme.dart';
+import 'package:gutgood/core/theme/theme_provider.dart';
+import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/offline_banner.dart';
+import 'package:gutgood/core/widgets/verification_overlay.dart';
+import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
+import 'package:gutgood/features/auth/presentation/providers/purchase_provider.dart';
+import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
+import 'package:provider/provider.dart';
+
+import 'core/constants/app_strings.dart';
+import 'core/di/injection_container.dart';
+import 'core/services/app_version_services.dart';
+import 'core/services/device_info_services.dart';
+import 'core/services/internet_connection_checker.dart';
+import 'firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await init();
+
+  // Crashlytics: capture Flutter framework errors and uncaught async errors.
+  // (Previously the dependency existed but was never wired up.)
+  if (!kDebugMode) {
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
+
+  // Initialize App Services
+  await sl<AppVersionService>().fetchAppInfo();
+  await sl<DeviceInfoService>().fetchDeviceInfo();
+
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => sl<ThemeNotifier>()),
+        ChangeNotifierProvider(create: (_) => sl<GutAuthNotifier>()),
+        ChangeNotifierProvider(create: (_) => sl<ProfileNotifier>()),
+        ChangeNotifierProvider(create: (_) => sl<ChatNotifier>()),
+        ChangeNotifierProvider(create: (_) => sl<InsightsNotifier>()),
+        ChangeNotifierProvider(create: (_) => sl<ScannerNotifier>()),
+        ChangeNotifierProvider(create: (_) => sl<PurchaseProvider>()),
+      ],
+      child: const GutGoodApp(),
+    ),
+  );
+}
+
+class GutGoodApp extends StatefulWidget {
+  const GutGoodApp({super.key});
+
+  @override
+  State<GutGoodApp> createState() => _GutGoodAppState();
+}
+
+class _GutGoodAppState extends State<GutGoodApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Firestore handles connectivity restoration automatically.
+    sl<InternetConnectionChecker>().startListening();
+  }
+
+  @override
+  void dispose() {
+    sl<InternetConnectionChecker>().stopListening();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      sl<InternetConnectionChecker>().checkConnection();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final themeNotifier = context.watch<ThemeNotifier>();
+
+    return MaterialApp.router(
+      routerConfig: AppRouter.router,
+      title: AppStrings.appName,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeNotifier.themeMode,
+      builder: (context, child) {
+        Responsive.init(context);
+        // Respect the user's accessibility text-scale settings (no clamping).
+
+        return GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: Stack(
+            children: [
+              child ?? const SizedBox.shrink(),
+              const Positioned(top: 0, left: 0, right: 0, child: OfflineBanner()),
+              const Positioned.fill(child: VerificationOverlay()),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}

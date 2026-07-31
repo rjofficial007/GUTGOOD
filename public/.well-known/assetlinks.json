@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.gutgood.app",
+      "sha256_cert_fingerprints": [
+        "4D:70:07:91:2D:DC:C7:DC:6B:46:50:71:C7:1B:8B:4F:57:57:8C:1E:14:EB:DB:51:20:BC:35:F4:66:8B:1A:4F"
+      ]
+    }
+  }
+]
