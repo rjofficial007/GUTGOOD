@@ -1,0 +1,11 @@
+- [x] Create `lib/features/insights/presentation/pages/insight_detail_screen.dart`
+    - [x] Implement Scaffold with `GutSnapshotHeroCard` at the top
+    - [x] Replicate dashboard sections from `InsightDetailSheet`
+    - [x] Apply staggered entrance animations
+- [x] Update `lib/core/router/app_router.dart`
+    - [x] Add `/insight-detail` route
+- [x] Update `lib/features/insights/presentation/pages/insights_history_screen.dart`
+    - [x] Navigate to `/insight-detail` instead of showing bottom sheet
+- [x] Delete `lib/features/insights/presentation/widgets/insight_detail_sheet.dart`
+- [x] Verify full screen report experience
+- [x] Finalize with `walkthrough.artifact.md`

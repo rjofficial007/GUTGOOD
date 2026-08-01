@@ -1,0 +1,10 @@
+- [x] Redesign `AIPersonalizationOnboardingPage` to Minimalist HERO B&W:
+    - [x] Simplify layout to fix `debugNeedsLayout` assertion (Remove `IntrinsicHeight`/`Expanded` combo)
+    - [x] Remove all graphic elements (Circles, Orbs, Blobs)
+    - [x] Position status text in the dead center using `Expanded` + `Center`
+    - [x] Implement 3D X-axis "Flip" transition for centered text
+    - [x] Use `context.displayLg` with bold/black styling
+    - [x] Ensure pure B&W scheme for both Light and Dark modes
+    - [x] Maintain crisp, opaque top-left header
+- [x] Verify the "Success" state follows the minimalist text theme
+- [x] Update walkthrough

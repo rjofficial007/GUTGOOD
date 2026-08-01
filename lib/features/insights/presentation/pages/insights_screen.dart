@@ -9,7 +9,7 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/core/widgets/gut_insight_list.dart';
+import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/usage_service.dart';
+import '../../../../core/utils/bottom_sheet_helper.dart';
 
 class InsightsScreen extends StatelessWidget {
   const InsightsScreen({super.key});
@@ -71,74 +72,65 @@ class _MainDashboardSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget?> sections = [
+      GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: data.streak, simpleTrend: data.simpleTrend),
+      if (data.topInsight != null) _ModernSmartAlert(insight: data.topInsight!),
+      if (data.healingGoal != null || data.triggerSymptom != null)
+        DashboardEntrance(
+          delay: 100,
+          child: _FocusDashboardSection(data: data),
+        ),
+      if (data.healingFoods.isNotEmpty || data.triggerFoods.isNotEmpty)
+        DashboardEntrance(
+          delay: 200,
+          child: _RecoveryDashboardSection(data: data),
+        ),
+      if (data.detectedPatterns.isNotEmpty)
+        DashboardEntrance(
+          delay: 300,
+          child: _TrendsDashboardSection(patterns: data.detectedPatterns),
+        ),
+      if (data.topHealing != null || data.topTrigger != null)
+        DashboardEntrance(
+          delay: 350,
+          child: _HighlightsDashboardSection(data: data),
+        ),
+      if (data.foodImpacts.isNotEmpty)
+        DashboardEntrance(
+          delay: 400,
+          child: _ReactionsDashboardSection(impacts: data.foodImpacts),
+        ),
+      GutActionBanner(
+        title: AppStrings.weeklyGutRecap,
+        subtitle: AppStrings.last7DaysReady,
+        icon: AppIcons.sparkles,
+        onTap: () async {
+          final isPremium = await sl<UsageService>().isPremium();
+          if (!context.mounted) return;
+          if (isPremium) {
+            context.push('/weekly-recap', extra: data.toMap());
+          } else {
+            showPaywallBottomSheet(context, onProceedWithLimited: () {});
+          }
+        },
+      ),
+    ];
+
+    final visibleSections = sections.whereType<Widget>().toList();
+
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(Responsive.w(20.0), 0, Responsive.w(20.0), Responsive.h(20.0)),
       sliver: SliverList(
-        delegate: SliverChildListDelegate([
-          GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: data.streak, simpleTrend: data.simpleTrend),
-          Gap.h24,
-          if (data.topInsight != null) ...[_ModernSmartAlert(insight: data.topInsight!), Gap.h24],
-          if (data.healingGoal != null || data.triggerSymptom != null) ...[
-            GutSection(
-              title: AppStrings.currentFocus,
-              info: AppStrings.currentFocusDesc,
-              topPadding: 0,
-              child: _FocusList(data: data),
-            ),
-            Gap.h24,
-          ],
-          if (data.healingFoods.isNotEmpty || data.triggerFoods.isNotEmpty) ...[
-            GutSection(
-              title: AppStrings.recommendations,
-              info: AppStrings.recommendationsDesc,
-              topPadding: 0,
-              child: _RecommendationsList(data: data),
-            ),
-            Gap.h24,
-          ],
-          if (data.detectedPatterns.isNotEmpty) ...[
-            GutSection(
-              title: AppStrings.detectedPatternsLabel,
-              info: AppStrings.detectedPatternsDesc,
-              topPadding: 0,
-              child: _PatternsList(patterns: data.detectedPatterns),
-            ),
-            Gap.h24,
-          ],
-          if (data.topHealing != null || data.topTrigger != null) ...[
-            GutSection(
-              title: AppStrings.highlightsLabel,
-              info: AppStrings.highlightsDesc,
-              topPadding: 0,
-              child: _HighlightsList(data: data),
-            ),
-            Gap.h24,
-          ],
-          if (data.foodImpacts.isNotEmpty) ...[
-            GutSection(
-              title: AppStrings.bodyReactionsLabel,
-              info: AppStrings.bodyReactionsDesc,
-              topPadding: 0,
-              child: _AnalyticsList(impacts: data.foodImpacts),
-            ),
-            Gap.h24,
-          ],
-          GutActionBanner(
-            title: AppStrings.weeklyGutRecap,
-            subtitle: AppStrings.last7DaysReady,
-            icon: AppIcons.sparkles,
-            onTap: () async {
-              final isPremium = await sl<UsageService>().isPremium();
-              if (!context.mounted) return;
-              if (isPremium) {
-                context.push('/weekly-recap', extra: data.toMap());
-              } else {
-                showPaywallBottomSheet(context, onProceedWithLimited: () {});
-              }
-            },
-          ),
-          Gap.h40,
-        ]),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final isLast = index == visibleSections.length - 1;
+            return Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 64.0.h : 32.0.h),
+              child: visibleSections[index],
+            );
+          },
+          childCount: visibleSections.length,
+        ),
       ),
     );
   }
@@ -191,116 +183,442 @@ class _InsightsLoadingState extends StatelessWidget {
   }
 }
 
-class _FocusList extends StatelessWidget {
+class _FocusDashboardSection extends StatelessWidget {
   final AIInsight data;
-  const _FocusList({required this.data});
+  const _FocusDashboardSection({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> items = [];
-    if (data.healingGoal != null) {
-      items.add(GutInsightTile(title: 'GOAL', value: data.healingGoal!, subtitle: 'Primary focus', icon: AppIcons.target, statusColor: context.appColorScheme.success));
-    }
-    if (data.triggerSymptom != null) {
-      items.add(GutInsightTile(title: 'TRACKING', value: data.triggerSymptom!, subtitle: 'Recurring symptom', icon: AppIcons.activity, statusColor: context.appColorScheme.warning));
-    }
-    return GutInsightGrid(items: items);
+    return DashboardCard(
+      onFooterTap: () => _showFocusDetails(context),
+      footerLabel: 'View Goal Progress',
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'FOCUS',
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Primary Objectives',
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  const DashboardVisualizationBar(ratio: 0.65, label: 'Tracking stability'),
+                ],
+              ),
+            ),
+            Gap.w16,
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  if (data.healingGoal != null)
+                    DashboardDetailItem(
+                      title: data.healingGoal!,
+                      subtitle: 'Active Goal',
+                      icon: AppIcons.target,
+                      color: context.appColorScheme.success,
+                    ),
+                  if (data.healingGoal != null && data.triggerSymptom != null) Gap.h12,
+                  if (data.triggerSymptom != null)
+                    DashboardDetailItem(
+                      title: data.triggerSymptom!,
+                      subtitle: 'Symptom Watch',
+                      icon: AppIcons.activity,
+                      color: context.appColorScheme.warning,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFocusDetails(BuildContext context) {
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: 'Current Focus',
+      children: [
+        const SheetHeroSection(title: 'TARGET', subtitle: 'HEALTH GOALS', color: AppPalette.purple, icon: AppIcons.target),
+        Gap.h32,
+        if (data.healingGoal != null)
+          DashboardDetailItem(title: data.healingGoal!, subtitle: 'Your primary healing objective.', icon: AppIcons.leaf, color: context.appColorScheme.success),
+        Gap.h16,
+        if (data.triggerSymptom != null)
+          DashboardDetailItem(title: data.triggerSymptom!, subtitle: 'Symptom being tracked for patterns.', icon: AppIcons.alertTriangle, color: context.appColorScheme.warning),
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
   }
 }
 
-class _RecommendationsList extends StatelessWidget {
+class _RecoveryDashboardSection extends StatelessWidget {
   final AIInsight data;
-  const _RecommendationsList({required this.data});
+  const _RecoveryDashboardSection({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> items = [];
+    return DashboardCard(
+      onFooterTap: () => _showRecoveryDetails(context),
+      footerLabel: 'View Recommended Foods',
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'HEAL',
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.success),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Recovery Protocol',
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  const DashboardVisualizationBar(ratio: 0.8, label: 'High healing density'),
+                ],
+              ),
+            ),
+            Gap.w16,
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  ...data.healingFoods.take(2).map((f) => Padding(
+                        padding: EdgeInsets.only(bottom: 12.0.h),
+                        child: DashboardDetailItem(title: f.name, subtitle: 'Healing', icon: AppIcons.leaf, color: context.appColorScheme.success),
+                      )),
+                  if (data.healingFoods.isEmpty && data.triggerFoods.isNotEmpty)
+                    DashboardDetailItem(title: data.triggerFoods.first.name, subtitle: 'Trigger', icon: AppIcons.alertCircle, color: context.appColorScheme.error),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    for (var food in data.healingFoods) {
-      items.add(GutInsightTile(title: 'HEALING', value: food.name, subtitle: food.effect, icon: AppIcons.leaf, statusColor: context.appColorScheme.success));
-    }
-    for (var food in data.triggerFoods) {
-      items.add(GutInsightTile(title: 'TRIGGER', value: food.name, subtitle: food.effect, icon: AppIcons.alertCircle, statusColor: context.appColorScheme.error));
-    }
-
-    return GutInsightList(items: items);
+  void _showRecoveryDetails(BuildContext context) {
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: 'Recommendations',
+      children: [
+        const SheetHeroSection(title: 'HEAL', subtitle: 'RECOVERY PROTOCOL', color: AppPalette.green500, icon: AppIcons.leaf),
+        Gap.h32,
+        if (data.healingFoods.isNotEmpty) ...[
+          const SheetSectionHeader(title: 'Foods to Prioritize', color: AppPalette.green500),
+          ...data.healingFoods.map((f) => Padding(
+                padding: EdgeInsets.only(bottom: 16.0.h),
+                child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.checkCircle, color: AppPalette.green500),
+              )),
+          Gap.h24,
+        ],
+        if (data.triggerFoods.isNotEmpty) ...[
+          const SheetSectionHeader(title: 'Foods to Minimize', color: AppPalette.red),
+          ...data.triggerFoods.map((f) => Padding(
+                padding: EdgeInsets.only(bottom: 16.0.h),
+                child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle, color: AppPalette.red),
+              )),
+          Gap.h24,
+        ],
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
   }
 }
 
-class _PatternsList extends StatelessWidget {
+class _TrendsDashboardSection extends StatelessWidget {
   final List<DetectedPattern> patterns;
-  const _PatternsList({required this.patterns});
+  const _TrendsDashboardSection({required this.patterns});
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> items = patterns.map((p) {
-      final accentColor = InsightUiUtils.getPatternColor(p.icon);
-      return GutInsightTile(title: 'PATTERN', value: p.title, subtitle: p.description, icon: InsightUiUtils.getReactionIcon(p.icon), statusColor: accentColor);
-    }).toList();
+    return DashboardCard(
+      onFooterTap: () => _showTrendDetails(context),
+      footerLabel: 'View Pattern Analysis',
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TRENDS',
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Detected Patterns',
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  const DashboardVisualizationBar(ratio: 0.4, label: 'Behavioral variance'),
+                ],
+              ),
+            ),
+            Gap.w16,
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: patterns.take(2).map((p) {
+                  final color = InsightUiUtils.getPatternColor(p.icon);
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    child: DashboardDetailItem(title: p.title, subtitle: 'Observation', icon: InsightUiUtils.getReactionIcon(p.icon), color: color),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    return GutInsightList(items: items);
+  void _showTrendDetails(BuildContext context) {
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: 'Detected Patterns',
+      children: [
+        const SheetHeroSection(title: 'TRENDS', subtitle: 'BEHAVIORAL ANALYSIS', color: AppPalette.softBlue, icon: AppIcons.activity),
+        Gap.h32,
+        ...patterns.map((p) => Padding(
+              padding: EdgeInsets.only(bottom: 16.0.h),
+              child: DashboardDetailItem(
+                title: p.title,
+                subtitle: p.description,
+                icon: InsightUiUtils.getReactionIcon(p.icon),
+                color: InsightUiUtils.getPatternColor(p.icon),
+              ),
+            )),
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
   }
 }
 
-class _HighlightsList extends StatelessWidget {
+class _HighlightsDashboardSection extends StatelessWidget {
   final AIInsight data;
-  const _HighlightsList({required this.data});
+  const _HighlightsDashboardSection({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final hasHealing = data.topHealing != null;
-    final hasTrigger = data.topTrigger != null;
-
-    if (!hasHealing && !hasTrigger) return const SizedBox.shrink();
-
-    final List<Widget> items = [];
-    if (hasHealing) {
-      items.add(
-        GutInsightTile(
-          title: data.healingTrend ?? 'Power Source',
-          value: data.topHealing!.food,
-          subtitle: data.topHealing!.effects,
-          statusColor: context.appColorScheme.success,
-          icon: InsightUiUtils.getReactionIcon(data.topHealing?.emoji ?? ''),
+    return DashboardCard(
+      onFooterTap: () => _showHighlightDetails(context),
+      footerLabel: 'View Performance Highs',
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'STATS',
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: AppPalette.yellow),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Performance Highs',
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  const DashboardVisualizationBar(ratio: 0.75, label: 'Optimization efficiency'),
+                ],
+              ),
+            ),
+            Gap.w16,
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  if (data.topHealing != null)
+                    DashboardDetailItem(
+                      title: data.topHealing!.food,
+                      subtitle: 'Best for gut',
+                      icon: InsightUiUtils.getReactionIcon(data.topHealing?.emoji ?? ''),
+                      color: context.appColorScheme.success,
+                    ),
+                  if (data.topHealing != null && data.topTrigger != null) Gap.h12,
+                  if (data.topTrigger != null)
+                    DashboardDetailItem(
+                      title: data.topTrigger!.food,
+                      subtitle: 'Avoid next time',
+                      icon: InsightUiUtils.getReactionIcon(data.topTrigger?.emoji ?? ''),
+                      color: context.appColorScheme.error,
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
-      );
-    }
-    if (hasTrigger) {
-      items.add(
-        GutInsightTile(
-          title: data.triggerTrend ?? 'Critical Alert',
-          value: data.topTrigger!.food,
-          subtitle: data.topTrigger!.effects,
-          statusColor: context.appColorScheme.error,
-          icon: InsightUiUtils.getReactionIcon(data.topTrigger!.emoji),
-        ),
-      );
-    }
+      ),
+    );
+  }
 
-    return GutInsightList(items: items);
+  void _showHighlightDetails(BuildContext context) {
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: 'Performance Highlights',
+      children: [
+        const SheetHeroSection(title: 'BIO-STATS', subtitle: 'DIETARY PERFORMANCE', color: AppPalette.yellow, icon: AppIcons.trophy),
+        Gap.h32,
+        if (data.topHealing != null) ...[
+          const SheetSectionHeader(title: 'Top Performer', color: AppPalette.green500),
+          DashboardDetailItem(
+            title: data.topHealing!.food,
+            subtitle: data.topHealing!.effects,
+            icon: InsightUiUtils.getReactionIcon(data.topHealing?.emoji ?? ''),
+            color: AppPalette.green500,
+          ),
+          Gap.h24,
+        ],
+        if (data.topTrigger != null) ...[
+          const SheetSectionHeader(title: 'Critical Alert', color: AppPalette.red),
+          DashboardDetailItem(
+            title: data.topTrigger!.food,
+            subtitle: data.topTrigger!.effects,
+            icon: InsightUiUtils.getReactionIcon(data.topTrigger?.emoji ?? ''),
+            color: AppPalette.red,
+          ),
+          Gap.h24,
+        ],
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
   }
 }
 
-class _AnalyticsList extends StatelessWidget {
+class _ReactionsDashboardSection extends StatelessWidget {
   final List<FoodImpact> impacts;
-  const _AnalyticsList({required this.impacts});
+  const _ReactionsDashboardSection({required this.impacts});
 
   @override
   Widget build(BuildContext context) {
     final validImpacts = impacts.where((i) => i.food.isNotEmpty && i.food != 'Unknown').toList();
-    if (validImpacts.isEmpty) return const SizedBox.shrink();
 
-    final List<Widget> items = validImpacts.take(4).map((impact) {
-      final bool isNegative = impact.impactType == 'negative';
-      return GutInsightTile(
-        title: impact.timeframeLabel.isEmpty ? 'Reaction' : impact.timeframeLabel,
-        value: impact.food,
-        subtitle: impact.effect,
-        statusColor: isNegative ? context.appColorScheme.error : context.appColorScheme.success,
-        icon: InsightUiUtils.getReactionIcon(impact.emoji),
-      );
-    }).toList();
+    return DashboardCard(
+      onFooterTap: () => _showReactionDetails(context),
+      footerLabel: 'View Recent Reactions',
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'REACTIONS',
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: AppPalette.pink),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Body Responses',
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  const DashboardVisualizationBar(ratio: 0.9, label: 'Response sensitivity'),
+                ],
+              ),
+            ),
+            Gap.w16,
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: validImpacts.take(2).map((i) {
+                  final isNegative = i.impactType == 'negative';
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    child: DashboardDetailItem(
+                      title: i.food,
+                      subtitle: i.timeframeLabel,
+                      icon: InsightUiUtils.getReactionIcon(i.emoji),
+                      color: isNegative ? context.appColorScheme.error : context.appColorScheme.success,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    return GutInsightList(items: items);
+  void _showReactionDetails(BuildContext context) {
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: 'Body Reactions',
+      children: [
+        const SheetHeroSection(title: 'BIO-FEEDBACK', subtitle: 'FOOD-BODY MAPPING', color: AppPalette.pink, icon: AppIcons.activity),
+        Gap.h32,
+        ...impacts.where((i) => i.food.isNotEmpty && i.food != 'Unknown').map((i) {
+          final isNegative = i.impactType == 'negative';
+          return Padding(
+            padding: EdgeInsets.only(bottom: 16.0.h),
+            child: DashboardDetailItem(
+              title: i.food,
+              subtitle: '${i.timeframeLabel}: ${i.effect}',
+              icon: InsightUiUtils.getReactionIcon(i.emoji),
+              color: isNegative ? context.appColorScheme.error : context.appColorScheme.success,
+            ),
+          );
+        }),
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
   }
 }

@@ -12,8 +12,10 @@ import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
@@ -51,6 +53,43 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget?> sections = [
+      _ProductHero(scanData: widget.scanData, heroTag: widget.heroTag),
+      DashboardEntrance(
+        delay: 100,
+        child: _GutImpactSection(scanData: widget.scanData),
+      ),
+      _buildCycleImpactSection(context),
+      if (widget.scanData.nutrientLevels != null)
+        DashboardEntrance(
+          delay: 300,
+          child: _NutrientDashboardSection(levels: widget.scanData.nutrientLevels!),
+        ),
+      if ((widget.scanData.allergens != null && widget.scanData.allergens!.isNotEmpty) || (widget.scanData.additives != null && widget.scanData.additives!.isNotEmpty))
+        DashboardEntrance(
+          delay: 400,
+          child: _CautionsDashboardSection(scanData: widget.scanData),
+        ),
+      if (widget.scanData.ingredients.isNotEmpty)
+        DashboardEntrance(
+          delay: 500,
+          child: _IngredientsDashboardSection(ingredients: widget.scanData.ingredients),
+        ),
+      if (widget.scanData.swaps.isNotEmpty)
+        DashboardEntrance(
+          delay: 600,
+          child: _SwapsDashboardSection(swaps: widget.scanData.swaps),
+        ),
+      GutActionBanner(
+        title: AppStrings.nutritionFacts,
+        subtitle: AppStrings.per100g,
+        icon: AppIcons.clipboardList,
+        onTap: () => context.push('/nutrition-facts', extra: widget.scanData.toMap()),
+      ),
+    ];
+
+    final visibleSections = sections.whereType<Widget>().toList();
+
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
@@ -80,56 +119,16 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: Responsive.h(10.0)),
             sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _ProductHero(scanData: widget.scanData, heroTag: widget.heroTag),
-                Gap.h32,
-                _GutImpactSection(scanData: widget.scanData),
-                Gap.h32,
-                _buildCycleImpactSection(context),
-                if (widget.scanData.nutrientLevels != null) ...[
-                  GutSection(
-                    title: AppStrings.nutrientLevelsLabel,
-                    info: 'Key markers identified by health standards.',
-                    topPadding: 0,
-                    child: _NutrientLevelsGrid(levels: widget.scanData.nutrientLevels!),
-                  ),
-                  Gap.h32,
-                ],
-                if ((widget.scanData.allergens != null && widget.scanData.allergens!.isNotEmpty) || (widget.scanData.additives != null && widget.scanData.additives!.isNotEmpty)) ...[
-                  GutSection(
-                    title: AppStrings.cautions,
-                    info: 'Specific ingredients to be aware of based on your profile.',
-                    topPadding: 0,
-                    child: _CautionsList(scanData: widget.scanData),
-                  ),
-                  Gap.h32,
-                ],
-                if (widget.scanData.ingredients.isNotEmpty) ...[
-                  GutSection(
-                    title: AppStrings.ingredients,
-                    info: 'Full list of identified ingredients with color-coded risk levels.',
-                    topPadding: 0,
-                    child: _IngredientsList(ingredients: widget.scanData.ingredients),
-                  ),
-                  Gap.h32,
-                ],
-                if (widget.scanData.swaps.isNotEmpty) ...[
-                  GutSection(
-                    title: AppStrings.betterSwapsLabel,
-                    info: 'Healthier alternatives that satisfy the same craving.',
-                    topPadding: 0,
-                    child: _SwapsScroll(swaps: widget.scanData.swaps),
-                  ),
-                  Gap.h24,
-                ],
-                GutActionBanner(
-                  title: AppStrings.nutritionFacts,
-                  subtitle: AppStrings.per100g,
-                  icon: AppIcons.clipboardList,
-                  onTap: () => context.push('/nutrition-facts', extra: widget.scanData.toMap()),
-                ),
-                Gap.h64,
-              ]),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final isLast = index == visibleSections.length - 1;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: isLast ? 64.0.h : 32.0.h),
+                    child: visibleSections[index],
+                  );
+                },
+                childCount: visibleSections.length,
+              ),
             ),
           ),
         ],
@@ -137,20 +136,18 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  Widget _buildCycleImpactSection(BuildContext context) {
+  Widget? _buildCycleImpactSection(BuildContext context) {
     final profile = context.watch<ProfileNotifier>().profile;
     final bool cycleEnabled = profile?.cycleSyncEnabled ?? false;
 
-    if (!cycleEnabled) return const SizedBox.shrink();
+    if (!cycleEnabled) return null;
     if (widget.scanData.cycleInsight == null || widget.scanData.cycleInsight!.description.isEmpty) {
-      return const SizedBox.shrink();
+      return null;
     }
 
-    return GutSection(
-      title: AppStrings.cycleImpact,
-      info: 'How this food interacts with your current hormonal phase.',
-      topPadding: 0,
-      child: _CycleImpactCard(insight: widget.scanData.cycleInsight!),
+    return DashboardEntrance(
+      delay: 200,
+      child: _CycleImpactDashboardSection(insight: widget.scanData.cycleInsight!),
     );
   }
 }
@@ -305,35 +302,134 @@ class _GutImpactSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GutSection(
-      title: AppStrings.gutImpact,
-      info: 'How this food interacts with your body based on recent patterns.',
-      topPadding: 0,
-      child: AdaptiveGrid(
-        mainAxisExtent: Responsive.h(100.0),
-        items: [
-          _buildImpactTile(context, AppStrings.bloodSugar, AppIcons.activity),
-          _buildImpactTile(context, AppStrings.digestibility, AppIcons.moon),
-          _buildImpactTile(context, AppStrings.inflammation, AppIcons.shield),
-          _buildImpactTile(context, AppStrings.satiety, AppIcons.target),
-        ],
+    return DashboardCard(
+      onFooterTap: () => _showGutImpactDetails(context),
+      footerLabel: 'View Impact Details',
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left Side: Score & Chart
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${(scanData.score * 0.85).toStringAsFixed(2)}GS',
+                    style: context.bodyBold.copyWith(
+                      fontSize: 32.0.sp,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Gut Good Score',
+                    style: context.caption.copyWith(
+                      color: context.appColorScheme.textMuted,
+                      fontSize: 12.0.sp,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  const _GutImpactChart(),
+                ],
+              ),
+            ),
+            Gap.w16,
+            // Right Side: Breakdown
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  DashboardDetailItem(
+                    title: _getImpactLevel(AppStrings.bloodSugar),
+                    subtitle: AppStrings.bloodSugar,
+                    icon: AppIcons.activity,
+                    color: AppPalette.blue,
+                  ),
+                  Gap.h12,
+                  DashboardDetailItem(
+                    title: _getImpactLevel(AppStrings.inflammation),
+                    subtitle: AppStrings.inflammation,
+                    icon: AppIcons.shield,
+                    color: AppPalette.green500,
+                  ),
+                  Gap.h12,
+                  DashboardDetailItem(
+                    title: _getImpactLevel(AppStrings.digestibility),
+                    subtitle: AppStrings.digestibility,
+                    icon: AppIcons.moon,
+                    color: AppPalette.yellow,
+                  ),
+                  Gap.h12,
+                  DashboardDetailItem(
+                    title: _getImpactLevel(AppStrings.satiety),
+                    subtitle: AppStrings.satiety,
+                    icon: AppIcons.target,
+                    color: AppPalette.red,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildImpactTile(BuildContext context, String label, IconData icon) {
-    final status = _getImpactLevel(label);
-    final color = _getImpactColorByLevel(status, context);
+  void _showGutImpactDetails(BuildContext context) {
+    final positive = scanData.impacts.where((e) => ['good', 'positive', 'healing', 'high'].contains(e.level.toLowerCase())).toList();
+    final moderate = scanData.impacts.where((e) => ['moderate', 'neutral', 'gold'].contains(e.level.toLowerCase())).toList();
+    final negative = scanData.impacts.where((e) => ['bad', 'negative', 'trigger', 'low'].contains(e.level.toLowerCase())).toList();
 
-    return GutInsightTile(title: label, value: status, subtitle: '', icon: icon, statusColor: color);
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: AppStrings.gutImpact,
+      children: [
+        SheetHeroSection(
+          title: '${(scanData.score * 0.85).toStringAsFixed(1)}GS',
+          subtitle: 'OVERALL GUT HEALTH RATING',
+          color: context.appColorScheme.success,
+          icon: AppIcons.activity,
+        ),
+        Gap.h32,
+        if (positive.isNotEmpty) ...[
+          SheetSectionHeader(title: 'Positive Markers', color: context.appColorScheme.success),
+          ...positive.map((e) => _buildImpactTile(context, e)),
+          Gap.h24,
+        ],
+        if (moderate.isNotEmpty) ...[
+          SheetSectionHeader(title: 'Neutral Observations', color: context.appColorScheme.warning),
+          ...moderate.map((e) => _buildImpactTile(context, e)),
+          Gap.h24,
+        ],
+        if (negative.isNotEmpty) ...[
+          SheetSectionHeader(title: 'Potential Triggers', color: context.appColorScheme.error),
+          ...negative.map((e) => _buildImpactTile(context, e)),
+          Gap.h24,
+        ],
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
   }
 
-  String _getImpactLevel(String title) {
-    final impact = scanData.impacts.firstWhere(
-      (e) => e.title.toLowerCase().contains(title.toLowerCase()),
-      orElse: () => const ImpactDetail(title: '', level: 'Neutral', color: 'gold'),
+  Widget _buildImpactTile(BuildContext context, ImpactDetail impact) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.0.h),
+      child: DashboardDetailItem(
+        title: impact.title,
+        subtitle: 'This factor currently indicates a ${impact.level.toLowerCase()} state.',
+        icon: AppIcons.checkCircle,
+        color: _getImpactColorByLevel(impact.level, context),
+      ),
     );
-    return impact.level;
   }
 
   Color _getImpactColorByLevel(String level, BuildContext context) {
@@ -355,6 +451,71 @@ class _GutImpactSection extends StatelessWidget {
       default:
         return context.appColorScheme.success;
     }
+  }
+
+  String _getImpactLevel(String title) {
+    final impact = scanData.impacts.firstWhere(
+      (e) => e.title.toLowerCase().contains(title.toLowerCase()),
+      orElse: () => const ImpactDetail(title: '', level: 'Neutral', color: 'gold'),
+    );
+    return impact.level;
+  }
+}
+
+class _GutImpactChart extends StatelessWidget {
+  const _GutImpactChart();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 1,
+          width: double.infinity,
+          color: context.appColorScheme.border.withValues(alpha: 0.5),
+        ),
+        Gap.h16,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: List.generate(5, (index) {
+            final heights = [12.0, 8.0, 16.0, 24.0, 18.0];
+            final colors = [
+              AppPalette.green500,
+              AppPalette.green500,
+              AppPalette.green500,
+              AppPalette.green500,
+              AppPalette.gray200,
+            ];
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: heights[index]),
+              duration: Duration(milliseconds: 600 + (index * 100)),
+              curve: Curves.easeOutQuart,
+              builder: (context, value, _) {
+                return Container(
+                  width: 8.0.w,
+                  height: value.h,
+                  decoration: BoxDecoration(
+                    color: colors[index],
+                    borderRadius: BorderRadius.circular(4.0.r),
+                  ),
+                );
+              },
+            );
+          }),
+        ),
+        Gap.h8,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('00:00', style: context.caption.copyWith(fontSize: 9.0.sp, color: context.appColorScheme.textMuted)),
+            Text('12:00', style: context.caption.copyWith(fontSize: 9.0.sp, color: context.appColorScheme.textMuted)),
+            Text('24:00', style: context.caption.copyWith(fontSize: 9.0.sp, color: context.appColorScheme.textMuted)),
+          ],
+        ),
+      ],
+    );
   }
 }
 
@@ -378,39 +539,92 @@ class _GutGoodScoreSection extends StatelessWidget {
   }
 }
 
-class _CycleImpactCard extends StatelessWidget {
+class _CycleImpactDashboardSection extends StatelessWidget {
   final CycleInsight insight;
-  const _CycleImpactCard({required this.insight});
+  const _CycleImpactDashboardSection({required this.insight});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16.0.w),
+      width: double.infinity,
+      padding: EdgeInsets.all(24.0.w),
       decoration: BoxDecoration(
-        color: AppPalette.pink.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24.0.r),
-        border: Border.all(color: AppPalette.pink.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12.0.w),
-            decoration: const BoxDecoration(color: AppPalette.pink, shape: BoxShape.circle),
-            child: Icon(AppIcons.flower, color: Colors.white, size: 20.0.w),
+        gradient: LinearGradient(
+          colors: [
+            AppPalette.pink.withValues(alpha: 0.8),
+            AppPalette.orange.withValues(alpha: 0.6),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28.0.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppPalette.pink.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-          Gap.w16,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  insight.phase.toUpperCase(),
-                  style: context.bodyBold.copyWith(color: AppPalette.pink, fontSize: 12.0.sp, letterSpacing: 1.0),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PHASE',
+                      style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.8), letterSpacing: 2.0),
+                    ),
+                    Text(
+                      insight.phase.toUpperCase(),
+                      style: context.bodyBold.copyWith(
+                        color: AppPalette.white,
+                        fontSize: 32.0.sp,
+                        fontWeight: FontWeight.w900,
+                        height: 1.1,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                Gap.h2,
-                Text(insight.description, style: context.body.copyWith(fontSize: 13.0.sp, height: 1.3)),
-              ],
+              ),
+              Gap.w16,
+              Container(
+                padding: EdgeInsets.all(12.0.w),
+                decoration: BoxDecoration(
+                  color: AppPalette.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(AppIcons.sun, color: AppPalette.white, size: 28.0.w),
+              ),
+            ],
+          ),
+          Gap.h24,
+          Text(
+            insight.description,
+            style: context.body.copyWith(
+              color: AppPalette.white.withValues(alpha: 0.9),
+              fontSize: 15.0.sp,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
             ),
+          ),
+          Gap.h16,
+          Row(
+            children: [
+              Icon(AppIcons.trendingUp, color: AppPalette.white, size: 14.0.w),
+              Gap.w8,
+              Text(
+                'High Metabolic Impact Today',
+                style: context.caption.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
         ],
       ),
@@ -418,26 +632,301 @@ class _CycleImpactCard extends StatelessWidget {
   }
 }
 
-class _NutrientLevelsGrid extends StatelessWidget {
-  final NutrientLevels levels;
-  const _NutrientLevelsGrid({required this.levels});
+class _IngredientsDashboardSection extends StatelessWidget {
+  final List<Ingredient> ingredients;
+  const _IngredientsDashboardSection({required this.ingredients});
 
   @override
   Widget build(BuildContext context) {
-    return AdaptiveGrid(
-      mainAxisExtent: Responsive.h(100.0),
-      items: [
-        _buildNutrientTile(context, AppStrings.sugars, levels.sugars, AppIcons.candy),
-        _buildNutrientTile(context, AppStrings.salt, levels.salt, AppIcons.flaskConical),
-        _buildNutrientTile(context, AppStrings.fatLabel, levels.fat, AppIcons.beef),
-        _buildNutrientTile(context, AppStrings.satFatLabel, levels.saturatedFat, AppIcons.beef),
+    final displayIngredients = ingredients.take(4).toList();
+
+    return DashboardCard(
+      onFooterTap: () => _showAllIngredients(context),
+      footerLabel: 'View All Ingredients',
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left Side: Composition Summary
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'MIX',
+                    style: context.bodyBold.copyWith(
+                      fontSize: 28.0.sp,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    AppStrings.ingredients,
+                    style: context.caption.copyWith(
+                      color: context.appColorScheme.textMuted,
+                      fontSize: 12.0.sp,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  _IngredientCompositionVisualization(ingredients: ingredients),
+                ],
+              ),
+            ),
+            Gap.w16,
+            // Right Side: Ingredient List
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: displayIngredients.map((ing) {
+                  final color = _getIngredientColor(ing.colorName, context);
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    child: DashboardDetailItem(
+                      title: ing.name,
+                      subtitle: _getIngredientImpactLabel(ing.colorName),
+                      icon: InsightUiUtils.getIngredientIcon(ing.colorName),
+                      color: color,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAllIngredients(BuildContext context) {
+    final avoid = ingredients.where((e) => e.colorName.toLowerCase() == 'red').toList();
+    final limit = ingredients.where((e) => e.colorName.toLowerCase() == 'orange').toList();
+    final clean = ingredients.where((e) => !['red', 'orange'].contains(e.colorName.toLowerCase())).toList();
+
+    int cleanCount = ingredients.where((e) => e.colorName.toLowerCase() == 'green' || e.colorName.toLowerCase() == 'low').length;
+    double cleanRatio = ingredients.isNotEmpty ? cleanCount / ingredients.length : 0;
+
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: AppStrings.ingredients,
+      children: [
+        SheetHeroSection(
+          title: '${(cleanRatio * 100).toInt()}%',
+          subtitle: 'CLEAN COMPOSITION SCORE',
+          color: AppPalette.green500,
+          icon: AppIcons.leaf,
+        ),
+        Gap.h32,
+        if (avoid.isNotEmpty) ...[
+          SheetSectionHeader(title: 'Ingredients to Avoid', color: context.appColorScheme.error),
+          ...avoid.map((e) => _buildIngredientTile(context, e)),
+          Gap.h24,
+        ],
+        if (limit.isNotEmpty) ...[
+          SheetSectionHeader(title: 'Limit Consumption', color: context.appColorScheme.warning),
+          ...limit.map((e) => _buildIngredientTile(context, e)),
+          Gap.h24,
+        ],
+        if (clean.isNotEmpty) ...[
+          SheetSectionHeader(title: 'Clean Ingredients', color: context.appColorScheme.success),
+          ...clean.map((e) => _buildIngredientTile(context, e)),
+          Gap.h24,
+        ],
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
       ],
     );
   }
 
-  Widget _buildNutrientTile(BuildContext context, String label, String? value, IconData icon) {
-    final Color color = _getNutrientColor(value, context);
-    return GutInsightTile(title: label, value: value?.toUpperCase() ?? 'N/A', subtitle: '', icon: icon, statusColor: color);
+  Widget _buildIngredientTile(BuildContext context, Ingredient ing) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 16.0.h),
+      child: DashboardDetailItem(
+        title: ing.name,
+        subtitle: ing.impact.isNotEmpty ? ing.impact : _getIngredientImpactLabel(ing.colorName),
+        icon: InsightUiUtils.getIngredientIcon(ing.colorName),
+        color: _getIngredientColor(ing.colorName, context),
+      ),
+    );
+  }
+
+  Color _getIngredientColor(String colorName, BuildContext context) {
+    return InsightUiUtils.getIngredientColor(colorName, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
+  }
+}
+
+class _IngredientCompositionVisualization extends StatelessWidget {
+  final List<Ingredient> ingredients;
+  const _IngredientCompositionVisualization({required this.ingredients});
+
+  @override
+  Widget build(BuildContext context) {
+    int cleanCount = ingredients.where((e) => e.colorName.toLowerCase() == 'green' || e.colorName.toLowerCase() == 'low').length;
+    int total = ingredients.isNotEmpty ? ingredients.length : 1;
+    double cleanRatio = cleanCount / total;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 12.0.h,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppPalette.gray100,
+            borderRadius: BorderRadius.circular(6.0.r),
+          ),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: cleanRatio.clamp(0.1, 1.0)),
+            duration: const Duration(milliseconds: 1200),
+            curve: Curves.easeOutExpo,
+            builder: (context, value, _) {
+              return FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: value,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppPalette.green500, AppPalette.lime],
+                    ),
+                    borderRadius: BorderRadius.circular(6.0.r),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        Gap.h12,
+        Text(
+          '${(cleanRatio * 100).toInt()}% clean composition',
+          style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted),
+        ),
+      ],
+    );
+  }
+}
+
+class _NutrientDashboardSection extends StatelessWidget {
+  final NutrientLevels levels;
+  const _NutrientDashboardSection({required this.levels});
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCard(
+      onFooterTap: () => _showNutrientDetails(context),
+      footerLabel: 'View Standard Values',
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left Side: Summary Visualization
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'HEALTH',
+                    style: context.bodyBold.copyWith(
+                      fontSize: 28.0.sp,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Nutrient Levels',
+                    style: context.caption.copyWith(
+                      color: context.appColorScheme.textMuted,
+                      fontSize: 12.0.sp,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  const _NutrientVisualization(),
+                ],
+              ),
+            ),
+            Gap.w16,
+            // Right Side: Details
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  DashboardDetailItem(
+                    title: levels.sugars,
+                    subtitle: AppStrings.sugars,
+                    icon: AppIcons.candy,
+                    color: _getNutrientColor(levels.sugars, context),
+                  ),
+                  Gap.h12,
+                  DashboardDetailItem(
+                    title: levels.salt,
+                    subtitle: AppStrings.salt,
+                    icon: AppIcons.flaskConical,
+                    color: _getNutrientColor(levels.salt, context),
+                  ),
+                  Gap.h12,
+                  DashboardDetailItem(
+                    title: levels.fat,
+                    subtitle: AppStrings.fatLabel,
+                    icon: AppIcons.beef,
+                    color: _getNutrientColor(levels.fat, context),
+                  ),
+                  Gap.h12,
+                  DashboardDetailItem(
+                    title: levels.saturatedFat,
+                    subtitle: AppStrings.satFatLabel,
+                    icon: AppIcons.beef,
+                    color: _getNutrientColor(levels.saturatedFat, context),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNutrientDetails(BuildContext context) {
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: AppStrings.nutrientLevelsLabel,
+      children: [
+        SheetHeroSection(
+          title: 'PROFILE',
+          subtitle: 'NUTRIENT BENCHMARKING',
+          color: AppPalette.blue,
+          icon: AppIcons.flaskConical,
+        ),
+        Gap.h24,
+        Text(
+          'These levels are calculated based on standardized daily intake values per 100g of the product.',
+          style: context.caption.copyWith(color: context.appColorScheme.textMuted, height: 1.4),
+          textAlign: TextAlign.center,
+        ),
+        Gap.h32,
+        DashboardDetailItem(title: levels.sugars, subtitle: AppStrings.sugars, icon: AppIcons.candy, color: _getNutrientColor(levels.sugars, context)),
+        Gap.h16,
+        DashboardDetailItem(title: levels.salt, subtitle: AppStrings.salt, icon: AppIcons.flaskConical, color: _getNutrientColor(levels.salt, context)),
+        Gap.h16,
+        DashboardDetailItem(title: levels.fat, subtitle: AppStrings.fatLabel, icon: AppIcons.beef, color: _getNutrientColor(levels.fat, context)),
+        Gap.h16,
+        DashboardDetailItem(title: levels.saturatedFat, subtitle: AppStrings.satFatLabel, icon: AppIcons.beef, color: _getNutrientColor(levels.saturatedFat, context)),
+        Gap.h40,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
   }
 
   Color _getNutrientColor(String? val, BuildContext context) {
@@ -454,188 +943,303 @@ class _NutrientLevelsGrid extends StatelessWidget {
   }
 }
 
-class _CautionsList extends StatelessWidget {
-  final ScanResult scanData;
-  const _CautionsList({required this.scanData});
+class _NutrientVisualization extends StatelessWidget {
+  const _NutrientVisualization();
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (scanData.allergens != null && scanData.allergens!.isNotEmpty)
-          _CautionCard(title: '${AppStrings.allergensLabel.toUpperCase()} DETECTED', content: scanData.allergens!, icon: AppIcons.alertTriangle, color: context.appColorScheme.error),
-        if (scanData.additives != null && scanData.additives!.isNotEmpty) ...[
-          if (scanData.allergens != null && scanData.allergens!.isNotEmpty) Gap.h12,
-          _CautionCard(title: '${AppStrings.additivesLabel.toUpperCase()} FOUND', content: scanData.additives!, icon: AppIcons.flaskConical, color: context.appColorScheme.warning),
-        ],
+        Container(
+          height: 12.0.h,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppPalette.gray100,
+            borderRadius: BorderRadius.circular(6.0.r),
+          ),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 0.7),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.easeOutExpo,
+            builder: (context, value, _) {
+              return FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: value,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppPalette.green500, AppPalette.lime],
+                    ),
+                    borderRadius: BorderRadius.circular(6.0.r),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        Gap.h12,
+        Text(
+          'Optimal profile identified',
+          style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted),
+        ),
       ],
     );
   }
 }
 
-class _CautionCard extends StatelessWidget {
-  final String title;
-  final String content;
-  final IconData icon;
-  final Color color;
-
-  const _CautionCard({required this.title, required this.content, required this.icon, required this.color});
+class _CautionsDashboardSection extends StatelessWidget {
+  final ScanResult scanData;
+  const _CautionsDashboardSection({required this.scanData});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(Responsive.w(16.0)),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.01),
-        borderRadius: BorderRadius.circular(20.0.r),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(10.0.w),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 20.0.w),
-          ),
-          Gap.w16,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: context.eyebrow.copyWith(color: color, letterSpacing: 1.2)),
-                Gap.h4,
-                Text(content, style: context.bodyBold.copyWith(fontSize: 15.0.sp, height: 1.3)),
-              ],
+    final hasAllergens = scanData.allergens != null && scanData.allergens!.isNotEmpty;
+    final hasAdditives = scanData.additives != null && scanData.additives!.isNotEmpty;
+
+    return DashboardCard(
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left Side: Risk Indicator
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'SAFE',
+                    style: context.bodyBold.copyWith(
+                      fontSize: 28.0.sp,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                      color: hasAllergens ? context.appColorScheme.error : context.appColorScheme.success,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Safety Cautions',
+                    style: context.caption.copyWith(
+                      color: context.appColorScheme.textMuted,
+                      fontSize: 12.0.sp,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  _CautionRiskIcon(isSafe: !hasAllergens),
+                ],
+              ),
             ),
-          ),
-        ],
+            Gap.w16,
+            // Right Side: Detail List
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: [
+                  if (hasAllergens)
+                    DashboardDetailItem(
+                      title: scanData.allergens!,
+                      subtitle: AppStrings.allergensLabel,
+                      icon: AppIcons.alertTriangle,
+                      color: context.appColorScheme.error,
+                    ),
+                  if (hasAllergens && hasAdditives) Gap.h12,
+                  if (hasAdditives)
+                    DashboardDetailItem(
+                      title: scanData.additives!,
+                      subtitle: AppStrings.additivesLabel,
+                      icon: AppIcons.flaskConical,
+                      color: context.appColorScheme.warning,
+                    ),
+                  if (!hasAllergens && !hasAdditives)
+                    Text(
+                      'No cautions found for your profile.',
+                      style: context.caption.copyWith(color: context.appColorScheme.textMuted),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _IngredientsList extends StatelessWidget {
-  final List<Ingredient> ingredients;
-  const _IngredientsList({required this.ingredients});
+
+class _CautionRiskIcon extends StatelessWidget {
+  final bool isSafe;
+  const _CautionRiskIcon({required this.isSafe});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSafe ? context.appColorScheme.success : context.appColorScheme.error;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.elasticOut,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: value,
+          child: child,
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.all(12.0.w),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          isSafe ? AppIcons.shieldCheck : AppIcons.alertCircle,
+          color: color,
+          size: 32.0.w,
+        ),
+      ),
+    );
+  }
+}
+
+String _getIngredientImpactLabel(String colorName) {
+  switch (colorName.toLowerCase()) {
+    case 'red':
+      return 'Avoid';
+    case 'orange':
+      return 'Limit';
+    default:
+      return 'Clean';
+  }
+}
+
+class _SwapsDashboardSection extends StatelessWidget {
+  final List<ProductSwap> swaps;
+  const _SwapsDashboardSection({required this.swaps});
+
+  @override
+  Widget build(BuildContext context) {
+    final displaySwaps = swaps.take(3).toList();
+
+    return DashboardCard(
+      onFooterTap: () => _showAllSwaps(context),
+      footerLabel: 'View All Alternatives',
+      child: Padding(
+        padding: EdgeInsets.all(20.0.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left Side: Upgrade Hero
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'UPGRADE',
+                    style: context.bodyBold.copyWith(
+                      fontSize: 28.0.sp,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                      color: context.appColorScheme.success,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    AppStrings.betterSwapsLabel,
+                    style: context.caption.copyWith(
+                      color: context.appColorScheme.textMuted,
+                      fontSize: 12.0.sp,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h24,
+                  const _SwapVisualization(),
+                ],
+              ),
+            ),
+            Gap.w16,
+            // Right Side: Swap List
+            Expanded(
+              flex: 5,
+              child: Column(
+                children: displaySwaps.map((swap) {
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    child: DashboardDetailItem(
+                      title: swap.title,
+                      subtitle: swap.subtitle,
+                      icon: AppIcons.sparkles,
+                      color: AppPalette.lime,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAllSwaps(BuildContext context) {
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: AppStrings.betterSwapsLabel,
+      children: [
+        SheetHeroSection(
+          title: '${swaps.length}',
+          subtitle: 'HEALTHIER ALTERNATIVES FOUND',
+          color: context.appColorScheme.success,
+          icon: AppIcons.sparkles,
+        ),
+        Gap.h32,
+        ...swaps.map((swap) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: 16.0.h),
+            child: DashboardDetailItem(
+              title: swap.title,
+              subtitle: swap.subtitle,
+              icon: AppIcons.package,
+              color: AppPalette.lime,
+            ),
+          );
+        }).toList(),
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
+  }
+}
+
+class _SwapVisualization extends StatelessWidget {
+  const _SwapVisualization();
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: ingredients.map((ing) {
-        final color = _getIngredientColor(ing.colorName, context);
-        return Container(
-          margin: EdgeInsets.only(bottom: 12.0.h),
-          padding: EdgeInsets.all(16.0.w),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: EdgeInsets.all(12.0.w),
           decoration: BoxDecoration(
-            color: context.appColorScheme.cardBackground,
-            borderRadius: BorderRadius.circular(20.0.r),
-            border: Border.all(color: context.appColorScheme.border),
+            color: context.appColorScheme.success.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                margin: EdgeInsets.only(top: 4.0.h),
-                width: 32.0.w,
-                height: 32.0.w,
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: Icon(_getIngredientIcon(ing.colorName), color: color, size: 16.0.w),
-              ),
-              Gap.w16,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(ing.name, style: context.bodyBold.copyWith(fontSize: 16.0.sp)),
-                        ),
-                        Gap.w8,
-                        _IngredientBadge(colorName: ing.colorName),
-                      ],
-                    ),
-                    if (ing.impact.isNotEmpty) ...[
-                      Gap.h4,
-                      Text(
-                        ing.impact,
-                        style: context.caption.copyWith(color: context.appColorScheme.textSecondary, fontSize: 12.0.sp, height: 1.4, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  IconData _getIngredientIcon(String colorName) {
-    return InsightUiUtils.getIngredientIcon(colorName);
-  }
-
-  Color _getIngredientColor(String colorName, BuildContext context) {
-    return InsightUiUtils.getIngredientColor(colorName, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
-  }
-}
-
-class _IngredientBadge extends StatelessWidget {
-  final String colorName;
-  const _IngredientBadge({required this.colorName});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _getIngredientColor(colorName, context);
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.0.w, vertical: 4.0.h),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8.0.r)),
-      child: Text(
-        _getIngredientImpactLabel(colorName).toUpperCase(),
-        style: context.caption.copyWith(color: color, fontWeight: FontWeight.w900, fontSize: 8.0.sp),
-      ),
-    );
-  }
-
-  String _getIngredientImpactLabel(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'red':
-        return 'Avoid';
-      case 'orange':
-        return 'Limit';
-      default:
-        return 'Clean';
-    }
-  }
-
-  Color _getIngredientColor(String colorName, BuildContext context) {
-    return InsightUiUtils.getIngredientColor(colorName, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
-  }
-}
-
-class _SwapsScroll extends StatelessWidget {
-  final List<ProductSwap> swaps;
-  const _SwapsScroll({required this.swaps});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Row(
-        children: swaps
-            .map(
-              (swap) => Padding(
-                padding: EdgeInsets.only(right: 12.0.w),
-                child: SwapCard(title: swap.title, subtitle: swap.subtitle, imageKeyword: swap.imageKeyword, tag: swap.tag, badge: swap.badge),
-              ),
-            )
-            .toList(),
-      ),
+          child: Icon(AppIcons.arrowRightLeft, color: context.appColorScheme.success, size: 32.0.w),
+        ),
+        Gap.h16,
+        Text(
+          'Optimized choices for your profile',
+          style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted),
+        ),
+      ],
     );
   }
 }
+

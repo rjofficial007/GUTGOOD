@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
@@ -6,7 +7,6 @@ import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/insights/presentation/widgets/insight_detail_sheet.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_history_section.dart';
 import 'package:intl/intl.dart';
 
@@ -82,11 +82,6 @@ class InsightsHistoryScreen extends StatelessWidget {
   }
 
   void _showInsightDetail(BuildContext context, AIInsight insight) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => InsightDetailSheet(insight: insight),
-    );
+    context.push('/insight-detail', extra: insight.toMap());
   }
 }
