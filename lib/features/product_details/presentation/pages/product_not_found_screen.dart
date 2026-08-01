@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -30,14 +31,14 @@ class ProductNotFoundScreen extends StatelessWidget {
                 Gap.h40,
                 Center(
                   child: Container(
-                    width: 120.0.w,
-                    height: 120.0.w,
+                    width: AppSizes.p120,
+                    height: AppSizes.p120,
                     decoration: BoxDecoration(
                       color: context.appColorScheme.cardBackground,
                       shape: BoxShape.circle,
                       border: Border.all(color: context.appColorScheme.border),
                     ),
-                    child: Icon(AppIcons.search, size: 48.0.w, color: context.appColorScheme.textMuted),
+                    child: Icon(AppIcons.search, size: AppSizes.icon48, color: context.appColorScheme.textMuted),
                   ),
                 ),
                 Gap.h32,
@@ -65,7 +66,7 @@ class ProductNotFoundScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(AppIcons.sparkles, color: context.appColorScheme.success, size: 20.0.w),
+                          Icon(AppIcons.sparkles, color: context.appColorScheme.success, size: AppSizes.icon20),
                           Gap.w12,
                           Expanded(
                             child: Text(AppStrings.beAContributor, style: context.bodyBold.copyWith(color: context.appColorScheme.success)),
@@ -102,7 +103,7 @@ class ProductNotFoundScreen extends StatelessWidget {
                   title: AppStrings.enterManually,
                   subtitle: AppStrings.enterManuallySubtitle,
                   onTap: () {
-                    context.push('/manual-barcode');
+                    context.push(AppRoutes.manualBarcode);
                   },
                 ),
                 Gap.h40,
@@ -127,8 +128,8 @@ class _ContributeButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 12.0.h),
-        decoration: BoxDecoration(color: context.appColorScheme.success, borderRadius: BorderRadius.circular(12.0.r)),
+        padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
+        decoration: BoxDecoration(color: context.appColorScheme.success, borderRadius: BorderRadius.circular(AppSizes.r12)),
         child: Center(
           child: Text(label, style: context.bodyBold.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
         ),
@@ -159,7 +160,7 @@ class _OptionTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: context.appColorScheme.textSecondary, size: 24.0.w),
+            Icon(icon, color: context.appColorScheme.textSecondary, size: AppSizes.icon24),
             Gap.w16,
             Expanded(
               child: Column(
@@ -170,7 +171,7 @@ class _OptionTile extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(AppIcons.chevronRight, color: context.appColorScheme.textMuted.withValues(alpha: 0.5), size: 20.0.w),
+            Icon(AppIcons.chevronRight, color: context.appColorScheme.textMuted.withValues(alpha: 0.5), size: AppSizes.icon20),
           ],
         ),
       ),

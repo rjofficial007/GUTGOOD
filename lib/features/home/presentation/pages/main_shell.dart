@@ -25,7 +25,7 @@ class MainShell extends StatelessWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: 4.0.h),
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -75,17 +75,17 @@ class _TabItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 8.0.h),
+          padding: EdgeInsets.symmetric(vertical: AppSizes.p8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: active ? Theme.of(context).colorScheme.primary : context.appColorScheme.textMuted, size: 24.0.w),
+              Icon(icon, color: active ? Theme.of(context).colorScheme.primary : context.appColorScheme.textMuted, size: AppSizes.icon24),
               Gap.h4,
               Text(
                 label,
                 style: context.caption.copyWith(
                   color: active ? Theme.of(context).colorScheme.primary : context.appColorScheme.textMuted,
-                  fontSize: 10.0.sp,
+                  fontSize: AppSizes.s10,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),

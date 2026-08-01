@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
@@ -31,7 +32,7 @@ class WeeklyRecapScreen extends StatelessWidget {
       // Date Range Header
       Center(
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 6.0.h),
+          padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p6),
           decoration: BoxDecoration(
             color: context.appColorScheme.border.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(100),
@@ -86,16 +87,16 @@ class WeeklyRecapScreen extends StatelessWidget {
       appBar: const GutAppBar(title: AppStrings.weeklyRecap),
       body: insight == null
           ? Padding(
-              padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: Responsive.h(10.0)),
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
               child: const ShimmerGridLoader(variant: ShimmerVariant.recap),
             )
           : ListView.builder(
-              padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: Responsive.h(10.0)),
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
               itemCount: visibleSections.length,
               itemBuilder: (context, index) {
                 final isLast = index == visibleSections.length - 1;
                 return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 64.0.h : 32.0.h),
+                  padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
                   child: visibleSections[index],
                 );
               },
@@ -106,14 +107,14 @@ class WeeklyRecapScreen extends StatelessWidget {
   Widget _buildAchievementBanner(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(Responsive.w(20.0)),
+      padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(28.0.r),
+        borderRadius: BorderRadius.circular(AppSizes.r28),
         border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: AppPalette.black.withValues(alpha: 0.02),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -122,9 +123,9 @@ class WeeklyRecapScreen extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(12.0.w),
+            padding: EdgeInsets.all(AppSizes.p12),
             decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
-            child: Icon(AppIcons.trophy, color: context.appColorScheme.textPrimary, size: 24.0.w),
+            child: Icon(AppIcons.trophy, color: context.appColorScheme.textPrimary, size: AppSizes.icon24),
           ),
           Gap.w16,
           Expanded(
@@ -133,17 +134,17 @@ class WeeklyRecapScreen extends StatelessWidget {
               children: [
                 Text(
                   AppStrings.champion.toUpperCase(),
-                  style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, fontSize: 10.0.sp, letterSpacing: 1.5),
+                  style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, fontSize: AppSizes.s10, letterSpacing: 1.5),
                 ),
                 Gap.h4,
                 Text(
                   AppStrings.greatConsistency,
-                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: 13.0.sp),
+                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: AppSizes.s13),
                 ),
               ],
             ),
           ),
-          Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: 16.0.w),
+          Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon16),
         ],
       ),
     );
@@ -161,16 +162,16 @@ class _ModernSmartAlert extends StatelessWidget {
     final String description = "${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}";
 
     return ModernInsightCard(
-      title: 'WEEKLY PULSE',
+      title: AppStrings.weeklyPulse,
       icon: AppIcons.sparkles,
       backgroundColor: context.appColorScheme.cardBackground,
       titleColor: context.appColorScheme.textPrimary,
       iconColor: context.appColorScheme.textPrimary,
-      padding: EdgeInsets.fromLTRB(Responsive.w(20.0), 0, Responsive.w(20.0), Responsive.h(20.0)),
+      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
       footer: Text(
-        'AI SUMMARY',
+        AppStrings.aiSummary,
         textAlign: TextAlign.center,
-        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 10.0.sp, letterSpacing: 1.0),
+        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
       ),
       footerColor: context.appColorScheme.textPrimary,
       child: Text(
@@ -190,9 +191,9 @@ class _RecapDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showRecapDetails(context),
-      footerLabel: 'View Detailed Metrics',
+      footerLabel: AppStrings.viewDetailedMetrics,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -203,9 +204,9 @@ class _RecapDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'RECAP',
+                    AppStrings.recap,
                     style: context.bodyBold.copyWith(
-                      fontSize: 28.0.sp,
+                      fontSize: AppSizes.s28,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
                     ),
@@ -213,10 +214,10 @@ class _RecapDashboardSection extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    '7-Day Average',
+                    AppStrings.sevenDayAverage,
                     style: context.caption.copyWith(
                       color: context.appColorScheme.textMuted,
-                      fontSize: 12.0.sp,
+                      fontSize: AppSizes.s12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -224,7 +225,7 @@ class _RecapDashboardSection extends StatelessWidget {
                   Gap.h24,
                   DashboardVisualizationBar(
                     ratio: (recap?.avgScore ?? 0) / 100,
-                    label: '${recap?.avgScore ?? 0} average gut score',
+                    label: '${recap?.avgScore ?? 0} ${AppStrings.averageGutScore.toLowerCase()}',
                   ),
                 ],
               ),
@@ -237,21 +238,21 @@ class _RecapDashboardSection extends StatelessWidget {
                 children: [
                   DashboardDetailItem(
                     title: recap?.bestDay ?? 'N/A',
-                    subtitle: 'Peak Performance',
+                    subtitle: AppStrings.peakPerformance,
                     icon: AppIcons.trophy,
                     color: context.appColorScheme.textPrimary,
                   ),
                   Gap.h12,
                   DashboardDetailItem(
                     title: '${recap?.foodsLogged ?? 0}',
-                    subtitle: 'Total Logs',
+                    subtitle: AppStrings.totalLogs,
                     icon: AppIcons.clipboardList,
                     color: context.appColorScheme.textPrimary,
                   ),
                   Gap.h12,
                   DashboardDetailItem(
-                    title: insight?.healingTrend?.toUpperCase() ?? 'STABLE',
-                    subtitle: 'Weekly Trend',
+                    title: insight?.healingTrend?.toUpperCase() ?? AppStrings.stable,
+                    subtitle: AppStrings.weeklyTrend,
                     icon: AppIcons.zap,
                     color: context.appColorScheme.textPrimary,
                   ),
@@ -267,25 +268,25 @@ class _RecapDashboardSection extends StatelessWidget {
   void _showRecapDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Weekly Performance',
+      title: AppStrings.weeklyPerformance,
       children: [
         SheetHeroSection(
           title: '${recap?.avgScore ?? 0}',
-          subtitle: 'AVERAGE GUT SCORE',
+          subtitle: AppStrings.averageGutScore,
           color: context.appColorScheme.textPrimary,
           icon: AppIcons.activity,
         ),
         Gap.h32,
-        SheetSectionHeader(title: 'Activity Breakdown', color: context.appColorScheme.textPrimary),
+        SheetSectionHeader(title: AppStrings.activityBreakdown, color: context.appColorScheme.textPrimary),
         DashboardDetailItem(
-          title: '${recap?.foodsLogged ?? 0} Foods Logged',
+          title: '${recap?.foodsLogged ?? 0} ${AppStrings.foodsLogged}',
           subtitle: recap?.loggedSub ?? 'Keep it up!',
           icon: AppIcons.utensils,
           color: context.appColorScheme.textPrimary,
         ),
         Gap.h16,
         DashboardDetailItem(
-          title: 'Best Day: ${recap?.bestDay ?? 'N/A'}',
+          title: '${AppStrings.bestDay}: ${recap?.bestDay ?? 'N/A'}',
           subtitle: AppStrings.bestPerformanceSubtitle,
           icon: AppIcons.trophy,
           color: context.appColorScheme.textPrimary,
@@ -306,9 +307,9 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showDiscoveryDetails(context),
-      footerLabel: 'View All Discoveries',
+      footerLabel: AppStrings.viewAllDiscoveries,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -319,9 +320,9 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'FINDINGS',
+                    AppStrings.findings,
                     style: context.bodyBold.copyWith(
-                      fontSize: 28.0.sp,
+                      fontSize: AppSizes.s28,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
                       color: context.appColorScheme.textPrimary,
@@ -330,22 +331,22 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Weekly Highlights',
+                    AppStrings.weeklyHighlights,
                     style: context.caption.copyWith(
                       color: context.appColorScheme.textMuted,
-                      fontSize: 12.0.sp,
+                      fontSize: AppSizes.s12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
                   Container(
-                    padding: EdgeInsets.all(12.0.w),
+                    padding: EdgeInsets.all(AppSizes.p12),
                     decoration: BoxDecoration(
                       color: context.appColorScheme.border.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: 32.0.w),
+                    child: Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
                   ),
                 ],
               ),
@@ -363,9 +364,9 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
                     success: context.appColorScheme.success,
                   );
                   return Padding(
-                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    padding: EdgeInsets.only(bottom: AppSizes.p12),
                     child: DashboardDetailItem(
-                      title: 'Discovery',
+                      title: AppStrings.discovery,
                       subtitle: h.text,
                       icon: InsightUiUtils.getReactionIcon(h.icon),
                       color: color,
@@ -383,21 +384,21 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
   void _showDiscoveryDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Weekly Discoveries',
+      title: AppStrings.discoveriesTitle,
       children: [
         SheetHeroSection(
-          title: 'INSIGHTS',
-          subtitle: 'AI-DRIVEN FINDINGS',
+          title: AppStrings.insights,
+          subtitle: AppStrings.aiDrivenFindings,
           color: context.appColorScheme.textPrimary,
           icon: AppIcons.sparkles,
         ),
         Gap.h32,
         ...highlights.map((RecapHighlight h) {
           return Padding(
-            padding: EdgeInsets.only(bottom: 16.0.h),
+            padding: EdgeInsets.only(bottom: AppSizes.p16),
             child: DashboardDetailItem(
               title: h.text,
-              subtitle: 'Detected this week',
+              subtitle: AppStrings.detectedThisWeek,
               icon: InsightUiUtils.getReactionIcon(h.icon),
               color: context.appColorScheme.textPrimary,
             ),

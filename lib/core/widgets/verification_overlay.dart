@@ -9,7 +9,8 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
-import '../theme/app_text_styles.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
 
 class VerificationOverlay extends StatelessWidget {
   const VerificationOverlay({super.key});
@@ -44,7 +45,7 @@ class VerificationOverlay extends StatelessWidget {
           subtitle = AppStrings.spillingGutTea;
         }
         return Material(
-          color: Colors.transparent,
+          color: AppPalette.transparent,
           child: Stack(
             children: [
               // 1. Backdrop Blur

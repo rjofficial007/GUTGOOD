@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
@@ -51,11 +52,11 @@ class DashboardCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(28.0.r),
+        borderRadius: BorderRadius.circular(AppSizes.r28),
         border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: AppPalette.black.withValues(alpha: 0.02),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -191,7 +192,7 @@ class GutProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final trackColor = Theme.of(context).brightness == Brightness.light ? const Color(0xFFF0F0F2) : const Color(0xFF1A1C22);
+    final trackColor = Theme.of(context).brightness == Brightness.light ? AppPalette.gray100 : AppPalette.gray800;
 
     final content = Container(
       height: height.h,

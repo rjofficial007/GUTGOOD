@@ -17,15 +17,15 @@ class ModernPatternCard extends StatelessWidget {
     final Color mainColor = context.appColorScheme.textPrimary;
     
     return Container(
-      height: Responsive.h(140.0),
-      padding: EdgeInsets.all(16.0.w),
+      height: 140.0.h,
+      padding: EdgeInsets.all(AppSizes.p16),
       decoration: BoxDecoration(
         color: context.appColorScheme.elevatedSurface,
-        borderRadius: BorderRadius.circular(28.0.r),
+        borderRadius: BorderRadius.circular(AppSizes.r28),
         border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: AppPalette.black.withValues(alpha: 0.02),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),

@@ -9,6 +9,7 @@ import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
@@ -27,6 +28,7 @@ import 'package:upgrader/upgrader.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_icons.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../scanner/presentation/pages/super_scanner_screen.dart';
@@ -117,7 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!await _guardUsage(chatNotifier, authNotifier, isScan: true)) return;
 
     if (!mounted) return;
-    final result = await context.push('/scanner/${mode.name}');
+    final result = await context.push(AppRoutes.scannerPath(mode.name));
     if (result == null || result is! Map || !result.containsKey('bytes')) return;
 
     final bytes = result['bytes'] as Uint8List;
@@ -375,7 +377,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                         if (msg.scanData != null)
                                           ScanResultInlineCard(
                                             scanData: msg.scanData!,
-                                            onViewFullReport: () => context.push('/scan-result', extra: {'scanData': msg.scanData!.toMap()}),
+                                            onViewFullReport: () => context.push(AppRoutes.scanResult, extra: {'scanData': msg.scanData!.toMap()}),
                                           ),
                                       ],
                                     ),
@@ -684,7 +686,7 @@ class _EmptyChatState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(AppAssets.appMascot, width: 120.0.w),
+            Image.asset(AppAssets.appMascot, width: AppSizes.p120),
             Gap.h32,
             Text(AppStrings.heyImGutGood, style: context.headingMd.copyWith(fontWeight: FontWeight.w900)),
             Gap.h12,
@@ -720,20 +722,20 @@ class _ChatShimmerLoading extends StatelessWidget {
           return Align(
             alignment: Alignment.centerRight,
             child: Padding(
-              padding: EdgeInsets.only(bottom: 12.0.h),
+              padding: EdgeInsets.only(bottom: AppSizes.p12),
               child: Shimmer.fromColors(
                 baseColor: baseColor,
                 highlightColor: highlightColor,
                 child: Container(
                   width: context.width * (0.4 + (index % 3) * 0.1),
-                  height: 54.0.h,
+                  height: AppSizes.h54,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppPalette.white,
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(24.0.r),
-                      topRight: Radius.circular(24.0.r),
-                      bottomLeft: Radius.circular(24.0.r),
-                      bottomRight: Radius.circular(8.0.r),
+                      topLeft: Radius.circular(AppSizes.r24),
+                      topRight: Radius.circular(AppSizes.r24),
+                      bottomLeft: Radius.circular(AppSizes.r24),
+                      bottomRight: Radius.circular(AppSizes.r8),
                     ),
                   ),
                 ),
@@ -743,7 +745,7 @@ class _ChatShimmerLoading extends StatelessWidget {
         }
 
         return Padding(
-          padding: EdgeInsets.only(bottom: 12.0.h),
+          padding: EdgeInsets.only(bottom: AppSizes.p12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -751,9 +753,9 @@ class _ChatShimmerLoading extends StatelessWidget {
                 baseColor: baseColor,
                 highlightColor: highlightColor,
                 child: Container(
-                  width: 28.0.w,
-                  height: 28.0.w,
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  width: AppSizes.icon28,
+                  height: AppSizes.icon28,
+                  decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
                 ),
               ),
               Gap.w12,
@@ -762,14 +764,14 @@ class _ChatShimmerLoading extends StatelessWidget {
                 highlightColor: highlightColor,
                 child: Container(
                   width: context.width * (0.5 + (index % 2) * 0.1),
-                  height: 74.0.h,
+                  height: AppSizes.h74,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppPalette.white,
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(8.0.r),
-                      topRight: Radius.circular(24.0.r),
-                      bottomLeft: Radius.circular(24.0.r),
-                      bottomRight: Radius.circular(24.0.r),
+                      topLeft: Radius.circular(AppSizes.r8),
+                      topRight: Radius.circular(AppSizes.r24),
+                      bottomLeft: Radius.circular(AppSizes.r24),
+                      bottomRight: Radius.circular(AppSizes.r24),
                     ),
                   ),
                 ),

@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/notification_preferences.dart';
 import 'package:gutgood/core/services/notification_service.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -152,6 +153,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context: context,
       title: AppStrings.selectTime,
       initialTime: initial,
+      backgroundColor: AppPalette.transparent,
     );
     if (picked != null) onPicked(picked);
   }
@@ -416,13 +418,13 @@ class _ModernTimeTile extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 52.w,
-                  height: 52.w,
+                  width: AppSizes.w52,
+                  height: AppSizes.w52,
                   decoration: BoxDecoration(
                     color: context.appColorScheme.textPrimary,
                     borderRadius: BorderRadius.circular(AppSizes.r18),
                   ),
-                  child: Icon(icon, color: context.appColorScheme.cardBackground, size: 24.w),
+                  child: Icon(icon, color: context.appColorScheme.cardBackground, size: AppSizes.icon24),
                 ),
                 Gap.w16,
                 Expanded(
@@ -431,12 +433,12 @@ class _ModernTimeTile extends StatelessWidget {
                     children: [
                       Text(
                         label.toUpperCase(),
-                        style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 9.sp),
+                        style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: AppSizes.s9),
                       ),
                       Gap.h4,
                       Text(
                         time.format(context),
-                        style: context.headingMd.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 22.sp),
+                        style: context.headingMd.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: AppSizes.s22),
                       ),
                     ],
                   ),

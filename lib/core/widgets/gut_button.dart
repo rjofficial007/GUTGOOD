@@ -63,17 +63,17 @@ class GutButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 18.0.h, horizontal: 24.0.w),
+        padding: EdgeInsets.symmetric(vertical: AppSizes.p18, horizontal: AppSizes.p24),
         decoration: BoxDecoration(
           color: isLoading ? effectiveColor.withValues(alpha: 0.7) : effectiveColor,
-          borderRadius: BorderRadius.circular(18.0.r),
+          borderRadius: BorderRadius.circular(AppSizes.r18),
           border: isOutlined ? Border.all(color: context.appColorScheme.border, width: 1.5) : null,
         ),
         child: Center(
           child: isLoading
               ? SizedBox(
-                  height: 20.0.w,
-                  width: 20.0.w,
+                  height: AppSizes.icon20,
+                  width: AppSizes.icon20,
                   child: CircularProgressIndicator(color: effectiveTextColor, strokeWidth: 2),
                 )
               : Row(
@@ -82,11 +82,11 @@ class GutButton extends StatelessWidget {
                     Text(
                       label,
                       textAlign: TextAlign.center,
-                      style: context.bodyBold.copyWith(color: effectiveTextColor, fontSize: 16.0.sp),
+                      style: context.bodyBold.copyWith(color: effectiveTextColor, fontSize: AppSizes.s16),
                     ),
                     if (suffixIcon != null) ...[
                       Gap.w8, 
-                      Icon(suffixIcon, color: effectiveTextColor, size: 20.0.w)
+                      Icon(suffixIcon, color: effectiveTextColor, size: AppSizes.icon20)
                     ],
                   ],
                 ),

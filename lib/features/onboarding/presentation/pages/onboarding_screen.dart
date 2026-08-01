@@ -7,6 +7,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/selection_option.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -80,7 +81,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (currentUser == null) {
       Log.w('OnboardingScreen: Attempted to finish without active session.');
       setState(() => _isFinishing = false);
-      if (mounted) context.go('/welcome');
+      if (mounted) context.go(AppRoutes.welcome);
       return;
     }
 
@@ -104,7 +105,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (mounted) {
         Future.delayed(Duration.zero, () {
           if (mounted) {
-            context.go('/home/chat');
+            context.go(AppRoutes.chat);
           }
         });
       }

@@ -6,6 +6,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
@@ -113,7 +114,7 @@ class _LoginSheet extends StatelessWidget {
 
         try {
           if (e.attemptedProvider == 'apple.com') {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Confirming your identity again...'), duration: Duration(seconds: 2)));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.confirmingIdentity), duration: Duration(seconds: 2)));
           }
           final shouldMerge = await showMergeConfirmationSheet(context, e.email);
           if (shouldMerge == true && context.mounted) {

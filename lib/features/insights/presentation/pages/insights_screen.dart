@@ -4,6 +4,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -41,7 +42,7 @@ class InsightsScreen extends StatelessWidget {
               actions: [
                 IconButton(
                   icon: Icon(AppIcons.history, color: context.appColorScheme.textPrimary),
-                  onPressed: () => context.push('/insight-history'),
+                  onPressed: () => context.push(AppRoutes.insightHistory),
                 ),
                 Gap.w10,
               ],
@@ -108,7 +109,7 @@ class _MainDashboardSliver extends StatelessWidget {
           final isPremium = await sl<UsageService>().isPremium();
           if (!context.mounted) return;
           if (isPremium) {
-            context.push('/weekly-recap', extra: data.toMap());
+            context.push(AppRoutes.weeklyRecap, extra: data.toMap());
           } else {
             showPaywallBottomSheet(context, onProceedWithLimited: () {});
           }
@@ -119,13 +120,13 @@ class _MainDashboardSliver extends StatelessWidget {
     final visibleSections = sections.whereType<Widget>().toList();
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(Responsive.w(20.0), 0, Responsive.w(20.0), Responsive.h(20.0)),
+      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final isLast = index == visibleSections.length - 1;
             return Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 64.0.h : 32.0.h),
+              padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
               child: visibleSections[index],
             );
           },
@@ -148,11 +149,11 @@ class _ModernSmartAlert extends StatelessWidget {
       backgroundColor: context.appColorScheme.cardBackground,
       titleColor: context.appColorScheme.textPrimary,
       iconColor: context.appColorScheme.textPrimary,
-      padding: EdgeInsets.fromLTRB(Responsive.w(20.0), 0, Responsive.w(20.0), Responsive.h(20.0)),
+      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
       footer: Text(
         '${insight.type.toUpperCase()} INSIGHT',
         textAlign: TextAlign.center,
-        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 10.0.sp, letterSpacing: 1.0),
+        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
       ),
       footerColor: context.appColorScheme.textPrimary,
       child: Text(
@@ -169,7 +170,7 @@ class _InsightsLoadingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(20.0.w, 0, 20.0.w, 10.0.h),
+      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p10),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
           const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.hero),
@@ -191,9 +192,9 @@ class _FocusDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showFocusDetails(context),
-      footerLabel: 'View Goal Progress',
+      footerLabel: AppStrings.viewGoalProgress,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -203,19 +204,19 @@ class _FocusDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'FOCUS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1),
+                    AppStrings.focus,
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Primary Objectives',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    AppStrings.primaryObjectives,
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
-                  const DashboardVisualizationBar(ratio: 0.65, label: 'Tracking stability'),
+                  const DashboardVisualizationBar(ratio: 0.65, label: AppStrings.trackingStability),
                 ],
               ),
             ),
@@ -227,7 +228,7 @@ class _FocusDashboardSection extends StatelessWidget {
                   if (data.healingGoal != null)
                     DashboardDetailItem(
                       title: data.healingGoal!,
-                      subtitle: 'Active Goal',
+                      subtitle: AppStrings.activeGoal,
                       icon: AppIcons.target,
                       color: context.appColorScheme.success,
                     ),
@@ -235,7 +236,7 @@ class _FocusDashboardSection extends StatelessWidget {
                   if (data.triggerSymptom != null)
                     DashboardDetailItem(
                       title: data.triggerSymptom!,
-                      subtitle: 'Symptom Watch',
+                      subtitle: AppStrings.symptomWatch,
                       icon: AppIcons.activity,
                       color: context.appColorScheme.warning,
                     ),
@@ -251,15 +252,15 @@ class _FocusDashboardSection extends StatelessWidget {
   void _showFocusDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Current Focus',
+      title: AppStrings.currentFocus,
       children: [
-        SheetHeroSection(title: 'TARGET', subtitle: 'HEALTH GOALS', color: context.appColorScheme.textPrimary, icon: AppIcons.target),
+        SheetHeroSection(title: AppStrings.target, subtitle: AppStrings.healthGoals, color: context.appColorScheme.textPrimary, icon: AppIcons.target),
         Gap.h32,
         if (data.healingGoal != null)
-          DashboardDetailItem(title: data.healingGoal!, subtitle: 'Your primary healing objective.', icon: AppIcons.leaf, color: context.appColorScheme.success),
+          DashboardDetailItem(title: data.healingGoal!, subtitle: AppStrings.primaryHealingObjective, icon: AppIcons.leaf, color: context.appColorScheme.success),
         Gap.h16,
         if (data.triggerSymptom != null)
-          DashboardDetailItem(title: data.triggerSymptom!, subtitle: 'Symptom being tracked for patterns.', icon: AppIcons.alertTriangle, color: context.appColorScheme.warning),
+          DashboardDetailItem(title: data.triggerSymptom!, subtitle: AppStrings.symptomTrackedForPatterns, icon: AppIcons.alertTriangle, color: context.appColorScheme.warning),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -276,9 +277,9 @@ class _RecoveryDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showRecoveryDetails(context),
-      footerLabel: 'View Recommended Foods',
+      footerLabel: AppStrings.viewRecommendedFoods,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -288,19 +289,19 @@ class _RecoveryDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'HEAL',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
+                    AppStrings.heal,
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Recovery Protocol',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    AppStrings.recoveryProtocol,
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
-                  const DashboardVisualizationBar(ratio: 0.8, label: 'High healing density'),
+                  const DashboardVisualizationBar(ratio: 0.8, label: AppStrings.highHealingDensity),
                 ],
               ),
             ),
@@ -310,11 +311,11 @@ class _RecoveryDashboardSection extends StatelessWidget {
               child: Column(
                 children: [
                   ...data.healingFoods.take(2).map((f) => Padding(
-                        padding: EdgeInsets.only(bottom: 12.0.h),
-                        child: DashboardDetailItem(title: f.name, subtitle: 'Healing', icon: AppIcons.leaf, color: context.appColorScheme.success),
+                        padding: EdgeInsets.only(bottom: AppSizes.p12),
+                        child: DashboardDetailItem(title: f.name, subtitle: AppStrings.healing, icon: AppIcons.leaf, color: context.appColorScheme.success),
                       )),
                   if (data.healingFoods.isEmpty && data.triggerFoods.isNotEmpty)
-                    DashboardDetailItem(title: data.triggerFoods.first.name, subtitle: 'Trigger', icon: AppIcons.alertCircle, color: context.appColorScheme.error),
+                    DashboardDetailItem(title: data.triggerFoods.first.name, subtitle: AppStrings.trigger, icon: AppIcons.alertCircle, color: context.appColorScheme.error),
                 ],
               ),
             ),
@@ -327,12 +328,12 @@ class _RecoveryDashboardSection extends StatelessWidget {
   void _showRecoveryDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Recommendations',
+      title: AppStrings.recommendations,
       children: [
-        SheetHeroSection(title: 'HEAL', subtitle: 'RECOVERY PROTOCOL', color: context.appColorScheme.textPrimary, icon: AppIcons.leaf),
+        SheetHeroSection(title: AppStrings.heal, subtitle: AppStrings.recoveryProtocol, color: context.appColorScheme.textPrimary, icon: AppIcons.leaf),
         Gap.h32,
         if (data.healingFoods.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Foods to Prioritize', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.foodsToPrioritize, color: context.appColorScheme.textPrimary),
           ...data.healingFoods.map((f) => Padding(
                 padding: EdgeInsets.only(bottom: 16.0.h),
                 child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.checkCircle, color: context.appColorScheme.textPrimary),
@@ -340,7 +341,7 @@ class _RecoveryDashboardSection extends StatelessWidget {
           Gap.h24,
         ],
         if (data.triggerFoods.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Foods to Minimize', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.foodsToMinimize, color: context.appColorScheme.textPrimary),
           ...data.triggerFoods.map((f) => Padding(
                 padding: EdgeInsets.only(bottom: 16.0.h),
                 child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle, color: context.appColorScheme.textPrimary),
@@ -363,9 +364,9 @@ class _TrendsDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showTrendDetails(context),
-      footerLabel: 'View Pattern Analysis',
+      footerLabel: AppStrings.viewPatternAnalysis,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -375,19 +376,19 @@ class _TrendsDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'TRENDS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1),
+                    AppStrings.trends.toUpperCase(),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Detected Patterns',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    AppStrings.detectedPatterns,
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
-                  const DashboardVisualizationBar(ratio: 0.4, label: 'Behavioral variance'),
+                  const DashboardVisualizationBar(ratio: 0.4, label: AppStrings.behavioralVariance),
                 ],
               ),
             ),
@@ -398,8 +399,8 @@ class _TrendsDashboardSection extends StatelessWidget {
                 children: patterns.take(2).map((p) {
                   final color = InsightUiUtils.getPatternColor(p.icon);
                   return Padding(
-                    padding: EdgeInsets.only(bottom: 12.0.h),
-                    child: DashboardDetailItem(title: p.title, subtitle: 'Observation', icon: InsightUiUtils.getReactionIcon(p.icon), color: color),
+                    padding: EdgeInsets.only(bottom: AppSizes.p12),
+                    child: DashboardDetailItem(title: p.title, subtitle: AppStrings.observation, icon: InsightUiUtils.getReactionIcon(p.icon), color: color),
                   );
                 }).toList(),
               ),
@@ -413,12 +414,12 @@ class _TrendsDashboardSection extends StatelessWidget {
   void _showTrendDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Detected Patterns',
+      title: AppStrings.detectedPatterns,
       children: [
-        SheetHeroSection(title: 'TRENDS', subtitle: 'BEHAVIORAL ANALYSIS', color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
+        SheetHeroSection(title: AppStrings.trends, subtitle: AppStrings.behavioralAnalysis, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...patterns.map((p) => Padding(
-              padding: EdgeInsets.only(bottom: 16.0.h),
+              padding: EdgeInsets.only(bottom: AppSizes.p16),
               child: DashboardDetailItem(
                 title: p.title,
                 subtitle: p.description,
@@ -442,9 +443,9 @@ class _HighlightsDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showHighlightDetails(context),
-      footerLabel: 'View Performance Highs',
+      footerLabel: AppStrings.viewPerformanceHighs,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -454,19 +455,19 @@ class _HighlightsDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'STATS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
+                    AppStrings.stats,
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Performance Highs',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    AppStrings.performanceHighs,
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
-                  const DashboardVisualizationBar(ratio: 0.75, label: 'Optimization efficiency'),
+                  const DashboardVisualizationBar(ratio: 0.75, label: AppStrings.optimizationEfficiency),
                 ],
               ),
             ),
@@ -478,7 +479,7 @@ class _HighlightsDashboardSection extends StatelessWidget {
                   if (data.topHealing != null)
                     DashboardDetailItem(
                       title: data.topHealing!.food,
-                      subtitle: 'Best for gut',
+                      subtitle: AppStrings.bestForGut,
                       icon: InsightUiUtils.getReactionIcon(data.topHealing?.emoji ?? ''),
                       color: context.appColorScheme.success,
                     ),
@@ -486,7 +487,7 @@ class _HighlightsDashboardSection extends StatelessWidget {
                   if (data.topTrigger != null)
                     DashboardDetailItem(
                       title: data.topTrigger!.food,
-                      subtitle: 'Avoid next time',
+                      subtitle: AppStrings.avoidNextTime,
                       icon: InsightUiUtils.getReactionIcon(data.topTrigger?.emoji ?? ''),
                       color: context.appColorScheme.error,
                     ),
@@ -502,12 +503,12 @@ class _HighlightsDashboardSection extends StatelessWidget {
   void _showHighlightDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Performance Highlights',
+      title: AppStrings.performanceHighlights,
       children: [
-        SheetHeroSection(title: 'BIO-STATS', subtitle: 'DIETARY PERFORMANCE', color: context.appColorScheme.textPrimary, icon: AppIcons.trophy),
+        SheetHeroSection(title: AppStrings.bioStats, subtitle: AppStrings.performanceAnalysis, color: context.appColorScheme.textPrimary, icon: AppIcons.trophy),
         Gap.h32,
         if (data.topHealing != null) ...[
-          SheetSectionHeader(title: 'Top Performer', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.topPerformer, color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: data.topHealing!.food,
             subtitle: data.topHealing!.effects,
@@ -517,7 +518,7 @@ class _HighlightsDashboardSection extends StatelessWidget {
           Gap.h24,
         ],
         if (data.topTrigger != null) ...[
-          SheetSectionHeader(title: 'Critical Alert', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.criticalTrigger, color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: data.topTrigger!.food,
             subtitle: data.topTrigger!.effects,
@@ -544,9 +545,9 @@ class _ReactionsDashboardSection extends StatelessWidget {
 
     return DashboardCard(
       onFooterTap: () => _showReactionDetails(context),
-      footerLabel: 'View Recent Reactions',
+      footerLabel: AppStrings.viewRecentReactions,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -556,19 +557,19 @@ class _ReactionsDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'REACTIONS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
+                    AppStrings.reactions.toUpperCase(),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Body Responses',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    AppStrings.bodyResponses,
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
-                  const DashboardVisualizationBar(ratio: 0.9, label: 'Response sensitivity'),
+                  const DashboardVisualizationBar(ratio: 0.9, label: AppStrings.responseSensitivity),
                 ],
               ),
             ),
@@ -579,7 +580,7 @@ class _ReactionsDashboardSection extends StatelessWidget {
                 children: validImpacts.take(2).map((i) {
                   final isNegative = i.impactType == 'negative';
                   return Padding(
-                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    padding: EdgeInsets.only(bottom: AppSizes.p12),
                     child: DashboardDetailItem(
                       title: i.food,
                       subtitle: i.timeframeLabel,
@@ -599,14 +600,14 @@ class _ReactionsDashboardSection extends StatelessWidget {
   void _showReactionDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Body Reactions',
+      title: AppStrings.bodyReactions,
       children: [
-        SheetHeroSection(title: 'BIO-FEEDBACK', subtitle: 'FOOD-BODY MAPPING', color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
+        SheetHeroSection(title: AppStrings.bioFeedback, subtitle: AppStrings.foodBodyMapping, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...impacts.where((i) => i.food.isNotEmpty && i.food != 'Unknown').map((i) {
           final isNegative = i.impactType == 'negative';
           return Padding(
-            padding: EdgeInsets.only(bottom: 16.0.h),
+            padding: EdgeInsets.only(bottom: AppSizes.p16),
             child: DashboardDetailItem(
               title: i.food,
               subtitle: '${i.timeframeLabel}: ${i.effect}',

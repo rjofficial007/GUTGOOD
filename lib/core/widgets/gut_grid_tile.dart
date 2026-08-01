@@ -69,11 +69,11 @@ class GutGridTile extends StatelessWidget {
         padding: EdgeInsets.all(Responsive.w(16.0)),
         decoration: BoxDecoration(
           color: backgroundColor ?? context.appColorScheme.elevatedSurface,
-          borderRadius: BorderRadius.circular(Responsive.r(24.0)),
+          borderRadius: BorderRadius.circular(AppSizes.r24),
           border: !isFullVibrant ? Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)) : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
+              color: AppPalette.black.withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

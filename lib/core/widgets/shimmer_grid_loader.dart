@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:shimmer/shimmer.dart';
@@ -83,30 +84,30 @@ class ShimmerGridLoader extends StatelessWidget {
 
   Widget _buildGridSkeleton(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16.0.w),
+      padding: EdgeInsets.all(AppSizes.p16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28.0.r),
+        color: AppPalette.white,
+        borderRadius: BorderRadius.circular(AppSizes.r28),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 32.0.w,
-            height: 32.0.w,
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            width: AppSizes.p32,
+            height: AppSizes.p32,
+            decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
           ),
           const Spacer(),
           Container(
             width: 60.0.w,
             height: 12.0.h,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
+            decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r4)),
           ),
           Gap.h8,
           Container(
             width: double.infinity,
             height: 10.0.h,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
+            decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r4)),
           ),
         ],
       ),
@@ -115,15 +116,15 @@ class ShimmerGridLoader extends StatelessWidget {
 
   Widget _buildListSkeleton(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.0.h),
-      padding: EdgeInsets.all(12.0.w),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20.0.r)),
+      margin: EdgeInsets.only(bottom: AppSizes.p12),
+      padding: EdgeInsets.all(AppSizes.p12),
+      decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r20)),
       child: Row(
         children: [
           Container(
-            width: 52.0.w,
-            height: 52.0.w,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12.0.r)),
+            width: AppSizes.p56 - AppSizes.p4,
+            height: AppSizes.p56 - AppSizes.p4,
+            decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r12)),
           ),
           Gap.w16,
           Expanded(
@@ -132,24 +133,24 @@ class ShimmerGridLoader extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 140.0.w,
+                  width: AppSizes.w140,
                   height: 14.0.h,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
+                  decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r4)),
                 ),
                 Gap.h8,
                 Container(
                   width: 100.0.w,
                   height: 10.0.h,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
+                  decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r4)),
                 ),
               ],
             ),
           ),
           Gap.w12,
           Container(
-            width: 44.0.w,
-            height: 44.0.w,
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            width: AppSizes.p44,
+            height: AppSizes.p44,
+            decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
           ),
         ],
       ),
@@ -158,40 +159,40 @@ class ShimmerGridLoader extends StatelessWidget {
 
   Widget _buildHeroSkeleton(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32.0.r)),
+      decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r32)),
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(20.0.w, 20.0.h, 20.0.w, 12.0.h),
+            padding: EdgeInsets.fromLTRB(AppSizes.p20, AppSizes.p20, AppSizes.p20, AppSizes.p12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    Container(width: 20.w, height: 20.w, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                    Container(width: AppSizes.icon20, height: AppSizes.icon20, decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle)),
                     Gap.w12,
-                    Container(width: 100.w, height: 10.h, color: Colors.white),
+                    Container(width: 100.0.w, height: 10.0.h, color: AppPalette.white),
                   ],
                 ),
-                Container(width: 40.w, height: 18.h, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(100))),
+                Container(width: AppSizes.icon40, height: 18.h, decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r100))),
               ],
             ),
           ),
           Expanded(
             child: Center(
               child: Container(
-                width: 160.0.w,
-                height: 160.0.w,
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                width: AppSizes.p120 + AppSizes.p40,
+                height: AppSizes.p120 + AppSizes.p40,
+                decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
               ),
             ),
           ),
           Container(
-            height: 44.0.h,
+            height: AppSizes.p44,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32.0.r), bottomRight: Radius.circular(32.0.r)),
+              color: AppPalette.white.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(AppSizes.r32), bottomRight: Radius.circular(AppSizes.r32)),
             ),
           ),
         ],
@@ -201,46 +202,46 @@ class ShimmerGridLoader extends StatelessWidget {
 
   Widget _buildCardSkeleton(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32.0.r)),
+      decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r32)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(20.0.w, 20.0.h, 20.0.w, 12.0.h),
+            padding: EdgeInsets.fromLTRB(AppSizes.p20, AppSizes.p20, AppSizes.p20, AppSizes.p12),
             child: Row(
               children: [
                 Container(
-                  width: 20.0.w,
-                  height: 20.0.w,
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  width: AppSizes.icon20,
+                  height: AppSizes.icon20,
+                  decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
                 ),
                 Gap.w12,
                 Container(
-                  width: 120.0.w,
+                  width: AppSizes.p120,
                   height: 10.0.h,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
+                  decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r4)),
                 ),
               ],
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.0.w),
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(width: double.infinity, height: 12.h, color: Colors.white),
+                Container(width: double.infinity, height: 12.h, color: AppPalette.white),
                 Gap.h8,
-                Container(width: 200.w, height: 12.h, color: Colors.white),
+                Container(width: 200.w, height: 12.h, color: AppPalette.white),
               ],
             ),
           ),
           const Spacer(),
           Container(
-            height: 36.0.h,
+            height: AppSizes.p36,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32.0.r), bottomRight: Radius.circular(32.0.r)),
+              color: AppPalette.white.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(AppSizes.r32), bottomRight: Radius.circular(AppSizes.r32)),
             ),
           ),
         ],
@@ -250,7 +251,7 @@ class ShimmerGridLoader extends StatelessWidget {
 
   List<Widget> _buildRecapSkeleton(BuildContext context) {
     return [
-      Center(child: Container(width: 120.w, height: 24.h, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(100)))),
+      Center(child: Container(width: AppSizes.p120, height: AppSizes.p24, decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r100)))),
       Gap.h24,
       _buildHeroSkeleton(context),
       Gap.h32,
@@ -267,7 +268,7 @@ class ShimmerGridLoader extends StatelessWidget {
       // Product Hero
       Container(
         height: 140.h,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24.r)),
+        decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r24)),
       ),
       Gap.h32,
       // Impact Section

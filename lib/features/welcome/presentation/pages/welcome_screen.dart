@@ -6,6 +6,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
@@ -84,7 +85,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final authNotifier = context.watch<GutAuthNotifier>();
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: context.appColorScheme.cardBackground,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -100,7 +101,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       // Logo
                       ClipRRect(
                         borderRadius: BorderRadius.circular(AppSizes.r20),
-                        child: Image.asset(AppAssets.appIcon, height: 100.0.w, width: 100.0.w),
+                        child: Image.asset(AppAssets.appIcon, height: AppSizes.w100, width: AppSizes.w100),
                       ).animate().fadeIn(duration: 600.ms).scale(delay: 0.ms, duration: 600.ms, curve: Curves.easeOutBack),
                       Gap.h40,
 
@@ -112,7 +113,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             Text(
                               AppStrings.foodIsMedicine,
                               textAlign: TextAlign.center,
-                              style: AppTextStyles.displayLg.copyWith(fontSize: 60.0.sp, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
+                              style: AppTextStyles.displayLg.copyWith(fontSize: AppSizes.s60, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
                             ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
                             Gap.h24,
                             Text(
@@ -127,7 +128,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       Text(
                         AppStrings.healthDisclaimer,
                         textAlign: TextAlign.center,
-                        style: AppTextStyles.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 10.0.sp),
+                        style: AppTextStyles.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s10),
                       ).animate().fadeIn(delay: 600.ms, duration: 800.ms),
                       Gap.h20,
                       // Buttons

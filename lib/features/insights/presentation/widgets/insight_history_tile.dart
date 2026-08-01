@@ -22,21 +22,21 @@ class InsightHistoryTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.only(bottom: 12.0.h),
-        padding: EdgeInsets.all(12.0.w),
+        margin: EdgeInsets.only(bottom: AppSizes.p12),
+        padding: EdgeInsets.all(AppSizes.p12),
         decoration: BoxDecoration(
           color: context.appColorScheme.elevatedSurface,
-          borderRadius: BorderRadius.circular(20.0.r),
+          borderRadius: BorderRadius.circular(AppSizes.r20),
           border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
             // 1. Icon Container
             Container(
-              width: 52.0.w,
-              height: 52.0.w,
-              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12.0.r)),
-              child: Icon(_getIconForType(type), color: effectColor, size: 24.0.w),
+              width: AppSizes.w52,
+              height: AppSizes.w52,
+              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(AppSizes.r12)),
+              child: Icon(_getIconForType(type), color: effectColor, size: AppSizes.icon24),
             ),
             Gap.w16,
             // 2. Info (Title, Type, Time)
@@ -46,7 +46,7 @@ class InsightHistoryTile extends StatelessWidget {
                 children: [
                   Text(
                     insight.topInsight?.title ?? 'Analysis Complete',
-                    style: context.bodyBold.copyWith(fontSize: 15.0.sp),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s15),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -63,8 +63,8 @@ class InsightHistoryTile extends StatelessWidget {
             Gap.w12,
             // 3. Score Badge (Circular Progress)
             SizedBox(
-              width: 52.0.w,
-              height: 52.0.w,
+              width: AppSizes.w52,
+              height: AppSizes.w52,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -77,7 +77,7 @@ class InsightHistoryTile extends StatelessWidget {
                   ),
                   Text(
                     '${insight.gutScore}',
-                    style: context.bodyBold.copyWith(fontSize: 13.0.sp, fontWeight: FontWeight.w900),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s13, fontWeight: FontWeight.w900),
                   ),
                 ],
               ),

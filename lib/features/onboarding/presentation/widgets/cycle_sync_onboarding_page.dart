@@ -46,10 +46,10 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                     child: Row(
                       children: [
                         Container(
-                          width: 42.0.w,
-                          height: 42.0.w,
+                          width: AppSizes.w42,
+                          height: AppSizes.w42,
                           decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(AppSizes.r14)),
-                          child: Icon(AppIcons.flower, color: context.appColorScheme.textPrimary, size: 20.0.w),
+                          child: Icon(AppIcons.flower, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
                         ),
                         Gap.w14,
                         Expanded(
@@ -58,7 +58,7 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                             children: [
                               Text(AppStrings.cycleSync, style: context.bodyBold),
                               Text(
-                                "Personalize insights based on your cycle phase",
+                                AppStrings.personalizeInsightsPhase,
                                 style: context.bodySm.copyWith(color: context.appColorScheme.textMuted),
                               ),
                             ],
@@ -80,8 +80,8 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                     Text(AppStrings.selectCyclePhase, style: context.bodyBold).animate().fadeIn(duration: 300.ms),
                     Gap.h16,
                     Wrap(
-                      spacing: 10.0.w,
-                      runSpacing: 10.0.h,
+                      spacing: AppSizes.p10,
+                      runSpacing: AppSizes.p10,
                       children: cyclePhases.map((phase) {
                         final isSelected = selectedCyclePhase == phase;
                         return GutChip(icon: AppIcons.flower, label: phase, isSelected: isSelected, onTap: () => onPhaseSelected(phase));

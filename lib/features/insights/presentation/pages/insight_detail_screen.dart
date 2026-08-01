@@ -67,13 +67,13 @@ class InsightDetailScreen extends StatelessWidget {
             showBrandingIcon: false,
           ),
           SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: Responsive.h(10.0)),
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final isLast = index == visibleSections.length - 1;
                   return Padding(
-                    padding: EdgeInsets.only(bottom: isLast ? 64.0.h : 32.0.h),
+                    padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
                     child: visibleSections[index],
                   );
                 },
@@ -95,9 +95,9 @@ class _TrendsDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showTrendDetails(context),
-      footerLabel: 'View Detailed Patterns',
+      footerLabel: AppStrings.viewDetailedPatterns,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -107,19 +107,19 @@ class _TrendsDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'TRENDS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
+                    AppStrings.trends,
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Observed Patterns',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    AppStrings.observedPatterns,
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
-                  const DashboardVisualizationBar(ratio: 0.45, label: 'Pattern consistency'),
+                  const DashboardVisualizationBar(ratio: 0.45, label: AppStrings.patternConsistency),
                 ],
               ),
             ),
@@ -130,10 +130,10 @@ class _TrendsDashboardSection extends StatelessWidget {
                 children: patterns.take(2).map((p) {
                   final color = InsightUiUtils.getPatternColor(p.icon);
                   return Padding(
-                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    padding: EdgeInsets.only(bottom: AppSizes.p12),
                     child: DashboardDetailItem(
                       title: p.title,
-                      subtitle: 'Observation',
+                      subtitle: AppStrings.observation,
                       icon: InsightUiUtils.getReactionIcon(p.icon),
                       color: color,
                     ),
@@ -150,12 +150,12 @@ class _TrendsDashboardSection extends StatelessWidget {
   void _showTrendDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Observed Patterns',
+      title: AppStrings.observedPatterns,
       children: [
-        SheetHeroSection(title: 'TRENDS', subtitle: 'BEHAVIORAL ANALYSIS', color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
+        SheetHeroSection(title: AppStrings.trends, subtitle: AppStrings.behavioralAnalysis, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...patterns.map((p) => Padding(
-              padding: EdgeInsets.only(bottom: 16.0.h),
+              padding: EdgeInsets.only(bottom: AppSizes.p16),
               child: DashboardDetailItem(
                 title: p.title,
                 subtitle: p.description,
@@ -164,7 +164,7 @@ class _TrendsDashboardSection extends StatelessWidget {
               ),
             )),
         Gap.h32,
-        GutButton(label: 'Got it, thanks', onTap: () => Navigator.pop(context)),
+        GutButton(label: AppStrings.gotItThanks, onTap: () => Navigator.pop(context)),
         Gap.h24,
       ],
     );
@@ -179,9 +179,9 @@ class _StatsDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showStatDetails(context),
-      footerLabel: 'View Power Sources',
+      footerLabel: AppStrings.viewPowerSources,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -191,19 +191,19 @@ class _StatsDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'STATS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
+                    AppStrings.stats,
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Highlights',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    AppStrings.highlights,
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
-                  const DashboardVisualizationBar(ratio: 0.85, label: 'Dietary efficiency'),
+                  const DashboardVisualizationBar(ratio: 0.85, label: AppStrings.dietaryEfficiency),
                 ],
               ),
             ),
@@ -215,7 +215,7 @@ class _StatsDashboardSection extends StatelessWidget {
                   if (insight.topHealing != null)
                     DashboardDetailItem(
                       title: insight.topHealing!.food,
-                      subtitle: 'Power Source',
+                      subtitle: AppStrings.powerSource,
                       icon: InsightUiUtils.getReactionIcon(insight.topHealing!.emoji),
                       color: context.appColorScheme.success,
                     ),
@@ -223,7 +223,7 @@ class _StatsDashboardSection extends StatelessWidget {
                   if (insight.topTrigger != null)
                     DashboardDetailItem(
                       title: insight.topTrigger!.food,
-                      subtitle: 'Trigger Alert',
+                      subtitle: AppStrings.triggerAlert,
                       icon: InsightUiUtils.getReactionIcon(insight.topTrigger!.emoji),
                       color: context.appColorScheme.error,
                     ),
@@ -239,12 +239,12 @@ class _StatsDashboardSection extends StatelessWidget {
   void _showStatDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Weekly Highlights',
+      title: AppStrings.weeklyHighlights,
       children: [
-        SheetHeroSection(title: 'BIO-STATS', subtitle: 'PERFORMANCE ANALYSIS', color: context.appColorScheme.textPrimary, icon: AppIcons.trophy),
+        SheetHeroSection(title: AppStrings.bioStats, subtitle: AppStrings.performanceAnalysis, color: context.appColorScheme.textPrimary, icon: AppIcons.trophy),
         Gap.h32,
         if (insight.topHealing != null) ...[
-          SheetSectionHeader(title: 'Top Healing Food', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.topHealingFood, color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: insight.topHealing!.food,
             subtitle: insight.topHealing!.effects,
@@ -254,7 +254,7 @@ class _StatsDashboardSection extends StatelessWidget {
           Gap.h24,
         ],
         if (insight.topTrigger != null) ...[
-          SheetSectionHeader(title: 'Critical Trigger', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.criticalTrigger, color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: insight.topTrigger!.food,
             subtitle: insight.topTrigger!.effects,
@@ -264,7 +264,7 @@ class _StatsDashboardSection extends StatelessWidget {
           Gap.h24,
         ],
         Gap.h32,
-        GutButton(label: 'Got it, thanks', onTap: () => Navigator.pop(context)),
+        GutButton(label: AppStrings.gotItThanks, onTap: () => Navigator.pop(context)),
         Gap.h24,
       ],
     );
@@ -281,9 +281,9 @@ class _ReactionsDashboardSection extends StatelessWidget {
 
     return DashboardCard(
       onFooterTap: () => _showReactionDetails(context),
-      footerLabel: 'View Recent Feedback',
+      footerLabel: AppStrings.viewRecentFeedback,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -293,19 +293,19 @@ class _ReactionsDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'REACTIONS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
+                    AppStrings.reactions,
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Body Feedback',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 12.0.sp),
+                    AppStrings.bodyFeedback,
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
-                  const DashboardVisualizationBar(ratio: 0.7, label: 'Response tracking'),
+                  const DashboardVisualizationBar(ratio: 0.7, label: AppStrings.responseTracking),
                 ],
               ),
             ),
@@ -316,7 +316,7 @@ class _ReactionsDashboardSection extends StatelessWidget {
                 children: validImpacts.take(2).map((i) {
                   final isNegative = i.impactType == 'negative';
                   return Padding(
-                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    padding: EdgeInsets.only(bottom: AppSizes.p12),
                     child: DashboardDetailItem(
                       title: i.food,
                       subtitle: i.timeframeLabel,
@@ -336,14 +336,14 @@ class _ReactionsDashboardSection extends StatelessWidget {
   void _showReactionDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Body Reactions',
+      title: AppStrings.bodyReactions,
       children: [
-        SheetHeroSection(title: 'BIO-FEEDBACK', subtitle: 'REACTION MAPPING', color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
+        SheetHeroSection(title: AppStrings.bioFeedback, subtitle: AppStrings.reactionMapping, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...impacts.map((i) {
           final isNegative = i.impactType == 'negative';
           return Padding(
-            padding: EdgeInsets.only(bottom: 16.0.h),
+            padding: EdgeInsets.only(bottom: AppSizes.p16),
             child: DashboardDetailItem(
               title: i.food,
               subtitle: '${i.timeframeLabel}: ${i.effect}',
@@ -353,7 +353,7 @@ class _ReactionsDashboardSection extends StatelessWidget {
           );
         }),
         Gap.h32,
-        GutButton(label: 'Got it, thanks', onTap: () => Navigator.pop(context)),
+        GutButton(label: AppStrings.gotItThanks, onTap: () => Navigator.pop(context)),
         Gap.h24,
       ],
     );

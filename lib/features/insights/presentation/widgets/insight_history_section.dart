@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
@@ -16,7 +17,7 @@ class InsightHistorySection extends StatelessWidget {
   Widget build(BuildContext context) {
     return GutSection(
       title: title,
-      topPadding: 8.0.h,
+      topPadding: AppSizes.p8,
       children: insights.map((insight) {
         return InsightHistoryTile(insight: insight, onTap: () => onTileTap(insight));
       }).toList(),

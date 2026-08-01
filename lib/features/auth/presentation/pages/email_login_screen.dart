@@ -9,6 +9,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/features/auth/data/utils/auth_error_handler.dart';
@@ -252,7 +253,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _SocialIcon(assetPath: AppAssets.appleLogo, imageColor: isDark ? Colors.white : null, onTap: authNotifier.isLoading ? () {} : () => authNotifier.signInWithApple()),
+              _SocialIcon(assetPath: AppAssets.appleLogo, imageColor: isDark ? AppPalette.white : null, onTap: authNotifier.isLoading ? () {} : () => authNotifier.signInWithApple()),
               SizedBox(width: AppSizes.p16),
               _SocialIcon(assetPath: AppAssets.googleLogo, onTap: authNotifier.isLoading ? () {} : () => authNotifier.signInWithGoogle()),
             ],

@@ -21,10 +21,13 @@ class AppSizes {
   static double get p32 => 32.0.w;
   static double get p36 => 36.0.w;
   static double get p40 => 40.0.w;
+  static double get p44 => 44.0.w;
   static double get p48 => 48.0.w;
   static double get p56 => 56.0.w;
   static double get p64 => 64.0.w;
   static double get p80 => 80.0.w;
+  static double get p120 => 120.0.w;
+  static double get p180 => 180.0.w;
 
   // Border Radius
   static double get r2 => 2.0.w;
@@ -56,9 +59,41 @@ class AppSizes {
   static double get icon28 => 28.0.w;
   static double get icon32 => 32.0.w;
   static double get icon40 => 40.0.w;
+  static double get icon44 => 44.0.w;
   static double get icon48 => 48.0.w;
+
+  static double get icon60 => 60.0.w;
   static double get icon64 => 64.0.w;
   static double get icon80 => 80.0.w;
+
+  // Text Sizes (sp)
+  static double get s8 => 8.0.sp;
+  static double get s9 => 9.0.sp;
+  static double get s10 => 10.0.sp;
+  static double get s11 => 11.0.sp;
+  static double get s12 => 12.0.sp;
+  static double get s13 => 13.0.sp;
+  static double get s14 => 14.0.sp;
+  static double get s15 => 15.0.sp;
+  static double get s16 => 16.0.sp;
+  static double get s18 => 18.0.sp;
+  static double get s20 => 20.0.sp;
+  static double get s22 => 22.0.sp;
+  static double get s24 => 24.0.sp;
+
+  static double get s28 => 28.0.sp;
+  static double get s32 => 32.0.sp;
+  static double get s60 => 60.0.sp;
+
+  // Misc Heights/Widths
+  static double get h54 => 54.0.h;
+  static double get h74 => 74.0.h;
+  static double get w100 => 100.0.w;
+  static double get w140 => 140.0.w;
+  static double get w52 => 52.0.w;
+
+  static double get w80 => 80.0.w;
+  static double get w42 => 42.0.w;
 }
 
 class Gap {

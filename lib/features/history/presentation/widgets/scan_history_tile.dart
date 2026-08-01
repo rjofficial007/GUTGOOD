@@ -22,22 +22,22 @@ class ScanHistoryTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.only(bottom: 12.0.h),
-        padding: EdgeInsets.all(12.0.w),
+        margin: EdgeInsets.only(bottom: AppSizes.p12),
+        padding: EdgeInsets.all(AppSizes.p12),
         decoration: BoxDecoration(
           color: context.appColorScheme.elevatedSurface,
-          borderRadius: BorderRadius.circular(20.0.r),
+          borderRadius: BorderRadius.circular(AppSizes.r20),
           border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
             // 1. Product Image
             Container(
-              width: 52.0.w,
-              height: 52.0.w,
-              decoration: BoxDecoration(color: context.appColorScheme.cardBackground, borderRadius: BorderRadius.circular(12.0.r)),
+              width: AppSizes.w52,
+              height: AppSizes.w52,
+              decoration: BoxDecoration(color: context.appColorScheme.cardBackground, borderRadius: BorderRadius.circular(AppSizes.r12)),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12.0.r),
+                borderRadius: BorderRadius.circular(AppSizes.r12),
                 child: displayImageUrl != null
                     ? Hero(
                         tag: 'scan_image_${scanResult.barcode ?? scanResult.productName}_${time?.millisecondsSinceEpoch}',
@@ -47,10 +47,10 @@ class ScanHistoryTile extends StatelessWidget {
                           placeholder: (context, url) => Center(
                             child: CircularProgressIndicator(strokeWidth: 2.w, color: context.appColorScheme.textMuted),
                           ),
-                          errorWidget: (_, _, _) => Icon(AppIcons.package, size: 24.0.w, color: context.appColorScheme.textMuted),
+                          errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
                         ),
                       )
-                    : Icon(AppIcons.package, size: 24.0.w, color: context.appColorScheme.textMuted),
+                    : Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
               ),
             ),
             Gap.w16,
@@ -61,7 +61,7 @@ class ScanHistoryTile extends StatelessWidget {
                 children: [
                   Text(
                     scanResult.productName,
-                    style: context.bodyBold.copyWith(fontSize: 15.0.sp),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s15),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -78,8 +78,8 @@ class ScanHistoryTile extends StatelessWidget {
             Gap.w12,
             // 3. Score Badge (Circular Progress)
             SizedBox(
-              width: 52.0.w,
-              height: 52.0.w,
+              width: AppSizes.w52,
+              height: AppSizes.w52,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -92,7 +92,7 @@ class ScanHistoryTile extends StatelessWidget {
                   ),
                   Text(
                     '${scanResult.score}',
-                    style: context.bodyBold.copyWith(fontSize: 13.0.sp, fontWeight: FontWeight.w900),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s13, fontWeight: FontWeight.w900),
                   ),
                 ],
               ),

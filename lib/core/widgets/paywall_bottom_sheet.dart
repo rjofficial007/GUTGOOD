@@ -24,7 +24,7 @@ Future<void> showPaywallBottomSheet(BuildContext context, {required VoidCallback
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+    backgroundColor: AppPalette.transparent,
     builder: (context) => GutPaywallBottomSheet(onProceedWithLimited: onProceedWithLimited),
   );
 }
@@ -208,19 +208,19 @@ class GutPaywallBottomSheet extends StatelessWidget {
                       const TextSpan(text: '🔒 Secure payment. Cancel anytime.\n'),
                       TextSpan(
                         text: 'Restore purchases',
-                        style: const TextStyle(decoration: TextDecoration.underline),
+                        style: context.underline,
                         recognizer: TapGestureRecognizer()..onTap = () => purchaseProvider.restorePurchases(),
                       ),
                       const TextSpan(text: '  |  '),
                       TextSpan(
                         text: 'Terms',
-                        style: const TextStyle(decoration: TextDecoration.underline),
+                        style: context.underline,
                         recognizer: TapGestureRecognizer()..onTap = () => sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl),
                       ),
                       const TextSpan(text: '  |  '),
                       TextSpan(
                         text: 'Privacy',
-                        style: const TextStyle(decoration: TextDecoration.underline),
+                        style: context.underline,
                         recognizer: TapGestureRecognizer()..onTap = () => sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl),
                       ),
                     ],

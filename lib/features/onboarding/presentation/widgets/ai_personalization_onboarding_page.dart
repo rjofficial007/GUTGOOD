@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
@@ -153,8 +154,8 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 120.w,
-          height: 120.w,
+          width: AppSizes.p120,
+          height: AppSizes.p120,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: context.appColorScheme.textPrimary,
@@ -162,7 +163,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
           child: Icon(
             AppIcons.check,
             color: context.appColorScheme.cardBackground,
-            size: 60.w,
+            size: AppSizes.icon60,
           ),
         ).animate().scale(duration: 800.ms, curve: Curves.elasticOut),
         Gap.h32,

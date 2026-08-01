@@ -5,6 +5,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -145,7 +146,7 @@ class ChatBubble extends StatelessWidget {
                             ),
                           Text(
                             isSending ? 'Sending...' : (sendFailed ? 'Failed' : '$formattedTime ✓✓'),
-                            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.54), fontSize: 10.0.sp, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.54), fontSize: AppSizes.s10, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -285,7 +286,7 @@ class ChatBubble extends StatelessWidget {
                 width: size,
                 fit: BoxFit.cover,
                 memCacheWidth: (size * 2).round(),
-                placeholder: (_, _) => Container(height: size, width: size, color: dark ? Colors.white24 : context.appColorScheme.elevatedSurface),
+                placeholder: (_, _) => Container(height: size, width: size, color: dark ? AppPalette.white.withValues(alpha: 0.24) : context.appColorScheme.elevatedSurface),
                 errorWidget: (_, _, _) => Container(
                   height: size,
                   width: size,

@@ -3,6 +3,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
@@ -40,7 +41,7 @@ class GutActionBanner extends StatelessWidget {
           color: effectiveBg,
           borderRadius: BorderRadius.circular(50.0.r),
           border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8))],
+          boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8))],
         ),
         child: Row(
           children: [

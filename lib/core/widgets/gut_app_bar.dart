@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
@@ -44,7 +45,7 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
       flexibleSpace: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(color: Colors.transparent),
+          child: Container(color: AppPalette.transparent),
         ),
       ),
     );
@@ -110,7 +111,7 @@ class GutSliverAppBar extends StatelessWidget {
       flexibleSpace: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(color: Colors.transparent),
+          child: Container(color: AppPalette.transparent),
         ),
       ),
     );

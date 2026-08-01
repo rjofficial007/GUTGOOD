@@ -1,0 +1,41 @@
+class AppRoutes {
+  const AppRoutes._();
+
+  static const String splash = '/';
+  static const String welcome = '/welcome';
+  static const String onboarding = '/onboarding';
+  static const String login = '/login';
+
+  // Shell Routes
+  static const String chat = '/home/chat';
+  static const String insights = '/home/insights';
+  static const String history = '/home/history';
+  static const String profile = '/home/profile';
+
+  // Insights Sub-routes
+  static const String weeklyRecap = '/weekly-recap';
+  static const String insightDetail = '/insight-detail';
+  static const String insightHistory = '/insight-history';
+
+  // History Sub-routes
+  static const String savedFoods = '/saved-foods';
+  static const String scanResult = '/scan-result';
+  static const String nutritionFacts = '/nutrition-facts';
+
+  // Profile Sub-routes
+  static const String goals = '/goals';
+  static const String sensitivities = '/sensitivities';
+  static const String lifestyle = '/lifestyle';
+  static const String notifications = '/notifications';
+  static const String cyclePhase = '/cycle-phase';
+
+  // Overlays
+  static const String scanner = '/scanner/:mode';
+  static const String scanningAnimation = '/scanning-animation';
+  static const String manualBarcode = '/manual-barcode';
+  static const String productNotFound = '/product-not-found';
+  static const String symptomCheckIn = '/symptom-check-in';
+
+  // Helper to build scanner path with mode
+  static String scannerPath(String mode) => '/scanner/$mode';
+}

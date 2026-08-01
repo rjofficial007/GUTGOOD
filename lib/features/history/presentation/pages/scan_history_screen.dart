@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/historical_scan.dart';
@@ -81,7 +82,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
           const GutSliverAppBar(title: AppStrings.history, showBrandingIcon: true),
           if (_isLoading)
             SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: 16.0.h),
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
               sliver: const SliverToBoxAdapter(child: ShimmerGridLoader(itemCount: 10, crossAxisCount: 1, variant: ShimmerVariant.list)),
             )
           else if (_history.isEmpty)
@@ -91,7 +92,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             )
           else
             SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: 16.0.h),
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   String dateKey = grouped.keys.elementAt(index);

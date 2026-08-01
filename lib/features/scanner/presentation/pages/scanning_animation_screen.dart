@@ -95,7 +95,7 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       appBar: GutAppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppPalette.transparent,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
@@ -199,7 +199,7 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
                   color: context.appColorScheme.elevatedSurface,
                   border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
                   borderRadius: BorderRadius.circular(AppSizes.r24),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                  boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

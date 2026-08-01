@@ -4,7 +4,8 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
 
 class OfflineBanner extends StatelessWidget {
   const OfflineBanner({super.key});
@@ -17,7 +18,7 @@ class OfflineBanner extends StatelessWidget {
         if (isAvailable) return const SizedBox.shrink();
 
         return Material(
-          color: Colors.transparent,
+          color: AppPalette.transparent,
           child: Container(
             width: double.infinity,
             color: context.appColorScheme.error,
@@ -25,11 +26,11 @@ class OfflineBanner extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.wifi_off_rounded, color: Colors.white, size: 14.0.w),
+                Icon(Icons.wifi_off_rounded, color: AppPalette.white, size: AppSizes.icon14),
                 Gap.w8,
                 Text(
                   AppStrings.noInternetConnection.toUpperCase(),
-                  style: TextStyle(color: Colors.white, fontSize: 10.0.sp, fontWeight: FontWeight.w900, letterSpacing: 1.0, decoration: TextDecoration.none),
+                  style: context.eyebrow.copyWith(color: AppPalette.white, fontSize: AppSizes.s10, decoration: TextDecoration.none),
                 ),
               ],
             ),

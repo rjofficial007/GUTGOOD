@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
@@ -99,7 +100,7 @@ class ModernInsightCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: backgroundColor ?? context.appColorScheme.elevatedSurface,
                 borderRadius: BorderRadius.circular(radius),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, 8))],
+                boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, 8))],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(radius),
@@ -119,7 +120,7 @@ class ModernInsightCard extends StatelessWidget {
                               Text(title.toUpperCase(), style: context.eyebrow.copyWith(color: titleColor ?? context.appColorScheme.textPrimary, letterSpacing: 1.2)),
                             ],
                           ),
-                          if (actionWidget != null) actionWidget,
+                          ?actionWidget,
                         ],
                       ),
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
@@ -27,7 +28,7 @@ class OnboardingHeader extends StatelessWidget {
             IconButton(
               onPressed: onBack,
               icon: Icon(AppIcons.arrowLeft),
-              style: IconButton.styleFrom(backgroundColor: Colors.transparent, foregroundColor: context.appColorScheme.textPrimary),
+              style: IconButton.styleFrom(backgroundColor: AppPalette.transparent, foregroundColor: context.appColorScheme.textPrimary),
             ),
             Row(
               children: List.generate(totalSteps, (index) {

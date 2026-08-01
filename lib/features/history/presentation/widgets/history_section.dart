@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/historical_scan.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
 import 'scan_history_tile.dart';
@@ -16,7 +18,7 @@ class HistorySection extends StatelessWidget {
   Widget build(BuildContext context) {
     return GutSection(
       title: title,
-      topPadding: 8.0.h,
+      topPadding: AppSizes.p8,
       children: items.map((item) {
         return ScanHistoryTile(
           scanResult: item.data,
@@ -25,7 +27,7 @@ class HistorySection extends StatelessWidget {
           onTap: () {
             final tag = 'scan_image_${item.data.barcode ?? item.data.productName}_${item.time.millisecondsSinceEpoch}';
             final resultWithImage = item.data.copyWith(userImageUrl: item.userImageUrl);
-            context.push('/scan-result', extra: {'scanData': resultWithImage.toMap(), 'heroTag': tag});
+            context.push(AppRoutes.scanResult, extra: {'scanData': resultWithImage.toMap(), 'heroTag': tag});
           },
         );
       }).toList(),

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/app_services.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/link_service.dart';
@@ -98,7 +99,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     }
 
     if (mounted) {
-      context.go('/welcome');
+      context.go(AppRoutes.welcome);
     }
   }
 
@@ -117,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(AppAssets.appIcon, width: 180.0.w),
+                    Image.asset(AppAssets.appIcon, width: AppSizes.p180),
                     Gap.h20,
                     SizedBox(
                       width: 50,
@@ -125,7 +126,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       child: LinearProgressIndicator(
                         backgroundColor: context.appColorScheme.border.withValues(alpha: 0.2),
                         color: AppPalette.white,
-                        borderRadius: BorderRadius.circular(50),
+                        borderRadius: BorderRadius.circular(AppSizes.r40 + AppSizes.r10),
                       ),
                     ),
                   ],

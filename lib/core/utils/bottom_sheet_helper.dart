@@ -21,11 +21,12 @@ class BottomSheetHelper {
     EdgeInsets? padding,
     Widget? footer,
     bool isScrollControlled = true,
+    Color? backgroundColor,
   }) {
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: isScrollControlled,
-      backgroundColor: Colors.transparent,
+      backgroundColor: backgroundColor ?? Colors.transparent,
       builder: (context) => GutSheetWrapper(
         footer: footer,
         padding: padding,
@@ -41,12 +42,14 @@ class BottomSheetHelper {
     required BuildContext context,
     required String title,
     required TimeOfDay initialTime,
+    Color? backgroundColor,
   }) async {
     TimeOfDay selectedTime = initialTime;
 
     return showGutBottomSheet<TimeOfDay>(
       context: context,
       title: title,
+      backgroundColor: backgroundColor,
       children: [
         SizedBox(
           height: 200,

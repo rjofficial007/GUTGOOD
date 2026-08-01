@@ -31,6 +31,7 @@ class AppTextStyles {
   static TextStyle get h2 => headingMd;
   static TextStyle get h3 => title;
   static TextStyle get bodyBold => TextStyle(fontSize: 15.0.sp, fontWeight: FontWeight.w700, letterSpacing: -0.1);
+  static TextStyle get underline => const TextStyle(decoration: TextDecoration.underline);
 }
 
 extension AppTextStylesX on BuildContext {
@@ -58,4 +59,5 @@ extension AppTextStylesX on BuildContext {
   TextStyle get eyebrow => AppTextStyles.eyebrow.copyWith(color: appColorScheme.textMuted);
 
   TextStyle get bodyBold => AppTextStyles.bodyBold.copyWith(color: appColorScheme.textPrimary);
+  TextStyle get underline => AppTextStyles.underline.copyWith(color: appColorScheme.textPrimary);
 }

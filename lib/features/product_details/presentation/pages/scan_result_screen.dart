@@ -9,7 +9,9 @@ import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
@@ -84,7 +86,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         title: AppStrings.nutritionFacts,
         subtitle: AppStrings.per100g,
         icon: AppIcons.clipboardList,
-        onTap: () => context.push('/nutrition-facts', extra: widget.scanData.toMap()),
+        onTap: () => context.push(AppRoutes.nutritionFacts, extra: widget.scanData.toMap()),
       ),
     ];
 
@@ -117,13 +119,13 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             ],
           ),
           SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: Responsive.h(10.0)),
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final isLast = index == visibleSections.length - 1;
                   return Padding(
-                    padding: EdgeInsets.only(bottom: isLast ? 64.0.h : 32.0.h),
+                    padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
                     child: visibleSections[index],
                   );
                 },
@@ -182,41 +184,40 @@ class _ProductHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String? displayImageUrl = scanData.userImageUrl ?? scanData.imageUrl;
-
-    return Container(
-      decoration: BoxDecoration(
+     return Container(
+          decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(24.0.r),
+        borderRadius: BorderRadius.circular(AppSizes.r24),
         border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
+        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+    ),
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(Responsive.w(16.0)),
+            padding: EdgeInsets.all(AppSizes.p16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 80.0.w,
-                  height: 80.0.w,
-                  decoration: BoxDecoration(color: AppPalette.gray50, borderRadius: BorderRadius.circular(16.0.r)),
+                  width: AppSizes.w80,
+                  height: AppSizes.w80,
+                  decoration: BoxDecoration(color: AppPalette.gray50, borderRadius: BorderRadius.circular(AppSizes.r16)),
                   child: displayImageUrl != null
                       ? Hero(
                           tag: heroTag ?? '${AppStrings.scanImageHero}${scanData.barcode ?? scanData.productName}',
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16.0.r),
+                            borderRadius: BorderRadius.circular(AppSizes.r16),
                             child: CachedNetworkImage(
                               imageUrl: displayImageUrl,
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Center(
                                 child: CircularProgressIndicator(strokeWidth: 2.w, color: context.appColorScheme.textMuted),
                               ),
-                              errorWidget: (_, _, _) => Icon(AppIcons.package, size: 32.0.w, color: context.appColorScheme.textMuted),
+                              errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon32, color: context.appColorScheme.textMuted),
                             ),
                           ),
                         )
-                      : Icon(AppIcons.package, size: 32.0.w, color: context.appColorScheme.textMuted),
+                      : Icon(AppIcons.package, size: AppSizes.icon32, color: context.appColorScheme.textMuted),
                 ),
                 Gap.w16,
                 Expanded(
@@ -225,20 +226,20 @@ class _ProductHero extends StatelessWidget {
                     children: [
                       Text(
                         scanData.productName,
-                        style: context.bodyBold.copyWith(fontSize: 18.0.sp, fontWeight: FontWeight.w800, height: 1.2),
+                        style: context.bodyBold.copyWith(fontSize: AppSizes.s18, fontWeight: FontWeight.w800, height: 1.2),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         scanData.brand,
-                        style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 13.0.sp),
+                        style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s13),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Gap.h12,
                       Wrap(
-                        spacing: 8.0.w,
-                        runSpacing: 8.0.h,
+                        spacing: AppSizes.p8,
+                        runSpacing: AppSizes.p8,
                         children: [
                           if (scanData.nutriscore != null) _ClassificationBadge(label: AppStrings.nutriScore.toUpperCase(), value: scanData.nutriscore!.toUpperCase()),
                           if (scanData.novaGroup != null) _ClassificationBadge(label: AppStrings.nova.toUpperCase(), value: scanData.novaGroup!),
@@ -253,7 +254,7 @@ class _ProductHero extends StatelessWidget {
 
           _GutGoodScoreSection(scanData: scanData),
         ],
-      ),
+          )
     );
   }
 }
@@ -271,23 +272,23 @@ class _ClassificationBadge extends StatelessWidget {
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 3.0.h),
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p10, vertical: AppSizes.p4 / 1.3),
       decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(8.0.r),
+        borderRadius: BorderRadius.circular(AppSizes.r8),
         border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: context.eyebrow.copyWith(fontSize: 9.0.sp, letterSpacing: 0.5)),
+          Text(label, style: context.eyebrow.copyWith(fontSize: AppSizes.s9, letterSpacing: 0.5)),
           Gap.w8,
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 6.0.w, vertical: 2.0.h),
-            decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(4.0.r), border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5))),
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p6, vertical: AppSizes.p2),
+            decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(AppSizes.r4), border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5))),
             child: Text(
               value,
-              style: context.bodyBold.copyWith(fontSize: 11.0.sp, color: context.appColorScheme.textPrimary),
+              style: context.bodyBold.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textPrimary),
             ),
           ),
         ],
@@ -304,9 +305,9 @@ class _GutImpactSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showGutImpactDetails(context),
-      footerLabel: 'View Impact Details',
+      footerLabel: AppStrings.viewImpactDetails,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -319,7 +320,7 @@ class _GutImpactSection extends StatelessWidget {
                   Text(
                     scanData.score.toString(),
                     style: context.bodyBold.copyWith(
-                      fontSize: 32.0.sp,
+                      fontSize: AppSizes.s32,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
                     ),
@@ -327,10 +328,10 @@ class _GutImpactSection extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Gut Good Score',
+                    AppStrings.gutGoodScore,
                     style: context.caption.copyWith(
                       color: context.appColorScheme.textMuted,
-                      fontSize: 12.0.sp,
+                      fontSize: AppSizes.s12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -393,23 +394,23 @@ class _GutImpactSection extends StatelessWidget {
       children: [
         SheetHeroSection(
           title:scanData.score.toString(),
-          subtitle: 'OVERALL GUT HEALTH RATING',
+          subtitle: AppStrings.overallGutHealthRating,
           color: context.appColorScheme.textPrimary,
           icon: AppIcons.activity,
         ),
         Gap.h32,
         if (positive.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Positive Markers', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.positiveMarkers, color: context.appColorScheme.textPrimary),
           ...positive.map((e) => _buildImpactTile(context, e)),
           Gap.h24,
         ],
         if (moderate.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Neutral Observations', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.neutralObservations, color: context.appColorScheme.textPrimary),
           ...moderate.map((e) => _buildImpactTile(context, e)),
           Gap.h24,
         ],
         if (negative.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Potential Triggers', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.potentialTriggers, color: context.appColorScheme.textPrimary),
           ...negative.map((e) => _buildImpactTile(context, e)),
           Gap.h24,
         ],
@@ -422,10 +423,10 @@ class _GutImpactSection extends StatelessWidget {
 
   Widget _buildImpactTile(BuildContext context, ImpactDetail impact) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 12.0.h),
+      padding: EdgeInsets.only(bottom: AppSizes.p12),
       child: DashboardDetailItem(
         title: impact.title,
-        subtitle: 'This factor currently indicates a ${impact.level.toLowerCase()} state.',
+        subtitle: '${AppStrings.factorIndicatingState}${impact.level.toLowerCase()} state.',
         icon: AppIcons.checkCircle,
         color: _getImpactColorByLevel(impact.level, context),
       ),
@@ -547,13 +548,13 @@ class _CycleImpactDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(24.0.w),
+      padding: EdgeInsets.all(AppSizes.p24),
       decoration: BoxDecoration(
         color: context.appColorScheme.textPrimary,
-        borderRadius: BorderRadius.circular(28.0.r),
+        borderRadius: BorderRadius.circular(AppSizes.r28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: AppPalette.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -570,14 +571,14 @@ class _CycleImpactDashboardSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'PHASE',
+                      AppStrings.phase,
                       style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8), letterSpacing: 2.0),
                     ),
                     Text(
                       insight.phase.toUpperCase(),
                       style: context.bodyBold.copyWith(
                         color: context.appColorScheme.cardBackground,
-                        fontSize: 32.0.sp,
+                        fontSize: AppSizes.s32,
                         fontWeight: FontWeight.w900,
                         height: 1.1,
                       ),
@@ -589,12 +590,12 @@ class _CycleImpactDashboardSection extends StatelessWidget {
               ),
               Gap.w16,
               Container(
-                padding: EdgeInsets.all(12.0.w),
+                padding: EdgeInsets.all(AppSizes.p12),
                 decoration: BoxDecoration(
                   color: context.appColorScheme.cardBackground.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(AppIcons.sun, color: context.appColorScheme.cardBackground, size: 28.0.w),
+                child: Icon(AppIcons.sun, color: context.appColorScheme.cardBackground, size: AppSizes.icon28),
               ),
             ],
           ),
@@ -603,7 +604,7 @@ class _CycleImpactDashboardSection extends StatelessWidget {
             insight.description,
             style: context.body.copyWith(
               color: context.appColorScheme.cardBackground.withValues(alpha: 0.9),
-              fontSize: 15.0.sp,
+              fontSize: AppSizes.s15,
               height: 1.4,
               fontWeight: FontWeight.w500,
             ),
@@ -611,10 +612,10 @@ class _CycleImpactDashboardSection extends StatelessWidget {
           Gap.h16,
           Row(
             children: [
-              Icon(AppIcons.trendingUp, color: context.appColorScheme.cardBackground, size: 14.0.w),
+              Icon(AppIcons.trendingUp, color: context.appColorScheme.cardBackground, size: AppSizes.icon14),
               Gap.w8,
               Text(
-                'High Metabolic Impact Today',
+                AppStrings.highMetabolicImpact,
                 style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.bold),
               ),
             ],
@@ -635,9 +636,9 @@ class _IngredientsDashboardSection extends StatelessWidget {
 
     return DashboardCard(
       onFooterTap: () => _showAllIngredients(context),
-      footerLabel: 'View All Ingredients',
+      footerLabel: AppStrings.viewAllIngredients,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -648,9 +649,9 @@ class _IngredientsDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'MIX',
+                    AppStrings.mix,
                     style: context.bodyBold.copyWith(
-                      fontSize: 28.0.sp,
+                      fontSize: AppSizes.s28,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
                     ),
@@ -661,7 +662,7 @@ class _IngredientsDashboardSection extends StatelessWidget {
                     AppStrings.ingredients,
                     style: context.caption.copyWith(
                       color: context.appColorScheme.textMuted,
-                      fontSize: 12.0.sp,
+                      fontSize: AppSizes.s12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -679,7 +680,7 @@ class _IngredientsDashboardSection extends StatelessWidget {
                 children: displayIngredients.map((ing) {
                   final color = _getIngredientColor(ing.colorName, context);
                   return Padding(
-                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    padding: EdgeInsets.only(bottom: AppSizes.p12),
                     child: DashboardDetailItem(
                       title: ing.name,
                       subtitle: _getIngredientImpactLabel(ing.colorName),
@@ -710,23 +711,23 @@ class _IngredientsDashboardSection extends StatelessWidget {
       children: [
         SheetHeroSection(
           title: '${(cleanRatio * 100).toInt()}%',
-          subtitle: 'CLEAN COMPOSITION SCORE',
+          subtitle: AppStrings.cleanCompositionScore,
           color: context.appColorScheme.textPrimary,
           icon: AppIcons.leaf,
         ),
         Gap.h32,
         if (avoid.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Ingredients to Avoid', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.ingredientsToAvoid, color: context.appColorScheme.textPrimary),
           ...avoid.map((e) => _buildIngredientTile(context, e)),
           Gap.h24,
         ],
         if (limit.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Limit Consumption', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.limitConsumption, color: context.appColorScheme.textPrimary),
           ...limit.map((e) => _buildIngredientTile(context, e)),
           Gap.h24,
         ],
         if (clean.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Clean Ingredients', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.cleanIngredients, color: context.appColorScheme.textPrimary),
           ...clean.map((e) => _buildIngredientTile(context, e)),
           Gap.h24,
         ],
@@ -739,7 +740,7 @@ class _IngredientsDashboardSection extends StatelessWidget {
 
   Widget _buildIngredientTile(BuildContext context, Ingredient ing) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 16.0.h),
+      padding: EdgeInsets.only(bottom: AppSizes.p16),
       child: DashboardDetailItem(
         title: ing.name,
         subtitle: ing.impact.isNotEmpty ? ing.impact : _getIngredientImpactLabel(ing.colorName),
@@ -770,8 +771,8 @@ class _IngredientCompositionVisualization extends StatelessWidget {
         GutProgressBar(ratio: cleanRatio.clamp(0.0, 1.0)),
         Gap.h12,
         Text(
-          '${(cleanRatio * 100).toInt()}% clean composition',
-          style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted),
+          '${(cleanRatio * 100).toInt()}% ${AppStrings.cleanComposition}',
+          style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted),
         ),
       ],
     );
@@ -786,7 +787,7 @@ class _NutrientDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCard(
       onFooterTap: () => _showNutrientDetails(context),
-      footerLabel: 'View Standard Values',
+      footerLabel: AppStrings.viewStandardValues,
       child: Padding(
         padding: EdgeInsets.all(20.0.w),
         child: Row(
@@ -801,7 +802,7 @@ class _NutrientDashboardSection extends StatelessWidget {
                   Text(
                     'HEALTH',
                     style: context.bodyBold.copyWith(
-                      fontSize: 28.0.sp,
+                      fontSize: AppSizes.s28,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
                     ),
@@ -809,10 +810,10 @@ class _NutrientDashboardSection extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Nutrient Levels',
+                    AppStrings.nutrientLevelsLabel,
                     style: context.caption.copyWith(
                       color: context.appColorScheme.textMuted,
-                      fontSize: 12.0.sp,
+                      fontSize: AppSizes.s12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -870,14 +871,14 @@ class _NutrientDashboardSection extends StatelessWidget {
       title: AppStrings.nutrientLevelsLabel,
       children: [
         SheetHeroSection(
-          title: 'PROFILE',
-          subtitle: 'NUTRIENT BENCHMARKING',
+          title: AppStrings.profile,
+          subtitle: AppStrings.nutrientBenchmarking,
           color: context.appColorScheme.textPrimary,
           icon: AppIcons.flaskConical,
         ),
         Gap.h24,
         Text(
-          'These levels are calculated based on standardized daily intake values per 100g of the product.',
+          AppStrings.nutrientLevelsDisclaimer,
           style: context.caption.copyWith(color: context.appColorScheme.textMuted, height: 1.4),
           textAlign: TextAlign.center,
         ),
@@ -912,8 +913,8 @@ class _NutrientVisualization extends StatelessWidget {
         const GutProgressBar(ratio: 0.7),
         Gap.h12,
         Text(
-          'Optimal profile identified',
-          style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted),
+          AppStrings.optimalProfileIdentified,
+          style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted),
         ),
       ],
     );
@@ -931,7 +932,7 @@ class _CautionsDashboardSection extends StatelessWidget {
 
     return DashboardCard(
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -942,9 +943,9 @@ class _CautionsDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'SAFE',
+                    AppStrings.safe,
                     style: context.bodyBold.copyWith(
-                      fontSize: 28.0.sp,
+                      fontSize: AppSizes.s28,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
                       color: context.appColorScheme.textPrimary,
@@ -953,10 +954,10 @@ class _CautionsDashboardSection extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Safety Cautions',
+                    AppStrings.safetyCautions,
                     style: context.caption.copyWith(
                       color: context.appColorScheme.textMuted,
-                      fontSize: 12.0.sp,
+                      fontSize: AppSizes.s12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -989,7 +990,7 @@ class _CautionsDashboardSection extends StatelessWidget {
                     ),
                   if (!hasAllergens && !hasAdditives)
                     Text(
-                      'No cautions found for your profile.',
+                      AppStrings.noCautionsFound,
                       style: context.caption.copyWith(color: context.appColorScheme.textMuted),
                     ),
                 ],
@@ -1021,7 +1022,7 @@ class _CautionRiskIcon extends StatelessWidget {
         );
       },
       child: Container(
-        padding: EdgeInsets.all(12.0.w),
+        padding: EdgeInsets.all(AppSizes.p12),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           shape: BoxShape.circle,
@@ -1029,7 +1030,7 @@ class _CautionRiskIcon extends StatelessWidget {
         child: Icon(
           isSafe ? AppIcons.shieldCheck : AppIcons.alertCircle,
           color: color,
-          size: 32.0.w,
+          size: AppSizes.icon32,
         ),
       ),
     );
@@ -1057,9 +1058,9 @@ class _SwapsDashboardSection extends StatelessWidget {
 
     return DashboardCard(
       onFooterTap: () => _showAllSwaps(context),
-      footerLabel: 'View All Alternatives',
+      footerLabel: AppStrings.viewAllAlternatives,
       child: Padding(
-        padding: EdgeInsets.all(20.0.w),
+        padding: EdgeInsets.all(AppSizes.p20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1070,9 +1071,9 @@ class _SwapsDashboardSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'UPGRADE',
+                    AppStrings.upgradeLabel,
                     style: context.bodyBold.copyWith(
-                      fontSize: 28.0.sp,
+                      fontSize: AppSizes.s28,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
                       color: context.appColorScheme.textPrimary,
@@ -1084,7 +1085,7 @@ class _SwapsDashboardSection extends StatelessWidget {
                     AppStrings.betterSwapsLabel,
                     style: context.caption.copyWith(
                       color: context.appColorScheme.textMuted,
-                      fontSize: 12.0.sp,
+                      fontSize: AppSizes.s12,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1101,7 +1102,7 @@ class _SwapsDashboardSection extends StatelessWidget {
               child: Column(
                 children: displaySwaps.map((swap) {
                   return Padding(
-                    padding: EdgeInsets.only(bottom: 12.0.h),
+                    padding: EdgeInsets.only(bottom: AppSizes.p12),
                     child: DashboardDetailItem(
                       title: swap.title,
                       subtitle: swap.subtitle,
@@ -1125,14 +1126,14 @@ class _SwapsDashboardSection extends StatelessWidget {
       children: [
         SheetHeroSection(
           title: '${swaps.length}',
-          subtitle: 'HEALTHIER ALTERNATIVES FOUND',
+          subtitle: AppStrings.healthierAlternativesFound,
           color: context.appColorScheme.textPrimary,
           icon: AppIcons.sparkles,
         ),
         Gap.h32,
         ...swaps.map((swap) {
           return Padding(
-            padding: EdgeInsets.only(bottom: 16.0.h),
+            padding: EdgeInsets.only(bottom: AppSizes.p16),
             child: DashboardDetailItem(
               title: swap.title,
               subtitle: swap.subtitle,
@@ -1158,18 +1159,18 @@ class _SwapVisualization extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: EdgeInsets.all(12.0.w),
+          padding: EdgeInsets.all(AppSizes.p12),
           decoration: BoxDecoration(
             color: context.appColorScheme.elevatedSurface,
             shape: BoxShape.circle,
             border: Border.all(color: context.appColorScheme.border),
           ),
-          child: Icon(AppIcons.arrowRightLeft, color: context.appColorScheme.textPrimary, size: 32.0.w),
+          child: Icon(AppIcons.arrowRightLeft, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
         ),
         Gap.h16,
         Text(
-          'Optimized choices for your profile',
-          style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted),
+          AppStrings.optimizedChoices,
+          style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted),
         ),
       ],
     );

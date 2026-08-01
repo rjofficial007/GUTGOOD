@@ -8,6 +8,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/app_services.dart';
 import 'package:gutgood/core/services/app_version_services.dart';
 import 'package:gutgood/core/services/config_service.dart';
@@ -63,7 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(AppStrings.whatShouldWeCallYou, style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
             Gap.h12,
-            GutTextField(controller: controller, autofocus: true, hintText: AppStrings.enterYourNameHint, borderRadius: 16.0),
+            GutTextField(controller: controller, autofocus: true, hintText: AppStrings.enterYourNameHint, borderRadius: AppSizes.r16),
             Gap.h32,
             GutButton(
               label: AppStrings.saveChanges,
@@ -86,7 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Padding(
           padding: EdgeInsets.only(bottom: AppSizes.p24),
           child: Text(
-            "Select your preferred visual style for the app.",
+            AppStrings.selectVisualStyle,
             style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary),
           ),
         ),
@@ -210,19 +211,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       icon: AppIcons.target,
                       title: AppStrings.goals,
                       subtitle: '${p?.goals.length ?? 0} ${AppStrings.activeCount}',
-                      onTap: () => context.push('/goals', extra: p?.goals ?? []),
+                      onTap: () => context.push(AppRoutes.goals, extra: p?.goals ?? []),
                     ),
                     AppTile(
                       icon: AppIcons.alertTriangle,
                       title: AppStrings.foodSensitivities,
                       subtitle: '${p?.sensitivities.length ?? 0} ${AppStrings.flaggedCount}',
-                      onTap: () => context.push('/sensitivities', extra: p?.sensitivities ?? []),
+                      onTap: () => context.push(AppRoutes.sensitivities, extra: p?.sensitivities ?? []),
                     ),
                     AppTile(
                       icon: AppIcons.smile,
                       title: AppStrings.lifestyleFactors,
                       subtitle: '${p?.lifestyle.length ?? 0} ${AppStrings.selectedCount}',
-                      onTap: () => context.push('/lifestyle', extra: p?.lifestyle ?? []),
+                      onTap: () => context.push(AppRoutes.lifestyle, extra: p?.lifestyle ?? []),
                       showBottomBorder: false,
                     ),
                   ],
@@ -233,8 +234,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: AppStrings.app,
                   showCard: true,
                   children: [
-                    AppTile(icon: AppIcons.bookmark, title: AppStrings.savedFoods, onTap: () => context.push('/saved-foods')),
-                    AppTile(icon: AppIcons.bell, title: AppStrings.notificationPreferences, onTap: () => context.push('/notifications')),
+                    AppTile(icon: AppIcons.bookmark, title: AppStrings.savedFoods, onTap: () => context.push(AppRoutes.savedFoods)),
+                    AppTile(icon: AppIcons.bell, title: AppStrings.notificationPreferences, onTap: () => context.push(AppRoutes.notifications)),
                     AppTile(
                       icon: AppIcons.moon,
                       title: AppStrings.appearance,
@@ -270,7 +271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: AppIcons.calendar,
                         title: AppStrings.cyclePhase,
                         subtitle: p?.cyclePhase ?? AppStrings.phaseLuteal,
-                        onTap: () => context.push('/cycle-phase', extra: p?.cyclePhase),
+                        onTap: () => context.push(AppRoutes.cyclePhase, extra: p?.cyclePhase),
                         showBottomBorder: false,
                       ),
                   ],
@@ -363,12 +364,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   topPadding: AppSizes.p40,
                   children: [
                     Padding(
-                      padding: EdgeInsets.symmetric(vertical: 18.0.h),
+                      padding: EdgeInsets.symmetric(vertical: AppSizes.p18),
                       child: Row(
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(12.0.r),
-                            child: Image.asset(AppAssets.appIcon, width: 44.0.w, height: 44.0.w),
+                            borderRadius: BorderRadius.circular(AppSizes.r12),
+                            child: Image.asset(AppAssets.appIcon, width: AppSizes.icon44, height: AppSizes.icon44),
                           ),
                           Gap.w16,
                           Expanded(
@@ -437,7 +438,7 @@ class _AppearanceOption extends StatelessWidget {
                 child: Icon(
                   icon,
                   color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary,
-                  size: 20,
+                  size: AppSizes.icon20,
                 ),
               ),
               Gap.w16,
@@ -445,7 +446,7 @@ class _AppearanceOption extends StatelessWidget {
                 title,
                 style: context.bodyBold.copyWith(
                   color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary,
-                  fontSize: 15.sp,
+                  fontSize: AppSizes.s15,
                 ),
               ),
               const Spacer(),
@@ -453,7 +454,7 @@ class _AppearanceOption extends StatelessWidget {
                 Icon(
                   AppIcons.checkCircle2,
                   color: context.appColorScheme.cardBackground,
-                  size: 20,
+                  size: AppSizes.icon20,
                 ),
             ],
           ),

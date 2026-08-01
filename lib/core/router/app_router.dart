@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/features/auth/presentation/pages/email_login_screen.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
@@ -44,7 +45,7 @@ final GlobalKey<NavigatorState> _shellNavigatorProfileKey = GlobalKey<NavigatorS
 class AppRouter {
   static final router = GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/',
+    initialLocation: AppRoutes.splash,
     debugLogDiagnostics: kDebugMode,
     refreshListenable: sl<GutAuthNotifier>(),
     redirect: (context, state) async {
@@ -53,7 +54,6 @@ class AppRouter {
       final prefs = sl<SharedPreferences>();
 
       // 🟢 Fix: Hold redirects while a merge is pending resolution.
-      // This prevents GoRouter from navigating to /home while the merge sheet is visible.
       if (appState.pendingMergeConflict.value != null || authNotifier.isMerging) {
         return null;
       }
@@ -61,38 +61,36 @@ class AppRouter {
       final bool onboarded = prefs.getBool('onboarded') ?? false;
       final bool loggedIn = authNotifier.isAuthenticated;
 
-      final bool isSplash = state.matchedLocation == '/';
-      final bool isWelcome = state.matchedLocation == '/welcome';
-      final bool isOnboarding = state.matchedLocation == '/onboarding';
-      final bool isLogin = state.matchedLocation == '/login';
+      final bool isSplash = state.matchedLocation == AppRoutes.splash;
+      final bool isWelcome = state.matchedLocation == AppRoutes.welcome;
+      final bool isOnboarding = state.matchedLocation == AppRoutes.onboarding;
+      final bool isLogin = state.matchedLocation == AppRoutes.login;
 
       // Don't redirect during splash initialization
       if (isSplash) return null;
 
       if (!loggedIn) {
         if (isWelcome || isLogin) return null;
-        return '/welcome';
+        return AppRoutes.welcome;
       }
 
       if (!onboarded) {
-        // If logged in but not onboarded, MUST be on onboarding.
-        // We no longer allow /welcome here to ensure "Get Started" transition works.
         if (isOnboarding) return null;
-        return '/onboarding';
+        return AppRoutes.onboarding;
       }
 
       // If already logged in and onboarded, and trying to access welcome/onboarding
       if (isWelcome || isOnboarding || isLogin) {
-        return '/home/chat';
+        return AppRoutes.chat;
       }
 
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
-      GoRoute(path: '/welcome', builder: (context, state) => const WelcomeScreen()),
-      GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
-      GoRoute(path: '/login', builder: (context, state) => const EmailLoginScreen()),
+      GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
+      GoRoute(path: AppRoutes.welcome, builder: (context, state) => const WelcomeScreen()),
+      GoRoute(path: AppRoutes.onboarding, builder: (context, state) => const OnboardingScreen()),
+      GoRoute(path: AppRoutes.login, builder: (context, state) => const EmailLoginScreen()),
 
       // Main Application Shell
       StatefulShellRoute.indexedStack(
@@ -102,36 +100,36 @@ class AppRouter {
         branches: [
           StatefulShellBranch(
             navigatorKey: _shellNavigatorChatKey,
-            routes: [GoRoute(path: '/home/chat', builder: (context, state) => const ChatScreen())],
+            routes: [GoRoute(path: AppRoutes.chat, builder: (context, state) => const ChatScreen())],
           ),
           StatefulShellBranch(
             navigatorKey: _shellNavigatorInsightsKey,
             routes: [
-              GoRoute(path: '/home/insights', builder: (context, state) => const InsightsScreen()),
+              GoRoute(path: AppRoutes.insights, builder: (context, state) => const InsightsScreen()),
               GoRoute(
-                path: '/weekly-recap',
+                path: AppRoutes.weeklyRecap,
                 builder: (context, state) {
                   final insightMap = state.extra as Map<String, dynamic>?;
                   return WeeklyRecapScreen(insight: insightMap != null ? AIInsight.fromMap(insightMap) : null);
                 },
               ),
               GoRoute(
-                path: '/insight-detail',
+                path: AppRoutes.insightDetail,
                 builder: (context, state) {
                   final insightMap = state.extra as Map<String, dynamic>;
                   return InsightDetailScreen(insight: AIInsight.fromMap(insightMap));
                 },
               ),
-              GoRoute(path: '/insight-history', builder: (context, state) => const InsightsHistoryScreen()),
+              GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
             ],
           ),
           StatefulShellBranch(
             navigatorKey: _shellNavigatorHistoryKey,
             routes: [
-              GoRoute(path: '/home/history', builder: (context, state) => const ScanHistoryScreen()),
-              GoRoute(path: '/saved-foods', builder: (context, state) => const SavedFoodsScreen()),
+              GoRoute(path: AppRoutes.history, builder: (context, state) => const ScanHistoryScreen()),
+              GoRoute(path: AppRoutes.savedFoods, builder: (context, state) => const SavedFoodsScreen()),
               GoRoute(
-                path: '/scan-result',
+                path: AppRoutes.scanResult,
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>;
                   final scanDataMap = extra['scanData'] as Map<String, dynamic>;
@@ -139,7 +137,7 @@ class AppRouter {
                 },
               ),
               GoRoute(
-                path: '/nutrition-facts',
+                path: AppRoutes.nutritionFacts,
                 builder: (context, state) {
                   final scanDataMap = state.extra as Map<String, dynamic>;
                   return NutritionFactsScreen(scanData: ScanResult.fromMap(scanDataMap));
@@ -150,22 +148,22 @@ class AppRouter {
           StatefulShellBranch(
             navigatorKey: _shellNavigatorProfileKey,
             routes: [
-              GoRoute(path: '/home/profile', builder: (context, state) => const ProfileScreen()),
+              GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
               GoRoute(
-                path: '/goals',
+                path: AppRoutes.goals,
                 builder: (context, state) => GoalsScreen(activeGoals: (state.extra as List).cast<String>()),
               ),
               GoRoute(
-                path: '/sensitivities',
+                path: AppRoutes.sensitivities,
                 builder: (context, state) => SensitivitiesScreen(activeSensitivities: (state.extra as List).cast<String>()),
               ),
               GoRoute(
-                path: '/lifestyle',
+                path: AppRoutes.lifestyle,
                 builder: (context, state) => LifestyleScreen(activeLifestyle: (state.extra as List).cast<String>()),
               ),
-              GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
+              GoRoute(path: AppRoutes.notifications, builder: (context, state) => const NotificationsScreen()),
               GoRoute(
-                path: '/cycle-phase',
+                path: AppRoutes.cyclePhase,
                 builder: (context, state) => CyclePhaseScreen(currentPhase: state.extra as String?),
               ),
             ],
@@ -176,17 +174,18 @@ class AppRouter {
       // Global Full-Screen Overlays
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
-        path: '/scanner/:mode',
+        path: AppRoutes.scanner,
         builder: (context, state) {
           final modeName = state.pathParameters['mode'];
           final mode = ScannerMode.values.firstWhere((m) => m.name == modeName, orElse: () => ScannerMode.label);
           return SuperScannerScreen(initialMode: mode);
         },
       ),
-      GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/scanning-animation', builder: (context, state) => const ScanningAnimationScreen()),
-      GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/manual-barcode', builder: (context, state) => const ManualBarcodeScreen()),
-      GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/product-not-found', builder: (context, state) => const ProductNotFoundScreen()),
-      GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/symptom-check-in', builder: (context, state) => const SymptomCheckInScreen()),
+      GoRoute(parentNavigatorKey: rootNavigatorKey, path: AppRoutes.scanningAnimation, builder: (context, state) => const ScanningAnimationScreen()),
+      GoRoute(parentNavigatorKey: rootNavigatorKey, path: AppRoutes.manualBarcode, builder: (context, state) => const ManualBarcodeScreen()),
+      GoRoute(parentNavigatorKey: rootNavigatorKey, path: AppRoutes.productNotFound, builder: (context, state) => const ProductNotFoundScreen()),
+      GoRoute(parentNavigatorKey: rootNavigatorKey, path: AppRoutes.symptomCheckIn, builder: (context, state) => const SymptomCheckInScreen()),
     ],
   );
 }
+

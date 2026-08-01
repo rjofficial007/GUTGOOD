@@ -10,6 +10,7 @@ import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -43,7 +44,7 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
     }
 
     if (!mounted) return;
-    context.push('/scanning-animation');
+    context.push(AppRoutes.scanningAnimation);
 
     try {
       final scanData = await sl<OffService>().getProduct(barcode);
@@ -75,12 +76,12 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
 
         if (mounted) {
           context.pop();
-          context.pushReplacement('/scan-result', extra: {'scanData': userMsg.scanData!.toMap()});
+          context.pushReplacement(AppRoutes.scanResult, extra: {'scanData': userMsg.scanData!.toMap()});
         }
       } else {
         if (mounted) {
           context.pop();
-          context.pushReplacement('/product-not-found');
+          context.pushReplacement(AppRoutes.productNotFound);
         }
       }
     } catch (e) {

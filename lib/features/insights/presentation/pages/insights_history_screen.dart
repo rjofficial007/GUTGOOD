@@ -4,6 +4,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
@@ -37,8 +38,8 @@ class InsightsHistoryScreen extends StatelessWidget {
                   hasScrollBody: false,
                   child: EmptyStateWidget(
                     icon: AppIcons.history,
-                    title: 'Your Gut Health Story',
-                    description: 'Every analysis you run with GUTGOOD will appear here. Start logging to build your archive.',
+                    title: AppStrings.yourGutHealthStory,
+                    description: AppStrings.gutHealthStoryDesc,
                   ),
                 );
               }
@@ -82,6 +83,6 @@ class InsightsHistoryScreen extends StatelessWidget {
   }
 
   void _showInsightDetail(BuildContext context, AIInsight insight) {
-    context.push('/insight-detail', extra: insight.toMap());
+    context.push(AppRoutes.insightDetail, extra: insight.toMap());
   }
 }

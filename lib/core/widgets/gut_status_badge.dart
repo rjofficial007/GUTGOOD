@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
+
+import '../constants/app_sizes.dart';
+import '../constants/app_strings.dart';
+import '../theme/app_color_scheme.dart';
 
 class GutStatusBadge extends StatelessWidget {
   final bool isActive;
@@ -16,28 +18,28 @@ class GutStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: Responsive.w(10.0), 
-        vertical: Responsive.h(4.0),
+        horizontal: AppSizes.p10, 
+        vertical: AppSizes.p4,
       ),
       decoration: BoxDecoration(
         color: context.appColorScheme.textPrimary, 
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(AppSizes.r100),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             isActive ? AppStrings.live : AppStrings.off,
-            style: TextStyle(
+            style: context.caption.copyWith(
               color: context.appColorScheme.cardBackground, 
-              fontSize: Responsive.sp(9.0), 
+              fontSize: AppSizes.s9, 
               fontWeight: FontWeight.bold,
             ),
           ),
           Gap.w4,
           Icon(
             Icons.power_settings_new_rounded, 
-            size: 12, 
+            size: AppSizes.icon12, 
             color: context.appColorScheme.cardBackground,
           ),
         ],
