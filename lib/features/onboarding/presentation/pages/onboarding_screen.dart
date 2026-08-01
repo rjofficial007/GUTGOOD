@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gutgood/core/constants/app_config_data.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -97,8 +98,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     if (mounted) {
       await showPaywallBottomSheet(context, onProceedWithLimited: () {});
+
+      // 🟢 Fix: Ensure bottom sheet pop animation finishes before main navigation.
+      // This prevents "Failed assertion: _dependents.isEmpty: is not true" during unmount.
       if (mounted) {
-        context.go('/home/chat');
+        Future.delayed(Duration.zero, () {
+          if (mounted) {
+            context.go('/home/chat');
+          }
+        });
       }
     }
   }
@@ -153,7 +161,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Padding(
                 padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p36),
                 child: GutButton(label: AppStrings.continueButton, suffixIcon: AppIcons.arrowRight, onTap: _next),
-              ),
+              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
           ],
         ),
       ),
@@ -167,13 +175,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Gap.h16,
-          Text(title, style: AppTextStyles.displaySm),
+          Text(title, style: AppTextStyles.displaySm).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
           Gap.h10,
-          Text(subtitle, style: AppTextStyles.bodyLg.copyWith(color: context.appColorScheme.textSecondary)),
+          Text(subtitle, style: AppTextStyles.bodyLg.copyWith(color: context.appColorScheme.textSecondary)).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.2, end: 0),
           Gap.h32,
           Expanded(
             child: SingleChildScrollView(
-              child: SelectionWrap(options: options, selectedValues: selections, onToggle: onToggle),
+              child: SelectionWrap(options: options, selectedValues: selections, onToggle: onToggle).animate().fadeIn(delay: 200.ms, duration: 500.ms),
             ),
           ),
         ],

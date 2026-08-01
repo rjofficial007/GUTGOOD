@@ -88,8 +88,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: AppStrings.system,
           isSelected: themeNotifier.themeMode == ThemeMode.system,
           onTap: () {
-            themeNotifier.setThemeMode(ThemeMode.system);
             context.pop();
+            Future.delayed(Duration.zero, () => themeNotifier.setThemeMode(ThemeMode.system));
           },
         ),
         _AppearanceOption(
@@ -97,8 +97,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: AppStrings.light,
           isSelected: themeNotifier.themeMode == ThemeMode.light,
           onTap: () {
-            themeNotifier.setThemeMode(ThemeMode.light);
             context.pop();
+            Future.delayed(Duration.zero, () => themeNotifier.setThemeMode(ThemeMode.light));
           },
         ),
         _AppearanceOption(
@@ -106,8 +106,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: AppStrings.dark,
           isSelected: themeNotifier.themeMode == ThemeMode.dark,
           onTap: () {
-            themeNotifier.setThemeMode(ThemeMode.dark);
             context.pop();
+            Future.delayed(Duration.zero, () => themeNotifier.setThemeMode(ThemeMode.dark));
           },
         ),
         Gap.h24,

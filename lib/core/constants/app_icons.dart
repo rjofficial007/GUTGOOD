@@ -15,6 +15,8 @@ class AppIcons {
   static const checkCircle2 = LucideIcons.checkCircle2;
   static const chevronRight = LucideIcons.chevronRight;
   static const chevronLeft = LucideIcons.chevronLeft;
+  static const chevronUp = LucideIcons.chevronUp;
+  static const chevronDown = LucideIcons.chevronDown;
   static const activity = LucideIcons.activity;
   static const flame = LucideIcons.flame;
   static const mail = LucideIcons.mail;

@@ -530,12 +530,12 @@ class AppStrings {
       'GutGood is an AI health intelligence assistant. All insights, patterns, and recommendations provided by the app are for informational and educational purposes only. GutGood does not provide medical diagnoses, treatment, or cures. Always consult with a qualified healthcare professional before making changes to your diet or health regimen. Never disregard professional medical advice or delay seeking it because of something you have read in this app.';
 
   // AI Analysis Status Messages
-  static const String statusScanningGoals = 'Scanning your goals...';
-  static const String statusCheckingSensitivities = 'Checking sensitivities...';
-  static const String statusAnalyzingLifestyle = 'Analyzing lifestyle...';
-  static const String statusOptimizing = 'Optimizing for you...';
-  static const String statusPersonalizingGutGood = 'Personalizing your GUTGOOD...';
-  static const String statusAlmostReady = 'Almost ready...';
+  static const String statusScanningGoals = 'Scanning your goals';
+  static const String statusCheckingSensitivities = 'Checking sensitivities';
+  static const String statusAnalyzingLifestyle = 'Analyzing lifestyle';
+  static const String statusOptimizing = 'Optimizing for you';
+  static const String statusPersonalizingGutGood = 'Personalizing GUTGOOD';
+  static const String statusAlmostReady = 'Almost ready';
 
   // Onboarding Options
   static const String goalBetterEnergy = 'Better energy';

@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/di/injection_container.dart';
@@ -100,7 +101,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(AppSizes.r20),
                         child: Image.asset(AppAssets.appIcon, height: 100.0.w, width: 100.0.w),
-                      ),
+                      ).animate().fadeIn(duration: 600.ms).scale(delay: 0.ms, duration: 600.ms, curve: Curves.easeOutBack),
                       Gap.h40,
 
                       // Content
@@ -112,13 +113,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               AppStrings.foodIsMedicine,
                               textAlign: TextAlign.center,
                               style: AppTextStyles.displayLg.copyWith(fontSize: 60.0.sp, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
-                            ),
+                            ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
                             Gap.h24,
                             Text(
                               AppStrings.understandBodyNeeds,
                               textAlign: TextAlign.center,
                               style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w400, color: context.appColorScheme.textSecondary),
-                            ),
+                            ).animate().fadeIn(delay: 400.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
                           ],
                         ),
                       ),
@@ -127,7 +128,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         AppStrings.healthDisclaimer,
                         textAlign: TextAlign.center,
                         style: AppTextStyles.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 10.0.sp),
-                      ),
+                      ).animate().fadeIn(delay: 600.ms, duration: 800.ms),
                       Gap.h20,
                       // Buttons
                       Column(
@@ -153,7 +154,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                           ),
                         ],
-                      ),
+                      ).animate().fadeIn(delay: 800.ms, duration: 600.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuad),
                       Gap.h20,
                     ],
                   ),

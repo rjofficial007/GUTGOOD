@@ -118,11 +118,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(AppAssets.appIcon, width: 180.0.w),
-                    Gap.h16,
+                    Gap.h20,
                     SizedBox(
                       width: 50,
                       height: 2,
-                      child: LinearProgressIndicator(backgroundColor: context.appColorScheme.border, color: Theme.of(context).colorScheme.primary),
+                      child: LinearProgressIndicator(backgroundColor: context.appColorScheme.border, color: Theme.of(context).colorScheme.primary,borderRadius: BorderRadius.circular(50)),
                     ),
                   ],
                 ),

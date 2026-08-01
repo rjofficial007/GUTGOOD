@@ -7,7 +7,8 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
-import '../../../../core/constants/app_icons.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
 
 class CycleSyncOnboardingPage extends StatelessWidget {
   final bool cycleSyncEnabled;
@@ -31,9 +32,9 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Gap.h16,
-                  Text(AppStrings.bodyRhythm, style: context.displaySm),
+                  Text(AppStrings.bodyRhythm, style: context.displaySm).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
                   Gap.h10,
-                  Text(AppStrings.bodyRhythmSubtitle, style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary)),
+                  Text(AppStrings.bodyRhythmSubtitle, style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary)).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.2, end: 0),
                   Gap.h32,
                   Container(
                     padding: EdgeInsets.all(AppSizes.p20),
@@ -73,10 +74,10 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ),
+                  ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideY(begin: 0.1, end: 0),
                   if (cycleSyncEnabled) ...[
                     Gap.h32,
-                    Text(AppStrings.selectCyclePhase, style: context.bodyBold),
+                    Text(AppStrings.selectCyclePhase, style: context.bodyBold).animate().fadeIn(duration: 300.ms),
                     Gap.h16,
                     Wrap(
                       spacing: 10.0.w,
@@ -85,13 +86,13 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                         final isSelected = selectedCyclePhase == phase;
                         return GutChip(icon: AppIcons.flower, label: phase, isSelected: isSelected, onTap: () => onPhaseSelected(phase));
                       }).toList(),
-                    ),
+                    ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
                   ],
                   Spacer(),
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: AppSizes.p20),
                     child: Text(AppStrings.cycleSyncHormonalPatterns, style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
-                  ),
+                  ).animate().fadeIn(delay: 600.ms),
                 ],
               ),
             ),

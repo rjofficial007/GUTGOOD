@@ -40,6 +40,10 @@ class AppSizes {
   static double get r24 => 24.0.w;
   static double get r28 => 28.0.w;
   static double get r32 => 32.0.w;
+  static double get r36 => 36.0.w;
+  static double get r40 => 40.0.w;
+  static double get r100 => 108.0.w;
+
 
   // Icon Sizes
   static double get icon10 => 10.0.w;

@@ -12,6 +12,7 @@ import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
+import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/logs/presentation/pages/symptom_check_in_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/nutrition_facts_screen.dart';
@@ -24,7 +25,7 @@ import 'package:gutgood/features/profile/presentation/pages/notifications_screen
 import 'package:gutgood/features/profile/presentation/pages/privacy_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/profile_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/sensitivities_screen.dart';
-import 'package:gutgood/features/welcome/presentation/pages/splash_screen.dart';
+import 'package:gutgood/features/splash/presentation/pages/splash_screen.dart';
 import 'package:gutgood/features/welcome/presentation/pages/welcome_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,6 +136,14 @@ class AppRouter {
         builder: (context, state) {
           final insightMap = state.extra as Map<String, dynamic>?;
           return WeeklyRecapScreen(insight: insightMap != null ? AIInsight.fromMap(insightMap) : null);
+        },
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/insight-detail',
+        builder: (context, state) {
+          final insightMap = state.extra as Map<String, dynamic>;
+          return InsightDetailScreen(insight: AIInsight.fromMap(insightMap));
         },
       ),
       GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/insight-history', builder: (context, state) => const InsightsHistoryScreen()),
