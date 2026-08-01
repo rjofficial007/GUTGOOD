@@ -71,7 +71,6 @@ class AppStrings {
   static const String createAccountPrimary = 'Create My Account';
   static const String skipForNow = 'Skip for now';
 
-  static const String clearChanges = 'Clear Changes';
   static const String logoutGuestWarning = 'Wait! You are using a Guest account. Logging out will permanently delete your chat history and gut insights. Create an account to save your data.';
   static const String logoutConfirmMessage = 'Are you sure you want to logout from your GutGood account?';
   static const String logoutAnyway = 'Logout Anyway';
@@ -432,7 +431,6 @@ class AppStrings {
   static const String manageConnectedServices = 'Manage connected services';
   static const String per100g = 'Per 100g';
   static const String calories = 'Calories';
-  static const String nutritionDataNotice = 'Nutrition data provided by Open Food Facts. Values shown are per 100g of product.';
   static const String systemDefault = 'System Default';
   static const String lightMode = 'Light Mode';
   static const String darkMode = 'Dark Mode';

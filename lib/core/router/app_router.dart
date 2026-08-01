@@ -22,7 +22,6 @@ import 'package:gutgood/features/profile/presentation/pages/cycle_phase_screen.d
 import 'package:gutgood/features/profile/presentation/pages/goals_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/lifestyle_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/notifications_screen.dart';
-import 'package:gutgood/features/profile/presentation/pages/privacy_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/profile_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/sensitivities_screen.dart';
 import 'package:gutgood/features/splash/presentation/pages/splash_screen.dart';
@@ -107,76 +106,74 @@ class AppRouter {
           ),
           StatefulShellBranch(
             navigatorKey: _shellNavigatorInsightsKey,
-            routes: [GoRoute(path: '/home/insights', builder: (context, state) => const InsightsScreen())],
+            routes: [
+              GoRoute(path: '/home/insights', builder: (context, state) => const InsightsScreen()),
+              GoRoute(
+                path: '/weekly-recap',
+                builder: (context, state) {
+                  final insightMap = state.extra as Map<String, dynamic>?;
+                  return WeeklyRecapScreen(insight: insightMap != null ? AIInsight.fromMap(insightMap) : null);
+                },
+              ),
+              GoRoute(
+                path: '/insight-detail',
+                builder: (context, state) {
+                  final insightMap = state.extra as Map<String, dynamic>;
+                  return InsightDetailScreen(insight: AIInsight.fromMap(insightMap));
+                },
+              ),
+              GoRoute(path: '/insight-history', builder: (context, state) => const InsightsHistoryScreen()),
+            ],
           ),
           StatefulShellBranch(
             navigatorKey: _shellNavigatorHistoryKey,
-            routes: [GoRoute(path: '/home/history', builder: (context, state) => const ScanHistoryScreen())],
+            routes: [
+              GoRoute(path: '/home/history', builder: (context, state) => const ScanHistoryScreen()),
+              GoRoute(path: '/saved-foods', builder: (context, state) => const SavedFoodsScreen()),
+              GoRoute(
+                path: '/scan-result',
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>;
+                  final scanDataMap = extra['scanData'] as Map<String, dynamic>;
+                  return ScanResultScreen(scanData: ScanResult.fromMap(scanDataMap), heroTag: extra['heroTag'] as String?);
+                },
+              ),
+              GoRoute(
+                path: '/nutrition-facts',
+                builder: (context, state) {
+                  final scanDataMap = state.extra as Map<String, dynamic>;
+                  return NutritionFactsScreen(scanData: ScanResult.fromMap(scanDataMap));
+                },
+              ),
+            ],
           ),
           StatefulShellBranch(
             navigatorKey: _shellNavigatorProfileKey,
-            routes: [GoRoute(path: '/home/profile', builder: (context, state) => const ProfileScreen())],
+            routes: [
+              GoRoute(path: '/home/profile', builder: (context, state) => const ProfileScreen()),
+              GoRoute(
+                path: '/goals',
+                builder: (context, state) => GoalsScreen(activeGoals: (state.extra as List).cast<String>()),
+              ),
+              GoRoute(
+                path: '/sensitivities',
+                builder: (context, state) => SensitivitiesScreen(activeSensitivities: (state.extra as List).cast<String>()),
+              ),
+              GoRoute(
+                path: '/lifestyle',
+                builder: (context, state) => LifestyleScreen(activeLifestyle: (state.extra as List).cast<String>()),
+              ),
+              GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
+              GoRoute(
+                path: '/cycle-phase',
+                builder: (context, state) => CyclePhaseScreen(currentPhase: state.extra as String?),
+              ),
+            ],
           ),
         ],
       ),
 
-      // Global Action Routes (available from anywhere)
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/scan-result',
-        builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>;
-          final scanDataMap = extra['scanData'] as Map<String, dynamic>;
-          return ScanResultScreen(scanData: ScanResult.fromMap(scanDataMap), heroTag: extra['heroTag'] as String?);
-        },
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/weekly-recap',
-        builder: (context, state) {
-          final insightMap = state.extra as Map<String, dynamic>?;
-          return WeeklyRecapScreen(insight: insightMap != null ? AIInsight.fromMap(insightMap) : null);
-        },
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/insight-detail',
-        builder: (context, state) {
-          final insightMap = state.extra as Map<String, dynamic>;
-          return InsightDetailScreen(insight: AIInsight.fromMap(insightMap));
-        },
-      ),
-      GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/insight-history', builder: (context, state) => const InsightsHistoryScreen()),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/nutrition-facts',
-        builder: (context, state) {
-          final scanDataMap = state.extra as Map<String, dynamic>;
-          return NutritionFactsScreen(scanData: ScanResult.fromMap(scanDataMap));
-        },
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/goals',
-        builder: (context, state) => GoalsScreen(activeGoals: (state.extra as List).cast<String>()),
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/sensitivities',
-        builder: (context, state) => SensitivitiesScreen(activeSensitivities: (state.extra as List).cast<String>()),
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/lifestyle',
-        builder: (context, state) => LifestyleScreen(activeLifestyle: (state.extra as List).cast<String>()),
-      ),
-      GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/notifications', builder: (context, state) => const NotificationsScreen()),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/cycle-phase',
-        builder: (context, state) => CyclePhaseScreen(currentPhase: state.extra as String?),
-      ),
-      GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/saved-foods', builder: (context, state) => const SavedFoodsScreen()),
+      // Global Full-Screen Overlays
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: '/scanner/:mode',
@@ -190,7 +187,6 @@ class AppRouter {
       GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/manual-barcode', builder: (context, state) => const ManualBarcodeScreen()),
       GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/product-not-found', builder: (context, state) => const ProductNotFoundScreen()),
       GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/symptom-check-in', builder: (context, state) => const SymptomCheckInScreen()),
-      GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/privacy', builder: (context, state) => const PrivacyScreen()),
     ],
   );
 }

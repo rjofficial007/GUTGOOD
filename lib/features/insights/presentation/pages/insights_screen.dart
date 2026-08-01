@@ -173,9 +173,9 @@ class _InsightsLoadingState extends StatelessWidget {
       sliver: SliverList(
         delegate: SliverChildListDelegate([
           const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.hero),
-          Gap.h24,
+          Gap.h32,
           const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.card),
-          Gap.h24,
+          Gap.h32,
           const ShimmerGridLoader(itemCount: 4, variant: ShimmerVariant.grid),
         ]),
       ),

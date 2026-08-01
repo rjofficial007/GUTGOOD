@@ -5,7 +5,7 @@ import 'package:shimmer/shimmer.dart';
 
 import '../constants/app_sizes.dart';
 
-enum ShimmerVariant { grid, list, hero, card }
+enum ShimmerVariant { grid, list, hero, card, recap, scanResult }
 
 /// Reusable skeleton loader mirroring the real widget shapes across the app.
 /// Prevents visual "pops" when transitioning from loading to loaded state.
@@ -19,8 +19,22 @@ class ShimmerGridLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = context.appColorScheme.border.withValues(alpha: 0.5);
-    final highlightColor = context.appColorScheme.border.withValues(alpha: 0.2);
+    final baseColor = context.appColorScheme.border.withValues(alpha: 0.2);
+    final highlightColor = context.appColorScheme.border.withValues(alpha: 0.1);
+
+    if (variant == ShimmerVariant.recap || variant == ShimmerVariant.scanResult) {
+      return Shimmer.fromColors(
+        baseColor: baseColor,
+        highlightColor: highlightColor,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            children: variant == ShimmerVariant.recap ? _buildRecapSkeleton(context) : _buildScanResultSkeleton(context),
+          ),
+        ),
+      );
+    }
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -45,7 +59,8 @@ class ShimmerGridLoader extends StatelessWidget {
             case ShimmerVariant.list:
               return _buildListSkeleton(context);
             case ShimmerVariant.grid:
-            return _buildGridSkeleton(context);
+            default:
+              return _buildGridSkeleton(context);
           }
         },
       ),
@@ -57,46 +72,40 @@ class ShimmerGridLoader extends StatelessWidget {
       case ShimmerVariant.hero:
         return Responsive.h(240.0);
       case ShimmerVariant.card:
-        return Responsive.h(140.0);
+        return Responsive.h(160.0);
       case ShimmerVariant.list:
-        return Responsive.h(80.0);
+        return Responsive.h(84.0);
       case ShimmerVariant.grid:
+      default:
         return Responsive.h(140.0);
     }
   }
 
   Widget _buildGridSkeleton(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(12.0.w),
+      padding: EdgeInsets.all(16.0.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20.0.r),
-        border: Border.all(color: Colors.white),
+        borderRadius: BorderRadius.circular(28.0.r),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 28.0.w,
-            height: 28.0.w,
+            width: 32.0.w,
+            height: 32.0.w,
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
           ),
           const Spacer(),
           Container(
-            width: 40.0.w,
-            height: 8.0.h,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
-          ),
-          Gap.h6,
-          Container(
-            width: 80.0.w,
+            width: 60.0.w,
             height: 12.0.h,
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
           ),
-          Gap.h4,
+          Gap.h8,
           Container(
-            width: 60.0.w,
-            height: 8.0.h,
+            width: double.infinity,
+            height: 10.0.h,
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
           ),
         ],
@@ -106,6 +115,7 @@ class ShimmerGridLoader extends StatelessWidget {
 
   Widget _buildListSkeleton(BuildContext context) {
     return Container(
+      margin: EdgeInsets.only(bottom: 12.0.h),
       padding: EdgeInsets.all(12.0.w),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20.0.r)),
       child: Row(
@@ -122,13 +132,13 @@ class ShimmerGridLoader extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 120.0.w,
+                  width: 140.0.w,
                   height: 14.0.h,
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
                 ),
                 Gap.h8,
                 Container(
-                  width: 80.0.w,
+                  width: 100.0.w,
                   height: 10.0.h,
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
                 ),
@@ -137,8 +147,8 @@ class ShimmerGridLoader extends StatelessWidget {
           ),
           Gap.w12,
           Container(
-            width: 52.0.w,
-            height: 52.0.w,
+            width: 44.0.w,
+            height: 44.0.w,
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
           ),
         ],
@@ -151,17 +161,33 @@ class ShimmerGridLoader extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32.0.r)),
       child: Column(
         children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.0.w, 20.0.h, 20.0.w, 12.0.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(width: 20.w, height: 20.w, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                    Gap.w12,
+                    Container(width: 100.w, height: 10.h, color: Colors.white),
+                  ],
+                ),
+                Container(width: 40.w, height: 18.h, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(100))),
+              ],
+            ),
+          ),
           Expanded(
             child: Center(
               child: Container(
-                width: 140.0.w,
-                height: 140.0.w,
+                width: 160.0.w,
+                height: 160.0.w,
                 decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
               ),
             ),
           ),
           Container(
-            height: 40.0.h,
+            height: 44.0.h,
             width: double.infinity,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.5),
@@ -175,12 +201,12 @@ class ShimmerGridLoader extends StatelessWidget {
 
   Widget _buildCardSkeleton(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24.0.r)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32.0.r)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.all(16.0.w),
+            padding: EdgeInsets.fromLTRB(20.0.w, 20.0.h, 20.0.w, 12.0.h),
             child: Row(
               children: [
                 Container(
@@ -190,7 +216,7 @@ class ShimmerGridLoader extends StatelessWidget {
                 ),
                 Gap.w12,
                 Container(
-                  width: 100.0.w,
+                  width: 120.0.w,
                   height: 10.0.h,
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
                 ),
@@ -198,24 +224,60 @@ class ShimmerGridLoader extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0.w),
-            child: Container(
-              width: double.infinity,
-              height: 40.0.h,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4.r)),
+            padding: EdgeInsets.symmetric(horizontal: 20.0.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: double.infinity, height: 12.h, color: Colors.white),
+                Gap.h8,
+                Container(width: 200.w, height: 12.h, color: Colors.white),
+              ],
             ),
           ),
           const Spacer(),
           Container(
-            height: 30.0.h,
+            height: 36.0.h,
             width: double.infinity,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24.0.r), bottomRight: Radius.circular(24.0.r)),
+              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32.0.r), bottomRight: Radius.circular(32.0.r)),
             ),
           ),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildRecapSkeleton(BuildContext context) {
+    return [
+      Center(child: Container(width: 120.w, height: 24.h, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(100)))),
+      Gap.h24,
+      _buildHeroSkeleton(context),
+      Gap.h32,
+      _buildCardSkeleton(context),
+      Gap.h32,
+      _buildCardSkeleton(context),
+      Gap.h32,
+      _buildGridSkeleton(context),
+    ];
+  }
+
+  List<Widget> _buildScanResultSkeleton(BuildContext context) {
+    return [
+      // Product Hero
+      Container(
+        height: 140.h,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24.r)),
+      ),
+      Gap.h32,
+      // Impact Section
+      _buildCardSkeleton(context),
+      Gap.h32,
+      // Nutrient Section
+      _buildCardSkeleton(context),
+      Gap.h32,
+      // Cautions Section
+      _buildCardSkeleton(context),
+    ];
   }
 }

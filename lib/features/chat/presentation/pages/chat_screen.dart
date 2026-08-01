@@ -325,57 +325,60 @@ class _ChatScreenState extends State<ChatScreen> {
                               return KeyedSubtree(
                                 key: ValueKey(msg.localId),
                                 child: _AnimatedChatItem(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      if (showDateHeader) _DateHeader(date: msg.time),
-                                      ChatBubble(
-                                        text: msg.text,
-                                        isUser: msg.role == 'user',
-                                        time: msg.time,
-                                        isLoading: msg.role == 'ai' && msg.text.isEmpty && msg.errorKind == ChatErrorKind.none && msg.scanData == null,
-                                        imageUrls: msg.imageUrls,
-                                        localImages: msg.localImages,
-                                        isSending: msg.isSending,
-                                        sendFailed: msg.sendFailed,
-                                        isStreaming: chatNotifier.isStreaming && isLatestAi,
-                                        errorKind: msg.errorKind,
-                                        screenWidth: screenWidth,
-                                        showAvatar: showAvatar,
-                                        showActions: isLatestAi && msg.text.isNotEmpty && !chatNotifier.isLoading,
-                                        onRegenerate: chatNotifier.canRegenerate
-                                            ? () {
-                                                HapticHelper.light();
-                                                chatNotifier.regenerateLastResponse();
+                                  child: Padding(
+                                    padding: EdgeInsets.only(bottom: AppSizes.p12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        if (showDateHeader) _DateHeader(date: msg.time),
+                                        ChatBubble(
+                                          text: msg.text,
+                                          isUser: msg.role == 'user',
+                                          time: msg.time,
+                                          isLoading: msg.role == 'ai' && msg.text.isEmpty && msg.errorKind == ChatErrorKind.none && msg.scanData == null,
+                                          imageUrls: msg.imageUrls,
+                                          localImages: msg.localImages,
+                                          isSending: msg.isSending,
+                                          sendFailed: msg.sendFailed,
+                                          isStreaming: chatNotifier.isStreaming && isLatestAi,
+                                          errorKind: msg.errorKind,
+                                          screenWidth: screenWidth,
+                                          showAvatar: showAvatar,
+                                          showActions: isLatestAi && msg.text.isNotEmpty && !chatNotifier.isLoading,
+                                          onRegenerate: chatNotifier.canRegenerate
+                                              ? () {
+                                                  HapticHelper.light();
+                                                  chatNotifier.regenerateLastResponse();
+                                                }
+                                              : null,
+                                          onRetry: msg.sendFailed
+                                              ? () => chatNotifier.retryMessage(msg)
+                                              : (msg.errorKind == ChatErrorKind.connection ? () => chatNotifier.regenerateLastResponse() : null),
+                                          onQuotaPressed: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
+                                          showFeedback:
+                                              isLatestAi && !chatNotifier.isStreaming && msg.text.isNotEmpty && msg.scanData == null && msg.swapData == null && msg.errorKind == ChatErrorKind.none,
+                                          feedback: msg.feedback,
+                                          onFeedback: (type) async {
+                                            if (msg.feedback != null) return;
+                                            if (type == 'helpful' || type == 'not_helpful') {
+                                              chatNotifier.handleFeedback(msg, type);
+                                              HapticHelper.light();
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.thanksFeedback), behavior: SnackBarBehavior.floating));
                                               }
-                                            : null,
-                                        onRetry: msg.sendFailed
-                                            ? () => chatNotifier.retryMessage(msg)
-                                            : (msg.errorKind == ChatErrorKind.connection ? () => chatNotifier.regenerateLastResponse() : null),
-                                        onQuotaPressed: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
-                                        showFeedback:
-                                            isLatestAi && !chatNotifier.isStreaming && msg.text.isNotEmpty && msg.scanData == null && msg.swapData == null && msg.errorKind == ChatErrorKind.none,
-                                        feedback: msg.feedback,
-                                        onFeedback: (type) async {
-                                          if (msg.feedback != null) return;
-                                          if (type == 'helpful' || type == 'not_helpful') {
-                                            chatNotifier.handleFeedback(msg, type);
-                                            HapticHelper.light();
-                                            if (mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.thanksFeedback), behavior: SnackBarBehavior.floating));
+                                            } else if (type == 'tell_me_more') {
+                                              _send(chatNotifier, authNotifier, AppStrings.tellMeMorePrompt);
                                             }
-                                          } else if (type == 'tell_me_more') {
-                                            _send(chatNotifier, authNotifier, AppStrings.tellMeMorePrompt);
-                                          }
-                                        },
-                                      ),
-                                      if (msg.isSwap == true && msg.swapData != null) SwapItContainer(swaps: msg.swapData!, onSeeMore: () => chatNotifier.handleSeeMoreSwaps(msg.text, i)),
-                                      if (msg.scanData != null)
-                                        ScanResultInlineCard(
-                                          scanData: msg.scanData!,
-                                          onViewFullReport: () => context.push('/scan-result', extra: {'scanData': msg.scanData!.toMap()}),
+                                          },
                                         ),
-                                    ],
+                                        if (msg.isSwap == true && msg.swapData != null) SwapItContainer(swaps: msg.swapData!, onSeeMore: () => chatNotifier.handleSeeMoreSwaps(msg.text, i)),
+                                        if (msg.scanData != null)
+                                          ScanResultInlineCard(
+                                            scanData: msg.scanData!,
+                                            onViewFullReport: () => context.push('/scan-result', extra: {'scanData': msg.scanData!.toMap()}),
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
@@ -423,40 +426,54 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Container(
       color: colorScheme.cardBackground,
-      padding: EdgeInsets.fromLTRB(AppSizes.p12, AppSizes.p4, AppSizes.p12, AppSizes.p8),
+      padding: EdgeInsets.fromLTRB(AppSizes.p12, AppSizes.p12, AppSizes.p12, AppSizes.p12),
       child: SafeArea(
         top: false,
-        child: Container(
-          decoration: BoxDecoration(
-            color: colorScheme.elevatedSurface,
-            borderRadius: BorderRadius.circular(AppSizes.r24),
-            border: Border.all(color: colorScheme.border),
-          ),
-          padding: EdgeInsets.fromLTRB(AppSizes.p12, AppSizes.p8, AppSizes.p8, AppSizes.p8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (chatNotifier.pendingAttachments.isNotEmpty) _AttachmentPreviewRow(notifier: chatNotifier),
-              GutTextField(
-                controller: _controller,
-                maxLines: 6,
-                minLines: 1,
-                onChanged: (_) => _scheduleDraftSave(),
-                hintText: chatNotifier.isStreaming ? AppStrings.thinking : AppStrings.askAnything,
-                borderless: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (chatNotifier.pendingAttachments.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _AttachmentPreviewRow(notifier: chatNotifier),
               ),
-              Row(
+            Container(
+              decoration: BoxDecoration(
+                color: colorScheme.elevatedSurface,
+                borderRadius: BorderRadius.circular(AppSizes.r16),
+                border: Border.all(color: colorScheme.border),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
                 children: [
-                  _ComposerIconButton(icon: AppIcons.camera, label: AppStrings.scanIngredientsMeal, onTap: chatNotifier.isLoading ? null : () => _handleCamera(chatNotifier, authNotifier)),
-                  Gap.w8,
-                  _ComposerIconButton(icon: AppIcons.image, label: AppStrings.attachPhotos, onTap: chatNotifier.isLoading ? null : () => _pickImages(chatNotifier, authNotifier)),
-                  const Spacer(),
+                  Expanded(
+                    child: GutTextField(
+                      controller: _controller,
+                      maxLines: 5,
+                      minLines: 1,
+                      onChanged: (_) => _scheduleDraftSave(),
+                      hintText: chatNotifier.isStreaming ? AppStrings.thinking : AppStrings.askAnything,
+                      borderless: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    ),
+                  ),
+                  _ComposerIconButton(
+                    icon: AppIcons.camera,
+                    label: AppStrings.scanIngredientsMeal,
+                    onTap: chatNotifier.isLoading ? null : () => _handleCamera(chatNotifier, authNotifier),
+                  ),
+                  Gap.w4,
+                  _ComposerIconButton(
+                    icon: AppIcons.image,
+                    label: AppStrings.attachPhotos,
+                    onTap: chatNotifier.isLoading ? null : () => _pickImages(chatNotifier, authNotifier),
+                  ),
+                  Gap.w4,
                   _buildSendStopButton(chatNotifier, authNotifier),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -482,8 +499,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   chatNotifier.stopGeneration();
                 },
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
                   child: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
                 ),
@@ -495,11 +512,11 @@ class _ChatScreenState extends State<ChatScreen> {
         // Uploading/preparing → inert spinner.
         if (chatNotifier.isLoading) {
           return Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
             child: Center(
-              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),
+              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),
             ),
           );
         }
@@ -515,10 +532,10 @@ class _ChatScreenState extends State<ChatScreen> {
               onTap: enabled ? () => _send(chatNotifier, authNotifier) : null,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: enabled ? colorScheme.textPrimary : colorScheme.border, shape: BoxShape.circle),
-                child: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 18),
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
+                child: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 20),
               ),
             ),
           ),
@@ -608,14 +625,14 @@ class _ComposerIconButton extends StatelessWidget {
           child: Opacity(
             opacity: onTap == null ? 0.4 : 1.0,
             child: Container(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: context.appColorScheme.cardBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: context.appColorScheme.border),
+                borderRadius: BorderRadius.circular(AppSizes.r14),
+                border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
               ),
-              child: Icon(icon, color: context.appColorScheme.textPrimary, size: 18),
+              child: Icon(icon, color: context.appColorScheme.textPrimary, size: 20),
             ),
           ),
         ),
@@ -696,23 +713,28 @@ class _ChatShimmerLoading extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final isUser = index % 2 == 0;
-        final baseColor = context.appColorScheme.border.withValues(alpha: 0.5);
-        final highlightColor = context.appColorScheme.border.withValues(alpha: 0.2);
+        final baseColor = context.appColorScheme.border.withValues(alpha: 0.2);
+        final highlightColor = context.appColorScheme.border.withValues(alpha: 0.1);
 
         if (isUser) {
           return Align(
             alignment: Alignment.centerRight,
             child: Padding(
-              padding: EdgeInsets.only(bottom: 8.0.h),
+              padding: EdgeInsets.only(bottom: 12.0.h),
               child: Shimmer.fromColors(
                 baseColor: baseColor,
                 highlightColor: highlightColor,
                 child: Container(
                   width: context.width * (0.4 + (index % 3) * 0.1),
-                  height: 50.0.h,
+                  height: 54.0.h,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(topLeft: Radius.circular(20.0.r), topRight: Radius.circular(20.0.r), bottomLeft: Radius.circular(20.0.r), bottomRight: Radius.circular(6.0.r)),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24.0.r),
+                      topRight: Radius.circular(24.0.r),
+                      bottomLeft: Radius.circular(24.0.r),
+                      bottomRight: Radius.circular(8.0.r),
+                    ),
                   ),
                 ),
               ),
@@ -721,7 +743,7 @@ class _ChatShimmerLoading extends StatelessWidget {
         }
 
         return Padding(
-          padding: EdgeInsets.only(bottom: 8.0.h),
+          padding: EdgeInsets.only(bottom: 12.0.h),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -729,8 +751,8 @@ class _ChatShimmerLoading extends StatelessWidget {
                 baseColor: baseColor,
                 highlightColor: highlightColor,
                 child: Container(
-                  width: 24.0.w,
-                  height: 24.0.w,
+                  width: 28.0.w,
+                  height: 28.0.w,
                   decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                 ),
               ),
@@ -740,10 +762,15 @@ class _ChatShimmerLoading extends StatelessWidget {
                 highlightColor: highlightColor,
                 child: Container(
                   width: context.width * (0.5 + (index % 2) * 0.1),
-                  height: 70.0.h,
+                  height: 74.0.h,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(topLeft: Radius.circular(6.0.r), topRight: Radius.circular(20.0.r), bottomLeft: Radius.circular(20.0.r), bottomRight: Radius.circular(20.0.r)),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(8.0.r),
+                      topRight: Radius.circular(24.0.r),
+                      bottomLeft: Radius.circular(24.0.r),
+                      bottomRight: Radius.circular(24.0.r),
+                    ),
                   ),
                 ),
               ),

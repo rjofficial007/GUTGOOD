@@ -207,7 +207,6 @@ class ChatBubble extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_hasImages) ...[_buildImageStrip(context, dark: false), Gap.h8],
                       MarkdownBody(
                         data: isStreaming ? '$text ▌' : text,
                         selectable: !isStreaming,

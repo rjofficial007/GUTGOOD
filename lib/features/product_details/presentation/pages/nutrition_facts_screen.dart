@@ -66,7 +66,6 @@ class NutritionFactsScreen extends StatelessWidget {
                   if (nutrients.salt != null) NutritionRow(label: AppStrings.salt, weight: '${nutrients.salt}g', isBold: true),
                   Divider(height: 32, thickness: 8, color: context.appColorScheme.textPrimary),
                   Gap.h32,
-                  Text(AppStrings.nutritionDataNotice, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted, fontSize: 10)),
                 ],
               ),
             ),

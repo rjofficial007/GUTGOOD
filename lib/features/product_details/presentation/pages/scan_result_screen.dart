@@ -317,7 +317,7 @@ class _GutImpactSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${(scanData.score * 0.85).toStringAsFixed(2)}GS',
+                    scanData.score.toString(),
                     style: context.bodyBold.copyWith(
                       fontSize: 32.0.sp,
                       fontWeight: FontWeight.w900,
@@ -392,7 +392,7 @@ class _GutImpactSection extends StatelessWidget {
       title: AppStrings.gutImpact,
       children: [
         SheetHeroSection(
-          title: '${(scanData.score * 0.85).toStringAsFixed(1)}GS',
+          title:scanData.score.toString(),
           subtitle: 'OVERALL GUT HEALTH RATING',
           color: context.appColorScheme.textPrimary,
           icon: AppIcons.activity,

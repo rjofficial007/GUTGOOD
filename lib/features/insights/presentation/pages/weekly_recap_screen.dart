@@ -16,6 +16,7 @@ import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/usage_service.dart';
 import '../../../../core/theme/app_color_scheme.dart';
 import '../../../../core/theme/app_palette.dart';
+import '../../../../core/widgets/shimmer_grid_loader.dart';
 
 class WeeklyRecapScreen extends StatelessWidget {
   final AIInsight? insight;
@@ -52,10 +53,11 @@ class WeeklyRecapScreen extends StatelessWidget {
           isActive: true),
 
       // 2. Narrative Summary (Gradient Widget)
-      DashboardEntrance(
-        delay: 100,
-        child: _WeeklyNarrativeDashboard(insight: insight),
-      ),
+      if (insight != null)
+        DashboardEntrance(
+          delay: 100,
+          child: _ModernSmartAlert(insight: insight!),
+        ),
 
       // 3. Recap Dashboard (Metrics)
       DashboardEntrance(
@@ -82,17 +84,22 @@ class WeeklyRecapScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       appBar: const GutAppBar(title: AppStrings.weeklyRecap),
-      body: ListView.builder(
-        padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: Responsive.h(10.0)),
-        itemCount: visibleSections.length,
-        itemBuilder: (context, index) {
-          final isLast = index == visibleSections.length - 1;
-          return Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 64.0.h : 32.0.h),
-            child: visibleSections[index],
-          );
-        },
-      ),
+      body: insight == null
+          ? Padding(
+              padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: Responsive.h(10.0)),
+              child: const ShimmerGridLoader(variant: ShimmerVariant.recap),
+            )
+          : ListView.builder(
+              padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: Responsive.h(10.0)),
+              itemCount: visibleSections.length,
+              itemBuilder: (context, index) {
+                final isLast = index == visibleSections.length - 1;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: isLast ? 64.0.h : 32.0.h),
+                  child: visibleSections[index],
+                );
+              },
+            ),
     );
   }
 
@@ -143,78 +150,32 @@ class WeeklyRecapScreen extends StatelessWidget {
   }
 }
 
-class _WeeklyNarrativeDashboard extends StatelessWidget {
-  final AIInsight? insight;
-  const _WeeklyNarrativeDashboard({required this.insight});
+class _ModernSmartAlert extends StatelessWidget {
+  final AIInsight insight;
+  const _ModernSmartAlert({required this.insight});
 
   @override
   Widget build(BuildContext context) {
-    final streak = insight?.streak ?? 0;
-    final healingTrend = insight?.healingTrend ?? AppStrings.optimizing;
+    final streak = insight.streak;
+    final healingTrend = insight.healingTrend ?? AppStrings.optimizing;
+    final String description = "${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}";
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(24.0.w),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.textPrimary,
-        borderRadius: BorderRadius.circular(28.0.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+    return ModernInsightCard(
+      title: 'WEEKLY PULSE',
+      icon: AppIcons.sparkles,
+      backgroundColor: context.appColorScheme.cardBackground,
+      titleColor: context.appColorScheme.textPrimary,
+      iconColor: context.appColorScheme.textPrimary,
+      padding: EdgeInsets.fromLTRB(Responsive.w(20.0), 0, Responsive.w(20.0), Responsive.h(20.0)),
+      footer: Text(
+        'AI SUMMARY',
+        textAlign: TextAlign.center,
+        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 10.0.sp, letterSpacing: 1.0),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'AI SUMMARY',
-                      style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8), letterSpacing: 2.0),
-                    ),
-                    Text(
-                      'WEEKLY PULSE',
-                      style: context.bodyBold.copyWith(
-                        color: context.appColorScheme.cardBackground,
-                        fontSize: 28.0.sp,
-                        fontWeight: FontWeight.w900,
-                        height: 1.1,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.all(12.0.w),
-                decoration: BoxDecoration(
-                  color: context.appColorScheme.cardBackground.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(AppIcons.sparkles, color: context.appColorScheme.cardBackground, size: 28.0.w),
-              ),
-            ],
-          ),
-          Gap.h24,
-          Text(
-            "${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}",
-            style: context.body.copyWith(
-              color: context.appColorScheme.cardBackground.withValues(alpha: 0.9),
-              fontSize: 15.0.sp,
-              height: 1.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+      footerColor: context.appColorScheme.textPrimary,
+      child: Text(
+        description,
+        style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
       ),
     );
   }
