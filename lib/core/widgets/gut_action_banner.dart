@@ -27,9 +27,9 @@ class GutActionBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color effectiveBg = backgroundColor ?? AppPalette.lime;
-    final Color effectiveIconColor = iconColor ?? AppPalette.black;
-    final Color effectiveIconContainer = iconContainerColor ?? AppPalette.white;
+    final Color effectiveBg = backgroundColor ?? context.appColorScheme.textPrimary;
+    final Color effectiveIconColor = iconColor ?? context.appColorScheme.cardBackground;
+    final Color effectiveIconContainer = iconContainerColor ?? context.appColorScheme.cardBackground.withValues(alpha: 0.1);
 
     return Container(
       width: double.infinity,
@@ -71,8 +71,8 @@ class GutActionBanner extends StatelessWidget {
             onTap: onTap,
             child: Container(
               padding: EdgeInsets.all(Responsive.w(15.0)),
-              decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
-              child: Icon(AppIcons.chevronRight, size: 16.0.w, color: Colors.white),
+              decoration: BoxDecoration(color: effectiveIconColor, shape: BoxShape.circle),
+              child: Icon(AppIcons.chevronRight, size: 16.0.w, color: effectiveBg),
             ),
           ),
         ],

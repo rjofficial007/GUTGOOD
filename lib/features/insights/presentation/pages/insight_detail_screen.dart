@@ -108,7 +108,7 @@ class _TrendsDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     'TRENDS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: AppPalette.softBlue),
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -152,7 +152,7 @@ class _TrendsDashboardSection extends StatelessWidget {
       context: context,
       title: 'Observed Patterns',
       children: [
-        const SheetHeroSection(title: 'TRENDS', subtitle: 'BEHAVIORAL ANALYSIS', color: AppPalette.softBlue, icon: AppIcons.activity),
+        SheetHeroSection(title: 'TRENDS', subtitle: 'BEHAVIORAL ANALYSIS', color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...patterns.map((p) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
@@ -160,7 +160,7 @@ class _TrendsDashboardSection extends StatelessWidget {
                 title: p.title,
                 subtitle: p.description,
                 icon: InsightUiUtils.getReactionIcon(p.icon),
-                color: InsightUiUtils.getPatternColor(p.icon),
+                color: context.appColorScheme.textPrimary,
               ),
             )),
         Gap.h32,
@@ -192,7 +192,7 @@ class _StatsDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     'STATS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: AppPalette.lime),
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -241,25 +241,25 @@ class _StatsDashboardSection extends StatelessWidget {
       context: context,
       title: 'Weekly Highlights',
       children: [
-        const SheetHeroSection(title: 'BIO-STATS', subtitle: 'PERFORMANCE ANALYSIS', color: AppPalette.lime, icon: AppIcons.trophy),
+        SheetHeroSection(title: 'BIO-STATS', subtitle: 'PERFORMANCE ANALYSIS', color: context.appColorScheme.textPrimary, icon: AppIcons.trophy),
         Gap.h32,
         if (insight.topHealing != null) ...[
-          const SheetSectionHeader(title: 'Top Healing Food', color: AppPalette.green500),
+          SheetSectionHeader(title: 'Top Healing Food', color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: insight.topHealing!.food,
             subtitle: insight.topHealing!.effects,
             icon: AppIcons.leaf,
-            color: AppPalette.green500,
+            color: context.appColorScheme.textPrimary,
           ),
           Gap.h24,
         ],
         if (insight.topTrigger != null) ...[
-          const SheetSectionHeader(title: 'Critical Trigger', color: AppPalette.red),
+          SheetSectionHeader(title: 'Critical Trigger', color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: insight.topTrigger!.food,
             subtitle: insight.topTrigger!.effects,
             icon: AppIcons.alertTriangle,
-            color: AppPalette.red,
+            color: context.appColorScheme.textPrimary,
           ),
           Gap.h24,
         ],
@@ -294,7 +294,7 @@ class _ReactionsDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     'REACTIONS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: AppPalette.pink),
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -338,7 +338,7 @@ class _ReactionsDashboardSection extends StatelessWidget {
       context: context,
       title: 'Body Reactions',
       children: [
-        const SheetHeroSection(title: 'BIO-FEEDBACK', subtitle: 'REACTION MAPPING', color: AppPalette.pink, icon: AppIcons.activity),
+        SheetHeroSection(title: 'BIO-FEEDBACK', subtitle: 'REACTION MAPPING', color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...impacts.map((i) {
           final isNegative = i.impactType == 'negative';
@@ -348,7 +348,7 @@ class _ReactionsDashboardSection extends StatelessWidget {
               title: i.food,
               subtitle: '${i.timeframeLabel}: ${i.effect}',
               icon: InsightUiUtils.getReactionIcon(i.emoji),
-              color: isNegative ? context.appColorScheme.error : context.appColorScheme.success,
+              color: context.appColorScheme.textPrimary,
             ),
           );
         }),

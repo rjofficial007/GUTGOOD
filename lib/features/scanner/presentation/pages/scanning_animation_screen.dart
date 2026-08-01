@@ -136,7 +136,7 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
                               value: _progressAnimation.value,
                               strokeWidth: 10,
                               backgroundColor: context.appColorScheme.border.withValues(alpha: 0.3),
-                              valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.success),
+                              valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
                               strokeCap: StrokeCap.round,
                             ),
                           ),
@@ -147,8 +147,8 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
                             child: Container(
                               width: 100,
                               height: 100,
-                              decoration: BoxDecoration(color: context.appColorScheme.success.withValues(alpha: 0.1), shape: BoxShape.circle),
-                              child: Icon(AppIcons.barcode, size: AppSizes.icon40, color: context.appColorScheme.success),
+                              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), shape: BoxShape.circle),
+                              child: Icon(AppIcons.barcode, size: AppSizes.icon40, color: context.appColorScheme.textPrimary),
                             ),
                           ),
 
@@ -160,9 +160,9 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
                               height: 2,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [context.appColorScheme.success.withValues(alpha: 0), context.appColorScheme.success, context.appColorScheme.success.withValues(alpha: 0)],
+                                  colors: [context.appColorScheme.textPrimary.withValues(alpha: 0), context.appColorScheme.textPrimary, context.appColorScheme.textPrimary.withValues(alpha: 0)],
                                 ),
-                                boxShadow: [BoxShadow(color: context.appColorScheme.success.withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 2)],
+                                boxShadow: [BoxShadow(color: context.appColorScheme.textPrimary.withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 2)],
                               ),
                             ),
                           ),
@@ -206,8 +206,8 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: AppPalette.orange.withValues(alpha: 0.1), shape: BoxShape.circle),
-                      child: Icon(AppIcons.lightbulb, color: AppPalette.orange, size: 20),
+                      decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), shape: BoxShape.circle),
+                      child: Icon(AppIcons.lightbulb, color: context.appColorScheme.textPrimary, size: 20),
                     ),
                     Gap.w16,
                     Expanded(

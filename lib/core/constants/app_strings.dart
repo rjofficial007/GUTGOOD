@@ -709,4 +709,5 @@ class AppStrings {
   static const String optimizing = 'optimizing';
   static const String aiGeneratedAnalysis = 'AI GENERATED ANALYSIS';
   static const String notSpecified = 'Not specified';
+  static const String selectTime = 'Select Time';
 }

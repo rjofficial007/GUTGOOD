@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
@@ -121,10 +120,11 @@ class DashboardDetailItem extends StatelessWidget {
         Container(
           padding: EdgeInsets.all(6.0.w),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: context.appColorScheme.elevatedSurface,
             borderRadius: BorderRadius.circular(8.0.r),
+            border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
           ),
-          child: Icon(icon, color: color, size: 14.0.w),
+          child: Icon(icon, color: context.appColorScheme.textPrimary, size: 14.0.w),
         ),
         Gap.w10,
         Expanded(
@@ -166,33 +166,7 @@ class DashboardVisualizationBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          height: 12.0.h,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppPalette.gray100,
-            borderRadius: BorderRadius.circular(6.0.r),
-          ),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: ratio.clamp(0.0, 1.0)),
-            duration: const Duration(milliseconds: 1200),
-            curve: Curves.easeOutExpo,
-            builder: (context, value, _) {
-              return FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: value,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppPalette.green500, AppPalette.lime],
-                    ),
-                    borderRadius: BorderRadius.circular(6.0.r),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+        GutProgressBar(ratio: ratio),
         Gap.h12,
         Text(
           label,
@@ -200,6 +174,56 @@ class DashboardVisualizationBar extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class GutProgressBar extends StatelessWidget {
+  final double ratio;
+  final double height;
+  final bool animate;
+
+  const GutProgressBar({
+    super.key,
+    required this.ratio,
+    this.height = 12.0,
+    this.animate = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final trackColor = Theme.of(context).brightness == Brightness.light ? const Color(0xFFF0F0F2) : const Color(0xFF1A1C22);
+
+    final content = Container(
+      height: height.h,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: trackColor,
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: ratio.clamp(0.0, 1.0)),
+            duration: animate ? const Duration(milliseconds: 1200) : Duration.zero,
+            curve: Curves.easeOutExpo,
+            builder: (context, value, _) {
+              return FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: value,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: context.appColorScheme.textPrimary,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+
+    return content;
   }
 }
 
@@ -224,10 +248,11 @@ class SheetHeroSection extends StatelessWidget {
         Container(
           padding: EdgeInsets.all(20.0.w),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: context.appColorScheme.elevatedSurface,
             shape: BoxShape.circle,
+            border: Border.all(color: context.appColorScheme.border),
           ),
-          child: Icon(icon, color: color, size: 40.0.w),
+          child: Icon(icon, color: context.appColorScheme.textPrimary, size: 40.0.w),
         ),
         Gap.h16,
         Text(
@@ -259,14 +284,14 @@ class SheetSectionHeader extends StatelessWidget {
             width: 4.0.w,
             height: 16.0.h,
             decoration: BoxDecoration(
-              color: color,
+              color: context.appColorScheme.textPrimary,
               borderRadius: BorderRadius.circular(2.0.r),
             ),
           ),
           Gap.w12,
           Text(
             title.toUpperCase(),
-            style: context.bodyBold.copyWith(fontSize: 13.0.sp, color: color, letterSpacing: 1.0),
+            style: context.bodyBold.copyWith(fontSize: 13.0.sp, color: context.appColorScheme.textPrimary, letterSpacing: 1.0),
           ),
         ],
       ),

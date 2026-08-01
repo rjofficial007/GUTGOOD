@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -36,6 +37,53 @@ class BottomSheetHelper {
     );
   }
 
+  static Future<TimeOfDay?> showTimePickerSheet({
+    required BuildContext context,
+    required String title,
+    required TimeOfDay initialTime,
+  }) async {
+    TimeOfDay selectedTime = initialTime;
+
+    return showGutBottomSheet<TimeOfDay>(
+      context: context,
+      title: title,
+      children: [
+        SizedBox(
+          height: 200,
+          child: CupertinoTheme(
+            data: CupertinoThemeData(
+              textTheme: CupertinoTextThemeData(
+                dateTimePickerTextStyle: context.bodyBold.copyWith(
+                  fontSize: 22.sp,
+                  color: context.appColorScheme.textPrimary,
+                ),
+              ),
+            ),
+            child: CupertinoDatePicker(
+              mode: CupertinoDatePickerMode.time,
+              initialDateTime: DateTime(2026, 1, 1, initialTime.hour, initialTime.minute),
+              onDateTimeChanged: (DateTime newDateTime) {
+                selectedTime = TimeOfDay(hour: newDateTime.hour, minute: newDateTime.minute);
+              },
+            ),
+          ),
+        ),
+        Gap.h32,
+        GutButton(
+          label: AppStrings.confirm,
+          onTap: () => context.pop(selectedTime),
+        ),
+        Gap.h12,
+        GutButton(
+          label: AppStrings.cancel,
+          isOutlined: true,
+          onTap: () => context.pop(),
+        ),
+        Gap.h24,
+      ],
+    );
+  }
+
   static void showInfoSheet({
     required BuildContext context,
     required String title,
@@ -56,8 +104,8 @@ class BottomSheetHelper {
               children: [
                 Container(
                   padding: EdgeInsets.all(Responsive.w(16.0)),
-                  decoration: BoxDecoration(color: AppPalette.purple.withValues(alpha: 0.1), shape: BoxShape.circle),
-                  child: Icon(AppIcons.info, color: AppPalette.purple, size: 32.0.w),
+                  decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+                  child: Icon(AppIcons.info, color: context.appColorScheme.textPrimary, size: 32.0.w),
                 ),
                 Gap.h24,
                 Text(
@@ -72,15 +120,15 @@ class BottomSheetHelper {
           Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(vertical: 16.0.h),
-            decoration: const BoxDecoration(color: AppPalette.lime),
+            decoration: BoxDecoration(color: context.appColorScheme.textPrimary),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(AppIcons.sparkles, size: 14, color: AppPalette.black),
+                Icon(AppIcons.sparkles, size: 14, color: context.appColorScheme.cardBackground),
                 Gap.w8,
                 Text(
                   headerLabel ?? AppStrings.gutgoodHealthIntelligence,
-                  style: context.caption.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 10.0.sp, letterSpacing: 1.2),
+                  style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 10.0.sp, letterSpacing: 1.2),
                 ),
               ],
             ),
@@ -101,8 +149,8 @@ class BottomSheetHelper {
       children: [
         Container(
           padding: EdgeInsets.all(Responsive.w(16.0)),
-          decoration: BoxDecoration(color: context.appColorScheme.error.withValues(alpha: 0.1), shape: BoxShape.circle),
-          child: Icon(AppIcons.alertTriangle, color: context.appColorScheme.error, size: 32.0.w),
+          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+          child: Icon(AppIcons.alertTriangle, color: context.appColorScheme.textPrimary, size: 32.0.w),
         ),
         Gap.h20,
         Text(
@@ -113,19 +161,16 @@ class BottomSheetHelper {
         Gap.h32,
         GutButton(
           label: AppStrings.logoutAnyway,
-          color: context.appColorScheme.error,
           onTap: () {
             context.pop();
             onConfirm();
           },
         ),
         Gap.h12,
-        TextButton(
-          onPressed: () => context.pop(),
-          child: Text(
-            AppStrings.cancel,
-            style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold),
-          ),
+        GutButton(
+          label: AppStrings.cancel,
+          isOutlined: true,
+          onTap: () => context.pop(),
         ),
         Gap.h24,
       ],
@@ -142,8 +187,8 @@ class BottomSheetHelper {
       children: [
         Container(
           padding: EdgeInsets.all(Responsive.w(16.0)),
-          decoration: BoxDecoration(color: context.appColorScheme.error.withValues(alpha: 0.1), shape: BoxShape.circle),
-          child: Icon(AppIcons.trash2, color: context.appColorScheme.error, size: 32.0.w),
+          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+          child: Icon(AppIcons.trash2, color: context.appColorScheme.textPrimary, size: 32.0.w),
         ),
         Gap.h20,
         Text(
@@ -154,19 +199,16 @@ class BottomSheetHelper {
         Gap.h32,
         GutButton(
           label: AppStrings.deletePermanently,
-          color: context.appColorScheme.error,
           onTap: () {
             context.pop();
             onConfirm();
           },
         ),
         Gap.h12,
-        TextButton(
-          onPressed: () => context.pop(),
-          child: Text(
-            AppStrings.cancel,
-            style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold),
-          ),
+        GutButton(
+          label: AppStrings.cancel,
+          isOutlined: true,
+          onTap: () => context.pop(),
         ),
         Gap.h24,
       ],

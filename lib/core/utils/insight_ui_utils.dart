@@ -27,20 +27,7 @@ class InsightUiUtils {
 
   /// Returns a branding-consistent color for a specific pattern category.
   static Color getPatternColor(String iconName) {
-    switch (iconName.toLowerCase()) {
-      case 'zap':
-        return AppPalette.yellow;
-      case 'leaf':
-        return AppPalette.lime;
-      case 'wind':
-        return AppPalette.softBlue;
-      case 'sparkles':
-        return AppPalette.purple;
-      case 'utensils':
-        return Colors.orange;
-      default:
-        return AppPalette.purple;
-    }
+    return AppPalette.black;
   }
 
   /// Maps ingredient risk levels (red, orange, green) to theme colors.

@@ -48,8 +48,8 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                         Container(
                           width: 42.0.w,
                           height: 42.0.w,
-                          decoration: BoxDecoration(color: AppPalette.pink.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppSizes.r14)),
-                          child: Icon(AppIcons.flower, color: AppPalette.pink, size: 20.0.w),
+                          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(AppSizes.r14)),
+                          child: Icon(AppIcons.flower, color: context.appColorScheme.textPrimary, size: 20.0.w),
                         ),
                         Gap.w14,
                         Expanded(

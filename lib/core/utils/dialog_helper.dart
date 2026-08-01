@@ -34,7 +34,7 @@ class DialogHelper {
           ),
           TextButton(
             onPressed: () => context.pop(true),
-            style: TextButton.styleFrom(foregroundColor: isDestructive ? AppPalette.red : context.appColorScheme.textPrimary),
+            style: TextButton.styleFrom(foregroundColor: context.appColorScheme.textPrimary),
             child: Text(confirmLabel, style: context.bodyBold),
           ),
         ],
@@ -54,7 +54,7 @@ class DialogHelper {
     String? secondaryActionLabel,
     VoidCallback? onSecondaryAction,
   }) {
-    final effectiveIconColor = iconColor ?? (isDestructive ? AppPalette.red : Theme.of(context).colorScheme.primary);
+    final effectiveIconColor = iconColor ?? Theme.of(context).colorScheme.primary;
 
     BottomSheetHelper.showGutBottomSheet(
       context: context,
@@ -63,8 +63,8 @@ class DialogHelper {
         if (icon != null) ...[
           Container(
             padding: EdgeInsets.all(AppSizes.p16),
-            decoration: BoxDecoration(color: effectiveIconColor.withValues(alpha: 0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: effectiveIconColor, size: 28.0.w),
+            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+            child: Icon(icon, color: context.appColorScheme.textPrimary, size: 28.0.w),
           ),
           Gap.h24,
         ],
@@ -86,7 +86,6 @@ class DialogHelper {
         ],
         GutButton(
           label: actionLabel,
-          color: isDestructive ? AppPalette.red : null,
           isOutlined: secondaryActionLabel != null,
           onTap: () {
             context.pop();

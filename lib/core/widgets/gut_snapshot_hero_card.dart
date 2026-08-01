@@ -55,13 +55,13 @@ class GutSnapshotHeroCard extends StatelessWidget {
       borderRadius: borderRadius,
       padding: EdgeInsets.all(Responsive.w(24.0)),
       action: GutStatusBadge(isActive: isActive),
-      footerColor: AppPalette.lime,
+      footerColor: context.appColorScheme.textPrimary,
       footer: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(AppIcons.flame, size: 14, color: AppPalette.black),
+          Icon(AppIcons.flame, size: 14, color: context.appColorScheme.cardBackground),
           Gap.w8,
-          Text('$streak${AppStrings.dayStreakActive}'.toUpperCase(), style: context.eyebrow.copyWith(color: AppPalette.black, letterSpacing: 1.0)),
+          Text('$streak${AppStrings.dayStreakActive}'.toUpperCase(), style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground, letterSpacing: 1.0)),
         ],
       ),
       child: Column(
@@ -74,10 +74,10 @@ class GutSnapshotHeroCard extends StatelessWidget {
             Gap.h12,
             Container(
               padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
-              decoration: BoxDecoration(color: (isPositiveDiff ? context.appColorScheme.success : context.appColorScheme.error).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
+              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(100)),
               child: Text(
                 scoreDiff!,
-                style: context.caption.copyWith(color: isPositiveDiff ? context.appColorScheme.success : context.appColorScheme.error, fontWeight: FontWeight.w900, fontSize: 10.0.sp),
+                style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 10.0.sp),
               ),
             ),
           ],

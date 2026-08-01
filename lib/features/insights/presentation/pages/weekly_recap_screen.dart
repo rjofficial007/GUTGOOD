@@ -32,13 +32,13 @@ class WeeklyRecapScreen extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 6.0.h),
           decoration: BoxDecoration(
-            color: AppPalette.purple.withValues(alpha: 0.05),
+            color: context.appColorScheme.border.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: AppPalette.purple.withValues(alpha: 0.1)),
+            border: Border.all(color: context.appColorScheme.border),
           ),
           child: Text(
             recap?.dateRange ?? AppStrings.last7Days,
-            style: context.eyebrow.copyWith(color: AppPalette.purple, fontWeight: FontWeight.w900),
+            style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900),
           ),
         ),
       ),
@@ -116,8 +116,8 @@ class WeeklyRecapScreen extends StatelessWidget {
         children: [
           Container(
             padding: EdgeInsets.all(12.0.w),
-            decoration: BoxDecoration(color: AppPalette.lime.withValues(alpha: 0.15), shape: BoxShape.circle),
-            child: Icon(AppIcons.trophy, color: AppPalette.lime, size: 24.0.w),
+            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+            child: Icon(AppIcons.trophy, color: context.appColorScheme.textPrimary, size: 24.0.w),
           ),
           Gap.w16,
           Expanded(
@@ -126,7 +126,7 @@ class WeeklyRecapScreen extends StatelessWidget {
               children: [
                 Text(
                   AppStrings.champion.toUpperCase(),
-                  style: context.eyebrow.copyWith(color: AppPalette.lime, fontSize: 10.0.sp, letterSpacing: 1.5),
+                  style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, fontSize: 10.0.sp, letterSpacing: 1.5),
                 ),
                 Gap.h4,
                 Text(
@@ -136,7 +136,7 @@ class WeeklyRecapScreen extends StatelessWidget {
               ],
             ),
           ),
-          Icon(AppIcons.sparkles, color: AppPalette.lime, size: 16.0.w),
+          Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: 16.0.w),
         ],
       ),
     );
@@ -156,18 +156,11 @@ class _WeeklyNarrativeDashboard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(24.0.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppPalette.purple.withValues(alpha: 0.8),
-            AppPalette.blue.withValues(alpha: 0.6),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: context.appColorScheme.textPrimary,
         borderRadius: BorderRadius.circular(28.0.r),
         boxShadow: [
           BoxShadow(
-            color: AppPalette.purple.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -185,12 +178,12 @@ class _WeeklyNarrativeDashboard extends StatelessWidget {
                   children: [
                     Text(
                       'AI SUMMARY',
-                      style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.8), letterSpacing: 2.0),
+                      style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8), letterSpacing: 2.0),
                     ),
                     Text(
                       'WEEKLY PULSE',
                       style: context.bodyBold.copyWith(
-                        color: AppPalette.white,
+                        color: context.appColorScheme.cardBackground,
                         fontSize: 28.0.sp,
                         fontWeight: FontWeight.w900,
                         height: 1.1,
@@ -204,10 +197,10 @@ class _WeeklyNarrativeDashboard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(12.0.w),
                 decoration: BoxDecoration(
-                  color: AppPalette.white.withValues(alpha: 0.2),
+                  color: context.appColorScheme.cardBackground.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(AppIcons.sparkles, color: AppPalette.white, size: 28.0.w),
+                child: Icon(AppIcons.sparkles, color: context.appColorScheme.cardBackground, size: 28.0.w),
               ),
             ],
           ),
@@ -215,7 +208,7 @@ class _WeeklyNarrativeDashboard extends StatelessWidget {
           Text(
             "${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}",
             style: context.body.copyWith(
-              color: AppPalette.white.withValues(alpha: 0.9),
+              color: context.appColorScheme.cardBackground.withValues(alpha: 0.9),
               fontSize: 15.0.sp,
               height: 1.5,
               fontWeight: FontWeight.w500,
@@ -285,21 +278,21 @@ class _RecapDashboardSection extends StatelessWidget {
                     title: recap?.bestDay ?? 'N/A',
                     subtitle: 'Peak Performance',
                     icon: AppIcons.trophy,
-                    color: AppPalette.lime,
+                    color: context.appColorScheme.textPrimary,
                   ),
                   Gap.h12,
                   DashboardDetailItem(
                     title: '${recap?.foodsLogged ?? 0}',
                     subtitle: 'Total Logs',
                     icon: AppIcons.clipboardList,
-                    color: context.appColorScheme.warning,
+                    color: context.appColorScheme.textPrimary,
                   ),
                   Gap.h12,
                   DashboardDetailItem(
                     title: insight?.healingTrend?.toUpperCase() ?? 'STABLE',
                     subtitle: 'Weekly Trend',
                     icon: AppIcons.zap,
-                    color: AppPalette.purple,
+                    color: context.appColorScheme.textPrimary,
                   ),
                 ],
               ),
@@ -318,23 +311,23 @@ class _RecapDashboardSection extends StatelessWidget {
         SheetHeroSection(
           title: '${recap?.avgScore ?? 0}',
           subtitle: 'AVERAGE GUT SCORE',
-          color: context.appColorScheme.success,
+          color: context.appColorScheme.textPrimary,
           icon: AppIcons.activity,
         ),
         Gap.h32,
-        const SheetSectionHeader(title: 'Activity Breakdown', color: AppPalette.purple),
+        SheetSectionHeader(title: 'Activity Breakdown', color: context.appColorScheme.textPrimary),
         DashboardDetailItem(
           title: '${recap?.foodsLogged ?? 0} Foods Logged',
           subtitle: recap?.loggedSub ?? 'Keep it up!',
           icon: AppIcons.utensils,
-          color: AppPalette.orange,
+          color: context.appColorScheme.textPrimary,
         ),
         Gap.h16,
         DashboardDetailItem(
           title: 'Best Day: ${recap?.bestDay ?? 'N/A'}',
           subtitle: AppStrings.bestPerformanceSubtitle,
           icon: AppIcons.trophy,
-          color: AppPalette.lime,
+          color: context.appColorScheme.textPrimary,
         ),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
@@ -370,7 +363,7 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
                       fontSize: 28.0.sp,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
-                      color: AppPalette.softBlue,
+                      color: context.appColorScheme.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -388,10 +381,10 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(12.0.w),
                     decoration: BoxDecoration(
-                      color: AppPalette.softBlue.withValues(alpha: 0.1),
+                      color: context.appColorScheme.border.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(AppIcons.sparkles, color: AppPalette.softBlue, size: 32.0.w),
+                    child: Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: 32.0.w),
                   ),
                 ],
               ),
@@ -431,27 +424,21 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
       context: context,
       title: 'Weekly Discoveries',
       children: [
-        const SheetHeroSection(
+        SheetHeroSection(
           title: 'INSIGHTS',
           subtitle: 'AI-DRIVEN FINDINGS',
-          color: AppPalette.softBlue,
+          color: context.appColorScheme.textPrimary,
           icon: AppIcons.sparkles,
         ),
         Gap.h32,
         ...highlights.map((RecapHighlight h) {
-          final color = InsightUiUtils.getIngredientColor(
-            h.color,
-            error: context.appColorScheme.error,
-            warning: context.appColorScheme.warning,
-            success: context.appColorScheme.success,
-          );
           return Padding(
             padding: EdgeInsets.only(bottom: 16.0.h),
             child: DashboardDetailItem(
               title: h.text,
               subtitle: 'Detected this week',
               icon: InsightUiUtils.getReactionIcon(h.icon),
-              color: color,
+              color: context.appColorScheme.textPrimary,
             ),
           );
         }),

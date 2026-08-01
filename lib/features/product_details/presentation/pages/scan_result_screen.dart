@@ -265,9 +265,9 @@ class _ClassificationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color badgeColor = AppPalette.lime;
+    Color badgeColor = context.appColorScheme.elevatedSurface;
     if (label == AppStrings.nova.toUpperCase()) {
-      badgeColor = AppPalette.gray50;
+      badgeColor = context.appColorScheme.elevatedSurface;
     }
 
     return Container(
@@ -284,10 +284,10 @@ class _ClassificationBadge extends StatelessWidget {
           Gap.w8,
           Container(
             padding: EdgeInsets.symmetric(horizontal: 6.0.w, vertical: 2.0.h),
-            decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(4.0.r)),
+            decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(4.0.r), border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5))),
             child: Text(
               value,
-              style: context.bodyBold.copyWith(fontSize: 11.0.sp, color: AppPalette.black),
+              style: context.bodyBold.copyWith(fontSize: 11.0.sp, color: context.appColorScheme.textPrimary),
             ),
           ),
         ],
@@ -350,28 +350,28 @@ class _GutImpactSection extends StatelessWidget {
                     title: _getImpactLevel(AppStrings.bloodSugar),
                     subtitle: AppStrings.bloodSugar,
                     icon: AppIcons.activity,
-                    color: AppPalette.blue,
+                    color: context.appColorScheme.textPrimary,
                   ),
                   Gap.h12,
                   DashboardDetailItem(
                     title: _getImpactLevel(AppStrings.inflammation),
                     subtitle: AppStrings.inflammation,
                     icon: AppIcons.shield,
-                    color: AppPalette.green500,
+                    color: context.appColorScheme.textPrimary,
                   ),
                   Gap.h12,
                   DashboardDetailItem(
                     title: _getImpactLevel(AppStrings.digestibility),
                     subtitle: AppStrings.digestibility,
                     icon: AppIcons.moon,
-                    color: AppPalette.yellow,
+                    color: context.appColorScheme.textPrimary,
                   ),
                   Gap.h12,
                   DashboardDetailItem(
                     title: _getImpactLevel(AppStrings.satiety),
                     subtitle: AppStrings.satiety,
                     icon: AppIcons.target,
-                    color: AppPalette.red,
+                    color: context.appColorScheme.textPrimary,
                   ),
                 ],
               ),
@@ -394,22 +394,22 @@ class _GutImpactSection extends StatelessWidget {
         SheetHeroSection(
           title: '${(scanData.score * 0.85).toStringAsFixed(1)}GS',
           subtitle: 'OVERALL GUT HEALTH RATING',
-          color: context.appColorScheme.success,
+          color: context.appColorScheme.textPrimary,
           icon: AppIcons.activity,
         ),
         Gap.h32,
         if (positive.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Positive Markers', color: context.appColorScheme.success),
+          SheetSectionHeader(title: 'Positive Markers', color: context.appColorScheme.textPrimary),
           ...positive.map((e) => _buildImpactTile(context, e)),
           Gap.h24,
         ],
         if (moderate.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Neutral Observations', color: context.appColorScheme.warning),
+          SheetSectionHeader(title: 'Neutral Observations', color: context.appColorScheme.textPrimary),
           ...moderate.map((e) => _buildImpactTile(context, e)),
           Gap.h24,
         ],
         if (negative.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Potential Triggers', color: context.appColorScheme.error),
+          SheetSectionHeader(title: 'Potential Triggers', color: context.appColorScheme.textPrimary),
           ...negative.map((e) => _buildImpactTile(context, e)),
           Gap.h24,
         ],
@@ -482,11 +482,11 @@ class _GutImpactChart extends StatelessWidget {
           children: List.generate(5, (index) {
             final heights = [12.0, 8.0, 16.0, 24.0, 18.0];
             final colors = [
-              AppPalette.green500,
-              AppPalette.green500,
-              AppPalette.green500,
-              AppPalette.green500,
-              AppPalette.gray200,
+              context.appColorScheme.textPrimary,
+              context.appColorScheme.textPrimary,
+              context.appColorScheme.textPrimary,
+              context.appColorScheme.textPrimary,
+              context.appColorScheme.border,
             ];
             return TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: heights[index]),
@@ -549,18 +549,11 @@ class _CycleImpactDashboardSection extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(24.0.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppPalette.pink.withValues(alpha: 0.8),
-            AppPalette.orange.withValues(alpha: 0.6),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: context.appColorScheme.textPrimary,
         borderRadius: BorderRadius.circular(28.0.r),
         boxShadow: [
           BoxShadow(
-            color: AppPalette.pink.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -578,12 +571,12 @@ class _CycleImpactDashboardSection extends StatelessWidget {
                   children: [
                     Text(
                       'PHASE',
-                      style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.8), letterSpacing: 2.0),
+                      style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8), letterSpacing: 2.0),
                     ),
                     Text(
                       insight.phase.toUpperCase(),
                       style: context.bodyBold.copyWith(
-                        color: AppPalette.white,
+                        color: context.appColorScheme.cardBackground,
                         fontSize: 32.0.sp,
                         fontWeight: FontWeight.w900,
                         height: 1.1,
@@ -598,10 +591,10 @@ class _CycleImpactDashboardSection extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(12.0.w),
                 decoration: BoxDecoration(
-                  color: AppPalette.white.withValues(alpha: 0.2),
+                  color: context.appColorScheme.cardBackground.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(AppIcons.sun, color: AppPalette.white, size: 28.0.w),
+                child: Icon(AppIcons.sun, color: context.appColorScheme.cardBackground, size: 28.0.w),
               ),
             ],
           ),
@@ -609,7 +602,7 @@ class _CycleImpactDashboardSection extends StatelessWidget {
           Text(
             insight.description,
             style: context.body.copyWith(
-              color: AppPalette.white.withValues(alpha: 0.9),
+              color: context.appColorScheme.cardBackground.withValues(alpha: 0.9),
               fontSize: 15.0.sp,
               height: 1.4,
               fontWeight: FontWeight.w500,
@@ -618,11 +611,11 @@ class _CycleImpactDashboardSection extends StatelessWidget {
           Gap.h16,
           Row(
             children: [
-              Icon(AppIcons.trendingUp, color: AppPalette.white, size: 14.0.w),
+              Icon(AppIcons.trendingUp, color: context.appColorScheme.cardBackground, size: 14.0.w),
               Gap.w8,
               Text(
                 'High Metabolic Impact Today',
-                style: context.caption.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold),
+                style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -718,22 +711,22 @@ class _IngredientsDashboardSection extends StatelessWidget {
         SheetHeroSection(
           title: '${(cleanRatio * 100).toInt()}%',
           subtitle: 'CLEAN COMPOSITION SCORE',
-          color: AppPalette.green500,
+          color: context.appColorScheme.textPrimary,
           icon: AppIcons.leaf,
         ),
         Gap.h32,
         if (avoid.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Ingredients to Avoid', color: context.appColorScheme.error),
+          SheetSectionHeader(title: 'Ingredients to Avoid', color: context.appColorScheme.textPrimary),
           ...avoid.map((e) => _buildIngredientTile(context, e)),
           Gap.h24,
         ],
         if (limit.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Limit Consumption', color: context.appColorScheme.warning),
+          SheetSectionHeader(title: 'Limit Consumption', color: context.appColorScheme.textPrimary),
           ...limit.map((e) => _buildIngredientTile(context, e)),
           Gap.h24,
         ],
         if (clean.isNotEmpty) ...[
-          SheetSectionHeader(title: 'Clean Ingredients', color: context.appColorScheme.success),
+          SheetSectionHeader(title: 'Clean Ingredients', color: context.appColorScheme.textPrimary),
           ...clean.map((e) => _buildIngredientTile(context, e)),
           Gap.h24,
         ],
@@ -774,33 +767,7 @@ class _IngredientCompositionVisualization extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          height: 12.0.h,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppPalette.gray100,
-            borderRadius: BorderRadius.circular(6.0.r),
-          ),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: cleanRatio.clamp(0.1, 1.0)),
-            duration: const Duration(milliseconds: 1200),
-            curve: Curves.easeOutExpo,
-            builder: (context, value, _) {
-              return FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: value,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppPalette.green500, AppPalette.lime],
-                    ),
-                    borderRadius: BorderRadius.circular(6.0.r),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+        GutProgressBar(ratio: cleanRatio.clamp(0.0, 1.0)),
         Gap.h12,
         Text(
           '${(cleanRatio * 100).toInt()}% clean composition',
@@ -905,7 +872,7 @@ class _NutrientDashboardSection extends StatelessWidget {
         SheetHeroSection(
           title: 'PROFILE',
           subtitle: 'NUTRIENT BENCHMARKING',
-          color: AppPalette.blue,
+          color: context.appColorScheme.textPrimary,
           icon: AppIcons.flaskConical,
         ),
         Gap.h24,
@@ -930,16 +897,7 @@ class _NutrientDashboardSection extends StatelessWidget {
   }
 
   Color _getNutrientColor(String? val, BuildContext context) {
-    switch (val?.toLowerCase()) {
-      case 'low':
-        return context.appColorScheme.success;
-      case 'moderate':
-        return context.appColorScheme.warning;
-      case 'high':
-        return context.appColorScheme.error;
-      default:
-        return context.appColorScheme.textMuted;
-    }
+    return context.appColorScheme.textPrimary;
   }
 }
 
@@ -951,33 +909,7 @@ class _NutrientVisualization extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          height: 12.0.h,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppPalette.gray100,
-            borderRadius: BorderRadius.circular(6.0.r),
-          ),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 0.7),
-            duration: const Duration(milliseconds: 1000),
-            curve: Curves.easeOutExpo,
-            builder: (context, value, _) {
-              return FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: value,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppPalette.green500, AppPalette.lime],
-                    ),
-                    borderRadius: BorderRadius.circular(6.0.r),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+        const GutProgressBar(ratio: 0.7),
         Gap.h12,
         Text(
           'Optimal profile identified',
@@ -1015,7 +947,7 @@ class _CautionsDashboardSection extends StatelessWidget {
                       fontSize: 28.0.sp,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
-                      color: hasAllergens ? context.appColorScheme.error : context.appColorScheme.success,
+                      color: context.appColorScheme.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1077,7 +1009,7 @@ class _CautionRiskIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSafe ? context.appColorScheme.success : context.appColorScheme.error;
+    final color = context.appColorScheme.textPrimary;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 800),
@@ -1143,7 +1075,7 @@ class _SwapsDashboardSection extends StatelessWidget {
                       fontSize: 28.0.sp,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1,
-                      color: context.appColorScheme.success,
+                      color: context.appColorScheme.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1174,7 +1106,7 @@ class _SwapsDashboardSection extends StatelessWidget {
                       title: swap.title,
                       subtitle: swap.subtitle,
                       icon: AppIcons.sparkles,
-                      color: AppPalette.lime,
+                      color: context.appColorScheme.textPrimary,
                     ),
                   );
                 }).toList(),
@@ -1194,7 +1126,7 @@ class _SwapsDashboardSection extends StatelessWidget {
         SheetHeroSection(
           title: '${swaps.length}',
           subtitle: 'HEALTHIER ALTERNATIVES FOUND',
-          color: context.appColorScheme.success,
+          color: context.appColorScheme.textPrimary,
           icon: AppIcons.sparkles,
         ),
         Gap.h32,
@@ -1205,7 +1137,7 @@ class _SwapsDashboardSection extends StatelessWidget {
               title: swap.title,
               subtitle: swap.subtitle,
               icon: AppIcons.package,
-              color: AppPalette.lime,
+              color: context.appColorScheme.textPrimary,
             ),
           );
         }).toList(),
@@ -1228,10 +1160,11 @@ class _SwapVisualization extends StatelessWidget {
         Container(
           padding: EdgeInsets.all(12.0.w),
           decoration: BoxDecoration(
-            color: context.appColorScheme.success.withValues(alpha: 0.1),
+            color: context.appColorScheme.elevatedSurface,
             shape: BoxShape.circle,
+            border: Border.all(color: context.appColorScheme.border),
           ),
-          child: Icon(AppIcons.arrowRightLeft, color: context.appColorScheme.success, size: 32.0.w),
+          child: Icon(AppIcons.arrowRightLeft, color: context.appColorScheme.textPrimary, size: 32.0.w),
         ),
         Gap.h16,
         Text(

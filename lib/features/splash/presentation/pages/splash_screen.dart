@@ -122,7 +122,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     SizedBox(
                       width: 50,
                       height: 2,
-                      child: LinearProgressIndicator(backgroundColor: context.appColorScheme.border, color: Theme.of(context).colorScheme.primary,borderRadius: BorderRadius.circular(50)),
+                      child: LinearProgressIndicator(
+                        backgroundColor: context.appColorScheme.border.withValues(alpha: 0.2),
+                        color: AppPalette.white,
+                        borderRadius: BorderRadius.circular(50),
+                      ),
                     ),
                   ],
                 ),

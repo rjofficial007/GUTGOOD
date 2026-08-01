@@ -54,7 +54,7 @@ class ProfileHeader extends StatelessWidget {
       leading: Container(
         width: 8.0.w,
         height: 8.0.w,
-        decoration: const BoxDecoration(color: AppPalette.lime, shape: BoxShape.circle),
+        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
       ),
       backgroundColor: AppPalette.black,
       titleColor: Colors.white.withValues(alpha: 0.7),
@@ -62,7 +62,7 @@ class ProfileHeader extends StatelessWidget {
         '${streak}D STREAK',
         style: context.caption.copyWith(color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.bold, fontSize: 9.0.sp),
       ),
-      footerColor: AppPalette.lime,
+      footerColor:AppPalette.gray100,
       footer: Text(
         '$goalsCount GOALS • $sensitivitiesCount SENSITIVITIES • $lifestyleCount LIFESTYLE',
         style: context.caption.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 9.0.sp, letterSpacing: 0.5),

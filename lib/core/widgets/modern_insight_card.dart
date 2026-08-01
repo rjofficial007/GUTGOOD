@@ -86,7 +86,7 @@ class ModernInsightCard extends StatelessWidget {
               child: Container(
                 height: Responsive.h(120.0),
                 padding: EdgeInsets.only(bottom: 12.0.h, left: 16.0.w, right: 16.0.w),
-                decoration: BoxDecoration(color: footerColor ?? AppPalette.lime, borderRadius: BorderRadius.circular(radius)),
+                decoration: BoxDecoration(color: footerColor ?? context.appColorScheme.textPrimary, borderRadius: BorderRadius.circular(radius)),
                 alignment: Alignment.bottomCenter,
                 child: footerWidget,
               ),
@@ -114,12 +114,12 @@ class ModernInsightCard extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              if (leading != null) leading! else if (icon != null) Icon(icon, color: iconColor ?? AppPalette.purple, size: 20.0.w),
+                              if (leading != null) leading! else if (icon != null) Icon(icon, color: iconColor ?? context.appColorScheme.textPrimary, size: 20.0.w),
                               if (leading != null || icon != null) Gap.w12,
                               Text(title.toUpperCase(), style: context.eyebrow.copyWith(color: titleColor ?? context.appColorScheme.textPrimary, letterSpacing: 1.2)),
                             ],
                           ),
-                          ?actionWidget,
+                          if (actionWidget != null) actionWidget,
                         ],
                       ),
                     ),

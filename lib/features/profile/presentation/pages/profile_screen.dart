@@ -83,6 +83,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       title: AppStrings.appearance,
       children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: AppSizes.p24),
+          child: Text(
+            "Select your preferred visual style for the app.",
+            style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary),
+          ),
+        ),
         _AppearanceOption(
           icon: AppIcons.sun,
           title: AppStrings.system,
@@ -110,7 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Future.delayed(Duration.zero, () => themeNotifier.setThemeMode(ThemeMode.dark));
           },
         ),
-        Gap.h24,
+        Gap.h12,
       ],
     );
   }
@@ -405,16 +412,52 @@ class _AppearanceOption extends StatelessWidget {
       label: 'Select $title appearance',
       button: true,
       selected: isSelected,
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Container(
-          padding: EdgeInsets.all(AppSizes.p8),
-          decoration: BoxDecoration(color: context.appColorScheme.elevatedSurface, borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, color: context.appColorScheme.textPrimary, size: 20),
-        ),
-        title: Text(title, style: context.body.copyWith(fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500)),
-        trailing: isSelected ? Icon(AppIcons.check, color: context.appColorScheme.success, size: 20) : null,
+      child: GestureDetector(
         onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: EdgeInsets.only(bottom: AppSizes.p12),
+          padding: EdgeInsets.all(AppSizes.p16),
+          decoration: BoxDecoration(
+            color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.elevatedSurface,
+            borderRadius: BorderRadius.circular(AppSizes.r16),
+            border: Border.all(
+              color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.border,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(AppSizes.p8),
+                decoration: BoxDecoration(
+                  color: isSelected ? context.appColorScheme.cardBackground.withValues(alpha: 0.15) : context.appColorScheme.cardBackground,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary,
+                  size: 20,
+                ),
+              ),
+              Gap.w16,
+              Text(
+                title,
+                style: context.bodyBold.copyWith(
+                  color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary,
+                  fontSize: 15.sp,
+                ),
+              ),
+              const Spacer(),
+              if (isSelected)
+                Icon(
+                  AppIcons.checkCircle2,
+                  color: context.appColorScheme.cardBackground,
+                  size: 20,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

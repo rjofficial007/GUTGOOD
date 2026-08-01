@@ -29,7 +29,7 @@ class GutScoreGauge extends StatelessWidget {
                 painter: _GaugePainter(
                   score: animatedScore,
                   trackColor: context.appColorScheme.border.withValues(alpha: 0.5),
-                  progressColor: animatedScore >= 80 ? AppPalette.lime : AppPalette.purple,
+                  progressColor: context.appColorScheme.textPrimary,
                 ),
                 child: Stack(
                   alignment: Alignment.bottomCenter,

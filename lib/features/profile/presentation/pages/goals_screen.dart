@@ -66,18 +66,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
-              child: GutSection(
-                title: AppStrings.onboardingGoalsTitle,
-                topPadding: AppSizes.p24,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(AppStrings.updatePreferencesSubtitle, style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
-                    Gap.h32,
-                    SelectionWrap(options: _goalOptions, selectedValues: _selectedGoals, onToggle: _toggleGoal),
-                  ],
-                ),
+              padding: EdgeInsets.all(AppSizes.p24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppStrings.onboardingGoalsTitle, style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
+                  Gap.h8,
+                  Text(AppStrings.updatePreferencesSubtitle, style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
+                  Gap.h32,
+                  SelectionWrap(options: _goalOptions, selectedValues: _selectedGoals, onToggle: _toggleGoal),
+                ],
               ),
             ),
           ),

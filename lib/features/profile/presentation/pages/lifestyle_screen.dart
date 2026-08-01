@@ -66,18 +66,16 @@ class _LifestyleScreenState extends State<LifestyleScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
-              child: GutSection(
-                title: AppStrings.onboardingLifestyleTitle,
-                topPadding: AppSizes.p24,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(AppStrings.updatePreferencesSubtitle, style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
-                    Gap.h32,
-                    SelectionWrap(options: _lifestyleOptions, selectedValues: _selectedLifestyle, onToggle: _toggleLifestyle),
-                  ],
-                ),
+              padding: EdgeInsets.all(AppSizes.p24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppStrings.onboardingLifestyleTitle, style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
+                  Gap.h8,
+                  Text(AppStrings.updatePreferencesSubtitle, style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
+                  Gap.h32,
+                  SelectionWrap(options: _lifestyleOptions, selectedValues: _selectedLifestyle, onToggle: _toggleLifestyle),
+                ],
               ),
             ),
           ),

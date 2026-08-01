@@ -188,18 +188,14 @@ class GutPaywallBottomSheet extends StatelessWidget {
                         }
                       },
               ),
-              Gap.h14,
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    context.pop();
-                    onProceedWithLimited();
-                  },
-                  child: Text(
-                    AppStrings.continueLimitedAccess,
-                    style: context.bodyBold.copyWith(fontSize: 14.0.sp, decoration: TextDecoration.underline, color: context.appColorScheme.textPrimary),
-                  ),
-                ),
+              Gap.h12,
+              GutButton(
+                label: AppStrings.continueLimitedAccess,
+                isOutlined: true,
+                onTap: () {
+                  context.pop();
+                  onProceedWithLimited();
+                },
               ),
               Gap.h16,
 

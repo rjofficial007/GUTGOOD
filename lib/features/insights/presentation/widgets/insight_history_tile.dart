@@ -16,9 +16,8 @@ class InsightHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isHigh = insight.gutScore >= 80;
     final String type = insight.topInsight?.type ?? 'Insight';
-    final Color scoreColor = isHigh ? AppPalette.lime : (insight.gutScore >= 50 ? AppPalette.orange : AppPalette.purple);
+    final Color effectColor = context.appColorScheme.textPrimary;
 
     return GestureDetector(
       onTap: onTap,
@@ -36,8 +35,8 @@ class InsightHistoryTile extends StatelessWidget {
             Container(
               width: 52.0.w,
               height: 52.0.w,
-              decoration: BoxDecoration(color: scoreColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12.0.r)),
-              child: Icon(_getIconForType(type), color: scoreColor, size: 24.0.w),
+              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12.0.r)),
+              child: Icon(_getIconForType(type), color: effectColor, size: 24.0.w),
             ),
             Gap.w16,
             // 2. Info (Title, Type, Time)
@@ -74,7 +73,7 @@ class InsightHistoryTile extends StatelessWidget {
                     strokeWidth: 5.w,
                     strokeCap: StrokeCap.round,
                     backgroundColor: context.appColorScheme.border.withValues(alpha: 0.5),
-                    valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+                    valueColor: AlwaysStoppedAnimation<Color>(effectColor),
                   ),
                   Text(
                     '${insight.gutScore}',

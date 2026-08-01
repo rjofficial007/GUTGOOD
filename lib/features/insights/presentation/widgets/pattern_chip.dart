@@ -14,18 +14,18 @@ class ModernPatternCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color accentColor = _getColor(pattern.icon);
+    final Color mainColor = context.appColorScheme.textPrimary;
     
     return Container(
       height: Responsive.h(140.0),
       padding: EdgeInsets.all(16.0.w),
       decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: 0.08),
+        color: context.appColorScheme.elevatedSurface,
         borderRadius: BorderRadius.circular(28.0.r),
-        border: Border.all(color: accentColor.withValues(alpha: 0.2), width: 1.5),
+        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -40,25 +40,19 @@ class ModernPatternCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(8.0.w),
                 decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.15),
+                  color: context.appColorScheme.border.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: accentColor.withValues(alpha: 0.2),
-                      blurRadius: 10,
-                    ),
-                  ],
                 ),
                 child: Icon(
                   _getIcon(pattern.icon),
                   size: 16.0.w,
-                  color: accentColor,
+                  color: mainColor,
                 ),
               ),
               Icon(
                 AppIcons.chevronRight,
                 size: 14.0.w,
-                color: accentColor.withValues(alpha: 0.4),
+                color: mainColor.withValues(alpha: 0.4),
               ),
             ],
           ),
@@ -88,23 +82,6 @@ class ModernPatternCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Color _getColor(String iconName) {
-    switch (iconName.toLowerCase()) {
-      case 'zap':
-        return AppPalette.yellow;
-      case 'leaf':
-        return AppPalette.lime;
-      case 'wind':
-        return AppPalette.softBlue;
-      case 'sparkles':
-        return AppPalette.purple;
-      case 'utensils':
-        return Colors.orange;
-      default:
-        return AppPalette.purple;
-    }
   }
 
   IconData _getIcon(String iconName) {

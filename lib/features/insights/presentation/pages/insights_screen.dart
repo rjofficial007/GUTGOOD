@@ -253,7 +253,7 @@ class _FocusDashboardSection extends StatelessWidget {
       context: context,
       title: 'Current Focus',
       children: [
-        const SheetHeroSection(title: 'TARGET', subtitle: 'HEALTH GOALS', color: AppPalette.purple, icon: AppIcons.target),
+        SheetHeroSection(title: 'TARGET', subtitle: 'HEALTH GOALS', color: context.appColorScheme.textPrimary, icon: AppIcons.target),
         Gap.h32,
         if (data.healingGoal != null)
           DashboardDetailItem(title: data.healingGoal!, subtitle: 'Your primary healing objective.', icon: AppIcons.leaf, color: context.appColorScheme.success),
@@ -289,7 +289,7 @@ class _RecoveryDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     'HEAL',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.success),
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -329,21 +329,21 @@ class _RecoveryDashboardSection extends StatelessWidget {
       context: context,
       title: 'Recommendations',
       children: [
-        const SheetHeroSection(title: 'HEAL', subtitle: 'RECOVERY PROTOCOL', color: AppPalette.green500, icon: AppIcons.leaf),
+        SheetHeroSection(title: 'HEAL', subtitle: 'RECOVERY PROTOCOL', color: context.appColorScheme.textPrimary, icon: AppIcons.leaf),
         Gap.h32,
         if (data.healingFoods.isNotEmpty) ...[
-          const SheetSectionHeader(title: 'Foods to Prioritize', color: AppPalette.green500),
+          SheetSectionHeader(title: 'Foods to Prioritize', color: context.appColorScheme.textPrimary),
           ...data.healingFoods.map((f) => Padding(
                 padding: EdgeInsets.only(bottom: 16.0.h),
-                child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.checkCircle, color: AppPalette.green500),
+                child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.checkCircle, color: context.appColorScheme.textPrimary),
               )),
           Gap.h24,
         ],
         if (data.triggerFoods.isNotEmpty) ...[
-          const SheetSectionHeader(title: 'Foods to Minimize', color: AppPalette.red),
+          SheetSectionHeader(title: 'Foods to Minimize', color: context.appColorScheme.textPrimary),
           ...data.triggerFoods.map((f) => Padding(
                 padding: EdgeInsets.only(bottom: 16.0.h),
-                child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle, color: AppPalette.red),
+                child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle, color: context.appColorScheme.textPrimary),
               )),
           Gap.h24,
         ],
@@ -415,7 +415,7 @@ class _TrendsDashboardSection extends StatelessWidget {
       context: context,
       title: 'Detected Patterns',
       children: [
-        const SheetHeroSection(title: 'TRENDS', subtitle: 'BEHAVIORAL ANALYSIS', color: AppPalette.softBlue, icon: AppIcons.activity),
+        SheetHeroSection(title: 'TRENDS', subtitle: 'BEHAVIORAL ANALYSIS', color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...patterns.map((p) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
@@ -455,7 +455,7 @@ class _HighlightsDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     'STATS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: AppPalette.yellow),
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -504,25 +504,25 @@ class _HighlightsDashboardSection extends StatelessWidget {
       context: context,
       title: 'Performance Highlights',
       children: [
-        const SheetHeroSection(title: 'BIO-STATS', subtitle: 'DIETARY PERFORMANCE', color: AppPalette.yellow, icon: AppIcons.trophy),
+        SheetHeroSection(title: 'BIO-STATS', subtitle: 'DIETARY PERFORMANCE', color: context.appColorScheme.textPrimary, icon: AppIcons.trophy),
         Gap.h32,
         if (data.topHealing != null) ...[
-          const SheetSectionHeader(title: 'Top Performer', color: AppPalette.green500),
+          SheetSectionHeader(title: 'Top Performer', color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: data.topHealing!.food,
             subtitle: data.topHealing!.effects,
             icon: InsightUiUtils.getReactionIcon(data.topHealing?.emoji ?? ''),
-            color: AppPalette.green500,
+            color: context.appColorScheme.textPrimary,
           ),
           Gap.h24,
         ],
         if (data.topTrigger != null) ...[
-          const SheetSectionHeader(title: 'Critical Alert', color: AppPalette.red),
+          SheetSectionHeader(title: 'Critical Alert', color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: data.topTrigger!.food,
             subtitle: data.topTrigger!.effects,
             icon: InsightUiUtils.getReactionIcon(data.topTrigger?.emoji ?? ''),
-            color: AppPalette.red,
+            color: context.appColorScheme.textPrimary,
           ),
           Gap.h24,
         ],
@@ -557,7 +557,7 @@ class _ReactionsDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     'REACTIONS',
-                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: AppPalette.pink),
+                    style: context.bodyBold.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -601,7 +601,7 @@ class _ReactionsDashboardSection extends StatelessWidget {
       context: context,
       title: 'Body Reactions',
       children: [
-        const SheetHeroSection(title: 'BIO-FEEDBACK', subtitle: 'FOOD-BODY MAPPING', color: AppPalette.pink, icon: AppIcons.activity),
+        SheetHeroSection(title: 'BIO-FEEDBACK', subtitle: 'FOOD-BODY MAPPING', color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...impacts.where((i) => i.food.isNotEmpty && i.food != 'Unknown').map((i) {
           final isNegative = i.impactType == 'negative';

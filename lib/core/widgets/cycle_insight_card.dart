@@ -14,15 +14,15 @@ class CycleInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color pink = AppPalette.pink;
+    final Color mainColor = context.appColorScheme.textPrimary;
 
     return Container(
       margin: EdgeInsets.only(bottom: AppSizes.p16),
       padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
-        color: pink.withValues(alpha: 0.05),
+        color: context.appColorScheme.border.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSizes.r16),
-        border: Border.all(color: pink.withValues(alpha: 0.1)),
+        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,8 +31,8 @@ class CycleInsightCard extends StatelessWidget {
             children: [
               Container(
                 padding: EdgeInsets.all(AppSizes.p8),
-                decoration: BoxDecoration(color: pink.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: Icon(AppIcons.flower, size: 16, color: pink),
+                decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+                child: Icon(AppIcons.flower, size: 16, color: mainColor),
               ),
               Gap.w12,
               Expanded(
@@ -41,7 +41,7 @@ class CycleInsightCard extends StatelessWidget {
                   children: [
                     Text(
                       'CYCLE SYNC INSIGHT',
-                      style: context.overline.copyWith(color: pink, fontWeight: FontWeight.w800),
+                      style: context.overline.copyWith(color: mainColor, fontWeight: FontWeight.w800),
                     ),
                     Text(insight.phase.toUpperCase(), style: context.bodyBold.copyWith(fontSize: 14)),
                   ],
@@ -64,7 +64,7 @@ class _CycleTagPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color tagColor = _getColor(context, tag.color);
+    final Color tagColor = context.appColorScheme.textPrimary;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -97,19 +97,6 @@ class _CycleTagPill extends StatelessWidget {
         return AppIcons.sparkles;
       default:
         return AppIcons.sparkles;
-    }
-  }
-
-  Color _getColor(BuildContext context, String color) {
-    switch (color) {
-      case 'pink':
-        return AppPalette.pink;
-      case 'purple':
-        return AppPalette.purple;
-      case 'green':
-        return context.appColorScheme.success;
-      default:
-        return context.appColorScheme.textPrimary;
     }
   }
 }

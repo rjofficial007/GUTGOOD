@@ -52,11 +52,10 @@ class GutGridTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isFullVibrant = backgroundColor != null && 
-        (backgroundColor == AppPalette.softBlue || backgroundColor == AppPalette.lime || backgroundColor == AppPalette.black);
+    final bool isFullVibrant = backgroundColor != null && backgroundColor == context.appColorScheme.textPrimary;
     
     final Color effectiveTextColor = textColor ?? (isFullVibrant 
-        ? (backgroundColor == AppPalette.lime ? AppPalette.black : Colors.white)
+        ? context.appColorScheme.cardBackground
         : context.appColorScheme.textPrimary);
 
     final Color mutedTextColor = isFullVibrant 
@@ -91,10 +90,10 @@ class GutGridTile extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(Responsive.w(6.0)),
                       decoration: BoxDecoration(
-                        color: iconContainerColor ?? (isFullVibrant ? Colors.white.withValues(alpha: 0.2) : context.appColorScheme.cardBackground),
+                        color: iconContainerColor ?? (isFullVibrant ? context.appColorScheme.cardBackground.withValues(alpha: 0.2) : context.appColorScheme.cardBackground),
                         shape: BoxShape.circle,
-                        border: statusColor != null 
-                            ? Border.all(color: statusColor!.withValues(alpha: 0.3), width: 1.5)
+                        border: !isFullVibrant 
+                            ? Border.all(color: context.appColorScheme.border.withValues(alpha: 0.3), width: 1.5)
                             : null,
                       ),
                       child: icon,
@@ -107,15 +106,9 @@ class GutGridTile extends StatelessWidget {
                           width: 8.0.w,
                           height: 8.0.w,
                           decoration: BoxDecoration(
-                            color: statusColor,
+                            color: context.appColorScheme.textPrimary,
                             shape: BoxShape.circle,
                             border: Border.all(color: backgroundColor ?? context.appColorScheme.elevatedSurface, width: 1.5),
-                            boxShadow: [
-                              BoxShadow(
-                                color: statusColor!.withValues(alpha: 0.5),
-                                blurRadius: 4,
-                              ),
-                            ],
                           ),
                         ),
                       ),
