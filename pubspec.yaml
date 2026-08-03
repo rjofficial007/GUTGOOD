@@ -46,12 +46,12 @@ dependencies:
 
   # Networking & HTTP
   dio: ^5.11.0
-  http: ^1.6.0
 
   # Images & Media Handling
   cached_network_image: ^3.4.1
   flutter_image_compress: ^2.5.1
   image_picker: ^1.2.3
+  lottie: ^3.5.1
 
   # Hardware & Device Integration
   mobile_scanner: ^7.4.0
@@ -95,5 +95,6 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/animations/
     - assets/fonts/
 

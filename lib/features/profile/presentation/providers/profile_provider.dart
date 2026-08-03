@@ -8,30 +8,59 @@ import 'package:gutgood/core/models/user_profile.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/services/firestore_service.dart';
+import '../../../../core/services/notification_service.dart';
 
 class ProfileNotifier with ChangeNotifier {
   final AuthRepository _authRepository;
   final FirestoreService _firestoreService;
   final AppStateService _appStateService;
+  final NotificationService _notificationService;
 
   UserProfile? _profile;
+  int? _previousStreak;
   bool _isLoading = false;
+  bool _isInitialized = false;
+  bool _showStreakCelebration = false;
   String _quickInsight = "Log more meals to see patterns.";
   StreamSubscription<UserProfile?>? _profileSub;
 
-  ProfileNotifier(this._authRepository, this._firestoreService, this._appStateService) {
+  ProfileNotifier(this._authRepository, this._firestoreService, this._appStateService, this._notificationService) {
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
+
+    // 🟢 Reactive Data Loading: Restart stream whenever auth state changes (login/switch)
+    _authRepository.authStateChanges.listen((user) {
+      if (user != null) {
+        _initProfileStream();
+      }
+    });
   }
 
   void _initProfileStream() {
     _profileSub?.cancel();
     _profileSub = _firestoreService.getUserMetadataStream().listen((profile) {
+      _isInitialized = true;
+      if (profile != null) {
+        // Detect streak increment
+        if (_previousStreak != null && profile.streak > _previousStreak!) {
+          _showStreakCelebration = true;
+          Log.i('ProfileNotifier: Streak incremented! ${profile.streak}');
+        }
+        _previousStreak = profile.streak;
+
+        // Manage Streak Saver Notification
+        final today = DateTime.now().toUtc().toIso8601String().split('T')[0];
+        if (profile.lastActivityDate == today) {
+          _notificationService.cancel(NotificationIds.streakSaver);
+        } else {
+          _notificationService.scheduleStreakSaverReminder(profile.streak);
+        }
+      }
+
       _profile = profile;
       _updateInsights();
       notifyListeners();
@@ -40,7 +69,14 @@ class ProfileNotifier with ChangeNotifier {
 
   UserProfile? get profile => _profile;
   bool get isLoading => _isLoading;
+  bool get isInitialized => _isInitialized;
+  bool get showStreakCelebration => _showStreakCelebration;
   String get quickInsight => _quickInsight;
+
+  void dismissStreakCelebration() {
+    _showStreakCelebration = false;
+    notifyListeners();
+  }
 
   @override
   void dispose() {
@@ -52,8 +88,12 @@ class ProfileNotifier with ChangeNotifier {
 
   void _onSessionReset() {
     _profile = null;
+    _previousStreak = null;
+    _showStreakCelebration = false;
+    _isInitialized = false;
     _quickInsight = "Log more meals to see patterns.";
-    _initProfileStream();
+    _profileSub?.cancel();
+    notifyListeners();
   }
 
   void _updateInsights() {

@@ -26,9 +26,6 @@ class AIInsight extends Equatable {
   /// Descriptive difference from the previous score (e.g., "+4").
   final String? scoreDiff;
 
-  /// Current active check-in streak.
-  final int streak;
-
   /// The most critical discovery or suggestion for the user.
   final InsightSummary? topInsight;
 
@@ -52,9 +49,6 @@ class AIInsight extends Equatable {
 
   /// List of recurring behavioral or dietary patterns.
   final List<DetectedPattern> detectedPatterns;
-
-  /// Numerical representation of score trends for sparkline charts.
-  final List<int> simpleTrend;
 
   /// Highlighted positive food encounter.
   final TopHighlight? topTrigger;
@@ -86,7 +80,6 @@ class AIInsight extends Equatable {
     this.uid,
     required this.gutScore,
     this.scoreDiff,
-    required this.streak,
     this.topInsight,
     this.healingGoal,
     this.healingFoods = const [],
@@ -95,7 +88,6 @@ class AIInsight extends Equatable {
     this.triggerFoods = const [],
     this.triggerTrend,
     this.detectedPatterns = const [],
-    this.simpleTrend = const [],
     this.topTrigger,
     this.topHealing,
     this.foodImpacts = const [],
@@ -116,7 +108,6 @@ class AIInsight extends Equatable {
       uid: map['uid'] as String?,
       gutScore: (data['gutScore'] as num?)?.toInt() ?? 0,
       scoreDiff: data['scoreDiff'],
-      streak: (data['streak'] as num?)?.toInt() ?? 0,
       topInsight: ModelUtils.parseNestedModel<InsightSummary>(data['topInsight'], InsightSummary.fromMap),
       healingGoal: data['healingGoal'],
       healingFoods: ModelUtils.parseModelList<HealingFood>(data['healingFoods'], HealingFood.fromMap),
@@ -125,7 +116,6 @@ class AIInsight extends Equatable {
       triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
       triggerTrend: data['triggerTrend'],
       detectedPatterns: ModelUtils.parseModelList<DetectedPattern>(data['detectedPatterns'], DetectedPattern.fromMap),
-      simpleTrend: ModelUtils.parseList<int>(data['simpleTrend']),
       topTrigger: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topTrigger'], TopHighlight.fromMap)),
       topHealing: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topHealing'], TopHighlight.fromMap)),
       foodImpacts: ModelUtils.parseModelList<FoodImpact>(data['foodImpacts'], FoodImpact.fromMap),
@@ -150,7 +140,6 @@ class AIInsight extends Equatable {
       'firestoreId': firestoreId,
       'gutScore': gutScore,
       'scoreDiff': scoreDiff,
-      'streak': streak,
       'topInsight': topInsight?.toMap(),
       'healingGoal': healingGoal,
       'healingFoods': healingFoods.map((e) => e.toMap()).toList(),
@@ -159,7 +148,6 @@ class AIInsight extends Equatable {
       'triggerFoods': triggerFoods.map((e) => e.toMap()).toList(),
       'triggerTrend': triggerTrend,
       'detectedPatterns': detectedPatterns.map((e) => e.toMap()).toList(),
-      'simpleTrend': simpleTrend,
       'topTrigger': topTrigger?.toMap(),
       'topHealing': topHealing?.toMap(),
       'foodImpacts': foodImpacts.map((e) => e.toMap()).toList(),
@@ -172,5 +160,5 @@ class AIInsight extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, firestoreId, gutScore, streak, type, confidenceLevel, updatedAt];
+  List<Object?> get props => [id, firestoreId, gutScore, type, confidenceLevel, updatedAt];
 }

@@ -9,6 +9,8 @@ import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
+import '../../../../core/services/app_state_service.dart';
+
 class ProcessChatTagResult {
   final String text;
   final ScanResult? scanData;
@@ -23,10 +25,12 @@ class ProcessChatTagResult {
 class ProcessChatTagUseCase {
   final FirestoreService _firestoreService;
   final NotificationService _notificationService;
+  final AppStateService _appStateService;
 
-  ProcessChatTagUseCase({required FirestoreService firestoreService, required NotificationService notificationService})
+  ProcessChatTagUseCase({required FirestoreService firestoreService, required NotificationService notificationService, required AppStateService appStateService})
     : _firestoreService = firestoreService,
-      _notificationService = notificationService;
+      _notificationService = notificationService,
+      _appStateService = appStateService;
 
   /// Robustly extracts JSON from a string that might contain noise (e.g., "JSON object: { ... }")
   String? _extractJson(String? raw, {bool isArray = false}) {
@@ -75,6 +79,7 @@ class ProcessChatTagUseCase {
               if (persist) {
                 final log = SymptomLog.fromMap(decoded).copyWith(source: source ?? 'chat');
                 _firestoreService.logSymptom(log);
+                _appStateService.notifyChatUpdated();
               }
 
               if (decoded['symptom'] != null) {
@@ -112,6 +117,7 @@ class ProcessChatTagUseCase {
                 _firestoreService.logMeal(log);
                 _notificationService.schedulePostMealCheckIn();
                 _notificationService.scheduleNoMealLoggedReminder();
+                _appStateService.notifyChatUpdated();
               }
               foodMentions.addAll(items);
               persistedTagBlocks?.add(rawBlock);
@@ -132,35 +138,36 @@ class ProcessChatTagUseCase {
         final rawBlock = match.group(0) ?? '';
         final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
 
-        if (!alreadyPersisted) {
-          try {
-            final jsonStr = _extractJson(match.group(1));
-            if (jsonStr != null) {
-              final Map<String, dynamic> decoded = jsonDecode(jsonStr);
+        try {
+          final jsonStr = _extractJson(match.group(1));
+          if (jsonStr != null) {
+            final Map<String, dynamic> decoded = jsonDecode(jsonStr);
 
-              final ingredientsList = ModelUtils.parseList<dynamic>(decoded['ingredients']);
-              final List<String> flagged = [];
-              if (ingredientsList.isNotEmpty) {
-                for (var ing in ingredientsList) {
-                  if (ing is Map && (ing['colorName'] == 'red' || ing['colorName'] == 'orange')) {
-                    flagged.add(ing['name']?.toString() ?? 'Unknown');
-                  }
+            final ingredientsList = ModelUtils.parseList<dynamic>(decoded['ingredients']);
+            final List<String> flagged = [];
+            if (ingredientsList.isNotEmpty) {
+              for (var ing in ingredientsList) {
+                if (ing is Map && (ing['colorName'] == 'red' || ing['colorName'] == 'orange')) {
+                  flagged.add(ing['name']?.toString() ?? 'Unknown');
                 }
               }
+            }
 
-              scanData = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl, flaggedIngredients: flagged);
-              Log.i('ProcessChatTagUseCase: [SCAN] parsed successfully: ${scanData.productName}');
+            scanData = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl, flaggedIngredients: flagged);
 
+            if (!alreadyPersisted) {
+              Log.i('ProcessChatTagUseCase: [SCAN] parsed successfully: ${scanData.productName}. Image: ${imageUrl != null}');
               if (persist) {
                 // 🟢 Fix: Ensure AI Vision scans from chat are also saved to scan_history
                 _firestoreService.saveToScanHistory(scanData, userImageUrl: imageUrl);
-                Log.i('ProcessChatTagUseCase: [SCAN] saved to scan_history');
+                _appStateService.notifyChatUpdated();
+                Log.i('ProcessChatTagUseCase: [SCAN] saved to scan_history and UI notified. UID: ${_firestoreService.getUserMetadata().then((p) => p?.uid)}');
               }
               persistedTagBlocks?.add(rawBlock);
             }
-          } catch (e) {
-            Log.e('ProcessChatTagUseCase: SCAN parse failed', error: e);
           }
+        } catch (e) {
+          Log.e('ProcessChatTagUseCase: SCAN parse failed', error: e);
         }
         processedText = processedText.replaceAll(regex, '').replaceAll('```json', '').replaceAll('```', '').trim();
       }
@@ -174,17 +181,17 @@ class ProcessChatTagUseCase {
         final rawBlock = match.group(0) ?? '';
         final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
 
-        if (!alreadyPersisted) {
-          try {
-            final jsonStr = _extractJson(match.group(1), isArray: true);
-            if (jsonStr != null) {
-              swapData = ModelUtils.parseModelList<ProductSwap>(jsonStr, ProductSwap.fromMap);
-              isSwap = true;
+        try {
+          final jsonStr = _extractJson(match.group(1), isArray: true);
+          if (jsonStr != null) {
+            swapData = ModelUtils.parseModelList<ProductSwap>(jsonStr, ProductSwap.fromMap);
+            isSwap = true;
+            if (!alreadyPersisted) {
               persistedTagBlocks?.add(rawBlock);
             }
-          } catch (e) {
-            Log.e('ProcessChatTagUseCase: SWAPS parse failed', error: e);
           }
+        } catch (e) {
+          Log.e('ProcessChatTagUseCase: SWAPS parse failed', error: e);
         }
         processedText = processedText.replaceAll(regex, '').replaceAll('```json', '').replaceAll('```', '').trim();
       }

@@ -8,6 +8,8 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
+import '../constants/app_icons.dart';
+
 class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final Widget? titleWidget;
@@ -18,6 +20,7 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double? elevation;
   final Color? backgroundColor;
   final bool automaticallyImplyLeading;
+  final int? streak;
 
   const GutAppBar({
     super.key,
@@ -30,6 +33,7 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.elevation = 0,
     this.backgroundColor,
     this.automaticallyImplyLeading = true,
+    this.streak,
   });
 
   @override
@@ -78,6 +82,7 @@ class GutSliverAppBar extends StatelessWidget {
   final bool snap;
   final bool forceElevated;
   final bool automaticallyImplyLeading;
+  final int? streak;
 
   const GutSliverAppBar({
     super.key,
@@ -92,6 +97,7 @@ class GutSliverAppBar extends StatelessWidget {
     this.snap = true,
     this.forceElevated = false,
     this.automaticallyImplyLeading = true,
+    this.streak,
   });
 
   @override
@@ -124,7 +130,37 @@ class GutSliverAppBar extends StatelessWidget {
       children: [
         if (showBrandingIcon) ...[Image.asset(AppAssets.appIconBg, height: 24.0.w, width: 24.0.w, color: context.appColorScheme.textPrimary), Gap.w10],
         Text(title!.toUpperCase(), style: context.title.copyWith(letterSpacing: 0.1)),
+        if (streak != null) ...[Gap.w12, _StreakBadge(streak: streak!)],
       ],
+    );
+  }
+}
+
+class _StreakBadge extends StatelessWidget {
+  final int streak;
+
+  const _StreakBadge({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
+      decoration: BoxDecoration(
+        color: AppPalette.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: AppPalette.orange.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(AppIcons.flame, color: AppPalette.orange, size: 14.0.w),
+          Gap.w6,
+          Text(
+            streak.toString(),
+            style: context.caption.copyWith(color: AppPalette.orange, fontWeight: FontWeight.w900, fontSize: 13.0.sp),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -26,7 +26,6 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/utils/responsive.dart';
 import '../../../auth/presentation/providers/purchase_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -86,10 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Padding(
           padding: EdgeInsets.only(bottom: AppSizes.p24),
-          child: Text(
-            AppStrings.selectVisualStyle,
-            style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary),
-          ),
+          child: Text(AppStrings.selectVisualStyle, style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
         ),
         _AppearanceOption(
           icon: AppIcons.sun,
@@ -422,40 +418,22 @@ class _AppearanceOption extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.elevatedSurface,
             borderRadius: BorderRadius.circular(AppSizes.r16),
-            border: Border.all(
-              color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.border,
-              width: 1.5,
-            ),
+            border: Border.all(color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.border, width: 1.5),
           ),
           child: Row(
             children: [
               Container(
                 padding: EdgeInsets.all(AppSizes.p8),
-                decoration: BoxDecoration(
-                  color: isSelected ? context.appColorScheme.cardBackground.withValues(alpha: 0.15) : context.appColorScheme.cardBackground,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary,
-                  size: AppSizes.icon20,
-                ),
+                decoration: BoxDecoration(color: isSelected ? context.appColorScheme.cardBackground.withValues(alpha: 0.15) : context.appColorScheme.cardBackground, shape: BoxShape.circle),
+                child: Icon(icon, color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, size: AppSizes.icon20),
               ),
               Gap.w16,
               Text(
                 title,
-                style: context.bodyBold.copyWith(
-                  color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary,
-                  fontSize: AppSizes.s15,
-                ),
+                style: context.bodyBold.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, fontSize: AppSizes.s15),
               ),
               const Spacer(),
-              if (isSelected)
-                Icon(
-                  AppIcons.checkCircle2,
-                  color: context.appColorScheme.cardBackground,
-                  size: AppSizes.icon20,
-                ),
+              if (isSelected) Icon(AppIcons.checkCircle2, color: context.appColorScheme.cardBackground, size: AppSizes.icon20),
             ],
           ),
         ),

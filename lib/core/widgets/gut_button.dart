@@ -4,7 +4,6 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 
 import '../constants/app_sizes.dart';
 import '../utils/haptic_helper.dart';
-import '../utils/responsive.dart';
 
 /// The primary action button used across the GutGood application.
 /// 

@@ -40,7 +40,7 @@ import {
   OPENAI_CHAT_URL,
   REGION,
 } from './config';
-import { checkAndConsume } from './usage';
+import { checkAndConsume, isPremiumUser } from './usage';
 
 interface HistoryMessage {
   role: 'user' | 'assistant';
@@ -148,24 +148,35 @@ export const aiProxy = functions
     }
 
     const images = Array.isArray(body.images) ? body.images : [];
-    const usageType = body.usageType ?? (images.length > 0 ? 'scan' : 'chat');
+    const usageType = (body.usageType ?? (images.length > 0 ? 'scan' : 'chat')).toString();
+
+    // 🔴 Fix F1: Whitelist usageType and reject unknown.
+    if (!['chat', 'scan', 'system'].includes(usageType)) {
+      fail(res, 400, 'invalid_argument', { message: `Unsupported usageType '${usageType}'.` });
+      return;
+    }
 
     // Server-side free-tier enforcement (idempotent on retries).
-    if (usageType === 'chat' || usageType === 'scan') {
-      try {
-        const usage = await checkAndConsume(auth.uid, auth.isAnonymous, usageType, body.idempotencyKey);
-        if (!usage.allowed) {
-          fail(res, 429, 'quota_exceeded', {
-            type: usageType,
-            limit: usage.limit,
-            message: 'Daily free limit reached.',
-          });
-          return;
-        }
-      } catch (e) {
-        // Fail-open on transient Firestore errors so paying users are never blocked by a hiccup,
-        // but log loudly — this should be monitored.
-        functions.logger.error('usage check failed; allowing request', e);
+    // 🔴 Fix F1: Meter 'system' too.
+    try {
+      const usage = await checkAndConsume(auth.uid, auth.isAnonymous, usageType as any, body.idempotencyKey);
+      if (!usage.allowed) {
+        fail(res, 429, 'quota_exceeded', {
+          type: usageType,
+          limit: usage.limit,
+          message: 'Daily free limit reached.',
+        });
+        return;
+      }
+    } catch (e) {
+      // 🟠 Fix F3: Fail closed (503) on usage check errors unless user is premium.
+      const premium = await isPremiumUser(auth.uid).catch(() => false);
+      if (premium) {
+        functions.logger.warn('usage check failed for premium user; failing open', e);
+      } else {
+        functions.logger.error('usage check failed; failing closed', e);
+        fail(res, 503, 'service_unavailable', { message: 'Usage check failed. Please retry.' });
+        return;
       }
     }
 

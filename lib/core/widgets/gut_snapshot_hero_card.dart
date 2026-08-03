@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_score_gauge.dart';
-import 'package:gutgood/core/widgets/gut_status_badge.dart';
 import 'package:gutgood/core/widgets/modern_insight_card.dart';
 
 import '../constants/app_strings.dart';
 import '../theme/app_color_scheme.dart';
-import 'gut_trend_sparkline.dart';
 
-/// A prominent hero card that displays the user's current gut score and streak.
+/// A prominent hero card that displays the user's current gut score.
 ///
-/// Includes a circular [GutScoreGauge] and a sparkline trend indicator for
-/// the last 7 days. Used at the top of the [InsightsScreen] and
-/// [WeeklyRecapScreen].
+/// Includes a circular [GutScoreGauge] to visualize the user's overall health.
+/// Used at the top of the [InsightsScreen] and [WeeklyRecapScreen].
 class GutSnapshotHeroCard extends StatelessWidget {
   /// The numerical gut health score (0-100).
   final int score;
@@ -27,9 +23,6 @@ class GutSnapshotHeroCard extends StatelessWidget {
   /// The user's current daily check-in streak.
   final int streak;
 
-  /// A list of historical scores used to render the sparkline trend.
-  final List<int> simpleTrend;
-
   /// Whether the "Live" status indicator should be shown.
   final bool isActive;
 
@@ -39,12 +32,10 @@ class GutSnapshotHeroCard extends StatelessWidget {
   /// Optional custom corner radius.
   final double? borderRadius;
 
-  const GutSnapshotHeroCard({super.key, required this.score, this.scoreDiff, required this.streak, required this.simpleTrend, this.isActive = true, this.onTap, this.borderRadius});
+  const GutSnapshotHeroCard({super.key, required this.score, this.scoreDiff, required this.streak, this.isActive = true, this.onTap, this.borderRadius});
 
   @override
   Widget build(BuildContext context) {
-    final bool isPositiveDiff = scoreDiff?.startsWith('+') ?? false;
-
     return ModernInsightCard(
       title: AppStrings.gutSnapshot,
       icon: AppIcons.activity,
@@ -54,7 +45,6 @@ class GutSnapshotHeroCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: borderRadius,
       padding: EdgeInsets.all(Responsive.w(24.0)),
-      action: GutStatusBadge(isActive: isActive),
       footerColor: context.appColorScheme.textPrimary,
       footer: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -69,7 +59,6 @@ class GutSnapshotHeroCard extends StatelessWidget {
           Center(
             child: GutScoreGauge(score: score, size: Responsive.w(200)),
           ),
-          if (simpleTrend.isNotEmpty) ...[Gap.h12, GutTrendSparkline(data: simpleTrend, width: 120, height: 36)],
           if (scoreDiff != null && scoreDiff!.isNotEmpty) ...[
             Gap.h12,
             Container(

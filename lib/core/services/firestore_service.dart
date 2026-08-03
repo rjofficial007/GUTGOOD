@@ -64,15 +64,18 @@ class FirestoreServiceImpl implements FirestoreService {
 
   CollectionReference get _users => _db.collection('user_profiles');
 
-  DocumentReference get _userDoc {
-    if (_uid == null) throw Exception('FirestoreService: User not authenticated');
-    return _users.doc(_uid);
+  DocumentReference? get _userDoc {
+    final uid = _uid;
+    if (uid == null) return null;
+    return _users.doc(uid);
   }
 
   @override
   Future<void> saveUserProfile(UserProfile profile) async {
     try {
-      await _userDoc.set(profile.toMap(), SetOptions(merge: true));
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.set(profile.toMap(), SetOptions(merge: true));
     } catch (e) {
       Log.e('FirestoreService: Error saving user profile', error: e);
     }
@@ -81,7 +84,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> updateUserProfile(UserProfile profile) async {
     try {
-      await _userDoc.set(profile.toMap(), SetOptions(merge: true));
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.set(profile.toMap(), SetOptions(merge: true));
     } catch (e) {
       Log.e('FirestoreService: Error updating user profile', error: e);
     }
@@ -90,7 +95,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> saveNotificationPreferences(NotificationPreferences prefs) async {
     try {
-      await _userDoc.set({'notificationPreferences': prefs.toMap(), 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.set({'notificationPreferences': prefs.toMap(), 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
       Log.i('FirestoreService: Notification preferences synced');
     } catch (e) {
       Log.e('FirestoreService: Error syncing notification preferences', error: e);
@@ -100,7 +107,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<String?> saveMessage(ChatMessage message) async {
     try {
-      final docRef = _userDoc.collection('chat_history').doc();
+      final doc = _userDoc;
+      if (doc == null) return null;
+      final docRef = doc.collection('chat_history').doc();
       // 🟢 Fix: Remove the local SQLite 'id' before uploading to Firestore.
       final cloudSafeData = message.toMap()..remove('id');
       final data = {...cloudSafeData, 'firestoreId': docRef.id, 'source': message.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
@@ -116,7 +125,9 @@ class FirestoreServiceImpl implements FirestoreService {
   /// chat list UI directly — no double-reversal confusion at call sites.
   @override
   Stream<List<ChatMessage>> getMessagesStream({int limit = 50}) {
-    return _userDoc.collection('chat_history').orderBy('time', descending: true).limit(limit).snapshots().map((snapshot) {
+    final doc = _userDoc;
+    if (doc == null) return const Stream.empty();
+    return doc.collection('chat_history').orderBy('time', descending: true).limit(limit).snapshots().map((snapshot) {
       return snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList();
     });
   }
@@ -124,7 +135,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> deleteMessage(String messageId) async {
     try {
-      await _userDoc.collection('chat_history').doc(messageId).delete();
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.collection('chat_history').doc(messageId).delete();
     } catch (e) {
       Log.e('FirestoreService: Error deleting message', error: e);
     }
@@ -133,7 +146,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> updateMessageFeedback(String messageId, String feedback) async {
     try {
-      await _userDoc.collection('chat_history').doc(messageId).update({'feedback': feedback});
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.collection('chat_history').doc(messageId).update({'feedback': feedback});
     } catch (e) {
       Log.e('FirestoreService: Error updating message feedback', error: e);
     }
@@ -142,19 +157,45 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl}) async {
     try {
+      final doc = _userDoc;
+      if (doc == null) return;
       final barcode = scanData.barcode;
+
+      // 🟢 Robust Image Selection: Prioritize parameter, then model, then existing DB record.
+      // Treat empty strings as null to prevent broken images in UI.
+      String? bestImageUrl = userImageUrl;
+      if (bestImageUrl == null || bestImageUrl.isEmpty) {
+        bestImageUrl = scanData.userImageUrl;
+      }
+      if (bestImageUrl != null && bestImageUrl.isEmpty) bestImageUrl = null;
+
       if (barcode != null && barcode.isNotEmpty) {
-        final existing = await _userDoc.collection('scan_history').where('barcode', isEqualTo: barcode).limit(1).get();
+        final existing = await doc.collection('scan_history').where('barcode', isEqualTo: barcode).limit(1).get();
         if (existing.docs.isNotEmpty) {
-          // 🟢 Fix: Update existing entry timestamp so it moves to top of history
-          await existing.docs.first.reference.update({'timestamp': FieldValue.serverTimestamp(), 'time': DateTime.now().toIso8601String(), 'userImageUrl': userImageUrl ?? existing.docs.first.get('userImageUrl')});
-          Log.i('FirestoreService: Updated existing scan history entry for $barcode');
+          final existingData = existing.docs.first.data();
+          final String? dbImageUrl = existingData['userImageUrl'];
+          
+          if (bestImageUrl == null || bestImageUrl.isEmpty) {
+            bestImageUrl = dbImageUrl;
+          }
+
+          await existing.docs.first.reference.update({
+            'timestamp': FieldValue.serverTimestamp(),
+            'time': DateTime.now().toIso8601String(),
+            'userImageUrl': bestImageUrl,
+          });
+          Log.i('FirestoreService: Updated existing scan history entry for $barcode. Image: ${bestImageUrl != null}');
           return;
         }
       }
 
-      await _userDoc.collection('scan_history').add({...scanData.toMap(), 'userImageUrl': userImageUrl, 'timestamp': FieldValue.serverTimestamp(), 'time': DateTime.now().toIso8601String()});
-      Log.i('FirestoreService: Added new scan history entry');
+      await doc.collection('scan_history').add({
+        ...scanData.toMap(),
+        'userImageUrl': bestImageUrl,
+        'timestamp': FieldValue.serverTimestamp(),
+        'time': DateTime.now().toIso8601String(),
+      });
+      Log.i('FirestoreService: Added new scan history entry. Image: ${bestImageUrl != null}');
     } catch (e) {
       Log.e('FirestoreService: Error saving to scan history', error: e);
     }
@@ -163,7 +204,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<List<ScanResult>> getScanHistory({int limit = 50}) async {
     try {
-      final snapshot = await _userDoc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
+      final doc = _userDoc;
+      if (doc == null) return [];
+      final snapshot = await doc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
     } catch (e) {
       Log.e('FirestoreService: Error getting scan history', error: e);
@@ -174,7 +217,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<List<MealLog>> getRecentMealLogs({int limit = 30}) async {
     try {
-      final snapshot = await _userDoc.collection('meal_logs').orderBy('time', descending: true).limit(limit).get();
+      final doc = _userDoc;
+      if (doc == null) return [];
+      final snapshot = await doc.collection('meal_logs').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => MealLog.fromMap(doc.data())).toList();
     } catch (e) {
       Log.e('FirestoreService: Error getting recent meal logs', error: e);
@@ -185,7 +230,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<List<SymptomLog>> getRecentSymptomLogs({int limit = 30}) async {
     try {
-      final snapshot = await _userDoc.collection('symptom_logs').orderBy('time', descending: true).limit(limit).get();
+      final doc = _userDoc;
+      if (doc == null) return [];
+      final snapshot = await doc.collection('symptom_logs').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
     } catch (e) {
       Log.e('FirestoreService: Error getting recent symptom logs', error: e);
@@ -196,7 +243,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<List<ScanResult>> getRecentScans({int limit = 20}) async {
     try {
-      final snapshot = await _userDoc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
+      final doc = _userDoc;
+      if (doc == null) return [];
+      final snapshot = await doc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
     } catch (e) {
       Log.e('FirestoreService: Error getting recent scans', error: e);
@@ -207,11 +256,13 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> toggleSaveFood(ScanResult scanData) async {
     try {
+      final doc = _userDoc;
+      if (doc == null) return;
       final name = scanData.productName;
       final barcode = scanData.barcode;
 
       // 🟢 Fix: Deduplicate by barcode first, then by name.
-      Query queryRef = _userDoc.collection('saved_foods');
+      Query queryRef = doc.collection('saved_foods');
       if (barcode != null && barcode.isNotEmpty) {
         queryRef = queryRef.where('barcode', isEqualTo: barcode);
       } else {
@@ -223,7 +274,7 @@ class FirestoreServiceImpl implements FirestoreService {
       if (query.docs.isNotEmpty) {
         await query.docs.first.reference.delete();
       } else {
-        await _userDoc.collection('saved_foods').add({...scanData.toMap(), 'savedAt': FieldValue.serverTimestamp()});
+        await doc.collection('saved_foods').add({...scanData.toMap(), 'savedAt': FieldValue.serverTimestamp()});
       }
     } catch (e) {
       Log.e('FirestoreService: Error toggling saved food', error: e);
@@ -233,7 +284,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<bool> isFoodSaved(String? productName, {String? barcode}) async {
     try {
-      Query queryRef = _userDoc.collection('saved_foods');
+      final doc = _userDoc;
+      if (doc == null) return false;
+      Query queryRef = doc.collection('saved_foods');
       if (barcode != null && barcode.isNotEmpty) {
         queryRef = queryRef.where('barcode', isEqualTo: barcode);
       } else if (productName != null) {
@@ -253,7 +306,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<List<ScanResult>> getSavedFoods() async {
     try {
-      final snapshot = await _userDoc.collection('saved_foods').get();
+      final doc = _userDoc;
+      if (doc == null) return [];
+      final snapshot = await doc.collection('saved_foods').get();
       return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
     } catch (e) {
       Log.e('FirestoreService: Error getting saved foods', error: e);
@@ -264,7 +319,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<List<SymptomLog>> getSymptomLogs() async {
     try {
-      final snapshot = await _userDoc.collection('symptom_logs').get();
+      final doc = _userDoc;
+      if (doc == null) return [];
+      final snapshot = await doc.collection('symptom_logs').get();
       return snapshot.docs.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
     } catch (e) {
       Log.e('FirestoreService: Error getting symptom logs', error: e);
@@ -275,7 +332,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<String?> logSymptom(SymptomLog log) async {
     try {
-      final docRef = _userDoc.collection('symptom_logs').doc();
+      final doc = _userDoc;
+      if (doc == null) return null;
+      final docRef = doc.collection('symptom_logs').doc();
       final data = {...log.toMap(), 'firestoreId': docRef.id, 'source': log.source ?? 'manual', 'createdAt': FieldValue.serverTimestamp()};
       await docRef.set(data);
       return docRef.id;
@@ -288,7 +347,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<String?> logMeal(MealLog log) async {
     try {
-      final docRef = _userDoc.collection('meal_logs').doc();
+      final doc = _userDoc;
+      if (doc == null) return null;
+      final docRef = doc.collection('meal_logs').doc();
       final data = {...log.toMap(), 'firestoreId': docRef.id, 'source': log.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
       await docRef.set(data);
       return docRef.id;
@@ -301,9 +362,11 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<UserProfile?> getUserMetadata() async {
     try {
-      final doc = await _userDoc.get();
-      if (!doc.exists) return null;
-      return UserProfile.fromMap(doc.data() as Map<String, dynamic>, uid: _uid);
+      final doc = _userDoc;
+      if (doc == null) return null;
+      final snap = await doc.get();
+      if (!snap.exists) return null;
+      return UserProfile.fromMap(snap.data() as Map<String, dynamic>, uid: _uid);
     } catch (e) {
       Log.e('FirestoreService: Error getting user metadata', error: e);
       return null;
@@ -312,7 +375,9 @@ class FirestoreServiceImpl implements FirestoreService {
 
   @override
   Stream<UserProfile?> getUserMetadataStream() {
-    return _userDoc.snapshots().map((doc) {
+    final doc = _userDoc;
+    if (doc == null) return Stream.value(null);
+    return doc.snapshots().map((doc) {
       if (!doc.exists) return null;
       return UserProfile.fromMap(doc.data() as Map<String, dynamic>, uid: _uid);
     });
@@ -321,7 +386,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> updateOnboardingStatus(bool onboarded) async {
     try {
-      await _userDoc.set({'onboarded': onboarded}, SetOptions(merge: true));
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.set({'onboarded': onboarded}, SetOptions(merge: true));
     } catch (e) {
       Log.e('FirestoreService: Error updating onboarding status', error: e);
     }
@@ -337,7 +404,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> updatePremiumStatus(bool isPremium) async {
     try {
-      await _userDoc.set({'isPremium': isPremium, 'subscriptionStatus': isPremium ? 'premium' : 'free', 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.set({'isPremium': isPremium, 'subscriptionStatus': isPremium ? 'premium' : 'free', 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
     } catch (e) {
       Log.e('FirestoreService: Error updating premium status', error: e);
     }
@@ -380,11 +449,14 @@ class FirestoreServiceImpl implements FirestoreService {
 
   @override
   Future<DailyUsage?> getUsageToday() async {
-    final String today = DateTime.now().toIso8601String().split('T')[0];
+    // 🟡 Fix F5: Use UTC to match server-side usage key generation.
+    final String today = DateTime.now().toUtc().toIso8601String().split('T')[0];
     try {
-      final doc = await _userDoc.collection('daily_usage').doc(today).get();
-      if (!doc.exists) return null;
-      return DailyUsage.fromMap({...doc.data() as Map<String, dynamic>, 'uid': _uid, 'date': today});
+      final doc = _userDoc;
+      if (doc == null) return null;
+      final snap = await doc.collection('daily_usage').doc(today).get();
+      if (!snap.exists) return null;
+      return DailyUsage.fromMap({...snap.data() as Map<String, dynamic>, 'uid': _uid, 'date': today});
     } catch (e) {
       Log.e('FirestoreService: Error getting daily usage', error: e);
       return null;
@@ -394,7 +466,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<String?> saveInsights(AIInsight insight) async {
     try {
-      final docRef = _userDoc.collection('insights').doc();
+      final doc = _userDoc;
+      if (doc == null) return null;
+      final docRef = doc.collection('insights').doc();
       final data = {...insight.toMap(), 'firestoreId': docRef.id, 'updatedAt': FieldValue.serverTimestamp()};
       await docRef.set(data);
       return docRef.id;
@@ -407,7 +481,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<AIInsight?> getLatestInsights() async {
     try {
-      final snapshot = await _userDoc.collection('insights').orderBy('updatedAt', descending: true).limit(1).get();
+      final doc = _userDoc;
+      if (doc == null) return null;
+      final snapshot = await doc.collection('insights').orderBy('updatedAt', descending: true).limit(1).get();
       if (snapshot.docs.isEmpty) return null;
       return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
     } catch (e) {
@@ -418,7 +494,9 @@ class FirestoreServiceImpl implements FirestoreService {
 
   @override
   Stream<AIInsight?> getLatestInsightsStream() {
-    return _userDoc.collection('insights').orderBy('updatedAt', descending: true).limit(1).snapshots().map((snapshot) {
+    final doc = _userDoc;
+    if (doc == null) return Stream.value(null);
+    return doc.collection('insights').orderBy('updatedAt', descending: true).limit(1).snapshots().map((snapshot) {
       if (snapshot.docs.isEmpty) return null;
       return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
     });
@@ -427,7 +505,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<List<AIInsight>> getInsightsHistory() async {
     try {
-      final snapshot = await _userDoc.collection('insights').orderBy('updatedAt', descending: true).get();
+      final doc = _userDoc;
+      if (doc == null) return [];
+      final snapshot = await doc.collection('insights').orderBy('updatedAt', descending: true).get();
       return snapshot.docs.map((doc) => AIInsight.fromMap({...doc.data(), 'id': doc.id})).toList();
     } catch (e) {
       Log.e('FirestoreService: Error getting insights history', error: e);
@@ -438,7 +518,9 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> savePatternData(List<BodyPattern> patterns) async {
     try {
-      await _userDoc.collection('pattern_data').doc('latest').set({'patterns': patterns.map((p) => p.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.collection('pattern_data').doc('latest').set({'patterns': patterns.map((p) => p.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
     } catch (e) {
       Log.e('FirestoreService: Error saving pattern data', error: e);
     }
@@ -446,19 +528,25 @@ class FirestoreServiceImpl implements FirestoreService {
 
   @override
   Future<int> getScansCountSince(DateTime since) async {
-    final snapshot = await _userDoc.collection('scan_history').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
+    final doc = _userDoc;
+    if (doc == null) return 0;
+    final snapshot = await doc.collection('scan_history').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
     return snapshot.size;
   }
 
   @override
   Future<int> getMealLogsCountSince(DateTime since) async {
-    final snapshot = await _userDoc.collection('meal_logs').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
+    final doc = _userDoc;
+    if (doc == null) return 0;
+    final snapshot = await doc.collection('meal_logs').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
     return snapshot.size;
   }
 
   @override
   Future<int> getSymptomsCountSince(DateTime since) async {
-    final snapshot = await _userDoc.collection('symptom_logs').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
+    final doc = _userDoc;
+    if (doc == null) return 0;
+    final snapshot = await doc.collection('symptom_logs').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
     return snapshot.size;
   }
 }

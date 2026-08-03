@@ -88,6 +88,7 @@ class ChatNotifier with ChangeNotifier {
   String? _lastHiddenContext;
   String? _lastSource;
   List<Uint8List> _lastSentImages = const [];
+  String? _lastSentImageUrl;
 
   ChatNotifier({
     required ChatRepository repository,
@@ -115,6 +116,13 @@ class ChatNotifier with ChangeNotifier {
     _initChatStream();
     _appStateService.profileUpdated.addListener(_onProfileUpdated);
     _appStateService.sessionReset.addListener(_onSessionReset);
+
+    // 🟢 Reactive Data Loading: Restart stream whenever auth state changes
+    _auth.authStateChanges().listen((user) {
+      if (user != null) {
+        _initChatStream();
+      }
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -201,9 +209,11 @@ class ChatNotifier with ChangeNotifier {
     _lastUserText = null;
     _lastHiddenContext = null;
     _lastSentImages = const [];
+    _lastSentImageUrl = null;
     _isLoading = false;
     _isStreaming = false;
-    _initChatStream();
+    _chatStreamSub?.cancel();
+    notifyListeners();
   }
 
   Future<void> _loadProfileData() async {
@@ -280,6 +290,7 @@ class ChatNotifier with ChangeNotifier {
     _lastHiddenContext = hiddenContext;
     _lastSource = source;
     _lastSentImages = sending.map((a) => a.bytes).toList(growable: false);
+    _lastSentImageUrl = null;
 
     _attachments.clear();
     _generationCancelled = false;
@@ -317,11 +328,13 @@ class ChatNotifier with ChangeNotifier {
         return ChatSendError.uploadFailed;
       }
       try {
-        imageUrls = await Future.wait(_lastSentImages.map((bytes) async {
-          final url = await _storageService.uploadFoodImage(bytes);
-          if (url == null) throw StateError('upload returned null');
-          return url;
-        }));
+        imageUrls = await Future.wait(
+          _lastSentImages.map((bytes) async {
+            final url = await _storageService.uploadFoodImage(bytes);
+            if (url == null) throw StateError('upload returned null');
+            return url;
+          }),
+        );
       } catch (e) {
         Log.e('ChatNotifier: Image upload failed', error: e);
         _markUserMessageFailed(userMsg.localId);
@@ -331,6 +344,7 @@ class ChatNotifier with ChangeNotifier {
       }
 
       final uploaded = userMsg.copyWith(imageUrls: imageUrls, isSending: false, clearLocalImages: false);
+      _lastSentImageUrl = imageUrls.isNotEmpty ? imageUrls.first : null;
       _replaceMessage(userMsg.localId, uploaded);
 
       // 2. Persist the user turn (offline-tolerant: Firestore queues writes).
@@ -385,7 +399,7 @@ class ChatNotifier with ChangeNotifier {
     notifyListeners();
 
     final aiText = _effectiveAiText(displayText: _lastUserText ?? '', hiddenContext: _lastHiddenContext, hasImages: _lastSentImages.isNotEmpty);
-    await _streamReply(userText: aiText, images: _lastSentImages.isEmpty ? null : _lastSentImages, imageUrl: null, source: _lastSource, isRegenerate: true);
+    await _streamReply(userText: aiText, images: _lastSentImages.isEmpty ? null : _lastSentImages, imageUrl: _lastSentImageUrl, source: _lastSource, isRegenerate: true);
   }
 
   /// Retries a user message whose attachments failed to upload.
@@ -672,7 +686,9 @@ class ChatNotifier with ChangeNotifier {
 
       final agedOut = chronological.sublist(0, chronological.length - maxContextMessages);
 
-      final newlyAgedOut = _summarizedThroughMessageId == null ? agedOut : agedOut.skipWhile((m) => m.firestoreId?.toString() != _summarizedThroughMessageId && m.localId != _summarizedThroughMessageId).toList();
+      final newlyAgedOut = _summarizedThroughMessageId == null
+          ? agedOut
+          : agedOut.skipWhile((m) => m.firestoreId?.toString() != _summarizedThroughMessageId && m.localId != _summarizedThroughMessageId).toList();
 
       if (newlyAgedOut.isEmpty) return;
 

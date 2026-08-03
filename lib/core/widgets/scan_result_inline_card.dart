@@ -59,7 +59,14 @@ class ScanResultInlineCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ingredients = scanData.ingredients;
     final swaps = scanData.swaps;
-    final productImgUrl = scanData.imageUrl ?? getDynamicImageUrl(scanData.productName);
+
+    // 🟢 Fix: Ensure we don't try to load an empty string as a URL
+    String? userImg = scanData.userImageUrl;
+    if (userImg != null && userImg.isEmpty) userImg = null;
+    String? prodImg = scanData.imageUrl;
+    if (prodImg != null && prodImg.isEmpty) prodImg = null;
+
+    final displayImgUrl = userImg ?? prodImg ?? getDynamicImageUrl(scanData.productName);
 
     final impactColor = scanData.impactType == ImpactType.positive
         ? context.appColorScheme.success
@@ -93,7 +100,7 @@ class ScanResultInlineCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: context.appColorScheme.elevatedSurface,
                   borderRadius: BorderRadius.circular(AppSizes.r8),
-                  image: DecorationImage(image: CachedNetworkImageProvider(productImgUrl), fit: BoxFit.cover),
+                  image: DecorationImage(image: CachedNetworkImageProvider(displayImgUrl), fit: BoxFit.cover),
                 ),
               ),
               Gap.w12,

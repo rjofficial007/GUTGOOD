@@ -65,7 +65,7 @@ class Prompts {
     {
       "productName": "Extract name",
       "brand": "Extract brand",
-      "badge": "e.g., Ultra-Processed",
+      "badge": "e.g., Ultra-Processed | Clean Label",
       "score": 0,
       "scoreFormula": "GUT SCORE FORMULA: Base 50. Nutri-Score (A:90, B:75, C:50, D:30, E:15). NOVA 1: +10, NOVA 4: -20. Clamp 0-100.",
       "impactType": "positive|neutral|negative",
@@ -87,16 +87,16 @@ class Prompts {
         "proteins": 0.0,
         "salt": 0.0
       },
-      "allergens": "Detected allergens",
-      "additives": "Detected additives",
+      "allergens": "Detected allergens or 'None'",
+      "additives": "Detected additives or 'None'",
       "impacts": [
-        {"title": "Blood Sugar", "level": "Impact level", "color": "trigger|gold|healing"}
+        {"title": "Gut Barrier", "level": "Negative|Positive|Neutral", "color": "trigger|gold|healing"}
       ],
       "ingredients": [{"name": "Ingredient", "impact": "Reason", "colorName": "red|orange|low"}],
       "impact": "2-sentence gut summary.",
       "cycleInsight": {
         "phase": "Current Phase",
-        "description": "Insight text strictly based on provided phase",
+        "description": "Specific nutritional advice for this phase relative to the food.",
         "tags": [{"text": "Tag", "icon": "icon", "color": "color"}]
       },
       "swaps": [
@@ -143,7 +143,8 @@ class Prompts {
     CRITICAL INSTRUCTION FOR RESTAURANT MENU PHOTOS:
     When the user uploads a photo of a restaurant menu, you MUST analyze it and recommend exactly 3 gut-friendly options. Provide your analysis in text, and then include the [SWAPS] JSON block with exactly 3 items.
 
-    Do NOT use markdown code blocks (like ```json) around any JSON.
+    Do NOT use markdown code blocks (like ```json) around any JSON blocks. 
+    Ensure all extracted tags ([SCAN], [SWAPS], [MEAL], [SYMPTOM]) contain valid, un-formatted JSON only.
   ''';
   }
 
@@ -181,7 +182,7 @@ class Prompts {
     {
       "productName": "Name",
       "brand": "Brand",
-      "badge": "e.g., Ultra-Processed",
+      "badge": "e.g., Ultra-Processed | Clean Label",
       "score": 0,
       "impactType": "positive|neutral|negative",
       "nutriscore": "A-E",
@@ -202,14 +203,15 @@ class Prompts {
         "proteins": 0.0,
         "salt": 0.0
       },
-      "allergens": "List of allergens",
-      "additives": "List of additives",
+      "allergens": "List of allergens or 'None'",
+      "additives": "List of additives or 'None'",
       "impacts": [{"title": "Gut Barrier", "level": "Negative|Positive|Neutral", "color": "trigger|gold|healing"}],
       "ingredients": [{"name": "Ingredient", "impact": "Reason", "colorName": "red|orange|low"}],
       "impact": "2-sentence gut summary.",
       "cycleInsight": {
         "phase": "$cyclePhase",
-        "description": "Specific nutritional advice for this phase relative to the food."
+        "description": "Specific nutritional advice for this phase relative to the food.",
+        "tags": [{"text": "Tag", "icon": "icon", "color": "color"}]
       },
       "swaps": [
         {"title": "Name", "subtitle": "Reason", "imageKeyword": "Term", "tag": "BETTER CHOICE", "badge": "#1 PICK", "isBlackBadge": true},
@@ -238,13 +240,23 @@ class Prompts {
       "nutriscore": "A-E",
       "novaGroup": "1-4",
       "nutrientLevels": {
-        "sugars": "low|moderate|high",
-        "salt": "low|moderate|high",
-        "fat": "low|moderate|high",
-        "saturated-fat": "low|moderate|high"
+        "sugars": "low/moderate/high",
+        "salt": "low/moderate/high",
+        "fat": "low/moderate/high",
+        "saturated-fat": "low/moderate/high"
       },
-      "allergens": "List of allergens",
-      "additives": "List of additives",
+      "nutrients": {
+        "calories": 0,
+        "fat": 0.0,
+        "saturatedFat": 0.0,
+        "carbs": 0.0,
+        "sugars": 0.0,
+        "fiber": 0.0,
+        "proteins": 0.0,
+        "salt": 0.0
+      },
+      "allergens": "List of allergens or 'None'",
+      "additives": "List of additives or 'None'",
       "impacts": [
         {"title": "Gut Barrier", "level": "Negative|Positive|Neutral", "color": "trigger|gold|healing"}
       ],
@@ -252,7 +264,7 @@ class Prompts {
       "impact": "2-sentence gut summary.",
       "cycleInsight": {
         "phase": "Current Phase",
-        "description": "Insight text strictly based on provided phase",
+        "description": "Specific nutritional advice for this phase relative to the food.",
         "tags": [{"text": "Tag", "icon": "icon", "color": "color"}]
       },
       "swaps": [
@@ -345,17 +357,21 @@ class Prompts {
          - Priority 3: Goal-based advice (Goal Insight).
          - Priority 4: Cycle-based hormonal patterns (Cycle Insight).
 
-      4. Scoring & Trend (CRITICAL):
+      4. Scoring (CRITICAL):
          - gutScore: A proprietary 1-100 score of current gut health.
-         - simpleTrend: A list of EXACTLY 7 integers representing the last 7 score points. 
-         - If PREVIOUS GUT SCORES are provided, the last item in simpleTrend must be your new gutScore, and previous items should reflect the historical scores.
-         - If PREVIOUS GUT SCORES are missing, ESTIMATE the trend based on meal quality vs symptom severity in the logs.
+         
+         SCORING ALGORITHM:
+         * Baseline: 50.
+         * Deductions: High severity symptoms (-5 to -15), NOVA 4 ultra-processed foods (-5), missed logs (-2).
+         * Additions: Probiotic/Fermented foods (+5), high-fiber meals (+3), NOVA 1 whole foods (+4).
+         
+         DATA CONTINUITY RULES:
+         * Ensure 'gutScore' does not deviate by more than 15 points from the most recent historical score unless logs show extreme changes.
       
       Respond ONLY with a valid JSON object matching this exact structure (no markdown):
       {
         "gutScore": 0,
         "scoreDiff": "+X pts",
-        "streak": 0,
         "type": "Pattern|Ingredient|Behavioral|Goal",
         "confidenceLevel": "High|Moderate|Low",
         "triggerData": "Concise summary of events that triggered this analysis",
@@ -381,7 +397,6 @@ class Prompts {
             "icon": "wind|leaf|sparkles|zap|utensils"
           }
         ],
-        "simpleTrend": [0,0,0,0,0,0,0],
         "topTrigger": {
           "food": "Name",
           "effects": "Symptom",

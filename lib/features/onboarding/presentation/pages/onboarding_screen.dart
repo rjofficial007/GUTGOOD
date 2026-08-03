@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_config_data.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -95,10 +95,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
 
     await sl<NotificationService>().setupDefaultReminders();
-    sl<AppStateService>().notifyProfileUpdated();
 
     if (mounted) {
       await showPaywallBottomSheet(context, onProceedWithLimited: () {});
+
+      // 🟢 Fix: Notify profile updated AFTER the paywall is dismissed.
+      // This prevents AppRouter from triggering a premature redirect to /home/chat
+      // while the paywall is still supposed to be visible.
+      sl<AppStateService>().notifyProfileUpdated();
 
       // 🟢 Fix: Ensure bottom sheet pop animation finishes before main navigation.
       // This prevents "Failed assertion: _dependents.isEmpty: is not true" during unmount.

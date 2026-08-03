@@ -1,13 +1,12 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
 class AIPersonalizationOnboardingPage extends StatefulWidget {
@@ -73,39 +72,23 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _isSuccess ? AppStrings.analysisComplete : AppStrings.aiPersonalization,
-                style: context.displaySm,
-              ),
+              Text(_isSuccess ? AppStrings.analysisComplete : AppStrings.aiPersonalization, style: context.displaySm),
               Gap.h10,
-              Text(
-                _isSuccess ? AppStrings.gutTeaReady : AppStrings.aiPersonalizationDesc,
-                style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary),
-              ),
+              Text(_isSuccess ? AppStrings.gutTeaReady : AppStrings.aiPersonalizationDesc, style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary)),
             ],
           ).animate().fadeIn(duration: 400.ms),
 
           // Main Center Area
-          Expanded(
-            child: Center(
-              child: _isAnalyzing
-                  ? _buildHeroFlipText()
-                  : _buildMinimalSuccessIcon(),
-            ),
-          ),
+          Expanded(child: Center(child: _isAnalyzing ? _buildHeroFlipText() : _buildMinimalSuccessIcon())),
 
           // Bottom Button
           if (_isSuccess)
             Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p36),
-              child: GutButton(
-                label: AppStrings.continueButton,
-                suffixIcon: AppIcons.arrowRight,
-                onTap: widget.onFinish,
-              ),
+              child: GutButton(label: AppStrings.continueButton, suffixIcon: AppIcons.arrowRight, onTap: widget.onFinish),
             ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0)
           else
-             Gap.h32, // Reserved space for button
+            Gap.h32, // Reserved space for button
         ],
       ),
     );
@@ -139,12 +122,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         _statusMessages[_statusIndex],
         key: ValueKey<int>(_statusIndex),
         textAlign: TextAlign.center,
-        style: context.displayLg.copyWith(
-          fontWeight: FontWeight.w900,
-          letterSpacing: -2.5,
-          height: 1.0,
-          color: context.appColorScheme.textPrimary,
-        ),
+        style: context.displayLg.copyWith(fontWeight: FontWeight.w900, letterSpacing: -2.5, height: 1.0, color: context.appColorScheme.textPrimary),
       ),
     );
   }
@@ -156,21 +134,11 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         Container(
           width: AppSizes.p120,
           height: AppSizes.p120,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: context.appColorScheme.textPrimary,
-          ),
-          child: Icon(
-            AppIcons.check,
-            color: context.appColorScheme.cardBackground,
-            size: AppSizes.icon60,
-          ),
+          decoration: BoxDecoration(shape: BoxShape.circle, color: context.appColorScheme.textPrimary),
+          child: Icon(AppIcons.check, color: context.appColorScheme.cardBackground, size: AppSizes.icon60),
         ).animate().scale(duration: 800.ms, curve: Curves.elasticOut),
         Gap.h32,
-        Text(
-          "Ready.",
-          style: context.displayMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1),
-        ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+        Text("Ready.", style: context.displayMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1)).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
       ],
     );
   }

@@ -65,13 +65,25 @@ class LinkServiceImpl implements LinkService {
     final String link = uri.toString();
     Log.i('LinkService: Handling link -> $link');
 
-    if (_firebaseAuth.isSignInWithEmailLink(link)) {
+    String effectiveLink = link;
+
+    // 🟢 Fix: Firebase Hosting/Dynamic Links often wrap the auth link in a 'link' parameter.
+    // We must unwrap it to find the 'oobCode' required by FirebaseAuth.
+    if (!_firebaseAuth.isSignInWithEmailLink(effectiveLink)) {
+      final nestedLink = uri.queryParameters['link'];
+      if (nestedLink != null && _firebaseAuth.isSignInWithEmailLink(nestedLink)) {
+        Log.i('LinkService: Unwrapped nested auth link found.');
+        effectiveLink = nestedLink;
+      }
+    }
+
+    if (_firebaseAuth.isSignInWithEmailLink(effectiveLink)) {
       _appStateService.setVerifyingAuth(true);
       final String? email = _prefs.getString('login_email');
 
       if (email != null) {
         try {
-          final user = await _authRepository.signInWithEmailLink(email, link);
+          final user = await _authRepository.signInWithEmailLink(email, effectiveLink);
           if (user != null) {
             await _prefs.remove('login_email');
           } else {
@@ -87,7 +99,7 @@ class LinkServiceImpl implements LinkService {
       } else {
         await Future.delayed(const Duration(milliseconds: 1000));
         _appStateService.setVerifyingAuth(false);
-        _appStateService.setPendingEmailLink(link);
+        _appStateService.setPendingEmailLink(effectiveLink);
       }
     }
   }

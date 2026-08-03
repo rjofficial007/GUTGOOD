@@ -54,7 +54,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     final String prompt = '${Prompts.productAnalysisPrompt(productData: product.toMap(), userGoals: goals, userSensitivities: sensitivities, cyclePhase: cyclePhase)}$alternativesText';
 
-    final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction);
+    final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan');
 
     final Map<String, dynamic> aiData = jsonDecode(aiResultStr);
     aiData['imageUrl'] ??= product.imageUrl;
@@ -76,6 +76,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
       imageBytes: imageBytes,
       systemInstruction: Prompts.visionAnalysisSystemInstruction(userGoals: goals, userSensitivities: sensitivities, userLifestyle: lifestyle, cyclePhase: cyclePhase),
       prompt: 'Analyze this ingredient label or meal photo and return a [SCAN] JSON object.',
+      usageType: 'scan',
     );
 
     final scanRegex = RegExp(r'\[SCAN\](.*?)\[/SCAN\]', dotAll: true);
@@ -101,7 +102,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     // the Insights scan-trigger (3 scans, §8.2), scan-aware insight context and
     // the processed-food warning notification could never fire.
     await _firestoreService.saveToScanHistory(result, userImageUrl: userImageUrl);
-    Log.i('ScannerRepository: Scan result saved to scan_history');
+    Log.i('ScannerRepository: Scan result saved to scan_history. Image: ${userImageUrl != null}');
 
     // 🟢 Fix: Notify UI that history has updated
     _appStateService.notifyChatUpdated();

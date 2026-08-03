@@ -7,11 +7,10 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
-import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
@@ -21,6 +20,7 @@ import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ScanResultScreen extends StatefulWidget {
   final ScanResult scanData;
@@ -57,31 +57,13 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   Widget build(BuildContext context) {
     final List<Widget?> sections = [
       _ProductHero(scanData: widget.scanData, heroTag: widget.heroTag),
-      DashboardEntrance(
-        delay: 100,
-        child: _GutImpactSection(scanData: widget.scanData),
-      ),
+      DashboardEntrance(delay: 100, child: _GutImpactSection(scanData: widget.scanData)),
       _buildCycleImpactSection(context),
-      if (widget.scanData.nutrientLevels != null)
-        DashboardEntrance(
-          delay: 300,
-          child: _NutrientDashboardSection(levels: widget.scanData.nutrientLevels!),
-        ),
+      if (widget.scanData.nutrientLevels != null) DashboardEntrance(delay: 300, child: _NutrientDashboardSection(levels: widget.scanData.nutrientLevels!)),
       if ((widget.scanData.allergens != null && widget.scanData.allergens!.isNotEmpty) || (widget.scanData.additives != null && widget.scanData.additives!.isNotEmpty))
-        DashboardEntrance(
-          delay: 400,
-          child: _CautionsDashboardSection(scanData: widget.scanData),
-        ),
-      if (widget.scanData.ingredients.isNotEmpty)
-        DashboardEntrance(
-          delay: 500,
-          child: _IngredientsDashboardSection(ingredients: widget.scanData.ingredients),
-        ),
-      if (widget.scanData.swaps.isNotEmpty)
-        DashboardEntrance(
-          delay: 600,
-          child: _SwapsDashboardSection(swaps: widget.scanData.swaps),
-        ),
+        DashboardEntrance(delay: 400, child: _CautionsDashboardSection(scanData: widget.scanData)),
+      if (widget.scanData.ingredients.isNotEmpty) DashboardEntrance(delay: 500, child: _IngredientsDashboardSection(ingredients: widget.scanData.ingredients)),
+      if (widget.scanData.swaps.isNotEmpty) DashboardEntrance(delay: 600, child: _SwapsDashboardSection(swaps: widget.scanData.swaps)),
       GutActionBanner(
         title: AppStrings.nutritionFacts,
         subtitle: AppStrings.per100g,
@@ -121,16 +103,13 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final isLast = index == visibleSections.length - 1;
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
-                    child: visibleSections[index],
-                  );
-                },
-                childCount: visibleSections.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final isLast = index == visibleSections.length - 1;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
+                  child: visibleSections[index],
+                );
+              }, childCount: visibleSections.length),
             ),
           ),
         ],
@@ -147,10 +126,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       return null;
     }
 
-    return DashboardEntrance(
-      delay: 200,
-      child: _CycleImpactDashboardSection(insight: widget.scanData.cycleInsight!),
-    );
+    return DashboardEntrance(delay: 200, child: _CycleImpactDashboardSection(insight: widget.scanData.cycleInsight!));
   }
 }
 
@@ -183,14 +159,21 @@ class _ProductHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String? displayImageUrl = scanData.userImageUrl ?? scanData.imageUrl;
-     return Container(
-          decoration: BoxDecoration(
+    // 🟢 Fix: Handle potential empty strings from older DB records
+    String? userImg = scanData.userImageUrl;
+    if (userImg != null && userImg.isEmpty) userImg = null;
+    String? prodImg = scanData.imageUrl;
+    if (prodImg != null && prodImg.isEmpty) prodImg = null;
+
+    final String? displayImageUrl = userImg ?? prodImg;
+
+    return Container(
+      decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
         borderRadius: BorderRadius.circular(AppSizes.r24),
         border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
         boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-    ),
+      ),
       child: Column(
         children: [
           Padding(
@@ -210,8 +193,10 @@ class _ProductHero extends StatelessWidget {
                             child: CachedNetworkImage(
                               imageUrl: displayImageUrl,
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => Center(
-                                child: CircularProgressIndicator(strokeWidth: 2.w, color: context.appColorScheme.textMuted),
+                              placeholder: (context, url) => Shimmer.fromColors(
+                                baseColor: context.appColorScheme.border.withValues(alpha: 0.2),
+                                highlightColor: context.appColorScheme.border.withValues(alpha: 0.1),
+                                child: Container(color: Colors.white),
                               ),
                               errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon32, color: context.appColorScheme.textMuted),
                             ),
@@ -254,7 +239,7 @@ class _ProductHero extends StatelessWidget {
 
           _GutGoodScoreSection(scanData: scanData),
         ],
-          )
+      ),
     );
   }
 }
@@ -285,7 +270,11 @@ class _ClassificationBadge extends StatelessWidget {
           Gap.w8,
           Container(
             padding: EdgeInsets.symmetric(horizontal: AppSizes.p6, vertical: AppSizes.p2),
-            decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(AppSizes.r4), border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5))),
+            decoration: BoxDecoration(
+              color: badgeColor,
+              borderRadius: BorderRadius.circular(AppSizes.r4),
+              border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+            ),
             child: Text(
               value,
               style: context.bodyBold.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textPrimary),
@@ -319,20 +308,13 @@ class _GutImpactSection extends StatelessWidget {
                 children: [
                   Text(
                     scanData.score.toString(),
-                    style: context.bodyBold.copyWith(
-                      fontSize: AppSizes.s32,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                    ),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s32, fontWeight: FontWeight.w900, letterSpacing: -1),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     AppStrings.gutGoodScore,
-                    style: context.caption.copyWith(
-                      color: context.appColorScheme.textMuted,
-                      fontSize: AppSizes.s12,
-                    ),
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -347,33 +329,13 @@ class _GutImpactSection extends StatelessWidget {
               flex: 5,
               child: Column(
                 children: [
-                  DashboardDetailItem(
-                    title: _getImpactLevel(AppStrings.bloodSugar),
-                    subtitle: AppStrings.bloodSugar,
-                    icon: AppIcons.activity,
-                    color: context.appColorScheme.textPrimary,
-                  ),
+                  DashboardDetailItem(title: _getImpactLevel(AppStrings.bloodSugar), subtitle: AppStrings.bloodSugar, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
                   Gap.h12,
-                  DashboardDetailItem(
-                    title: _getImpactLevel(AppStrings.inflammation),
-                    subtitle: AppStrings.inflammation,
-                    icon: AppIcons.shield,
-                    color: context.appColorScheme.textPrimary,
-                  ),
+                  DashboardDetailItem(title: _getImpactLevel(AppStrings.inflammation), subtitle: AppStrings.inflammation, icon: AppIcons.shield, color: context.appColorScheme.textPrimary),
                   Gap.h12,
-                  DashboardDetailItem(
-                    title: _getImpactLevel(AppStrings.digestibility),
-                    subtitle: AppStrings.digestibility,
-                    icon: AppIcons.moon,
-                    color: context.appColorScheme.textPrimary,
-                  ),
+                  DashboardDetailItem(title: _getImpactLevel(AppStrings.digestibility), subtitle: AppStrings.digestibility, icon: AppIcons.moon, color: context.appColorScheme.textPrimary),
                   Gap.h12,
-                  DashboardDetailItem(
-                    title: _getImpactLevel(AppStrings.satiety),
-                    subtitle: AppStrings.satiety,
-                    icon: AppIcons.target,
-                    color: context.appColorScheme.textPrimary,
-                  ),
+                  DashboardDetailItem(title: _getImpactLevel(AppStrings.satiety), subtitle: AppStrings.satiety, icon: AppIcons.target, color: context.appColorScheme.textPrimary),
                 ],
               ),
             ),
@@ -392,28 +354,15 @@ class _GutImpactSection extends StatelessWidget {
       context: context,
       title: AppStrings.gutImpact,
       children: [
-        SheetHeroSection(
-          title:scanData.score.toString(),
-          subtitle: AppStrings.overallGutHealthRating,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.activity,
-        ),
+        SheetHeroSection(title: scanData.score.toString(), subtitle: AppStrings.overallGutHealthRating, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
-        if (positive.isNotEmpty) ...[
-          SheetSectionHeader(title: AppStrings.positiveMarkers, color: context.appColorScheme.textPrimary),
-          ...positive.map((e) => _buildImpactTile(context, e)),
-          Gap.h24,
-        ],
+        if (positive.isNotEmpty) ...[SheetSectionHeader(title: AppStrings.positiveMarkers, color: context.appColorScheme.textPrimary), ...positive.map((e) => _buildImpactTile(context, e)), Gap.h24],
         if (moderate.isNotEmpty) ...[
           SheetSectionHeader(title: AppStrings.neutralObservations, color: context.appColorScheme.textPrimary),
           ...moderate.map((e) => _buildImpactTile(context, e)),
           Gap.h24,
         ],
-        if (negative.isNotEmpty) ...[
-          SheetSectionHeader(title: AppStrings.potentialTriggers, color: context.appColorScheme.textPrimary),
-          ...negative.map((e) => _buildImpactTile(context, e)),
-          Gap.h24,
-        ],
+        if (negative.isNotEmpty) ...[SheetSectionHeader(title: AppStrings.potentialTriggers, color: context.appColorScheme.textPrimary), ...negative.map((e) => _buildImpactTile(context, e)), Gap.h24],
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -471,11 +420,7 @@ class _GutImpactChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          height: 1,
-          width: double.infinity,
-          color: context.appColorScheme.border.withValues(alpha: 0.5),
-        ),
+        Container(height: 1, width: double.infinity, color: context.appColorScheme.border.withValues(alpha: 0.5)),
         Gap.h16,
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -497,10 +442,7 @@ class _GutImpactChart extends StatelessWidget {
                 return Container(
                   width: 8.0.w,
                   height: value.h,
-                  decoration: BoxDecoration(
-                    color: colors[index],
-                    borderRadius: BorderRadius.circular(4.0.r),
-                  ),
+                  decoration: BoxDecoration(color: colors[index], borderRadius: BorderRadius.circular(4.0.r)),
                 );
               },
             );
@@ -510,9 +452,18 @@ class _GutImpactChart extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('00:00', style: context.caption.copyWith(fontSize: 9.0.sp, color: context.appColorScheme.textMuted)),
-            Text('12:00', style: context.caption.copyWith(fontSize: 9.0.sp, color: context.appColorScheme.textMuted)),
-            Text('24:00', style: context.caption.copyWith(fontSize: 9.0.sp, color: context.appColorScheme.textMuted)),
+            Text(
+              '00:00',
+              style: context.caption.copyWith(fontSize: 9.0.sp, color: context.appColorScheme.textMuted),
+            ),
+            Text(
+              '12:00',
+              style: context.caption.copyWith(fontSize: 9.0.sp, color: context.appColorScheme.textMuted),
+            ),
+            Text(
+              '24:00',
+              style: context.caption.copyWith(fontSize: 9.0.sp, color: context.appColorScheme.textMuted),
+            ),
           ],
         ),
       ],
@@ -529,10 +480,9 @@ class _GutGoodScoreSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ValueListenableBuilder(
-          valueListenable: sl<AppStateService>().insightsData,
-          builder: (context, insight, _) {
-            return GutSnapshotHeroCard(score: scanData.score, streak: insight?.streak ?? 0, simpleTrend: [], isActive: true, borderRadius: 20.0);
+        Consumer<ProfileNotifier>(
+          builder: (context, profile, _) {
+            return GutSnapshotHeroCard(score: scanData.score, streak: profile.profile?.streak ?? 0, isActive: true, borderRadius: 20.0);
           },
         ),
       ],
@@ -552,13 +502,7 @@ class _CycleImpactDashboardSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appColorScheme.textPrimary,
         borderRadius: BorderRadius.circular(AppSizes.r28),
-        boxShadow: [
-          BoxShadow(
-            color: AppPalette.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,18 +514,10 @@ class _CycleImpactDashboardSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      AppStrings.phase,
-                      style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8), letterSpacing: 2.0),
-                    ),
+                    Text(AppStrings.phase, style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8), letterSpacing: 2.0)),
                     Text(
                       insight.phase.toUpperCase(),
-                      style: context.bodyBold.copyWith(
-                        color: context.appColorScheme.cardBackground,
-                        fontSize: AppSizes.s32,
-                        fontWeight: FontWeight.w900,
-                        height: 1.1,
-                      ),
+                      style: context.bodyBold.copyWith(color: context.appColorScheme.cardBackground, fontSize: AppSizes.s32, fontWeight: FontWeight.w900, height: 1.1),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -591,10 +527,7 @@ class _CycleImpactDashboardSection extends StatelessWidget {
               Gap.w16,
               Container(
                 padding: EdgeInsets.all(AppSizes.p12),
-                decoration: BoxDecoration(
-                  color: context.appColorScheme.cardBackground.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: context.appColorScheme.cardBackground.withValues(alpha: 0.2), shape: BoxShape.circle),
                 child: Icon(AppIcons.sun, color: context.appColorScheme.cardBackground, size: AppSizes.icon28),
               ),
             ],
@@ -602,12 +535,7 @@ class _CycleImpactDashboardSection extends StatelessWidget {
           Gap.h24,
           Text(
             insight.description,
-            style: context.body.copyWith(
-              color: context.appColorScheme.cardBackground.withValues(alpha: 0.9),
-              fontSize: AppSizes.s15,
-              height: 1.4,
-              fontWeight: FontWeight.w500,
-            ),
+            style: context.body.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.9), fontSize: AppSizes.s15, height: 1.4, fontWeight: FontWeight.w500),
           ),
           Gap.h16,
           Row(
@@ -650,20 +578,13 @@ class _IngredientsDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.mix,
-                    style: context.bodyBold.copyWith(
-                      fontSize: AppSizes.s28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                    ),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     AppStrings.ingredients,
-                    style: context.caption.copyWith(
-                      color: context.appColorScheme.textMuted,
-                      fontSize: AppSizes.s12,
-                    ),
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -681,12 +602,7 @@ class _IngredientsDashboardSection extends StatelessWidget {
                   final color = _getIngredientColor(ing.colorName, context);
                   return Padding(
                     padding: EdgeInsets.only(bottom: AppSizes.p12),
-                    child: DashboardDetailItem(
-                      title: ing.name,
-                      subtitle: _getIngredientImpactLabel(ing.colorName),
-                      icon: InsightUiUtils.getIngredientIcon(ing.colorName),
-                      color: color,
-                    ),
+                    child: DashboardDetailItem(title: ing.name, subtitle: _getIngredientImpactLabel(ing.colorName), icon: InsightUiUtils.getIngredientIcon(ing.colorName), color: color),
                   );
                 }).toList(),
               ),
@@ -709,28 +625,11 @@ class _IngredientsDashboardSection extends StatelessWidget {
       context: context,
       title: AppStrings.ingredients,
       children: [
-        SheetHeroSection(
-          title: '${(cleanRatio * 100).toInt()}%',
-          subtitle: AppStrings.cleanCompositionScore,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.leaf,
-        ),
+        SheetHeroSection(title: '${(cleanRatio * 100).toInt()}%', subtitle: AppStrings.cleanCompositionScore, color: context.appColorScheme.textPrimary, icon: AppIcons.leaf),
         Gap.h32,
-        if (avoid.isNotEmpty) ...[
-          SheetSectionHeader(title: AppStrings.ingredientsToAvoid, color: context.appColorScheme.textPrimary),
-          ...avoid.map((e) => _buildIngredientTile(context, e)),
-          Gap.h24,
-        ],
-        if (limit.isNotEmpty) ...[
-          SheetSectionHeader(title: AppStrings.limitConsumption, color: context.appColorScheme.textPrimary),
-          ...limit.map((e) => _buildIngredientTile(context, e)),
-          Gap.h24,
-        ],
-        if (clean.isNotEmpty) ...[
-          SheetSectionHeader(title: AppStrings.cleanIngredients, color: context.appColorScheme.textPrimary),
-          ...clean.map((e) => _buildIngredientTile(context, e)),
-          Gap.h24,
-        ],
+        if (avoid.isNotEmpty) ...[SheetSectionHeader(title: AppStrings.ingredientsToAvoid, color: context.appColorScheme.textPrimary), ...avoid.map((e) => _buildIngredientTile(context, e)), Gap.h24],
+        if (limit.isNotEmpty) ...[SheetSectionHeader(title: AppStrings.limitConsumption, color: context.appColorScheme.textPrimary), ...limit.map((e) => _buildIngredientTile(context, e)), Gap.h24],
+        if (clean.isNotEmpty) ...[SheetSectionHeader(title: AppStrings.cleanIngredients, color: context.appColorScheme.textPrimary), ...clean.map((e) => _buildIngredientTile(context, e)), Gap.h24],
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -801,20 +700,13 @@ class _NutrientDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     'HEALTH',
-                    style: context.bodyBold.copyWith(
-                      fontSize: AppSizes.s28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                    ),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     AppStrings.nutrientLevelsLabel,
-                    style: context.caption.copyWith(
-                      color: context.appColorScheme.textMuted,
-                      fontSize: AppSizes.s12,
-                    ),
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -829,33 +721,13 @@ class _NutrientDashboardSection extends StatelessWidget {
               flex: 5,
               child: Column(
                 children: [
-                  DashboardDetailItem(
-                    title: levels.sugars,
-                    subtitle: AppStrings.sugars,
-                    icon: AppIcons.candy,
-                    color: _getNutrientColor(levels.sugars, context),
-                  ),
+                  DashboardDetailItem(title: levels.sugars, subtitle: AppStrings.sugars, icon: AppIcons.candy, color: _getNutrientColor(levels.sugars, context)),
                   Gap.h12,
-                  DashboardDetailItem(
-                    title: levels.salt,
-                    subtitle: AppStrings.salt,
-                    icon: AppIcons.flaskConical,
-                    color: _getNutrientColor(levels.salt, context),
-                  ),
+                  DashboardDetailItem(title: levels.salt, subtitle: AppStrings.salt, icon: AppIcons.flaskConical, color: _getNutrientColor(levels.salt, context)),
                   Gap.h12,
-                  DashboardDetailItem(
-                    title: levels.fat,
-                    subtitle: AppStrings.fatLabel,
-                    icon: AppIcons.beef,
-                    color: _getNutrientColor(levels.fat, context),
-                  ),
+                  DashboardDetailItem(title: levels.fat, subtitle: AppStrings.fatLabel, icon: AppIcons.beef, color: _getNutrientColor(levels.fat, context)),
                   Gap.h12,
-                  DashboardDetailItem(
-                    title: levels.saturatedFat,
-                    subtitle: AppStrings.satFatLabel,
-                    icon: AppIcons.beef,
-                    color: _getNutrientColor(levels.saturatedFat, context),
-                  ),
+                  DashboardDetailItem(title: levels.saturatedFat, subtitle: AppStrings.satFatLabel, icon: AppIcons.beef, color: _getNutrientColor(levels.saturatedFat, context)),
                 ],
               ),
             ),
@@ -870,12 +742,7 @@ class _NutrientDashboardSection extends StatelessWidget {
       context: context,
       title: AppStrings.nutrientLevelsLabel,
       children: [
-        SheetHeroSection(
-          title: AppStrings.profile,
-          subtitle: AppStrings.nutrientBenchmarking,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.flaskConical,
-        ),
+        SheetHeroSection(title: AppStrings.profile, subtitle: AppStrings.nutrientBenchmarking, color: context.appColorScheme.textPrimary, icon: AppIcons.flaskConical),
         Gap.h24,
         Text(
           AppStrings.nutrientLevelsDisclaimer,
@@ -944,21 +811,13 @@ class _CautionsDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.safe,
-                    style: context.bodyBold.copyWith(
-                      fontSize: AppSizes.s28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                      color: context.appColorScheme.textPrimary,
-                    ),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     AppStrings.safetyCautions,
-                    style: context.caption.copyWith(
-                      color: context.appColorScheme.textMuted,
-                      fontSize: AppSizes.s12,
-                    ),
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -973,26 +832,10 @@ class _CautionsDashboardSection extends StatelessWidget {
               flex: 5,
               child: Column(
                 children: [
-                  if (hasAllergens)
-                    DashboardDetailItem(
-                      title: scanData.allergens!,
-                      subtitle: AppStrings.allergensLabel,
-                      icon: AppIcons.alertTriangle,
-                      color: context.appColorScheme.error,
-                    ),
+                  if (hasAllergens) DashboardDetailItem(title: scanData.allergens!, subtitle: AppStrings.allergensLabel, icon: AppIcons.alertTriangle, color: context.appColorScheme.error),
                   if (hasAllergens && hasAdditives) Gap.h12,
-                  if (hasAdditives)
-                    DashboardDetailItem(
-                      title: scanData.additives!,
-                      subtitle: AppStrings.additivesLabel,
-                      icon: AppIcons.flaskConical,
-                      color: context.appColorScheme.warning,
-                    ),
-                  if (!hasAllergens && !hasAdditives)
-                    Text(
-                      AppStrings.noCautionsFound,
-                      style: context.caption.copyWith(color: context.appColorScheme.textMuted),
-                    ),
+                  if (hasAdditives) DashboardDetailItem(title: scanData.additives!, subtitle: AppStrings.additivesLabel, icon: AppIcons.flaskConical, color: context.appColorScheme.warning),
+                  if (!hasAllergens && !hasAdditives) Text(AppStrings.noCautionsFound, style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
                 ],
               ),
             ),
@@ -1002,7 +845,6 @@ class _CautionsDashboardSection extends StatelessWidget {
     );
   }
 }
-
 
 class _CautionRiskIcon extends StatelessWidget {
   final bool isSafe;
@@ -1016,22 +858,12 @@ class _CautionRiskIcon extends StatelessWidget {
       duration: const Duration(milliseconds: 800),
       curve: Curves.elasticOut,
       builder: (context, value, child) {
-        return Transform.scale(
-          scale: value,
-          child: child,
-        );
+        return Transform.scale(scale: value, child: child);
       },
       child: Container(
         padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          isSafe ? AppIcons.shieldCheck : AppIcons.alertCircle,
-          color: color,
-          size: AppSizes.icon32,
-        ),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+        child: Icon(isSafe ? AppIcons.shieldCheck : AppIcons.alertCircle, color: color, size: AppSizes.icon32),
       ),
     );
   }
@@ -1072,21 +904,13 @@ class _SwapsDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.upgradeLabel,
-                    style: context.bodyBold.copyWith(
-                      fontSize: AppSizes.s28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                      color: context.appColorScheme.textPrimary,
-                    ),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     AppStrings.betterSwapsLabel,
-                    style: context.caption.copyWith(
-                      color: context.appColorScheme.textMuted,
-                      fontSize: AppSizes.s12,
-                    ),
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1103,12 +927,7 @@ class _SwapsDashboardSection extends StatelessWidget {
                 children: displaySwaps.map((swap) {
                   return Padding(
                     padding: EdgeInsets.only(bottom: AppSizes.p12),
-                    child: DashboardDetailItem(
-                      title: swap.title,
-                      subtitle: swap.subtitle,
-                      icon: AppIcons.sparkles,
-                      color: context.appColorScheme.textPrimary,
-                    ),
+                    child: DashboardDetailItem(title: swap.title, subtitle: swap.subtitle, icon: AppIcons.sparkles, color: context.appColorScheme.textPrimary),
                   );
                 }).toList(),
               ),
@@ -1124,24 +943,14 @@ class _SwapsDashboardSection extends StatelessWidget {
       context: context,
       title: AppStrings.betterSwapsLabel,
       children: [
-        SheetHeroSection(
-          title: '${swaps.length}',
-          subtitle: AppStrings.healthierAlternativesFound,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.sparkles,
-        ),
+        SheetHeroSection(title: '${swaps.length}', subtitle: AppStrings.healthierAlternativesFound, color: context.appColorScheme.textPrimary, icon: AppIcons.sparkles),
         Gap.h32,
         ...swaps.map((swap) {
           return Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(
-              title: swap.title,
-              subtitle: swap.subtitle,
-              icon: AppIcons.package,
-              color: context.appColorScheme.textPrimary,
-            ),
+            child: DashboardDetailItem(title: swap.title, subtitle: swap.subtitle, icon: AppIcons.package, color: context.appColorScheme.textPrimary),
           );
-        }).toList(),
+        }),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -1176,4 +985,3 @@ class _SwapVisualization extends StatelessWidget {
     );
   }
 }
-

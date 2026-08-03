@@ -32,6 +32,7 @@ class EmailLoginScreen extends StatefulWidget {
 
 class _EmailLoginScreenState extends State<EmailLoginScreen> {
   final _emailController = TextEditingController();
+  final _nameController = TextEditingController();
   bool _linkSent = false;
   GutAuthNotifier? _authNotifier;
 
@@ -59,6 +60,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     appStateService.pendingMergeConflict.removeListener(_onMergeConflict);
     _authNotifier?.removeListener(_onAuthChanged);
     _emailController.dispose();
+    _nameController.dispose();
     _cooldownTimer?.cancel();
     super.dispose();
   }
@@ -66,7 +68,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   void _onMergeConflict() async {
     final conflict = sl<AppStateService>().pendingMergeConflict.value;
     if (conflict == null || !mounted) return;
-    
+
     final appState = sl<AppStateService>();
     if (!appState.claimMergePrompt()) return;
     appState.setPendingMergeConflict(null);
@@ -84,7 +86,9 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('We signed you in, but couldn\'t restore your previous data yet. It will retry automatically next time you open the app.')));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('We signed you in, but couldn\'t restore your previous data yet. It will retry automatically next time you open the app.')));
           }
         }
       } else if (shouldMerge == false) {
@@ -134,6 +138,13 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
   Future<void> _sendLink() async {
     final email = _emailController.text.trim();
+    final name = _nameController.text.trim();
+    final appStateService = sl<AppStateService>();
+
+    if (name.isEmpty && appStateService.pendingEmailLink.value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter your name to continue.')));
+      return;
+    }
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.enterEmailToContinue)));
@@ -171,6 +182,9 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('login_email', email);
+      if (name.isNotEmpty) {
+        await prefs.setString('login_display_name', name);
+      }
 
       await authNotifier.sendSignInLinkToEmail(email);
       setState(() {
@@ -232,6 +246,19 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
         SizedBox(height: AppSizes.p8),
         Text(pendingLink != null ? AppStrings.completeSignInSubtitle : AppStrings.signInSubtitle, style: context.body.copyWith(color: context.appColorScheme.textSecondary)),
         SizedBox(height: AppSizes.p32),
+
+        if (pendingLink == null) ...[
+          _buildLabel('YOUR NAME'),
+          GutTextField(
+            controller: _nameController,
+            keyboardType: TextInputType.name,
+            textCapitalization: TextCapitalization.words,
+            style: context.bodyBold,
+            hintText: 'Enter your name',
+            prefixIcon: AppIcons.user,
+          ),
+          SizedBox(height: AppSizes.p20),
+        ],
 
         _buildLabel(AppStrings.emailAddress),
         GutTextField(controller: _emailController, keyboardType: TextInputType.emailAddress, style: context.bodyBold, hintText: AppStrings.enterEmail, prefixIcon: AppIcons.mail),

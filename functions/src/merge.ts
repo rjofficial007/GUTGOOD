@@ -91,42 +91,56 @@ async function mergeSubcollection(
   fromUid: string,
   toUid: string,
 ): Promise<number> {
-  const source = await anonRef.collection(collection).limit(READ_LIMIT).get();
-  if (source.empty) return 0;
-
-  // Load natural keys of the target docs once → content-addressed dedupe.
-  const target = await permRef.collection(collection).limit(READ_LIMIT).get();
+  // Load ALL target keys first (content-addressed dedupe).
+  // Note: If a permanent user already has > READ_LIMIT docs, we might risk
+  // duplicates for very old content, but we prioritize performance.
+  const target = await permRef.collection(collection).orderBy(admin.firestore.FieldPath.documentId()).limit(READ_LIMIT).get();
   const existingKeys = new Set(target.docs.map((d) => naturalKey(collection, d.data())));
 
   let moved = 0;
-  let batch = db.batch();
-  let pending = 0;
+  let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
 
-  for (const doc of source.docs) {
-    const raw = doc.data();
-    const key = naturalKey(collection, raw);
-    if (existingKeys.has(key)) continue;
-    existingKeys.add(key);
+  // 🟡 Fix F6: Paginate through the source to avoid silent truncation at 500 docs.
+  while (true) {
+    let query = anonRef.collection(collection).orderBy(admin.firestore.FieldPath.documentId()).limit(READ_LIMIT);
+    if (lastDoc) query = query.startAfter(lastDoc);
 
-    let data: admin.firestore.DocumentData = { ...raw, migratedFrom: fromUid };
-    for (const field of Object.keys(data)) {
-      if (URL_FIELDS.has(field) || URL_LIST_FIELDS.has(field)) {
-        data[field] = rewriteUrls(data[field], fromUid, toUid);
+    const source = await query.get();
+    if (source.empty) break;
+
+    let batch = db.batch();
+    let pending = 0;
+
+    for (const doc of source.docs) {
+      const raw = doc.data();
+      const key = naturalKey(collection, raw);
+      if (existingKeys.has(key)) continue;
+      existingKeys.add(key);
+
+      let data: admin.firestore.DocumentData = { ...raw, migratedFrom: fromUid };
+      for (const field of Object.keys(data)) {
+        if (URL_FIELDS.has(field) || URL_LIST_FIELDS.has(field)) {
+          data[field] = rewriteUrls(data[field], fromUid, toUid);
+        }
+      }
+
+      batch.set(permRef.collection(collection).doc(), data);
+      pending++;
+      moved++;
+
+      if (pending >= BATCH_LIMIT) {
+        await batch.commit();
+        batch = db.batch();
+        pending = 0;
       }
     }
 
-    batch.set(permRef.collection(collection).doc(), data);
-    pending++;
-    moved++;
+    if (pending > 0) await batch.commit();
+    lastDoc = source.docs[source.docs.length - 1];
 
-    if (pending >= BATCH_LIMIT) {
-      await batch.commit();
-      batch = db.batch();
-      pending = 0;
-    }
+    if (source.size < READ_LIMIT) break;
   }
 
-  if (pending > 0) await batch.commit();
   return moved;
 }
 
@@ -154,6 +168,7 @@ async function mergeDailyUsage(
         {
           chat_count: admin.firestore.FieldValue.increment((data.chat_count as number) ?? 0),
           scan_count: admin.firestore.FieldValue.increment((data.scan_count as number) ?? 0),
+          system_count: admin.firestore.FieldValue.increment((data.system_count as number) ?? 0),
           mergedFrom: [...mergedFrom, fromUid],
         },
         { merge: true },
@@ -197,7 +212,23 @@ async function mergeProfileRoot(
   if (anon.notificationPreferences && !perm.notificationPreferences) {
     update.notificationPreferences = anon.notificationPreferences;
   }
-  // NEVER copy: isPremium, subscriptionStatus, gutScore, streak, authProvider.
+
+  // 🟢 Streak Merge Logic: Keep the best streak/date
+  const anonStreak = Number(anon.streak ?? 0);
+  const permStreak = Number(perm.streak ?? 0);
+  if (anonStreak > permStreak) {
+    update.streak = anonStreak;
+    if (anon.lastActivityDate) update.lastActivityDate = anon.lastActivityDate;
+  } else if (anonStreak === permStreak && anonStreak > 0) {
+    // If streaks are equal, prefer the one with the latest activity date
+    const anonDate = (anon.lastActivityDate ?? '').toString();
+    const permDate = (perm.lastActivityDate ?? '').toString();
+    if (anonDate > permDate) {
+      update.lastActivityDate = anonDate;
+    }
+  }
+
+  // NEVER copy: isPremium, subscriptionStatus, gutScore, authProvider.
   // Premium is client-side (RevenueCat SDK entitlement): the new account must
   // re-derive it from the SDK on next launch — never inherit it from a guest
   // profile, or a guest could smuggle a premium flag into a paid account.

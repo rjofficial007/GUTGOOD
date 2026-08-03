@@ -9,6 +9,8 @@ class AppIcons {
   static const sparkles = LucideIcons.sparkles;
   static const refreshCw = LucideIcons.refreshCw;
   static const bookmark = LucideIcons.bookmark;
+  static const arrowUp = LucideIcons.arrowUp;
+  static const arrowDown = LucideIcons.arrowDown;
   static const arrowRight = LucideIcons.arrowRight;
   static const arrowLeft = LucideIcons.arrowLeft;
   static const checkCircle = LucideIcons.checkCircle;

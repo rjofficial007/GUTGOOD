@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -54,7 +53,6 @@ class DialogHelper {
     String? secondaryActionLabel,
     VoidCallback? onSecondaryAction,
   }) {
-    final effectiveIconColor = iconColor ?? Theme.of(context).colorScheme.primary;
 
     BottomSheetHelper.showGutBottomSheet(
       context: context,

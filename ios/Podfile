@@ -52,20 +52,12 @@ post_install do |installer|
     end
   end
 
-  # Force iOS 15.0 on the generated plugin package and podspec
-  # This overcomes Flutter's tendency to regenerate these files with iOS 13.0
-  paths = [
-    File.join(__dir__, 'Flutter/Flutter.podspec'),
-    File.join(__dir__, 'Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage/Package.swift')
-  ]
-
-  paths.each do |path|
-    if File.exist?(path)
-      puts "Patching #{path} to iOS 15.0..."
-      content = File.read(path)
-      content.gsub!(/\.iOS\("13\.0"\)/, '.iOS("15.0")')
-      content.gsub!(/s\.ios\.deployment_target = '13\.0'/, "s.ios.deployment_target = '15.0'")
-      File.write(path, content)
+  # Ensure the FlutterGeneratedPluginSwiftPackage also uses the same deployment target
+  installer.generated_projects.each do |project|
+    project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      end
     end
   end
 end

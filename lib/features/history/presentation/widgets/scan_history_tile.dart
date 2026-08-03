@@ -6,6 +6,7 @@ import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ScanHistoryTile extends StatelessWidget {
   final ScanResult scanResult;
@@ -44,8 +45,10 @@ class ScanHistoryTile extends StatelessWidget {
                         child: CachedNetworkImage(
                           imageUrl: displayImageUrl,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => Center(
-                            child: CircularProgressIndicator(strokeWidth: 2.w, color: context.appColorScheme.textMuted),
+                          placeholder: (context, url) => Shimmer.fromColors(
+                            baseColor: context.appColorScheme.border.withValues(alpha: 0.2),
+                            highlightColor: context.appColorScheme.border.withValues(alpha: 0.1),
+                            child: Container(color: Colors.white),
                           ),
                           errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
                         ),

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -14,7 +15,6 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
@@ -28,9 +28,9 @@ import 'package:upgrader/upgrader.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_icons.dart';
-import 'package:gutgood/core/router/app_routes.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../scanner/presentation/pages/super_scanner_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -245,6 +245,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final chatNotifier = context.watch<ChatNotifier>();
+    final profile = context.watch<ProfileNotifier>().profile;
     final authNotifier = context.read<GutAuthNotifier>();
     final screenWidth = context.width;
     final messages = chatNotifier.messages;
@@ -282,6 +283,7 @@ class _ChatScreenState extends State<ChatScreen> {
         appBar: GutAppBar(
           title: AppStrings.gutgood,
           showBrandingIcon: true,
+          streak: profile?.streak,
           actions: [
             GestureDetector(
               onTap: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
@@ -459,17 +461,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     ),
                   ),
-                  _ComposerIconButton(
-                    icon: AppIcons.camera,
-                    label: AppStrings.scanIngredientsMeal,
-                    onTap: chatNotifier.isLoading ? null : () => _handleCamera(chatNotifier, authNotifier),
-                  ),
+                  _ComposerIconButton(icon: AppIcons.camera, label: AppStrings.scanIngredientsMeal, onTap: chatNotifier.isLoading ? null : () => _handleCamera(chatNotifier, authNotifier)),
                   Gap.w4,
-                  _ComposerIconButton(
-                    icon: AppIcons.image,
-                    label: AppStrings.attachPhotos,
-                    onTap: chatNotifier.isLoading ? null : () => _pickImages(chatNotifier, authNotifier),
-                  ),
+                  _ComposerIconButton(icon: AppIcons.image, label: AppStrings.attachPhotos, onTap: chatNotifier.isLoading ? null : () => _pickImages(chatNotifier, authNotifier)),
                   Gap.w4,
                   _buildSendStopButton(chatNotifier, authNotifier),
                 ],
@@ -755,7 +749,7 @@ class _ChatShimmerLoading extends StatelessWidget {
                 child: Container(
                   width: AppSizes.icon28,
                   height: AppSizes.icon28,
-                  decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: context.appColorScheme.cardBackground, shape: BoxShape.circle),
                 ),
               ),
               Gap.w12,
@@ -766,7 +760,7 @@ class _ChatShimmerLoading extends StatelessWidget {
                   width: context.width * (0.5 + (index % 2) * 0.1),
                   height: AppSizes.h74,
                   decoration: BoxDecoration(
-                    color: AppPalette.white,
+                    color: context.appColorScheme.cardBackground,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(AppSizes.r8),
                       topRight: Radius.circular(AppSizes.r24),

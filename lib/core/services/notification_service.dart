@@ -23,6 +23,7 @@ class NotificationIds {
   static const int restaurantReminder = 107;
   static const int insightGenerated = 108;
   static const int processedFoodWarning = 109;
+  static const int streakSaver = 110;
 }
 
 abstract class NotificationService {
@@ -40,6 +41,7 @@ abstract class NotificationService {
   Future<void> markAppOpened();
   Future<void> showInsightGeneratedNotification();
   Future<void> checkAndTriggerProcessedFoodWarning();
+  Future<void> scheduleStreakSaverReminder(int currentStreak);
   Future<void> cancel(int id);
   Future<void> cancelMealReminders();
   Future<void> cancelNoMealLoggedReminder();
@@ -259,6 +261,26 @@ class NotificationServiceImpl implements NotificationService {
     } catch (e) {
       Log.e('NotificationService: Processed warning failed', error: e);
     }
+  }
+
+  @override
+  Future<void> scheduleStreakSaverReminder(int currentStreak) async {
+    if (currentStreak == 0) return;
+
+    // Schedule for 8:00 PM today if they haven't been active
+    final now = tz.TZDateTime.now(tz.local);
+    final scheduledTime = tz.TZDateTime(tz.local, now.year, now.month, now.day, 20, 0);
+
+    if (scheduledTime.isBefore(now)) return;
+
+    await scheduleNotification(
+      id: NotificationIds.streakSaver,
+      title: AppStrings.notifStreakSaverTitle,
+      body: AppStrings.notifStreakSaverBody.replaceFirst('{streak}', currentStreak.toString()),
+      scheduledDate: scheduledTime,
+      payload: 'streak_saver',
+    );
+    Log.i('NotificationService: Streak saver scheduled for 8 PM');
   }
 
   @override

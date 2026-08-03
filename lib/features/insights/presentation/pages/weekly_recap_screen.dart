@@ -9,15 +9,14 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:provider/provider.dart';
 
-import '../../../../core/di/injection_container.dart';
-import '../../../../core/services/usage_service.dart';
 import '../../../../core/theme/app_color_scheme.dart';
-import '../../../../core/theme/app_palette.dart';
 import '../../../../core/widgets/shimmer_grid_loader.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
+import '../providers/insights_notifier.dart';
 
 class WeeklyRecapScreen extends StatelessWidget {
   final AIInsight? insight;
@@ -27,6 +26,7 @@ class WeeklyRecapScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final recap = insight?.weeklyRecap;
     final highlights = recap?.highlights ?? [];
+    final notifier = context.watch<InsightsNotifier>();
 
     final List<Widget?> sections = [
       // Date Range Header
@@ -46,19 +46,13 @@ class WeeklyRecapScreen extends StatelessWidget {
       ),
 
       // 1. Primary Hero
-      GutSnapshotHeroCard(
-          score: recap?.avgScore ?? 0,
-          scoreDiff: recap?.scoreSub,
-          streak: insight?.streak ?? 0,
-          simpleTrend: insight?.simpleTrend ?? [],
-          isActive: true),
+      GutSnapshotHeroCard(score: recap?.avgScore ?? 0, scoreDiff: recap?.scoreSub, streak: context.watch<ProfileNotifier>().profile?.streak ?? 0, isActive: true),
+
+      // 1b. Trend Chart
+      TrendCard(insights: notifier.insightHistory, currentInsight: insight),
 
       // 2. Narrative Summary (Gradient Widget)
-      if (insight != null)
-        DashboardEntrance(
-          delay: 100,
-          child: _ModernSmartAlert(insight: insight!),
-        ),
+      if (insight != null) DashboardEntrance(delay: 100, child: _ModernSmartAlert(insight: insight!)),
 
       // 3. Recap Dashboard (Metrics)
       DashboardEntrance(
@@ -67,17 +61,10 @@ class WeeklyRecapScreen extends StatelessWidget {
       ),
 
       // 4. Weekly Discoveries
-      if (highlights.isNotEmpty)
-        DashboardEntrance(
-          delay: 300,
-          child: _DiscoveriesDashboardSection(highlights: highlights),
-        ),
+      if (highlights.isNotEmpty) DashboardEntrance(delay: 300, child: _DiscoveriesDashboardSection(highlights: highlights)),
 
       // 5. Achievement Banner
-      DashboardEntrance(
-        delay: 400,
-        child: _buildAchievementBanner(context),
-      ),
+      DashboardEntrance(delay: 400, child: _buildAchievementBanner(context)),
     ];
 
     final visibleSections = sections.whereType<Widget>().toList();
@@ -112,13 +99,7 @@ class WeeklyRecapScreen extends StatelessWidget {
         color: context.appColorScheme.cardBackground,
         borderRadius: BorderRadius.circular(AppSizes.r28),
         border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: AppPalette.black.withValues(alpha: 0.02),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Row(
         children: [
@@ -157,7 +138,8 @@ class _ModernSmartAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final streak = insight.streak;
+    final profile = context.watch<ProfileNotifier>().profile;
+    final streak = profile?.streak ?? 0;
     final healingTrend = insight.healingTrend ?? AppStrings.optimizing;
     final String description = "${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}";
 
@@ -205,28 +187,18 @@ class _RecapDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.recap,
-                    style: context.bodyBold.copyWith(
-                      fontSize: AppSizes.s28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                    ),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     AppStrings.sevenDayAverage,
-                    style: context.caption.copyWith(
-                      color: context.appColorScheme.textMuted,
-                      fontSize: AppSizes.s12,
-                    ),
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
-                  DashboardVisualizationBar(
-                    ratio: (recap?.avgScore ?? 0) / 100,
-                    label: '${recap?.avgScore ?? 0} ${AppStrings.averageGutScore.toLowerCase()}',
-                  ),
+                  DashboardVisualizationBar(ratio: (recap?.avgScore ?? 0) / 100, label: '${recap?.avgScore ?? 0} ${AppStrings.averageGutScore.toLowerCase()}'),
                 ],
               ),
             ),
@@ -236,19 +208,9 @@ class _RecapDashboardSection extends StatelessWidget {
               flex: 5,
               child: Column(
                 children: [
-                  DashboardDetailItem(
-                    title: recap?.bestDay ?? 'N/A',
-                    subtitle: AppStrings.peakPerformance,
-                    icon: AppIcons.trophy,
-                    color: context.appColorScheme.textPrimary,
-                  ),
+                  DashboardDetailItem(title: recap?.bestDay ?? 'N/A', subtitle: AppStrings.peakPerformance, icon: AppIcons.trophy, color: context.appColorScheme.textPrimary),
                   Gap.h12,
-                  DashboardDetailItem(
-                    title: '${recap?.foodsLogged ?? 0}',
-                    subtitle: AppStrings.totalLogs,
-                    icon: AppIcons.clipboardList,
-                    color: context.appColorScheme.textPrimary,
-                  ),
+                  DashboardDetailItem(title: '${recap?.foodsLogged ?? 0}', subtitle: AppStrings.totalLogs, icon: AppIcons.clipboardList, color: context.appColorScheme.textPrimary),
                   Gap.h12,
                   DashboardDetailItem(
                     title: insight?.healingTrend?.toUpperCase() ?? AppStrings.stable,
@@ -270,12 +232,7 @@ class _RecapDashboardSection extends StatelessWidget {
       context: context,
       title: AppStrings.weeklyPerformance,
       children: [
-        SheetHeroSection(
-          title: '${recap?.avgScore ?? 0}',
-          subtitle: AppStrings.averageGutScore,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.activity,
-        ),
+        SheetHeroSection(title: '${recap?.avgScore ?? 0}', subtitle: AppStrings.averageGutScore, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         SheetSectionHeader(title: AppStrings.activityBreakdown, color: context.appColorScheme.textPrimary),
         DashboardDetailItem(
@@ -285,12 +242,7 @@ class _RecapDashboardSection extends StatelessWidget {
           color: context.appColorScheme.textPrimary,
         ),
         Gap.h16,
-        DashboardDetailItem(
-          title: '${AppStrings.bestDay}: ${recap?.bestDay ?? 'N/A'}',
-          subtitle: AppStrings.bestPerformanceSubtitle,
-          icon: AppIcons.trophy,
-          color: context.appColorScheme.textPrimary,
-        ),
+        DashboardDetailItem(title: '${AppStrings.bestDay}: ${recap?.bestDay ?? 'N/A'}', subtitle: AppStrings.bestPerformanceSubtitle, icon: AppIcons.trophy, color: context.appColorScheme.textPrimary),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -321,31 +273,20 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.findings,
-                    style: context.bodyBold.copyWith(
-                      fontSize: AppSizes.s28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                      color: context.appColorScheme.textPrimary,
-                    ),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     AppStrings.weeklyHighlights,
-                    style: context.caption.copyWith(
-                      color: context.appColorScheme.textMuted,
-                      fontSize: AppSizes.s12,
-                    ),
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h24,
                   Container(
                     padding: EdgeInsets.all(AppSizes.p12),
-                    decoration: BoxDecoration(
-                      color: context.appColorScheme.border.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
                     child: Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
                   ),
                 ],
@@ -357,20 +298,10 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
               flex: 5,
               child: Column(
                 children: highlights.take(3).map((RecapHighlight h) {
-                  final color = InsightUiUtils.getIngredientColor(
-                    h.color,
-                    error: context.appColorScheme.error,
-                    warning: context.appColorScheme.warning,
-                    success: context.appColorScheme.success,
-                  );
+                  final color = InsightUiUtils.getIngredientColor(h.color, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
                   return Padding(
                     padding: EdgeInsets.only(bottom: AppSizes.p12),
-                    child: DashboardDetailItem(
-                      title: AppStrings.discovery,
-                      subtitle: h.text,
-                      icon: InsightUiUtils.getReactionIcon(h.icon),
-                      color: color,
-                    ),
+                    child: DashboardDetailItem(title: AppStrings.discovery, subtitle: h.text, icon: InsightUiUtils.getReactionIcon(h.icon), color: color),
                   );
                 }).toList(),
               ),
@@ -386,22 +317,12 @@ class _DiscoveriesDashboardSection extends StatelessWidget {
       context: context,
       title: AppStrings.discoveriesTitle,
       children: [
-        SheetHeroSection(
-          title: AppStrings.insights,
-          subtitle: AppStrings.aiDrivenFindings,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.sparkles,
-        ),
+        SheetHeroSection(title: AppStrings.insights, subtitle: AppStrings.aiDrivenFindings, color: context.appColorScheme.textPrimary, icon: AppIcons.sparkles),
         Gap.h32,
         ...highlights.map((RecapHighlight h) {
           return Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(
-              title: h.text,
-              subtitle: AppStrings.detectedThisWeek,
-              icon: InsightUiUtils.getReactionIcon(h.icon),
-              color: context.appColorScheme.textPrimary,
-            ),
+            child: DashboardDetailItem(title: h.text, subtitle: AppStrings.detectedThisWeek, icon: InsightUiUtils.getReactionIcon(h.icon), color: context.appColorScheme.textPrimary),
           );
         }),
         Gap.h32,

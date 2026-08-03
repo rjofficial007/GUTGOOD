@@ -5,7 +5,6 @@ import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 
 import '../theme/app_color_scheme.dart';
-import '../theme/app_palette.dart';
 
 class CycleInsightCard extends StatelessWidget {
   final CycleInsight insight;

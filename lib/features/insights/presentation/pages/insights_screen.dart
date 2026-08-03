@@ -20,6 +20,7 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/usage_service.dart';
 import '../../../../core/utils/bottom_sheet_helper.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 
 class InsightsScreen extends StatelessWidget {
   const InsightsScreen({super.key});
@@ -73,34 +74,19 @@ class _MainDashboardSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final notifier = context.watch<InsightsNotifier>();
+    final profile = context.watch<ProfileNotifier>().profile;
+
     final List<Widget?> sections = [
-      GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: data.streak, simpleTrend: data.simpleTrend),
+      GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: profile?.streak ?? 0),
+      TrendCard(insights: notifier.insightHistory, currentInsight: data),
+      StreakCard(streak: profile?.streak ?? 0, lastActivityDate: profile?.lastActivityDate),
       if (data.topInsight != null) _ModernSmartAlert(insight: data.topInsight!),
-      if (data.healingGoal != null || data.triggerSymptom != null)
-        DashboardEntrance(
-          delay: 100,
-          child: _FocusDashboardSection(data: data),
-        ),
-      if (data.healingFoods.isNotEmpty || data.triggerFoods.isNotEmpty)
-        DashboardEntrance(
-          delay: 200,
-          child: _RecoveryDashboardSection(data: data),
-        ),
-      if (data.detectedPatterns.isNotEmpty)
-        DashboardEntrance(
-          delay: 300,
-          child: _TrendsDashboardSection(patterns: data.detectedPatterns),
-        ),
-      if (data.topHealing != null || data.topTrigger != null)
-        DashboardEntrance(
-          delay: 350,
-          child: _HighlightsDashboardSection(data: data),
-        ),
-      if (data.foodImpacts.isNotEmpty)
-        DashboardEntrance(
-          delay: 400,
-          child: _ReactionsDashboardSection(impacts: data.foodImpacts),
-        ),
+      if (data.healingGoal != null || data.triggerSymptom != null) DashboardEntrance(delay: 100, child: _FocusDashboardSection(data: data)),
+      if (data.healingFoods.isNotEmpty || data.triggerFoods.isNotEmpty) DashboardEntrance(delay: 200, child: _RecoveryDashboardSection(data: data)),
+      if (data.detectedPatterns.isNotEmpty) DashboardEntrance(delay: 300, child: _TrendsDashboardSection(patterns: data.detectedPatterns)),
+      if (data.topHealing != null || data.topTrigger != null) DashboardEntrance(delay: 350, child: _HighlightsDashboardSection(data: data)),
+      if (data.foodImpacts.isNotEmpty) DashboardEntrance(delay: 400, child: _ReactionsDashboardSection(impacts: data.foodImpacts)),
       GutActionBanner(
         title: AppStrings.weeklyGutRecap,
         subtitle: AppStrings.last7DaysReady,
@@ -122,16 +108,13 @@ class _MainDashboardSliver extends StatelessWidget {
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final isLast = index == visibleSections.length - 1;
-            return Padding(
-              padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
-              child: visibleSections[index],
-            );
-          },
-          childCount: visibleSections.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final isLast = index == visibleSections.length - 1;
+          return Padding(
+            padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
+            child: visibleSections[index],
+          );
+        }, childCount: visibleSections.length),
       ),
     );
   }
@@ -225,21 +208,9 @@ class _FocusDashboardSection extends StatelessWidget {
               flex: 5,
               child: Column(
                 children: [
-                  if (data.healingGoal != null)
-                    DashboardDetailItem(
-                      title: data.healingGoal!,
-                      subtitle: AppStrings.activeGoal,
-                      icon: AppIcons.target,
-                      color: context.appColorScheme.success,
-                    ),
+                  if (data.healingGoal != null) DashboardDetailItem(title: data.healingGoal!, subtitle: AppStrings.activeGoal, icon: AppIcons.target, color: context.appColorScheme.success),
                   if (data.healingGoal != null && data.triggerSymptom != null) Gap.h12,
-                  if (data.triggerSymptom != null)
-                    DashboardDetailItem(
-                      title: data.triggerSymptom!,
-                      subtitle: AppStrings.symptomWatch,
-                      icon: AppIcons.activity,
-                      color: context.appColorScheme.warning,
-                    ),
+                  if (data.triggerSymptom != null) DashboardDetailItem(title: data.triggerSymptom!, subtitle: AppStrings.symptomWatch, icon: AppIcons.activity, color: context.appColorScheme.warning),
                 ],
               ),
             ),
@@ -256,8 +227,7 @@ class _FocusDashboardSection extends StatelessWidget {
       children: [
         SheetHeroSection(title: AppStrings.target, subtitle: AppStrings.healthGoals, color: context.appColorScheme.textPrimary, icon: AppIcons.target),
         Gap.h32,
-        if (data.healingGoal != null)
-          DashboardDetailItem(title: data.healingGoal!, subtitle: AppStrings.primaryHealingObjective, icon: AppIcons.leaf, color: context.appColorScheme.success),
+        if (data.healingGoal != null) DashboardDetailItem(title: data.healingGoal!, subtitle: AppStrings.primaryHealingObjective, icon: AppIcons.leaf, color: context.appColorScheme.success),
         Gap.h16,
         if (data.triggerSymptom != null)
           DashboardDetailItem(title: data.triggerSymptom!, subtitle: AppStrings.symptomTrackedForPatterns, icon: AppIcons.alertTriangle, color: context.appColorScheme.warning),
@@ -310,10 +280,14 @@ class _RecoveryDashboardSection extends StatelessWidget {
               flex: 5,
               child: Column(
                 children: [
-                  ...data.healingFoods.take(2).map((f) => Padding(
-                        padding: EdgeInsets.only(bottom: AppSizes.p12),
-                        child: DashboardDetailItem(title: f.name, subtitle: AppStrings.healing, icon: AppIcons.leaf, color: context.appColorScheme.success),
-                      )),
+                  ...data.healingFoods
+                      .take(2)
+                      .map(
+                        (f) => Padding(
+                          padding: EdgeInsets.only(bottom: AppSizes.p12),
+                          child: DashboardDetailItem(title: f.name, subtitle: AppStrings.healing, icon: AppIcons.leaf, color: context.appColorScheme.success),
+                        ),
+                      ),
                   if (data.healingFoods.isEmpty && data.triggerFoods.isNotEmpty)
                     DashboardDetailItem(title: data.triggerFoods.first.name, subtitle: AppStrings.trigger, icon: AppIcons.alertCircle, color: context.appColorScheme.error),
                 ],
@@ -334,18 +308,22 @@ class _RecoveryDashboardSection extends StatelessWidget {
         Gap.h32,
         if (data.healingFoods.isNotEmpty) ...[
           SheetSectionHeader(title: AppStrings.foodsToPrioritize, color: context.appColorScheme.textPrimary),
-          ...data.healingFoods.map((f) => Padding(
-                padding: EdgeInsets.only(bottom: 16.0.h),
-                child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.checkCircle, color: context.appColorScheme.textPrimary),
-              )),
+          ...data.healingFoods.map(
+            (f) => Padding(
+              padding: EdgeInsets.only(bottom: 16.0.h),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.checkCircle, color: context.appColorScheme.textPrimary),
+            ),
+          ),
           Gap.h24,
         ],
         if (data.triggerFoods.isNotEmpty) ...[
           SheetSectionHeader(title: AppStrings.foodsToMinimize, color: context.appColorScheme.textPrimary),
-          ...data.triggerFoods.map((f) => Padding(
-                padding: EdgeInsets.only(bottom: 16.0.h),
-                child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle, color: context.appColorScheme.textPrimary),
-              )),
+          ...data.triggerFoods.map(
+            (f) => Padding(
+              padding: EdgeInsets.only(bottom: 16.0.h),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle, color: context.appColorScheme.textPrimary),
+            ),
+          ),
           Gap.h24,
         ],
         Gap.h32,
@@ -418,15 +396,12 @@ class _TrendsDashboardSection extends StatelessWidget {
       children: [
         SheetHeroSection(title: AppStrings.trends, subtitle: AppStrings.behavioralAnalysis, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
-        ...patterns.map((p) => Padding(
-              padding: EdgeInsets.only(bottom: AppSizes.p16),
-              child: DashboardDetailItem(
-                title: p.title,
-                subtitle: p.description,
-                icon: InsightUiUtils.getReactionIcon(p.icon),
-                color: InsightUiUtils.getPatternColor(p.icon),
-              ),
-            )),
+        ...patterns.map(
+          (p) => Padding(
+            padding: EdgeInsets.only(bottom: AppSizes.p16),
+            child: DashboardDetailItem(title: p.title, subtitle: p.description, icon: InsightUiUtils.getReactionIcon(p.icon), color: InsightUiUtils.getPatternColor(p.icon)),
+          ),
+        ),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,

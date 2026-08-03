@@ -5,14 +5,12 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/notification_preferences.dart';
 import 'package:gutgood/core/services/notification_service.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:gutgood/core/theme/app_color_scheme.dart';
 
 import '../../../../core/services/firestore_service.dart';
 import '../../../../core/utils/bottom_sheet_helper.dart';
@@ -51,7 +49,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final Map<String, dynamic> data = cloudPrefs ?? {};
-    
+
     setState(() {
       _enableAll = ModelUtils.parseBool(data['enableAll'], defaultValue: prefs.getBool('notif_enable_all') ?? true);
       _mealReminders = ModelUtils.parseBool(data['mealReminders'], defaultValue: prefs.getBool('notif_meal_reminders') ?? true);
@@ -149,12 +147,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _pickTime(TimeOfDay initial, ValueChanged<TimeOfDay> onPicked) async {
-    final picked = await BottomSheetHelper.showTimePickerSheet(
-      context: context,
-      title: AppStrings.selectTime,
-      initialTime: initial,
-      backgroundColor: AppPalette.transparent,
-    );
+    final picked = await BottomSheetHelper.showTimePickerSheet(context: context, title: AppStrings.selectTime, initialTime: initial, backgroundColor: AppPalette.transparent);
     if (picked != null) onPicked(picked);
   }
 
@@ -180,13 +173,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               topPadding: 0,
               children: [
                 _ModernSettingCard(
-                  child: AppSwitchTile(
-                    title: AppStrings.enableNotifications,
-                    desc: AppStrings.receiveUpdates,
-                    value: _enableAll,
-                    onChanged: _toggleEnableAll,
-                    showBottomBorder: false,
-                  ),
+                  child: AppSwitchTile(title: AppStrings.enableNotifications, desc: AppStrings.receiveUpdates, value: _enableAll, onChanged: _toggleEnableAll, showBottomBorder: false),
                 ),
               ],
             ),
@@ -420,10 +407,7 @@ class _ModernTimeTile extends StatelessWidget {
                 Container(
                   width: AppSizes.w52,
                   height: AppSizes.w52,
-                  decoration: BoxDecoration(
-                    color: context.appColorScheme.textPrimary,
-                    borderRadius: BorderRadius.circular(AppSizes.r18),
-                  ),
+                  decoration: BoxDecoration(color: context.appColorScheme.textPrimary, borderRadius: BorderRadius.circular(AppSizes.r18)),
                   child: Icon(icon, color: context.appColorScheme.cardBackground, size: AppSizes.icon24),
                 ),
                 Gap.w16,
@@ -452,5 +436,3 @@ class _ModernTimeTile extends StatelessWidget {
     );
   }
 }
-
-

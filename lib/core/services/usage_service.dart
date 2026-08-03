@@ -26,15 +26,11 @@ class UsageServiceImpl implements UsageService {
   final PurchaseService _purchaseService;
   final SharedPreferences _prefs;
 
-  UsageServiceImpl({
-    required AuthRepository authRepository,
-    required FirestoreService firestoreService,
-    required PurchaseService purchaseService,
-    required SharedPreferences prefs,
-  }) : _authRepository = authRepository,
-       _firestoreService = firestoreService,
-       _purchaseService = purchaseService,
-       _prefs = prefs;
+  UsageServiceImpl({required AuthRepository authRepository, required FirestoreService firestoreService, required PurchaseService purchaseService, required SharedPreferences prefs})
+    : _authRepository = authRepository,
+      _firestoreService = firestoreService,
+      _purchaseService = purchaseService,
+      _prefs = prefs;
 
   // Kept in sync with functions/src/config.ts LIMITS.
   static const int maxFreeChats = 5;
@@ -61,7 +57,8 @@ class UsageServiceImpl implements UsageService {
     final uid = _uid;
     if (uid == null) return const DailyUsage(uid: '', date: '');
 
-    final date = DateTime.now().toIso8601String().split('T')[0];
+    // 🟡 Fix F5: Use UTC to match server-side usage key generation.
+    final date = DateTime.now().toUtc().toIso8601String().split('T')[0];
 
     try {
       final DailyUsage? cloudUsage = await _firestoreService.getUsageToday();

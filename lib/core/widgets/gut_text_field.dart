@@ -20,6 +20,7 @@ class GutTextField extends StatelessWidget {
   final bool borderless;
   final double borderRadius;
   final EdgeInsetsGeometry? contentPadding;
+  final TextCapitalization textCapitalization;
 
   const GutTextField({
     super.key,
@@ -37,16 +38,18 @@ class GutTextField extends StatelessWidget {
     this.borderless = false,
     this.borderRadius = 12.0,
     this.contentPadding,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   @override
   Widget build(BuildContext context) {
     final inputStyle = style ?? context.body;
-    
+
     return TextField(
       controller: controller,
       autofocus: autofocus,
       keyboardType: keyboardType,
+      textCapitalization: textCapitalization,
       maxLines: maxLines,
       minLines: minLines,
       enabled: enabled,
@@ -56,9 +59,7 @@ class GutTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: inputStyle.copyWith(color: context.appColorScheme.textMuted.withValues(alpha: 0.5)),
-        prefixIcon: prefixIcon != null 
-            ? Icon(prefixIcon, size: AppSizes.icon18, color: context.appColorScheme.textMuted) 
-            : null,
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: AppSizes.icon18, color: context.appColorScheme.textMuted) : null,
         filled: !borderless,
         fillColor: borderless ? AppPalette.transparent : context.appColorScheme.elevatedSurface,
         contentPadding: contentPadding ?? EdgeInsets.symmetric(vertical: AppSizes.p16, horizontal: AppSizes.p16),
@@ -72,7 +73,7 @@ class GutTextField extends StatelessWidget {
 
   InputBorder _buildBorder(BuildContext context, Color color, {double width = 1.0}) {
     if (borderless) return InputBorder.none;
-    
+
     return OutlineInputBorder(
       borderRadius: BorderRadius.circular(borderRadius.r),
       borderSide: BorderSide(color: color, width: width),

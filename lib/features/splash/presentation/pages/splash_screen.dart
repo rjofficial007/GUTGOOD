@@ -11,7 +11,6 @@ import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 
 import '../../../../core/services/firestore_service.dart';
@@ -99,7 +98,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     }
 
     if (mounted) {
-      context.go(AppRoutes.welcome);
+      // 🟡 Professional Flow: Always attempt to go to the app's "Home".
+      // The AppRouter's redirect logic acts as the security guard and will
+      // automatically bounce unauthenticated or non-onboarded users to the 
+      // Welcome or Onboarding screens.
+      context.go(AppRoutes.chat);
     }
   }
 

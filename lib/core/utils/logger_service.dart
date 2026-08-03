@@ -81,7 +81,7 @@ class Log {
     }
 
     // 🟢 1. Use developer.log for direct VM service capture (Most reliable for IDEs)
-    developer.log(message.toString(), name: 'GUTGOOD', error: error, stackTrace: stackTrace);
+    developer.log(logMessage.toString(), name: 'GUTGOOD', error: error, stackTrace: stackTrace);
 
     // 🟢 2. Keep debugPrint as a fallback for stdout capture
     debugPrint(logMessage.toString());

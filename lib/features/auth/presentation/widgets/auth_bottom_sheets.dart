@@ -6,7 +6,6 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
@@ -95,11 +94,39 @@ Future<bool?> showMergeConfirmationSheet(BuildContext context, String email) {
   );
 }
 
-class _LoginSheet extends StatelessWidget {
+class _LoginSheet extends StatefulWidget {
   final String? customMessage;
   final VoidCallback? onSuccess;
 
   const _LoginSheet({this.customMessage, this.onSuccess});
+
+  @override
+  State<_LoginSheet> createState() => _LoginSheetState();
+}
+
+class _LoginSheetState extends State<_LoginSheet> {
+  late final GutAuthNotifier _authNotifier;
+
+  @override
+  void initState() {
+    super.initState();
+    _authNotifier = context.read<GutAuthNotifier>();
+    _authNotifier.addListener(_onAuthChanged);
+  }
+
+  @override
+  void dispose() {
+    _authNotifier.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  void _onAuthChanged() {
+    if (_authNotifier.isAuthenticated && !_authNotifier.isAnonymous && mounted) {
+      // 🟢 Fix: If auth becomes permanent while the sheet is open (e.g. Magic Link resolve),
+      // automatically close the sheet.
+      _onAuthSuccess(context);
+    }
+  }
 
   Future<void> _handleSocialSignIn(BuildContext context, GutAuthNotifier authNotifier, Future<AuthUser?> Function() signInMethod) async {
     try {
@@ -123,7 +150,9 @@ class _LoginSheet extends StatelessWidget {
               // 🟢 Fix: Rely on GoRouter's redirect rather than manual context.go()
             } catch (err) {
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('We signed you in, but couldn\'t restore your previous data yet. It will retry automatically next time you open the app.')));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('We signed you in, but couldn\'t restore your previous data yet. It will retry automatically next time you open the app.')));
                 await _onAuthSuccess(context);
               }
             }
@@ -153,11 +182,11 @@ class _LoginSheet extends StatelessWidget {
     HapticHelper.success();
 
     // Close the bottom sheet immediately so the user sees the verification overlay on the main screen
-    if (context.mounted) {
-      context.pop();
+    if (context.mounted && Navigator.canPop(context)) {
+      Navigator.pop(context);
     }
 
-    if (onSuccess != null) onSuccess!();
+    if (widget.onSuccess != null) widget.onSuccess!();
 
     // Give it a moment to show the success state/overlay before letting the global stack reset take over
     await Future.delayed(const Duration(milliseconds: 1000));
@@ -173,7 +202,7 @@ class _LoginSheet extends StatelessWidget {
       children: [
         const GutSheetHeader(title: AppStrings.signIn),
         Text(
-          customMessage ?? AppStrings.signInSubtitleGeneral,
+          widget.customMessage ?? AppStrings.signInSubtitleGeneral,
           textAlign: TextAlign.center,
           style: context.body.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w500),
         ),

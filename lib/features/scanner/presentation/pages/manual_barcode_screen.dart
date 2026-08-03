@@ -8,9 +8,9 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
-import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -18,6 +18,7 @@ import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/services/ai_service.dart';
+import '../../../../core/services/app_state_service.dart';
 import '../../../../core/services/off_service.dart';
 import '../../../../core/services/prompts.dart';
 
@@ -74,9 +75,13 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
 
         await sl<FirestoreService>().saveMessage(userMsg);
 
+        // 🟢 Fix: Ensure manual scans are also saved to scan_history for Insights/Consistency
+        await sl<FirestoreService>().saveToScanHistory(userMsg.scanData!);
+        sl<AppStateService>().notifyChatUpdated();
+
         if (mounted) {
-          context.pop();
-          context.pushReplacement(AppRoutes.scanResult, extra: {'scanData': userMsg.scanData!.toMap()});
+          // 🟡 Professional Flow: Use go() to switch branches and reset the stack.
+          context.go(AppRoutes.scanResult, extra: {'scanData': userMsg.scanData!.toMap()});
         }
       } else {
         if (mounted) {

@@ -58,6 +58,9 @@ class UserProfile extends Equatable {
   /// Current daily check-in streak.
   final int streak;
 
+  /// The last date (YYYY-MM-DD) the user was active.
+  final String? lastActivityDate;
+
   /// Subscription tier identifier.
   final String subscriptionStatus;
 
@@ -84,6 +87,7 @@ class UserProfile extends Equatable {
     this.notificationPreferences = const {},
     this.gutScore = 0,
     this.streak = 0,
+    this.lastActivityDate,
     this.subscriptionStatus = 'free',
     required this.updatedAt,
     required this.createdAt,
@@ -106,6 +110,7 @@ class UserProfile extends Equatable {
     Map<String, dynamic>? notificationPreferences,
     int? gutScore,
     int? streak,
+    String? lastActivityDate,
     String? subscriptionStatus,
     DateTime? updatedAt,
     DateTime? createdAt,
@@ -127,6 +132,7 @@ class UserProfile extends Equatable {
       notificationPreferences: notificationPreferences ?? this.notificationPreferences,
       gutScore: gutScore ?? this.gutScore,
       streak: streak ?? this.streak,
+      lastActivityDate: lastActivityDate ?? this.lastActivityDate,
       subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
       updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
@@ -151,6 +157,7 @@ class UserProfile extends Equatable {
       notificationPreferences: map['notificationPreferences'] is String ? jsonDecode(map['notificationPreferences']) : Map<String, dynamic>.from(map['notificationPreferences'] ?? {}),
       gutScore: map['gutScore'] ?? 0,
       streak: map['streak'] ?? 0,
+      lastActivityDate: map['lastActivityDate'],
       subscriptionStatus: map['subscriptionStatus'] ?? 'free',
       updatedAt: DateTimeUtils.parse(map['updatedAt']),
       createdAt: DateTimeUtils.parse(map['createdAt']),
@@ -175,6 +182,7 @@ class UserProfile extends Equatable {
       'notificationPreferences': notificationPreferences,
       'gutScore': gutScore,
       'streak': streak,
+      'lastActivityDate': lastActivityDate,
       'subscriptionStatus': subscriptionStatus,
       'updatedAt': updatedAt.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
@@ -182,5 +190,5 @@ class UserProfile extends Equatable {
   }
 
   @override
-  List<Object?> get props => [uid, onboarded, isPremium, isAnonymous, goals, sensitivities, lifestyle, gutScore, streak];
+  List<Object?> get props => [uid, onboarded, isPremium, isAnonymous, goals, sensitivities, lifestyle, gutScore, streak, lastActivityDate];
 }

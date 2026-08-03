@@ -96,7 +96,7 @@ class InsightRepositoryImpl implements InsightRepository {
     final String scansJson = jsonEncode(recentScans.map((s) => s.toAiMap()).toList());
 
     final List<AIInsight> history = await _firestoreService.getInsightsHistory();
-    // Get last 6 scores, reversed to be in chronological order (database returns DESC)
+    // Take the last 6 scores, ensure they are in ASCENDING chronological order (Oldest -> Newest)
     final String scoreHistory = history.take(6).toList().reversed.map((i) => i.gutScore).join(', ');
 
     try {
@@ -126,7 +126,7 @@ class InsightRepositoryImpl implements InsightRepository {
       _notificationService.showInsightGeneratedNotification();
 
       if (profile != null) {
-        final updatedProfile = profile.copyWith(gutScore: insight.gutScore, streak: insight.streak, updatedAt: DateTime.now());
+        final updatedProfile = profile.copyWith(gutScore: insight.gutScore, updatedAt: DateTime.now());
         await _firestoreService.updateUserProfile(updatedProfile);
       }
 

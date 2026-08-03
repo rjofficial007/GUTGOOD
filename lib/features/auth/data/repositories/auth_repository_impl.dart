@@ -252,7 +252,13 @@ class AuthRepositoryImpl implements AuthRepository {
     final credential = firebase.EmailAuthProvider.credentialWithLink(email: email, emailLink: emailLink);
     final user = await _linkOrMerge(credential);
     if (user == null) return null;
-    await _finalizeAuth(user, email: email);
+
+    final savedName = _prefs.getString('login_display_name');
+    await _finalizeAuth(user, email: email, displayName: savedName);
+    if (savedName != null) {
+      await _prefs.remove('login_display_name');
+    }
+
     return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
   }
 
@@ -462,15 +468,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> deleteAccount() async {
     final user = _firebaseAuth.currentUser;
     if (user == null) return;
-    final uid = user.uid;
     _appStateService.setLoggingOut(true);
     try {
-      // 🟢 Fix: Delete auth user FIRST before destroying cloud data.
-      // This ensures that if re-authentication is required, the user still has their data.
+      // 🟢 Fix: Authoritative cleanup is handled by the Cloud Function trigger
+      // (onUserDeleted). We only delete the Auth user from the client.
       await user.delete();
 
-      await _firestoreService.deleteAllUserData(uid);
-      await _storageService.deleteAllUserFiles(uid);
       await _purchaseService.logout();
       await _clearUserSessionData();
       _appStateService.resetSession();
@@ -480,23 +483,36 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   Future<void> _clearUserSessionData() async {
-    // Only clear keys that are strictly user-session related or linked to a specific UID.
-    // Preserve device-level settings like theme, onboarding status (for the device), and notification schedules.
-    final keys = _prefs.getKeys();
-    final toRemove = <String>[];
+    // Clear ALL user-specific data so a different account signing in on the
+    // same device never inherits the previous user's personalization, caches,
+    // chat draft, or pending merge state. Only genuinely device-level prefs
+    // (e.g. theme) are preserved.
+    const userKeys = {
+      'login_email',
+      'login_display_name',
+      'is_premium',
+      'onboarded',
+      'user_goals',
+      'user_sensitivities',
+      'user_lifestyle',
+      'cycle_sync_enabled',
+      'cycle_phase',
+      'ai_comm_style',
+      'gutgood_insights_cache',
+      'last_insight_run',
+      'chat_draft',
+      'pending_merge_anon_uid',
+      'pending_merge_provider',
+    };
 
+    final keys = _prefs.getKeys();
     for (final key in keys) {
-      // Common session-related keys or keys that include the UID
-      if (key.startsWith('last_firebase_sync_') || key == 'login_email' || key == 'is_premium' || key == 'onboarded') {
-        toRemove.add(key);
+      if (userKeys.contains(key) || key.startsWith('last_firebase_sync_')) {
+        await _prefs.remove(key);
       }
     }
 
-    for (final key in toRemove) {
-      await _prefs.remove(key);
-    }
-
-    Log.d('AuthRepo: User session data cleared. Preserving device preferences.');
+    Log.d('AuthRepo: User session data cleared. Preserving device-level prefs.');
   }
 
   @override

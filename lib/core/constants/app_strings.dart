@@ -398,6 +398,7 @@ class AppStrings {
   static const String notifFoodScanReminderTitle = 'GutGood';
   static const String notifRestaurantReminderTitle = 'GutGood';
   static const String notifInsightGeneratedTitle = 'GutGood';
+  static const String notifStreakSaverTitle = 'Don\'t Break the Chain! 🔥';
 
   // Notifications - Bodies
   static const String notifMealCheckBody = 'How are you feeling after your last meal?';
@@ -409,6 +410,7 @@ class AppStrings {
   static const String notifFoodScanReminderBody = 'Eating something new? Scan it before you take your first bite.';
   static const String notifRestaurantReminderBody = 'Eating out tonight? Upload the menu before you order.';
   static const String notifInsightGeneratedBody = 'GutGood has learned something new about your patterns. See it now.';
+  static const String notifStreakSaverBody = 'You have a {streak}-day streak going! Log a quick meal or scan something to keep it alive.';
   static const String notifProcessedFoodWarning = 'You scanned 3 processed foods this week. Want healthier swaps?';
   static const String enterYourNameHint = 'Enter your name';
   static const String signInToSync = 'Sign In to sync data';
@@ -817,4 +819,3 @@ class AppStrings {
   static const String selectVisualStyle = 'Select your preferred visual style for the app.';
   static const String personalizeInsightsPhase = 'Personalize insights based on your cycle phase';
 }
-

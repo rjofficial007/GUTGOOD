@@ -10,10 +10,10 @@ import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
+import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
-import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/logs/presentation/pages/symptom_check_in_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/nutrition_facts_screen.dart';
@@ -30,11 +30,18 @@ import 'package:gutgood/features/welcome/presentation/pages/welcome_screen.dart'
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/profile/presentation/providers/profile_provider.dart';
 import '../../features/scanner/presentation/pages/manual_barcode_screen.dart';
 import '../../features/scanner/presentation/pages/scanning_animation_screen.dart';
 import '../../features/scanner/presentation/pages/super_scanner_screen.dart';
+import '../constants/app_icons.dart';
+import '../constants/app_sizes.dart';
+import '../constants/app_strings.dart';
 import '../di/injection_container.dart';
 import '../services/app_state_service.dart';
+import '../theme/app_color_scheme.dart';
+import '../theme/app_text_styles.dart';
+import '../widgets/gut_button.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorChatKey = GlobalKey<NavigatorState>(debugLabel: 'chat');
@@ -47,9 +54,10 @@ class AppRouter {
     navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: kDebugMode,
-    refreshListenable: sl<GutAuthNotifier>(),
+    refreshListenable: Listenable.merge([sl<GutAuthNotifier>(), sl<ProfileNotifier>()]),
     redirect: (context, state) async {
       final authNotifier = context.read<GutAuthNotifier>();
+      final profileNotifier = context.read<ProfileNotifier>();
       final appState = sl<AppStateService>();
       final prefs = sl<SharedPreferences>();
 
@@ -58,8 +66,16 @@ class AppRouter {
         return null;
       }
 
-      final bool onboarded = prefs.getBool('onboarded') ?? false;
       final bool loggedIn = authNotifier.isAuthenticated;
+
+      // 🟡 Professional Flow: If logged in but profile isn't initialized yet,
+      // stay on the current screen (Splash/Welcome) while we fetch the "onboarded" truth from Firestore.
+      if (loggedIn && !profileNotifier.isInitialized) {
+        return null;
+      }
+
+      // Use Profile as source of truth, fallback to local prefs (for Guest fast-path)
+      final bool onboarded = profileNotifier.profile?.onboarded ?? prefs.getBool('onboarded') ?? false;
 
       final bool isSplash = state.matchedLocation == AppRoutes.splash;
       final bool isWelcome = state.matchedLocation == AppRoutes.welcome;
@@ -79,12 +95,38 @@ class AppRouter {
         return AppRoutes.onboarding;
       }
 
-      // If already logged in and onboarded, and trying to access welcome/onboarding
-      if (isWelcome || isOnboarding || isLogin) {
-        return AppRoutes.chat;
+      // 🟡 Professional Flow: Redirect onboarded users to Chat.
+      if (loggedIn && onboarded) {
+        if (isWelcome || isOnboarding) return AppRoutes.chat;
+        // EXCEPTION: Anonymous users on the Login screen are allowed to stay to upgrade their account.
+        if (isLogin && !authNotifier.isAnonymous) return AppRoutes.chat;
+      }
+
+      // 🔵 Fix: Magic Link / Deep Link routing.
+      // If the location contains Firebase Auth internal markers, ignore the URL
+      // and return null so it stays on the current screen (Splash/Welcome)
+      // while the LinkService handles the background login.
+      if (state.uri.toString().contains('__/auth/') || state.uri.toString().contains('firebaseapp.com')) {
+        // If we've ALREADY logged in while on this technical URL, go home!
+        if (loggedIn) {
+          return onboarded ? AppRoutes.chat : AppRoutes.onboarding;
+        }
+        return null;
       }
 
       return null;
+    },
+    errorBuilder: (context, state) {
+      // 🟡 Professional Fallback: If we hit an unknown route, stay on the current screen
+      // while checking if we should be at home. This handles technical deep links gracefully.
+      final auth = context.read<GutAuthNotifier>();
+      final profile = context.read<ProfileNotifier>();
+
+      if (auth.isAuthenticated && profile.isInitialized) {
+        return const ChatScreen();
+      }
+
+      return _UnknownRouteScreen(location: state.uri.toString());
     },
     routes: [
       GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
@@ -189,3 +231,52 @@ class AppRouter {
   );
 }
 
+class _UnknownRouteScreen extends StatelessWidget {
+  final String location;
+  const _UnknownRouteScreen({required this.location});
+
+  @override
+  Widget build(BuildContext context) {
+    // If it's an external/auth link, just show a verifying state instead of error
+    final isAuthLink = location.contains('__/auth/') || location.contains('firebaseapp.com');
+
+    // 🟢 Fix: Make the error screen reactive so it can "Teleport" as soon as login finishes.
+    return Consumer2<GutAuthNotifier, ProfileNotifier>(
+      builder: (context, auth, profile, _) {
+        if (isAuthLink && auth.isAuthenticated && profile.isInitialized) {
+          // Success! Jump to home.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.go(profile.profile?.onboarded == true ? AppRoutes.chat : AppRoutes.onboarding);
+          });
+        }
+
+        return Scaffold(
+          backgroundColor: context.appColorScheme.cardBackground,
+          body: Center(
+            child: Padding(
+              padding: EdgeInsets.all(AppSizes.p40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isAuthLink) ...[
+                    const CircularProgressIndicator(),
+                    Gap.h24,
+                    Text(AppStrings.confirmingIdentity, style: context.bodyBold),
+                  ] else ...[
+                    Icon(AppIcons.alertTriangle, size: 48, color: context.appColorScheme.error),
+                    Gap.h24,
+                    Text('Oops! Page not found.', style: context.title),
+                    Gap.h12,
+                    Text('We couldn\'t find the route: $location', textAlign: TextAlign.center, style: context.caption),
+                    Gap.h32,
+                    GutButton(label: 'BACK TO SAFETY', onTap: () => context.go(AppRoutes.chat)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

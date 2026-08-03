@@ -167,8 +167,9 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
             setState(() => _sessionScans.insert(0, result));
             HapticFeedback.mediumImpact();
           } else {
-            context.pop();
-            context.push(AppRoutes.scanResult, extra: {'scanData': result.toMap()});
+            // 🟡 Professional Flow: Use go() to switch branches and reset the stack.
+            // This prevents duplicate key errors when pushing branch routes from global overlays.
+            context.go(AppRoutes.scanResult, extra: {'scanData': result.toMap()});
           }
         }
       } else {
@@ -176,10 +177,10 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.productNotFoundAnalyzing), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
           final aiResult = await notifier.processImage(capturedImage, mode: _currentMode.name);
           if (mounted) {
-            context.pop();
             if (aiResult != null) {
-              context.push(AppRoutes.scanResult, extra: {'scanData': aiResult.toMap()});
+              context.go(AppRoutes.scanResult, extra: {'scanData': aiResult.toMap()});
             } else {
+              context.pop(); // Pop ScanningAnimation
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.couldNotAnalyzeVision)));
             }
           }

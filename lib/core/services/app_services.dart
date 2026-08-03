@@ -1,12 +1,11 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/services/app_version_services.dart';
 import 'package:gutgood/core/services/config_service.dart';
 import 'package:gutgood/core/services/device_info_services.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:http/http.dart' as http;
 import 'package:in_app_review/in_app_review.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,13 +23,13 @@ class AppServiceImpl implements AppService {
   final AppVersionService _appVersionService;
   final DeviceInfoService _deviceInfoService;
   final ConfigService _configService;
-  final http.Client _httpClient;
+  final Dio _dio;
 
-  AppServiceImpl({required AppVersionService appVersionService, required DeviceInfoService deviceInfoService, required ConfigService configService, required http.Client httpClient})
+  AppServiceImpl({required AppVersionService appVersionService, required DeviceInfoService deviceInfoService, required ConfigService configService, required Dio dio})
     : _appVersionService = appVersionService,
       _deviceInfoService = deviceInfoService,
       _configService = configService,
-      _httpClient = httpClient;
+      _dio = dio;
 
   @override
   String get shareWithFriendsText =>
@@ -91,21 +90,43 @@ class AppServiceImpl implements AppService {
 
   @override
   Future<void> lookupUserCountry() async {
-    if (_countryCode.isEmpty) {
-      try {
-        // Audit Fix: Use HTTPS for geo-IP lookup to comply with iOS ATS requirements.
-        // ip-api.com requires a paid tier for HTTPS; ipapi.co provides a free tier with HTTPS.
-        final response = await _httpClient.get(Uri.parse('https://ipapi.co/json/'));
+    // Don't fetch again if already available.
+    if (_countryCode.isNotEmpty) return;
 
-        if (response.statusCode == 200) {
-          final jsonResponse = json.decode(response.body);
-          _countryCode = jsonResponse['country_code'] ?? "Unknown";
-          Log.d("AppService: Fetched country code: $_countryCode");
+    try {
+      final response = await _dio.get(
+        'http://ip-api.com/json',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 5),
+          sendTimeout: const Duration(seconds: 5),
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        if (data is Map<String, dynamic> && data['status'] == 'success') {
+          _countryCode = (data['countryCode'] as String?)?.toUpperCase() ?? 'US';
+          Log.d("AppService: Country code: $_countryCode");
+          return;
         }
-      } catch (e) {
-        Log.e("AppService: Error fetching country code", error: e);
+
+        Log.w("AppService: Invalid geo lookup response: $data");
       }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 429) {
+        Log.w("AppService: Geo lookup rate limited.");
+      } else {
+        Log.e("AppService: Geo lookup failed", error: e);
+      }
+    } catch (e) {
+      Log.e("AppService: Unexpected error", error: e);
     }
+
+    // Fallback to device locale.
+    final locale = WidgetsBinding.instance.platformDispatcher.locale;
+    _countryCode = (locale.countryCode ?? 'US').toUpperCase();
+    Log.d("AppService: Fallback country code: $_countryCode");
   }
 
   @override

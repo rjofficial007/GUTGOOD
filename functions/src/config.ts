@@ -28,11 +28,11 @@ export const MAX_SYSTEM_CHARS = 16_000;
 // Free-tier limits, enforced server-side (PRD §10: 3-5 chats/day, 3 scans/day;
 // guests get 1-2 free actions before being asked to create an account - PRD §4).
 export const LIMITS = {
-  registered: { chat: 5, scan: 3 },
-  guest: { chat: 2, scan: 2 },
+  registered: { chat: 5, scan: 3, system: 20 },
+  guest: { chat: 2, scan: 2, system: 10 },
 } as const;
 
-export type UsageType = 'chat' | 'scan';
+export type UsageType = 'chat' | 'scan' | 'system';
 
 // How long an idempotency key stays deduplicated inside the daily usage doc.
 export const IDEMPOTENCY_KEY_RETENTION = 25;
