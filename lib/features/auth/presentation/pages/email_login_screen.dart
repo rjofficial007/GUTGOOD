@@ -88,7 +88,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
           if (mounted) {
             ScaffoldMessenger.of(
               context,
-            ).showSnackBar(const SnackBar(content: Text('We signed you in, but couldn\'t restore your previous data yet. It will retry automatically next time you open the app.')));
+            ).showSnackBar(const SnackBar(content: Text(AppStrings.authSyncDelayedMessage)));
           }
         }
       } else if (shouldMerge == false) {
@@ -142,7 +142,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     final appStateService = sl<AppStateService>();
 
     if (name.isEmpty && appStateService.pendingEmailLink.value == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter your name to continue.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.enterNameContinuePrompt)));
       return;
     }
 
@@ -242,19 +242,19 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       key: const ValueKey('input'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(pendingLink != null ? AppStrings.completeSignIn : AppStrings.welcomeBack, style: context.headingMd.copyWith(fontWeight: FontWeight.w900, fontSize: 24)),
+        Text(pendingLink != null ? AppStrings.completeSignIn : AppStrings.welcomeBack, style: context.headingMd.copyWith(fontWeight: FontWeight.w900, fontSize: AppSizes.s24)),
         SizedBox(height: AppSizes.p8),
         Text(pendingLink != null ? AppStrings.completeSignInSubtitle : AppStrings.signInSubtitle, style: context.body.copyWith(color: context.appColorScheme.textSecondary)),
         SizedBox(height: AppSizes.p32),
 
         if (pendingLink == null) ...[
-          _buildLabel('YOUR NAME'),
+          _buildLabel(AppStrings.labelYourName),
           GutTextField(
             controller: _nameController,
             keyboardType: TextInputType.name,
             textCapitalization: TextCapitalization.words,
             style: context.bodyBold,
-            hintText: 'Enter your name',
+            hintText: AppStrings.enterYourNameHint,
             prefixIcon: AppIcons.user,
           ),
           SizedBox(height: AppSizes.p20),
@@ -333,7 +333,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: EdgeInsets.only(bottom: AppSizes.p8),
-      child: Text(text, style: context.bodyBold.copyWith(fontSize: 13)),
+      child: Text(text, style: context.bodyBold.copyWith(fontSize: AppSizes.s13)),
     );
   }
 }

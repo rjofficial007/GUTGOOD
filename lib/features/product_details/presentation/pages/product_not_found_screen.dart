@@ -6,7 +6,6 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
 class ProductNotFoundScreen extends StatelessWidget {

@@ -22,7 +22,6 @@ export 'modern_insight_card.dart';
 export 'onboarding_header.dart';
 export 'paywall_bottom_sheet.dart';
 export 'premium_badge.dart';
-export 'profile_header.dart';
 export 'scan_result_inline_card.dart';
 export 'selection_wrap.dart';
 export 'streak_card.dart';

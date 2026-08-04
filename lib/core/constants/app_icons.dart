@@ -70,6 +70,7 @@ class AppIcons {
   static const bot = LucideIcons.bot;
   static const calendar = LucideIcons.calendar;
   static const clock = LucideIcons.clock;
+  static const database = LucideIcons.database;
   static const cog = LucideIcons.cog;
   static const flaskConical = LucideIcons.flaskConical;
   static const folder = LucideIcons.folder;

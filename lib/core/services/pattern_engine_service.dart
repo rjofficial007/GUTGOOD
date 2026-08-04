@@ -15,13 +15,13 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
   @override
   Future<void> runAnalysis() async {
-    Log.i('PatternEngine: Starting analysis...');
+    AppLogger.info('PatternEngine: Starting analysis...');
 
     final meals = await _firestoreService.getRecentMealLogs(limit: 100);
     final symptoms = await _firestoreService.getRecentSymptomLogs(limit: 100);
 
     if (meals.isEmpty || symptoms.isEmpty) {
-      Log.d('PatternEngine: Insufficient data.');
+      AppLogger.debug('PatternEngine: Insufficient data.');
       return;
     }
 
@@ -33,7 +33,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     allPatterns.addAll(_detectFiberDigestionPatterns(meals, symptoms));
 
     if (allPatterns.isNotEmpty) {
-      Log.i('PatternEngine: Found ${allPatterns.length} patterns.');
+      AppLogger.info('PatternEngine: Found ${allPatterns.length} patterns.');
       await _savePatterns(allPatterns);
     }
   }
@@ -226,9 +226,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
   Future<void> _savePatterns(List<BodyPattern> patterns) async {
     try {
       await _firestoreService.savePatternData(patterns);
-      Log.i('PatternEngine: Synced to Firestore');
+      AppLogger.info('PatternEngine: Synced to Firestore');
     } catch (e) {
-      Log.e('PatternEngine: Sync failed', error: e);
+      AppLogger.error('PatternEngine: Sync failed', error: e);
     }
   }
 }

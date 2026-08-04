@@ -9,6 +9,8 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
+import '../../../../core/utils/responsive.dart';
+
 class AIPersonalizationOnboardingPage extends StatefulWidget {
   final VoidCallback onFinish;
 
@@ -122,7 +124,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         _statusMessages[_statusIndex],
         key: ValueKey<int>(_statusIndex),
         textAlign: TextAlign.center,
-        style: context.displayLg.copyWith(fontWeight: FontWeight.w900, letterSpacing: -2.5, height: 1.0, color: context.appColorScheme.textPrimary),
+        style: context.displayLg.copyWith(fontSize: 50.0.sp, fontWeight: FontWeight.w900, letterSpacing: -2.5, height: 1.0, color: context.appColorScheme.textPrimary),
       ),
     );
   }
@@ -138,7 +140,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
           child: Icon(AppIcons.check, color: context.appColorScheme.cardBackground, size: AppSizes.icon60),
         ).animate().scale(duration: 800.ms, curve: Curves.elasticOut),
         Gap.h32,
-        Text("Ready.", style: context.displayMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1)).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+        Text(AppStrings.labelReady, style: context.displayMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1)).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
       ],
     );
   }

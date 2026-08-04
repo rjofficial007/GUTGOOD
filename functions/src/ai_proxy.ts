@@ -57,6 +57,7 @@ interface ProxyRequest {
   model?: string;
   usageType?: string;
   idempotencyKey?: string;
+  timezoneOffset?: number;
 }
 
 function setCors(res: functions.Response): void {
@@ -149,6 +150,7 @@ export const aiProxy = functions
 
     const images = Array.isArray(body.images) ? body.images : [];
     const usageType = (body.usageType ?? (images.length > 0 ? 'scan' : 'chat')).toString();
+    const timezoneOffset = Number(body.timezoneOffset ?? 0);
 
     // 🔴 Fix F1: Whitelist usageType and reject unknown.
     if (!['chat', 'scan', 'system'].includes(usageType)) {
@@ -159,7 +161,13 @@ export const aiProxy = functions
     // Server-side free-tier enforcement (idempotent on retries).
     // 🔴 Fix F1: Meter 'system' too.
     try {
-      const usage = await checkAndConsume(auth.uid, auth.isAnonymous, usageType as any, body.idempotencyKey);
+      const usage = await checkAndConsume(
+        auth.uid,
+        auth.isAnonymous,
+        usageType as any,
+        body.idempotencyKey,
+        timezoneOffset,
+      );
       if (!usage.allowed) {
         fail(res, 429, 'quota_exceeded', {
           type: usageType,

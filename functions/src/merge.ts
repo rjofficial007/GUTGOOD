@@ -15,7 +15,7 @@ import { REGION } from './config';
 const BATCH_LIMIT = 400;
 const READ_LIMIT = 500;
 
-const ID_COLLECTIONS = ['chat_history', 'meal_logs', 'symptom_logs'];
+const ID_COLLECTIONS = ['chat_history', 'meal_logs', 'symptom_logs', 'health_alerts'];
 const SCAN_COLLECTIONS = ['scan_history', 'saved_foods'];
 const INSIGHT_COLLECTION = 'insights';
 const PATTERN_COLLECTION = 'pattern_data';
@@ -54,7 +54,8 @@ function naturalKey(collection: string, data: admin.firestore.DocumentData): str
   if (ID_COLLECTIONS.includes(collection)) {
     if (data.localId) return `lid:${data.localId}`;
     const items = Array.isArray(data.items) ? data.items.join(',') : '';
-    return `${data.role ?? ''}|${data.text ?? ''}|${items}|${data.symptom ?? ''}|${data.time ?? ''}`;
+    const body = (data.text || data.message || '').toString();
+    return `${data.role ?? ''}|${body}|${items}|${data.symptom ?? ''}|${data.title ?? ''}|${data.time ?? ''}`;
   }
   if (SCAN_COLLECTIONS.includes(collection)) {
     const barcode = (data.barcode ?? '').toString();

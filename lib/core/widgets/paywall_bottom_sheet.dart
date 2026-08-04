@@ -96,7 +96,7 @@ class GutPaywallBottomSheet extends StatelessWidget {
               Text(
                 AppStrings.startHealingGut,
                 textAlign: TextAlign.center,
-                style: context.h1.copyWith(fontSize: 28.0.sp, height: 1.1),
+                style: context.h1.copyWith(fontSize: AppSizes.s28, height: 1.1),
               ),
               Gap.h8,
               Text(AppStrings.knowWhatHelps, style: context.body.copyWith(color: context.appColorScheme.textMuted)),
@@ -112,16 +112,16 @@ class GutPaywallBottomSheet extends StatelessWidget {
               Row(
                 children: [
                   SizedBox(
-                    width: 70.0.w,
-                    height: 32.0.h,
+                    width: 70,
+                    height: 32,
                     child: Stack(
                       children: List.generate(3, (index) {
                         return Positioned(
-                          left: index * 18.0.w,
+                          left: index * 18,
                           child: CircleAvatar(
-                            radius: 16.0.r,
+                            radius: 16,
                             backgroundColor: context.appColorScheme.cardBackground,
-                            child: CircleAvatar(radius: 14.0.r, backgroundColor: context.appColorScheme.border, backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=${index + 10}')),
+                            child: CircleAvatar(radius: 14, backgroundColor: context.appColorScheme.border, backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=${index + 10}')),
                           ),
                         );
                       }),
@@ -133,13 +133,13 @@ class GutPaywallBottomSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: List.generate(5, (_) => Icon(Icons.star_rounded, color: AppPalette.yellow, size: 16.0.w)),
+                          children: List.generate(5, (_) => Icon(Icons.star_rounded, color: AppPalette.yellow, size: AppSizes.icon16)),
                         ),
                         Gap.h2,
-                        Text(AppStrings.dailyUsedNote, style: context.bodyBold.copyWith(fontSize: 12.0.sp)),
+                        Text(AppStrings.dailyUsedNote, style: context.bodyBold.copyWith(fontSize: AppSizes.s12)),
                         Text(
                           AppStrings.happyMembersCount,
-                          style: context.caption.copyWith(fontSize: 11.0.sp, color: context.appColorScheme.textMuted),
+                          style: context.caption.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textMuted),
                         ),
                       ],
                     ),
@@ -203,23 +203,23 @@ class GutPaywallBottomSheet extends StatelessWidget {
                 child: RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    style: context.overline.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted, letterSpacing: 0.2),
+                    style: context.overline.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted, letterSpacing: 0.2),
                     children: [
-                      const TextSpan(text: '🔒 Secure payment. Cancel anytime.\n'),
+                      const TextSpan(text: AppStrings.paywallFooterPrefix),
                       TextSpan(
-                        text: 'Restore purchases',
+                        text: AppStrings.paywallRestore,
                         style: context.underline,
                         recognizer: TapGestureRecognizer()..onTap = () => purchaseProvider.restorePurchases(),
                       ),
                       const TextSpan(text: '  |  '),
                       TextSpan(
-                        text: 'Terms',
+                        text: AppStrings.paywallTerms,
                         style: context.underline,
                         recognizer: TapGestureRecognizer()..onTap = () => sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl),
                       ),
                       const TextSpan(text: '  |  '),
                       TextSpan(
-                        text: 'Privacy',
+                        text: AppStrings.paywallPrivacy,
                         style: context.underline,
                         recognizer: TapGestureRecognizer()..onTap = () => sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl),
                       ),
@@ -273,12 +273,12 @@ class _PlanCard extends StatelessWidget {
                   children: [
                     Text(
                       storeProduct.priceString,
-                      style: context.h1.copyWith(fontSize: 28.0.sp, fontWeight: FontWeight.w800, letterSpacing: -1),
+                      style: context.h1.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w800, letterSpacing: -1),
                     ),
                     Gap.w4,
                     Text(
                       periodString,
-                      style: context.body.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 14.0.sp),
+                      style: context.body.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600, fontSize: AppSizes.s14),
                     ),
                   ],
                 ),
@@ -291,17 +291,17 @@ class _PlanCard extends StatelessWidget {
               children: [
                 if (hasTrial)
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12.0.w, vertical: 6.0.h),
-                    decoration: BoxDecoration(color: context.appColorScheme.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20.0.r)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: context.appColorScheme.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20.r)),
                     child: Text(
                       trialString,
-                      style: context.overline.copyWith(color: context.appColorScheme.success, fontSize: 10.0.sp, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                      style: context.overline.copyWith(color: context.appColorScheme.success, fontSize: AppSizes.s10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                     ),
                   ),
                 if (hasTrial) Gap.h6,
                 Text(
                   AppStrings.cancelAnytime,
-                  style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w500),
+                  style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -325,21 +325,21 @@ class _PaywallRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 40.0.w,
-          height: 40.0.w,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(color: context.appColorScheme.success.withValues(alpha: 0.1), shape: BoxShape.circle),
-          child: Icon(icon, color: context.appColorScheme.success, size: 20.0.w),
+          child: Icon(icon, color: context.appColorScheme.success, size: 20),
         ),
         Gap.w14,
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: context.bodyBold.copyWith(fontSize: 14.0.sp)),
+              Text(title, style: context.bodyBold.copyWith(fontSize: AppSizes.s14)),
               Gap.h2,
               Text(
                 subtitle,
-                style: context.caption.copyWith(fontSize: 12.0.sp, color: context.appColorScheme.textMuted),
+                style: context.caption.copyWith(fontSize: AppSizes.s12, color: context.appColorScheme.textMuted),
               ),
             ],
           ),

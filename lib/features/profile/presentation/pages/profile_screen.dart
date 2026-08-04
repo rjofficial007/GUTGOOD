@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -12,6 +14,7 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/app_services.dart';
 import 'package:gutgood/core/services/app_version_services.dart';
 import 'package:gutgood/core/services/config_service.dart';
+import 'package:gutgood/core/services/export_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
@@ -21,11 +24,16 @@ import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/features/profile/presentation/providers/usage_notifier.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_assets.dart';
+import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/notification_service.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/profile_header.dart';
 import '../../../auth/presentation/providers/purchase_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -46,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await profileNotifier.uploadProfilePicture(File(image.path));
       }
     } catch (e) {
-      Log.e('Error picking image: $e');
+      AppLogger.error('Error picking image: $e');
     }
   }
 
@@ -161,6 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authNotifier = context.watch<GutAuthNotifier>();
     final themeNotifier = context.watch<ThemeNotifier>();
     final purchaseProvider = context.watch<PurchaseProvider>();
+    final usageNotifier = context.watch<UsageNotifier>();
 
     if (profileNotifier.isLoading) {
       return Scaffold(
@@ -182,8 +191,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               delegate: SliverChildListDelegate([
                 // 1. Profile Hero Section
                 ProfileHeader(
-                  name: p?.displayName ?? AppStrings.guestUser,
-                  email: p?.email ?? AppStrings.signInToSyncData,
+                  name: p?.displayName ?? (authNotifier.isAnonymous ? AppStrings.guestUser : authNotifier.user?.displayName ?? ""),
+                  email: p?.email ?? (authNotifier.isAnonymous ? AppStrings.signInToSyncData : authNotifier.user?.email ?? ""),
                   isPremium: p?.isPremium ?? false,
                   photoUrl: p?.photoUrl,
                   streak: p?.streak ?? 0,
@@ -197,6 +206,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onEditTap: () => _showEditProfileBottomSheet(profileNotifier),
                   onLogoutTap: () => _showLogoutBottomSheet(authNotifier, profileNotifier),
                 ),
+
+                // AI Usage Section
+                if (!(p?.isPremium ?? false)) _AIUsageCard(usageNotifier: usageNotifier),
 
                 // 3. Personalization Grid
                 GutSection(
@@ -316,13 +328,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     AppTile(
                       icon: AppIcons.messageSquare,
                       title: AppStrings.contactUs,
-                      onTap: () => sl<AppService>().sendingMails(mailContent: "I have some feedback regarding GutGood:", isFromReview: false),
+                      onTap: () => sl<AppService>().sendingMails(mailContent: AppStrings.labelFeedbackSubject, isFromReview: false),
                     ),
                     AppTile(icon: AppIcons.star, title: AppStrings.rateApp, onTap: sl<AppService>().requestReview),
                     AppTile(icon: AppIcons.helpCircle, title: AppStrings.aboutUs, onTap: () => sl<AppService>().urlLauncher(context, sl<ConfigService>().aboutUsUrl)),
                     AppTile(icon: AppIcons.clipboardList, title: AppStrings.termsAndConditions, onTap: () => sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl)),
                     AppTile(icon: AppIcons.shieldCheck, title: AppStrings.privacy, onTap: () => sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl)),
-                    AppTile(icon: AppIcons.shield, title: AppStrings.medicalDisclaimer, onTap: () => _showMedicalDisclaimer(context), showBottomBorder: false),
+                    AppTile(icon: AppIcons.shield, title: AppStrings.medicalDisclaimer, onTap: () => _showMedicalDisclaimer(context)),
+                    AppTile(
+                      icon: AppIcons.download,
+                      title: 'Export Health Data (CSV)',
+                      onTap: () async {
+                        sl<AnalyticsService>().logEvent(name: 'export_data_requested');
+                        await sl<ExportService>().exportHealthData();
+                      },
+                      showBottomBorder: false,
+                    ),
                   ],
                 ),
 
@@ -348,6 +369,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onTap: () async {
                           await sl<UsageService>().resetLimitsForTesting();
                           if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.limitsReset)));
+                        },
+                      ),
+                      AppTile(
+                        icon: AppIcons.bell,
+                        title: 'Test Push Notification',
+                        onTap: () async {
+                          await sl<NotificationService>().testNotification();
+                        },
+                      ),
+                      AppTile(
+                        icon: AppIcons.copy,
+                        title: 'Copy FCM Token',
+                        subtitle: 'Tap to copy your push token for testing',
+                        onTap: () async {
+                          final token = await FirebaseMessaging.instance.getToken();
+                          if (token != null) {
+                            await Clipboard.setData(ClipboardData(text: token));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('FCM Token copied to clipboard!')));
+                            }
+                          }
                         },
                         showBottomBorder: false,
                       ),
@@ -395,6 +437,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
+class _AIUsageCard extends StatelessWidget {
+  final UsageNotifier usageNotifier;
+  const _AIUsageCard({required this.usageNotifier});
+
+  @override
+  Widget build(BuildContext context) {
+    final usage = usageNotifier.usage;
+    final maxChats = usageNotifier.maxChats;
+    final maxScans = usageNotifier.maxScans;
+
+    final chatCount = usage?.chatCount ?? 0;
+    final scanCount = usage?.scanCount ?? 0;
+
+    return Container(
+      margin: EdgeInsets.only(top: AppSizes.p16),
+      padding: EdgeInsets.all(AppSizes.p20),
+      decoration: BoxDecoration(
+        color: context.appColorScheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppSizes.r24),
+        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+              Gap.w8,
+              Text('DAILY AI ACTIVITY', style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, letterSpacing: 1.2)),
+            ],
+          ),
+          Gap.h20,
+          _UsageRow(label: 'AI Chats', current: chatCount, total: maxChats, color: context.appColorScheme.textPrimary),
+          Gap.h16,
+          _UsageRow(label: 'Product Scans', current: scanCount, total: maxScans, color: context.appColorScheme.textPrimary),
+          Gap.h20,
+          GestureDetector(
+            onTap: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Upgrade for Unlimited Access',
+                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: AppSizes.s13),
+                ),
+                Gap.w4,
+                Icon(AppIcons.chevronRight, size: 14, color: context.appColorScheme.textPrimary),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UsageRow extends StatelessWidget {
+  final String label;
+  final int current;
+  final int total;
+  final Color color;
+
+  const _UsageRow({required this.label, required this.current, required this.total, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final double progress = (current / total).clamp(0.0, 1.0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: context.body.copyWith(fontSize: AppSizes.s14, fontWeight: FontWeight.w600),
+            ),
+            Text('$current / $total', style: context.caption.copyWith(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        Gap.h8,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(100),
+          child: LinearProgressIndicator(
+            value: progress,
+            backgroundColor: context.appColorScheme.border.withValues(alpha: 0.3),
+            valueColor: AlwaysStoppedAnimation<Color>(progress >= 1.0 ? context.appColorScheme.error : color),
+            minHeight: 6,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _AppearanceOption extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -406,7 +545,7 @@ class _AppearanceOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Select $title appearance',
+      label: '${AppStrings.semanticsAppearancePrefix}$title${AppStrings.semanticsAppearanceSuffix}',
       button: true,
       selected: isSelected,
       child: GestureDetector(

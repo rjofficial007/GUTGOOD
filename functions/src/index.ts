@@ -18,3 +18,4 @@ admin.initializeApp();
 export { aiProxy } from './ai_proxy';
 export { mergeAnonymousAccount } from './merge';
 export { onUserDeleted, cleanupAnonymousUsers } from './lifecycle';
+export { onScanCreated, onInsightCreated } from './triggers';

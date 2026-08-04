@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
-import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
+
+import '../constants/app_assets.dart';
+import '../constants/app_sizes.dart';
+import '../utils/responsive.dart';
 
 class StreakCard extends StatelessWidget {
   final int streak;
@@ -37,18 +41,18 @@ class StreakCard extends StatelessWidget {
                   Row(
                     children: [
                       Icon(AppIcons.flame, color: isActiveToday ? context.appColorScheme.textPrimary : context.appColorScheme.textMuted, size: AppSizes.icon24),
-                      Gap.w8,
+                      Gap.h8,
                       Text(
-                        '$streak DAY STREAK',
+                        '$streak ${AppStrings.dayStreakLabel}',
                         style: context.eyebrow.copyWith(color: isActiveToday ? context.appColorScheme.textPrimary : context.appColorScheme.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1.5),
                       ),
                     ],
                   ),
                   Gap.h4,
-                  Text(isActiveToday ? 'You\'re on fire today! 🔥' : 'Keep the flame alive!', style: context.bodyBold.copyWith(fontSize: AppSizes.s16)),
+                  Text(isActiveToday ? AppStrings.streakOnFire : AppStrings.streakKeepAlive, style: context.bodyBold.copyWith(fontSize: AppSizes.s16)),
                 ],
               ),
-              _StreakCircle(streak: streak, isActive: isActiveToday),
+              Lottie.asset(AppAssets.streakAnimation, height: AppSizes.p56),
             ],
           ),
           Gap.h24,
@@ -60,35 +64,8 @@ class StreakCard extends StatelessWidget {
 
   bool _checkIsActiveToday() {
     if (lastActivityDate == null) return false;
-    final today = DateTime.now().toUtc().toIso8601String().split('T')[0];
+    final today = DateTime.now().toIso8601String().split('T')[0];
     return lastActivityDate == today;
-  }
-}
-
-class _StreakCircle extends StatelessWidget {
-  final int streak;
-  final bool isActive;
-
-  const _StreakCircle({required this.streak, required this.isActive});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 64.0.w,
-      height: 64.0.w,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isActive ? context.appColorScheme.textPrimary : context.appColorScheme.elevatedSurface,
-        border: Border.all(color: isActive ? context.appColorScheme.textPrimary : context.appColorScheme.border, width: 2),
-        boxShadow: isActive ? [BoxShadow(color: context.appColorScheme.textPrimary.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))] : null,
-      ),
-      child: Center(
-        child: Text(
-          streak.toString(),
-          style: context.h2.copyWith(color: isActive ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 24.0.sp),
-        ),
-      ),
-    );
   }
 }
 
@@ -101,7 +78,8 @@ class _WeeklyProgressRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final firstDayOfWeek = now.subtract(Duration(days: now.weekday % 7));
+    final todayMidnight = DateTime(now.year, now.month, now.day);
+    final firstDayOfWeek = todayMidnight.subtract(Duration(days: todayMidnight.weekday % 7));
     final bool activeToday = _isActiveToday();
 
     return Row(
@@ -109,14 +87,16 @@ class _WeeklyProgressRow extends StatelessWidget {
       children: List.generate(7, (index) {
         final day = firstDayOfWeek.add(Duration(days: index));
         final dayName = DateFormat('E').format(day)[0];
-        final bool isToday = day.day == now.day && day.month == now.month && day.year == now.year;
+        final bool isToday = DateUtils.isSameDay(day, todayMidnight);
 
         bool isStreakDay = false;
         if (lastActivityDate != null && streak > 0) {
           final lastActive = DateTime.parse(lastActivityDate!);
-          final diff = now.difference(lastActive).inDays;
+          final lastActiveMidnight = DateTime(lastActive.year, lastActive.month, lastActive.day);
+
+          final diff = todayMidnight.difference(lastActiveMidnight).inDays;
           if (diff <= 1) {
-            final daysSinceThisDay = lastActive.difference(day).inDays;
+            final daysSinceThisDay = lastActiveMidnight.difference(day).inDays;
             if (daysSinceThisDay >= 0 && daysSinceThisDay < streak) {
               isStreakDay = true;
             }
@@ -154,7 +134,7 @@ class _WeeklyProgressRow extends StatelessWidget {
 
   bool _isActiveToday() {
     if (lastActivityDate == null) return false;
-    final today = DateTime.now().toUtc().toIso8601String().split('T')[0];
+    final today = DateTime.now().toIso8601String().split('T')[0];
     return lastActivityDate == today;
   }
 }

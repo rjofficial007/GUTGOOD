@@ -4,10 +4,9 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 
 import '../constants/app_sizes.dart';
-import '../theme/app_palette.dart';
+import '../utils/responsive.dart';
 import 'modern_insight_card.dart';
 
 class ProfileHeader extends StatelessWidget {
@@ -60,17 +59,17 @@ class ProfileHeader extends StatelessWidget {
       ),
       backgroundColor: AppPalette.black,
       titleColor: AppPalette.white.withValues(alpha: 0.7),
-      action: Text(
-        '$streak${AppStrings.dayStreak}',
-        style: context.caption.copyWith(color: AppPalette.white.withValues(alpha: 0.5), fontWeight: FontWeight.bold, fontSize: AppSizes.s9),
-      ),
-      footerColor:AppPalette.gray100,
-      footer: Text(
-        '$goalsCount ${AppStrings.goals.toUpperCase()} • $sensitivitiesCount ${AppStrings.sensitivities.toUpperCase()} • $lifestyleCount ${AppStrings.lifestyle.toUpperCase()}',
-        style: context.caption.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: AppSizes.s9, letterSpacing: 0.5),
-        textAlign: TextAlign.center,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      footerColor: AppPalette.gray100,
+      footer: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(AppIcons.flame, size: AppSizes.icon14, color: AppPalette.black),
+          Gap.w8,
+          Text(
+            '$streak ${AppStrings.dayStreakLabel}',
+            style: context.caption.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: AppSizes.s9, letterSpacing: 0.5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,10 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/ai_service.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
+import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/pattern_engine_service.dart';
@@ -20,6 +23,8 @@ class InsightRepositoryImpl implements InsightRepository {
   final SharedPreferences _prefs;
   final NotificationService _notificationService;
   final PatternEngineService _patternEngineService;
+  final AnalyticsService _analyticsService;
+  final CrashlyticsService _crashlyticsService;
 
   InsightRepositoryImpl({
     required FirestoreService firestoreService,
@@ -27,11 +32,15 @@ class InsightRepositoryImpl implements InsightRepository {
     required SharedPreferences prefs,
     required NotificationService notificationService,
     required PatternEngineService patternEngineService,
+    required AnalyticsService analyticsService,
+    required CrashlyticsService crashlyticsService,
   }) : _firestoreService = firestoreService,
        _aiService = aiService,
        _prefs = prefs,
        _notificationService = notificationService,
-       _patternEngineService = patternEngineService;
+       _patternEngineService = patternEngineService,
+       _analyticsService = analyticsService,
+       _crashlyticsService = crashlyticsService;
 
   @override
   Future<AIInsight?> getLatestInsight() async {
@@ -59,12 +68,19 @@ class InsightRepositoryImpl implements InsightRepository {
   @override
   Future<void> generateNewInsight() async {
     final lastRunStr = _prefs.getString('last_insight_run');
-    final lastRun = lastRunStr != null ? DateTimeUtils.parse(lastRunStr) : DateTime.fromMillisecondsSinceEpoch(0);
+    // 🟡 Fix: Use parseToUtc for consistent comparison.
+    final lastRun = lastRunStr != null ? DateTimeUtils.parseToUtc(lastRunStr) : DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 
     // 🟢 PRD Section 8.2 Alignment: At least 24 hours since last insight
-    final hoursSinceLastRun = DateTime.now().difference(lastRun).inHours;
-    if (hoursSinceLastRun < 24) {
-      Log.d('InsightRepo: Last insight was generated $hoursSinceLastRun hours ago. Skipping.');
+    // 🟡 Fix: Ensure 'now' is in UTC for the difference calculation.
+    final nowUtc = DateTime.now().toUtc();
+    final hoursSinceLastRun = nowUtc.difference(lastRun).inHours;
+
+    // 🔴 TEMPORARY DEBUG BYPASS: Enable this to test notifications immediately.
+    final bool bypassTimeCheck = kDebugMode;
+
+    if (hoursSinceLastRun < 24 && !bypassTimeCheck) {
+      AppLogger.debug('InsightRepo: Last insight was generated $hoursSinceLastRun hours ago. Skipping.');
       return;
     }
 
@@ -72,8 +88,8 @@ class InsightRepositoryImpl implements InsightRepository {
     final int mealCount = await _firestoreService.getMealLogsCountSince(lastRun);
     final int symptomCount = await _firestoreService.getSymptomsCountSince(lastRun);
 
-    if (scanCount < 3 && mealCount < 1 && symptomCount < 1) {
-      Log.d('InsightRepo: Not enough new data for analysis.');
+    if (scanCount < 3 && mealCount < 1 && symptomCount < 1 && !bypassTimeCheck) {
+      AppLogger.debug('InsightRepo: Not enough new data for analysis.');
       return;
     }
 
@@ -100,7 +116,8 @@ class InsightRepositoryImpl implements InsightRepository {
     final String scoreHistory = history.take(6).toList().reversed.map((i) => i.gutScore).join(', ');
 
     try {
-      Log.i('InsightRepo: Generating insight. History: ${scoreHistory.isEmpty ? "None" : scoreHistory}');
+      AppLogger.info('InsightRepo: Generating insight. History: ${scoreHistory.isEmpty ? "None" : scoreHistory}');
+      final startTime = DateTime.now();
 
       final cleanJson = await _aiService.generateContent(
         prompt: Prompts.insightsAnalysisPrompt(
@@ -119,8 +136,11 @@ class InsightRepositoryImpl implements InsightRepository {
       final decoded = jsonDecode(cleanJson);
       final insight = AIInsight.fromMap(decoded);
 
+      final duration = DateTime.now().difference(startTime).inSeconds;
+      await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
+
       await _prefs.setString('gutgood_insights_cache', cleanJson);
-      await _prefs.setString('last_insight_run', DateTime.now().toIso8601String());
+      await _prefs.setString('last_insight_run', DateTime.now().toUtc().toIso8601String());
       await _firestoreService.saveInsights(insight);
 
       _notificationService.showInsightGeneratedNotification();
@@ -131,8 +151,10 @@ class InsightRepositoryImpl implements InsightRepository {
       }
 
       _patternEngineService.runAnalysis();
-    } catch (e) {
-      Log.e('InsightRepo: AI Analysis failed', error: e);
+    } catch (e, st) {
+      AppLogger.error('InsightRepo: AI Analysis failed', error: e);
+      await _analyticsService.logEvent(name: 'insight_generation_failed', parameters: {'error': e.toString()});
+      await _crashlyticsService.recordError(e, st, reason: 'AI Insight generation failed');
       rethrow;
     }
   }

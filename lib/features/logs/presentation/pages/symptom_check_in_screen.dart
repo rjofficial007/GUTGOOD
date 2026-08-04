@@ -6,6 +6,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/selection_option.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -61,6 +62,12 @@ class _SymptomCheckInScreenState extends State<SymptomCheckInScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    sl<AnalyticsService>().logEvent(name: 'symptom_check_in_started');
+  }
+
+  @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
@@ -82,6 +89,13 @@ class _SymptomCheckInScreenState extends State<SymptomCheckInScreen> {
 
     try {
       await sl<LogRepository>().logSymptom(log);
+      await sl<AnalyticsService>().logEvent(name: 'symptom_check_in_completed', parameters: {
+        'symptom': _selectedSymptom,
+        'severity': _severity.toInt(),
+        'energy': _energy,
+        'mood': _mood,
+        'has_notes': _notesController.text.isNotEmpty,
+      });
       sl<AppStateService>().notifyProfileUpdated();
       HapticHelper.success();
       if (mounted) {
@@ -128,7 +142,7 @@ class _SymptomCheckInScreenState extends State<SymptomCheckInScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Score: ${_severity.toInt()}', style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
+                        Text('${AppStrings.labelScorePrefix}${_severity.toInt()}', style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
                         Slider(
                           value: _severity,
                           min: 1.0,
@@ -153,7 +167,7 @@ class _SymptomCheckInScreenState extends State<SymptomCheckInScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Score: $_energy', style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
+                      Text('${AppStrings.labelScorePrefix}$_energy', style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
                       Slider(
                         value: _energy.toDouble(),
                         min: 1.0,

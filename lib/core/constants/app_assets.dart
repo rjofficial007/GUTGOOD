@@ -8,6 +8,9 @@ class AppAssets {
   static const String appleLogo = 'assets/images/apple_logo.png';
   static const String googleLogo = 'assets/images/google_logo.png';
 
+  // Animations
+  static const String streakAnimation = 'assets/animations/streak.json';
+
   // Fonts
   static const String poppinsBold = 'assets/fonts/Poppins-Bold.ttf';
   static const String poppinsExtraBold = 'assets/fonts/Poppins-ExtraBold.ttf';

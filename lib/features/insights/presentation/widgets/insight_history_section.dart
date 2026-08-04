@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
 import 'insight_history_tile.dart';

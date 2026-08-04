@@ -3,8 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
@@ -27,6 +29,13 @@ class WeeklyRecapScreen extends StatelessWidget {
     final recap = insight?.weeklyRecap;
     final highlights = recap?.highlights ?? [];
     final notifier = context.watch<InsightsNotifier>();
+
+    if (insight != null) {
+      sl<AnalyticsService>().logEvent(name: 'view_weekly_recap', parameters: {
+        'avg_score': recap?.avgScore ?? 0,
+        'foods_logged': recap?.foodsLogged ?? 0,
+      });
+    }
 
     final List<Widget?> sections = [
       // Date Range Header
@@ -57,11 +66,46 @@ class WeeklyRecapScreen extends StatelessWidget {
       // 3. Recap Dashboard (Metrics)
       DashboardEntrance(
         delay: 200,
-        child: _RecapDashboardSection(recap: recap, insight: insight),
+        child: GutDashboardSection(
+          title: AppStrings.performanceHighlights,
+          subtitle: AppStrings.sevenDayAverage,
+          visualization: DashboardVisualizationBar(ratio: (recap?.avgScore ?? 0) / 100, label: '${recap?.avgScore ?? 0} ${AppStrings.averageGutScore.toLowerCase()}'),
+          items: [
+            DashboardDetailItem(title: recap?.bestDay ?? 'N/A', subtitle: AppStrings.peakPerformance, icon: AppIcons.trophy, color: context.appColorScheme.textPrimary),
+            Gap.h12,
+            DashboardDetailItem(title: '${recap?.foodsLogged ?? 0}', subtitle: AppStrings.totalLogs, icon: AppIcons.clipboardList, color: context.appColorScheme.textPrimary),
+            Gap.h12,
+            DashboardDetailItem(title: insight?.healingTrend?.toUpperCase() ?? AppStrings.stable, subtitle: AppStrings.weeklyTrend, icon: AppIcons.zap, color: context.appColorScheme.textPrimary),
+          ],
+          footerLabel: AppStrings.viewDetailedMetrics,
+          onFooterTap: () => _showRecapDetails(context, recap, insight),
+        ),
       ),
 
       // 4. Weekly Discoveries
-      if (highlights.isNotEmpty) DashboardEntrance(delay: 300, child: _DiscoveriesDashboardSection(highlights: highlights)),
+      if (highlights.isNotEmpty)
+        DashboardEntrance(
+          delay: 300,
+          child: GutDashboardSection(
+            title: AppStrings.aiPatterns,
+            subtitle: AppStrings.weeklyHighlights,
+            visualization: Container(
+              padding: EdgeInsets.all(AppSizes.p12),
+              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+              child: Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
+            ),
+            items: highlights.take(3).map((RecapHighlight h) {
+              final color = InsightUiUtils.getIngredientColor(h.color, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
+              return Padding(
+                padding: EdgeInsets.only(bottom: AppSizes.p12),
+                child: DashboardDetailItem(title: AppStrings.discovery, subtitle: h.text, icon: InsightUiUtils.getReactionIcon(h.icon), color: color),
+              );
+            }).toList(),
+            footerLabel: AppStrings.viewAllDiscoveries,
+            onFooterTap: () => _showDiscoveryDetails(context, highlights),
+            titleColor: context.appColorScheme.textPrimary,
+          ),
+        ),
 
       // 5. Achievement Banner
       DashboardEntrance(delay: 400, child: _buildAchievementBanner(context)),
@@ -130,6 +174,51 @@ class WeeklyRecapScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _showRecapDetails(BuildContext context, WeeklyRecap? recap, AIInsight? insight) {
+    sl<AnalyticsService>().logEvent(name: 'view_recap_metrics');
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: AppStrings.weeklyPerformance,
+      children: [
+        SheetHeroSection(title: '${recap?.avgScore ?? 0}', subtitle: AppStrings.averageGutScore, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
+        Gap.h32,
+        SheetSectionHeader(title: AppStrings.activityBreakdown, color: context.appColorScheme.textPrimary),
+        DashboardDetailItem(
+          title: '${recap?.foodsLogged ?? 0} ${AppStrings.foodsLogged}',
+          subtitle: recap?.loggedSub ?? 'Keep it up!',
+          icon: AppIcons.utensils,
+          color: context.appColorScheme.textPrimary,
+        ),
+        Gap.h16,
+        DashboardDetailItem(title: '${AppStrings.bestDay}: ${recap?.bestDay ?? 'N/A'}', subtitle: AppStrings.bestPerformanceSubtitle, icon: AppIcons.trophy, color: context.appColorScheme.textPrimary),
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
+  }
+
+  void _showDiscoveryDetails(BuildContext context, List<RecapHighlight> highlights) {
+    sl<AnalyticsService>().logEvent(name: 'view_recap_discoveries');
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: AppStrings.discoveriesTitle,
+      children: [
+        SheetHeroSection(title: AppStrings.insights, subtitle: AppStrings.aiDrivenFindings, color: context.appColorScheme.textPrimary, icon: AppIcons.sparkles),
+        Gap.h32,
+        ...highlights.map((RecapHighlight h) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: AppSizes.p16),
+            child: DashboardDetailItem(title: h.text, subtitle: AppStrings.detectedThisWeek, icon: InsightUiUtils.getReactionIcon(h.icon), color: context.appColorScheme.textPrimary),
+          );
+        }),
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
+  }
 }
 
 class _ModernSmartAlert extends StatelessWidget {
@@ -160,175 +249,6 @@ class _ModernSmartAlert extends StatelessWidget {
         description,
         style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
       ),
-    );
-  }
-}
-
-class _RecapDashboardSection extends StatelessWidget {
-  final WeeklyRecap? recap;
-  final AIInsight? insight;
-  const _RecapDashboardSection({required this.recap, required this.insight});
-
-  @override
-  Widget build(BuildContext context) {
-    return DashboardCard(
-      onFooterTap: () => _showRecapDetails(context),
-      footerLabel: AppStrings.viewDetailedMetrics,
-      child: Padding(
-        padding: EdgeInsets.all(AppSizes.p20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left Side: Avg Score Hero
-            Expanded(
-              flex: 6,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppStrings.recap,
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    AppStrings.sevenDayAverage,
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Gap.h24,
-                  DashboardVisualizationBar(ratio: (recap?.avgScore ?? 0) / 100, label: '${recap?.avgScore ?? 0} ${AppStrings.averageGutScore.toLowerCase()}'),
-                ],
-              ),
-            ),
-            Gap.w16,
-            // Right Side: Metrics List
-            Expanded(
-              flex: 5,
-              child: Column(
-                children: [
-                  DashboardDetailItem(title: recap?.bestDay ?? 'N/A', subtitle: AppStrings.peakPerformance, icon: AppIcons.trophy, color: context.appColorScheme.textPrimary),
-                  Gap.h12,
-                  DashboardDetailItem(title: '${recap?.foodsLogged ?? 0}', subtitle: AppStrings.totalLogs, icon: AppIcons.clipboardList, color: context.appColorScheme.textPrimary),
-                  Gap.h12,
-                  DashboardDetailItem(
-                    title: insight?.healingTrend?.toUpperCase() ?? AppStrings.stable,
-                    subtitle: AppStrings.weeklyTrend,
-                    icon: AppIcons.zap,
-                    color: context.appColorScheme.textPrimary,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showRecapDetails(BuildContext context) {
-    BottomSheetHelper.showGutBottomSheet(
-      context: context,
-      title: AppStrings.weeklyPerformance,
-      children: [
-        SheetHeroSection(title: '${recap?.avgScore ?? 0}', subtitle: AppStrings.averageGutScore, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
-        Gap.h32,
-        SheetSectionHeader(title: AppStrings.activityBreakdown, color: context.appColorScheme.textPrimary),
-        DashboardDetailItem(
-          title: '${recap?.foodsLogged ?? 0} ${AppStrings.foodsLogged}',
-          subtitle: recap?.loggedSub ?? 'Keep it up!',
-          icon: AppIcons.utensils,
-          color: context.appColorScheme.textPrimary,
-        ),
-        Gap.h16,
-        DashboardDetailItem(title: '${AppStrings.bestDay}: ${recap?.bestDay ?? 'N/A'}', subtitle: AppStrings.bestPerformanceSubtitle, icon: AppIcons.trophy, color: context.appColorScheme.textPrimary),
-        Gap.h32,
-        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
-        Gap.h24,
-      ],
-    );
-  }
-}
-
-class _DiscoveriesDashboardSection extends StatelessWidget {
-  final List<RecapHighlight> highlights;
-  const _DiscoveriesDashboardSection({required this.highlights});
-
-  @override
-  Widget build(BuildContext context) {
-    return DashboardCard(
-      onFooterTap: () => _showDiscoveryDetails(context),
-      footerLabel: AppStrings.viewAllDiscoveries,
-      child: Padding(
-        padding: EdgeInsets.all(AppSizes.p20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left Side: Discoveries Hero
-            Expanded(
-              flex: 6,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppStrings.findings,
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s28, fontWeight: FontWeight.w900, letterSpacing: -1, color: context.appColorScheme.textPrimary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    AppStrings.weeklyHighlights,
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Gap.h24,
-                  Container(
-                    padding: EdgeInsets.all(AppSizes.p12),
-                    decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
-                    child: Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
-                  ),
-                ],
-              ),
-            ),
-            Gap.w16,
-            // Right Side: Highlights List
-            Expanded(
-              flex: 5,
-              child: Column(
-                children: highlights.take(3).map((RecapHighlight h) {
-                  final color = InsightUiUtils.getIngredientColor(h.color, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: AppSizes.p12),
-                    child: DashboardDetailItem(title: AppStrings.discovery, subtitle: h.text, icon: InsightUiUtils.getReactionIcon(h.icon), color: color),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showDiscoveryDetails(BuildContext context) {
-    BottomSheetHelper.showGutBottomSheet(
-      context: context,
-      title: AppStrings.discoveriesTitle,
-      children: [
-        SheetHeroSection(title: AppStrings.insights, subtitle: AppStrings.aiDrivenFindings, color: context.appColorScheme.textPrimary, icon: AppIcons.sparkles),
-        Gap.h32,
-        ...highlights.map((RecapHighlight h) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(title: h.text, subtitle: AppStrings.detectedThisWeek, icon: InsightUiUtils.getReactionIcon(h.icon), color: context.appColorScheme.textPrimary),
-          );
-        }),
-        Gap.h32,
-        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
-        Gap.h24,
-      ],
     );
   }
 }

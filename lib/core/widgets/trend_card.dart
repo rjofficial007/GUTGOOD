@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
-import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:intl/intl.dart';
 
 import '../constants/app_icons.dart';
 import '../constants/app_sizes.dart';
 import '../models/ai_insight.dart';
+import '../theme/app_color_scheme.dart';
+import '../theme/app_text_styles.dart';
+import '../utils/responsive.dart';
+import 'dashboard_widgets.dart';
 
 class TrendCard extends StatelessWidget {
   final List<AIInsight> insights;
@@ -16,7 +17,7 @@ class TrendCard extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const TrendCard({super.key, required this.insights, this.currentInsight, this.referenceDate, this.title = 'GUT SCORE TREND', this.subtitle = 'Weekly progress snapshot'});
+  const TrendCard({super.key, required this.insights, this.currentInsight, this.referenceDate, this.title = AppStrings.scoreTrend, this.subtitle = AppStrings.weeklySnapshot});
 
   @override
   Widget build(BuildContext context) {
@@ -29,44 +30,17 @@ class TrendCard extends StatelessWidget {
     // Extract scores for the badge
     final scores = allInsights.take(2).map((i) => i.gutScore).toList();
 
-    return Container(
-      padding: EdgeInsets.all(AppSizes.p20),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppSizes.r28),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(AppIcons.barChart, color: context.appColorScheme.textPrimary, size: AppSizes.icon24),
-                      Gap.w8,
-                      Text(
-                        title,
-                        style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: 1.5),
-                      ),
-                    ],
-                  ),
-                  Gap.h4,
-                  Text(subtitle, style: context.bodyBold.copyWith(fontSize: AppSizes.s16)),
-                ],
-              ),
-              _TrendDirectionBadge(scores: scores),
-            ],
-          ),
-          Gap.h24,
-          _TrendBarChart(insights: allInsights, referenceDate: referenceDate ?? DateTime.now()),
+    return GutDashboardSection(
+      title: title,
+      subtitle: subtitle,
+      visualization: _TrendBarChart(insights: allInsights, referenceDate: referenceDate ?? DateTime.now()),
+      items: [
+        _TrendDirectionTile(scores: scores),
+        if (allInsights.isNotEmpty) ...[
+          Gap.h12,
+          DashboardDetailItem(title: '${allInsights.first.gutScore} ${AppStrings.pointsUnit}', subtitle: AppStrings.gutGoodScore, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
         ],
-      ),
+      ],
     );
   }
 }
@@ -79,30 +53,26 @@ class _TrendBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int totalSlots = 7;
+    const int totalSlots = 7;
 
-    // 🟢 Fix: Normalize all dates to local midnight for accurate calendar day mapping.
+    // 🟡 Fix: Use local time for trend mapping so bars align with the user's local day.
     final now = DateTime.now();
     final todayMidnight = DateTime(now.year, now.month, now.day);
 
-    final ref = referenceDate;
-    final refMidnight = DateTime(ref.year, ref.month, ref.day);
-
-    // Get Sunday of the reference week (anchor)
-    final sunday = refMidnight.subtract(Duration(days: refMidnight.weekday % 7));
+    // Get Sunday of the reference week (anchor) in local time
+    final sunday = todayMidnight.subtract(Duration(days: todayMidnight.weekday % 7));
 
     // Map insights to days of this week
     final Map<int, int> dayScores = {};
     for (var insight in insights) {
-      final date = insight.updatedAt.toLocal();
+      final date = insight.updatedAt;
       final normalizedDate = DateTime(date.year, date.month, date.day);
 
       // Calculate day index (0 = Sunday, 6 = Saturday)
       final diff = normalizedDate.difference(sunday).inDays;
 
       if (diff >= 0 && diff < 7) {
-        // If multiple insights on same day, keep the first one found
-        // (Assuming insights list is newest first, this is the latest report for that day).
+        // If multiple insights on same day, keep the newest one
         if (!dayScores.containsKey(diff)) {
           dayScores[diff] = insight.gutScore;
         }
@@ -116,12 +86,12 @@ class _TrendBarChart extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: List.generate(totalSlots, (index) {
             final int value = dayScores[index] ?? 0;
-            final double targetHeight = (value / 100) * 80.0;
+            final double targetHeight = (value / 100) * 50.0;
             final bool hasValue = value > 0;
 
             final day = sunday.add(Duration(days: index));
             final dayName = DateFormat('E').format(day)[0];
-            final bool isToday = day.year == now.year && day.month == now.month && day.day == now.day;
+            final bool isToday = DateUtils.isSameDay(day, todayMidnight);
 
             return Column(
               children: [
@@ -131,12 +101,12 @@ class _TrendBarChart extends StatelessWidget {
                   curve: Curves.easeOutQuart,
                   builder: (context, val, _) {
                     return Container(
-                      width: 16.0.w,
-                      height: 80.0.h,
+                      width: 8.0.w,
+                      height: 50.0.h,
                       alignment: Alignment.bottomCenter,
                       decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(50.0.r)),
                       child: Container(
-                        width: 16.0.w,
+                        width: 8.0.w,
                         height: val.h,
                         decoration: BoxDecoration(color: hasValue ? context.appColorScheme.textPrimary : Colors.transparent, borderRadius: BorderRadius.circular(50.0.r)),
                       ),
@@ -161,9 +131,9 @@ class _TrendBarChart extends StatelessWidget {
   }
 }
 
-class _TrendDirectionBadge extends StatelessWidget {
+class _TrendDirectionTile extends StatelessWidget {
   final List<int> scores;
-  const _TrendDirectionBadge({required this.scores});
+  const _TrendDirectionTile({required this.scores});
 
   @override
   Widget build(BuildContext context) {
@@ -175,20 +145,11 @@ class _TrendDirectionBadge extends StatelessWidget {
     final diff = last - first;
     final isPositive = diff >= 0;
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p10, vertical: AppSizes.p4),
-      decoration: BoxDecoration(color: (isPositive ? context.appColorScheme.success : context.appColorScheme.error).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isPositive ? AppIcons.arrowUp : AppIcons.arrowDown, size: 14.0.w, color: isPositive ? context.appColorScheme.success : context.appColorScheme.error),
-          Gap.w4,
-          Text(
-            '${diff.abs()}',
-            style: context.caption.copyWith(color: isPositive ? context.appColorScheme.success : context.appColorScheme.error, fontWeight: FontWeight.w900),
-          ),
-        ],
-      ),
+    return DashboardDetailItem(
+      title: '${isPositive ? '+' : '-'}${diff.abs()} ${AppStrings.pointsUnit}',
+      subtitle: isPositive ? 'Improving' : 'Declining',
+      icon: isPositive ? AppIcons.arrowUp : AppIcons.arrowDown,
+      color: isPositive ? context.appColorScheme.success : context.appColorScheme.error,
     );
   }
 }

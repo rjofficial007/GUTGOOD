@@ -14,10 +14,14 @@ import 'package:gutgood/core/models/user_profile.dart';
 import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
+import '../models/health_alert.dart';
+
 abstract class FirestoreService {
   Future<void> saveUserProfile(UserProfile profile);
   Future<void> updateUserProfile(UserProfile profile);
   Future<void> saveNotificationPreferences(NotificationPreferences prefs);
+  Future<void> saveFcmToken(String token);
+  Future<void> clearFcmToken();
   Future<String?> saveMessage(ChatMessage message);
   Stream<List<ChatMessage>> getMessagesStream({int limit = 20});
   Future<void> updateMessageFeedback(String messageId, String feedback);
@@ -41,11 +45,15 @@ abstract class FirestoreService {
   Future<String?> uploadProfilePicture(File imageFile);
   Future<void> deleteMessage(String messageId);
   Future<DailyUsage?> getUsageToday();
+  Stream<DailyUsage?> getUsageTodayStream();
   Future<String?> saveInsights(AIInsight insight);
   Future<AIInsight?> getLatestInsights();
   Stream<AIInsight?> getLatestInsightsStream();
   Future<List<AIInsight>> getInsightsHistory();
   Future<void> savePatternData(List<BodyPattern> patterns);
+  Stream<List<BodyPattern>> getPatternDataStream();
+  Future<void> saveHealthAlert(HealthAlert alert);
+  Stream<List<HealthAlert>> getHealthAlertsStream({int limit = 20});
 
   // Aggregation/Count methods
   Future<int> getScansCountSince(DateTime since);
@@ -77,7 +85,7 @@ class FirestoreServiceImpl implements FirestoreService {
       if (doc == null) return;
       await doc.set(profile.toMap(), SetOptions(merge: true));
     } catch (e) {
-      Log.e('FirestoreService: Error saving user profile', error: e);
+      AppLogger.error('FirestoreService: Error saving user profile', error: e);
     }
   }
 
@@ -88,7 +96,7 @@ class FirestoreServiceImpl implements FirestoreService {
       if (doc == null) return;
       await doc.set(profile.toMap(), SetOptions(merge: true));
     } catch (e) {
-      Log.e('FirestoreService: Error updating user profile', error: e);
+      AppLogger.error('FirestoreService: Error updating user profile', error: e);
     }
   }
 
@@ -98,9 +106,33 @@ class FirestoreServiceImpl implements FirestoreService {
       final doc = _userDoc;
       if (doc == null) return;
       await doc.set({'notificationPreferences': prefs.toMap(), 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
-      Log.i('FirestoreService: Notification preferences synced');
+      AppLogger.info('FirestoreService: Notification preferences synced');
     } catch (e) {
-      Log.e('FirestoreService: Error syncing notification preferences', error: e);
+      AppLogger.error('FirestoreService: Error syncing notification preferences', error: e);
+    }
+  }
+
+  @override
+  Future<void> saveFcmToken(String token) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.set({'fcmToken': token, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      AppLogger.info('FirestoreService: FCM token synced');
+    } catch (e) {
+      AppLogger.error('FirestoreService: Error syncing FCM token', error: e);
+    }
+  }
+
+  @override
+  Future<void> clearFcmToken() async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.update({'fcmToken': FieldValue.delete(), 'updatedAt': FieldValue.serverTimestamp()});
+      AppLogger.info('FirestoreService: FCM token cleared');
+    } catch (e) {
+      AppLogger.error('FirestoreService: Error clearing FCM token', error: e);
     }
   }
 
@@ -116,7 +148,7 @@ class FirestoreServiceImpl implements FirestoreService {
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
-      Log.e('FirestoreService: Error saving message', error: e);
+      AppLogger.error('FirestoreService: Error saving message', error: e);
       return null;
     }
   }
@@ -139,7 +171,7 @@ class FirestoreServiceImpl implements FirestoreService {
       if (doc == null) return;
       await doc.collection('chat_history').doc(messageId).delete();
     } catch (e) {
-      Log.e('FirestoreService: Error deleting message', error: e);
+      AppLogger.error('FirestoreService: Error deleting message', error: e);
     }
   }
 
@@ -150,7 +182,7 @@ class FirestoreServiceImpl implements FirestoreService {
       if (doc == null) return;
       await doc.collection('chat_history').doc(messageId).update({'feedback': feedback});
     } catch (e) {
-      Log.e('FirestoreService: Error updating message feedback', error: e);
+      AppLogger.error('FirestoreService: Error updating message feedback', error: e);
     }
   }
 
@@ -174,30 +206,21 @@ class FirestoreServiceImpl implements FirestoreService {
         if (existing.docs.isNotEmpty) {
           final existingData = existing.docs.first.data();
           final String? dbImageUrl = existingData['userImageUrl'];
-          
+
           if (bestImageUrl == null || bestImageUrl.isEmpty) {
             bestImageUrl = dbImageUrl;
           }
 
-          await existing.docs.first.reference.update({
-            'timestamp': FieldValue.serverTimestamp(),
-            'time': DateTime.now().toIso8601String(),
-            'userImageUrl': bestImageUrl,
-          });
-          Log.i('FirestoreService: Updated existing scan history entry for $barcode. Image: ${bestImageUrl != null}');
+          await existing.docs.first.reference.update({'timestamp': FieldValue.serverTimestamp(), 'time': DateTime.now().toIso8601String(), 'userImageUrl': bestImageUrl});
+          AppLogger.info('FirestoreService: Updated existing scan history entry for $barcode. Image: ${bestImageUrl != null}');
           return;
         }
       }
 
-      await doc.collection('scan_history').add({
-        ...scanData.toMap(),
-        'userImageUrl': bestImageUrl,
-        'timestamp': FieldValue.serverTimestamp(),
-        'time': DateTime.now().toIso8601String(),
-      });
-      Log.i('FirestoreService: Added new scan history entry. Image: ${bestImageUrl != null}');
+      await doc.collection('scan_history').add({...scanData.toMap(), 'userImageUrl': bestImageUrl, 'timestamp': FieldValue.serverTimestamp(), 'time': DateTime.now().toIso8601String()});
+      AppLogger.info('FirestoreService: Added new scan history entry. Image: ${bestImageUrl != null}');
     } catch (e) {
-      Log.e('FirestoreService: Error saving to scan history', error: e);
+      AppLogger.error('FirestoreService: Error saving to scan history', error: e);
     }
   }
 
@@ -209,7 +232,7 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
     } catch (e) {
-      Log.e('FirestoreService: Error getting scan history', error: e);
+      AppLogger.error('FirestoreService: Error getting scan history', error: e);
       return [];
     }
   }
@@ -222,7 +245,7 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('meal_logs').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => MealLog.fromMap(doc.data())).toList();
     } catch (e) {
-      Log.e('FirestoreService: Error getting recent meal logs', error: e);
+      AppLogger.error('FirestoreService: Error getting recent meal logs', error: e);
       return [];
     }
   }
@@ -235,7 +258,7 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('symptom_logs').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
     } catch (e) {
-      Log.e('FirestoreService: Error getting recent symptom logs', error: e);
+      AppLogger.error('FirestoreService: Error getting recent symptom logs', error: e);
       return [];
     }
   }
@@ -248,7 +271,7 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
     } catch (e) {
-      Log.e('FirestoreService: Error getting recent scans', error: e);
+      AppLogger.error('FirestoreService: Error getting recent scans', error: e);
       return [];
     }
   }
@@ -277,7 +300,7 @@ class FirestoreServiceImpl implements FirestoreService {
         await doc.collection('saved_foods').add({...scanData.toMap(), 'savedAt': FieldValue.serverTimestamp()});
       }
     } catch (e) {
-      Log.e('FirestoreService: Error toggling saved food', error: e);
+      AppLogger.error('FirestoreService: Error toggling saved food', error: e);
     }
   }
 
@@ -298,7 +321,7 @@ class FirestoreServiceImpl implements FirestoreService {
       final query = await queryRef.get();
       return query.docs.isNotEmpty;
     } catch (e) {
-      Log.e('FirestoreService: Error checking if food saved', error: e);
+      AppLogger.error('FirestoreService: Error checking if food saved', error: e);
       return false;
     }
   }
@@ -311,7 +334,7 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('saved_foods').get();
       return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
     } catch (e) {
-      Log.e('FirestoreService: Error getting saved foods', error: e);
+      AppLogger.error('FirestoreService: Error getting saved foods', error: e);
       return [];
     }
   }
@@ -324,7 +347,7 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('symptom_logs').get();
       return snapshot.docs.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
     } catch (e) {
-      Log.e('FirestoreService: Error getting symptom logs', error: e);
+      AppLogger.error('FirestoreService: Error getting symptom logs', error: e);
       return [];
     }
   }
@@ -339,7 +362,7 @@ class FirestoreServiceImpl implements FirestoreService {
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
-      Log.e('FirestoreService: Error logging symptom', error: e);
+      AppLogger.error('FirestoreService: Error logging symptom', error: e);
       return null;
     }
   }
@@ -354,7 +377,7 @@ class FirestoreServiceImpl implements FirestoreService {
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
-      Log.e('FirestoreService: Error logging meal', error: e);
+      AppLogger.error('FirestoreService: Error logging meal', error: e);
       return null;
     }
   }
@@ -368,7 +391,7 @@ class FirestoreServiceImpl implements FirestoreService {
       if (!snap.exists) return null;
       return UserProfile.fromMap(snap.data() as Map<String, dynamic>, uid: _uid);
     } catch (e) {
-      Log.e('FirestoreService: Error getting user metadata', error: e);
+      AppLogger.error('FirestoreService: Error getting user metadata', error: e);
       return null;
     }
   }
@@ -390,7 +413,7 @@ class FirestoreServiceImpl implements FirestoreService {
       if (doc == null) return;
       await doc.set({'onboarded': onboarded}, SetOptions(merge: true));
     } catch (e) {
-      Log.e('FirestoreService: Error updating onboarding status', error: e);
+      AppLogger.error('FirestoreService: Error updating onboarding status', error: e);
     }
   }
 
@@ -408,7 +431,7 @@ class FirestoreServiceImpl implements FirestoreService {
       if (doc == null) return;
       await doc.set({'isPremium': isPremium, 'subscriptionStatus': isPremium ? 'premium' : 'free', 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
     } catch (e) {
-      Log.e('FirestoreService: Error updating premium status', error: e);
+      AppLogger.error('FirestoreService: Error updating premium status', error: e);
     }
   }
 
@@ -418,13 +441,13 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<void> mergeData(String fromUid, String toUid) async {
     // Migration is now primarily handled by Cloud Functions for atomicity and security
-    Log.i('FirestoreService: Data migration should be handled by Cloud Function');
+    AppLogger.info('FirestoreService: Data migration should be handled by Cloud Function');
   }
 
   @override
   Future<void> deleteAllUserData(String uid) async {
     // Cascade deletion is handled by Cloud Function onUserDeleted trigger
-    Log.i('FirestoreService: User data deletion triggered by Auth onDelete');
+    AppLogger.info('FirestoreService: User data deletion triggered by Auth onDelete');
   }
 
   @override
@@ -442,15 +465,15 @@ class FirestoreServiceImpl implements FirestoreService {
       }
       return downloadUrl;
     } catch (e) {
-      Log.e('FirestoreService: Error uploading profile picture', error: e);
+      AppLogger.error('FirestoreService: Error uploading profile picture', error: e);
       return null;
     }
   }
 
   @override
   Future<DailyUsage?> getUsageToday() async {
-    // 🟡 Fix F5: Use UTC to match server-side usage key generation.
-    final String today = DateTime.now().toUtc().toIso8601String().split('T')[0];
+    // 🟡 Fix: Use local date to match timezone-aware server usage key generation.
+    final String today = DateTime.now().toIso8601String().split('T')[0];
     try {
       final doc = _userDoc;
       if (doc == null) return null;
@@ -458,9 +481,20 @@ class FirestoreServiceImpl implements FirestoreService {
       if (!snap.exists) return null;
       return DailyUsage.fromMap({...snap.data() as Map<String, dynamic>, 'uid': _uid, 'date': today});
     } catch (e) {
-      Log.e('FirestoreService: Error getting daily usage', error: e);
+      AppLogger.error('FirestoreService: Error getting daily usage', error: e);
       return null;
     }
+  }
+
+  @override
+  Stream<DailyUsage?> getUsageTodayStream() {
+    final String today = DateTime.now().toIso8601String().split('T')[0];
+    final doc = _userDoc;
+    if (doc == null) return Stream.value(null);
+    return doc.collection('daily_usage').doc(today).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return DailyUsage.fromMap({...doc.data() as Map<String, dynamic>, 'uid': _uid, 'date': today});
+    });
   }
 
   @override
@@ -473,7 +507,7 @@ class FirestoreServiceImpl implements FirestoreService {
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
-      Log.e('FirestoreService: Error saving insights', error: e);
+      AppLogger.error('FirestoreService: Error saving insights', error: e);
       return null;
     }
   }
@@ -487,7 +521,7 @@ class FirestoreServiceImpl implements FirestoreService {
       if (snapshot.docs.isEmpty) return null;
       return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
     } catch (e) {
-      Log.e('FirestoreService: Error getting latest insights', error: e);
+      AppLogger.error('FirestoreService: Error getting latest insights', error: e);
       return null;
     }
   }
@@ -510,7 +544,7 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('insights').orderBy('updatedAt', descending: true).get();
       return snapshot.docs.map((doc) => AIInsight.fromMap({...doc.data(), 'id': doc.id})).toList();
     } catch (e) {
-      Log.e('FirestoreService: Error getting insights history', error: e);
+      AppLogger.error('FirestoreService: Error getting insights history', error: e);
       return [];
     }
   }
@@ -522,14 +556,48 @@ class FirestoreServiceImpl implements FirestoreService {
       if (doc == null) return;
       await doc.collection('pattern_data').doc('latest').set({'patterns': patterns.map((p) => p.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
     } catch (e) {
-      Log.e('FirestoreService: Error saving pattern data', error: e);
+      AppLogger.error('FirestoreService: Error saving pattern data', error: e);
     }
+  }
+
+  @override
+  Stream<List<BodyPattern>> getPatternDataStream() {
+    final doc = _userDoc;
+    if (doc == null) return Stream.value([]);
+    return doc.collection('pattern_data').doc('latest').snapshots().map((doc) {
+      if (!doc.exists) return [];
+      final data = doc.data();
+      if (data == null || data['patterns'] == null) return [];
+      final patterns = (data['patterns'] as List).map((p) => BodyPattern.fromMap(p as Map<String, dynamic>)).toList();
+      return patterns;
+    });
+  }
+
+  @override
+  Future<void> saveHealthAlert(HealthAlert alert) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.collection('health_alerts').add({...alert.toMap(), 'createdAt': FieldValue.serverTimestamp()});
+    } catch (e) {
+      AppLogger.error('FirestoreService: Error saving health alert', error: e);
+    }
+  }
+
+  @override
+  Stream<List<HealthAlert>> getHealthAlertsStream({int limit = 20}) {
+    final doc = _userDoc;
+    if (doc == null) return Stream.value([]);
+    return doc.collection('health_alerts').orderBy('time', descending: true).limit(limit).snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => HealthAlert.fromMap(doc.data(), id: doc.id)).toList();
+    });
   }
 
   @override
   Future<int> getScansCountSince(DateTime since) async {
     final doc = _userDoc;
     if (doc == null) return 0;
+    // 🟡 Fix: Use local time for comparisons to match local "day" definition.
     final snapshot = await doc.collection('scan_history').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
     return snapshot.size;
   }
@@ -538,6 +606,7 @@ class FirestoreServiceImpl implements FirestoreService {
   Future<int> getMealLogsCountSince(DateTime since) async {
     final doc = _userDoc;
     if (doc == null) return 0;
+    // 🟡 Fix: Use local time for comparisons to match local "day" definition.
     final snapshot = await doc.collection('meal_logs').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
     return snapshot.size;
   }
@@ -546,6 +615,7 @@ class FirestoreServiceImpl implements FirestoreService {
   Future<int> getSymptomsCountSince(DateTime since) async {
     final doc = _userDoc;
     if (doc == null) return 0;
+    // 🟡 Fix: Use local time for comparisons to match local "day" definition.
     final snapshot = await doc.collection('symptom_logs').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
     return snapshot.size;
   }

@@ -5,6 +5,7 @@ import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/services/ai_service.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
@@ -21,6 +22,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
   final FirestoreService _firestoreService;
   final NotificationService _notificationService;
   final AppStateService _appStateService;
+  final AnalyticsService _analyticsService;
 
   ScannerRepositoryImpl({
     required OffService offService,
@@ -28,11 +30,13 @@ class ScannerRepositoryImpl implements ScannerRepository {
     required FirestoreService firestoreService,
     required NotificationService notificationService,
     required AppStateService appStateService,
+    required AnalyticsService analyticsService,
   }) : _offService = offService,
        _aiService = aiService,
        _firestoreService = firestoreService,
        _notificationService = notificationService,
-       _appStateService = appStateService;
+       _appStateService = appStateService,
+       _analyticsService = analyticsService;
 
   @override
   Future<OffProduct?> getProductByBarcode(String barcode) async {
@@ -61,7 +65,9 @@ class ScannerRepositoryImpl implements ScannerRepository {
     aiData['barcode'] ??= product.barcode;
     aiData['nutrients'] ??= product.nutrients?.toMap();
 
-    return ScanResult.fromMap(aiData);
+    final result = ScanResult.fromMap(aiData);
+    await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'barcode', 'product_name': result.productName, 'score': result.score});
+    return result;
   }
 
   @override
@@ -83,7 +89,9 @@ class ScannerRepositoryImpl implements ScannerRepository {
     final match = scanRegex.firstMatch(aiResultStr);
     if (match != null) {
       final jsonStr = match.group(1)?.replaceAll('```json', '').replaceAll('```', '').trim() ?? '';
-      return ScanResult.fromMap(jsonDecode(jsonStr));
+      final result = ScanResult.fromMap(jsonDecode(jsonStr));
+      await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'vision', 'product_name': result.productName, 'score': result.score});
+      return result;
     } else {
       throw Exception('ScannerRepository: Could not parse AI vision result');
     }
@@ -91,24 +99,27 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
   @override
   Future<void> saveScanResult(ScanResult result, {String? userImageUrl}) async {
-    Log.i('ScannerRepository: Creating ChatMessage for scan: ${result.productName}');
+    AppLogger.info('ScannerRepository: Creating ChatMessage for scan: ${result.productName}');
     final userMsg = ChatMessage(localId: const Uuid().v4(), role: 'user', text: 'Scan: ${result.productName} ✨', scanData: result, imageUrl: userImageUrl, source: result.source, time: DateTime.now());
 
     await _firestoreService.saveMessage(userMsg);
-    Log.i('ScannerRepository: Scan result message saved to Firestore');
+    AppLogger.info('ScannerRepository: Scan result message saved to Firestore');
 
     // Passive logging (PRD §2 / §6.2 / §13): a completed scan is also a LOG.
     // Without this write, scan_history stayed empty -> the Scan History screen,
     // the Insights scan-trigger (3 scans, §8.2), scan-aware insight context and
     // the processed-food warning notification could never fire.
     await _firestoreService.saveToScanHistory(result, userImageUrl: userImageUrl);
-    Log.i('ScannerRepository: Scan result saved to scan_history. Image: ${userImageUrl != null}');
+    AppLogger.info('ScannerRepository: Scan result saved to scan_history. Image: ${userImageUrl != null}');
 
     // 🟢 Fix: Notify UI that history has updated
     _appStateService.notifyChatUpdated();
-    Log.i('ScannerRepository: UI notified of scan history update');
+    AppLogger.info('ScannerRepository: UI notified of scan history update');
 
     _notificationService.scheduleNoMealLoggedReminder();
-    _notificationService.checkAndTriggerProcessedFoodWarning();
+    
+    // 🚀 Professional Loop: Schedule a symptom check-in 2 hours after a scan.
+    // This helps the Pattern Engine find correlations later.
+    _notificationService.schedulePostMealCheckIn();
   }
 }

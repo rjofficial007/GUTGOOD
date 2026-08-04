@@ -101,6 +101,12 @@ service cloud.firestore {
         allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
       }
 
+      match /health_alerts/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwner(userId);
+      }
+
       // Idempotency markers written only by the mergeAnonymousAccount Cloud
       // Function (Admin SDK bypasses rules). Clients can read but never forge.
       match /merges/{anonUid} {

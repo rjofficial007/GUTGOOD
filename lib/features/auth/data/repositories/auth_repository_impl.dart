@@ -9,10 +9,11 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:gutgood/core/constants/api_constants.dart';
 import 'package:gutgood/core/models/user_profile.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
-import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/data/models/auth_user_model.dart';
 import 'package:gutgood/features/auth/domain/entities/auth_user.dart';
@@ -26,10 +27,11 @@ class AuthRepositoryImpl implements AuthRepository {
   final GoogleSignIn _googleSignIn;
   final FirestoreService _firestoreService;
   final PurchaseService _purchaseService;
-  final StorageService _storageService;
   final SharedPreferences _prefs;
   final AppStateService _appStateService;
   final FirebaseFunctions _firebaseFunctions;
+  final AnalyticsService _analyticsService;
+  final CrashlyticsService _crashlyticsService;
 
   Future<void>? _googleSignInInitFuture;
   final _isMergingController = StreamController<bool>.broadcast();
@@ -39,18 +41,20 @@ class AuthRepositoryImpl implements AuthRepository {
     required GoogleSignIn googleSignIn,
     required FirestoreService firestoreService,
     required PurchaseService purchaseService,
-    required StorageService storageService,
     required SharedPreferences prefs,
     required AppStateService appStateService,
     required FirebaseFunctions firebaseFunctions,
+    required AnalyticsService analyticsService,
+    required CrashlyticsService crashlyticsService,
   }) : _firebaseAuth = firebaseAuth,
        _googleSignIn = googleSignIn,
        _firestoreService = firestoreService,
        _purchaseService = purchaseService,
-       _storageService = storageService,
        _prefs = prefs,
        _appStateService = appStateService,
-       _firebaseFunctions = firebaseFunctions;
+       _firebaseFunctions = firebaseFunctions,
+       _analyticsService = analyticsService,
+       _crashlyticsService = crashlyticsService;
 
   Future<void> _ensureGoogleSignInInitialized() {
     return _googleSignInInitFuture ??= _googleSignIn.initialize(serverClientId: ApiConstants.googleServerClientId, clientId: Platform.isIOS ? DefaultFirebaseOptions.ios.iosClientId : null);
@@ -68,7 +72,7 @@ class AuthRepositoryImpl implements AuthRepository {
   void _guardAgainstSilentAccountSwitch(String attemptedProvider) {
     final current = _firebaseAuth.currentUser;
     if (current != null && !current.isAnonymous) {
-      Log.w('AuthRepo: Blocked $attemptedProvider switch attempt for ${current.uid}.');
+      AppLogger.warning('AuthRepo: Blocked $attemptedProvider switch attempt for ${current.uid}.');
       throw AuthAlreadySignedInException(currentUid: current.uid, currentEmail: current.email, attemptedProvider: attemptedProvider);
     }
   }
@@ -86,7 +90,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     try {
-      Log.i('AuthRepo: Signing in anonymously...');
+      AppLogger.info('AuthRepo: Signing in anonymously...');
       final userCredential = await _firebaseAuth.signInAnonymously();
       final user = userCredential.user;
       if (user == null) return null;
@@ -108,9 +112,11 @@ class AuthRepositoryImpl implements AuthRepository {
       await _prefs.setBool('onboarded', false);
 
       _appStateService.notifyProfileUpdated();
+      await _identifyUser(user.uid, user.email);
+      await _analyticsService.logEvent(name: 'sign_in_anonymous');
       return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
     } catch (e) {
-      Log.e('AuthRepo: Anonymous sign-in failed', error: e);
+      AppLogger.error('AuthRepo: Anonymous sign-in failed', error: e);
       rethrow;
     }
   }
@@ -128,12 +134,13 @@ class AuthRepositoryImpl implements AuthRepository {
       if (user == null) return null;
 
       await _finalizeAuth(user, displayName: googleUser.displayName, email: googleUser.email, photoUrl: googleUser.photoUrl);
+      await _analyticsService.logEvent(name: 'login', parameters: {'method': 'google'});
       return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) return null;
       rethrow;
     } catch (e) {
-      Log.e('AuthRepo: Google Sign-In failed', error: e);
+      AppLogger.error('AuthRepo: Google Sign-In failed', error: e);
       rethrow;
     }
   }
@@ -159,12 +166,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final appleName = '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'.trim();
       await _finalizeAuth(user, displayName: appleName.isNotEmpty ? appleName : null, email: appleCredential.email, photoUrl: user.photoURL);
+      await _analyticsService.logEvent(name: 'login', parameters: {'method': 'apple'});
       return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) return null;
       rethrow;
     } catch (e) {
-      Log.e('AuthRepo: Apple Sign In failed', error: e);
+      AppLogger.error('AuthRepo: Apple Sign In failed', error: e);
       rethrow;
     }
   }
@@ -192,9 +200,10 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = await _linkOrMerge(credential);
       if (user == null) return null;
       await _finalizeAuth(user, email: email);
+      await _analyticsService.logEvent(name: 'login', parameters: {'method': 'email'});
       return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
     } catch (e) {
-      Log.e('AuthRepo: Email sign-in failed', error: e);
+      AppLogger.error('AuthRepo: Email sign-in failed', error: e);
       rethrow;
     }
   }
@@ -211,7 +220,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await _finalizeAuth(user, email: email);
         return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
       } catch (e) {
-        Log.e('AuthRepo: Email upgrade failed', error: e);
+        AppLogger.error('AuthRepo: Email upgrade failed', error: e);
         rethrow;
       }
     }
@@ -221,9 +230,10 @@ class AuthRepositoryImpl implements AuthRepository {
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
       if (userCredential.user == null) return null;
       await _finalizeAuth(userCredential.user!, email: email);
+      await _analyticsService.logEvent(name: 'sign_up', parameters: {'method': 'email'});
       return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
     } catch (e) {
-      Log.e('AuthRepo: Email sign-up failed', error: e);
+      AppLogger.error('AuthRepo: Email sign-up failed', error: e);
       rethrow;
     }
   }
@@ -363,7 +373,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final result = await _firebaseFunctions.httpsCallable('mergeAnonymousAccount').call({'anonymousUid': anonymousUid});
 
       final bool alreadyMerged = result.data['alreadyMerged'] ?? false;
-      Log.i('AuthRepo: Cloud merge call successful. alreadyMerged: $alreadyMerged');
+      AppLogger.info('AuthRepo: Cloud merge call successful. alreadyMerged: $alreadyMerged');
 
       // Local migration is now handled by Firestore's native merge and Cloud Functions.
       // Firestore's offline persistence will automatically reconcile the local cache.
@@ -380,7 +390,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _prefs.remove('pending_merge_anon_uid');
       await _prefs.remove('pending_merge_provider');
     } catch (e) {
-      Log.e('AuthRepo: confirmMerge failed', error: e);
+      AppLogger.error('AuthRepo: confirmMerge failed', error: e);
       rethrow;
     } finally {
       _appStateService.setMigrating(false);
@@ -436,13 +446,22 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     await _purchaseService.login(user.uid);
+    await _identifyUser(user.uid, user.email);
 
     _appStateService.notifyProfileUpdated();
   }
 
+  Future<void> _identifyUser(String uid, String? email) async {
+    await _analyticsService.setUserId(uid);
+    await _crashlyticsService.setUserId(uid);
+    if (email != null) {
+      await _analyticsService.setUserProperty(name: 'email', value: email);
+    }
+  }
+
   @override
   Future<void> abandonMerge() async {
-    Log.i('AuthRepo: Abandoning merge. Clearing pending state.');
+    AppLogger.info('AuthRepo: Abandoning merge. Clearing pending state.');
     await _prefs.remove('pending_merge_anon_uid');
     await _prefs.remove('pending_merge_provider');
     _appStateService.setPendingMergeConflict(null);
@@ -452,13 +471,14 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> signOut() async {
     _appStateService.setLoggingOut(true);
     try {
+      await _firestoreService.clearFcmToken();
       await _firebaseAuth.signOut();
       await _googleSignIn.signOut();
       await _purchaseService.logout();
       await _clearUserSessionData();
       _appStateService.resetSession();
     } catch (e) {
-      Log.w('AuthRepo: Sign out warning: $e');
+      AppLogger.warning('AuthRepo: Sign out warning: $e');
     } finally {
       _appStateService.setLoggingOut(false);
     }
@@ -470,6 +490,7 @@ class AuthRepositoryImpl implements AuthRepository {
     if (user == null) return;
     _appStateService.setLoggingOut(true);
     try {
+      await _firestoreService.clearFcmToken();
       // 🟢 Fix: Authoritative cleanup is handled by the Cloud Function trigger
       // (onUserDeleted). We only delete the Auth user from the client.
       await user.delete();
@@ -512,7 +533,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     }
 
-    Log.d('AuthRepo: User session data cleared. Preserving device-level prefs.');
+    AppLogger.debug('AuthRepo: User session data cleared. Preserving device-level prefs.');
   }
 
   @override

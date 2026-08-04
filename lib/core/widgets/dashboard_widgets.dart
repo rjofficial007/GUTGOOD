@@ -22,10 +22,7 @@ class DashboardEntrance extends StatelessWidget {
       builder: (context, value, child) {
         return Opacity(
           opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 30 * (1 - value)),
-            child: child,
-          ),
+          child: Transform.translate(offset: Offset(0, 30 * (1 - value)), child: child),
         );
       },
       child: child,
@@ -39,13 +36,7 @@ class DashboardCard extends StatelessWidget {
   final VoidCallback? onFooterTap;
   final String? footerLabel;
 
-  const DashboardCard({
-    super.key,
-    required this.child,
-    this.footer,
-    this.onFooterTap,
-    this.footerLabel,
-  });
+  const DashboardCard({super.key, required this.child, this.footer, this.onFooterTap, this.footerLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -54,13 +45,7 @@ class DashboardCard extends StatelessWidget {
         color: context.appColorScheme.cardBackground,
         borderRadius: BorderRadius.circular(AppSizes.r28),
         border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: AppPalette.black.withValues(alpha: 0.02),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -75,7 +60,8 @@ class DashboardCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border(top: BorderSide(color: context.appColorScheme.border.withValues(alpha: 0.5))),
                 ),
-                child: footer ??
+                child:
+                    footer ??
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -83,13 +69,7 @@ class DashboardCard extends StatelessWidget {
                           footerLabel ?? 'View All',
                           style: context.caption.copyWith(fontWeight: FontWeight.bold, color: context.appColorScheme.textPrimary),
                         ),
-                        Row(
-                          children: [
-                            Icon(AppIcons.chevronLeft, color: context.appColorScheme.textMuted.withValues(alpha: 0.5), size: 16.0.w),
-                            Gap.w8,
-                            Icon(AppIcons.chevronRight, color: context.appColorScheme.textPrimary, size: 16.0.w),
-                          ],
-                        ),
+                        Icon(AppIcons.chevronRight, color: context.appColorScheme.textPrimary, size: 16.0.w),
                       ],
                     ),
               ),
@@ -106,13 +86,7 @@ class DashboardDetailItem extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const DashboardDetailItem({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-  });
+  const DashboardDetailItem({super.key, required this.title, required this.subtitle, required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +99,7 @@ class DashboardDetailItem extends StatelessWidget {
             borderRadius: BorderRadius.circular(8.0.r),
             border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
           ),
-          child: Icon(icon, color: context.appColorScheme.textPrimary, size: 14.0.w),
+          child: Icon(icon, color: color, size: 14.0.w),
         ),
         Gap.w10,
         Expanded(
@@ -140,11 +114,7 @@ class DashboardDetailItem extends StatelessWidget {
               ),
               Text(
                 subtitle,
-                style: context.caption.copyWith(
-                  fontSize: 10.0.sp,
-                  color: context.appColorScheme.textMuted,
-                  height: 1.1,
-                ),
+                style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted, height: 1.1),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -152,6 +122,54 @@ class DashboardDetailItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class GutDashboardSection extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Widget visualization;
+  final List<Widget> items;
+  final String? footerLabel;
+  final VoidCallback? onFooterTap;
+  final Color? titleColor;
+
+  const GutDashboardSection({super.key, required this.title, required this.subtitle, required this.visualization, required this.items, this.footerLabel, this.onFooterTap, this.titleColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCard(
+      onFooterTap: onFooterTap,
+      footerLabel: footerLabel,
+      child: Padding(
+        padding: EdgeInsets.all(AppSizes.p20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title.toUpperCase(),
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s16, fontWeight: FontWeight.w900, letterSpacing: -1, color: titleColor ?? context.appColorScheme.textPrimary),
+                  ),
+                  Text(
+                    subtitle.toUpperCase(),
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s12),
+                  ),
+                  Gap.h24,
+                  visualization,
+                ],
+              ),
+            ),
+            Gap.w16,
+            Expanded(flex: 5, child: Column(children: items)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -183,12 +201,7 @@ class GutProgressBar extends StatelessWidget {
   final double height;
   final bool animate;
 
-  const GutProgressBar({
-    super.key,
-    required this.ratio,
-    this.height = 12.0,
-    this.animate = true,
-  });
+  const GutProgressBar({super.key, required this.ratio, this.height = 12.0, this.animate = true});
 
   @override
   Widget build(BuildContext context) {
@@ -197,10 +210,7 @@ class GutProgressBar extends StatelessWidget {
     final content = Container(
       height: height.h,
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: trackColor,
-        borderRadius: BorderRadius.circular(100),
-      ),
+      decoration: BoxDecoration(color: trackColor, borderRadius: BorderRadius.circular(100)),
       child: LayoutBuilder(
         builder: (context, constraints) {
           return TweenAnimationBuilder<double>(
@@ -212,10 +222,7 @@ class GutProgressBar extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 widthFactor: value,
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: context.appColorScheme.textPrimary,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
+                  decoration: BoxDecoration(color: context.appColorScheme.textPrimary, borderRadius: BorderRadius.circular(100)),
                 ),
               );
             },
@@ -234,13 +241,7 @@ class SheetHeroSection extends StatelessWidget {
   final Color color;
   final IconData icon;
 
-  const SheetHeroSection({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.icon,
-  });
+  const SheetHeroSection({super.key, required this.title, required this.subtitle, required this.color, required this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -260,10 +261,7 @@ class SheetHeroSection extends StatelessWidget {
           title,
           style: context.bodyBold.copyWith(fontSize: 40.0.sp, fontWeight: FontWeight.w900, letterSpacing: -1),
         ),
-        Text(
-          subtitle,
-          style: context.eyebrow.copyWith(color: context.appColorScheme.textMuted, letterSpacing: 1.5),
-        ),
+        Text(subtitle, style: context.eyebrow.copyWith(color: context.appColorScheme.textMuted, letterSpacing: 1.5)),
       ],
     );
   }
@@ -284,10 +282,7 @@ class SheetSectionHeader extends StatelessWidget {
           Container(
             width: 4.0.w,
             height: 16.0.h,
-            decoration: BoxDecoration(
-              color: context.appColorScheme.textPrimary,
-              borderRadius: BorderRadius.circular(2.0.r),
-            ),
+            decoration: BoxDecoration(color: context.appColorScheme.textPrimary, borderRadius: BorderRadius.circular(2.0.r)),
           ),
           Gap.w12,
           Text(

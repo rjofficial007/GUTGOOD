@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
@@ -15,8 +16,7 @@ abstract class DeviceInfoService {
 class DeviceInfoServiceImpl implements DeviceInfoService {
   final DeviceInfoPlugin _deviceInfoPlugin;
 
-  DeviceInfoServiceImpl({required DeviceInfoPlugin deviceInfoPlugin})
-      : _deviceInfoPlugin = deviceInfoPlugin;
+  DeviceInfoServiceImpl({required DeviceInfoPlugin deviceInfoPlugin}) : _deviceInfoPlugin = deviceInfoPlugin;
 
   @override
   IosDeviceInfo? iosBaseDeviceInfo;
@@ -49,7 +49,7 @@ class DeviceInfoServiceImpl implements DeviceInfoService {
         deviceOsVersion = info.systemVersion;
       }
     } catch (e) {
-      Log.e("DeviceInfoService: Error fetching device info", error: e);
+      AppLogger.error("DeviceInfoService: Error fetching device info", error: e);
     }
   }
 }

@@ -8,6 +8,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/selection_option.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -47,6 +48,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int get _totalPages => 5;
 
   @override
+  void initState() {
+    super.initState();
+    sl<AnalyticsService>().logEvent(name: 'onboarding_started');
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -56,6 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     FocusScope.of(context).unfocus();
     if (_page < _totalPages - 1) {
       _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      sl<AnalyticsService>().logEvent(name: 'onboarding_step_complete', parameters: {'step': _page});
     } else {
       _finish();
     }
@@ -65,6 +73,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     FocusScope.of(context).unfocus();
     if (_page > 0) {
       _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      sl<AnalyticsService>().logEvent(name: 'onboarding_step_back', parameters: {'from_step': _page});
     } else {
       context.pop();
     }
@@ -79,7 +88,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // 🟢 Guard: Ensure we have a valid session before finishing.
     final currentUser = sl<FirebaseAuth>().currentUser;
     if (currentUser == null) {
-      Log.w('OnboardingScreen: Attempted to finish without active session.');
+      AppLogger.warning('OnboardingScreen: Attempted to finish without active session.');
       setState(() => _isFinishing = false);
       if (mounted) context.go(AppRoutes.welcome);
       return;

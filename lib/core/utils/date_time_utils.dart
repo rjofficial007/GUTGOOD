@@ -23,4 +23,10 @@ class DateTimeUtils {
 
     return DateTime.now();
   }
+
+  /// Parses a value and ensures the result is in UTC.
+  static DateTime parseToUtc(dynamic value) {
+    final dt = parse(value);
+    return dt.isUtc ? dt : dt.toUtc();
+  }
 }

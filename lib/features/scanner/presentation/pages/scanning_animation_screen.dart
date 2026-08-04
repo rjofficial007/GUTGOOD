@@ -172,7 +172,7 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
                       // Percentage Counter
                       Text(
                         '${(_progressAnimation.value * 100).toInt()}%',
-                        style: context.headingLg.copyWith(fontSize: 40, fontWeight: FontWeight.w900, color: context.appColorScheme.textPrimary),
+                        style: context.headingLg.copyWith(fontSize: AppSizes.s40, fontWeight: FontWeight.w900, color: context.appColorScheme.textPrimary),
                       ),
                       Gap.h8,
                       // Narrative Loading Text
@@ -207,14 +207,14 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), shape: BoxShape.circle),
-                      child: Icon(AppIcons.lightbulb, color: context.appColorScheme.textPrimary, size: 20),
+                      child: Icon(AppIcons.lightbulb, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
                     ),
                     Gap.w16,
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(AppStrings.tip, style: context.title.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
+                          Text(AppStrings.tip, style: context.title.copyWith(fontSize: AppSizes.s15, fontWeight: FontWeight.w800)),
                           Gap.h4,
                           Text(AppStrings.barcodeTip, style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary, height: 1.4)),
                         ],

@@ -238,7 +238,7 @@ if (syncToCloud && firestoreId == null) {
 
 ```dart
 } catch (e) {
-  Log.e('FirestoreService: Error saving message', error: e);
+  Log.error('FirestoreService: Error saving message', error: e);
   return null;
 }
 ```
@@ -272,7 +272,7 @@ Future<void> pushPendingWrites() async {
 
 ### 2.2 Swallowed errors mask failures
 
-Nearly every method in `FirestoreServiceImpl` does `try { ... } catch (e) { Log.e(...); return null/void; }`.
+Nearly every method in `FirestoreServiceImpl` does `try { ... } catch (e) { Log.error(...); return null/void; }`.
 That's reasonable at the outermost boundary (don't crash the UI), but several *callers* treat the call as
 having succeeded:
 

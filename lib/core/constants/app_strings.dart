@@ -655,7 +655,6 @@ class AppStrings {
   static const String nonMedicalDisclaimer = 'Non-Medical Advice Disclaimer: Insights are patterns based on your logs, not a diagnosis.';
   static const String live = 'Live';
   static const String off = 'Off';
-  static const String dayStreakActive = ' day streak active';
   static const String updatePersonalization = 'UPDATE PERSONALIZATION';
   static const String secureYourData = 'SECURE YOUR DATA';
   static const String updatePreferencesTitle = 'Update Personalization';
@@ -814,8 +813,47 @@ class AppStrings {
   static const String viewAllDiscoveries = 'View All Discoveries';
   static const String premiumMember = 'PREMIUM MEMBER';
   static const String freeMember = 'FREE MEMBER';
-  static const String dayStreak = 'D STREAK';
   static const String gutHealthStoryDesc = 'Every analysis you run with GUTGOOD will appear here. Start logging to build your archive.';
   static const String selectVisualStyle = 'Select your preferred visual style for the app.';
   static const String personalizeInsightsPhase = 'Personalize insights based on your cycle phase';
+
+  // Auth Error & Messaging
+  static const String authSyncDelayedMessage = 'We signed you in, but couldn\'t restore your previous data yet. It will retry automatically next time you open the app.';
+  static const String enterNameContinuePrompt = 'Please enter your name to continue.';
+  static const String labelYourName = 'YOUR NAME';
+  static const String mergeConfirmationQuestion = '. Would you like to merge your current guest progress into it?';
+  static const String labelScorePrefix = 'Score: ';
+  static const String labelGramSuffix = 'g';
+  static const String labelAvoid = 'Avoid';
+  static const String labelLimit = 'Limit';
+  static const String labelClean = 'Clean';
+  static const String labelHealth = 'HEALTH';
+  static const String labelReady = 'Ready.';
+  static const String labelFeedbackSubject = 'I have some feedback regarding GutGood:';
+  static const String semanticsAppearancePrefix = 'Select ';
+  static const String semanticsAppearanceSuffix = ' appearance';
+  static const String labelSavedItem = 'Saved Item';
+  static const String unitAM = 'AM';
+  static const String unitPM = 'PM';
+  static const String labelSending = 'Sending...';
+  static const String labelFailed = 'Failed';
+  static const String labelHelpful = 'helpful';
+  static const String labelNotHelpful = 'not_helpful';
+  static const String labelTellMeMore = 'tell_me_more';
+  static const String paywallFooterPrefix = '🔒 Secure payment. Cancel anytime.\n';
+  static const String paywallRestore = 'Restore purchases';
+  static const String paywallTerms = 'Terms';
+  static const String paywallPrivacy = 'Privacy';
+
+  // Streak Celebration
+  static const String streakUp = 'STREAK UP!';
+  static const String daysInARow = 'DAYS IN A ROW';
+  static const String streakQuote = 'You\'re building a healthy habit, one day at a time. Keep it up!';
+  static const String continueAction = 'CONTINUE';
+
+  static const String streakOnFire = 'You\'re on fire today! 🔥';
+  static const String streakKeepAlive = 'Keep the flame alive!';
+  static const String gutScoreTrend = 'GUT SCORE TREND';
+  static const String weeklySnapshot = 'Weekly progress snapshot';
+  static const String dayStreakLabel = 'DAY STREAK';
 }

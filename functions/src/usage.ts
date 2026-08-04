@@ -20,8 +20,12 @@ export interface UsageCheckResult {
   alreadyCounted: boolean;
 }
 
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+function todayKey(timezoneOffsetMinutes: number = 0): string {
+  const now = new Date();
+  // Adjust UTC time by the user's local offset (in minutes) to get their local date.
+  // Note: Dart's timeZoneOffset is positive for Eastern timezones (e.g., IST is +330).
+  const localTime = new Date(now.getTime() + (timezoneOffsetMinutes * 60000));
+  return localTime.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
 function fieldFor(type: UsageType): 'chat_count' | 'scan_count' | 'system_count' {
@@ -53,6 +57,7 @@ export async function checkAndConsume(
   isAnonymous: boolean,
   type: UsageType,
   idempotencyKey?: string,
+  timezoneOffsetMinutes: number = 0,
 ): Promise<UsageCheckResult> {
   if (await isPremiumUser(uid)) {
     return { allowed: true, premium: true, count: 0, limit: Number.MAX_SAFE_INTEGER, alreadyCounted: false };
@@ -65,7 +70,8 @@ export async function checkAndConsume(
   else limit = limits.system;
 
   const field = fieldFor(type);
-  const ref = admin.firestore().doc(`user_profiles/${uid}/daily_usage/${todayKey()}`);
+  const today = todayKey(timezoneOffsetMinutes);
+  const ref = admin.firestore().doc(`user_profiles/${uid}/daily_usage/${today}`);
   const userRef = admin.firestore().doc(`user_profiles/${uid}`);
 
   return admin.firestore().runTransaction(async (tx) => {
@@ -102,11 +108,10 @@ export async function checkAndConsume(
     if (userSnap.exists) {
       const userData = userSnap.data() ?? {};
       const lastDate = (userData.lastActivityDate ?? '').toString();
-      const today = todayKey();
       let currentStreak = Number(userData.streak ?? 0);
 
       if (lastDate !== today) {
-        // Calculate "Yesterday" relative to our UTC "Today" string
+        // Calculate "Yesterday" relative to our Local "Today" string
         const yesterday = new Date(today);
         yesterday.setUTCDate(yesterday.getUTCDate() - 1);
         const yesterdayKey = yesterday.toISOString().slice(0, 10);
@@ -138,8 +143,9 @@ export async function checkAndConsume(
 /**
  * Read-only usage peek (used by tests / diagnostics; not a gate).
  */
-export async function getUsage(uid: string): Promise<Record<string, number>> {
-  const snap = await admin.firestore().doc(`user_profiles/${uid}/daily_usage/${todayKey()}`).get();
+export async function getUsage(uid: string, timezoneOffsetMinutes: number = 0): Promise<Record<string, number>> {
+  const today = todayKey(timezoneOffsetMinutes);
+  const snap = await admin.firestore().doc(`user_profiles/${uid}/daily_usage/${today}`).get();
   const data = snap.data() ?? {};
   return {
     chat_count: (data.chat_count as number) ?? 0,

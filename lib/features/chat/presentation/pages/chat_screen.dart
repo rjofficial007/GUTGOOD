@@ -141,16 +141,13 @@ class _ChatScreenState extends State<ChatScreen> {
         _ => AppStrings.analyzeGalleryVision,
       };
 
-      // Pre-fill an editable suggested prompt (the user can change or erase it —
-      // exactly like ChatGPT's caption field under an attached photo).
-      if (_controller.text.trim().isEmpty) {
-        _controller.text = switch (type) {
-          'menu' => AppStrings.menuPhotoPrompt,
-          'label' => AppStrings.labelPhotoPrompt,
-          'food' => AppStrings.mealPhotoPrompt,
-          _ => AppStrings.galleryPhotoPrompt,
-        };
-      }
+      // 🟢 Fix: Always update text to the suggested prompt for the selected mode.
+      _controller.text = switch (type) {
+        'menu' => AppStrings.menuPhotoPrompt,
+        'label' => AppStrings.labelPhotoPrompt,
+        'food' => AppStrings.mealPhotoPrompt,
+        _ => AppStrings.galleryPhotoPrompt,
+      };
     });
   }
 
@@ -159,28 +156,21 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!await _guardUsage(chatNotifier, authNotifier, isScan: true)) return;
 
     try {
-      final remaining = ChatNotifier.maxAttachments - chatNotifier.pendingAttachments.length;
-      if (remaining <= 0) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.maxAttachmentsMessage), behavior: SnackBarBehavior.floating));
-        }
-        return;
-      }
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      if (image == null) return;
 
-      final List<XFile> images = await _picker.pickMultiImage(imageQuality: 80, limit: remaining);
-      if (images.isEmpty) return;
+      final bytes = await image.readAsBytes();
+      final added = await chatNotifier.addAttachment(bytes, source: 'gallery');
 
-      var addedAny = false;
-      for (final image in images) {
-        final bytes = await image.readAsBytes();
-        addedAny = (await chatNotifier.addAttachment(bytes, source: 'gallery')) || addedAny;
-      }
-
-      if (addedAny) {
-        setState(() => _pendingHiddenContext ??= AppStrings.analyzeGalleryVision);
+      if (added) {
+        setState(() {
+          _pendingHiddenContext = AppStrings.analyzeGalleryVision;
+          // 🟢 Fix: Always sync text with gallery prompt
+          _controller.text = AppStrings.galleryPhotoPrompt;
+        });
       }
     } catch (e, st) {
-      Log.e('ChatScreen: Image pick failed', error: e, stackTrace: st);
+      AppLogger.error('ChatScreen: Image pick failed', error: e, stackTrace: st);
     }
   }
 
@@ -190,7 +180,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<bool> _guardUsage(ChatNotifier chatNotifier, GutAuthNotifier authNotifier, {required bool isScan}) async {
     final usageService = sl<UsageService>();
     final allowed = isScan ? await usageService.canScan() : await usageService.canChat();
-    Log.d('ChatScreen: usage guard (scan: $isScan) -> $allowed');
+    AppLogger.debug('ChatScreen: usage guard (scan: $isScan) -> $allowed');
     if (allowed) return true;
 
     if (mounted) {
@@ -275,7 +265,7 @@ class _ChatScreenState extends State<ChatScreen> {
         debugDisplayAlways: false,
         messages: UpgraderMessages(),
         willDisplayUpgrade: ({required bool display, String? installedVersion, UpgraderVersionInfo? versionInfo}) {
-          Log.d("UpgradeAlert display: $display, installed: $installedVersion, store: ${versionInfo?.appStoreVersion}");
+          AppLogger.debug("UpgradeAlert display: $display, installed: $installedVersion, store: ${versionInfo?.appStoreVersion}");
         },
       ),
       child: Scaffold(
@@ -550,52 +540,44 @@ class _AttachmentPreviewRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attachments = notifier.pendingAttachments;
+    if (attachments.isEmpty) return const SizedBox.shrink();
+    final attachment = attachments.first;
+
     return Container(
       height: 68,
       margin: const EdgeInsets.only(bottom: 6),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: attachments.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final attachment = attachments[index];
-          return KeyedSubtree(
-            key: ValueKey(attachment.id),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.memory(attachment.bytes, width: 60, height: 60, fit: BoxFit.cover, gaplessPlayback: true),
-                ),
-                Positioned(
-                  top: -6,
-                  right: -6,
-                  child: Semantics(
-                    label: AppStrings.removeAttachment,
-                    button: true,
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticHelper.light();
-                        notifier.removeAttachment(attachment.id);
-                      },
-                      child: Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          color: context.appColorScheme.textPrimary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
-                        ),
-                        child: Icon(AppIcons.x, size: 12, color: context.appColorScheme.cardBackground),
-                      ),
-                    ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.memory(attachment.bytes, width: 60, height: 60, fit: BoxFit.cover, gaplessPlayback: true),
+          ),
+          Positioned(
+            top: -6,
+            right: -6,
+            child: Semantics(
+              label: AppStrings.removeAttachment,
+              button: true,
+              child: GestureDetector(
+                onTap: () {
+                  HapticHelper.light();
+                  notifier.removeAttachment(attachment.id);
+                },
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: context.appColorScheme.textPrimary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
                   ),
+                  child: Icon(AppIcons.x, size: 12, color: context.appColorScheme.cardBackground),
                 ),
-              ],
+              ),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -710,7 +692,7 @@ class _ChatShimmerLoading extends StatelessWidget {
       itemBuilder: (context, index) {
         final isUser = index % 2 == 0;
         final baseColor = context.appColorScheme.border.withValues(alpha: 0.2);
-        final highlightColor = context.appColorScheme.border.withValues(alpha: 0.1);
+        final highlightColor = context.appColorScheme.border.withValues(alpha: 0.5);
 
         if (isUser) {
           return Align(
@@ -746,10 +728,13 @@ class _ChatShimmerLoading extends StatelessWidget {
               Shimmer.fromColors(
                 baseColor: baseColor,
                 highlightColor: highlightColor,
-                child: Container(
-                  width: AppSizes.icon28,
-                  height: AppSizes.icon28,
-                  decoration: BoxDecoration(color: context.appColorScheme.cardBackground, shape: BoxShape.circle),
+                child: Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: Container(
+                    width: AppSizes.icon28,
+                    height: AppSizes.icon28,
+                    decoration: BoxDecoration(color: context.appColorScheme.cardBackground, shape: BoxShape.circle),
+                  ),
                 ),
               ),
               Gap.w12,

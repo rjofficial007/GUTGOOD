@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
+import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:uuid/uuid.dart';
@@ -58,8 +60,15 @@ class AiServiceImpl implements AiService {
   final Dio _dio;
   final FirebaseAuth _auth;
   final RemoteConfigService _config;
+  final AnalyticsService _analyticsService;
+  final CrashlyticsService _crashlyticsService;
 
-  AiServiceImpl({required Dio dio, required FirebaseAuth auth, required RemoteConfigService config}) : _dio = dio, _auth = auth, _config = config;
+  AiServiceImpl({required Dio dio, required FirebaseAuth auth, required RemoteConfigService config, required AnalyticsService analyticsService, required CrashlyticsService crashlyticsService})
+    : _dio = dio,
+      _auth = auth,
+      _config = config,
+      _analyticsService = analyticsService,
+      _crashlyticsService = crashlyticsService;
 
   static const int _maxRetries = 2;
 
@@ -110,9 +119,11 @@ class AiServiceImpl implements AiService {
       'model': _config.openAIModel,
       'usageType': (images != null && images.isNotEmpty) ? 'scan' : 'chat',
       'idempotencyKey': idempotencyKey,
+      'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
     });
 
-    Log.d('AiService: streaming via proxy (history: ${history.length}, images: ${images?.length ?? 0})');
+    AppLogger.debug('AiService: streaming via proxy (history: ${history.length}, images: ${images?.length ?? 0})');
+    final startTime = DateTime.now();
 
     final Response<ResponseBody> response;
     try {
@@ -121,13 +132,16 @@ class AiServiceImpl implements AiService {
         data: body,
         options: Options(responseType: ResponseType.stream, headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(minutes: 4), validateStatus: (_) => true),
       );
-    } on DioException catch (e) {
+    } on DioException catch (e, st) {
+      await _analyticsService.logEvent(name: 'ai_stream_failed', parameters: {'error': e.toString(), 'type': images != null ? 'scan' : 'chat'});
+      await _crashlyticsService.recordError(e, st, reason: 'AI Stream connection failed');
       throw AiServiceException(e.message ?? 'Connection failed.', statusCode: e.response?.statusCode);
     }
 
     final status = response.statusCode ?? 500;
     if (status != 200) {
       final errorBody = await _readErrorBody(response.data);
+      await _analyticsService.logEvent(name: 'ai_stream_error', parameters: {'status': status, 'type': images != null ? 'scan' : 'chat'});
       _throwForStatus(status, errorBody);
     }
 
@@ -139,6 +153,10 @@ class AiServiceImpl implements AiService {
     bool sawDone = false;
 
     await for (final chunk in stream) {
+      if (buffer.isEmpty && chunk.isNotEmpty) {
+        final firstTokenLatency = DateTime.now().difference(startTime).inMilliseconds;
+        _analyticsService.logEvent(name: 'ai_stream_first_token', parameters: {'latency_ms': firstTokenLatency, 'type': images != null ? 'scan' : 'chat'});
+      }
       buffer += utf8.decode(chunk, allowMalformed: true);
 
       int newlineIndex;
@@ -198,7 +216,8 @@ class AiServiceImpl implements AiService {
 
   @override
   Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType = 'system'}) async {
-    Log.d('AiService: generating content (mode: json, usageType: $usageType)');
+    AppLogger.debug('AiService: generating content (mode: json, usageType: $usageType)');
+    final startTime = DateTime.now();
 
     final idempotencyKey = const Uuid().v4();
     final headers = await _buildHeaders(idempotencyKey);
@@ -211,6 +230,7 @@ class AiServiceImpl implements AiService {
       'model': _config.openAIModel,
       'usageType': usageType,
       'idempotencyKey': idempotencyKey,
+      'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
     });
 
     int attempts = 0;
@@ -226,12 +246,15 @@ class AiServiceImpl implements AiService {
         final status = response.statusCode ?? 500;
         if (status != 200) _throwForStatus(status, response.data ?? '');
 
+        final duration = DateTime.now().difference(startTime).inMilliseconds;
+        await _analyticsService.logEvent(name: 'ai_json_success', parameters: {'latency_ms': duration, 'usage_type': usageType});
+
         final decoded = jsonDecode(response.data ?? '{}') as Map<String, dynamic>;
         return (decoded['text'] ?? '').toString();
       } on DioException catch (e, st) {
         // Retry only when the request provably never reached / completed at the
         // server; the idempotency key guards the rare ambiguous case.
-        Log.e('AiService: content generation failed (attempt $attempts/$_maxRetries)', error: e, stackTrace: st);
+        AppLogger.error('AiService: content generation failed (attempt $attempts/$_maxRetries)', error: e, stackTrace: st);
         if (attempts >= _maxRetries || !_isRetryable(e)) {
           throw AiServiceException(e.message ?? 'Connection failed.', statusCode: e.response?.statusCode);
         }
@@ -257,18 +280,25 @@ class AiServiceImpl implements AiService {
       final headers = await _buildHeaders(idempotencyKey);
       final response = await _dio.post<String>(
         _config.aiProxyUrl,
-        data: jsonEncode({'mode': 'plain', 'prompt': prompt, 'model': _config.openAIModel, 'usageType': 'system', 'idempotencyKey': idempotencyKey}),
+        data: jsonEncode({
+          'mode': 'plain',
+          'prompt': prompt,
+          'model': _config.openAIModel,
+          'usageType': 'system',
+          'idempotencyKey': idempotencyKey,
+          'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
+        }),
         options: Options(headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(seconds: 60), validateStatus: (_) => true),
       );
 
       if (response.statusCode != 200) {
-        Log.w('AiService: summarize failed with status ${response.statusCode}');
+        AppLogger.warning('AiService: summarize failed with status ${response.statusCode}');
         return previousSummary ?? '';
       }
       final decoded = jsonDecode(response.data ?? '{}') as Map<String, dynamic>;
       return (decoded['text'] ?? previousSummary ?? '').toString();
     } catch (e) {
-      Log.e('AiService: History summarization failed', error: e);
+      AppLogger.error('AiService: History summarization failed', error: e);
       return previousSummary ?? '';
     }
   }

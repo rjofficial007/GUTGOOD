@@ -51,7 +51,7 @@ class GutSnapshotHeroCard extends StatelessWidget {
         children: [
           Icon(AppIcons.flame, size: 14, color: context.appColorScheme.cardBackground),
           Gap.w8,
-          Text('$streak${AppStrings.dayStreakActive}'.toUpperCase(), style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground, letterSpacing: 1.0)),
+          Text('$streak${AppStrings.dayStreakLabel}'.toUpperCase(), style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground, letterSpacing: 1.0)),
         ],
       ),
       child: Column(

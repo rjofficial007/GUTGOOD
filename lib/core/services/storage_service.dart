@@ -28,7 +28,7 @@ class StorageServiceImpl implements StorageService {
       final compressedBytes = await FlutterImageCompress.compressWithList(bytes, minHeight: 512, minWidth: 512, quality: 80);
       return compressedBytes;
     } catch (e) {
-      Log.e('StorageService: Compression failed', error: e);
+      AppLogger.error('StorageService: Compression failed', error: e);
       return bytes;
     }
   }
@@ -46,7 +46,7 @@ class StorageServiceImpl implements StorageService {
       final TaskSnapshot snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
-      Log.e('StorageService: Food image upload failed', error: e);
+      AppLogger.error('StorageService: Food image upload failed', error: e);
       return null;
     }
   }
@@ -64,7 +64,7 @@ class StorageServiceImpl implements StorageService {
       final TaskSnapshot snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
-      Log.e('StorageService: Profile picture upload failed', error: e);
+      AppLogger.error('StorageService: Profile picture upload failed', error: e);
       return null;
     }
   }
@@ -75,7 +75,7 @@ class StorageServiceImpl implements StorageService {
       final Reference ref = _storage.refFromURL(url);
       await ref.delete();
     } catch (e) {
-      Log.e('StorageService: Delete failed', error: e);
+      AppLogger.error('StorageService: Delete failed', error: e);
     }
   }
 
@@ -94,7 +94,7 @@ class StorageServiceImpl implements StorageService {
           await item.delete();
         }
       } catch (e) {
-        Log.e('StorageService: Migration failed for $folder', error: e);
+        AppLogger.error('StorageService: Migration failed for $folder', error: e);
       }
     }
   }
@@ -105,7 +105,7 @@ class StorageServiceImpl implements StorageService {
       final userRef = _storage.ref().child('users/$uid');
       await _deleteFolder(userRef);
     } catch (e) {
-      Log.e('StorageService: Delete all user files failed', error: e);
+      AppLogger.error('StorageService: Delete all user files failed', error: e);
     }
   }
 

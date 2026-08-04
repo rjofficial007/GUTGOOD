@@ -5,7 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/user_profile.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +20,8 @@ class ProfileNotifier with ChangeNotifier {
   final FirestoreService _firestoreService;
   final AppStateService _appStateService;
   final NotificationService _notificationService;
+  final AnalyticsService _analyticsService;
+  final CrashlyticsService _crashlyticsService;
 
   UserProfile? _profile;
   int? _previousStreak;
@@ -27,7 +31,7 @@ class ProfileNotifier with ChangeNotifier {
   String _quickInsight = "Log more meals to see patterns.";
   StreamSubscription<UserProfile?>? _profileSub;
 
-  ProfileNotifier(this._authRepository, this._firestoreService, this._appStateService, this._notificationService) {
+  ProfileNotifier(this._authRepository, this._firestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService) {
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -48,12 +52,13 @@ class ProfileNotifier with ChangeNotifier {
         // Detect streak increment
         if (_previousStreak != null && profile.streak > _previousStreak!) {
           _showStreakCelebration = true;
-          Log.i('ProfileNotifier: Streak incremented! ${profile.streak}');
+          _analyticsService.logEvent(name: 'streak_incremented', parameters: {'streak': profile.streak});
+          AppLogger.info('ProfileNotifier: Streak incremented! ${profile.streak}');
         }
         _previousStreak = profile.streak;
 
         // Manage Streak Saver Notification
-        final today = DateTime.now().toUtc().toIso8601String().split('T')[0];
+        final today = DateTime.now().toIso8601String().split('T')[0];
         if (profile.lastActivityDate == today) {
           _notificationService.cancel(NotificationIds.streakSaver);
         } else {
@@ -64,7 +69,7 @@ class ProfileNotifier with ChangeNotifier {
       _profile = profile;
       _updateInsights();
       notifyListeners();
-    }, onError: (e) => Log.e('ProfileNotifier: Stream error', error: e));
+    }, onError: (e) => AppLogger.error('ProfileNotifier: Stream error', error: e));
   }
 
   UserProfile? get profile => _profile;
@@ -107,6 +112,7 @@ class ProfileNotifier with ChangeNotifier {
   Future<void> updateCycleSync(bool enabled) async {
     if (_profile == null) return;
 
+    await _analyticsService.logEvent(name: 'cycle_sync_toggled', parameters: {'enabled': enabled});
     final updatedProfile = _profile!.copyWith(cycleSyncEnabled: enabled, updatedAt: DateTime.now());
 
     await _firestoreService.updateUserProfile(updatedProfile);
@@ -118,7 +124,13 @@ class ProfileNotifier with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    await _firestoreService.uploadProfilePicture(file);
+    try {
+      await _firestoreService.uploadProfilePicture(file);
+      await _analyticsService.logEvent(name: 'profile_picture_updated');
+    } catch (e, st) {
+      AppLogger.error('Error uploading profile picture: $e');
+      await _crashlyticsService.recordError(e, st, reason: 'Profile picture upload failed');
+    }
     // Profile will be updated via stream
 
     _isLoading = false;
@@ -138,7 +150,7 @@ class ProfileNotifier with ChangeNotifier {
 
     final currentUser = sl<FirebaseAuth>().currentUser;
     if (currentUser == null) {
-      Log.w('ProfileNotifier: Cannot complete onboarding, no active user session.');
+      AppLogger.warning('ProfileNotifier: Cannot complete onboarding, no active user session.');
       _isLoading = false;
       notifyListeners();
       return;
@@ -154,7 +166,7 @@ class ProfileNotifier with ChangeNotifier {
       try {
         await _authRepository.updateDisplayName(displayName);
       } catch (e) {
-        Log.e('Error updating display name during onboarding: $e');
+        AppLogger.error('Error updating display name during onboarding: $e');
       }
     }
 
@@ -174,6 +186,11 @@ class ProfileNotifier with ChangeNotifier {
 
     await _firestoreService.updateUserProfile(updatedProfile);
     // _profile will be updated via stream
+
+    await _analyticsService.logEvent(
+      name: 'onboarding_completed',
+      parameters: {'goals_count': goals.length, 'sensitivities_count': sensitivities.length, 'lifestyle_count': lifestyle.length, 'cycle_sync_enabled': cycleSyncEnabled},
+    );
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarded', true);
@@ -199,7 +216,7 @@ class ProfileNotifier with ChangeNotifier {
       final updatedProfile = _profile!.copyWith(displayName: name, updatedAt: DateTime.now());
       await _firestoreService.updateUserProfile(updatedProfile);
     } catch (e) {
-      Log.e('Error updating display name: $e');
+      AppLogger.error('Error updating display name: $e');
     }
 
     _isLoading = false;

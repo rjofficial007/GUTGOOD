@@ -88,7 +88,7 @@ class ProcessChatTagUseCase {
               persistedTagBlocks?.add(rawBlock);
             }
           } catch (e) {
-            Log.e('ProcessChatTagUseCase: Symptom parse failed', error: e);
+            AppLogger.error('ProcessChatTagUseCase: Symptom parse failed', error: e);
           }
         }
         processedText = processedText.replaceAll(regex, '').trim();
@@ -123,7 +123,7 @@ class ProcessChatTagUseCase {
               persistedTagBlocks?.add(rawBlock);
             }
           } catch (e) {
-            Log.e('ProcessChatTagUseCase: Meal parse failed', error: e);
+            AppLogger.error('ProcessChatTagUseCase: Meal parse failed', error: e);
           }
         }
         processedText = processedText.replaceAll(regex, '').trim();
@@ -156,18 +156,18 @@ class ProcessChatTagUseCase {
             scanData = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl, flaggedIngredients: flagged);
 
             if (!alreadyPersisted) {
-              Log.i('ProcessChatTagUseCase: [SCAN] parsed successfully: ${scanData.productName}. Image: ${imageUrl != null}');
+              AppLogger.info('ProcessChatTagUseCase: [SCAN] parsed successfully: ${scanData.productName}. Image: ${imageUrl != null}');
               if (persist) {
                 // 🟢 Fix: Ensure AI Vision scans from chat are also saved to scan_history
                 _firestoreService.saveToScanHistory(scanData, userImageUrl: imageUrl);
                 _appStateService.notifyChatUpdated();
-                Log.i('ProcessChatTagUseCase: [SCAN] saved to scan_history and UI notified. UID: ${_firestoreService.getUserMetadata().then((p) => p?.uid)}');
+                AppLogger.info('ProcessChatTagUseCase: [SCAN] saved to scan_history and UI notified. UID: ${_firestoreService.getUserMetadata().then((p) => p?.uid)}');
               }
               persistedTagBlocks?.add(rawBlock);
             }
           }
         } catch (e) {
-          Log.e('ProcessChatTagUseCase: SCAN parse failed', error: e);
+          AppLogger.error('ProcessChatTagUseCase: SCAN parse failed', error: e);
         }
         processedText = processedText.replaceAll(regex, '').replaceAll('```json', '').replaceAll('```', '').trim();
       }
@@ -191,7 +191,7 @@ class ProcessChatTagUseCase {
             }
           }
         } catch (e) {
-          Log.e('ProcessChatTagUseCase: SWAPS parse failed', error: e);
+          AppLogger.error('ProcessChatTagUseCase: SWAPS parse failed', error: e);
         }
         processedText = processedText.replaceAll(regex, '').replaceAll('```json', '').replaceAll('```', '').trim();
       }

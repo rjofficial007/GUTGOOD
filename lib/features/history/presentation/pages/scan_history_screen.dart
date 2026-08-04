@@ -4,9 +4,9 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/historical_scan.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 import 'package:intl/intl.dart';
@@ -31,6 +31,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     super.initState();
     _loadHistory();
     sl<AppStateService>().chatUpdated.addListener(_loadHistory);
+    sl<AnalyticsService>().logEvent(name: 'view_scan_history');
   }
 
   @override
@@ -41,7 +42,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
   Future<void> _loadHistory() async {
     final scans = await sl<HistoryRepository>().getScanHistory();
-    Log.d('ScanHistoryScreen: Fetched ${scans.length} scans from repository');
+    AppLogger.debug('ScanHistoryScreen: Fetched ${scans.length} scans from repository');
 
     final historicalScans = scans.map((s) => HistoricalScan(data: s, time: s.time ?? DateTime.now(), userImageUrl: s.userImageUrl)).toList();
 

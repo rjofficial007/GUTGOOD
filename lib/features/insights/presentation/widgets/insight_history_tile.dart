@@ -3,9 +3,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:intl/intl.dart';
 
 class InsightHistoryTile extends StatelessWidget {
@@ -70,7 +68,7 @@ class InsightHistoryTile extends StatelessWidget {
                 children: [
                   CircularProgressIndicator(
                     value: insight.gutScore / 100,
-                    strokeWidth: 5.w,
+                    strokeWidth: 5,
                     strokeCap: StrokeCap.round,
                     backgroundColor: context.appColorScheme.border.withValues(alpha: 0.5),
                     valueColor: AlwaysStoppedAnimation<Color>(effectColor),

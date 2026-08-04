@@ -9,6 +9,7 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -35,6 +36,8 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
   Future<void> _searchProduct() async {
     final barcode = _controller.text.trim();
     if (barcode.isEmpty) return;
+
+    await sl<AnalyticsService>().logEvent(name: 'manual_barcode_search_started', parameters: {'barcode': barcode});
 
     final canScan = await sl<UsageService>().canScan();
     if (!canScan) {
@@ -78,19 +81,21 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
         // 🟢 Fix: Ensure manual scans are also saved to scan_history for Insights/Consistency
         await sl<FirestoreService>().saveToScanHistory(userMsg.scanData!);
         sl<AppStateService>().notifyChatUpdated();
+        await sl<AnalyticsService>().logEvent(name: 'manual_barcode_search_success', parameters: {'product_name': scanData.productName});
 
         if (mounted) {
           // 🟡 Professional Flow: Use go() to switch branches and reset the stack.
           context.go(AppRoutes.scanResult, extra: {'scanData': userMsg.scanData!.toMap()});
         }
       } else {
+        await sl<AnalyticsService>().logEvent(name: 'manual_barcode_search_not_found', parameters: {'barcode': barcode});
         if (mounted) {
           context.pop();
           context.pushReplacement(AppRoutes.productNotFound);
         }
       }
     } catch (e) {
-      Log.e('Error fetching product: $e');
+      AppLogger.error('Error fetching product: $e');
       if (mounted) {
         context.pop();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.errorAnalyzingProduct)));
@@ -118,7 +123,10 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(AppStrings.enterBarcode, style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
+                  Text(
+                    AppStrings.enterBarcode,
+                    style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: AppSizes.s18),
+                  ),
                   Gap.h8,
                   Text(
                     AppStrings.enterBarcodeSubtitle,

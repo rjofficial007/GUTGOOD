@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -15,8 +17,7 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/extensions.dart';
-import 'package:gutgood/core/utils/logger_service.dart' show Log;
-import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/utils/logger_service.dart' show AppLogger;
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
 import 'package:image_picker/image_picker.dart';
@@ -28,6 +29,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/usage_service.dart';
 import '../../../../core/theme/app_color_scheme.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/paywall_bottom_sheet.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/presentation/widgets/auth_bottom_sheets.dart';
@@ -58,6 +60,8 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   final ImagePicker _picker = ImagePicker();
   bool _hasPermission = true;
   final GlobalKey _repaintKey = GlobalKey();
+  bool _showModeIntro = false;
+  Timer? _introTimer;
 
   final List<_ScannerModeOption> _modes = const [
     _ScannerModeOption(mode: ScannerMode.menu, label: AppStrings.restaurantMenuLabel),
@@ -78,6 +82,15 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     _scannerController = MobileScannerController(detectionSpeed: DetectionSpeed.noDuplicates, facing: CameraFacing.back, torchEnabled: false);
     _checkPermission();
     _loadSavedMode();
+    _triggerModeIntro();
+  }
+
+  void _triggerModeIntro() {
+    _introTimer?.cancel();
+    setState(() => _showModeIntro = true);
+    _introTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _showModeIntro = false);
+    });
   }
 
   Future<void> _loadSavedMode() async {
@@ -128,6 +141,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
 
   @override
   void dispose() {
+    _introTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _scannerController.dispose();
     super.dispose();
@@ -203,7 +217,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.productFoundAiFailed), behavior: SnackBarBehavior.floating));
       }
     } catch (e) {
-      Log.e('Scanner: Error: $e');
+      AppLogger.error('Scanner: Error: $e');
       if (!_isBatchMode && mounted) {
         context.pop();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.failedToAnalyzeProduct)));
@@ -262,7 +276,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         }
       }
     } catch (e) {
-      Log.e('Capture error: $e');
+      AppLogger.error('Capture error: $e');
       if (mounted) setState(() => _isProcessing = false);
     }
   }
@@ -304,7 +318,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     try {
       if (file.existsSync()) file.deleteSync();
     } catch (e) {
-      Log.w('Scanner: Temp file cleanup failed: $e');
+      AppLogger.warning('Scanner: Temp file cleanup failed: $e');
     }
   }
 
@@ -317,13 +331,66 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         children: [
           RepaintBoundary(
             key: _repaintKey,
-            child: MobileScanner(controller: _scannerController, onDetect: _onDetect),
+            child: ClipRect(
+              child: MobileScanner(
+                controller: _scannerController,
+                onDetect: _onDetect,
+                fit: BoxFit.cover, // 🟢 Fix: Ensure camera fills screen without stretching
+              ),
+            ),
           ),
           _buildTopControls(),
           _buildBottomControls(),
           _buildScanningFrame(),
+          if (_showModeIntro) _buildModeIntroOverlay(),
           if (_isBatchMode && _sessionScans.isNotEmpty) _buildBatchList(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModeIntroOverlay() {
+    final String label = _modes.firstWhere((m) => m.mode == _currentMode).label.toUpperCase();
+
+    return Center(
+      child: IgnorePointer(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 800),
+          switchInCurve: Curves.easeOutBack,
+          switchOutCurve: Curves.easeInBack,
+          transitionBuilder: (child, animation) {
+            final rotate = Tween<double>(begin: math.pi / 2, end: 0.0).animate(animation);
+            return FadeTransition(
+              opacity: animation,
+              child: AnimatedBuilder(
+                animation: rotate,
+                builder: (context, child) {
+                  return Transform(
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0015)
+                      ..rotateX(rotate.value),
+                    alignment: Alignment.center,
+                    child: child,
+                  );
+                },
+                child: child,
+              ),
+            );
+          },
+          child: Text(
+            label,
+            key: ValueKey<String>('intro-$_currentMode-$label'),
+            textAlign: TextAlign.center,
+            style: context.displayLg.copyWith(
+              fontSize: 50.0.sp,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -2.5,
+              height: 1.0,
+              color: AppPalette.white,
+              shadows: [Shadow(color: AppPalette.black.withValues(alpha: 0.6), blurRadius: 30, offset: const Offset(0, 4))],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -334,7 +401,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       left: 0,
       right: 0,
       child: Container(
-        padding: EdgeInsets.only(top: context.padding.top + 10, bottom: AppSizes.p20, left: AppSizes.p16, right: AppSizes.p16),
+        padding: EdgeInsets.only(top: context.padding.top + AppSizes.p10, bottom: AppSizes.p20, left: AppSizes.p16, right: AppSizes.p16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -370,13 +437,13 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     if (_hasPermission) return const SizedBox.shrink();
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
+        padding: EdgeInsets.symmetric(horizontal: AppSizes.p40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(AppSizes.r20),
-              child: Image.asset(AppAssets.appIcon, height: 100.0.w, width: 100.0.w),
+              child: Image.asset(AppAssets.appIcon, height: AppSizes.p100, width: AppSizes.p100),
             ),
             Gap.h32,
             Text(
@@ -410,13 +477,13 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       left: 0,
       right: 0,
       child: Container(
-        padding: EdgeInsets.only(bottom: context.padding.bottom + 10, top: 20),
+        padding: EdgeInsets.only(bottom: context.padding.bottom + AppSizes.p10, top: AppSizes.p20),
         color: AppPalette.black,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -428,13 +495,13 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
                     child: Tooltip(
                       message: AppStrings.pickFromGallery,
                       child: Container(
-                        width: 44,
-                        height: 44,
+                        width: AppSizes.p44,
+                        height: AppSizes.p44,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppPalette.white, width: 2),
+                          borderRadius: BorderRadius.circular(AppSizes.r8),
+                          border: Border.all(color: AppPalette.white, width: AppSizes.p2),
                         ),
-                        child: const Icon(AppIcons.image, color: AppPalette.white, size: 24),
+                        child: Icon(AppIcons.image, color: AppPalette.white, size: AppSizes.icon24),
                       ),
                     ),
                   ),
@@ -452,7 +519,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
             ),
             Gap.h24,
             SizedBox(
-              height: 40.0.h,
+              height: AppSizes.p40,
               child: PageView.builder(
                 controller: _modePageController,
                 itemCount: _modes.length,
@@ -462,6 +529,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
                   });
                   HapticFeedback.selectionClick();
                   _saveMode(_currentMode);
+                  _triggerModeIntro();
                 },
                 itemBuilder: (context, index) {
                   final modeItem = _modes[index];
@@ -477,8 +545,8 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
               ),
             ),
             Container(
-              width: 4.0.w,
-              height: 4.0.w,
+              width: AppSizes.p4,
+              height: AppSizes.p4,
               decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
             ),
             Gap.h8,
@@ -490,14 +558,14 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
 
   Widget _buildBatchList() {
     return Positioned(
-      bottom: 180.0.h,
+      bottom: AppSizes.p180,
       left: 0,
       right: 0,
       child: SizedBox(
-        height: 100.0.h,
+        height: AppSizes.p100,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
           itemCount: _sessionScans.length,
           itemBuilder: (context, index) {
             final scan = _sessionScans[index];

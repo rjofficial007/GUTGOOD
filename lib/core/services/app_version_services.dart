@@ -1,5 +1,5 @@
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 abstract class AppVersionService {
   Future<void> fetchAppInfo();
@@ -33,7 +33,7 @@ class AppVersionServiceImpl implements AppVersionService {
       _appVersion = packageInfo.version;
       _buildVersion = packageInfo.buildNumber;
     } catch (e) {
-      Log.e("AppVersionService: Error fetching app info", error: e);
+      AppLogger.error("AppVersionService: Error fetching app info", error: e);
     }
   }
 }

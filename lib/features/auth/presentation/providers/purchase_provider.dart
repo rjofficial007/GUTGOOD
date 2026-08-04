@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
@@ -15,6 +16,7 @@ class PurchaseProvider extends ChangeNotifier {
   final AppStateService _appStateService;
   final SharedPreferences _prefs;
   final FirestoreService _firestoreService;
+  final AnalyticsService _analyticsService;
 
   List<Package> _packages = [];
   bool _isLoading = true;
@@ -31,11 +33,13 @@ class PurchaseProvider extends ChangeNotifier {
     required AppStateService appStateService,
     required SharedPreferences prefs,
     required FirestoreService firestoreService,
+    required AnalyticsService analyticsService,
   }) : _purchaseService = purchaseService,
        _connectionChecker = connectionChecker,
        _appStateService = appStateService,
        _prefs = prefs,
-       _firestoreService = firestoreService {
+       _firestoreService = firestoreService,
+       _analyticsService = analyticsService {
     _isPremium = _purchaseService.isPremium;
     fetchOfferings();
   }
@@ -70,9 +74,10 @@ class PurchaseProvider extends ChangeNotifier {
       } else {
         _packages = packages;
         _selectedPackageIdentifier = _packages.firstWhere((p) => p.storeProduct.subscriptionPeriod == "P1Y", orElse: () => _packages.first).identifier;
+        await _analyticsService.logEvent(name: 'offerings_fetched', parameters: {'count': _packages.length});
       }
     } catch (e) {
-      Log.e("PurchaseProvider: Fetch offerings failed", error: e);
+      AppLogger.error("PurchaseProvider: Fetch offerings failed", error: e);
       _errorMessage = "Failed to load plans.";
     } finally {
       _isLoading = false;
@@ -86,13 +91,16 @@ class PurchaseProvider extends ChangeNotifier {
     _actionType = PurchaseActionType.purchase;
     notifyListeners();
 
+    await _analyticsService.logEvent(name: 'purchase_started', parameters: {'package_id': package.identifier, 'price': package.storeProduct.price});
+
     try {
       final success = await _purchaseService.purchasePackage(package);
       _purchaseResult = success;
+      await _analyticsService.logEvent(name: 'purchase_completed', parameters: {'package_id': package.identifier, 'success': success});
       await _updatePremiumStatusFromService();
       return success;
     } catch (e) {
-      Log.e("PurchaseProvider: Purchase failed", error: e);
+      AppLogger.error("PurchaseProvider: Purchase failed", error: e);
       _purchaseResult = false;
       return false;
     } finally {
@@ -108,13 +116,16 @@ class PurchaseProvider extends ChangeNotifier {
     _appStateService.setRestoringPurchases(true);
     notifyListeners();
 
+    await _analyticsService.logEvent(name: 'restore_started');
+
     try {
       final restored = await _purchaseService.restorePurchases();
       _purchaseResult = restored;
+      await _analyticsService.logEvent(name: 'restore_completed', parameters: {'success': restored});
       await _updatePremiumStatusFromService();
       return restored;
     } catch (e) {
-      Log.e("PurchaseProvider: Restore failed", error: e);
+      AppLogger.error("PurchaseProvider: Restore failed", error: e);
       _purchaseResult = false;
       return false;
     } finally {

@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -24,11 +25,15 @@ class NotificationIds {
   static const int insightGenerated = 108;
   static const int processedFoodWarning = 109;
   static const int streakSaver = 110;
+  static const int firebaseBackground = 111;
 }
 
 abstract class NotificationService {
   Future<void> init();
   Future<void> showNotification({required int id, required String title, required String body, String? payload});
+  static Future<void> showBackgroundNotification(RemoteMessage message) async {
+    // This will be implemented in the child class or as a standalone logic
+  }
   Future<void> scheduleNotification({required int id, required String title, required String body, required DateTime scheduledDate, String? payload});
   Future<void> schedulePostMealCheckIn();
   Future<void> scheduleBreakfastReminder(int hour, int minute);
@@ -40,7 +45,6 @@ abstract class NotificationService {
   Future<void> scheduleDailyReminder({int hour = 9, int minute = 0});
   Future<void> markAppOpened();
   Future<void> showInsightGeneratedNotification();
-  Future<void> checkAndTriggerProcessedFoodWarning();
   Future<void> scheduleStreakSaverReminder(int currentStreak);
   Future<void> cancel(int id);
   Future<void> cancelMealReminders();
@@ -48,6 +52,7 @@ abstract class NotificationService {
   Future<void> cancelDailyReminder();
   Future<void> cancelAll();
   Future<void> setupDefaultReminders();
+  Future<void> testNotification();
 }
 
 class NotificationServiceImpl implements NotificationService {
@@ -74,10 +79,48 @@ class NotificationServiceImpl implements NotificationService {
     await _notifications.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (details) {
-        Log.i('NotificationService: Tapped payload: ${details.payload}');
+        AppLogger.info('NotificationService: Tapped payload: ${details.payload}');
         _handleNotificationTap(details.payload);
       },
     );
+
+    // Create high importance channel for Android
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'gutgood_reminders',
+        'GutGood Reminders',
+        description: 'This channel is used for important health alerts and reminders.',
+        importance: Importance.max,
+      );
+
+      await _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
+    }
+
+    // Initialize FCM
+    try {
+      final messaging = FirebaseMessaging.instance;
+      final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        final token = await messaging.getToken();
+        if (token != null) {
+          await _firestoreService.saveFcmToken(token);
+        }
+      }
+
+      messaging.onTokenRefresh.listen((token) {
+        _firestoreService.saveFcmToken(token);
+      });
+
+      // 🟢 Fix: Listen for messages while the app is in the FOREGROUND
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        AppLogger.debug('NotificationService: Foreground message received: ${message.messageId}');
+        // Manually show the notification since iOS/Android suppress them in foreground
+        showBackgroundNotification(message);
+      });
+    } catch (e) {
+      AppLogger.error('NotificationService: FCM init failed', error: e);
+    }
 
     if (defaultTargetPlatform == TargetPlatform.android) {
       await Permission.notification.request();
@@ -89,7 +132,7 @@ class NotificationServiceImpl implements NotificationService {
       await _notifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(alert: true, badge: true, sound: true);
     }
 
-    Log.i('NotificationService: Initialized');
+    AppLogger.info('NotificationService: Initialized');
   }
 
   NotificationDetails get _defaultDetails => const NotificationDetails(
@@ -102,8 +145,36 @@ class NotificationServiceImpl implements NotificationService {
     try {
       await _notifications.show(id: id, title: title, body: body, notificationDetails: _defaultDetails, payload: payload);
     } catch (e) {
-      Log.e('NotificationService: Error showing immediately', error: e);
+      AppLogger.error('NotificationService: Error showing immediately', error: e);
     }
+  }
+
+  static Future<void> showBackgroundNotification(RemoteMessage message) async {
+    final notification = message.notification;
+    if (notification == null) return;
+
+    final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'gutgood_reminders',
+      'GutGood Reminders',
+      importance: Importance.max,
+      priority: Priority.high,
+      color: AppPalette.black,
+    );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true),
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      id: NotificationIds.firebaseBackground,
+      title: notification.title,
+      body: notification.body,
+      notificationDetails: platformChannelSpecifics,
+      payload: message.data['type'],
+    );
   }
 
   @override
@@ -217,9 +288,10 @@ class NotificationServiceImpl implements NotificationService {
 
   @override
   Future<void> scheduleNoMealLoggedReminder({int hour = 19, int minute = 0}) async {
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    final count = await _firestoreService.getMealLogsCountSince(startOfDay);
+    // 🟡 Fix: Use local start of day to match the user's local day experience.
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final count = await _firestoreService.getMealLogsCountSince(startOfToday);
 
     if (count == 0) {
       await _scheduleDaily(id: NotificationIds.noMealLogged, title: AppStrings.notifNoMealLoggedTitle, body: AppStrings.notifNoMealLoggedBody, hour: hour, minute: minute, payload: 'no_meal_logged');
@@ -234,33 +306,20 @@ class NotificationServiceImpl implements NotificationService {
 
   @override
   Future<void> markAppOpened() async {
-    await scheduleDailyReminder(hour: 9, minute: 0);
+    // 🟡 Fix: Respect user preference if they have customized the daily reminder time.
+    final timeStr = _prefs.getString('notif_daily_time') ?? "9:00";
+    final parts = timeStr.split(':');
+    final hour = int.tryParse(parts[0]) ?? 9;
+    final minute = int.tryParse(parts[1]) ?? 0;
+
+    await scheduleDailyReminder(hour: hour, minute: minute);
   }
 
   @override
   Future<void> showInsightGeneratedNotification() async {
-    await showNotification(id: NotificationIds.insightGenerated, title: AppStrings.notifInsightGeneratedTitle, body: AppStrings.notifInsightGeneratedBody, payload: 'insight_generated');
-  }
-
-  @override
-  Future<void> checkAndTriggerProcessedFoodWarning() async {
-    try {
-      final lastShownStr = _prefs.getString('last_processed_warning_time');
-      if (lastShownStr != null) {
-        final lastShown = DateTime.parse(lastShownStr);
-        if (DateTime.now().difference(lastShown).inDays < 7) return;
-      }
-
-      final recentScans = await _firestoreService.getRecentScans(limit: 100);
-      final processedCount = recentScans.where((s) => s.novaGroup == '3' || s.novaGroup == '4').length;
-
-      if (processedCount >= 3) {
-        await showNotification(id: NotificationIds.processedFoodWarning, title: 'GutGood', body: AppStrings.notifProcessedFoodWarning, payload: 'processed_food_warning');
-        await _prefs.setString('last_processed_warning_time', DateTime.now().toIso8601String());
-      }
-    } catch (e) {
-      Log.e('NotificationService: Processed warning failed', error: e);
-    }
+    // 🟡 Pro Fix: This is now handled by the Cloud Function (onInsightCreated)
+    // for better reliability and cross-device consistency.
+    AppLogger.debug('NotificationService: Skipping local insight notification (handled by server)');
   }
 
   @override
@@ -273,14 +332,14 @@ class NotificationServiceImpl implements NotificationService {
 
     if (scheduledTime.isBefore(now)) return;
 
-    await scheduleNotification(
-      id: NotificationIds.streakSaver,
-      title: AppStrings.notifStreakSaverTitle,
-      body: AppStrings.notifStreakSaverBody.replaceFirst('{streak}', currentStreak.toString()),
-      scheduledDate: scheduledTime,
-      payload: 'streak_saver',
-    );
-    Log.i('NotificationService: Streak saver scheduled for 8 PM');
+    final title = AppStrings.notifStreakSaverTitle;
+    final body = AppStrings.notifStreakSaverBody.replaceFirst('{streak}', currentStreak.toString());
+
+    await scheduleNotification(id: NotificationIds.streakSaver, title: title, body: body, scheduledDate: scheduledTime, payload: 'streak_saver');
+
+    // Note: We don't save to Firestore yet because it's scheduled for the future.
+    // If they open the app, we cancel it.
+    AppLogger.info('NotificationService: Streak saver scheduled for 8 PM');
   }
 
   @override
@@ -313,6 +372,11 @@ class NotificationServiceImpl implements NotificationService {
     await scheduleNoMealLoggedReminder(hour: 19, minute: 0);
     await scheduleScanReminder(11, 0);
     await scheduleRestaurantReminder(18, 0);
+  }
+
+  @override
+  Future<void> testNotification() async {
+    await showNotification(id: 999, title: 'GutGood Test', body: 'This is a test notification to verify FCM and local channels are working! 🚀', payload: 'test_notification');
   }
 
   void _handleNotificationTap(String? payload) {

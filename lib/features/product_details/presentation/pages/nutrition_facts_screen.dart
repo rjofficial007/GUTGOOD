@@ -6,8 +6,9 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/nutrition_row.dart';
+
+import '../../../../core/widgets/gut_app_bar.dart';
 
 class NutritionFactsScreen extends StatelessWidget {
   final ScanResult scanData;
@@ -57,13 +58,13 @@ class NutritionFactsScreen extends StatelessWidget {
                   Divider(height: 32, thickness: 1, color: context.appColorScheme.textPrimary),
                   Gap.h16,
 
-                  if (nutrients.fat != null) NutritionRow(label: AppStrings.totalFat, weight: '${nutrients.fat}g', isBold: true),
-                  if (nutrients.saturatedFat != null) NutritionRow(label: AppStrings.saturatedFat, weight: '${nutrients.saturatedFat}g', indent: true),
-                  if (nutrients.carbs != null) NutritionRow(label: AppStrings.totalCarbohydrate, weight: '${nutrients.carbs}g', isBold: true),
-                  if (nutrients.fiber != null) NutritionRow(label: AppStrings.fiber, weight: '${nutrients.fiber}g', indent: true),
-                  if (nutrients.sugars != null) NutritionRow(label: AppStrings.sugars, weight: '${nutrients.sugars}g', indent: true),
-                  if (nutrients.proteins != null) NutritionRow(label: AppStrings.protein, weight: '${nutrients.proteins}g', isBold: true),
-                  if (nutrients.salt != null) NutritionRow(label: AppStrings.salt, weight: '${nutrients.salt}g', isBold: true),
+                  if (nutrients.fat != null) NutritionRow(label: AppStrings.totalFat, weight: '${nutrients.fat}${AppStrings.labelGramSuffix}', isBold: true),
+                  if (nutrients.saturatedFat != null) NutritionRow(label: AppStrings.saturatedFat, weight: '${nutrients.saturatedFat}${AppStrings.labelGramSuffix}', indent: true),
+                  if (nutrients.carbs != null) NutritionRow(label: AppStrings.totalCarbohydrate, weight: '${nutrients.carbs}${AppStrings.labelGramSuffix}', isBold: true),
+                  if (nutrients.fiber != null) NutritionRow(label: AppStrings.fiber, weight: '${nutrients.fiber}${AppStrings.labelGramSuffix}', indent: true),
+                  if (nutrients.sugars != null) NutritionRow(label: AppStrings.sugars, weight: '${nutrients.sugars}${AppStrings.labelGramSuffix}', indent: true),
+                  if (nutrients.proteins != null) NutritionRow(label: AppStrings.protein, weight: '${nutrients.proteins}${AppStrings.labelGramSuffix}', isBold: true),
+                  if (nutrients.salt != null) NutritionRow(label: AppStrings.salt, weight: '${nutrients.salt}${AppStrings.labelGramSuffix}', isBold: true),
                   Divider(height: 32, thickness: 8, color: context.appColorScheme.textPrimary),
                   Gap.h32,
                 ],

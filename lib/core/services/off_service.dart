@@ -25,7 +25,7 @@ class OffServiceImpl implements OffService {
         return _mapProductData(response.data['product']);
       }
     } catch (e) {
-      Log.e('OffService: Error fetching product: $e');
+      AppLogger.error('OffService: Error fetching product: $e');
     }
     return null;
   }
@@ -160,12 +160,7 @@ class OffServiceImpl implements OffService {
 
       // Search-a-licious URL
       final url = 'https://search.openfoodfacts.org/search';
-      final params = {
-        'q': 'categories_tags:$categoryFilter AND ($gradesFilter)',
-        'sort_by': 'nutriscore_score',
-        'fields': 'product_name,brands,image_front_url,nutrition_grades,code',
-        'size': 5,
-      };
+      final params = {'q': 'categories_tags:$categoryFilter AND ($gradesFilter)', 'sort_by': 'nutriscore_score', 'fields': 'product_name,brands,image_front_url,nutrition_grades,code', 'size': 5};
 
       final response = await _dio.get(url, queryParameters: params);
 
@@ -185,7 +180,7 @@ class OffServiceImpl implements OffService {
             .toList();
       }
     } catch (e) {
-      Log.e('OffService: Search-a-licious failed, falling back to v2: $e');
+      AppLogger.error('OffService: Search-a-licious failed, falling back to v2: $e');
 
       // Fallback to v2 API (Legacy, might be 503 but better than nothing)
       try {
@@ -211,7 +206,7 @@ class OffServiceImpl implements OffService {
               .toList();
         }
       } catch (e2) {
-        Log.e('OffService: V2 Fallback also failed: $e2');
+        AppLogger.error('OffService: V2 Fallback also failed: $e2');
       }
     }
     return [];

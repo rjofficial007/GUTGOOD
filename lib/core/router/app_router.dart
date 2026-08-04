@@ -30,6 +30,7 @@ import 'package:gutgood/features/welcome/presentation/pages/welcome_screen.dart'
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/insights/presentation/pages/notification_archive_screen.dart';
 import '../../features/profile/presentation/providers/profile_provider.dart';
 import '../../features/scanner/presentation/pages/manual_barcode_screen.dart';
 import '../../features/scanner/presentation/pages/scanning_animation_screen.dart';
@@ -38,6 +39,7 @@ import '../constants/app_icons.dart';
 import '../constants/app_sizes.dart';
 import '../constants/app_strings.dart';
 import '../di/injection_container.dart';
+import '../services/analytics_service.dart';
 import '../services/app_state_service.dart';
 import '../theme/app_color_scheme.dart';
 import '../theme/app_text_styles.dart';
@@ -54,6 +56,7 @@ class AppRouter {
     navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: kDebugMode,
+    observers: [sl<AnalyticsService>().getObserver()],
     refreshListenable: Listenable.merge([sl<GutAuthNotifier>(), sl<ProfileNotifier>()]),
     redirect: (context, state) async {
       final authNotifier = context.read<GutAuthNotifier>();
@@ -163,6 +166,7 @@ class AppRouter {
                 },
               ),
               GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
+              GoRoute(path: AppRoutes.notificationArchive, builder: (context, state) => const NotificationArchiveScreen()),
             ],
           ),
           StatefulShellBranch(

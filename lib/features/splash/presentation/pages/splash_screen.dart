@@ -76,17 +76,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       // Firestore will handle caching and background sync automatically.
       final authRepository = sl<AuthRepository>();
       if (authRepository.currentUser != null) {
-        Log.i('SplashScreen: User authenticated, warming up Firestore cache.');
+        AppLogger.info('SplashScreen: User authenticated, warming up Firestore cache.');
         await sl<FirestoreService>().getUserMetadata().timeout(
           const Duration(seconds: 5),
           onTimeout: () {
-            Log.w('SplashScreen: Firestore warmup timed out. Proceeding with cache.');
+            AppLogger.warning('SplashScreen: Firestore warmup timed out. Proceeding with cache.');
             return null;
           },
         );
       }
     } catch (e) {
-      Log.e('SplashScreen: Initialization error: $e');
+      AppLogger.error('SplashScreen: Initialization error: $e');
     }
 
     stopwatch.stop();
@@ -100,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (mounted) {
       // 🟡 Professional Flow: Always attempt to go to the app's "Home".
       // The AppRouter's redirect logic acts as the security guard and will
-      // automatically bounce unauthenticated or non-onboarded users to the 
+      // automatically bounce unauthenticated or non-onboarded users to the
       // Welcome or Onboarding screens.
       context.go(AppRoutes.chat);
     }

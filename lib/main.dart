@@ -2,10 +2,12 @@ import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gutgood/core/router/app_router.dart';
+import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_theme.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -16,6 +18,7 @@ import 'package:gutgood/features/auth/presentation/providers/purchase_provider.d
 import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/features/profile/presentation/providers/usage_notifier.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
 import 'package:provider/provider.dart';
 
@@ -24,13 +27,23 @@ import 'core/di/injection_container.dart';
 import 'core/services/app_version_services.dart';
 import 'core/services/device_info_services.dart';
 import 'core/services/internet_connection_checker.dart';
+import 'core/utils/logger_service.dart';
 import 'firebase_options.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  AppLogger.debug("Handling a background message: ${message.messageId}");
+  await NotificationService.showBackgroundNotification(message);
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await init();
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Crashlytics: capture Flutter framework errors and uncaught async errors.
   // (Previously the dependency existed but was never wired up.)
@@ -54,6 +67,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => sl<ThemeNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<GutAuthNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<ProfileNotifier>()),
+        ChangeNotifierProvider(create: (_) => sl<UsageNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<ChatNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<InsightsNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<ScannerNotifier>()),
@@ -108,7 +122,6 @@ class _GutGoodAppState extends State<GutGoodApp> with WidgetsBindingObserver {
       themeMode: themeNotifier.themeMode,
       builder: (context, child) {
         Responsive.init(context);
-        // Respect the user's accessibility text-scale settings (no clamping).
 
         return GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),

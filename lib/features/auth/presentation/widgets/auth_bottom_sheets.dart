@@ -7,6 +7,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
@@ -81,7 +82,7 @@ Future<bool?> showMergeConfirmationSheet(BuildContext context, String email) {
       ),
       Gap.h24,
       Text(
-        '${AppStrings.accountFoundMergeMessage}$email. Would you like to merge your current guest progress into it?',
+        '${AppStrings.accountFoundMergeMessage}$email${AppStrings.mergeConfirmationQuestion}',
         textAlign: TextAlign.center,
         style: context.body.copyWith(color: context.appColorScheme.textSecondary),
       ),
@@ -150,9 +151,7 @@ class _LoginSheetState extends State<_LoginSheet> {
               // 🟢 Fix: Rely on GoRouter's redirect rather than manual context.go()
             } catch (err) {
               if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('We signed you in, but couldn\'t restore your previous data yet. It will retry automatically next time you open the app.')));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.authSyncDelayedMessage)));
                 await _onAuthSuccess(context);
               }
             }
@@ -177,7 +176,7 @@ class _LoginSheetState extends State<_LoginSheet> {
     // Trigger verification overlay for consistent premium experience
     final appStateService = sl<AppStateService>();
     appStateService.setVerifyingAuth(true);
-    Log.i('Auth: Authentication success. Showing verification overlay.');
+    AppLogger.info('Auth: Authentication success. Showing verification overlay.');
 
     HapticHelper.success();
 
@@ -211,7 +210,7 @@ class _LoginSheetState extends State<_LoginSheet> {
         AuthOptionTile(
           imagePath: AppAssets.appleLogo,
           label: AppStrings.signInWithApple,
-          imageColor: isDark ? Colors.white : null,
+          imageColor: isDark ? AppPalette.white : null,
           onTap: authNotifier.isLoading ? () {} : () => _handleSocialSignIn(context, authNotifier, authNotifier.signInWithApple),
         ),
         Gap.h12,
@@ -236,7 +235,7 @@ class _LoginSheetState extends State<_LoginSheet> {
         Text(
           AppStrings.termsAndPrivacyNotice,
           textAlign: TextAlign.center,
-          style: context.caption.copyWith(color: context.appColorScheme.textMuted, height: 1.4, fontSize: 11),
+          style: context.caption.copyWith(color: context.appColorScheme.textMuted, height: 1.4, fontSize: AppSizes.s11),
         ),
         Gap.h24,
       ],

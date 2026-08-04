@@ -12,11 +12,14 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:gutgood/core/services/ai_service.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_services.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/app_version_services.dart';
 import 'package:gutgood/core/services/config_service.dart';
+import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/device_info_services.dart';
+import 'package:gutgood/core/services/export_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/link_service.dart';
@@ -51,6 +54,7 @@ import 'package:gutgood/features/scanner/data/repositories/scanner_repository_im
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/profile/presentation/providers/usage_notifier.dart';
 import '../../features/scanner/presentation/providers/scanner_notifier.dart';
 
 final sl = GetIt.instance;
@@ -95,6 +99,8 @@ Future<void> init() async {
 
   //! Core Services
   sl.registerLazySingleton<ConfigService>(() => ConfigServiceImpl());
+  sl.registerLazySingleton<AnalyticsService>(() => AnalyticsServiceImpl());
+  sl.registerLazySingleton<CrashlyticsService>(() => CrashlyticsServiceImpl());
   sl.registerLazySingleton<AppVersionService>(() => AppVersionServiceImpl());
   sl.registerLazySingleton<DeviceInfoService>(() => DeviceInfoServiceImpl(deviceInfoPlugin: sl()));
   sl.registerLazySingleton<AppService>(() => AppServiceImpl(appVersionService: sl(), deviceInfoService: sl(), configService: sl(), dio: sl()));
@@ -105,7 +111,7 @@ Future<void> init() async {
 
   // All AI traffic goes through the secure aiProxy Cloud Function — the OpenAI
   // key lives only on the server (PRD §3d). No on-device AI SDK keys.
-  sl.registerLazySingleton<AiService>(() => AiServiceImpl(dio: sl(), auth: sl(), config: sl()));
+  sl.registerLazySingleton<AiService>(() => AiServiceImpl(dio: sl(), auth: sl(), config: sl(), analyticsService: sl(), crashlyticsService: sl()));
 
   sl.registerLazySingleton<OffService>(() => OffServiceImpl(dio: sl()));
 
@@ -125,19 +131,32 @@ Future<void> init() async {
 
   sl.registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), firestoreService: sl(), purchaseService: sl(), prefs: sl()));
 
+  sl.registerLazySingleton<ExportService>(() => ExportServiceImpl(firestoreService: sl()));
+
   sl.registerLazySingleton(() => ThemeNotifier(sl()));
 
   //! Features
   // Auth
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(firebaseAuth: sl(), googleSignIn: sl(), firestoreService: sl(), purchaseService: sl(), storageService: sl(), prefs: sl(), appStateService: sl(), firebaseFunctions: sl()),
+    () => AuthRepositoryImpl(
+      firebaseAuth: sl(),
+      googleSignIn: sl(),
+      firestoreService: sl(),
+      purchaseService: sl(),
+      prefs: sl(),
+      appStateService: sl(),
+      firebaseFunctions: sl(),
+      analyticsService: sl(),
+      crashlyticsService: sl(),
+    ),
   );
   sl.registerLazySingleton(() => GutAuthNotifier(sl(), sl()));
-  sl.registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), firestoreService: sl()));
+  sl.registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), firestoreService: sl(), analyticsService: sl()));
 
   // Profile
   sl.registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(auth: sl(), firestoreService: sl()));
-  sl.registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton(() => UsageNotifier(sl(), sl()));
 
   // Chat
   sl.registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl()));
@@ -154,19 +173,24 @@ Future<void> init() async {
       sendMessageStreamUseCase: sl(),
       processChatTagUseCase: sl(),
       appStateService: sl(),
+      analyticsService: sl(),
     ),
   );
 
   // Insights
-  sl.registerLazySingleton<InsightRepository>(() => InsightRepositoryImpl(firestoreService: sl(), aiService: sl(), prefs: sl(), notificationService: sl(), patternEngineService: sl()));
-  sl.registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton<InsightRepository>(
+    () => InsightRepositoryImpl(firestoreService: sl(), aiService: sl(), prefs: sl(), notificationService: sl(), patternEngineService: sl(), analyticsService: sl(), crashlyticsService: sl()),
+  );
+  sl.registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl()));
 
   // Scanner
-  sl.registerLazySingleton<ScannerRepository>(() => ScannerRepositoryImpl(offService: sl(), aiService: sl(), firestoreService: sl(), notificationService: sl(), appStateService: sl()));
+  sl.registerLazySingleton<ScannerRepository>(
+    () => ScannerRepositoryImpl(offService: sl(), aiService: sl(), firestoreService: sl(), notificationService: sl(), appStateService: sl(), analyticsService: sl()),
+  );
   sl.registerLazySingleton(() => ScannerNotifier(repository: sl(), firestoreService: sl(), offService: sl(), storageService: sl()));
 
   // Logs
-  sl.registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl()));
+  sl.registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl()));
 
   // History
   sl.registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl()));

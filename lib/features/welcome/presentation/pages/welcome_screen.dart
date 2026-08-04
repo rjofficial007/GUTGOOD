@@ -56,7 +56,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           // 🟢 Fix: GoRouter's redirect handles navigation automatically.
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('We signed you in, but couldn\'t fully restore your previous data.')));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.authSyncDelayedMessage)));
           }
         }
       } else if (shouldMerge == false) {

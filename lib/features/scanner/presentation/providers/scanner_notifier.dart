@@ -18,15 +18,11 @@ class ScannerNotifier with ChangeNotifier {
   bool _isProcessing = false;
   ScanResult? _lastResult;
 
-  ScannerNotifier({
-    required ScannerRepository repository,
-    required FirestoreService firestoreService,
-    required OffService offService,
-    required StorageService storageService,
-  }) : _repository = repository,
-       _firestoreService = firestoreService,
-       _offService = offService,
-       _storageService = storageService;
+  ScannerNotifier({required ScannerRepository repository, required FirestoreService firestoreService, required OffService offService, required StorageService storageService})
+    : _repository = repository,
+      _firestoreService = firestoreService,
+      _offService = offService,
+      _storageService = storageService;
 
   bool get isProcessing => _isProcessing;
   ScanResult? get lastResult => _lastResult;
@@ -55,26 +51,26 @@ class ScannerNotifier with ChangeNotifier {
       try {
         alternatives = await _offService.getBetterAlternatives(product.categoryTag, product.nutriscore);
       } catch (e) {
-        Log.w('ScannerNotifier: Alternatives fetch failed');
+        AppLogger.warning('ScannerNotifier: Alternatives fetch failed');
       }
 
       try {
         final result = await _repository.analyzeProductWithAi(product: product, goals: goals, sensitivities: sensitivities, cyclePhase: cyclePhase, alternatives: alternatives);
 
         final finalResult = result.copyWith(source: 'barcode', userImageUrl: userImageUrl);
-        Log.i('ScannerNotifier: Saving barcode scan result for ${finalResult.productName}');
+        AppLogger.info('ScannerNotifier: Saving barcode scan result for ${finalResult.productName}');
         await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl);
 
         _lastResult = finalResult;
         return finalResult;
       } catch (e, st) {
-        Log.e('ScannerNotifier: AI analysis failed for known product ${product.productName}', error: e, stackTrace: st);
+        AppLogger.error('ScannerNotifier: AI analysis failed for known product ${product.productName}', error: e, stackTrace: st);
         throw ScanAnalysisException(product);
       }
     } on ScanAnalysisException {
       rethrow;
     } catch (e) {
-      Log.e('ScannerNotifier: Barcode processing failed', error: e);
+      AppLogger.error('ScannerNotifier: Barcode processing failed', error: e);
       return null;
     } finally {
       _isProcessing = false;
@@ -101,13 +97,13 @@ class ScannerNotifier with ChangeNotifier {
       );
 
       final finalResult = result.copyWith(source: mode, userImageUrl: userImageUrl);
-      Log.i('ScannerNotifier: Saving image scan result for ${finalResult.productName} (mode: $mode)');
+      AppLogger.info('ScannerNotifier: Saving image scan result for ${finalResult.productName} (mode: $mode)');
       await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl);
 
       _lastResult = finalResult;
       return finalResult;
     } catch (e) {
-      Log.e('ScannerNotifier: Image processing failed', error: e);
+      AppLogger.error('ScannerNotifier: Image processing failed', error: e);
       return null;
     } finally {
       _isProcessing = false;

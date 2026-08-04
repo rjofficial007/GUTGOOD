@@ -28,16 +28,16 @@ class RemoteConfigServiceImpl implements RemoteConfigService {
       await _remoteConfig.setDefaults({'openai_model': _defaultOpenAIModel, 'ai_proxy_url': ApiConstants.aiProxyUrl, 'is_force_update': false});
 
       if (kDebugMode) {
-        Log.firebaseRemoteConfig('Remote Config: Skipping fetch in Debug Mode (defaults active).');
+        AppLogger.firebaseRemoteConfig('Remote Config: Skipping fetch in Debug Mode (defaults active).');
         return;
       }
 
       await _remoteConfig.setConfigSettings(RemoteConfigSettings(fetchTimeout: const Duration(minutes: 1), minimumFetchInterval: const Duration(hours: 1)));
 
       await _remoteConfig.fetchAndActivate();
-      Log.firebaseRemoteConfig('Remote Config: Initialized and fetched.');
+      AppLogger.firebaseRemoteConfig('Remote Config: Initialized and fetched.');
     } catch (e) {
-      Log.e('RemoteConfigService: Initialization failed', error: e);
+      AppLogger.error('RemoteConfigService: Initialization failed', error: e);
     }
   }
 

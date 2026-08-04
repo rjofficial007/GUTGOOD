@@ -35,6 +35,6 @@ All AI logic should go through the `AiService`.
 - Use `Responsive.init(context)` in your `build` method to ensure layout scales correctly on different devices.
 
 ## 6. Testing & Quality
-- **Logging:** Use the `Log` utility (e.g., `Log.i()`, `Log.e()`) instead of `print()`.
+- **Logging:** Use the `Log` utility (e.g., `Log.info()`, `Log.error()`) instead of `print()`.
 - **Error Handling:** Wrap all external service calls (Firebase, API) in `try-catch` blocks and handle failures gracefully in the UI.
 - **Linting:** Run `flutter lints` and ensure all warnings are resolved before submitting a PR.

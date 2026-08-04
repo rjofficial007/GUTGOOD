@@ -8,6 +8,7 @@ import 'package:gutgood/core/models/chat_attachment.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/services/ai_service.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
@@ -38,6 +39,7 @@ class ChatNotifier with ChangeNotifier {
   final SendMessageStreamUseCase _sendMessageStreamUseCase;
   final ProcessChatTagUseCase _processChatTagUseCase;
   final AppStateService _appStateService;
+  final AnalyticsService _analyticsService;
 
   // ---- Message list state (newest first, matching the reversed list UI) ----
   final List<ChatMessage> _messages = [];
@@ -53,7 +55,7 @@ class ChatNotifier with ChangeNotifier {
 
   // ---- Composer attachments (ChatGPT model: preview first, send later) ----
   final List<ChatAttachment> _attachments = [];
-  static const int maxAttachments = 4;
+  static const int maxAttachments = 1;
 
   // ---- Personalization context ----
   List<String> _userGoals = [];
@@ -102,6 +104,7 @@ class ChatNotifier with ChangeNotifier {
     required SendMessageStreamUseCase sendMessageStreamUseCase,
     required ProcessChatTagUseCase processChatTagUseCase,
     required AppStateService appStateService,
+    required AnalyticsService analyticsService,
   }) : _repository = repository,
        _firestoreService = firestoreService,
        _aiService = aiService,
@@ -112,7 +115,8 @@ class ChatNotifier with ChangeNotifier {
        _connectionChecker = connectionChecker,
        _sendMessageStreamUseCase = sendMessageStreamUseCase,
        _processChatTagUseCase = processChatTagUseCase,
-       _appStateService = appStateService {
+       _appStateService = appStateService,
+       _analyticsService = analyticsService {
     _initChatStream();
     _appStateService.profileUpdated.addListener(_onProfileUpdated);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -180,7 +184,7 @@ class ChatNotifier with ChangeNotifier {
             _loadProfileData();
           },
           onError: (e) {
-            Log.e('ChatNotifier: Message stream error', error: e);
+            AppLogger.error('ChatNotifier: Message stream error', error: e);
             _historyLoading = false;
             notifyListeners();
           },
@@ -246,9 +250,10 @@ class ChatNotifier with ChangeNotifier {
   /// preview, the upload, and the vision request all use the same payload.
   Future<bool> addAttachment(Uint8List bytes, {String source = 'gallery'}) async {
     if (_isLoading) return false;
-    if (_attachments.length >= maxAttachments) return false;
+    _attachments.clear(); // Always keep only one attachment
     final compressed = await _storageService.compressImage(bytes);
     _attachments.add(ChatAttachment(id: const Uuid().v4(), bytes: compressed, source: source));
+    await _analyticsService.logEvent(name: 'attachment_added', parameters: {'source': source});
     notifyListeners();
     return true;
   }
@@ -318,6 +323,8 @@ class ChatNotifier with ChangeNotifier {
     _isStreaming = false;
     notifyListeners();
 
+    await _analyticsService.logEvent(name: 'message_sent', parameters: {'has_attachments': sending.isNotEmpty, 'text_length': displayText.length, 'source': userMsg.source ?? 'chat'});
+
     // 1. Upload attachments (needs an auth session for storage paths).
     List<String> imageUrls = const [];
     if (sending.isNotEmpty) {
@@ -336,7 +343,7 @@ class ChatNotifier with ChangeNotifier {
           }),
         );
       } catch (e) {
-        Log.e('ChatNotifier: Image upload failed', error: e);
+        AppLogger.error('ChatNotifier: Image upload failed', error: e);
         _markUserMessageFailed(userMsg.localId);
         _removeMessage(aiPlaceholder.localId);
         _finishTurn();
@@ -397,6 +404,8 @@ class ChatNotifier with ChangeNotifier {
     _isLoading = true;
     _isStreaming = false;
     notifyListeners();
+
+    await _analyticsService.logEvent(name: 'message_regenerated', parameters: {'has_images': _lastSentImages.isNotEmpty});
 
     final aiText = _effectiveAiText(displayText: _lastUserText ?? '', hiddenContext: _lastHiddenContext, hasImages: _lastSentImages.isNotEmpty);
     await _streamReply(userText: aiText, images: _lastSentImages.isEmpty ? null : _lastSentImages, imageUrl: _lastSentImageUrl, source: _lastSource, isRegenerate: true);
@@ -540,7 +549,7 @@ class ChatNotifier with ChangeNotifier {
           _chunkBuffer += chunk;
         },
         onError: (e) {
-          Log.e('ChatNotifier: AI stream error', error: e);
+          AppLogger.error('ChatNotifier: AI stream error', error: e);
           _handleStreamError(e, aiLocalId);
         },
         onDone: () {
@@ -550,7 +559,7 @@ class ChatNotifier with ChangeNotifier {
         cancelOnError: false,
       );
     } catch (e, st) {
-      Log.e('ChatNotifier: Stream setup failed', error: e, stackTrace: st);
+      AppLogger.error('ChatNotifier: Stream setup failed', error: e, stackTrace: st);
       _handleStreamError(e, aiLocalId);
     }
   }
@@ -652,7 +661,7 @@ class ChatNotifier with ChangeNotifier {
         _messages[currentIndex] = saved.copyWith(errorKind: errorKind);
       }
     } catch (e) {
-      Log.e('ChatNotifier: Saving AI response failed', error: e);
+      AppLogger.error('ChatNotifier: Saving AI response failed', error: e);
     }
   }
 
@@ -692,12 +701,12 @@ class ChatNotifier with ChangeNotifier {
 
       if (newlyAgedOut.isEmpty) return;
 
-      Log.d('ChatNotifier: Summarizing ${newlyAgedOut.length} messages.');
+      AppLogger.debug('ChatNotifier: Summarizing ${newlyAgedOut.length} messages.');
       _cachedSummary = await _aiService.summarizeHistory(newlyAgedOut, previousSummary: _cachedSummary);
       final last = agedOut.last;
       _summarizedThroughMessageId = last.firestoreId?.toString() ?? last.localId;
     } catch (e, st) {
-      Log.e('ChatNotifier: Summary failed', error: e, stackTrace: st);
+      AppLogger.error('ChatNotifier: Summary failed', error: e, stackTrace: st);
     } finally {
       _isSummarizing = false;
     }
@@ -714,6 +723,7 @@ class ChatNotifier with ChangeNotifier {
     }
 
     await _repository.updateMessageFeedback(msg, type);
+    await _analyticsService.logEvent(name: 'feedback_given', parameters: {'type': type, 'message_id': msg.localId});
   }
 
   Future<void> handleSeeMoreSwaps(String prompt, int index) async {
@@ -746,7 +756,7 @@ class ChatNotifier with ChangeNotifier {
               .toList();
         }
       } catch (e) {
-        Log.e('ChatNotifier: Fetch alternatives failed', error: e);
+        AppLogger.error('ChatNotifier: Fetch alternatives failed', error: e);
       }
 
       final stream = _repository.sendMessageStream(
@@ -783,7 +793,7 @@ class ChatNotifier with ChangeNotifier {
         _replaceMessage(aiLocalId, savedAi);
       }
     } catch (e) {
-      Log.e('ChatNotifier: See more swaps failed', error: e);
+      AppLogger.error('ChatNotifier: See more swaps failed', error: e);
     } finally {
       _isLoading = false;
       notifyListeners();

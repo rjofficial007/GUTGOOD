@@ -9,22 +9,23 @@ import PackageDescription
 let package = Package(
     name: "FlutterGeneratedPluginSwiftPackage",
     platforms: [
-        .iOS("15.6")
+        .iOS("13.0")
     ],
     products: [
         .library(name: "FlutterGeneratedPluginSwiftPackage", type: .static, targets: ["FlutterGeneratedPluginSwiftPackage"])
     ],
     dependencies: [
         .package(name: "app_links", path: "../.packages/app_links-7.2.1"),
-        .package(name: "cloud_firestore", path: "../.packages/cloud_firestore-6.7.1"),
-        .package(name: "cloud_functions", path: "../.packages/cloud_functions-6.3.5"),
+        .package(name: "cloud_firestore", path: "../.packages/cloud_firestore-6.8.0"),
+        .package(name: "cloud_functions", path: "../.packages/cloud_functions-6.3.6"),
         .package(name: "device_info_plus", path: "../.packages/device_info_plus-12.3.0"),
-        .package(name: "firebase_analytics", path: "../.packages/firebase_analytics-12.4.5"),
-        .package(name: "firebase_auth", path: "../.packages/firebase_auth-6.5.6"),
-        .package(name: "firebase_core", path: "../.packages/firebase_core-4.12.1"),
-        .package(name: "firebase_crashlytics", path: "../.packages/firebase_crashlytics-5.2.6"),
-        .package(name: "firebase_remote_config", path: "../.packages/firebase_remote_config-6.5.5"),
-        .package(name: "firebase_storage", path: "../.packages/firebase_storage-13.4.5"),
+        .package(name: "firebase_analytics", path: "../.packages/firebase_analytics-12.4.6"),
+        .package(name: "firebase_auth", path: "../.packages/firebase_auth-6.5.7"),
+        .package(name: "firebase_core", path: "../.packages/firebase_core-4.13.0"),
+        .package(name: "firebase_crashlytics", path: "../.packages/firebase_crashlytics-5.2.7"),
+        .package(name: "firebase_messaging", path: "../.packages/firebase_messaging-16.5.0"),
+        .package(name: "firebase_remote_config", path: "../.packages/firebase_remote_config-6.5.6"),
+        .package(name: "firebase_storage", path: "../.packages/firebase_storage-13.4.6"),
         .package(name: "flutter_image_compress_common", path: "../.packages/flutter_image_compress_common-1.1.1"),
         .package(name: "flutter_local_notifications", path: "../.packages/flutter_local_notifications-22.2.0"),
         .package(name: "flutter_timezone", path: "../.packages/flutter_timezone-5.1.0"),
@@ -54,6 +55,7 @@ let package = Package(
                 .product(name: "firebase-auth", package: "firebase_auth"),
                 .product(name: "firebase-core", package: "firebase_core"),
                 .product(name: "firebase-crashlytics", package: "firebase_crashlytics"),
+                .product(name: "firebase-messaging", package: "firebase_messaging"),
                 .product(name: "firebase-remote-config", package: "firebase_remote_config"),
                 .product(name: "firebase-storage", package: "firebase_storage"),
                 .product(name: "flutter-image-compress-common", package: "flutter_image_compress_common"),

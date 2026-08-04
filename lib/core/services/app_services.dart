@@ -51,7 +51,7 @@ class AppServiceImpl implements AppService {
 
   @override
   Future<void> sendingMails({required String mailContent, required bool isFromReview}) async {
-    Log.d("AppService: Preparing to send email...");
+    AppLogger.debug("AppService: Preparing to send email...");
 
     final String email = Uri.encodeComponent("support@gutgood.app");
     final String subject = Uri.encodeComponent(
@@ -67,10 +67,10 @@ class AppServiceImpl implements AppService {
       try {
         await launchUrl(mail, mode: LaunchMode.platformDefault);
       } catch (e) {
-        Log.e("AppService: Error launching mail client", error: e);
+        AppLogger.error("AppService: Error launching mail client", error: e);
       }
     } else {
-      Log.e("AppService: Unable to launch mail client.");
+      AppLogger.error("AppService: Unable to launch mail client.");
     }
   }
 
@@ -84,7 +84,7 @@ class AppServiceImpl implements AppService {
 
       await SharePlus.instance.share(ShareParams(sharePositionOrigin: origin, text: shareWithFriendsText));
     } catch (e) {
-      Log.e('AppService: Share failed', error: e);
+      AppLogger.error('AppService: Share failed', error: e);
     }
   }
 
@@ -96,10 +96,7 @@ class AppServiceImpl implements AppService {
     try {
       final response = await _dio.get(
         'http://ip-api.com/json',
-        options: Options(
-          receiveTimeout: const Duration(seconds: 5),
-          sendTimeout: const Duration(seconds: 5),
-        ),
+        options: Options(receiveTimeout: const Duration(seconds: 5), sendTimeout: const Duration(seconds: 5)),
       );
 
       if (response.statusCode == 200) {
@@ -107,26 +104,26 @@ class AppServiceImpl implements AppService {
 
         if (data is Map<String, dynamic> && data['status'] == 'success') {
           _countryCode = (data['countryCode'] as String?)?.toUpperCase() ?? 'US';
-          Log.d("AppService: Country code: $_countryCode");
+          AppLogger.debug("AppService: Country code: $_countryCode");
           return;
         }
 
-        Log.w("AppService: Invalid geo lookup response: $data");
+        AppLogger.warning("AppService: Invalid geo lookup response: $data");
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 429) {
-        Log.w("AppService: Geo lookup rate limited.");
+        AppLogger.warning("AppService: Geo lookup rate limited.");
       } else {
-        Log.e("AppService: Geo lookup failed", error: e);
+        AppLogger.error("AppService: Geo lookup failed", error: e);
       }
     } catch (e) {
-      Log.e("AppService: Unexpected error", error: e);
+      AppLogger.error("AppService: Unexpected error", error: e);
     }
 
     // Fallback to device locale.
     final locale = WidgetsBinding.instance.platformDispatcher.locale;
     _countryCode = (locale.countryCode ?? 'US').toUpperCase();
-    Log.d("AppService: Fallback country code: $_countryCode");
+    AppLogger.debug("AppService: Fallback country code: $_countryCode");
   }
 
   @override
@@ -139,7 +136,7 @@ class AppServiceImpl implements AppService {
         await inAppReview.openStoreListing(appStoreId: _configService.iosAppId);
       }
     } catch (e) {
-      Log.e('AppService: Error requesting review', error: e);
+      AppLogger.error('AppService: Error requesting review', error: e);
     }
   }
 }

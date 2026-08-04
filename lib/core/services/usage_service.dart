@@ -57,14 +57,14 @@ class UsageServiceImpl implements UsageService {
     final uid = _uid;
     if (uid == null) return const DailyUsage(uid: '', date: '');
 
-    // 🟡 Fix F5: Use UTC to match server-side usage key generation.
-    final date = DateTime.now().toUtc().toIso8601String().split('T')[0];
+    // 🟡 Fix: Use local date to match timezone-aware server usage key generation.
+    final date = DateTime.now().toIso8601String().split('T')[0];
 
     try {
       final DailyUsage? cloudUsage = await _firestoreService.getUsageToday();
       if (cloudUsage != null) return cloudUsage;
     } catch (e) {
-      Log.w('UsageService: Cloud usage fetch failed: $e');
+      AppLogger.warning('UsageService: Cloud usage fetch failed: $e');
     }
 
     return DailyUsage(uid: uid, date: date);
@@ -78,7 +78,7 @@ class UsageServiceImpl implements UsageService {
     final limit = isAnon ? maxGuestChats : maxFreeChats;
 
     final allowed = usage.chatCount < limit;
-    Log.d('UsageService: canChat? $allowed (${usage.chatCount}/$limit, guest: $isAnon)');
+    AppLogger.debug('UsageService: canChat? $allowed (${usage.chatCount}/$limit, guest: $isAnon)');
     return allowed;
   }
 
@@ -90,7 +90,7 @@ class UsageServiceImpl implements UsageService {
     final limit = isAnon ? maxGuestScans : maxFreeScans;
 
     final allowed = usage.scanCount < limit;
-    Log.d('UsageService: canScan? $allowed (${usage.scanCount}/$limit, guest: $isAnon)');
+    AppLogger.debug('UsageService: canScan? $allowed (${usage.scanCount}/$limit, guest: $isAnon)');
     return allowed;
   }
 

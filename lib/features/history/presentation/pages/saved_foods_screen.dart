@@ -4,14 +4,15 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 import 'package:gutgood/features/history/presentation/widgets/scan_history_tile.dart';
+
+import '../../../../core/services/analytics_service.dart';
 
 class SavedFoodsScreen extends StatefulWidget {
   const SavedFoodsScreen({super.key});
@@ -29,6 +30,7 @@ class _SavedFoodsScreenState extends State<SavedFoodsScreen> {
     super.initState();
     _loadSavedFoods();
     sl<AppStateService>().savedFoodsUpdated.addListener(_loadSavedFoods);
+    sl<AnalyticsService>().logEvent(name: 'view_saved_foods');
   }
 
   @override
