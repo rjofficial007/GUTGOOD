@@ -3,17 +3,16 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/widgets/streak_celebration_overlay.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/streak_celebration_overlay.dart';
-import '../../../profile/presentation/providers/profile_provider.dart';
-
 class MainShell extends StatelessWidget {
-  final StatefulNavigationShell navigationShell;
 
   const MainShell({super.key, required this.navigationShell});
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +29,7 @@ class MainShell extends StatelessWidget {
             ),
         ],
       ),
-      bottomNavigationBar: Container(
+      bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           color: context.appColorScheme.cardBackground,
           border: Border(top: BorderSide(color: context.appColorScheme.border, width: 0.5)),
@@ -55,15 +54,14 @@ class MainShell extends StatelessWidget {
 }
 
 class _TabItem extends StatelessWidget {
+  const _TabItem({required this.icon, required this.label, required this.active, required this.onTap});
   final IconData icon;
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const _TabItem({required this.icon, required this.label, required this.active, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
+  Widget build(BuildContext context) => Expanded(
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -86,5 +84,4 @@ class _TabItem extends StatelessWidget {
         ),
       ),
     );
-  }
 }

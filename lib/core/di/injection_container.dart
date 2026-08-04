@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -50,12 +51,11 @@ import 'package:gutgood/features/logs/domain/repositories/log_repository.dart';
 import 'package:gutgood/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:gutgood/features/profile/domain/repositories/profile_repository.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/features/profile/presentation/providers/usage_notifier.dart';
 import 'package:gutgood/features/scanner/data/repositories/scanner_repository_impl.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
+import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../features/profile/presentation/providers/usage_notifier.dart';
-import '../../features/scanner/presentation/providers/scanner_notifier.dart';
 
 final sl = GetIt.instance;
 
@@ -68,134 +68,131 @@ String get _emulatorHost => Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
 Future<void> init() async {
   //! External
   final sharedPreferences = await SharedPreferences.getInstance();
-  sl.registerLazySingleton(() => sharedPreferences);
-  sl.registerLazySingleton(() {
-    final auth = FirebaseAuth.instance;
-    if (_useFirebaseEmulator && kDebugMode) auth.useAuthEmulator(_emulatorHost, 9099);
-    return auth;
-  });
-  sl.registerLazySingleton(() {
-    final firestore = FirebaseFirestore.instance;
-    firestore.settings = const Settings(persistenceEnabled: true, cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
-    if (_useFirebaseEmulator && kDebugMode) firestore.useFirestoreEmulator(_emulatorHost, 8080);
-    return firestore;
-  });
-  sl.registerLazySingleton(() {
-    // Region pinned to match the deployed functions (us-central1).
-    final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
-    if (_useFirebaseEmulator && kDebugMode) functions.useFunctionsEmulator(_emulatorHost, 5001);
-    return functions;
-  });
-  sl.registerLazySingleton(() {
-    final storage = FirebaseStorage.instance;
-    if (_useFirebaseEmulator && kDebugMode) storage.useStorageEmulator(_emulatorHost, 9199);
-    return storage;
-  });
-  sl.registerLazySingleton(() => FirebaseRemoteConfig.instance);
-  sl.registerLazySingleton(() => GoogleSignIn.instance);
-  sl.registerLazySingleton(() => DeviceInfoPlugin());
-  sl.registerLazySingleton(() => Dio(BaseOptions(connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 15))));
-  sl.registerLazySingleton(() => FlutterLocalNotificationsPlugin());
+  sl
+    ..registerLazySingleton(() => sharedPreferences)
+    ..registerLazySingleton(() {
+      final auth = FirebaseAuth.instance;
+      if (_useFirebaseEmulator && kDebugMode) {
+        auth.useAuthEmulator(_emulatorHost, 9099);
+      }
+      return auth;
+    })
+    ..registerLazySingleton(() {
+      final firestore = FirebaseFirestore.instance
+        ..settings = const Settings(persistenceEnabled: true, cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+      if (_useFirebaseEmulator && kDebugMode) {
+        firestore.useFirestoreEmulator(_emulatorHost, 8080);
+      }
+      return firestore;
+    })
+    ..registerLazySingleton(() {
+      // Region pinned to match the deployed functions (us-central1).
+      final functions = FirebaseFunctions.instanceFor(region: 'us-central1');
+      if (_useFirebaseEmulator && kDebugMode) {
+        functions.useFunctionsEmulator(_emulatorHost, 5001);
+      }
+      return functions;
+    })
+    ..registerLazySingleton(() {
+      final storage = FirebaseStorage.instance;
+      if (_useFirebaseEmulator && kDebugMode) {
+        storage.useStorageEmulator(_emulatorHost, 9199);
+      }
+      return storage;
+    })
+    ..registerLazySingleton(() => FirebaseRemoteConfig.instance)
+    ..registerLazySingleton(() => GoogleSignIn.instance)
+    ..registerLazySingleton(DeviceInfoPlugin.new)
+    ..registerLazySingleton(() => Dio(BaseOptions(connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 15))))
+    ..registerLazySingleton(FlutterLocalNotificationsPlugin.new)
 
   //! Core Services
-  sl.registerLazySingleton<ConfigService>(() => ConfigServiceImpl());
-  sl.registerLazySingleton<AnalyticsService>(() => AnalyticsServiceImpl());
-  sl.registerLazySingleton<CrashlyticsService>(() => CrashlyticsServiceImpl());
-  sl.registerLazySingleton<AppVersionService>(() => AppVersionServiceImpl());
-  sl.registerLazySingleton<DeviceInfoService>(() => DeviceInfoServiceImpl(deviceInfoPlugin: sl()));
-  sl.registerLazySingleton<AppService>(() => AppServiceImpl(appVersionService: sl(), deviceInfoService: sl(), configService: sl(), dio: sl()));
 
-  sl.registerLazySingleton<AppStateService>(() => AppStateServiceImpl());
-
-  sl.registerLazySingleton<RemoteConfigService>(() => RemoteConfigServiceImpl(remoteConfig: sl()));
-
-  // All AI traffic goes through the secure aiProxy Cloud Function — the OpenAI
-  // key lives only on the server (PRD §3d). No on-device AI SDK keys.
-  sl.registerLazySingleton<AiService>(() => AiServiceImpl(dio: sl(), auth: sl(), config: sl(), analyticsService: sl(), crashlyticsService: sl()));
-
-  sl.registerLazySingleton<OffService>(() => OffServiceImpl(dio: sl()));
-
-  sl.registerLazySingleton<StorageService>(() => StorageServiceImpl(auth: sl(), storage: sl()));
-
-  sl.registerLazySingleton<FirestoreService>(() => FirestoreServiceImpl(auth: sl(), db: sl(), storageService: sl()));
-
-  sl.registerLazySingleton<NotificationService>(() => NotificationServiceImpl(notifications: sl(), firestoreService: sl(), prefs: sl()));
-
-  sl.registerLazySingleton<PatternEngineService>(() => PatternEngineServiceImpl(firestoreService: sl()));
-
-  sl.registerLazySingleton<InternetConnectionChecker>(() => InternetConnectionCheckerImpl());
-
-  sl.registerLazySingleton<LinkService>(() => LinkServiceImpl(authRepository: sl(), prefs: sl(), firebaseAuth: sl(), appStateService: sl()));
-
-  sl.registerLazySingleton<PurchaseService>(() => PurchaseServiceImpl());
-
-  sl.registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), firestoreService: sl(), purchaseService: sl(), prefs: sl()));
-
-  sl.registerLazySingleton<ExportService>(() => ExportServiceImpl(firestoreService: sl()));
-
-  sl.registerLazySingleton(() => ThemeNotifier(sl()));
+    ..registerLazySingleton<ConfigService>(ConfigServiceImpl.new)
+    ..registerLazySingleton<AnalyticsService>(AnalyticsServiceImpl.new)
+    ..registerLazySingleton<CrashlyticsService>(CrashlyticsServiceImpl.new)
+    ..registerLazySingleton<AppVersionService>(AppVersionServiceImpl.new)
+    ..registerLazySingleton<DeviceInfoService>(() => DeviceInfoServiceImpl(deviceInfoPlugin: sl()))
+    ..registerLazySingleton<AppService>(() => AppServiceImpl(appVersionService: sl(), deviceInfoService: sl(), configService: sl(), dio: sl()))
+    ..registerLazySingleton<AppStateService>(AppStateServiceImpl.new)
+    ..registerLazySingleton<RemoteConfigService>(() => RemoteConfigServiceImpl(remoteConfig: sl()))
+    ..registerLazySingleton<AiService>(() => AiServiceImpl(dio: sl(), auth: sl(), config: sl(), analyticsService: sl(), crashlyticsService: sl()))
+    ..registerLazySingleton<OffService>(() => OffServiceImpl(dio: sl()))
+    ..registerLazySingleton<StorageService>(() => StorageServiceImpl(auth: sl(), storage: sl()))
+    ..registerLazySingleton<FirestoreService>(() => FirestoreServiceImpl(auth: sl(), db: sl(), storageService: sl()))
+    ..registerLazySingleton<NotificationService>(() => NotificationServiceImpl(notifications: sl(), firestoreService: sl(), prefs: sl()))
+    ..registerLazySingleton<PatternEngineService>(() => PatternEngineServiceImpl(firestoreService: sl()))
+    ..registerLazySingleton<InternetConnectionChecker>(InternetConnectionCheckerImpl.new)
+    ..registerLazySingleton<LinkService>(() => LinkServiceImpl(authRepository: sl(), prefs: sl(), firebaseAuth: sl(), appStateService: sl()))
+    ..registerLazySingleton<PurchaseService>(PurchaseServiceImpl.new)
+    ..registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), firestoreService: sl(), purchaseService: sl(), prefs: sl()))
+    ..registerLazySingleton<ExportService>(() => ExportServiceImpl(firestoreService: sl()))
+    ..registerLazySingleton(() => ThemeNotifier(sl()))
 
   //! Features
   // Auth
-  sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(
-      firebaseAuth: sl(),
-      googleSignIn: sl(),
-      firestoreService: sl(),
-      purchaseService: sl(),
-      prefs: sl(),
-      appStateService: sl(),
-      firebaseFunctions: sl(),
-      analyticsService: sl(),
-      crashlyticsService: sl(),
-    ),
-  );
-  sl.registerLazySingleton(() => GutAuthNotifier(sl(), sl()));
-  sl.registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), firestoreService: sl(), analyticsService: sl()));
 
-  // Profile
-  sl.registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(auth: sl(), firestoreService: sl()));
-  sl.registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl()));
-  sl.registerLazySingleton(() => UsageNotifier(sl(), sl()));
+    ..registerLazySingleton<AuthRepository>(
+      () => AuthRepositoryImpl(
+        firebaseAuth: sl(),
+        googleSignIn: sl(),
+        firestoreService: sl(),
+        purchaseService: sl(),
+        prefs: sl(),
+        appStateService: sl(),
+        firebaseFunctions: sl(),
+        analyticsService: sl(),
+        crashlyticsService: sl(),
+      ),
+    )
+    ..registerLazySingleton(() => GutAuthNotifier(sl(), sl()))
+    ..registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), firestoreService: sl(), analyticsService: sl()))
 
-  // Chat
-  sl.registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl()));
-  sl.registerLazySingleton(
-    () => ChatNotifier(
-      repository: sl(),
-      firestoreService: sl(),
-      aiService: sl(),
-      storageService: sl(),
-      offService: sl(),
-      prefs: sl(),
-      auth: sl(),
-      connectionChecker: sl(),
-      sendMessageStreamUseCase: sl(),
-      processChatTagUseCase: sl(),
-      appStateService: sl(),
-      analyticsService: sl(),
-    ),
-  );
+    // Profile
+    ..registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(auth: sl(), firestoreService: sl()))
+    ..registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl()))
+    ..registerLazySingleton(() => UsageNotifier(sl(), sl()))
 
-  // Insights
-  sl.registerLazySingleton<InsightRepository>(
-    () => InsightRepositoryImpl(firestoreService: sl(), aiService: sl(), prefs: sl(), notificationService: sl(), patternEngineService: sl(), analyticsService: sl(), crashlyticsService: sl()),
-  );
-  sl.registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl()));
+    // Chat
+    ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl()))
+    ..registerLazySingleton(
+      () => ChatNotifier(
+        repository: sl(),
+        firestoreService: sl(),
+        aiService: sl(),
+        storageService: sl(),
+        offService: sl(),
+        prefs: sl(),
+        auth: sl(),
+        connectionChecker: sl(),
+        sendMessageStreamUseCase: sl(),
+        processChatTagUseCase: sl(),
+        appStateService: sl(),
+        analyticsService: sl(),
+      ),
+    )
 
-  // Scanner
-  sl.registerLazySingleton<ScannerRepository>(
-    () => ScannerRepositoryImpl(offService: sl(), aiService: sl(), firestoreService: sl(), notificationService: sl(), appStateService: sl(), analyticsService: sl()),
-  );
-  sl.registerLazySingleton(() => ScannerNotifier(repository: sl(), firestoreService: sl(), offService: sl(), storageService: sl()));
+    // Insights
+    ..registerLazySingleton<InsightRepository>(
+      () => InsightRepositoryImpl(firestoreService: sl(), aiService: sl(), prefs: sl(), notificationService: sl(), patternEngineService: sl(), analyticsService: sl(), crashlyticsService: sl()),
+    )
+    ..registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl()))
 
-  // Logs
-  sl.registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl()));
+    // Scanner
+    ..registerLazySingleton<ScannerRepository>(
+      () => ScannerRepositoryImpl(offService: sl(), aiService: sl(), firestoreService: sl(), notificationService: sl(), appStateService: sl(), analyticsService: sl()),
+    )
+    ..registerLazySingleton(() => ScannerNotifier(repository: sl(), firestoreService: sl(), offService: sl(), storageService: sl()))
 
-  // History
-  sl.registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl()));
+    // Logs
+    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl()))
+
+    // History
+    ..registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl()))
 
   //! UseCases
-  sl.registerLazySingleton(() => SendMessageStreamUseCase(sl()));
-  sl.registerLazySingleton(() => ProcessChatTagUseCase(firestoreService: sl(), notificationService: sl(), appStateService: sl()));
+
+    ..registerLazySingleton(() => SendMessageStreamUseCase(sl()))
+    ..registerLazySingleton(() => ProcessChatTagUseCase(firestoreService: sl(), notificationService: sl(), appStateService: sl()));
 }
+

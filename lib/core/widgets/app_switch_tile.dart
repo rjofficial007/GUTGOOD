@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 
-import '../constants/app_sizes.dart';
-
 class AppSwitchTile extends StatelessWidget {
+
+  const AppSwitchTile({super.key, this.icon, required this.title, required this.desc, required this.value, this.onChanged, this.showBottomBorder = true});
   final IconData? icon;
   final String title;
   final String desc;
@@ -12,11 +13,8 @@ class AppSwitchTile extends StatelessWidget {
   final ValueChanged<bool>? onChanged;
   final bool showBottomBorder;
 
-  const AppSwitchTile({super.key, this.icon, required this.title, required this.desc, required this.value, this.onChanged, this.showBottomBorder = true});
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: EdgeInsets.symmetric(vertical: AppSizes.p16),
       decoration: BoxDecoration(
         border: showBottomBorder ? Border(bottom: BorderSide(color: context.appColorScheme.border.withValues(alpha: 0.5))) : null,
@@ -44,5 +42,4 @@ class AppSwitchTile extends StatelessWidget {
         ],
       ),
     );
-  }
 }

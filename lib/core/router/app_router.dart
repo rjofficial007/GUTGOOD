@@ -1,9 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/widgets/gut_button.dart';
 import 'package:gutgood/features/auth/presentation/pages/email_login_screen.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
@@ -13,6 +22,7 @@ import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
+import 'package:gutgood/features/insights/presentation/pages/notification_archive_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/logs/presentation/pages/symptom_check_in_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
@@ -25,25 +35,14 @@ import 'package:gutgood/features/profile/presentation/pages/lifestyle_screen.dar
 import 'package:gutgood/features/profile/presentation/pages/notifications_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/profile_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/sensitivities_screen.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/features/scanner/presentation/pages/manual_barcode_screen.dart';
+import 'package:gutgood/features/scanner/presentation/pages/scanning_animation_screen.dart';
+import 'package:gutgood/features/scanner/presentation/pages/super_scanner_screen.dart';
 import 'package:gutgood/features/splash/presentation/pages/splash_screen.dart';
 import 'package:gutgood/features/welcome/presentation/pages/welcome_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../features/insights/presentation/pages/notification_archive_screen.dart';
-import '../../features/profile/presentation/providers/profile_provider.dart';
-import '../../features/scanner/presentation/pages/manual_barcode_screen.dart';
-import '../../features/scanner/presentation/pages/scanning_animation_screen.dart';
-import '../../features/scanner/presentation/pages/super_scanner_screen.dart';
-import '../constants/app_icons.dart';
-import '../constants/app_sizes.dart';
-import '../constants/app_strings.dart';
-import '../di/injection_container.dart';
-import '../services/analytics_service.dart';
-import '../services/app_state_service.dart';
-import '../theme/app_color_scheme.dart';
-import '../theme/app_text_styles.dart';
-import '../widgets/gut_button.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorChatKey = GlobalKey<NavigatorState>(debugLabel: 'chat');
@@ -69,7 +68,7 @@ class AppRouter {
         return null;
       }
 
-      final bool loggedIn = authNotifier.isAuthenticated;
+      final loggedIn = authNotifier.isAuthenticated;
 
       // 🟡 Professional Flow: If logged in but profile isn't initialized yet,
       // stay on the current screen (Splash/Welcome) while we fetch the "onboarded" truth from Firestore.
@@ -78,12 +77,12 @@ class AppRouter {
       }
 
       // Use Profile as source of truth, fallback to local prefs (for Guest fast-path)
-      final bool onboarded = profileNotifier.profile?.onboarded ?? prefs.getBool('onboarded') ?? false;
+      final onboarded = profileNotifier.profile?.onboarded ?? prefs.getBool('onboarded') ?? false;
 
-      final bool isSplash = state.matchedLocation == AppRoutes.splash;
-      final bool isWelcome = state.matchedLocation == AppRoutes.welcome;
-      final bool isOnboarding = state.matchedLocation == AppRoutes.onboarding;
-      final bool isLogin = state.matchedLocation == AppRoutes.login;
+      final isSplash = state.matchedLocation == AppRoutes.splash;
+      final isWelcome = state.matchedLocation == AppRoutes.welcome;
+      final isOnboarding = state.matchedLocation == AppRoutes.onboarding;
+      final isLogin = state.matchedLocation == AppRoutes.login;
 
       // Don't redirect during splash initialization
       if (isSplash) return null;
@@ -139,9 +138,7 @@ class AppRouter {
 
       // Main Application Shell
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return MainShell(navigationShell: navigationShell);
-        },
+        builder: (context, state, navigationShell) => MainShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
             navigatorKey: _shellNavigatorChatKey,
@@ -236,8 +233,8 @@ class AppRouter {
 }
 
 class _UnknownRouteScreen extends StatelessWidget {
-  final String location;
   const _UnknownRouteScreen({required this.location});
+  final String location;
 
   @override
   Widget build(BuildContext context) {

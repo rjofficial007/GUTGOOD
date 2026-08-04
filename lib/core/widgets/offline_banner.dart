@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -11,8 +11,7 @@ class OfflineBanner extends StatelessWidget {
   const OfflineBanner({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
       valueListenable: sl<InternetConnectionChecker>().isInternetAvailable,
       builder: (context, isAvailable, child) {
         if (isAvailable) return const SizedBox.shrink();
@@ -38,5 +37,4 @@ class OfflineBanner extends StatelessWidget {
         );
       },
     );
-  }
 }

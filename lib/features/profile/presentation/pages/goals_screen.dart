@@ -4,16 +4,15 @@ import 'package:gutgood/core/constants/app_config_data.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/selection_option.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/theme/app_color_scheme.dart';
-
 class GoalsScreen extends StatefulWidget {
-  final List<String> activeGoals;
   const GoalsScreen({super.key, required this.activeGoals});
+  final List<String> activeGoals;
 
   @override
   State<GoalsScreen> createState() => _GoalsScreenState();
@@ -58,8 +57,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: const GutAppBar(title: AppStrings.goals),
       body: Column(
@@ -86,5 +84,4 @@ class _GoalsScreenState extends State<GoalsScreen> {
         ],
       ),
     );
-  }
 }

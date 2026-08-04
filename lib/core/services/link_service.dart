@@ -17,16 +17,16 @@ abstract class LinkService {
 }
 
 class LinkServiceImpl implements LinkService {
-  final AuthRepository _authRepository;
-  final SharedPreferences _prefs;
-  final FirebaseAuth _firebaseAuth;
-  final AppStateService _appStateService;
 
   LinkServiceImpl({required AuthRepository authRepository, required SharedPreferences prefs, required FirebaseAuth firebaseAuth, required AppStateService appStateService})
     : _authRepository = authRepository,
       _prefs = prefs,
       _firebaseAuth = firebaseAuth,
       _appStateService = appStateService;
+  final AuthRepository _authRepository;
+  final SharedPreferences _prefs;
+  final FirebaseAuth _firebaseAuth;
+  final AppStateService _appStateService;
 
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
@@ -38,13 +38,13 @@ class LinkServiceImpl implements LinkService {
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
-        _handleLink(initialUri);
+        unawaited(_handleLink(initialUri));
       }
     } catch (e) {
       AppLogger.error('LinkService: Error getting initial link', error: e);
     }
 
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) => _handleLink(uri), onError: (err) => AppLogger.error('LinkService: Stream error', error: err));
+    _linkSubscription = _appLinks.uriLinkStream.listen(_handleLink, onError: (err) => AppLogger.error('LinkService: Stream error', error: err));
 
     await _checkAppleCredentialState();
     await _checkPendingMerge();
@@ -61,11 +61,11 @@ class LinkServiceImpl implements LinkService {
     }
   }
 
-  void _handleLink(Uri uri) async {
-    final String link = uri.toString();
+  Future<void> _handleLink(Uri uri) async {
+    final link = uri.toString();
     AppLogger.info('LinkService: Handling link -> $link');
 
-    String effectiveLink = link;
+    var effectiveLink = link;
 
     // 🟢 Fix: Firebase Hosting/Dynamic Links often wrap the auth link in a 'link' parameter.
     // We must unwrap it to find the 'oobCode' required by FirebaseAuth.
@@ -79,7 +79,7 @@ class LinkServiceImpl implements LinkService {
 
     if (_firebaseAuth.isSignInWithEmailLink(effectiveLink)) {
       _appStateService.setVerifyingAuth(true);
-      final String? email = _prefs.getString('login_email');
+      final email = _prefs.getString('login_email');
 
       if (email != null) {
         try {
@@ -98,8 +98,9 @@ class LinkServiceImpl implements LinkService {
         }
       } else {
         await Future.delayed(const Duration(milliseconds: 1000));
-        _appStateService.setVerifyingAuth(false);
-        _appStateService.setPendingEmailLink(effectiveLink);
+        _appStateService
+          ..setVerifyingAuth(false)
+          ..setPendingEmailLink(effectiveLink);
       }
     }
   }

@@ -11,21 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum PurchaseActionType { purchase, restore }
 
 class PurchaseProvider extends ChangeNotifier {
-  final PurchaseService _purchaseService;
-  final InternetConnectionChecker _connectionChecker;
-  final AppStateService _appStateService;
-  final SharedPreferences _prefs;
-  final FirestoreService _firestoreService;
-  final AnalyticsService _analyticsService;
-
-  List<Package> _packages = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-  String? _selectedPackageIdentifier;
-  bool _isPurchasing = false;
-  bool? _purchaseResult;
-  PurchaseActionType? _actionType;
-  bool _isPremium = false;
 
   PurchaseProvider({
     required PurchaseService purchaseService,
@@ -43,6 +28,21 @@ class PurchaseProvider extends ChangeNotifier {
     _isPremium = _purchaseService.isPremium;
     fetchOfferings();
   }
+  final PurchaseService _purchaseService;
+  final InternetConnectionChecker _connectionChecker;
+  final AppStateService _appStateService;
+  final SharedPreferences _prefs;
+  final FirestoreService _firestoreService;
+  final AnalyticsService _analyticsService;
+
+  List<Package> _packages = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+  String? _selectedPackageIdentifier;
+  bool _isPurchasing = false;
+  bool? _purchaseResult;
+  PurchaseActionType? _actionType;
+  bool _isPremium = false;
 
   List<Package> get packages => _packages;
   bool get isLoading => _isLoading;
@@ -60,7 +60,7 @@ class PurchaseProvider extends ChangeNotifier {
 
     try {
       if (!_connectionChecker.isInternetAvailable.value) {
-        _errorMessage = "No internet connection available.";
+        _errorMessage = 'No internet connection available.';
         _isLoading = false;
         notifyListeners();
         return;
@@ -69,16 +69,16 @@ class PurchaseProvider extends ChangeNotifier {
       final packages = await _purchaseService.fetchOffers();
 
       if (packages.isEmpty) {
-        _errorMessage = "No subscription plans available.";
+        _errorMessage = 'No subscription plans available.';
         _packages = [];
       } else {
         _packages = packages;
-        _selectedPackageIdentifier = _packages.firstWhere((p) => p.storeProduct.subscriptionPeriod == "P1Y", orElse: () => _packages.first).identifier;
+        _selectedPackageIdentifier = _packages.firstWhere((p) => p.storeProduct.subscriptionPeriod == 'P1Y', orElse: () => _packages.first).identifier;
         await _analyticsService.logEvent(name: 'offerings_fetched', parameters: {'count': _packages.length});
       }
     } catch (e) {
-      AppLogger.error("PurchaseProvider: Fetch offerings failed", error: e);
-      _errorMessage = "Failed to load plans.";
+      AppLogger.error('PurchaseProvider: Fetch offerings failed', error: e);
+      _errorMessage = 'Failed to load plans.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -100,7 +100,7 @@ class PurchaseProvider extends ChangeNotifier {
       await _updatePremiumStatusFromService();
       return success;
     } catch (e) {
-      AppLogger.error("PurchaseProvider: Purchase failed", error: e);
+      AppLogger.error('PurchaseProvider: Purchase failed', error: e);
       _purchaseResult = false;
       return false;
     } finally {
@@ -125,7 +125,7 @@ class PurchaseProvider extends ChangeNotifier {
       await _updatePremiumStatusFromService();
       return restored;
     } catch (e) {
-      AppLogger.error("PurchaseProvider: Restore failed", error: e);
+      AppLogger.error('PurchaseProvider: Restore failed', error: e);
       _purchaseResult = false;
       return false;
     } finally {

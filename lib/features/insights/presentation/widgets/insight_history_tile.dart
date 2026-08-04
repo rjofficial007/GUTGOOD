@@ -7,15 +7,15 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 
 class InsightHistoryTile extends StatelessWidget {
+
+  const InsightHistoryTile({super.key, required this.insight, required this.onTap});
   final AIInsight insight;
   final VoidCallback onTap;
 
-  const InsightHistoryTile({super.key, required this.insight, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
-    final String type = insight.topInsight?.type ?? 'Insight';
-    final Color effectColor = context.appColorScheme.textPrimary;
+    final type = insight.topInsight?.type ?? 'Insight';
+    final effectColor = context.appColorScheme.textPrimary;
 
     return GestureDetector(
       onTap: onTap,

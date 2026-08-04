@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-
-import 'app_color_scheme.dart';
 
 class AppTextStyles {
   const AppTextStyles._();

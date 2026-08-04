@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -7,22 +9,21 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
+import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/theme/app_color_scheme.dart';
-import '../../../../core/widgets/shimmer_grid_loader.dart';
-import '../../../profile/presentation/providers/profile_provider.dart';
-import '../providers/insights_notifier.dart';
-
 class WeeklyRecapScreen extends StatelessWidget {
-  final AIInsight? insight;
   const WeeklyRecapScreen({super.key, this.insight});
+  final AIInsight? insight;
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +32,13 @@ class WeeklyRecapScreen extends StatelessWidget {
     final notifier = context.watch<InsightsNotifier>();
 
     if (insight != null) {
-      sl<AnalyticsService>().logEvent(name: 'view_weekly_recap', parameters: {
+      unawaited(sl<AnalyticsService>().logEvent(name: 'view_weekly_recap', parameters: {
         'avg_score': recap?.avgScore ?? 0,
         'foods_logged': recap?.foodsLogged ?? 0,
-      });
+      }));
     }
 
-    final List<Widget?> sections = [
+    final sections = <Widget?>[
       // Date Range Header
       Center(
         child: Container(
@@ -135,8 +136,7 @@ class WeeklyRecapScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAchievementBanner(BuildContext context) {
-    return Container(
+  Widget _buildAchievementBanner(BuildContext context) => Container(
       width: double.infinity,
       padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
@@ -173,10 +173,9 @@ class WeeklyRecapScreen extends StatelessWidget {
         ],
       ),
     );
-  }
 
   void _showRecapDetails(BuildContext context, WeeklyRecap? recap, AIInsight? insight) {
-    sl<AnalyticsService>().logEvent(name: 'view_recap_metrics');
+    unawaited(sl<AnalyticsService>().logEvent(name: 'view_recap_metrics'));
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.weeklyPerformance,
@@ -200,19 +199,17 @@ class WeeklyRecapScreen extends StatelessWidget {
   }
 
   void _showDiscoveryDetails(BuildContext context, List<RecapHighlight> highlights) {
-    sl<AnalyticsService>().logEvent(name: 'view_recap_discoveries');
+    unawaited(sl<AnalyticsService>().logEvent(name: 'view_recap_discoveries'));
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.discoveriesTitle,
       children: [
         SheetHeroSection(title: AppStrings.insights, subtitle: AppStrings.aiDrivenFindings, color: context.appColorScheme.textPrimary, icon: AppIcons.sparkles),
         Gap.h32,
-        ...highlights.map((RecapHighlight h) {
-          return Padding(
+        ...highlights.map((RecapHighlight h) => Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p16),
             child: DashboardDetailItem(title: h.text, subtitle: AppStrings.detectedThisWeek, icon: InsightUiUtils.getReactionIcon(h.icon), color: context.appColorScheme.textPrimary),
-          );
-        }),
+          )),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -222,15 +219,15 @@ class WeeklyRecapScreen extends StatelessWidget {
 }
 
 class _ModernSmartAlert extends StatelessWidget {
-  final AIInsight insight;
   const _ModernSmartAlert({required this.insight});
+  final AIInsight insight;
 
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileNotifier>().profile;
     final streak = profile?.streak ?? 0;
     final healingTrend = insight.healingTrend ?? AppStrings.optimizing;
-    final String description = "${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}";
+    final description = '${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}';
 
     return ModernInsightCard(
       title: AppStrings.weeklyPulse,

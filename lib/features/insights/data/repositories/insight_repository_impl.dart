@@ -1,10 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
@@ -18,13 +16,6 @@ import 'package:gutgood/features/insights/domain/repositories/insight_repository
 import 'package:shared_preferences/shared_preferences.dart';
 
 class InsightRepositoryImpl implements InsightRepository {
-  final FirestoreService _firestoreService;
-  final AiService _aiService;
-  final SharedPreferences _prefs;
-  final NotificationService _notificationService;
-  final PatternEngineService _patternEngineService;
-  final AnalyticsService _analyticsService;
-  final CrashlyticsService _crashlyticsService;
 
   InsightRepositoryImpl({
     required FirestoreService firestoreService,
@@ -41,6 +32,13 @@ class InsightRepositoryImpl implements InsightRepository {
        _patternEngineService = patternEngineService,
        _analyticsService = analyticsService,
        _crashlyticsService = crashlyticsService;
+  final FirestoreService _firestoreService;
+  final AiService _aiService;
+  final SharedPreferences _prefs;
+  final NotificationService _notificationService;
+  final PatternEngineService _patternEngineService;
+  final AnalyticsService _analyticsService;
+  final CrashlyticsService _crashlyticsService;
 
   @override
   Future<AIInsight?> getLatestInsight() async {
@@ -56,9 +54,7 @@ class InsightRepositoryImpl implements InsightRepository {
   }
 
   @override
-  Future<List<AIInsight>> getInsightHistory() async {
-    return await _firestoreService.getInsightsHistory();
-  }
+  Future<List<AIInsight>> getInsightHistory() async => _firestoreService.getInsightsHistory();
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
@@ -77,16 +73,16 @@ class InsightRepositoryImpl implements InsightRepository {
     final hoursSinceLastRun = nowUtc.difference(lastRun).inHours;
 
     // 🔴 TEMPORARY DEBUG BYPASS: Enable this to test notifications immediately.
-    final bool bypassTimeCheck = kDebugMode;
+    const bypassTimeCheck = kDebugMode;
 
     if (hoursSinceLastRun < 24 && !bypassTimeCheck) {
       AppLogger.debug('InsightRepo: Last insight was generated $hoursSinceLastRun hours ago. Skipping.');
       return;
     }
 
-    final int scanCount = await _firestoreService.getScansCountSince(lastRun);
-    final int mealCount = await _firestoreService.getMealLogsCountSince(lastRun);
-    final int symptomCount = await _firestoreService.getSymptomsCountSince(lastRun);
+    final scanCount = await _firestoreService.getScansCountSince(lastRun);
+    final mealCount = await _firestoreService.getMealLogsCountSince(lastRun);
+    final symptomCount = await _firestoreService.getSymptomsCountSince(lastRun);
 
     if (scanCount < 3 && mealCount < 1 && symptomCount < 1 && !bypassTimeCheck) {
       AppLogger.debug('InsightRepo: Not enough new data for analysis.');
@@ -94,26 +90,26 @@ class InsightRepositoryImpl implements InsightRepository {
     }
 
     final profile = await _firestoreService.getUserMetadata();
-    final List<String> userGoals = profile?.goals ?? _prefs.getStringList('user_goals') ?? [];
-    final List<String> userSensitivities = profile?.sensitivities ?? _prefs.getStringList('user_sensitivities') ?? [];
-    final List<String> userLifestyle = profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
+    final userGoals = profile?.goals ?? _prefs.getStringList('user_goals') ?? [];
+    final userSensitivities = profile?.sensitivities ?? _prefs.getStringList('user_sensitivities') ?? [];
+    final userLifestyle = profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
 
-    final bool cycleSyncEnabled = profile?.cycleSyncEnabled ?? _prefs.getBool('cycle_sync_enabled') ?? false;
-    final String cyclePhase = cycleSyncEnabled ? (profile?.cyclePhase ?? _prefs.getString('cycle_phase') ?? 'Luteal Phase') : 'Not specified';
+    final cycleSyncEnabled = profile?.cycleSyncEnabled ?? _prefs.getBool('cycle_sync_enabled') ?? false;
+    final cyclePhase = cycleSyncEnabled ? (profile?.cyclePhase ?? _prefs.getString('cycle_phase') ?? 'Luteal Phase') : 'Not specified';
 
-    final List<MealLog> recentMeals = await _firestoreService.getRecentMealLogs(limit: 30);
-    final List<SymptomLog> symptomLogs = await _firestoreService.getRecentSymptomLogs(limit: 30);
-    final List<ScanResult> recentScans = await _firestoreService.getRecentScans(limit: 20);
+    final recentMeals = await _firestoreService.getRecentMealLogs(limit: 30);
+    final symptomLogs = await _firestoreService.getRecentSymptomLogs(limit: 30);
+    final recentScans = await _firestoreService.getRecentScans(limit: 20);
 
-    final String historyJson = "[]"; // Omitting chat history for simplicity in this migration step
-    final String mealsJson = jsonEncode(recentMeals.map((m) => m.toMap()).toList());
-    final String symptomsJson = jsonEncode(symptomLogs.map((m) => m.toMap()).toList());
+    const historyJson = '[]'; // Omitting chat history for simplicity in this migration step
+    final mealsJson = jsonEncode(recentMeals.map((m) => m.toMap()).toList());
+    final symptomsJson = jsonEncode(symptomLogs.map((m) => m.toMap()).toList());
     // 🟢 Fix: Use toAiMap() for scans to avoid 502/payload errors
-    final String scansJson = jsonEncode(recentScans.map((s) => s.toAiMap()).toList());
+    final scansJson = jsonEncode(recentScans.map((s) => s.toAiMap()).toList());
 
-    final List<AIInsight> history = await _firestoreService.getInsightsHistory();
+    final history = await _firestoreService.getInsightsHistory();
     // Take the last 6 scores, ensure they are in ASCENDING chronological order (Oldest -> Newest)
-    final String scoreHistory = history.take(6).toList().reversed.map((i) => i.gutScore).join(', ');
+    final scoreHistory = history.take(6).toList().reversed.map((i) => i.gutScore).join(', ');
 
     try {
       AppLogger.info('InsightRepo: Generating insight. History: ${scoreHistory.isEmpty ? "None" : scoreHistory}');
@@ -143,14 +139,14 @@ class InsightRepositoryImpl implements InsightRepository {
       await _prefs.setString('last_insight_run', DateTime.now().toUtc().toIso8601String());
       await _firestoreService.saveInsights(insight);
 
-      _notificationService.showInsightGeneratedNotification();
+      unawaited(_notificationService.showInsightGeneratedNotification());
 
       if (profile != null) {
         final updatedProfile = profile.copyWith(gutScore: insight.gutScore, updatedAt: DateTime.now());
         await _firestoreService.updateUserProfile(updatedProfile);
       }
 
-      _patternEngineService.runAnalysis();
+      unawaited(_patternEngineService.runAnalysis());
     } catch (e, st) {
       AppLogger.error('InsightRepo: AI Analysis failed', error: e);
       await _analyticsService.logEvent(name: 'insight_generation_failed', parameters: {'error': e.toString()});

@@ -51,12 +51,11 @@ class NotificationArchiveScreen extends StatelessWidget {
 }
 
 class _AlertTile extends StatelessWidget {
-  final HealthAlert alert;
   const _AlertTile({required this.alert});
+  final HealthAlert alert;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       margin: EdgeInsets.only(bottom: AppSizes.p12),
       padding: EdgeInsets.all(AppSizes.p16),
       decoration: BoxDecoration(
@@ -86,7 +85,6 @@ class _AlertTile extends StatelessWidget {
         ],
       ),
     );
-  }
 
   IconData _getAlertIcon(String type) {
     switch (type) {

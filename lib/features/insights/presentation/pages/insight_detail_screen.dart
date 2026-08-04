@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
@@ -8,20 +9,18 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/utils/responsive.dart';
-import '../../../profile/presentation/providers/profile_provider.dart';
-import '../providers/insights_notifier.dart';
-
 class InsightDetailScreen extends StatelessWidget {
-  final AIInsight insight;
 
   const InsightDetailScreen({super.key, required this.insight});
+  final AIInsight insight;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +28,7 @@ class InsightDetailScreen extends StatelessWidget {
     final profile = context.watch<ProfileNotifier>().profile;
     final notifier = context.watch<InsightsNotifier>();
 
-    final List<Widget?> sections = [
+    final sections = <Widget?>[
       // 1. Snapshot Hero (Shared Style)
       GutSnapshotHeroCard(score: insight.gutScore, scoreDiff: insight.scoreDiff, streak: profile?.streak ?? 0, isActive: false),
 
@@ -312,12 +311,11 @@ class InsightDetailScreen extends StatelessWidget {
 }
 
 class _ModernSmartAlert extends StatelessWidget {
-  final InsightSummary insight;
   const _ModernSmartAlert({required this.insight});
+  final InsightSummary insight;
 
   @override
-  Widget build(BuildContext context) {
-    return ModernInsightCard(
+  Widget build(BuildContext context) => ModernInsightCard(
       title: insight.title,
       icon: AppIcons.sparkles,
       backgroundColor: context.appColorScheme.cardBackground,
@@ -335,5 +333,4 @@ class _ModernSmartAlert extends StatelessWidget {
         style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
       ),
     );
-  }
 }

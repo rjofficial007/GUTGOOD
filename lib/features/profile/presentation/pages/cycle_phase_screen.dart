@@ -11,8 +11,8 @@ import 'package:gutgood/features/profile/presentation/providers/profile_provider
 import 'package:provider/provider.dart';
 
 class CyclePhaseScreen extends StatefulWidget {
-  final String? currentPhase;
   const CyclePhaseScreen({super.key, this.currentPhase});
+  final String? currentPhase;
 
   @override
   State<CyclePhaseScreen> createState() => _CyclePhaseScreenState();
@@ -57,14 +57,14 @@ class _CyclePhaseScreenState extends State<CyclePhaseScreen> {
 
   void _togglePhase(String label) {
     setState(() {
-      _selectedPhase.clear();
-      _selectedPhase.add(label);
+      _selectedPhase
+        ..clear()
+        ..add(label);
     });
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       appBar: const GutAppBar(title: AppStrings.cyclePhase),
       body: Column(
         children: [
@@ -90,5 +90,4 @@ class _CyclePhaseScreenState extends State<CyclePhaseScreen> {
         ],
       ),
     );
-  }
 }

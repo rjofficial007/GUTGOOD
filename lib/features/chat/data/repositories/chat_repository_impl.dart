@@ -6,10 +6,10 @@ import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 
 class ChatRepositoryImpl implements ChatRepository {
-  final FirestoreService _firestoreService;
-  final AiService _aiService;
 
   ChatRepositoryImpl({required FirestoreService firestoreService, required AiService aiService}) : _firestoreService = firestoreService, _aiService = aiService;
+  final FirestoreService _firestoreService;
+  final AiService _aiService;
 
   @override
   Future<ChatMessage> saveMessage(ChatMessage message) async {
@@ -33,7 +33,5 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images}) {
-    return _aiService.sendMessageStream(systemInstruction: systemInstruction, history: history, userText: userText, images: images);
-  }
+  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images}) => _aiService.sendMessageStream(systemInstruction: systemInstruction, history: history, userText: userText, images: images);
 }

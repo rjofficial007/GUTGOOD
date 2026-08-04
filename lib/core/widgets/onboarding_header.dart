@@ -2,23 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
-import '../theme/app_color_scheme.dart';
-
 class OnboardingHeader extends StatelessWidget {
+
+  const OnboardingHeader({super.key, required this.currentStep, required this.totalSteps, required this.onBack, required this.onSkip});
   final int currentStep;
   final int totalSteps;
   final VoidCallback onBack;
   final VoidCallback onSkip;
 
-  const OnboardingHeader({super.key, required this.currentStep, required this.totalSteps, required this.onBack, required this.onSkip});
-
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p4),
       child: SizedBox(
         height: 52.0.h,
@@ -27,7 +25,7 @@ class OnboardingHeader extends StatelessWidget {
           children: [
             IconButton(
               onPressed: onBack,
-              icon: Icon(AppIcons.arrowLeft),
+              icon: const Icon(AppIcons.arrowLeft),
               style: IconButton.styleFrom(backgroundColor: AppPalette.transparent, foregroundColor: context.appColorScheme.textPrimary),
             ),
             Row(
@@ -54,5 +52,4 @@ class OnboardingHeader extends StatelessWidget {
         ),
       ),
     );
-  }
 }

@@ -5,22 +5,21 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
+import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
-import '../theme/app_color_scheme.dart';
-import '../utils/bottom_sheet_helper.dart';
-import '../utils/extensions.dart';
-
 class ScanResultInlineCard extends StatelessWidget {
-  final ScanResult scanData;
-  final VoidCallback onViewFullReport;
 
   const ScanResultInlineCard({super.key, required this.scanData, required this.onViewFullReport});
+  final ScanResult scanData;
+  final VoidCallback onViewFullReport;
 
   void _showExplanation(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
@@ -48,7 +47,7 @@ class ScanResultInlineCard extends StatelessWidget {
           description: 'We prioritize options without the ${scanData.ingredients.length} questionable ingredients found in your scan.',
         ),
         Gap.h16,
-        _InlineBenefitRow(icon: AppIcons.zap, title: AppStrings.bioAvailability, description: AppStrings.bioAvailabilityDesc),
+        const _InlineBenefitRow(icon: AppIcons.zap, title: AppStrings.bioAvailability, description: AppStrings.bioAvailabilityDesc),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
       ],
@@ -61,9 +60,9 @@ class ScanResultInlineCard extends StatelessWidget {
     final swaps = scanData.swaps;
 
     // 🟢 Fix: Ensure we don't try to load an empty string as a URL
-    String? userImg = scanData.userImageUrl;
+    var userImg = scanData.userImageUrl;
     if (userImg != null && userImg.isEmpty) userImg = null;
-    String? prodImg = scanData.imageUrl;
+    var prodImg = scanData.imageUrl;
     if (prodImg != null && prodImg.isEmpty) prodImg = null;
 
     final displayImgUrl = userImg ?? prodImg ?? getDynamicImageUrl(scanData.productName);
@@ -164,10 +163,10 @@ class ScanResultInlineCard extends StatelessWidget {
               clipBehavior: Clip.none,
               child: Row(
                 children: swaps.asMap().entries.map((entry) {
-                  final int idx = entry.key;
+                  final idx = entry.key;
                   final swap = entry.value;
 
-                  String calculatedTag = 'GOOD OPTIONS';
+                  var calculatedTag = 'GOOD OPTIONS';
                   if (idx == 0) {
                     calculatedTag = 'BETTER CHOICE';
                   } else if (idx == 1) {
@@ -210,13 +209,11 @@ class ScanResultInlineCard extends StatelessWidget {
     );
   }
 
-  Widget _buildIngredientInfo(BuildContext context) {
-    return Text('${AppStrings.comparingAnalysis}${scanData.productName}${AppStrings.withSwaps}', style: context.body.copyWith(color: context.appColorScheme.textMuted));
-  }
+  Widget _buildIngredientInfo(BuildContext context) => Text('${AppStrings.comparingAnalysis}${scanData.productName}${AppStrings.withSwaps}', style: context.body.copyWith(color: context.appColorScheme.textMuted));
 
   Widget _buildCycleInsight(BuildContext context) {
     final profile = context.watch<ProfileNotifier>().profile;
-    final bool cycleEnabled = profile?.cycleSyncEnabled ?? false;
+    final cycleEnabled = profile?.cycleSyncEnabled ?? false;
 
     if (!cycleEnabled || scanData.cycleInsight == null) {
       return const SizedBox.shrink();
@@ -238,13 +235,12 @@ class ScanResultInlineCard extends StatelessWidget {
 }
 
 class _InlineBenefitRow extends StatelessWidget {
+  const _InlineBenefitRow({required this.icon, required this.title, required this.description});
   final IconData icon;
   final String title;
   final String description;
-  const _InlineBenefitRow({required this.icon, required this.title, required this.description});
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context) => Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
@@ -265,16 +261,14 @@ class _InlineBenefitRow extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 class _ITag extends StatelessWidget {
+  const _ITag(this.label, this.color);
   final String label;
   final Color color;
-  const _ITag(this.label, this.color);
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
@@ -297,5 +291,4 @@ class _ITag extends StatelessWidget {
         ],
       ),
     );
-  }
 }

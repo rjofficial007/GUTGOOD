@@ -14,9 +14,9 @@ abstract class DeviceInfoService {
 }
 
 class DeviceInfoServiceImpl implements DeviceInfoService {
-  final DeviceInfoPlugin _deviceInfoPlugin;
 
   DeviceInfoServiceImpl({required DeviceInfoPlugin deviceInfoPlugin}) : _deviceInfoPlugin = deviceInfoPlugin;
+  final DeviceInfoPlugin _deviceInfoPlugin;
 
   @override
   IosDeviceInfo? iosBaseDeviceInfo;
@@ -25,11 +25,11 @@ class DeviceInfoServiceImpl implements DeviceInfoService {
   @override
   int? androidSdkVersion;
   @override
-  String deviceOsVersion = "";
+  String deviceOsVersion = '';
   @override
-  String deviceName = "";
+  String deviceName = '';
   @override
-  String model = "";
+  String model = '';
 
   @override
   Future<void> fetchDeviceInfo() async {
@@ -49,7 +49,7 @@ class DeviceInfoServiceImpl implements DeviceInfoService {
         deviceOsVersion = info.systemVersion;
       }
     } catch (e) {
-      AppLogger.error("DeviceInfoService: Error fetching device info", error: e);
+      AppLogger.error('DeviceInfoService: Error fetching device info', error: e);
     }
   }
 }

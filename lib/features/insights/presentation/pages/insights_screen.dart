@@ -1,28 +1,29 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
-
-import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/di/injection_container.dart';
-import '../../../../core/models/health_alert.dart';
-import '../../../../core/services/usage_service.dart';
-import '../../../../core/utils/bottom_sheet_helper.dart';
-import '../../../../core/utils/responsive.dart';
-import '../../../profile/presentation/providers/profile_provider.dart';
 
 class InsightsScreen extends StatelessWidget {
   const InsightsScreen({super.key});
@@ -45,7 +46,7 @@ class InsightsScreen extends StatelessWidget {
               actions: [
                 IconButton(
                   icon: Icon(AppIcons.history, color: context.appColorScheme.textPrimary),
-                  onPressed: () => context.push(AppRoutes.insightHistory),
+                  onPressed: () => unawaited(context.push(AppRoutes.insightHistory)),
                 ),
                 Gap.w10,
               ],
@@ -62,24 +63,22 @@ class _NoInsightsState extends StatelessWidget {
   const _NoInsightsState();
 
   @override
-  Widget build(BuildContext context) {
-    return const SliverFillRemaining(
+  Widget build(BuildContext context) => const SliverFillRemaining(
       hasScrollBody: false,
       child: EmptyStateWidget(icon: AppIcons.barChart, title: AppStrings.noInsightsYet, description: AppStrings.keepLoggingForPatterns),
     );
-  }
 }
 
 class _MainDashboardSliver extends StatelessWidget {
-  final AIInsight data;
   const _MainDashboardSliver({required this.data});
+  final AIInsight data;
 
   @override
   Widget build(BuildContext context) {
     final notifier = context.watch<InsightsNotifier>();
     final profile = context.watch<ProfileNotifier>().profile;
 
-    final List<Widget?> sections = [
+    final sections = <Widget?>[
       GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: profile?.streak ?? 0),
       StreakCard(streak: profile?.streak ?? 0, lastActivityDate: profile?.lastActivityDate),
       TrendCard(insights: notifier.insightHistory, currentInsight: data),
@@ -154,12 +153,10 @@ class _MainDashboardSliver extends StatelessWidget {
               decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
               child: Icon(AppIcons.database, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
             ),
-            items: notifier.bodyPatterns.take(2).map((p) {
-              return Padding(
+            items: notifier.bodyPatterns.take(2).map((p) => Padding(
                 padding: EdgeInsets.only(bottom: AppSizes.p12),
                 child: DashboardDetailItem(title: p.trigger, subtitle: p.reaction, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
-              );
-            }).toList(),
+              )).toList(),
             footerLabel: 'View All Correlations',
             onFooterTap: () => _showSystemDiscoveryDetails(context, notifier.bodyPatterns),
           ),
@@ -225,9 +222,9 @@ class _MainDashboardSliver extends StatelessWidget {
           final isPremium = await sl<UsageService>().isPremium();
           if (!context.mounted) return;
           if (isPremium) {
-            context.push(AppRoutes.weeklyRecap, extra: data.toMap());
+            unawaited(context.push(AppRoutes.weeklyRecap, extra: data.toMap()));
           } else {
-            showPaywallBottomSheet(context, onProceedWithLimited: () {});
+            unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
           }
         },
       ),
@@ -403,12 +400,11 @@ class _MainDashboardSliver extends StatelessWidget {
 }
 
 class _RecentAlertsCard extends StatelessWidget {
-  final List<HealthAlert> alerts;
   const _RecentAlertsCard({required this.alerts});
+  final List<HealthAlert> alerts;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       margin: EdgeInsets.only(top: AppSizes.p16),
       padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
@@ -435,8 +431,7 @@ class _RecentAlertsCard extends StatelessWidget {
             ],
           ),
           Gap.h20,
-          ...alerts.take(2).map((alert) {
-            return Padding(
+          ...alerts.take(2).map((alert) => Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,11 +458,10 @@ class _RecentAlertsCard extends StatelessWidget {
                   ),
                 ],
               ),
-            );
-          }),
+            )),
           if (alerts.length > 2)
             GestureDetector(
-              onTap: () => context.push(AppRoutes.notificationArchive),
+              onTap: () => unawaited(context.push(AppRoutes.notificationArchive)),
               child: Center(
                 child: Text(
                   'View All Alerts',
@@ -478,7 +472,6 @@ class _RecentAlertsCard extends StatelessWidget {
         ],
       ),
     );
-  }
 
   IconData _getAlertIcon(String type) {
     switch (type) {
@@ -505,33 +498,14 @@ class _RecentAlertsCard extends StatelessWidget {
         return context.appColorScheme.textPrimary;
     }
   }
-
-  void _showAllAlerts(BuildContext context, List<HealthAlert> alerts) {
-    BottomSheetHelper.showGutBottomSheet(
-      context: context,
-      title: 'HEALTH ALERTS',
-      children: [
-        ...alerts.map((alert) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.p20),
-            child: DashboardDetailItem(title: alert.title, subtitle: alert.message, icon: _getAlertIcon(alert.type), color: _getAlertColor(alert.type, context)),
-          );
-        }),
-        Gap.h24,
-        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
-        Gap.h24,
-      ],
-    );
-  }
 }
 
 class _ModernSmartAlert extends StatelessWidget {
-  final InsightSummary insight;
   const _ModernSmartAlert({required this.insight});
+  final InsightSummary insight;
 
   @override
-  Widget build(BuildContext context) {
-    return ModernInsightCard(
+  Widget build(BuildContext context) => ModernInsightCard(
       title: insight.title,
       icon: AppIcons.sparkles,
       backgroundColor: context.appColorScheme.cardBackground,
@@ -549,15 +523,13 @@ class _ModernSmartAlert extends StatelessWidget {
         style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
       ),
     );
-  }
 }
 
 class _InsightsLoadingState extends StatelessWidget {
   const _InsightsLoadingState();
 
   @override
-  Widget build(BuildContext context) {
-    return SliverPadding(
+  Widget build(BuildContext context) => SliverPadding(
       padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p10),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
@@ -569,5 +541,4 @@ class _InsightsLoadingState extends StatelessWidget {
         ]),
       ),
     );
-  }
 }

@@ -6,10 +6,6 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
 class GutSelectionSection extends StatelessWidget {
-  final String title;
-  final List<SelectionOption> options;
-  final String selectedValue;
-  final Function(String) onSelected;
 
   const GutSelectionSection({
     super.key,
@@ -18,10 +14,13 @@ class GutSelectionSection extends StatelessWidget {
     required this.selectedValue,
     required this.onSelected,
   });
+  final String title;
+  final List<SelectionOption> options;
+  final String selectedValue;
+  final Function(String) onSelected;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -47,5 +46,4 @@ class GutSelectionSection extends StatelessWidget {
         ),
       ],
     );
-  }
 }

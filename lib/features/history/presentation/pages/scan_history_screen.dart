@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -7,13 +9,12 @@ import 'package:gutgood/core/models/historical_scan.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
+import 'package:gutgood/features/history/presentation/widgets/history_section.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../core/utils/logger_service.dart';
-import '../../../../core/widgets/shimmer_grid_loader.dart';
-import '../widgets/history_section.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
   const ScanHistoryScreen({super.key});
@@ -31,7 +32,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     super.initState();
     _loadHistory();
     sl<AppStateService>().chatUpdated.addListener(_loadHistory);
-    sl<AnalyticsService>().logEvent(name: 'view_scan_history');
+    unawaited(sl<AnalyticsService>().logEvent(name: 'view_scan_history'));
   }
 
   @override
@@ -55,9 +56,9 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   }
 
   Map<String, List<HistoricalScan>> _groupHistoryByDate() {
-    Map<String, List<HistoricalScan>> grouped = {};
+    final grouped = <String, List<HistoricalScan>>{};
     for (var item in _history) {
-      DateTime date = item.time;
+      final date = item.time;
       String key;
       if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(DateTime.now())) {
         key = AppStrings.today;
@@ -96,8 +97,8 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
               padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
-                  String dateKey = grouped.keys.elementAt(index);
-                  List<HistoricalScan> items = grouped[dateKey]!;
+                  final dateKey = grouped.keys.elementAt(index);
+                  final items = grouped[dateKey]!;
                   return HistorySection(title: dateKey, items: items);
                 }, childCount: grouped.length),
               ),

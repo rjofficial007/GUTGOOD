@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 
-import '../constants/logger_string.dart';
-import '../di/injection_container.dart';
-import '../services/crashlytics_service.dart';
+import 'package:gutgood/core/constants/logger_string.dart';
+import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/services/crashlytics_service.dart';
 
 /// Centralized logging utility for the GutGood app.
 /// This class provides categorized logging with custom prefixes and emojis.
@@ -61,7 +62,7 @@ class AppLogger {
     // 🔴 1. Record errors to Crashlytics in production (even if logs are suppressed)
     if (kReleaseMode && error != null) {
       try {
-        sl<CrashlyticsService>().recordError(error, stackTrace, reason: message);
+        unawaited(sl<CrashlyticsService>().recordError(error, stackTrace, reason: message));
       } catch (e) {
         // Fallback if sl is not initialized yet
       }

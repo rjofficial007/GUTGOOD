@@ -1,11 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
-
-import 'scan_result.dart';
-import 'scan_result_details.dart';
 
 /// Why a message turn failed, used to render the correct recovery UI.
 enum ChatErrorKind { none, connection, quota, upload }
@@ -15,6 +14,58 @@ enum ChatErrorKind { none, connection, quota, upload }
 /// Messages can contain rich data including images, AI scan results,
 /// and product swaps. The [role] field identifies the sender (user vs. assistant).
 class ChatMessage extends Equatable {
+
+  const ChatMessage({
+    this.id,
+    this.firestoreId,
+    required this.localId,
+    this.uid,
+    required this.role,
+    required this.text,
+    String? imageUrl,
+    this.imageUrls = const [],
+    this.localImages,
+    this.scanData,
+    this.swapData,
+    this.isSwap = false,
+    this.feedback,
+    this.isSending = false,
+    this.sendFailed = false,
+    this.errorKind = ChatErrorKind.none,
+    this.source,
+    this.foodMentions = const [],
+    this.symptomMentions = const [],
+    required this.time,
+  }) : _imageUrl = imageUrl;
+
+  factory ChatMessage.fromMap(Map<String, dynamic> map) {
+    final rawLocalId = map['id'];
+    final rawCloudId = map['firestoreId'];
+
+    // Multi-image field with legacy single-image fallback.
+    final imageUrls = ModelUtils.parseList<String>(map['imageUrls']);
+    final legacyImageUrl = map['imageUrl'] as String?;
+    final resolvedImageUrls = imageUrls.isNotEmpty ? imageUrls : (legacyImageUrl != null && legacyImageUrl.isNotEmpty ? [legacyImageUrl] : const <String>[]);
+
+    return ChatMessage(
+      id: rawLocalId is int ? rawLocalId : null,
+      firestoreId: rawCloudId is String ? rawCloudId : null,
+      localId: map['localId'] as String? ?? '',
+      uid: map['uid'] as String?,
+      role: map['role'] ?? 'user',
+      text: map['text'] ?? '',
+      imageUrl: resolvedImageUrls.isNotEmpty ? resolvedImageUrls.first : legacyImageUrl,
+      imageUrls: resolvedImageUrls,
+      scanData: ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap),
+      swapData: ModelUtils.parseModelList<ProductSwap>(map['swapData'], ProductSwap.fromMap),
+      isSwap: ModelUtils.parseBool(map['isSwap']),
+      feedback: map['feedback'],
+      source: map['source'],
+      foodMentions: ModelUtils.parseList<String>(map['foodMentions']),
+      symptomMentions: ModelUtils.parseList<String>(map['symptomMentions']),
+      time: DateTimeUtils.parse(map['time']),
+    );
+  }
   /// Local SQLite primary key (legacy, kept for backward compatibility).
   final int? id;
 
@@ -82,29 +133,6 @@ class ChatMessage extends Equatable {
   /// The exact time the message was created or received.
   final DateTime time;
 
-  const ChatMessage({
-    this.id,
-    this.firestoreId,
-    required this.localId,
-    this.uid,
-    required this.role,
-    required this.text,
-    String? imageUrl,
-    this.imageUrls = const [],
-    this.localImages,
-    this.scanData,
-    this.swapData,
-    this.isSwap = false,
-    this.feedback,
-    this.isSending = false,
-    this.sendFailed = false,
-    this.errorKind = ChatErrorKind.none,
-    this.source,
-    this.foodMentions = const [],
-    this.symptomMentions = const [],
-    required this.time,
-  }) : _imageUrl = imageUrl;
-
   /// Back-compat getter for single-image widgets.
   Uint8List? get localImageBytes => (localImages != null && localImages!.isNotEmpty) ? localImages!.first : null;
 
@@ -131,7 +159,7 @@ class ChatMessage extends Equatable {
     DateTime? time,
     bool clearLocalImages = false,
   }) {
-    final List<String> nextImageUrls = imageUrls ?? this.imageUrls;
+    final nextImageUrls = imageUrls ?? this.imageUrls;
     return ChatMessage(
       id: id ?? this.id,
       firestoreId: firestoreId ?? this.firestoreId,
@@ -156,37 +184,7 @@ class ChatMessage extends Equatable {
     );
   }
 
-  factory ChatMessage.fromMap(Map<String, dynamic> map) {
-    final rawLocalId = map['id'];
-    final rawCloudId = map['firestoreId'];
-
-    // Multi-image field with legacy single-image fallback.
-    final List<String> imageUrls = ModelUtils.parseList<String>(map['imageUrls']);
-    final String? legacyImageUrl = map['imageUrl'] as String?;
-    final List<String> resolvedImageUrls = imageUrls.isNotEmpty ? imageUrls : (legacyImageUrl != null && legacyImageUrl.isNotEmpty ? [legacyImageUrl] : const <String>[]);
-
-    return ChatMessage(
-      id: rawLocalId is int ? rawLocalId : null,
-      firestoreId: rawCloudId is String ? rawCloudId : null,
-      localId: map['localId'] as String? ?? '',
-      uid: map['uid'] as String?,
-      role: map['role'] ?? 'user',
-      text: map['text'] ?? '',
-      imageUrl: resolvedImageUrls.isNotEmpty ? resolvedImageUrls.first : legacyImageUrl,
-      imageUrls: resolvedImageUrls,
-      scanData: ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap),
-      swapData: ModelUtils.parseModelList<ProductSwap>(map['swapData'], ProductSwap.fromMap),
-      isSwap: ModelUtils.parseBool(map['isSwap']),
-      feedback: map['feedback'],
-      source: map['source'],
-      foodMentions: ModelUtils.parseList<String>(map['foodMentions']),
-      symptomMentions: ModelUtils.parseList<String>(map['symptomMentions']),
-      time: DateTimeUtils.parse(map['time']),
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'id': id,
       'firestoreId': firestoreId,
       'localId': localId,
@@ -204,16 +202,13 @@ class ChatMessage extends Equatable {
       'symptomMentions': symptomMentions,
       'time': time.toIso8601String(),
     };
-  }
 
   /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
-  Map<String, dynamic> toAiMap() {
-    return {
+  Map<String, dynamic> toAiMap() => {
       'role': role,
       'text': text,
       if (scanData != null) 'scanData': scanData!.toAiMap(),
     };
-  }
 
   @override
   List<Object?> get props => [id, firestoreId, localId, role, text, imageUrl, imageUrls, scanData, isSwap, feedback, isSending, sendFailed, errorKind, time];

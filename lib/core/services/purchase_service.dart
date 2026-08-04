@@ -42,19 +42,17 @@ class PurchaseServiceImpl implements PurchaseService {
       _listenForPurchaseUpdates();
       await checkProSubscriptionStatus();
 
-      AppLogger.premium("PurchaseService: Initialized");
+      AppLogger.premium('PurchaseService: Initialized');
     } catch (e, s) {
-      AppLogger.error("PurchaseService: Initialization failed", error: e, stackTrace: s);
+      AppLogger.error('PurchaseService: Initialization failed', error: e, stackTrace: s);
     }
   }
 
   void _listenForPurchaseUpdates() {
     try {
-      Purchases.addCustomerInfoUpdateListener((customerInfo) {
-        _updateProStatus(customerInfo);
-      });
+      Purchases.addCustomerInfoUpdateListener(_updateProStatus);
     } on PlatformException catch (e) {
-      AppLogger.error("PurchaseService: Listener error", error: e);
+      AppLogger.error('PurchaseService: Listener error', error: e);
     }
   }
 
@@ -63,7 +61,7 @@ class PurchaseServiceImpl implements PurchaseService {
       final customerInfo = await Purchases.getCustomerInfo();
       _updateProStatus(customerInfo);
     } on PlatformException catch (e) {
-      AppLogger.error("PurchaseService: Status check failed", error: e);
+      AppLogger.error('PurchaseService: Status check failed', error: e);
     }
   }
 
@@ -71,7 +69,7 @@ class PurchaseServiceImpl implements PurchaseService {
     final isProUser = customerInfo.entitlements.active.isNotEmpty;
     if (_isPremium != isProUser) {
       _isPremium = isProUser;
-      AppLogger.premium("PurchaseService: Status updated -> $_isPremium");
+      AppLogger.premium('PurchaseService: Status updated -> $_isPremium');
     }
   }
 
@@ -81,7 +79,7 @@ class PurchaseServiceImpl implements PurchaseService {
       final offerings = await Purchases.getOfferings();
       return offerings.all[_offering]?.availablePackages ?? [];
     } on PlatformException catch (e) {
-      AppLogger.error("PurchaseService: Fetch offers failed", error: e);
+      AppLogger.error('PurchaseService: Fetch offers failed', error: e);
       return [];
     }
   }
@@ -95,7 +93,7 @@ class PurchaseServiceImpl implements PurchaseService {
     } on PlatformException catch (e) {
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
       if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
-        AppLogger.error("PurchaseService: Purchase failed", error: e);
+        AppLogger.error('PurchaseService: Purchase failed', error: e);
       }
       return false;
     }
@@ -108,7 +106,7 @@ class PurchaseServiceImpl implements PurchaseService {
       _updateProStatus(customerInfo);
       return customerInfo.entitlements.active.isNotEmpty;
     } on PlatformException catch (e) {
-      AppLogger.error("PurchaseService: Restore failed", error: e);
+      AppLogger.error('PurchaseService: Restore failed', error: e);
       return false;
     }
   }
@@ -118,7 +116,7 @@ class PurchaseServiceImpl implements PurchaseService {
     try {
       final currentAppUserId = await Purchases.appUserID;
       if (currentAppUserId == uid) return;
-      LogInResult result = await Purchases.logIn(uid);
+      final result = await Purchases.logIn(uid);
       _updateProStatus(result.customerInfo);
     } catch (e) {
       AppLogger.error('PurchaseService: Login failed ($uid)', error: e);
@@ -129,7 +127,7 @@ class PurchaseServiceImpl implements PurchaseService {
   Future<void> logout() async {
     if (!_isConfigured) return;
     try {
-      CustomerInfo customerInfo = await Purchases.logOut();
+      final customerInfo = await Purchases.logOut();
       _updateProStatus(customerInfo);
     } catch (e) {
       AppLogger.error('PurchaseService: Logout failed', error: e);
@@ -139,6 +137,6 @@ class PurchaseServiceImpl implements PurchaseService {
   @override
   void setProStatusForDebug(bool isPro) {
     _isPremium = isPro;
-    AppLogger.premium("PurchaseService: Debug status -> $_isPremium");
+    AppLogger.premium('PurchaseService: Debug status -> $_isPremium');
   }
 }

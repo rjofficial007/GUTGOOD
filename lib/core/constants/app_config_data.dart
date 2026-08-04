@@ -1,6 +1,6 @@
-import 'app_icons.dart';
-import 'app_strings.dart';
-import '../models/selection_option.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/models/selection_option.dart';
 
 class AppConfigData {
   const AppConfigData._();

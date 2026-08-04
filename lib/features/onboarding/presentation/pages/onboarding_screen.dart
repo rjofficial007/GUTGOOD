@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -6,6 +8,7 @@ import 'package:gutgood/core/constants/app_config_data.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/selection_option.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
@@ -19,8 +22,6 @@ import 'package:gutgood/features/onboarding/presentation/widgets/ai_personalizat
 import 'package:gutgood/features/onboarding/presentation/widgets/cycle_sync_onboarding_page.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
-
-import '../../../../core/di/injection_container.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -50,7 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    sl<AnalyticsService>().logEvent(name: 'onboarding_started');
+    unawaited(sl<AnalyticsService>().logEvent(name: 'onboarding_started'));
   }
 
   @override
@@ -63,7 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     FocusScope.of(context).unfocus();
     if (_page < _totalPages - 1) {
       _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-      sl<AnalyticsService>().logEvent(name: 'onboarding_step_complete', parameters: {'step': _page});
+      unawaited(sl<AnalyticsService>().logEvent(name: 'onboarding_step_complete', parameters: {'step': _page}));
     } else {
       _finish();
     }
@@ -73,7 +74,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     FocusScope.of(context).unfocus();
     if (_page > 0) {
       _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-      sl<AnalyticsService>().logEvent(name: 'onboarding_step_back', parameters: {'from_step': _page});
+      unawaited(sl<AnalyticsService>().logEvent(name: 'onboarding_step_back', parameters: {'from_step': _page}));
     } else {
       context.pop();
     }
@@ -126,8 +127,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
@@ -180,10 +180,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildSelectionPage({required String title, required String subtitle, required List<SelectionOption> options, required Set<String> selections, required Function(String) onToggle}) {
-    return Padding(
+  Widget _buildSelectionPage({required String title, required String subtitle, required List<SelectionOption> options, required Set<String> selections, required Function(String) onToggle}) => Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,5 +199,4 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ],
       ),
     );
-  }
 }

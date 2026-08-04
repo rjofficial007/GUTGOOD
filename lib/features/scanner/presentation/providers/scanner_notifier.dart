@@ -10,6 +10,12 @@ import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 
 class ScannerNotifier with ChangeNotifier {
+
+  ScannerNotifier({required ScannerRepository repository, required FirestoreService firestoreService, required OffService offService, required StorageService storageService})
+    : _repository = repository,
+      _firestoreService = firestoreService,
+      _offService = offService,
+      _storageService = storageService;
   final ScannerRepository _repository;
   final FirestoreService _firestoreService;
   final OffService _offService;
@@ -17,12 +23,6 @@ class ScannerNotifier with ChangeNotifier {
 
   bool _isProcessing = false;
   ScanResult? _lastResult;
-
-  ScannerNotifier({required ScannerRepository repository, required FirestoreService firestoreService, required OffService offService, required StorageService storageService})
-    : _repository = repository,
-      _firestoreService = firestoreService,
-      _offService = offService,
-      _storageService = storageService;
 
   bool get isProcessing => _isProcessing;
   ScanResult? get lastResult => _lastResult;
@@ -43,9 +43,9 @@ class ScannerNotifier with ChangeNotifier {
       }
 
       final profile = await _firestoreService.getUserMetadata();
-      final List<String> goals = profile?.goals ?? [];
-      final List<String> sensitivities = profile?.sensitivities ?? [];
-      final String cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
+      final goals = profile?.goals ?? [];
+      final sensitivities = profile?.sensitivities ?? [];
+      final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
 
       List<OffProduct>? alternatives;
       try {
@@ -83,10 +83,10 @@ class ScannerNotifier with ChangeNotifier {
     notifyListeners();
 
     try {
-      String? userImageUrl = await _storageService.uploadFoodImage(bytes);
+      final userImageUrl = await _storageService.uploadFoodImage(bytes);
 
       final profile = await _firestoreService.getUserMetadata();
-      final String cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
+      final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
 
       final result = await _repository.analyzeImageWithAi(
         imageBytes: bytes,

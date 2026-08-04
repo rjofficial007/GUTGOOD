@@ -6,13 +6,12 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/widgets/gut_app_bar.dart';
 import 'package:gutgood/features/insights/presentation/widgets/nutrition_row.dart';
 
-import '../../../../core/widgets/gut_app_bar.dart';
-
 class NutritionFactsScreen extends StatelessWidget {
-  final ScanResult scanData;
   const NutritionFactsScreen({super.key, required this.scanData});
+  final ScanResult scanData;
 
   @override
   Widget build(BuildContext context) {

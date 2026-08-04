@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/navigator_service.dart';
@@ -10,8 +11,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-
-import 'firestore_service.dart';
 
 class NotificationIds {
   static const int postMealCheckIn = 100;
@@ -56,25 +55,25 @@ abstract class NotificationService {
 }
 
 class NotificationServiceImpl implements NotificationService {
-  final FlutterLocalNotificationsPlugin _notifications;
-  final FirestoreService _firestoreService;
-  final SharedPreferences _prefs;
 
   NotificationServiceImpl({required FlutterLocalNotificationsPlugin notifications, required FirestoreService firestoreService, required SharedPreferences prefs})
     : _notifications = notifications,
       _firestoreService = firestoreService,
       _prefs = prefs;
+  final FlutterLocalNotificationsPlugin _notifications;
+  final FirestoreService _firestoreService;
+  final SharedPreferences _prefs;
 
   @override
   Future<void> init() async {
     tz.initializeTimeZones();
-    final String timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier;
+    final timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier;
     tz.setLocalLocation(tz.getLocation(timeZoneName));
 
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('ic_notification');
-    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(requestAlertPermission: true, requestBadgePermission: true, requestSoundPermission: true);
+    const androidSettings = AndroidInitializationSettings('ic_notification');
+    const iosSettings = DarwinInitializationSettings(requestAlertPermission: true, requestBadgePermission: true, requestSoundPermission: true);
 
-    const InitializationSettings initSettings = InitializationSettings(android: androidSettings, iOS: iosSettings);
+    const initSettings = InitializationSettings(android: androidSettings, iOS: iosSettings);
 
     await _notifications.initialize(
       settings: initSettings,
@@ -86,7 +85,7 @@ class NotificationServiceImpl implements NotificationService {
 
     // Create high importance channel for Android
     if (defaultTargetPlatform == TargetPlatform.android) {
-      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      const channel = AndroidNotificationChannel(
         'gutgood_reminders',
         'GutGood Reminders',
         description: 'This channel is used for important health alerts and reminders.',
@@ -108,9 +107,7 @@ class NotificationServiceImpl implements NotificationService {
         }
       }
 
-      messaging.onTokenRefresh.listen((token) {
-        _firestoreService.saveFcmToken(token);
-      });
+      messaging.onTokenRefresh.listen(_firestoreService.saveFcmToken);
 
       // 🟢 Fix: Listen for messages while the app is in the FOREGROUND
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -155,7 +152,7 @@ class NotificationServiceImpl implements NotificationService {
 
     final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
       'gutgood_reminders',
       'GutGood Reminders',
       importance: Importance.max,
@@ -163,7 +160,7 @@ class NotificationServiceImpl implements NotificationService {
       color: AppPalette.black,
     );
 
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+    const platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
       iOS: DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true),
     );
@@ -307,7 +304,7 @@ class NotificationServiceImpl implements NotificationService {
   @override
   Future<void> markAppOpened() async {
     // 🟡 Fix: Respect user preference if they have customized the daily reminder time.
-    final timeStr = _prefs.getString('notif_daily_time') ?? "9:00";
+    final timeStr = _prefs.getString('notif_daily_time') ?? '9:00';
     final parts = timeStr.split(':');
     final hour = int.tryParse(parts[0]) ?? 9;
     final minute = int.tryParse(parts[1]) ?? 0;
@@ -332,7 +329,7 @@ class NotificationServiceImpl implements NotificationService {
 
     if (scheduledTime.isBefore(now)) return;
 
-    final title = AppStrings.notifStreakSaverTitle;
+    const title = AppStrings.notifStreakSaverTitle;
     final body = AppStrings.notifStreakSaverBody.replaceFirst('{streak}', currentStreak.toString());
 
     await scheduleNotification(id: NotificationIds.streakSaver, title: title, body: body, scheduledDate: scheduledTime, payload: 'streak_saver');

@@ -12,12 +12,20 @@ import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/services/usage_service.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/extensions.dart';
-import 'package:gutgood/core/utils/logger_service.dart' show AppLogger;
+import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/paywall_bottom_sheet.dart';
+import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
+import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
 import 'package:image_picker/image_picker.dart';
@@ -26,25 +34,17 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../core/di/injection_container.dart';
-import '../../../../core/services/usage_service.dart';
-import '../../../../core/theme/app_color_scheme.dart';
-import '../../../../core/utils/responsive.dart';
-import '../../../../core/widgets/paywall_bottom_sheet.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../auth/presentation/widgets/auth_bottom_sheets.dart';
-
 enum ScannerMode { barcode, food, menu, label }
 
 class _ScannerModeOption {
+  const _ScannerModeOption({required this.mode, required this.label});
   final ScannerMode mode;
   final String label;
-  const _ScannerModeOption({required this.mode, required this.label});
 }
 
 class SuperScannerScreen extends StatefulWidget {
-  final ScannerMode initialMode;
   const SuperScannerScreen({super.key, this.initialMode = ScannerMode.barcode});
+  final ScannerMode initialMode;
 
   @override
   State<SuperScannerScreen> createState() => _SuperScannerScreenState();
@@ -76,12 +76,12 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     WidgetsBinding.instance.addObserver(this);
 
     _currentMode = widget.initialMode;
-    final int defaultIndex = _modes.indexWhere((m) => m.mode == _currentMode);
+    final defaultIndex = _modes.indexWhere((m) => m.mode == _currentMode);
     _modePageController = PageController(viewportFraction: 0.35, initialPage: defaultIndex != -1 ? defaultIndex : 0);
 
     _scannerController = MobileScannerController(detectionSpeed: DetectionSpeed.noDuplicates, facing: CameraFacing.back, torchEnabled: false);
-    _checkPermission();
-    _loadSavedMode();
+    unawaited(_checkPermission());
+    unawaited(_loadSavedMode());
     _triggerModeIntro();
   }
 
@@ -130,7 +130,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   Future<void> _requestPermission() async {
     final status = await Permission.camera.request();
     if (status.isPermanentlyDenied) {
-      openAppSettings();
+      unawaited(openAppSettings());
     }
     if (mounted) {
       setState(() {
@@ -153,10 +153,10 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     final notifier = context.read<ScannerNotifier>();
     final authNotifier = context.read<GutAuthNotifier>();
     setState(() => _isProcessing = true);
-    HapticFeedback.lightImpact();
+    unawaited(HapticFeedback.lightImpact());
 
     if (!_isBatchMode && mounted) {
-      context.push(AppRoutes.scanningAnimation);
+      unawaited(context.push(AppRoutes.scanningAnimation));
     }
 
     try {
@@ -165,9 +165,9 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         if (mounted) {
           context.pop();
           if (authNotifier.isAnonymous) {
-            showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage);
+            unawaited(showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage));
           } else {
-            showPaywallBottomSheet(context, onProceedWithLimited: () {});
+            unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
           }
         }
         return;
@@ -179,7 +179,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         if (mounted) {
           if (_isBatchMode) {
             setState(() => _sessionScans.insert(0, result));
-            HapticFeedback.mediumImpact();
+            unawaited(HapticFeedback.mediumImpact());
           } else {
             // 🟡 Professional Flow: Use go() to switch branches and reset the stack.
             // This prevents duplicate key errors when pushing branch routes from global overlays.
@@ -188,18 +188,18 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         }
       } else {
         if (capturedImage != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.productNotFoundAnalyzing), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
-          final aiResult = await notifier.processImage(capturedImage, mode: _currentMode.name);
-          if (mounted) {
-            if (aiResult != null) {
-              context.go(AppRoutes.scanResult, extra: {'scanData': aiResult.toMap()});
-            } else {
-              context.pop(); // Pop ScanningAnimation
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.couldNotAnalyzeVision)));
-            }
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.productNotFoundAnalyzing), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
+        final aiResult = await notifier.processImage(capturedImage, mode: _currentMode.name);
+        if (mounted) {
+          if (aiResult != null) {
+            context.go(AppRoutes.scanResult, extra: {'scanData': aiResult.toMap()});
+          } else {
+            context.pop(); // Pop ScanningAnimation
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.couldNotAnalyzeVision)));
           }
-          return;
         }
+        return;
+      }
 
         if (!_isBatchMode && mounted) {
           context.pop();
@@ -234,16 +234,16 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     if (!canScan) {
       if (mounted) {
         if (authNotifier.isAnonymous) {
-          showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage);
+          unawaited(showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage));
         } else {
-          showPaywallBottomSheet(context, onProceedWithLimited: () {});
+          unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
         }
       }
       return;
     }
 
     setState(() => _isProcessing = true);
-    HapticFeedback.mediumImpact();
+    unawaited(HapticFeedback.mediumImpact());
 
     try {
       final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
@@ -256,9 +256,9 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       if (_currentMode == ScannerMode.barcode) {
         final tempFile = File('${Directory.systemTemp.path}/temp_barcode.png');
         await tempFile.writeAsBytes(bytes);
-        final BarcodeCapture? result = await _scannerController.analyzeImage(tempFile.path);
+        final result = await _scannerController.analyzeImage(tempFile.path);
         if (result != null && result.barcodes.isNotEmpty) {
-          final String? code = result.barcodes.first.displayValue;
+          final code = result.barcodes.first.displayValue;
           if (code != null) {
             await _handleBarcode(code, capturedImage: bytes);
             _cleanupTempFile(tempFile);
@@ -287,21 +287,21 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       if (mounted) {
         final authNotifier = context.read<GutAuthNotifier>();
         if (authNotifier.isAnonymous) {
-          showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage);
+          unawaited(showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage));
         } else {
-          showPaywallBottomSheet(context, onProceedWithLimited: () {});
+          unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
         }
       }
       return;
     }
 
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (image != null && mounted) {
       final bytes = await image.readAsBytes();
       if (_currentMode == ScannerMode.barcode) {
-        final BarcodeCapture? result = await _scannerController.analyzeImage(image.path);
+        final result = await _scannerController.analyzeImage(image.path);
         if (result != null && result.barcodes.isNotEmpty) {
-          final String? code = result.barcodes.first.displayValue;
+          final code = result.barcodes.first.displayValue;
           if (code != null) {
             await _handleBarcode(code, capturedImage: bytes);
             return;
@@ -323,8 +323,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: AppPalette.black,
       body: Stack(
         fit: StackFit.expand,
@@ -347,10 +346,9 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         ],
       ),
     );
-  }
 
   Widget _buildModeIntroOverlay() {
-    final String label = _modes.firstWhere((m) => m.mode == _currentMode).label.toUpperCase();
+    final label = _modes.firstWhere((m) => m.mode == _currentMode).label.toUpperCase();
 
     return Center(
       child: IgnorePointer(
@@ -364,15 +362,13 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
               opacity: animation,
               child: AnimatedBuilder(
                 animation: rotate,
-                builder: (context, child) {
-                  return Transform(
+                builder: (context, child) => Transform(
                     transform: Matrix4.identity()
                       ..setEntry(3, 2, 0.0015)
                       ..rotateX(rotate.value),
                     alignment: Alignment.center,
                     child: child,
-                  );
-                },
+                  ),
                 child: child,
               ),
             );
@@ -395,8 +391,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     );
   }
 
-  Widget _buildTopControls() {
-    return Positioned(
+  Widget _buildTopControls() => Positioned(
       top: 0,
       left: 0,
       right: 0,
@@ -409,19 +404,19 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
               tooltip: AppStrings.closeScanner,
               icon: Icon(AppIcons.x, color: AppPalette.white, size: AppSizes.icon28),
               onPressed: () {
-                HapticFeedback.lightImpact();
+                unawaited(HapticFeedback.lightImpact());
                 context.pop();
               },
             ),
             ValueListenableBuilder(
               valueListenable: _scannerController,
               builder: (context, state, child) {
-                final bool isTorchOn = state.torchState == TorchState.on;
+                final isTorchOn = state.torchState == TorchState.on;
                 return IconButton(
                   tooltip: isTorchOn ? AppStrings.turnTorchOff : AppStrings.turnTorchOn,
                   icon: Icon(isTorchOn ? AppIcons.zap : AppIcons.zapOff, color: AppPalette.white, size: AppSizes.icon28),
                   onPressed: () {
-                    HapticFeedback.lightImpact();
+                    unawaited(HapticFeedback.lightImpact());
                     _scannerController.toggleTorch();
                   },
                 );
@@ -431,7 +426,6 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         ),
       ),
     );
-  }
 
   Widget _buildScanningFrame() {
     if (_hasPermission) return const SizedBox.shrink();
@@ -471,8 +465,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     );
   }
 
-  Widget _buildBottomControls() {
-    return Positioned(
+  Widget _buildBottomControls() => Positioned(
       bottom: 0,
       left: 0,
       right: 0,
@@ -489,7 +482,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
                 children: [
                   GestureDetector(
                     onTap: () {
-                      HapticFeedback.lightImpact();
+                      unawaited(HapticFeedback.lightImpact());
                       _pickFromGallery();
                     },
                     child: Tooltip(
@@ -510,7 +503,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
                     tooltip: AppStrings.switchCamera,
                     icon: Icon(AppIcons.refreshCw, color: AppPalette.white, size: AppSizes.icon32),
                     onPressed: () {
-                      HapticFeedback.lightImpact();
+                      unawaited(HapticFeedback.lightImpact());
                       _scannerController.switchCamera();
                     },
                   ),
@@ -527,8 +520,8 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
                   setState(() {
                     _currentMode = _modes[index].mode;
                   });
-                  HapticFeedback.selectionClick();
-                  _saveMode(_currentMode);
+                  unawaited(HapticFeedback.selectionClick());
+                  unawaited(_saveMode(_currentMode));
                   _triggerModeIntro();
                 },
                 itemBuilder: (context, index) {
@@ -537,7 +530,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
                     label: modeItem.label,
                     isActive: _currentMode == modeItem.mode,
                     onTap: () {
-                      HapticFeedback.mediumImpact();
+                      unawaited(HapticFeedback.mediumImpact());
                       _modePageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                     },
                   );
@@ -554,10 +547,8 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         ),
       ),
     );
-  }
 
-  Widget _buildBatchList() {
-    return Positioned(
+  Widget _buildBatchList() => Positioned(
       bottom: AppSizes.p180,
       left: 0,
       right: 0,
@@ -574,39 +565,40 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         ),
       ),
     );
-  }
 }
 
 class _ModeItem extends StatelessWidget {
+  const _ModeItem({required this.label, required this.isActive, required this.onTap});
   final String label;
   final bool isActive;
   final VoidCallback onTap;
-  const _ModeItem({required this.label, required this.isActive, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: isActive ? AppPalette.white : AppPalette.white70, fontSize: AppSizes.s11, fontWeight: isActive ? FontWeight.w800 : FontWeight.w700, letterSpacing: 0.8),
+  Widget build(BuildContext context) => Semantics(
+      label: label,
+      selected: isActive,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: isActive ? AppPalette.white : AppPalette.white70, fontSize: AppSizes.s11, fontWeight: isActive ? FontWeight.w800 : FontWeight.w700, letterSpacing: 0.8),
+          ),
         ),
       ),
     );
-  }
 }
 
 class _ShutterButton extends StatelessWidget {
-  final VoidCallback? onTap;
-  final bool isActive, isProcessing;
   const _ShutterButton({this.onTap, required this.isActive, required this.isProcessing});
+  final VoidCallback? onTap;
+  final bool isActive;
+  final bool isProcessing;
 
   @override
-  Widget build(BuildContext context) {
-    return Semantics(
+  Widget build(BuildContext context) => Semantics(
       label: AppStrings.capturePhoto,
       button: true,
       enabled: isActive && !isProcessing,
@@ -620,7 +612,7 @@ class _ShutterButton extends StatelessWidget {
             border: Border.all(color: AppPalette.white, width: AppSizes.p4 + 1),
           ),
           padding: const EdgeInsets.all(4),
-          child: Container(
+          child: DecoratedBox(
             decoration: BoxDecoration(color: isProcessing ? AppPalette.white70 : AppPalette.white, shape: BoxShape.circle),
             child: isProcessing
                 ? Center(
@@ -631,16 +623,14 @@ class _ShutterButton extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class _BatchCard extends StatelessWidget {
-  final ScanResult scanData;
   const _BatchCard({required this.scanData});
+  final ScanResult scanData;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       width: AppSizes.w140,
       margin: EdgeInsets.only(right: AppSizes.p12),
       padding: EdgeInsets.all(AppSizes.p8),
@@ -670,5 +660,4 @@ class _BatchCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }

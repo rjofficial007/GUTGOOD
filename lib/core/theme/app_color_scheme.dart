@@ -1,18 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'app_palette.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 
 class AppColorScheme extends ThemeExtension<AppColorScheme> {
-  final Color cardBackground;
-  final Color elevatedSurface;
-  final Color border;
-  final Color textPrimary;
-  final Color textSecondary;
-  final Color textMuted;
-  final Color success;
-  final Color error;
-  final Color warning;
-  final Color info;
 
   const AppColorScheme({
     required this.cardBackground,
@@ -26,6 +16,16 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     required this.warning,
     required this.info,
   });
+  final Color cardBackground;
+  final Color elevatedSurface;
+  final Color border;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color success;
+  final Color error;
+  final Color warning;
+  final Color info;
 
   @override
   ThemeExtension<AppColorScheme> copyWith({
@@ -39,8 +39,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? error,
     Color? warning,
     Color? info,
-  }) {
-    return AppColorScheme(
+  }) => AppColorScheme(
       cardBackground: cardBackground ?? this.cardBackground,
       elevatedSurface: elevatedSurface ?? this.elevatedSurface,
       border: border ?? this.border,
@@ -52,7 +51,6 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       warning: warning ?? this.warning,
       info: info ?? this.info,
     );
-  }
 
   @override
   ThemeExtension<AppColorScheme> lerp(ThemeExtension<AppColorScheme>? other, double t) {

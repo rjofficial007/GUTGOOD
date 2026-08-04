@@ -26,9 +26,9 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
   void startListening({VoidCallback? onConnectionRestored}) {
     if (_subscription != null) return;
 
-    AppLogger.debug("InternetConnectionChecker: Starting listener");
+    AppLogger.debug('InternetConnectionChecker: Starting listener');
     _subscription = _checker.onStatusChange.listen((status) {
-      final bool connected = (status == InternetConnectionStatus.connected);
+      final connected = (status == InternetConnectionStatus.connected);
 
       if (connected) {
         _failureCount = 0;
@@ -55,7 +55,7 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
 
   @override
   Future<void> checkConnection() async {
-    final bool hasConn = await _checker.hasConnection;
+    final hasConn = await _checker.hasConnection;
     if (hasConn) {
       _failureCount = 0;
       isInternetAvailable.value = true;
@@ -64,8 +64,6 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
 }
 
 class _InternalChecker {
-  final List<InternetAddress> addresses;
-  final Duration checkInterval;
 
   _InternalChecker.createInstance({List<InternetAddress>? addresses})
     : addresses = addresses ?? [InternetAddress('1.1.1.1', type: InternetAddressType.IPv4), InternetAddress('8.8.4.4', type: InternetAddressType.IPv4)],
@@ -76,10 +74,12 @@ class _InternalChecker {
       _lastStatus = null;
     };
   }
+  final List<InternetAddress> addresses;
+  final Duration checkInterval;
 
   Future<bool> get hasConnection async {
     try {
-      final List<Future<bool>> futures = addresses.map((addr) => _isReachable(addr)).toList();
+      final futures = addresses.map(_isReachable).toList();
       final results = await Future.wait(futures);
       return results.any((success) => success);
     } catch (_) {

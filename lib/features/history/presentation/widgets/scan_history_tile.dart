@@ -10,16 +10,16 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ScanHistoryTile extends StatelessWidget {
+
+  const ScanHistoryTile({super.key, required this.scanResult, this.time, this.userImageUrl, required this.onTap});
   final ScanResult scanResult;
   final DateTime? time;
   final String? userImageUrl;
   final VoidCallback onTap;
 
-  const ScanHistoryTile({super.key, required this.scanResult, this.time, this.userImageUrl, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
-    final String? displayImageUrl = userImageUrl ?? scanResult.userImageUrl ?? scanResult.imageUrl;
+    final displayImageUrl = userImageUrl ?? scanResult.userImageUrl ?? scanResult.imageUrl;
 
     return GestureDetector(
       onTap: onTap,

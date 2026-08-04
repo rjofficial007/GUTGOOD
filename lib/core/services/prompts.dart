@@ -8,9 +8,9 @@ class Prompts {
     String communicationStyle = 'Friendly & Supportive',
     String? historySummary,
   }) {
-    final String goals = userGoals.isEmpty ? 'None specified' : userGoals.join(', ');
-    final String sensitivities = userSensitivities.isEmpty ? 'None specified' : userSensitivities.join(', ');
-    final String lifestyle = userLifestyle.isEmpty ? 'None specified' : userLifestyle.join(', ');
+    final goals = userGoals.isEmpty ? 'None specified' : userGoals.join(', ');
+    final sensitivities = userSensitivities.isEmpty ? 'None specified' : userSensitivities.join(', ');
+    final lifestyle = userLifestyle.isEmpty ? 'None specified' : userLifestyle.join(', ');
 
     final summaryText = historySummary != null ? '\nSUMMARY OF RECENT HISTORY: $historySummary\n' : '';
 
@@ -156,9 +156,9 @@ class Prompts {
     List<String> userLifestyle = const [],
     String cyclePhase = 'Not specified',
   }) {
-    final String goals = userGoals.isEmpty ? 'General Health' : userGoals.join(', ');
-    final String sensitivities = userSensitivities.isEmpty ? 'None' : userSensitivities.join(', ');
-    final String lifestyle = userLifestyle.isEmpty ? 'None' : userLifestyle.join(', ');
+    final goals = userGoals.isEmpty ? 'General Health' : userGoals.join(', ');
+    final sensitivities = userSensitivities.isEmpty ? 'None' : userSensitivities.join(', ');
+    final lifestyle = userLifestyle.isEmpty ? 'None' : userLifestyle.join(', ');
 
     return '''
     You are a gut health AI vision assistant.
@@ -282,8 +282,8 @@ class Prompts {
 
   /// User prompt for analyzing product data.
   static String productAnalysisPrompt({required dynamic productData, required List<String> userGoals, required List<String> userSensitivities, required String cyclePhase}) {
-    final String goals = userGoals.isEmpty ? 'General Health' : userGoals.join(', ');
-    final String sensitivities = userSensitivities.isEmpty ? 'None' : userSensitivities.join(', ');
+    final goals = userGoals.isEmpty ? 'General Health' : userGoals.join(', ');
+    final sensitivities = userSensitivities.isEmpty ? 'None' : userSensitivities.join(', ');
 
     return '''
       Analyze this product data from Open Food Facts: $productData.
@@ -309,9 +309,9 @@ class Prompts {
     String? scansJson,
     String? scoreHistory,
   }) {
-    final String goals = userGoals.isEmpty ? 'General Health' : userGoals.join(', ');
-    final String sensitivities = userSensitivities.isEmpty ? 'None' : userSensitivities.join(', ');
-    final String lifestyle = userLifestyle.isEmpty ? 'None' : userLifestyle.join(', ');
+    final goals = userGoals.isEmpty ? 'General Health' : userGoals.join(', ');
+    final sensitivities = userSensitivities.isEmpty ? 'None' : userSensitivities.join(', ');
+    final lifestyle = userLifestyle.isEmpty ? 'None' : userLifestyle.join(', ');
 
     return '''
       You are a clinical health data analyst for the GUTGOOD app.

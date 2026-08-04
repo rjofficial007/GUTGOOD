@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
 import 'package:lottie/lottie.dart';
 
-import '../constants/app_sizes.dart';
-import '../theme/app_color_scheme.dart';
-
 class StreakCelebrationOverlay extends StatelessWidget {
-  final int streak;
-  final VoidCallback onDismiss;
 
   const StreakCelebrationOverlay({super.key, required this.streak, required this.onDismiss});
+  final int streak;
+  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {

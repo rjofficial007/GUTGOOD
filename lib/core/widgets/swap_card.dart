@@ -2,13 +2,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
-import '../theme/app_color_scheme.dart';
-
 class SwapCard extends StatelessWidget {
+
+  const SwapCard({super.key, required this.title, required this.subtitle, required this.imageKeyword, this.imageUrl, required this.tag, this.badge, this.isBlackBadge = false, this.width});
   final String title;
   final String subtitle;
   final String imageKeyword;
@@ -18,11 +19,9 @@ class SwapCard extends StatelessWidget {
   final bool isBlackBadge;
   final double? width;
 
-  const SwapCard({super.key, required this.title, required this.subtitle, required this.imageKeyword, this.imageUrl, required this.tag, this.badge, this.isBlackBadge = false, this.width});
-
   @override
   Widget build(BuildContext context) {
-    final double cardWidth = width ?? 160.0.w;
+    final cardWidth = width ?? 160.0.w;
 
     return Container(
       width: cardWidth,

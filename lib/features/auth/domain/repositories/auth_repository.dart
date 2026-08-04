@@ -6,12 +6,12 @@ import 'package:gutgood/features/auth/domain/entities/auth_user.dart';
 /// the existing account, vs. simply log into the existing account and
 /// discard the current guest session) — see [AuthRepository.confirmMerge].
 class AuthMergeConflictException implements Exception {
+
+  AuthMergeConflictException({required this.anonymousUid, required this.permanentUid, required this.email, this.attemptedProvider});
   final String anonymousUid;
   final String permanentUid;
   final String email;
   final String? attemptedProvider;
-
-  AuthMergeConflictException({required this.anonymousUid, required this.permanentUid, required this.email, this.attemptedProvider});
 
   @override
   String toString() => 'AuthMergeConflictException: Conflict for $email';
@@ -30,11 +30,11 @@ class AuthMergeConflictException implements Exception {
 /// [currentEmail] / [currentUid] first before switching accounts, rather
 /// than attempting the new sign-in silently.
 class AuthAlreadySignedInException implements Exception {
+
+  AuthAlreadySignedInException({required this.currentUid, required this.currentEmail, required this.attemptedProvider});
   final String currentUid;
   final String? currentEmail;
   final String attemptedProvider;
-
-  AuthAlreadySignedInException({required this.currentUid, required this.currentEmail, required this.attemptedProvider});
 
   @override
   String toString() =>

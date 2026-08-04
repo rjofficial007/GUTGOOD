@@ -5,10 +5,10 @@ import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/features/logs/domain/repositories/log_repository.dart';
 
 class LogRepositoryImpl implements LogRepository {
-  final FirestoreService _firestoreService;
-  final AnalyticsService _analyticsService;
 
   LogRepositoryImpl({required FirestoreService firestoreService, required AnalyticsService analyticsService}) : _firestoreService = firestoreService, _analyticsService = analyticsService;
+  final FirestoreService _firestoreService;
+  final AnalyticsService _analyticsService;
 
   @override
   Future<void> logSymptom(SymptomLog log) async {
@@ -23,12 +23,8 @@ class LogRepositoryImpl implements LogRepository {
   }
 
   @override
-  Future<List<SymptomLog>> getRecentSymptomLogs(int limit) async {
-    return await _firestoreService.getRecentSymptomLogs(limit: limit);
-  }
+  Future<List<SymptomLog>> getRecentSymptomLogs(int limit) async => _firestoreService.getRecentSymptomLogs(limit: limit);
 
   @override
-  Future<List<MealLog>> getRecentMealLogs(int limit) async {
-    return await _firestoreService.getRecentMealLogs(limit: limit);
-  }
+  Future<List<MealLog>> getRecentMealLogs(int limit) async => _firestoreService.getRecentMealLogs(limit: limit);
 }

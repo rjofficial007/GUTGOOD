@@ -4,16 +4,15 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/notification_preferences.dart';
+import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../../core/services/firestore_service.dart';
-import '../../../../core/utils/bottom_sheet_helper.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -48,7 +47,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final cloudPrefs = cloudProfile?.notificationPreferences;
 
     final prefs = await SharedPreferences.getInstance();
-    final Map<String, dynamic> data = cloudPrefs ?? {};
+    final data = cloudPrefs ?? {};
 
     setState(() {
       _enableAll = ModelUtils.parseBool(data['enableAll'], defaultValue: prefs.getBool('notif_enable_all') ?? true);
@@ -360,12 +359,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 }
 
 class _ModernSettingCard extends StatelessWidget {
-  final Widget child;
   const _ModernSettingCard({required this.child});
+  final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       margin: EdgeInsets.only(bottom: AppSizes.p12),
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p20),
       decoration: BoxDecoration(
@@ -375,20 +373,18 @@ class _ModernSettingCard extends StatelessWidget {
       ),
       child: child,
     );
-  }
 }
 
 class _ModernTimeTile extends StatelessWidget {
+
+  const _ModernTimeTile({required this.label, required this.time, required this.icon, required this.onTap});
   final String label;
   final TimeOfDay time;
   final IconData icon;
   final VoidCallback onTap;
 
-  const _ModernTimeTile({required this.label, required this.time, required this.icon, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       margin: EdgeInsets.only(bottom: AppSizes.p12),
       decoration: BoxDecoration(
         color: context.appColorScheme.elevatedSurface,
@@ -434,5 +430,4 @@ class _ModernTimeTile extends StatelessWidget {
         ),
       ),
     );
-  }
 }

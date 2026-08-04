@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:intl/intl.dart';
 
-import '../constants/app_icons.dart';
-import '../constants/app_sizes.dart';
-import '../models/ai_insight.dart';
-import '../theme/app_color_scheme.dart';
-import '../theme/app_text_styles.dart';
-import '../utils/responsive.dart';
-import 'dashboard_widgets.dart';
-
 class TrendCard extends StatelessWidget {
+
+  const TrendCard({super.key, required this.insights, this.currentInsight, this.referenceDate, this.title = AppStrings.scoreTrend, this.subtitle = AppStrings.weeklySnapshot});
   final List<AIInsight> insights;
   final AIInsight? currentInsight; // 🟢 NEW: Pass current insight for guaranteed "today" fill
   final DateTime? referenceDate;
   final String title;
   final String subtitle;
-
-  const TrendCard({super.key, required this.insights, this.currentInsight, this.referenceDate, this.title = AppStrings.scoreTrend, this.subtitle = AppStrings.weeklySnapshot});
 
   @override
   Widget build(BuildContext context) {
@@ -46,14 +45,14 @@ class TrendCard extends StatelessWidget {
 }
 
 class _TrendBarChart extends StatelessWidget {
+
+  const _TrendBarChart({required this.insights, required this.referenceDate});
   final List<AIInsight> insights;
   final DateTime referenceDate;
 
-  const _TrendBarChart({required this.insights, required this.referenceDate});
-
   @override
   Widget build(BuildContext context) {
-    const int totalSlots = 7;
+    const totalSlots = 7;
 
     // 🟡 Fix: Use local time for trend mapping so bars align with the user's local day.
     final now = DateTime.now();
@@ -63,7 +62,7 @@ class _TrendBarChart extends StatelessWidget {
     final sunday = todayMidnight.subtract(Duration(days: todayMidnight.weekday % 7));
 
     // Map insights to days of this week
-    final Map<int, int> dayScores = {};
+    final dayScores = <int, int>{};
     for (var insight in insights) {
       final date = insight.updatedAt;
       final normalizedDate = DateTime(date.year, date.month, date.day);
@@ -85,13 +84,13 @@ class _TrendBarChart extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: List.generate(totalSlots, (index) {
-            final int value = dayScores[index] ?? 0;
-            final double targetHeight = (value / 100) * 50.0;
-            final bool hasValue = value > 0;
+            final value = dayScores[index] ?? 0;
+            final targetHeight = (value / 100) * 50.0;
+            final hasValue = value > 0;
 
             final day = sunday.add(Duration(days: index));
             final dayName = DateFormat('E').format(day)[0];
-            final bool isToday = DateUtils.isSameDay(day, todayMidnight);
+            final isToday = DateUtils.isSameDay(day, todayMidnight);
 
             return Column(
               children: [
@@ -99,8 +98,7 @@ class _TrendBarChart extends StatelessWidget {
                   tween: Tween(begin: 0.0, end: targetHeight),
                   duration: Duration(milliseconds: 600 + (index * 100)),
                   curve: Curves.easeOutQuart,
-                  builder: (context, val, _) {
-                    return Container(
+                  builder: (context, val, _) => Container(
                       width: 8.0.w,
                       height: 50.0.h,
                       alignment: Alignment.bottomCenter,
@@ -110,8 +108,7 @@ class _TrendBarChart extends StatelessWidget {
                         height: val.h,
                         decoration: BoxDecoration(color: hasValue ? context.appColorScheme.textPrimary : Colors.transparent, borderRadius: BorderRadius.circular(50.0.r)),
                       ),
-                    );
-                  },
+                    ),
                 ),
                 Gap.h12,
                 Text(
@@ -132,8 +129,8 @@ class _TrendBarChart extends StatelessWidget {
 }
 
 class _TrendDirectionTile extends StatelessWidget {
-  final List<int> scores;
   const _TrendDirectionTile({required this.scores});
+  final List<int> scores;
 
   @override
   Widget build(BuildContext context) {

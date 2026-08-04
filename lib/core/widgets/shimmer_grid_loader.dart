@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:shimmer/shimmer.dart';
-
-import '../constants/app_sizes.dart';
 
 enum ShimmerVariant { grid, list, hero, card, recap, scanResult }
 
 /// Reusable skeleton loader mirroring the real widget shapes across the app.
 /// Prevents visual "pops" when transitioning from loading to loaded state.
 class ShimmerGridLoader extends StatelessWidget {
+
+  const ShimmerGridLoader({super.key, this.itemCount = 4, this.mainAxisExtent, this.crossAxisCount = 2, this.variant = ShimmerVariant.grid});
   final int itemCount;
   final double? mainAxisExtent;
   final int crossAxisCount;
   final ShimmerVariant variant;
-
-  const ShimmerGridLoader({super.key, this.itemCount = 4, this.mainAxisExtent, this.crossAxisCount = 2, this.variant = ShimmerVariant.grid});
 
   @override
   Widget build(BuildContext context) {
@@ -82,8 +81,7 @@ class ShimmerGridLoader extends StatelessWidget {
     }
   }
 
-  Widget _buildGridSkeleton(BuildContext context) {
-    return Container(
+  Widget _buildGridSkeleton(BuildContext context) => Container(
       padding: EdgeInsets.all(AppSizes.p16),
       decoration: BoxDecoration(
         color: AppPalette.white,
@@ -112,10 +110,8 @@ class ShimmerGridLoader extends StatelessWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildListSkeleton(BuildContext context) {
-    return Container(
+  Widget _buildListSkeleton(BuildContext context) => Container(
       margin: EdgeInsets.only(bottom: AppSizes.p12),
       padding: EdgeInsets.all(AppSizes.p12),
       decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r20)),
@@ -155,10 +151,8 @@ class ShimmerGridLoader extends StatelessWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildHeroSkeleton(BuildContext context) {
-    return Container(
+  Widget _buildHeroSkeleton(BuildContext context) => DecoratedBox(
       decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r32)),
       child: Column(
         children: [
@@ -198,10 +192,8 @@ class ShimmerGridLoader extends StatelessWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildCardSkeleton(BuildContext context) {
-    return Container(
+  Widget _buildCardSkeleton(BuildContext context) => DecoratedBox(
       decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r32)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,10 +239,8 @@ class ShimmerGridLoader extends StatelessWidget {
         ],
       ),
     );
-  }
 
-  List<Widget> _buildRecapSkeleton(BuildContext context) {
-    return [
+  List<Widget> _buildRecapSkeleton(BuildContext context) => [
       Center(child: Container(width: AppSizes.p120, height: AppSizes.p24, decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r100)))),
       Gap.h24,
       _buildHeroSkeleton(context),
@@ -261,10 +251,8 @@ class ShimmerGridLoader extends StatelessWidget {
       Gap.h32,
       _buildGridSkeleton(context),
     ];
-  }
 
-  List<Widget> _buildScanResultSkeleton(BuildContext context) {
-    return [
+  List<Widget> _buildScanResultSkeleton(BuildContext context) => [
       // Product Hero
       Container(
         height: 140.h,
@@ -280,5 +268,4 @@ class ShimmerGridLoader extends StatelessWidget {
       // Cautions Section
       _buildCardSkeleton(context),
     ];
-  }
 }

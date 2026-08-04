@@ -1,16 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-
-import '../constants/app_sizes.dart';
 
 /// A stylized container designed for "Premium" AI insights.
 ///
 /// Features a distinctive header with an icon, optional action button,
 /// and a footer for metadata (like confidence levels or timestamps).
 class ModernInsightCard extends StatelessWidget {
+
+  const ModernInsightCard({
+    super.key,
+    required this.title,
+    this.leading,
+    this.icon,
+    required this.child,
+    this.backgroundColor,
+    this.titleColor,
+    this.iconColor,
+    this.borderRadius,
+    this.padding,
+    this.footer,
+    this.footerColor,
+    this.action,
+    this.onTap,
+  });
   /// Primary title for the card.
   final String title;
 
@@ -50,28 +66,11 @@ class ModernInsightCard extends StatelessWidget {
   /// Optional tap handler for the entire card.
   final VoidCallback? onTap;
 
-  const ModernInsightCard({
-    super.key,
-    required this.title,
-    this.leading,
-    this.icon,
-    required this.child,
-    this.backgroundColor,
-    this.titleColor,
-    this.iconColor,
-    this.borderRadius,
-    this.padding,
-    this.footer,
-    this.footerColor,
-    this.action,
-    this.onTap,
-  });
-
   @override
   Widget build(BuildContext context) {
     final footerWidget = footer;
     final actionWidget = action;
-    final double radius = borderRadius ?? 32.0.r;
+    final radius = borderRadius ?? 32.0.r;
 
     return GestureDetector(
       onTap: onTap,
@@ -95,7 +94,7 @@ class ModernInsightCard extends StatelessWidget {
           // Top Layer (Main Card)
           Padding(
             padding: EdgeInsets.only(bottom: footerWidget != null ? 40.0.h : 0),
-            child: Container(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 color: backgroundColor ?? context.appColorScheme.elevatedSurface,
                 borderRadius: BorderRadius.circular(radius),

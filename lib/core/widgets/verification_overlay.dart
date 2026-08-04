@@ -7,10 +7,9 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/utils/responsive.dart';
-
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 
 class VerificationOverlay extends StatelessWidget {
   const VerificationOverlay({super.key});
@@ -21,10 +20,10 @@ class VerificationOverlay extends StatelessWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([appStateService.isVerifyingAuth, appStateService.isLoggingOut, appStateService.isRestoringPurchases, appStateService.isMigrating]),
       builder: (context, child) {
-        final bool isVerifying = appStateService.isVerifyingAuth.value;
-        final bool isLoggingOut = appStateService.isLoggingOut.value;
-        final bool isRestoring = appStateService.isRestoringPurchases.value;
-        final bool isMigrating = appStateService.isMigrating.value;
+        final isVerifying = appStateService.isVerifyingAuth.value;
+        final isLoggingOut = appStateService.isLoggingOut.value;
+        final isRestoring = appStateService.isRestoringPurchases.value;
+        final isMigrating = appStateService.isMigrating.value;
 
         if (!isVerifying && !isLoggingOut && !isRestoring && !isMigrating) return const SizedBox.shrink();
 
@@ -66,9 +65,7 @@ class VerificationOverlay extends StatelessWidget {
                       tween: Tween(begin: 0.8, end: 1.0),
                       duration: const Duration(milliseconds: 800),
                       curve: Curves.elasticOut,
-                      builder: (context, value, child) {
-                        return Transform.scale(scale: value, child: child);
-                      },
+                      builder: (context, value, child) => Transform.scale(scale: value, child: child),
                       child: Container(
                         width: 100.0.w,
                         height: 100.0.w,

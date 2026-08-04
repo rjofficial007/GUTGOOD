@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -32,16 +34,16 @@ class _SymptomCheckInScreenState extends State<SymptomCheckInScreen> {
 
   final List<SelectionOption> _symptomOptions = [
     const SelectionOption(label: AppStrings.symptomNone, icon: AppIcons.checkCircle),
-    SelectionOption(label: AppStrings.lifestyleBloating, icon: AppIcons.wind),
-    SelectionOption(label: AppStrings.symptomGas, icon: AppIcons.wind),
-    SelectionOption(label: AppStrings.symptomFatigue, icon: AppIcons.batteryLow),
-    SelectionOption(label: AppStrings.symptomHeartburn, icon: AppIcons.flame),
-    SelectionOption(label: AppStrings.symptomNausea, icon: AppIcons.activity),
-    SelectionOption(label: AppStrings.symptomCramps, icon: AppIcons.activity),
-    SelectionOption(label: AppStrings.symptomHeadache, icon: AppIcons.brain),
-    SelectionOption(label: AppStrings.symptomSkin, icon: AppIcons.sparkles),
-    SelectionOption(label: AppStrings.symptomCraving, icon: AppIcons.cookie),
-    SelectionOption(label: AppStrings.symptomStool, icon: AppIcons.activity),
+    const SelectionOption(label: AppStrings.lifestyleBloating, icon: AppIcons.wind),
+    const SelectionOption(label: AppStrings.symptomGas, icon: AppIcons.wind),
+    const SelectionOption(label: AppStrings.symptomFatigue, icon: AppIcons.batteryLow),
+    const SelectionOption(label: AppStrings.symptomHeartburn, icon: AppIcons.flame),
+    const SelectionOption(label: AppStrings.symptomNausea, icon: AppIcons.activity),
+    const SelectionOption(label: AppStrings.symptomCramps, icon: AppIcons.activity),
+    const SelectionOption(label: AppStrings.symptomHeadache, icon: AppIcons.brain),
+    const SelectionOption(label: AppStrings.symptomSkin, icon: AppIcons.sparkles),
+    const SelectionOption(label: AppStrings.symptomCraving, icon: AppIcons.cookie),
+    const SelectionOption(label: AppStrings.symptomStool, icon: AppIcons.activity),
   ];
 
   final List<SelectionOption> _moodOptions = [
@@ -64,7 +66,7 @@ class _SymptomCheckInScreenState extends State<SymptomCheckInScreen> {
   @override
   void initState() {
     super.initState();
-    sl<AnalyticsService>().logEvent(name: 'symptom_check_in_started');
+    unawaited(sl<AnalyticsService>().logEvent(name: 'symptom_check_in_started'));
   }
 
   @override
@@ -112,8 +114,7 @@ class _SymptomCheckInScreenState extends State<SymptomCheckInScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
@@ -200,5 +201,4 @@ class _SymptomCheckInScreenState extends State<SymptomCheckInScreen> {
         ],
       ),
     );
-  }
 }

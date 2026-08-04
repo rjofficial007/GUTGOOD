@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -12,8 +14,7 @@ class ProductNotFoundScreen extends StatelessWidget {
   const ProductNotFoundScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
@@ -102,7 +103,7 @@ class ProductNotFoundScreen extends StatelessWidget {
                   title: AppStrings.enterManually,
                   subtitle: AppStrings.enterManuallySubtitle,
                   onTap: () {
-                    context.push(AppRoutes.manualBarcode);
+                    unawaited(context.push(AppRoutes.manualBarcode));
                   },
                 ),
                 Gap.h40,
@@ -112,18 +113,16 @@ class ProductNotFoundScreen extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class _ContributeButton extends StatelessWidget {
+
+  const _ContributeButton({required this.label, required this.onTap});
   final String label;
   final VoidCallback onTap;
 
-  const _ContributeButton({required this.label, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -134,20 +133,18 @@ class _ContributeButton extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class _OptionTile extends StatelessWidget {
+
+  const _OptionTile({required this.icon, required this.title, required this.subtitle, required this.onTap});
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
-  const _OptionTile({required this.icon, required this.title, required this.subtitle, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.r16),
       child: Container(
@@ -175,5 +172,4 @@ class _OptionTile extends StatelessWidget {
         ),
       ),
     );
-  }
 }

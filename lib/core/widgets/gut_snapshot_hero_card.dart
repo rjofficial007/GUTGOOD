@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_score_gauge.dart';
 import 'package:gutgood/core/widgets/modern_insight_card.dart';
-
-import '../constants/app_strings.dart';
-import '../theme/app_color_scheme.dart';
 
 /// A prominent hero card that displays the user's current gut score.
 ///
 /// Includes a circular [GutScoreGauge] to visualize the user's overall health.
 /// Used at the top of the [InsightsScreen] and [WeeklyRecapScreen].
 class GutSnapshotHeroCard extends StatelessWidget {
+
+  const GutSnapshotHeroCard({super.key, required this.score, this.scoreDiff, required this.streak, this.isActive = true, this.onTap, this.borderRadius});
   /// The numerical gut health score (0-100).
   final int score;
 
@@ -32,11 +33,8 @@ class GutSnapshotHeroCard extends StatelessWidget {
   /// Optional custom corner radius.
   final double? borderRadius;
 
-  const GutSnapshotHeroCard({super.key, required this.score, this.scoreDiff, required this.streak, this.isActive = true, this.onTap, this.borderRadius});
-
   @override
-  Widget build(BuildContext context) {
-    return ModernInsightCard(
+  Widget build(BuildContext context) => ModernInsightCard(
       title: AppStrings.gutSnapshot,
       icon: AppIcons.activity,
       iconColor: context.appColorScheme.textPrimary,
@@ -73,5 +71,4 @@ class GutSnapshotHeroCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }

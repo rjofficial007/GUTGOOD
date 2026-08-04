@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:gutgood/core/constants/app_icons.dart';
-
 class CycleSyncOnboardingPage extends StatelessWidget {
+
+  const CycleSyncOnboardingPage({super.key, required this.cycleSyncEnabled, required this.selectedCyclePhase, required this.cyclePhases, required this.onToggleEnabled, required this.onPhaseSelected});
   final bool cycleSyncEnabled;
   final String selectedCyclePhase;
   final List<String> cyclePhases;
   final ValueChanged<bool> onToggleEnabled;
   final ValueChanged<String> onPhaseSelected;
 
-  const CycleSyncOnboardingPage({super.key, required this.cycleSyncEnabled, required this.selectedCyclePhase, required this.cyclePhases, required this.onToggleEnabled, required this.onPhaseSelected});
-
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
+  Widget build(BuildContext context) => LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -86,7 +83,7 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                       }).toList(),
                     ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
                   ],
-                  Spacer(),
+                  const Spacer(),
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: AppSizes.p20),
                     child: Text(AppStrings.cycleSyncHormonalPatterns, style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
@@ -95,8 +92,6 @@ class CycleSyncOnboardingPage extends StatelessWidget {
               ),
             ),
           ),
-        );
-      },
+        ),
     );
-  }
 }

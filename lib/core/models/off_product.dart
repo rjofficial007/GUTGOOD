@@ -1,31 +1,8 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
-import 'scan_result_details.dart';
-
 class OffProduct extends Equatable {
-  final String productName;
-  final String? brand;
-  final String? imageUrl;
-  final String? barcode;
-  final int? score;
-  final String? status;
-  final String? statusColor;
-  final String? nutriscore;
-  final int? novaGroup;
-  final String? ecoscore;
-  final String? ingredientsText;
-  final List<String>? ingredients;
-  final int? additivesCount;
-  final List<String>? additives;
-  final List<String>? allergens;
-  final String? allergensText;
-  final List<String>? labels;
-  final String? category;
-  final String? categoryTag;
-  final NutrientLevels? nutrientLevels;
-  final NutrientData? nutrients;
-  final List<ImpactDetail>? impacts;
 
   const OffProduct({
     required this.productName,
@@ -52,8 +29,7 @@ class OffProduct extends Equatable {
     this.impacts,
   });
 
-  factory OffProduct.fromMap(Map<String, dynamic> map) {
-    return OffProduct(
+  factory OffProduct.fromMap(Map<String, dynamic> map) => OffProduct(
       productName: map['productName'] ?? 'Unknown Product',
       brand: map['brand'],
       imageUrl: map['imageUrl'],
@@ -77,10 +53,30 @@ class OffProduct extends Equatable {
       nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
       impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
     );
-  }
+  final String productName;
+  final String? brand;
+  final String? imageUrl;
+  final String? barcode;
+  final int? score;
+  final String? status;
+  final String? statusColor;
+  final String? nutriscore;
+  final int? novaGroup;
+  final String? ecoscore;
+  final String? ingredientsText;
+  final List<String>? ingredients;
+  final int? additivesCount;
+  final List<String>? additives;
+  final List<String>? allergens;
+  final String? allergensText;
+  final List<String>? labels;
+  final String? category;
+  final String? categoryTag;
+  final NutrientLevels? nutrientLevels;
+  final NutrientData? nutrients;
+  final List<ImpactDetail>? impacts;
 
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'productName': productName,
       'brand': brand,
       'imageUrl': imageUrl,
@@ -104,7 +100,6 @@ class OffProduct extends Equatable {
       'nutrients': nutrients?.toMap(),
       'impacts': impacts?.map((e) => e.toMap()).toList(),
     };
-  }
 
   @override
   List<Object?> get props => [productName, barcode, score];

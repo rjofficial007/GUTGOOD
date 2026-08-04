@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 
-import '../constants/app_assets.dart';
-import '../constants/app_sizes.dart';
-import '../utils/responsive.dart';
-
 class StreakCard extends StatelessWidget {
+
+  const StreakCard({super.key, required this.streak, this.lastActivityDate});
   final int streak;
   final String? lastActivityDate;
 
-  const StreakCard({super.key, required this.streak, this.lastActivityDate});
-
   @override
   Widget build(BuildContext context) {
-    final bool isActiveToday = _checkIsActiveToday();
+    final isActiveToday = _checkIsActiveToday();
 
     return Container(
       padding: EdgeInsets.all(AppSizes.p20),
@@ -70,26 +69,26 @@ class StreakCard extends StatelessWidget {
 }
 
 class _WeeklyProgressRow extends StatelessWidget {
-  final String? lastActivityDate;
-  final int streak;
 
   const _WeeklyProgressRow({this.lastActivityDate, required this.streak});
+  final String? lastActivityDate;
+  final int streak;
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final todayMidnight = DateTime(now.year, now.month, now.day);
     final firstDayOfWeek = todayMidnight.subtract(Duration(days: todayMidnight.weekday % 7));
-    final bool activeToday = _isActiveToday();
+    final activeToday = _isActiveToday();
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(7, (index) {
         final day = firstDayOfWeek.add(Duration(days: index));
         final dayName = DateFormat('E').format(day)[0];
-        final bool isToday = DateUtils.isSameDay(day, todayMidnight);
+        final isToday = DateUtils.isSameDay(day, todayMidnight);
 
-        bool isStreakDay = false;
+        var isStreakDay = false;
         if (lastActivityDate != null && streak > 0) {
           final lastActive = DateTime.parse(lastActivityDate!);
           final lastActiveMidnight = DateTime(lastActive.year, lastActive.month, lastActive.day);
@@ -103,8 +102,8 @@ class _WeeklyProgressRow extends StatelessWidget {
           }
         }
 
-        final bool showFlame = isStreakDay || isToday;
-        final bool isHighlighted = isStreakDay || (isToday && activeToday);
+        final showFlame = isStreakDay || isToday;
+        final isHighlighted = isStreakDay || (isToday && activeToday);
 
         return Column(
           children: [

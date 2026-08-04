@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 
-import '../theme/app_color_scheme.dart';
-
 class AuthOptionTile extends StatelessWidget {
+
+  const AuthOptionTile({super.key, this.icon, this.imagePath, required this.label, required this.onTap, this.color, this.textColor, this.imageColor});
   final IconData? icon;
   final String? imagePath;
   final String label;
@@ -13,11 +14,8 @@ class AuthOptionTile extends StatelessWidget {
   final Color? textColor;
   final Color? imageColor;
 
-  const AuthOptionTile({super.key, this.icon, this.imagePath, required this.label, required this.onTap, this.color, this.textColor, this.imageColor});
-
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.r16),
       child: Container(
@@ -41,5 +39,4 @@ class AuthOptionTile extends StatelessWidget {
         ),
       ),
     );
-  }
 }

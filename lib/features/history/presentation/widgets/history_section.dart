@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -5,31 +7,27 @@ import 'package:gutgood/core/models/historical_scan.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
-import 'scan_history_tile.dart';
+import 'package:gutgood/features/history/presentation/widgets/scan_history_tile.dart';
 
 class HistorySection extends StatelessWidget {
+
+  const HistorySection({super.key, required this.title, required this.items});
   final String title;
   final List<HistoricalScan> items;
 
-  const HistorySection({super.key, required this.title, required this.items});
-
   @override
-  Widget build(BuildContext context) {
-    return GutSection(
+  Widget build(BuildContext context) => GutSection(
       title: title,
       topPadding: AppSizes.p8,
-      children: items.map((item) {
-        return ScanHistoryTile(
+      children: items.map((item) => ScanHistoryTile(
           scanResult: item.data,
           time: item.time,
           userImageUrl: item.userImageUrl,
           onTap: () {
             final tag = 'scan_image_${item.data.barcode ?? item.data.productName}_${item.time.millisecondsSinceEpoch}';
             final resultWithImage = item.data.copyWith(userImageUrl: item.userImageUrl);
-            context.push(AppRoutes.scanResult, extra: {'scanData': resultWithImage.toMap(), 'heroTag': tag});
+            unawaited(context.push(AppRoutes.scanResult, extra: {'scanData': resultWithImage.toMap(), 'heroTag': tag}));
           },
-        );
-      }).toList(),
+        )).toList(),
     );
-  }
 }

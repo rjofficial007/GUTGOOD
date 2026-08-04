@@ -18,8 +18,7 @@ class DialogHelper {
     String confirmLabel = AppStrings.confirm,
     String cancelLabel = AppStrings.cancel,
     bool isDestructive = false,
-  }) {
-    return showDialog<bool>(
+  }) => showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: context.appColorScheme.cardBackground,
@@ -39,7 +38,6 @@ class DialogHelper {
         ],
       ),
     );
-  }
 
   static void showActionSheet({
     required BuildContext context,

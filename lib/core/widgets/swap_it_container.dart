@@ -8,14 +8,13 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/swap_card.dart';
 
 class SwapItContainer extends StatelessWidget {
+
+  const SwapItContainer({super.key, required this.swaps, required this.onSeeMore});
   final List<ProductSwap> swaps;
   final VoidCallback onSeeMore;
 
-  const SwapItContainer({super.key, required this.swaps, required this.onSeeMore});
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       margin: EdgeInsets.only(bottom: AppSizes.p16),
       padding: EdgeInsets.all(AppSizes.p18),
       decoration: BoxDecoration(
@@ -30,7 +29,7 @@ class SwapItContainer extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.only(top: 2),
                 child: Icon(AppIcons.sparkles, size: 22, color: context.appColorScheme.textPrimary),
               ),
               SizedBox(width: AppSizes.p12),
@@ -39,7 +38,7 @@ class SwapItContainer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(AppStrings.swapItFeelBetter, style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5)),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(AppStrings.easySwapsDesc, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
                   ],
                 ),
@@ -51,10 +50,10 @@ class SwapItContainer extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: swaps.asMap().entries.map((entry) {
-                final int idx = entry.key;
+                final idx = entry.key;
                 final swap = entry.value;
 
-                String calculatedTag = 'GOOD OPTIONS';
+                var calculatedTag = 'GOOD OPTIONS';
                 if (idx == 0) {
                   calculatedTag = 'BETTER CHOICE';
                 } else if (idx == 1) {
@@ -93,5 +92,4 @@ class SwapItContainer extends StatelessWidget {
         ],
       ),
     );
-  }
 }

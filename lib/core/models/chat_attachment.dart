@@ -9,6 +9,8 @@ import 'package:equatable/equatable.dart';
 /// until the user explicitly presses Send, at which point the text prompt and
 /// all attachments leave together in a single AI request.
 class ChatAttachment extends Equatable {
+
+  const ChatAttachment({required this.id, required this.bytes, required this.source});
   /// Client-side unique identifier (drives remove/preview keys).
   final String id;
 
@@ -17,8 +19,6 @@ class ChatAttachment extends Equatable {
 
   /// Where the image came from: 'gallery' | 'label' | 'food' | 'menu'.
   final String source;
-
-  const ChatAttachment({required this.id, required this.bytes, required this.source});
 
   @override
   List<Object?> get props => [id, source];

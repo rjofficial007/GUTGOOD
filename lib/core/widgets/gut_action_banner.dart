@@ -9,6 +9,8 @@ import 'package:gutgood/core/utils/responsive.dart';
 /// A generic, pill-shaped action banner used for primary CTAs like Weekly Recaps or Nutrition Facts.
 /// Defaults to the vibrant "Lime" theme as requested in PRD Section 7.
 class GutActionBanner extends StatelessWidget {
+
+  const GutActionBanner({super.key, required this.title, required this.subtitle, required this.icon, required this.onTap, this.backgroundColor, this.iconColor, this.iconContainerColor});
   final String title;
   final String subtitle;
   final IconData icon;
@@ -23,13 +25,11 @@ class GutActionBanner extends StatelessWidget {
   /// Background color of the leading icon's circular container. Defaults to [AppPalette.white].
   final Color? iconContainerColor;
 
-  const GutActionBanner({super.key, required this.title, required this.subtitle, required this.icon, required this.onTap, this.backgroundColor, this.iconColor, this.iconContainerColor});
-
   @override
   Widget build(BuildContext context) {
-    final Color effectiveBg = backgroundColor ?? context.appColorScheme.textPrimary;
-    final Color effectiveIconColor = iconColor ?? context.appColorScheme.cardBackground;
-    final Color effectiveIconContainer = iconContainerColor ?? context.appColorScheme.cardBackground.withValues(alpha: 0.1);
+    final effectiveBg = backgroundColor ?? context.appColorScheme.textPrimary;
+    final effectiveIconColor = iconColor ?? context.appColorScheme.cardBackground;
+    final effectiveIconContainer = iconContainerColor ?? context.appColorScheme.cardBackground.withValues(alpha: 0.1);
 
     return GestureDetector(
       onTap: onTap,

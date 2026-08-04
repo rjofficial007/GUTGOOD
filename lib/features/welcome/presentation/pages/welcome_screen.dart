@@ -1,8 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -12,9 +14,6 @@ import 'package:gutgood/features/auth/data/utils/auth_error_handler.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
 import 'package:provider/provider.dart';
-
-import '../../../../core/constants/app_assets.dart';
-import '../../../../core/constants/app_strings.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -38,7 +37,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     super.dispose();
   }
 
-  void _onMergeConflict() async {
+  Future<void> _onMergeConflict() async {
     final conflict = sl<AppStateService>().pendingMergeConflict.value;
     if (conflict == null || !mounted) return;
 
@@ -86,8 +85,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       backgroundColor: context.appColorScheme.cardBackground,
       body: SafeArea(
         child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
+          builder: (context, constraints) => SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -143,7 +141,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             text: TextSpan(
                               style: context.body.copyWith(color: context.appColorScheme.textSecondary),
                               children: [
-                                TextSpan(text: '${AppStrings.alreadyHaveAccount} '),
+                                const TextSpan(text: '${AppStrings.alreadyHaveAccount} '),
                                 TextSpan(
                                   text: AppStrings.signIn,
                                   style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary),
@@ -159,8 +157,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                 ),
               ),
-            );
-          },
+            ),
         ),
       ),
     );

@@ -7,14 +7,13 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
-import '../../../../core/utils/responsive.dart';
-
 class AIPersonalizationOnboardingPage extends StatefulWidget {
-  final VoidCallback onFinish;
 
   const AIPersonalizationOnboardingPage({super.key, required this.onFinish});
+  final VoidCallback onFinish;
 
   @override
   State<AIPersonalizationOnboardingPage> createState() => _AIPersonalizationOnboardingPageState();
@@ -63,8 +62,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,10 +92,8 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         ],
       ),
     );
-  }
 
-  Widget _buildHeroFlipText() {
-    return AnimatedSwitcher(
+  Widget _buildHeroFlipText() => AnimatedSwitcher(
       duration: const Duration(milliseconds: 800),
       switchInCurve: Curves.easeOutBack,
       switchOutCurve: Curves.easeInBack,
@@ -107,15 +103,13 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
           opacity: animation,
           child: AnimatedBuilder(
             animation: rotate,
-            builder: (context, child) {
-              return Transform(
+            builder: (context, child) => Transform(
                 transform: Matrix4.identity()
                   ..setEntry(3, 2, 0.0015)
                   ..rotateX(rotate.value),
                 alignment: Alignment.center,
                 child: child,
-              );
-            },
+              ),
             child: child,
           ),
         );
@@ -127,10 +121,8 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         style: context.displayLg.copyWith(fontSize: 50.0.sp, fontWeight: FontWeight.w900, letterSpacing: -2.5, height: 1.0, color: context.appColorScheme.textPrimary),
       ),
     );
-  }
 
-  Widget _buildMinimalSuccessIcon() {
-    return Column(
+  Widget _buildMinimalSuccessIcon() => Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -143,5 +135,4 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         Text(AppStrings.labelReady, style: context.displayMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1)).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
       ],
     );
-  }
 }

@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_color_scheme.dart';
-import '../theme/app_text_styles.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
 
 class FeedbackTag extends StatelessWidget {
+
+  const FeedbackTag({super.key, required this.icon, required this.label, required this.onTap, this.isSelected = false});
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final bool isSelected;
 
-  const FeedbackTag({super.key, required this.icon, required this.label, required this.onTap, this.isSelected = false});
-
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
+  Widget build(BuildContext context) => GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -35,5 +34,4 @@ class FeedbackTag extends StatelessWidget {
         ),
       ),
     );
-  }
 }

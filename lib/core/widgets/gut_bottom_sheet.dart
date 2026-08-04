@@ -6,15 +6,14 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 
 class GutSheetHeader extends StatelessWidget {
+
+  const GutSheetHeader({super.key, required this.title, this.showCloseButton = true, this.onClose});
   final String title;
   final bool showCloseButton;
   final VoidCallback? onClose;
 
-  const GutSheetHeader({super.key, required this.title, this.showCloseButton = true, this.onClose});
-
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p20),
       child: Column(
         children: [
@@ -49,19 +48,17 @@ class GutSheetHeader extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class GutSheetWrapper extends StatelessWidget {
+
+  const GutSheetWrapper({super.key, required this.children, this.padding, this.footer});
   final List<Widget> children;
   final EdgeInsets? padding;
   final Widget? footer;
 
-  const GutSheetWrapper({super.key, required this.children, this.padding, this.footer});
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => DecoratedBox(
       decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.r32)),
@@ -79,5 +76,4 @@ class GutSheetWrapper extends StatelessWidget {
         ],
       ),
     );
-  }
 }

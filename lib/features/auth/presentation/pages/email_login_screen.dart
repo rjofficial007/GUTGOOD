@@ -12,16 +12,15 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/extensions.dart';
+import 'package:gutgood/core/widgets/gut_app_bar.dart';
+import 'package:gutgood/core/widgets/gut_button.dart';
+import 'package:gutgood/core/widgets/gut_text_field.dart';
 import 'package:gutgood/features/auth/data/utils/auth_error_handler.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../../core/widgets/gut_app_bar.dart';
-import '../../../../core/widgets/gut_button.dart';
-import '../../../../core/widgets/gut_text_field.dart';
 
 class EmailLoginScreen extends StatefulWidget {
   const EmailLoginScreen({super.key});
@@ -65,7 +64,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     super.dispose();
   }
 
-  void _onMergeConflict() async {
+  Future<void> _onMergeConflict() async {
     final conflict = sl<AppStateService>().pendingMergeConflict.value;
     if (conflict == null || !mounted) return;
 
@@ -210,8 +209,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: GutAppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -231,12 +229,11 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
         ),
       ),
     );
-  }
 
   Widget _buildInputState() {
     final authNotifier = context.watch<GutAuthNotifier>();
     final pendingLink = sl<AppStateService>().pendingEmailLink.value;
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       key: const ValueKey('input'),
@@ -265,9 +262,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
         SizedBox(height: AppSizes.p40),
 
-        authNotifier.isLoading
-            ? Center(child: CircularProgressIndicator(color: context.appColorScheme.textPrimary))
-            : GutButton(label: pendingLink != null ? AppStrings.confirmEmail : AppStrings.sendLink, onTap: _sendLink),
+        if (authNotifier.isLoading) Center(child: CircularProgressIndicator(color: context.appColorScheme.textPrimary)) else GutButton(label: pendingLink != null ? AppStrings.confirmEmail : AppStrings.sendLink, onTap: _sendLink),
 
         if (pendingLink == null) ...[
           SizedBox(height: AppSizes.p32),
@@ -280,9 +275,9 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _SocialIcon(assetPath: AppAssets.appleLogo, imageColor: isDark ? AppPalette.white : null, onTap: authNotifier.isLoading ? () {} : () => authNotifier.signInWithApple()),
+              _SocialIcon(assetPath: AppAssets.appleLogo, imageColor: isDark ? AppPalette.white : null, onTap: authNotifier.isLoading ? () {} : authNotifier.signInWithApple),
               SizedBox(width: AppSizes.p16),
-              _SocialIcon(assetPath: AppAssets.googleLogo, onTap: authNotifier.isLoading ? () {} : () => authNotifier.signInWithGoogle()),
+              _SocialIcon(assetPath: AppAssets.googleLogo, onTap: authNotifier.isLoading ? () {} : authNotifier.signInWithGoogle),
             ],
           ),
         ],
@@ -290,8 +285,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     );
   }
 
-  Widget _buildSentState() {
-    return Column(
+  Widget _buildSentState() => Column(
       key: const ValueKey('sent'),
       children: [
         SizedBox(height: AppSizes.p40),
@@ -328,25 +322,21 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
         ),
       ],
     );
-  }
 
-  Widget _buildLabel(String text) {
-    return Padding(
+  Widget _buildLabel(String text) => Padding(
       padding: EdgeInsets.only(bottom: AppSizes.p8),
       child: Text(text, style: context.bodyBold.copyWith(fontSize: AppSizes.s13)),
     );
-  }
 }
 
 class _SocialIcon extends StatelessWidget {
+  const _SocialIcon({required this.assetPath, required this.onTap, this.imageColor});
   final String assetPath;
   final VoidCallback onTap;
   final Color? imageColor;
-  const _SocialIcon({required this.assetPath, required this.onTap, this.imageColor});
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.r12),
       child: Container(
@@ -358,5 +348,4 @@ class _SocialIcon extends StatelessWidget {
         child: Image.asset(assetPath, width: AppSizes.icon24, height: AppSizes.icon24, color: imageColor),
       ),
     );
-  }
 }

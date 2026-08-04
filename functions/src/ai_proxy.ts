@@ -152,14 +152,14 @@ export const aiProxy = functions
     const usageType = (body.usageType ?? (images.length > 0 ? 'scan' : 'chat')).toString();
     const timezoneOffset = Number(body.timezoneOffset ?? 0);
 
-    // 🔴 Fix F1: Whitelist usageType and reject unknown.
+    // Whitelist usageType and reject unknown.
     if (!['chat', 'scan', 'system'].includes(usageType)) {
       fail(res, 400, 'invalid_argument', { message: `Unsupported usageType '${usageType}'.` });
       return;
     }
 
     // Server-side free-tier enforcement (idempotent on retries).
-    // 🔴 Fix F1: Meter 'system' too.
+    // Metering includes 'system' usage.
     try {
       const usage = await checkAndConsume(
         auth.uid,
@@ -177,7 +177,7 @@ export const aiProxy = functions
         return;
       }
     } catch (e) {
-      // 🟠 Fix F3: Fail closed (503) on usage check errors unless user is premium.
+      // Fail closed (503) on usage check errors unless user is premium.
       const premium = await isPremiumUser(auth.uid).catch(() => false);
       if (premium) {
         functions.logger.warn('usage check failed for premium user; failing open', e);
@@ -235,6 +235,11 @@ export const aiProxy = functions
           choices?: Array<{ message?: { content?: string } }>;
         };
         const text = json.choices?.[0]?.message?.content ?? '';
+        if (!text) {
+          functions.logger.error('OpenAI returned empty content');
+          fail(res, 502, 'upstream_error', { message: 'The AI service returned an empty response.' });
+          return;
+        }
         res.status(200).json({ text });
       } catch (e) {
         functions.logger.error('Failed to parse OpenAI response', e);

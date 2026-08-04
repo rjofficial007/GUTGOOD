@@ -3,7 +3,7 @@ class GutScoreUtils {
   /// This formula is the single source of truth for the app and should be
   /// communicated to the AI to ensure consistency.
   static int calculateGutScore(String? nutriscore, int? novaGroup) {
-    int base = 50;
+    var base = 50;
 
     if (nutriscore != null) {
       switch (nutriscore.toLowerCase()) {

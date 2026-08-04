@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -6,10 +7,16 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/router/app_router.dart';
+import 'package:gutgood/core/services/app_version_services.dart';
+import 'package:gutgood/core/services/device_info_services.dart';
+import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_theme.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/offline_banner.dart';
 import 'package:gutgood/core/widgets/verification_overlay.dart';
@@ -20,20 +27,13 @@ import 'package:gutgood/features/insights/presentation/providers/insights_notifi
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/profile/presentation/providers/usage_notifier.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
+import 'package:gutgood/firebase_options.dart';
 import 'package:provider/provider.dart';
-
-import 'core/constants/app_strings.dart';
-import 'core/di/injection_container.dart';
-import 'core/services/app_version_services.dart';
-import 'core/services/device_info_services.dart';
-import 'core/services/internet_connection_checker.dart';
-import 'core/utils/logger_service.dart';
-import 'firebase_options.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  AppLogger.debug("Handling a background message: ${message.messageId}");
+  AppLogger.debug('Handling a background message: ${message.messageId}');
   await NotificationService.showBackgroundNotification(message);
 }
 
@@ -50,7 +50,7 @@ void main() async {
   if (!kDebugMode) {
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
     PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      unawaited(FirebaseCrashlytics.instance.recordError(error, stack, fatal: true));
       return true;
     };
   }

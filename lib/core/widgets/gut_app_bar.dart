@@ -2,25 +2,14 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
-import '../constants/app_icons.dart';
-
 class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String? title;
-  final Widget? titleWidget;
-  final List<Widget>? actions;
-  final Widget? leading;
-  final bool showBrandingIcon;
-  final bool? centerTitle;
-  final double? elevation;
-  final Color? backgroundColor;
-  final bool automaticallyImplyLeading;
-  final int? streak;
 
   const GutAppBar({
     super.key,
@@ -35,10 +24,19 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.automaticallyImplyLeading = true,
     this.streak,
   });
+  final String? title;
+  final Widget? titleWidget;
+  final List<Widget>? actions;
+  final Widget? leading;
+  final bool showBrandingIcon;
+  final bool? centerTitle;
+  final double? elevation;
+  final Color? backgroundColor;
+  final bool automaticallyImplyLeading;
+  final int? streak;
 
   @override
-  Widget build(BuildContext context) {
-    return AppBar(
+  Widget build(BuildContext context) => AppBar(
       title: titleWidget ?? _buildTitle(context),
       actions: actions,
       leading: leading,
@@ -53,7 +51,6 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
     );
-  }
 
   Widget _buildTitle(BuildContext context) {
     if (title == null) return const SizedBox.shrink();
@@ -71,18 +68,6 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class GutSliverAppBar extends StatelessWidget {
-  final String? title;
-  final Widget? titleWidget;
-  final List<Widget>? actions;
-  final Widget? leading;
-  final bool showBrandingIcon;
-  final bool? centerTitle;
-  final bool floating;
-  final bool pinned;
-  final bool snap;
-  final bool forceElevated;
-  final bool automaticallyImplyLeading;
-  final int? streak;
 
   const GutSliverAppBar({
     super.key,
@@ -99,10 +84,21 @@ class GutSliverAppBar extends StatelessWidget {
     this.automaticallyImplyLeading = true,
     this.streak,
   });
+  final String? title;
+  final Widget? titleWidget;
+  final List<Widget>? actions;
+  final Widget? leading;
+  final bool showBrandingIcon;
+  final bool? centerTitle;
+  final bool floating;
+  final bool pinned;
+  final bool snap;
+  final bool forceElevated;
+  final bool automaticallyImplyLeading;
+  final int? streak;
 
   @override
-  Widget build(BuildContext context) {
-    return SliverAppBar(
+  Widget build(BuildContext context) => SliverAppBar(
       title: titleWidget ?? _buildTitle(context),
       actions: actions,
       leading: leading,
@@ -121,7 +117,6 @@ class GutSliverAppBar extends StatelessWidget {
         ),
       ),
     );
-  }
 
   Widget _buildTitle(BuildContext context) {
     if (title == null) return const SizedBox.shrink();
@@ -137,13 +132,12 @@ class GutSliverAppBar extends StatelessWidget {
 }
 
 class _StreakBadge extends StatelessWidget {
-  final int streak;
 
   const _StreakBadge({required this.streak});
+  final int streak;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
       decoration: BoxDecoration(
         color: AppPalette.orange.withValues(alpha: 0.1),
@@ -162,5 +156,4 @@ class _StreakBadge extends StatelessWidget {
         ],
       ),
     );
-  }
 }

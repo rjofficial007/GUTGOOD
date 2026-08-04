@@ -13,9 +13,9 @@ abstract class RemoteConfigService {
 }
 
 class RemoteConfigServiceImpl implements RemoteConfigService {
-  final FirebaseRemoteConfig _remoteConfig;
 
   RemoteConfigServiceImpl({required FirebaseRemoteConfig remoteConfig}) : _remoteConfig = remoteConfig;
+  final FirebaseRemoteConfig _remoteConfig;
 
   static const String _defaultOpenAIModel = 'gpt-4o-mini';
 

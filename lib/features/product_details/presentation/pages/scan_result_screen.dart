@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -16,19 +18,18 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../../core/utils/responsive.dart';
-
 class ScanResultScreen extends StatefulWidget {
-  final ScanResult scanData;
-  final String? heroTag;
 
   const ScanResultScreen({super.key, required this.scanData, this.heroTag});
+  final ScanResult scanData;
+  final String? heroTag;
 
   @override
   State<ScanResultScreen> createState() => _ScanResultScreenState();
@@ -42,7 +43,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   void initState() {
     super.initState();
     _checkSavedStatus();
-    sl<AnalyticsService>().logEvent(name: 'view_scan_result', parameters: {'product_name': widget.scanData.productName, 'score': widget.scanData.score});
+    unawaited(sl<AnalyticsService>().logEvent(name: 'view_scan_result', parameters: {'product_name': widget.scanData.productName, 'score': widget.scanData.score}));
   }
 
   Future<void> _checkSavedStatus() async {
@@ -53,13 +54,13 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   Future<void> _toggleSave() async {
     await sl<FirestoreService>().toggleSaveFood(widget.scanData);
     await sl<AnalyticsService>().logEvent(name: _isSaved ? 'food_unsaved' : 'food_saved', parameters: {'product_name': widget.scanData.productName});
-    _checkSavedStatus();
+    unawaited(_checkSavedStatus());
     sl<AppStateService>().notifyProfileUpdated();
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget?> sections = [
+    final sections = <Widget?>[
       _ProductHero(scanData: widget.scanData, heroTag: widget.heroTag),
       DashboardEntrance(
         delay: 100,
@@ -77,7 +78,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             DashboardDetailItem(title: _getImpactLevel(AppStrings.satiety), subtitle: AppStrings.satiety, icon: AppIcons.target, color: context.appColorScheme.textPrimary),
           ],
           footerLabel: AppStrings.viewImpactDetails,
-          onFooterTap: () => _showGutImpactDetails(context),
+          onFooterTap: () => unawaited(_showGutImpactDetails(context)),
         ),
       ),
       _buildCycleImpactSection(context),
@@ -118,7 +119,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               ),
             ],
             footerLabel: AppStrings.viewStandardValues,
-            onFooterTap: () => _showNutrientDetails(context),
+            onFooterTap: () => unawaited(_showNutrientDetails(context)),
           ),
         ),
       if ((widget.scanData.allergens != null && widget.scanData.allergens!.isNotEmpty) || (widget.scanData.additives != null && widget.scanData.additives!.isNotEmpty))
@@ -154,7 +155,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               );
             }).toList(),
             footerLabel: AppStrings.viewAllIngredients,
-            onFooterTap: () => _showAllIngredients(context),
+            onFooterTap: () => unawaited(_showAllIngredients(context)),
           ),
         ),
       if (widget.scanData.swaps.isNotEmpty)
@@ -164,21 +165,19 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             title: AppStrings.upgradeLabel,
             subtitle: AppStrings.betterSwapsLabel,
             visualization: const _SwapVisualization(),
-            items: widget.scanData.swaps.take(3).map((swap) {
-              return Padding(
+            items: widget.scanData.swaps.take(3).map((swap) => Padding(
                 padding: EdgeInsets.only(bottom: AppSizes.p12),
                 child: DashboardDetailItem(title: swap.title, subtitle: swap.subtitle, icon: AppIcons.sparkles, color: context.appColorScheme.textPrimary),
-              );
-            }).toList(),
+              )).toList(),
             footerLabel: AppStrings.viewAllAlternatives,
-            onFooterTap: () => _showAllSwaps(context),
+            onFooterTap: () => unawaited(_showAllSwaps(context)),
           ),
         ),
       GutActionBanner(
         title: AppStrings.nutritionFacts,
         subtitle: AppStrings.per100g,
         icon: AppIcons.clipboardList,
-        onTap: () => context.push(AppRoutes.nutritionFacts, extra: widget.scanData.toMap()),
+        onTap: () => unawaited(context.push(AppRoutes.nutritionFacts, extra: widget.scanData.toMap())),
       ),
     ];
 
@@ -227,14 +226,14 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  void _showGutImpactDetails(BuildContext context) {
+  Future<void> _showGutImpactDetails(BuildContext context) async {
     final scanData = widget.scanData;
-    sl<AnalyticsService>().logEvent(name: 'view_impact_details', parameters: {'product_name': scanData.productName});
+    unawaited(sl<AnalyticsService>().logEvent(name: 'view_impact_details', parameters: {'product_name': scanData.productName}));
     final positive = scanData.impacts.where((e) => ['good', 'positive', 'healing', 'high'].contains(e.level.toLowerCase())).toList();
     final moderate = scanData.impacts.where((e) => ['moderate', 'neutral', 'gold'].contains(e.level.toLowerCase())).toList();
     final negative = scanData.impacts.where((e) => ['bad', 'negative', 'trigger', 'low'].contains(e.level.toLowerCase())).toList();
 
-    BottomSheetHelper.showGutBottomSheet(
+    await BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.gutImpact,
       children: [
@@ -254,8 +253,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  Widget _buildImpactTile(BuildContext context, ImpactDetail impact) {
-    return Padding(
+  Widget _buildImpactTile(BuildContext context, ImpactDetail impact) => Padding(
       padding: EdgeInsets.only(bottom: AppSizes.p12),
       child: DashboardDetailItem(
         title: impact.title,
@@ -264,7 +262,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         color: _getImpactColorByLevel(impact.level, context),
       ),
     );
-  }
 
   Color _getImpactColorByLevel(String level, BuildContext context) {
     switch (level.toLowerCase()) {
@@ -295,10 +292,10 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     return impact.level;
   }
 
-  void _showNutrientDetails(BuildContext context) {
+  Future<void> _showNutrientDetails(BuildContext context) async {
     final levels = widget.scanData.nutrientLevels!;
-    sl<AnalyticsService>().logEvent(name: 'view_nutrient_details', parameters: {'product_name': widget.scanData.productName});
-    BottomSheetHelper.showGutBottomSheet(
+    unawaited(sl<AnalyticsService>().logEvent(name: 'view_nutrient_details', parameters: {'product_name': widget.scanData.productName}));
+    await BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.nutrientLevelsLabel,
       children: [
@@ -324,21 +321,19 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  Color _getNutrientColor(String? val, BuildContext context) {
-    return context.appColorScheme.textPrimary;
-  }
+  Color _getNutrientColor(String? val, BuildContext context) => context.appColorScheme.textPrimary;
 
-  void _showAllIngredients(BuildContext context) {
+  Future<void> _showAllIngredients(BuildContext context) async {
     final ingredients = widget.scanData.ingredients;
-    sl<AnalyticsService>().logEvent(name: 'view_all_ingredients', parameters: {'product_name': widget.scanData.productName});
+    unawaited(sl<AnalyticsService>().logEvent(name: 'view_all_ingredients', parameters: {'product_name': widget.scanData.productName}));
     final avoid = ingredients.where((e) => e.colorName.toLowerCase() == 'red').toList();
     final limit = ingredients.where((e) => e.colorName.toLowerCase() == 'orange').toList();
     final clean = ingredients.where((e) => !['red', 'orange'].contains(e.colorName.toLowerCase())).toList();
 
-    int cleanCount = ingredients.where((e) => e.colorName.toLowerCase() == 'green' || e.colorName.toLowerCase() == 'low').length;
-    double cleanRatio = ingredients.isNotEmpty ? cleanCount / ingredients.length : 0;
+    final cleanCount = ingredients.where((e) => e.colorName.toLowerCase() == 'green' || e.colorName.toLowerCase() == 'low').length;
+    final cleanRatio = ingredients.isNotEmpty ? cleanCount / ingredients.length : 0;
 
-    BottomSheetHelper.showGutBottomSheet(
+    await BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.ingredients,
       children: [
@@ -354,8 +349,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  Widget _buildIngredientTile(BuildContext context, Ingredient ing) {
-    return Padding(
+  Widget _buildIngredientTile(BuildContext context, Ingredient ing) => Padding(
       padding: EdgeInsets.only(bottom: AppSizes.p16),
       child: DashboardDetailItem(
         title: ing.name,
@@ -364,27 +358,22 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         color: _getIngredientColor(ing.colorName, context),
       ),
     );
-  }
 
-  Color _getIngredientColor(String colorName, BuildContext context) {
-    return InsightUiUtils.getIngredientColor(colorName, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
-  }
+  Color _getIngredientColor(String colorName, BuildContext context) => InsightUiUtils.getIngredientColor(colorName, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
 
-  void _showAllSwaps(BuildContext context) {
+  Future<void> _showAllSwaps(BuildContext context) async {
     final swaps = widget.scanData.swaps;
-    sl<AnalyticsService>().logEvent(name: 'view_all_swaps', parameters: {'product_name': widget.scanData.productName, 'count': swaps.length});
-    BottomSheetHelper.showGutBottomSheet(
+    unawaited(sl<AnalyticsService>().logEvent(name: 'view_all_swaps', parameters: {'product_name': widget.scanData.productName, 'count': swaps.length}));
+    await BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.betterSwapsLabel,
       children: [
         SheetHeroSection(title: '${swaps.length}', subtitle: AppStrings.healthierAlternativesFound, color: context.appColorScheme.textPrimary, icon: AppIcons.sparkles),
         Gap.h32,
-        ...swaps.map((swap) {
-          return Padding(
+        ...swaps.map((swap) => Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p16),
             child: DashboardDetailItem(title: swap.title, subtitle: swap.subtitle, icon: AppIcons.package, color: context.appColorScheme.textPrimary),
-          );
-        }),
+          )),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -394,7 +383,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
   Widget? _buildCycleImpactSection(BuildContext context) {
     final profile = context.watch<ProfileNotifier>().profile;
-    final bool cycleEnabled = profile?.cycleSyncEnabled ?? false;
+    final cycleEnabled = profile?.cycleSyncEnabled ?? false;
 
     if (!cycleEnabled) return null;
     if (widget.scanData.cycleInsight == null || widget.scanData.cycleInsight!.description.isEmpty) {
@@ -406,15 +395,14 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 }
 
 class _SaveButton extends StatelessWidget {
+
+  const _SaveButton({required this.isSaved, required this.isLoading, required this.onTap});
   final bool isSaved;
   final bool isLoading;
   final VoidCallback onTap;
 
-  const _SaveButton({required this.isSaved, required this.isLoading, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
+  Widget build(BuildContext context) => GestureDetector(
       onTap: isLoading ? null : onTap,
       child: isLoading
           ? SizedBox(
@@ -424,24 +412,23 @@ class _SaveButton extends StatelessWidget {
             )
           : Icon(isSaved ? Icons.favorite : Icons.favorite_border, color: isSaved ? context.appColorScheme.error : context.appColorScheme.textMuted, size: AppSizes.icon24),
     );
-  }
 }
 
 class _ProductHero extends StatelessWidget {
+  const _ProductHero({required this.scanData, this.heroTag});
   final ScanResult scanData;
   final String? heroTag;
-  const _ProductHero({required this.scanData, this.heroTag});
 
   @override
   Widget build(BuildContext context) {
-    String? userImg = scanData.userImageUrl;
+    var userImg = scanData.userImageUrl;
     if (userImg != null && userImg.isEmpty) userImg = null;
-    String? prodImg = scanData.imageUrl;
+    var prodImg = scanData.imageUrl;
     if (prodImg != null && prodImg.isEmpty) prodImg = null;
 
-    final String? displayImageUrl = userImg ?? prodImg;
+    final displayImageUrl = userImg ?? prodImg;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
         borderRadius: BorderRadius.circular(AppSizes.r24),
@@ -513,12 +500,11 @@ class _ProductHero extends StatelessWidget {
 }
 
 class _GutImpactChart extends StatelessWidget {
-  final int score;
   const _GutImpactChart({required this.score});
+  final int score;
 
   @override
-  Widget build(BuildContext context) {
-    return Stack(
+  Widget build(BuildContext context) => Stack(
       alignment: Alignment.center,
       children: [
         SizedBox(
@@ -546,16 +532,14 @@ class _GutImpactChart extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 class _CycleImpactDashboardSection extends StatelessWidget {
-  final CycleInsight insight;
   const _CycleImpactDashboardSection({required this.insight});
+  final CycleInsight insight;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       width: double.infinity,
       padding: EdgeInsets.all(AppSizes.p24),
       decoration: BoxDecoration(
@@ -610,18 +594,17 @@ class _CycleImpactDashboardSection extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class _IngredientCompositionVisualization extends StatelessWidget {
-  final List<Ingredient> ingredients;
   const _IngredientCompositionVisualization({required this.ingredients});
+  final List<Ingredient> ingredients;
 
   @override
   Widget build(BuildContext context) {
-    int cleanCount = ingredients.where((e) => e.colorName.toLowerCase() == 'green' || e.colorName.toLowerCase() == 'low').length;
-    int total = ingredients.isNotEmpty ? ingredients.length : 1;
-    double cleanRatio = cleanCount / total;
+    final cleanCount = ingredients.where((e) => e.colorName.toLowerCase() == 'green' || e.colorName.toLowerCase() == 'low').length;
+    final total = ingredients.isNotEmpty ? ingredients.length : 1;
+    final cleanRatio = cleanCount / total;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -641,8 +624,7 @@ class _NutrientVisualization extends StatelessWidget {
   const _NutrientVisualization();
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const GutProgressBar(ratio: 0.7),
@@ -653,12 +635,11 @@ class _NutrientVisualization extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 class _CautionRiskIcon extends StatelessWidget {
-  final bool isSafe;
   const _CautionRiskIcon({required this.isSafe});
+  final bool isSafe;
 
   @override
   Widget build(BuildContext context) {
@@ -667,9 +648,7 @@ class _CautionRiskIcon extends StatelessWidget {
       tween: Tween(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 800),
       curve: Curves.elasticOut,
-      builder: (context, value, child) {
-        return Transform.scale(scale: value, child: child);
-      },
+      builder: (context, value, child) => Transform.scale(scale: value, child: child),
       child: Container(
         padding: EdgeInsets.all(AppSizes.p12),
         decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
@@ -683,8 +662,7 @@ class _SwapVisualization extends StatelessWidget {
   const _SwapVisualization();
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
@@ -703,7 +681,6 @@ class _SwapVisualization extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 String _getIngredientImpactLabel(String colorName) {
@@ -718,13 +695,13 @@ String _getIngredientImpactLabel(String colorName) {
 }
 
 class _ClassificationBadge extends StatelessWidget {
+  const _ClassificationBadge({required this.label, required this.value});
   final String label;
   final String value;
-  const _ClassificationBadge({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    Color badgeColor = context.appColorScheme.elevatedSurface;
+    var badgeColor = context.appColorScheme.elevatedSurface;
     if (label == AppStrings.nova.toUpperCase()) {
       badgeColor = context.appColorScheme.elevatedSurface;
     }

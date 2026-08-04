@@ -20,16 +20,16 @@ abstract class AppService {
 }
 
 class AppServiceImpl implements AppService {
-  final AppVersionService _appVersionService;
-  final DeviceInfoService _deviceInfoService;
-  final ConfigService _configService;
-  final Dio _dio;
 
   AppServiceImpl({required AppVersionService appVersionService, required DeviceInfoService deviceInfoService, required ConfigService configService, required Dio dio})
     : _appVersionService = appVersionService,
       _deviceInfoService = deviceInfoService,
       _configService = configService,
       _dio = dio;
+  final AppVersionService _appVersionService;
+  final DeviceInfoService _deviceInfoService;
+  final ConfigService _configService;
+  final Dio _dio;
 
   @override
   String get shareWithFriendsText =>
@@ -37,7 +37,7 @@ class AppServiceImpl implements AppService {
 
   @override
   Future<void> urlLauncher(BuildContext context, String urlString, {LaunchMode mode = LaunchMode.platformDefault}) async {
-    final Uri url = Uri.parse(urlString);
+    final url = Uri.parse(urlString);
     if (Platform.isIOS && urlString.contains('apps.apple.com')) {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -51,36 +51,36 @@ class AppServiceImpl implements AppService {
 
   @override
   Future<void> sendingMails({required String mailContent, required bool isFromReview}) async {
-    AppLogger.debug("AppService: Preparing to send email...");
+    AppLogger.debug('AppService: Preparing to send email...');
 
-    final String email = Uri.encodeComponent("support@gutgood.app");
-    final String subject = Uri.encodeComponent(
-      "${_configService.appName}\n${Platform.isAndroid ? "Android" : "iOS"} ${isFromReview ? "Review" : "Feedback"} v${_appVersionService.appVersion} (${_deviceInfoService.deviceName} ${_deviceInfoService.model}, v${_deviceInfoService.deviceOsVersion})",
+    final email = Uri.encodeComponent('support@gutgood.app');
+    final subject = Uri.encodeComponent(
+      '${_configService.appName}\n${Platform.isAndroid ? 'Android' : 'iOS'} ${isFromReview ? 'Review' : 'Feedback'} v${_appVersionService.appVersion} (${_deviceInfoService.deviceName} ${_deviceInfoService.model}, v${_deviceInfoService.deviceOsVersion})',
     );
-    final String body = Uri.encodeComponent(
-      "$mailContent\n\n\n\n\n--------------------------------------------------------\nModel : ${_deviceInfoService.deviceName} ${_deviceInfoService.model} \n System version : ${_deviceInfoService.deviceOsVersion} \n Country : $_countryCode",
+    final body = Uri.encodeComponent(
+      '$mailContent\n\n\n\n\n--------------------------------------------------------\nModel : ${_deviceInfoService.deviceName} ${_deviceInfoService.model} \n System version : ${_deviceInfoService.deviceOsVersion} \n Country : $_countryCode',
     );
 
-    final Uri mail = Uri.parse("mailto:$email?subject=$subject&body=$body");
+    final mail = Uri.parse('mailto:$email?subject=$subject&body=$body');
 
     if (await canLaunchUrl(mail)) {
       try {
         await launchUrl(mail, mode: LaunchMode.platformDefault);
       } catch (e) {
-        AppLogger.error("AppService: Error launching mail client", error: e);
+        AppLogger.error('AppService: Error launching mail client', error: e);
       }
     } else {
-      AppLogger.error("AppService: Unable to launch mail client.");
+      AppLogger.error('AppService: Unable to launch mail client.');
     }
   }
 
-  String _countryCode = "";
+  String _countryCode = '';
 
   @override
-  void shareWithFriends(BuildContext context) async {
+  Future<void> shareWithFriends(BuildContext context) async {
     try {
-      final RenderBox? box = context.findRenderObject() as RenderBox?;
-      final Rect? origin = box != null ? (box.localToGlobal(Offset.zero) & box.size) : null;
+      final box = context.findRenderObject() as RenderBox?;
+      final origin = box != null ? (box.localToGlobal(Offset.zero) & box.size) : null;
 
       await SharePlus.instance.share(ShareParams(sharePositionOrigin: origin, text: shareWithFriendsText));
     } catch (e) {
@@ -104,31 +104,31 @@ class AppServiceImpl implements AppService {
 
         if (data is Map<String, dynamic> && data['status'] == 'success') {
           _countryCode = (data['countryCode'] as String?)?.toUpperCase() ?? 'US';
-          AppLogger.debug("AppService: Country code: $_countryCode");
+          AppLogger.debug('AppService: Country code: $_countryCode');
           return;
         }
 
-        AppLogger.warning("AppService: Invalid geo lookup response: $data");
+        AppLogger.warning('AppService: Invalid geo lookup response: $data');
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 429) {
-        AppLogger.warning("AppService: Geo lookup rate limited.");
+        AppLogger.warning('AppService: Geo lookup rate limited.');
       } else {
-        AppLogger.error("AppService: Geo lookup failed", error: e);
+        AppLogger.error('AppService: Geo lookup failed', error: e);
       }
     } catch (e) {
-      AppLogger.error("AppService: Unexpected error", error: e);
+      AppLogger.error('AppService: Unexpected error', error: e);
     }
 
     // Fallback to device locale.
     final locale = WidgetsBinding.instance.platformDispatcher.locale;
     _countryCode = (locale.countryCode ?? 'US').toUpperCase();
-    AppLogger.debug("AppService: Fallback country code: $_countryCode");
+    AppLogger.debug('AppService: Fallback country code: $_countryCode');
   }
 
   @override
   Future<void> requestReview() async {
-    final InAppReview inAppReview = InAppReview.instance;
+    final inAppReview = InAppReview.instance;
     try {
       if (await inAppReview.isAvailable()) {
         await inAppReview.requestReview();

@@ -1,0 +1,17 @@
+- [ ] Code Quality: Fix Lint Issues
+    - [ ] Package imports
+    - [ ] Single quotes
+    - [ ] Sort members
+    - [ ] Unawaited futures
+- [ ] Performance: Const & List Optimization
+    - [ ] Add `const` where missing
+    - [ ] Optimize ListViews
+- [ ] Security: Harden Firebase
+    - [ ] Review & Improve Firestore Rules
+    - [ ] Verify Functions logic
+- [ ] UI/UX: Accessibility & Consistency
+    - [ ] Add Semantics to widgets
+    - [ ] Fix potential overflows
+- [ ] Testing: Add Core Tests
+    - [ ] Unit tests for Repositories
+    - [ ] Widget tests for core components

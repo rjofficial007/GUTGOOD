@@ -13,16 +13,17 @@ abstract class OffService {
 }
 
 class OffServiceImpl implements OffService {
-  final Dio _dio;
 
   OffServiceImpl({required Dio dio}) : _dio = dio;
+  final Dio _dio;
 
   @override
   Future<OffProduct?> getProduct(String barcode) async {
     try {
       final response = await _dio.get('${ApiConstants.offBaseUrl}${ApiConstants.productEndpoint}/$barcode.json');
-      if (response.data != null && response.data['status'] == 1) {
-        return _mapProductData(response.data['product']);
+      final data = response.data as Map<String, dynamic>;
+      if (data.isNotEmpty && data['status'] == 1) {
+        return _mapProductData(data['product'] as Map<String, dynamic>);
       }
     } catch (e) {
       AppLogger.error('OffService: Error fetching product: $e');
@@ -30,7 +31,7 @@ class OffServiceImpl implements OffService {
     return null;
   }
 
-  OffProduct _mapProductData(dynamic product) {
+  OffProduct _mapProductData(Map<String, dynamic> product) {
     final name = product['product_name'] ?? product['product_name_en'];
     final brand = product['brands'];
     final imageUrl = product['image_url'] ?? product['image_front_url'];
@@ -42,7 +43,7 @@ class OffServiceImpl implements OffService {
 
     // Ingredients & Additives
     final ingredientsText = product['ingredients_text'] ?? product['ingredients_text_en'];
-    final ingredientsList = ModelUtils.parseList<dynamic>(product['ingredients']).map((i) => i['text']?.toString() ?? '').toList();
+    final ingredientsList = ModelUtils.parseList<Map<String, dynamic>>(product['ingredients']).map((i) => i['text']?.toString() ?? '').toList();
 
     final additivesCount = product['additives_n'] is int ? product['additives_n'] as int : null;
     final additivesTags = ModelUtils.parseList<dynamic>(product['additives_tags']).map((a) => a.toString().replaceAll('en:', '').toUpperCase()).toList();
@@ -58,8 +59,8 @@ class OffServiceImpl implements OffService {
     final categoryTag = categoriesTags.isNotEmpty ? categoriesTags.last.toString() : null;
 
     // Nutrition
-    final nutrientsRaw = product['nutriments'] ?? {};
-    final nutrientLevelsRaw = product['nutrient_levels'] ?? {};
+    final nutrientsRaw = product['nutriments'] as Map<String, dynamic>? ?? {};
+    final nutrientLevelsRaw = product['nutrient_levels'] as Map<String, dynamic>? ?? {};
 
     final nutrients = NutrientData(
       calories: nutrientsRaw['energy-kcal_100g'],
@@ -112,7 +113,7 @@ class OffServiceImpl implements OffService {
   }
 
   List<ImpactDetail> _generateImpacts(String? nutriscore, dynamic nova, String ingredients) {
-    List<ImpactDetail> impacts = [];
+    final impacts = <ImpactDetail>[];
 
     if (nova == 1) {
       impacts.add(const ImpactDetail(title: AppStrings.minimallyProcessed, level: 'Positive', color: 'green'));
@@ -137,7 +138,7 @@ class OffServiceImpl implements OffService {
     if (category == null || category.isEmpty) return [];
 
     // Determine target grades
-    List<String> targetGrades = [];
+    var targetGrades = <String>[];
     final current = (currentGrade ?? 'c').toLowerCase();
     if (current == 'a') return []; // Already top tier
 
@@ -159,23 +160,27 @@ class OffServiceImpl implements OffService {
       final categoryFilter = category.contains(':') ? category : 'en:$category';
 
       // Search-a-licious URL
-      final url = 'https://search.openfoodfacts.org/search';
+      const url = 'https://search.openfoodfacts.org/search';
       final params = {'q': 'categories_tags:$categoryFilter AND ($gradesFilter)', 'sort_by': 'nutriscore_score', 'fields': 'product_name,brands,image_front_url,nutrition_grades,code', 'size': 5};
 
       final response = await _dio.get(url, queryParameters: params);
 
-      if (response.data != null && response.data['products'] != null) {
-        final List products = response.data['products'];
+      final data = response.data as Map<String, dynamic>;
+      if (data.isNotEmpty && data['products'] != null) {
+        final products = data['products'] as List;
         return products
             .map(
-              (p) => OffProduct(
-                productName: p['product_name'] ?? 'Unknown Product',
-                brand: p['brands'] ?? 'Unknown Brand',
-                imageUrl: p['image_front_url'],
-                nutriscore: (p['nutrition_grades'] as String?)?.toLowerCase(),
-                score: GutScoreUtils.calculateGutScore((p['nutrition_grades'] as String?)?.toLowerCase(), null),
-                barcode: p['code'],
-              ),
+              (p) {
+                final product = p as Map<String, dynamic>;
+                return OffProduct(
+                  productName: product['product_name'] ?? 'Unknown Product',
+                  brand: product['brands'] ?? 'Unknown Brand',
+                  imageUrl: product['image_front_url'],
+                  nutriscore: (product['nutrition_grades'] as String?)?.toLowerCase(),
+                  score: GutScoreUtils.calculateGutScore((product['nutrition_grades'] as String?)?.toLowerCase(), null),
+                  barcode: product['code'],
+                );
+              },
             )
             .toList();
       }
@@ -184,24 +189,28 @@ class OffServiceImpl implements OffService {
 
       // Fallback to v2 API (Legacy, might be 503 but better than nothing)
       try {
-        final String encodedCat = Uri.encodeComponent(category);
-        final String grades = targetGrades.join(',');
+        final encodedCat = Uri.encodeComponent(category);
+        final grades = targetGrades.join(',');
         final v2Url =
             'https://world.openfoodfacts.org/api/v2/search?categories_tags_en=$encodedCat&nutrition_grades_tags=$grades&sort_by=nutriscore_score&fields=product_name,brands,image_front_url,nutrition_grades,code&page_size=5';
 
         final response = await _dio.get(v2Url);
-        if (response.data != null && response.data['products'] != null) {
-          final List products = response.data['products'];
+        final data = response.data as Map<String, dynamic>;
+        if (data.isNotEmpty && data['products'] != null) {
+          final products = data['products'] as List;
           return products
               .map(
-                (p) => OffProduct(
-                  productName: p['product_name'] ?? 'Unknown Product',
-                  brand: p['brands'] ?? 'Unknown Brand',
-                  imageUrl: p['image_front_url'],
-                  nutriscore: (p['nutrition_grades'] as String?)?.toLowerCase(),
-                  score: GutScoreUtils.calculateGutScore((p['nutrition_grades'] as String?)?.toLowerCase(), null),
-                  barcode: p['code'],
-                ),
+                (p) {
+                  final product = p as Map<String, dynamic>;
+                  return OffProduct(
+                    productName: product['product_name'] ?? 'Unknown Product',
+                    brand: product['brands'] ?? 'Unknown Brand',
+                    imageUrl: product['image_front_url'],
+                    nutriscore: (product['nutrition_grades'] as String?)?.toLowerCase(),
+                    score: GutScoreUtils.calculateGutScore((product['nutrition_grades'] as String?)?.toLowerCase(), null),
+                    barcode: product['code'],
+                  );
+                },
               )
               .toList();
         }

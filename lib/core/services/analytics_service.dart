@@ -56,7 +56,5 @@ class AnalyticsServiceImpl implements AnalyticsService {
   }
 
   @override
-  FirebaseAnalyticsObserver getObserver() {
-    return FirebaseAnalyticsObserver(analytics: _analytics);
-  }
+  FirebaseAnalyticsObserver getObserver() => FirebaseAnalyticsObserver(analytics: _analytics);
 }

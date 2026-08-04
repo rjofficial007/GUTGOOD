@@ -10,6 +10,52 @@ import 'package:gutgood/core/utils/model_utils.dart';
 /// It tracks personalization factors (goals, sensitivities, lifestyle) which
 /// drive the AI insight generation engine.
 class UserProfile extends Equatable {
+
+  const UserProfile({
+    required this.uid,
+    this.onboarded = false,
+    this.isPremium = false,
+    this.isAnonymous = true,
+    this.displayName,
+    this.email,
+    this.photoUrl,
+    this.authProvider,
+    this.goals = const [],
+    this.sensitivities = const [],
+    this.lifestyle = const [],
+    this.cycleSyncEnabled = false,
+    this.cyclePhase,
+    this.notificationPreferences = const {},
+    this.gutScore = 0,
+    this.streak = 0,
+    this.lastActivityDate,
+    this.subscriptionStatus = 'free',
+    required this.updatedAt,
+    required this.createdAt,
+  });
+
+  factory UserProfile.fromMap(Map<String, dynamic> map, {String? uid}) => UserProfile(
+      uid: uid ?? map['uid'] ?? '',
+      onboarded: ModelUtils.parseBool(map['onboarded']),
+      isPremium: ModelUtils.parseBool(map['isPremium']),
+      isAnonymous: ModelUtils.parseBool(map['isAnonymous']),
+      displayName: map['displayName'],
+      email: map['email'],
+      photoUrl: map['photoUrl'],
+      authProvider: map['authProvider'],
+      goals: map['goals'] is String ? List<String>.from(jsonDecode(map['goals'])) : List<String>.from(map['goals'] ?? []),
+      sensitivities: map['sensitivities'] is String ? List<String>.from(jsonDecode(map['sensitivities'])) : List<String>.from(map['sensitivities'] ?? []),
+      lifestyle: map['lifestyle'] is String ? List<String>.from(jsonDecode(map['lifestyle'])) : List<String>.from(map['lifestyle'] ?? []),
+      cycleSyncEnabled: ModelUtils.parseBool(map['cycleSyncEnabled']),
+      cyclePhase: map['cyclePhase'],
+      notificationPreferences: map['notificationPreferences'] is String ? jsonDecode(map['notificationPreferences']) : Map<String, dynamic>.from(map['notificationPreferences'] ?? {}),
+      gutScore: map['gutScore'] ?? 0,
+      streak: map['streak'] ?? 0,
+      lastActivityDate: map['lastActivityDate'],
+      subscriptionStatus: map['subscriptionStatus'] ?? 'free',
+      updatedAt: DateTimeUtils.parse(map['updatedAt']),
+      createdAt: DateTimeUtils.parse(map['createdAt']),
+    );
   /// Unique identifier from Firebase Auth.
   final String uid;
 
@@ -70,29 +116,6 @@ class UserProfile extends Equatable {
   /// Account creation timestamp.
   final DateTime createdAt;
 
-  const UserProfile({
-    required this.uid,
-    this.onboarded = false,
-    this.isPremium = false,
-    this.isAnonymous = true,
-    this.displayName,
-    this.email,
-    this.photoUrl,
-    this.authProvider,
-    this.goals = const [],
-    this.sensitivities = const [],
-    this.lifestyle = const [],
-    this.cycleSyncEnabled = false,
-    this.cyclePhase,
-    this.notificationPreferences = const {},
-    this.gutScore = 0,
-    this.streak = 0,
-    this.lastActivityDate,
-    this.subscriptionStatus = 'free',
-    required this.updatedAt,
-    required this.createdAt,
-  });
-
   UserProfile copyWith({
     String? uid,
     bool? onboarded,
@@ -114,8 +137,7 @@ class UserProfile extends Equatable {
     String? subscriptionStatus,
     DateTime? updatedAt,
     DateTime? createdAt,
-  }) {
-    return UserProfile(
+  }) => UserProfile(
       uid: uid ?? this.uid,
       onboarded: onboarded ?? this.onboarded,
       isPremium: isPremium ?? this.isPremium,
@@ -137,35 +159,8 @@ class UserProfile extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
     );
-  }
 
-  factory UserProfile.fromMap(Map<String, dynamic> map, {String? uid}) {
-    return UserProfile(
-      uid: uid ?? map['uid'] ?? '',
-      onboarded: ModelUtils.parseBool(map['onboarded']),
-      isPremium: ModelUtils.parseBool(map['isPremium']),
-      isAnonymous: ModelUtils.parseBool(map['isAnonymous']),
-      displayName: map['displayName'],
-      email: map['email'],
-      photoUrl: map['photoUrl'],
-      authProvider: map['authProvider'],
-      goals: map['goals'] is String ? List<String>.from(jsonDecode(map['goals'])) : List<String>.from(map['goals'] ?? []),
-      sensitivities: map['sensitivities'] is String ? List<String>.from(jsonDecode(map['sensitivities'])) : List<String>.from(map['sensitivities'] ?? []),
-      lifestyle: map['lifestyle'] is String ? List<String>.from(jsonDecode(map['lifestyle'])) : List<String>.from(map['lifestyle'] ?? []),
-      cycleSyncEnabled: ModelUtils.parseBool(map['cycleSyncEnabled']),
-      cyclePhase: map['cyclePhase'],
-      notificationPreferences: map['notificationPreferences'] is String ? jsonDecode(map['notificationPreferences']) : Map<String, dynamic>.from(map['notificationPreferences'] ?? {}),
-      gutScore: map['gutScore'] ?? 0,
-      streak: map['streak'] ?? 0,
-      lastActivityDate: map['lastActivityDate'],
-      subscriptionStatus: map['subscriptionStatus'] ?? 'free',
-      updatedAt: DateTimeUtils.parse(map['updatedAt']),
-      createdAt: DateTimeUtils.parse(map['createdAt']),
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'uid': uid,
       'onboarded': onboarded,
       'isPremium': isPremium,
@@ -187,7 +182,6 @@ class UserProfile extends Equatable {
       'updatedAt': updatedAt.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
     };
-  }
 
   @override
   List<Object?> get props => [uid, onboarded, isPremium, isAnonymous, goals, sensitivities, lifestyle, gutScore, streak, lastActivityDate];

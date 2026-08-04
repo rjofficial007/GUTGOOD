@@ -6,6 +6,7 @@ import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/daily_usage.dart';
+import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/notification_preferences.dart';
 import 'package:gutgood/core/models/scan_result.dart';
@@ -13,8 +14,6 @@ import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/models/user_profile.dart';
 import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-
-import '../models/health_alert.dart';
 
 abstract class FirestoreService {
   Future<void> saveUserProfile(UserProfile profile);
@@ -62,11 +61,11 @@ abstract class FirestoreService {
 }
 
 class FirestoreServiceImpl implements FirestoreService {
+
+  FirestoreServiceImpl({required FirebaseAuth auth, required FirebaseFirestore db, required StorageService storageService}) : _auth = auth, _db = db, _storageService = storageService;
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
   final StorageService _storageService;
-
-  FirestoreServiceImpl({required FirebaseAuth auth, required FirebaseFirestore db, required StorageService storageService}) : _auth = auth, _db = db, _storageService = storageService;
 
   String? get _uid => _auth.currentUser?.uid;
 
@@ -159,9 +158,7 @@ class FirestoreServiceImpl implements FirestoreService {
   Stream<List<ChatMessage>> getMessagesStream({int limit = 50}) {
     final doc = _userDoc;
     if (doc == null) return const Stream.empty();
-    return doc.collection('chat_history').orderBy('time', descending: true).limit(limit).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList();
-    });
+    return doc.collection('chat_history').orderBy('time', descending: true).limit(limit).snapshots().map((snapshot) => snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList());
   }
 
   @override
@@ -195,7 +192,7 @@ class FirestoreServiceImpl implements FirestoreService {
 
       // 🟢 Robust Image Selection: Prioritize parameter, then model, then existing DB record.
       // Treat empty strings as null to prevent broken images in UI.
-      String? bestImageUrl = userImageUrl;
+      var bestImageUrl = userImageUrl;
       if (bestImageUrl == null || bestImageUrl.isEmpty) {
         bestImageUrl = scanData.userImageUrl;
       }
@@ -473,7 +470,7 @@ class FirestoreServiceImpl implements FirestoreService {
   @override
   Future<DailyUsage?> getUsageToday() async {
     // 🟡 Fix: Use local date to match timezone-aware server usage key generation.
-    final String today = DateTime.now().toIso8601String().split('T')[0];
+    final today = DateTime.now().toIso8601String().split('T')[0];
     try {
       final doc = _userDoc;
       if (doc == null) return null;
@@ -488,7 +485,7 @@ class FirestoreServiceImpl implements FirestoreService {
 
   @override
   Stream<DailyUsage?> getUsageTodayStream() {
-    final String today = DateTime.now().toIso8601String().split('T')[0];
+    final today = DateTime.now().toIso8601String().split('T')[0];
     final doc = _userDoc;
     if (doc == null) return Stream.value(null);
     return doc.collection('daily_usage').doc(today).snapshots().map((doc) {
@@ -588,9 +585,7 @@ class FirestoreServiceImpl implements FirestoreService {
   Stream<List<HealthAlert>> getHealthAlertsStream({int limit = 20}) {
     final doc = _userDoc;
     if (doc == null) return Stream.value([]);
-    return doc.collection('health_alerts').orderBy('time', descending: true).limit(limit).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => HealthAlert.fromMap(doc.data(), id: doc.id)).toList();
-    });
+    return doc.collection('health_alerts').orderBy('time', descending: true).limit(limit).snapshots().map((snapshot) => snapshot.docs.map((doc) => HealthAlert.fromMap(doc.data(), id: doc.id)).toList());
   }
 
   @override

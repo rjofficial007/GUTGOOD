@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -11,18 +12,11 @@ import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../../core/utils/logger_service.dart';
-
 class ScannerRepositoryImpl implements ScannerRepository {
-  final OffService _offService;
-  final AiService _aiService;
-  final FirestoreService _firestoreService;
-  final NotificationService _notificationService;
-  final AppStateService _appStateService;
-  final AnalyticsService _analyticsService;
 
   ScannerRepositoryImpl({
     required OffService offService,
@@ -37,11 +31,15 @@ class ScannerRepositoryImpl implements ScannerRepository {
        _notificationService = notificationService,
        _appStateService = appStateService,
        _analyticsService = analyticsService;
+  final OffService _offService;
+  final AiService _aiService;
+  final FirestoreService _firestoreService;
+  final NotificationService _notificationService;
+  final AppStateService _appStateService;
+  final AnalyticsService _analyticsService;
 
   @override
-  Future<OffProduct?> getProductByBarcode(String barcode) async {
-    return await _offService.getProduct(barcode);
-  }
+  Future<OffProduct?> getProductByBarcode(String barcode) async => _offService.getProduct(barcode);
 
   @override
   Future<ScanResult> analyzeProductWithAi({
@@ -51,12 +49,12 @@ class ScannerRepositoryImpl implements ScannerRepository {
     required String cyclePhase,
     List<OffProduct>? alternatives,
   }) async {
-    String alternativesText = '';
+    var alternativesText = '';
     if (alternatives != null && alternatives.isNotEmpty) {
       alternativesText = '\n\nREAL PRODUCT ALTERNATIVES FROM DATABASE: ${alternatives.map((a) => '${a.productName} by ${a.brand} (Score: ${a.nutriscore})').join(', ')}';
     }
 
-    final String prompt = '${Prompts.productAnalysisPrompt(productData: product.toMap(), userGoals: goals, userSensitivities: sensitivities, cyclePhase: cyclePhase)}$alternativesText';
+    final prompt = '${Prompts.productAnalysisPrompt(productData: product.toMap(), userGoals: goals, userSensitivities: sensitivities, cyclePhase: cyclePhase)}$alternativesText';
 
     final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan');
 
@@ -116,10 +114,10 @@ class ScannerRepositoryImpl implements ScannerRepository {
     _appStateService.notifyChatUpdated();
     AppLogger.info('ScannerRepository: UI notified of scan history update');
 
-    _notificationService.scheduleNoMealLoggedReminder();
+    unawaited(_notificationService.scheduleNoMealLoggedReminder());
     
     // 🚀 Professional Loop: Schedule a symptom check-in 2 hours after a scan.
     // This helps the Pattern Engine find correlations later.
-    _notificationService.schedulePostMealCheckIn();
+    unawaited(_notificationService.schedulePostMealCheckIn());
   }
 }

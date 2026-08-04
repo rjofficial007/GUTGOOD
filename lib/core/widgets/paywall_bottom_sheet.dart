@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/app_services.dart';
 import 'package:gutgood/core/services/config_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
@@ -11,28 +14,24 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/gut_bottom_sheet.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
 import 'package:gutgood/features/auth/presentation/providers/purchase_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-import '../di/injection_container.dart';
-import 'gut_bottom_sheet.dart';
-
 /// Static trigger function to display the premium paywall sheet from anywhere
-Future<void> showPaywallBottomSheet(BuildContext context, {required VoidCallback onProceedWithLimited}) {
-  return showModalBottomSheet(
+Future<void> showPaywallBottomSheet(BuildContext context, {required VoidCallback onProceedWithLimited}) => showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: AppPalette.transparent,
     builder: (context) => GutPaywallBottomSheet(onProceedWithLimited: onProceedWithLimited),
   );
-}
 
 class GutPaywallBottomSheet extends StatelessWidget {
-  final VoidCallback onProceedWithLimited;
 
   const GutPaywallBottomSheet({super.key, required this.onProceedWithLimited});
+  final VoidCallback onProceedWithLimited;
 
   Future<void> _handlePurchase(BuildContext context, PurchaseProvider purchaseProvider, Package? package) async {
     if (package == null) {
@@ -76,8 +75,8 @@ class GutPaywallBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final purchaseProvider = context.watch<PurchaseProvider>();
-    final List<Package> packages = purchaseProvider.packages;
-    final String? selectedId = purchaseProvider.selectedPackageIdentifier;
+    final packages = purchaseProvider.packages;
+    final selectedId = purchaseProvider.selectedPackageIdentifier;
 
     final selectedPackage = packages.isEmpty ? null : packages.firstWhere((p) => p.identifier == selectedId, orElse: () => packages.first);
 
@@ -102,11 +101,11 @@ class GutPaywallBottomSheet extends StatelessWidget {
               Text(AppStrings.knowWhatHelps, style: context.body.copyWith(color: context.appColorScheme.textMuted)),
               Gap.h28,
 
-              _PaywallRow(icon: AppIcons.leaf, title: AppStrings.featureFoodsHurtHeal, subtitle: AppStrings.featureFoodsHurtHealDesc),
+              const _PaywallRow(icon: AppIcons.leaf, title: AppStrings.featureFoodsHurtHeal, subtitle: AppStrings.featureFoodsHurtHealDesc),
               Gap.h18,
-              _PaywallRow(icon: AppIcons.arrowRightLeft, title: AppStrings.featureInstantSwaps, subtitle: AppStrings.featureInstantSwapsDesc),
+              const _PaywallRow(icon: AppIcons.arrowRightLeft, title: AppStrings.featureInstantSwaps, subtitle: AppStrings.featureInstantSwapsDesc),
               Gap.h18,
-              _PaywallRow(icon: AppIcons.barChart, title: AppStrings.featurePersonalInsights, subtitle: AppStrings.featurePersonalInsightsDesc),
+              const _PaywallRow(icon: AppIcons.barChart, title: AppStrings.featurePersonalInsights, subtitle: AppStrings.featurePersonalInsightsDesc),
               Gap.h28,
 
               Row(
@@ -115,16 +114,14 @@ class GutPaywallBottomSheet extends StatelessWidget {
                     width: 70,
                     height: 32,
                     child: Stack(
-                      children: List.generate(3, (index) {
-                        return Positioned(
+                      children: List.generate(3, (index) => Positioned(
                           left: index * 18,
                           child: CircleAvatar(
                             radius: 16,
                             backgroundColor: context.appColorScheme.cardBackground,
                             child: CircleAvatar(radius: 14, backgroundColor: context.appColorScheme.border, backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=${index + 10}')),
                           ),
-                        );
-                      }),
+                        )),
                     ),
                   ),
                   Gap.w4,
@@ -209,19 +206,19 @@ class GutPaywallBottomSheet extends StatelessWidget {
                       TextSpan(
                         text: AppStrings.paywallRestore,
                         style: context.underline,
-                        recognizer: TapGestureRecognizer()..onTap = () => purchaseProvider.restorePurchases(),
+                        recognizer: TapGestureRecognizer()..onTap = () => unawaited(purchaseProvider.restorePurchases()),
                       ),
                       const TextSpan(text: '  |  '),
                       TextSpan(
                         text: AppStrings.paywallTerms,
                         style: context.underline,
-                        recognizer: TapGestureRecognizer()..onTap = () => sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl),
+                        recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl)),
                       ),
                       const TextSpan(text: '  |  '),
                       TextSpan(
                         text: AppStrings.paywallPrivacy,
                         style: context.underline,
-                        recognizer: TapGestureRecognizer()..onTap = () => sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl),
+                        recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl)),
                       ),
                     ],
                   ),
@@ -237,18 +234,18 @@ class GutPaywallBottomSheet extends StatelessWidget {
 }
 
 class _PlanCard extends StatelessWidget {
+
+  const _PlanCard({required this.package, required this.isSelected, required this.trialString, required this.periodString, required this.onTap});
   final Package package;
   final bool isSelected;
   final String trialString;
   final String periodString;
   final VoidCallback onTap;
 
-  const _PlanCard({required this.package, required this.isSelected, required this.trialString, required this.periodString, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     final storeProduct = package.storeProduct;
-    final bool hasTrial = trialString.isNotEmpty;
+    final hasTrial = trialString.isNotEmpty;
 
     return GestureDetector(
       onTap: onTap,
@@ -313,15 +310,14 @@ class _PlanCard extends StatelessWidget {
 }
 
 class _PaywallRow extends StatelessWidget {
+
+  const _PaywallRow({required this.icon, required this.title, required this.subtitle});
   final IconData icon;
   final String title;
   final String subtitle;
 
-  const _PaywallRow({required this.icon, required this.title, required this.subtitle});
-
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context) => Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
@@ -346,5 +342,4 @@ class _PaywallRow extends StatelessWidget {
         ),
       ],
     );
-  }
 }

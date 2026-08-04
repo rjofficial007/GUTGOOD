@@ -6,13 +6,26 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
 
-import '../../../../core/services/firestore_service.dart';
-
 class InsightsNotifier with ChangeNotifier {
+
+  InsightsNotifier(this._repository, this._firestoreService, this._appStateService, this._authRepository, this._analyticsService) {
+    _initInsightStream();
+    _appStateService.chatUpdated.addListener(_onDataUpdated);
+    _appStateService.profileUpdated.addListener(_onDataUpdated);
+    _appStateService.sessionReset.addListener(_onSessionReset);
+
+    // 🟢 Reactive Data Loading: Restart stream whenever auth state changes
+    _authRepository.authStateChanges.listen((user) {
+      if (user != null) {
+        _initInsightStream();
+      }
+    });
+  }
   final InsightRepository _repository;
   final FirestoreService _firestoreService;
   final AppStateService _appStateService;
@@ -29,20 +42,6 @@ class InsightsNotifier with ChangeNotifier {
   StreamSubscription<AIInsight?>? _insightSub;
   StreamSubscription<List<BodyPattern>>? _patternSub;
   StreamSubscription<List<HealthAlert>>? _alertSub;
-
-  InsightsNotifier(this._repository, this._firestoreService, this._appStateService, this._authRepository, this._analyticsService) {
-    _initInsightStream();
-    _appStateService.chatUpdated.addListener(_onDataUpdated);
-    _appStateService.profileUpdated.addListener(_onDataUpdated);
-    _appStateService.sessionReset.addListener(_onSessionReset);
-
-    // 🟢 Reactive Data Loading: Restart stream whenever auth state changes
-    _authRepository.authStateChanges.listen((user) {
-      if (user != null) {
-        _initInsightStream();
-      }
-    });
-  }
 
   void _initInsightStream() {
     _insightSub?.cancel();

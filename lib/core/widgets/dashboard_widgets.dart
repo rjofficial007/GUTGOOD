@@ -1,46 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
-import '../constants/app_sizes.dart';
-
 class DashboardEntrance extends StatelessWidget {
+
+  const DashboardEntrance({super.key, required this.child, required this.delay});
   final Widget child;
   final int delay;
 
-  const DashboardEntrance({super.key, required this.child, required this.delay});
-
   @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 800),
       curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Opacity(
+      builder: (context, value, child) => Opacity(
           opacity: value,
           child: Transform.translate(offset: Offset(0, 30 * (1 - value)), child: child),
-        );
-      },
+        ),
       child: child,
     );
-  }
 }
 
 class DashboardCard extends StatelessWidget {
+
+  const DashboardCard({super.key, required this.child, this.footer, this.onFooterTap, this.footerLabel});
   final Widget child;
   final Widget? footer;
   final VoidCallback? onFooterTap;
   final String? footerLabel;
 
-  const DashboardCard({super.key, required this.child, this.footer, this.onFooterTap, this.footerLabel});
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => DecoratedBox(
       decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
         borderRadius: BorderRadius.circular(AppSizes.r28),
@@ -77,20 +71,18 @@ class DashboardCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class DashboardDetailItem extends StatelessWidget {
+
+  const DashboardDetailItem({super.key, required this.title, required this.subtitle, required this.icon, required this.color});
   final String title;
   final String subtitle;
   final IconData icon;
   final Color color;
 
-  const DashboardDetailItem({super.key, required this.title, required this.subtitle, required this.icon, required this.color});
-
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context) => Row(
       children: [
         Container(
           padding: EdgeInsets.all(6.0.w),
@@ -123,10 +115,11 @@ class DashboardDetailItem extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 class GutDashboardSection extends StatelessWidget {
+
+  const GutDashboardSection({super.key, required this.title, required this.subtitle, required this.visualization, required this.items, this.footerLabel, this.onFooterTap, this.titleColor});
   final String title;
   final String subtitle;
   final Widget visualization;
@@ -135,11 +128,8 @@ class GutDashboardSection extends StatelessWidget {
   final VoidCallback? onFooterTap;
   final Color? titleColor;
 
-  const GutDashboardSection({super.key, required this.title, required this.subtitle, required this.visualization, required this.items, this.footerLabel, this.onFooterTap, this.titleColor});
-
   @override
-  Widget build(BuildContext context) {
-    return DashboardCard(
+  Widget build(BuildContext context) => DashboardCard(
       onFooterTap: onFooterTap,
       footerLabel: footerLabel,
       child: Padding(
@@ -171,18 +161,16 @@ class GutDashboardSection extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class DashboardVisualizationBar extends StatelessWidget {
+
+  const DashboardVisualizationBar({super.key, required this.ratio, required this.label});
   final double ratio;
   final String label;
 
-  const DashboardVisualizationBar({super.key, required this.ratio, required this.label});
-
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GutProgressBar(ratio: ratio),
@@ -193,15 +181,14 @@ class DashboardVisualizationBar extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 class GutProgressBar extends StatelessWidget {
+
+  const GutProgressBar({super.key, required this.ratio, this.height = 12.0, this.animate = true});
   final double ratio;
   final double height;
   final bool animate;
-
-  const GutProgressBar({super.key, required this.ratio, this.height = 12.0, this.animate = true});
 
   @override
   Widget build(BuildContext context) {
@@ -212,22 +199,18 @@ class GutProgressBar extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(color: trackColor, borderRadius: BorderRadius.circular(100)),
       child: LayoutBuilder(
-        builder: (context, constraints) {
-          return TweenAnimationBuilder<double>(
+        builder: (context, constraints) => TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: ratio.clamp(0.0, 1.0)),
             duration: animate ? const Duration(milliseconds: 1200) : Duration.zero,
             curve: Curves.easeOutExpo,
-            builder: (context, value, _) {
-              return FractionallySizedBox(
+            builder: (context, value, _) => FractionallySizedBox(
                 alignment: Alignment.centerLeft,
                 widthFactor: value,
                 child: Container(
                   decoration: BoxDecoration(color: context.appColorScheme.textPrimary, borderRadius: BorderRadius.circular(100)),
                 ),
-              );
-            },
-          );
-        },
+              ),
+          ),
       ),
     );
 
@@ -236,16 +219,15 @@ class GutProgressBar extends StatelessWidget {
 }
 
 class SheetHeroSection extends StatelessWidget {
+
+  const SheetHeroSection({super.key, required this.title, required this.subtitle, required this.color, required this.icon});
   final String title;
   final String subtitle;
   final Color color;
   final IconData icon;
 
-  const SheetHeroSection({super.key, required this.title, required this.subtitle, required this.color, required this.icon});
-
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       children: [
         Container(
           padding: EdgeInsets.all(20.0.w),
@@ -264,18 +246,16 @@ class SheetHeroSection extends StatelessWidget {
         Text(subtitle, style: context.eyebrow.copyWith(color: context.appColorScheme.textMuted, letterSpacing: 1.5)),
       ],
     );
-  }
 }
 
 class SheetSectionHeader extends StatelessWidget {
+
+  const SheetSectionHeader({super.key, required this.title, required this.color});
   final String title;
   final Color color;
 
-  const SheetSectionHeader({super.key, required this.title, required this.color});
-
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: EdgeInsets.only(bottom: 16.0.h),
       child: Row(
         children: [
@@ -292,5 +272,4 @@ class SheetSectionHeader extends StatelessWidget {
         ],
       ),
     );
-  }
 }

@@ -17,7 +17,7 @@ void main() {
     });
 
     test('legacy single imageUrl maps into imageUrls on fromMap', () {
-      final msg = ChatMessage.fromMap({'role': 'user', 'text': 'hi', 'imageUrl': 'legacy-url', 'time': '2026-07-31T10:00:00.000'});
+      final msg = ChatMessage.fromMap(const {'role': 'user', 'text': 'hi', 'imageUrl': 'legacy-url', 'time': '2026-07-31T10:00:00.000'});
       expect(msg.imageUrls, ['legacy-url']);
       expect(msg.imageUrl, 'legacy-url');
     });

@@ -1,22 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/features/auth/domain/entities/auth_user.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 
-import '../../../../core/services/app_state_service.dart';
-
 class GutAuthNotifier with ChangeNotifier {
-  final AuthRepository _repository;
-  final AppStateService _appStateService;
-
-  AuthUser? _user;
-  bool _isLoading = false;
-  bool _isMerging = false;
-  bool _authReady = false;
-
-  late final StreamSubscription<AuthUser?> _authSub;
-  late final StreamSubscription<bool> _mergingSub;
 
   GutAuthNotifier(this._repository, this._appStateService) {
     _user = _repository.currentUser;
@@ -31,6 +20,16 @@ class GutAuthNotifier with ChangeNotifier {
     });
     _appStateService.profileUpdated.addListener(notifyListeners);
   }
+  final AuthRepository _repository;
+  final AppStateService _appStateService;
+
+  AuthUser? _user;
+  bool _isLoading = false;
+  bool _isMerging = false;
+  bool _authReady = false;
+
+  late final StreamSubscription<AuthUser?> _authSub;
+  late final StreamSubscription<bool> _mergingSub;
 
   AuthUser? get user => _user;
   bool get isLoading => _isLoading;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'app_color_scheme.dart';
-import 'app_palette.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 
 class AppTheme {
   const AppTheme._();
@@ -74,7 +74,7 @@ class AppTheme {
           ),
           hintStyle: const TextStyle(color: AppPalette.gray400, fontSize: 16),
         ),
-        extensions: [AppColorScheme.light],
+        extensions: const [AppColorScheme.light],
       );
 
   static ThemeData get darkTheme => ThemeData(
@@ -142,6 +142,6 @@ class AppTheme {
           ),
           hintStyle: const TextStyle(color: AppPalette.darkTextSecondary, fontSize: 16),
         ),
-        extensions: [AppColorScheme.dark],
+        extensions: const [AppColorScheme.dark],
       );
 }

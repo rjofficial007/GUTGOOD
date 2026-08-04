@@ -8,13 +8,13 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class IngredientTile extends StatelessWidget {
-  final Ingredient ingredient;
 
   const IngredientTile({super.key, required this.ingredient});
+  final Ingredient ingredient;
 
   @override
   Widget build(BuildContext context) {
-    final Color accentColor = _getColor(context, ingredient.colorName);
+    final accentColor = _getColor(context, ingredient.colorName);
 
     return Container(
       height: 140.0.h,

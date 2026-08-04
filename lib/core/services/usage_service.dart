@@ -21,16 +21,16 @@ abstract class UsageService {
 /// transactionally by the `aiProxy` Cloud Function, which is the authoritative
 /// gate — the client could previously reset its own counters (audit §3.1).
 class UsageServiceImpl implements UsageService {
-  final AuthRepository _authRepository;
-  final FirestoreService _firestoreService;
-  final PurchaseService _purchaseService;
-  final SharedPreferences _prefs;
 
   UsageServiceImpl({required AuthRepository authRepository, required FirestoreService firestoreService, required PurchaseService purchaseService, required SharedPreferences prefs})
     : _authRepository = authRepository,
       _firestoreService = firestoreService,
       _purchaseService = purchaseService,
       _prefs = prefs;
+  final AuthRepository _authRepository;
+  final FirestoreService _firestoreService;
+  final PurchaseService _purchaseService;
+  final SharedPreferences _prefs;
 
   // Kept in sync with functions/src/config.ts LIMITS.
   static const int maxFreeChats = 5;
@@ -61,7 +61,7 @@ class UsageServiceImpl implements UsageService {
     final date = DateTime.now().toIso8601String().split('T')[0];
 
     try {
-      final DailyUsage? cloudUsage = await _firestoreService.getUsageToday();
+      final cloudUsage = await _firestoreService.getUsageToday();
       if (cloudUsage != null) return cloudUsage;
     } catch (e) {
       AppLogger.warning('UsageService: Cloud usage fetch failed: $e');
@@ -73,7 +73,7 @@ class UsageServiceImpl implements UsageService {
   @override
   Future<bool> canChat() async {
     if (await isPremium()) return true;
-    final DailyUsage usage = await _getTodayUsage();
+    final usage = await _getTodayUsage();
     final isAnon = _authRepository.currentUser?.isAnonymous != false;
     final limit = isAnon ? maxGuestChats : maxFreeChats;
 
@@ -85,7 +85,7 @@ class UsageServiceImpl implements UsageService {
   @override
   Future<bool> canScan() async {
     if (await isPremium()) return true;
-    final DailyUsage usage = await _getTodayUsage();
+    final usage = await _getTodayUsage();
     final isAnon = _authRepository.currentUser?.isAnonymous != false;
     final limit = isAnon ? maxGuestScans : maxFreeScans;
 

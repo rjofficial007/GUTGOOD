@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -5,14 +7,13 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 import 'package:gutgood/features/history/presentation/widgets/scan_history_tile.dart';
-
-import '../../../../core/services/analytics_service.dart';
 
 class SavedFoodsScreen extends StatefulWidget {
   const SavedFoodsScreen({super.key});
@@ -30,7 +31,7 @@ class _SavedFoodsScreenState extends State<SavedFoodsScreen> {
     super.initState();
     _loadSavedFoods();
     sl<AppStateService>().savedFoodsUpdated.addListener(_loadSavedFoods);
-    sl<AnalyticsService>().logEvent(name: 'view_saved_foods');
+    unawaited(sl<AnalyticsService>().logEvent(name: 'view_saved_foods'));
   }
 
   @override
@@ -50,8 +51,7 @@ class _SavedFoodsScreenState extends State<SavedFoodsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
@@ -71,7 +71,7 @@ class _SavedFoodsScreenState extends State<SavedFoodsScreen> {
                   final scanResult = _savedFoods[index];
                   return ScanHistoryTile(
                     scanResult: scanResult,
-                    onTap: () => context.push(AppRoutes.scanResult, extra: {'scanData': scanResult.toMap()}),
+                    onTap: () => unawaited(context.push(AppRoutes.scanResult, extra: {'scanData': scanResult.toMap()})),
                   );
                 }, childCount: _savedFoods.length),
               ),
@@ -79,9 +79,6 @@ class _SavedFoodsScreenState extends State<SavedFoodsScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildEmptyState() {
-    return const EmptyStateWidget(icon: Icons.bookmark_outline, title: AppStrings.noSavedItemsYet, description: AppStrings.tapHeartToSave);
-  }
+  Widget _buildEmptyState() => const EmptyStateWidget(icon: Icons.bookmark_outline, title: AppStrings.noSavedItemsYet, description: AppStrings.tapHeartToSave);
 }

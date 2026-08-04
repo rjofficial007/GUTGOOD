@@ -9,6 +9,8 @@ import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
@@ -21,13 +23,47 @@ import 'package:gutgood/features/chat/domain/usecases/send_message_stream_usecas
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../../core/services/app_state_service.dart';
-import '../../../../core/services/firestore_service.dart';
-
 /// Why a send attempt was rejected before any network traffic.
 enum ChatSendError { offline, busy, empty, uploadFailed }
 
 class ChatNotifier with ChangeNotifier {
+
+  ChatNotifier({
+    required ChatRepository repository,
+    required FirestoreService firestoreService,
+    required AiService aiService,
+    required StorageService storageService,
+    required OffService offService,
+    required SharedPreferences prefs,
+    required FirebaseAuth auth,
+    required InternetConnectionChecker connectionChecker,
+    required SendMessageStreamUseCase sendMessageStreamUseCase,
+    required ProcessChatTagUseCase processChatTagUseCase,
+    required AppStateService appStateService,
+    required AnalyticsService analyticsService,
+  }) : _repository = repository,
+       _firestoreService = firestoreService,
+       _aiService = aiService,
+       _storageService = storageService,
+       _offService = offService,
+       _prefs = prefs,
+       _auth = auth,
+       _connectionChecker = connectionChecker,
+       _sendMessageStreamUseCase = sendMessageStreamUseCase,
+       _processChatTagUseCase = processChatTagUseCase,
+       _appStateService = appStateService,
+       _analyticsService = analyticsService {
+    _initChatStream();
+    _appStateService.profileUpdated.addListener(_onProfileUpdated);
+    _appStateService.sessionReset.addListener(_onSessionReset);
+
+    // 🟢 Reactive Data Loading: Restart stream whenever auth state changes
+    _auth.authStateChanges().listen((user) {
+      if (user != null) {
+        _initChatStream();
+      }
+    });
+  }
   final ChatRepository _repository;
   final FirestoreService _firestoreService;
   final AiService _aiService;
@@ -92,43 +128,6 @@ class ChatNotifier with ChangeNotifier {
   List<Uint8List> _lastSentImages = const [];
   String? _lastSentImageUrl;
 
-  ChatNotifier({
-    required ChatRepository repository,
-    required FirestoreService firestoreService,
-    required AiService aiService,
-    required StorageService storageService,
-    required OffService offService,
-    required SharedPreferences prefs,
-    required FirebaseAuth auth,
-    required InternetConnectionChecker connectionChecker,
-    required SendMessageStreamUseCase sendMessageStreamUseCase,
-    required ProcessChatTagUseCase processChatTagUseCase,
-    required AppStateService appStateService,
-    required AnalyticsService analyticsService,
-  }) : _repository = repository,
-       _firestoreService = firestoreService,
-       _aiService = aiService,
-       _storageService = storageService,
-       _offService = offService,
-       _prefs = prefs,
-       _auth = auth,
-       _connectionChecker = connectionChecker,
-       _sendMessageStreamUseCase = sendMessageStreamUseCase,
-       _processChatTagUseCase = processChatTagUseCase,
-       _appStateService = appStateService,
-       _analyticsService = analyticsService {
-    _initChatStream();
-    _appStateService.profileUpdated.addListener(_onProfileUpdated);
-    _appStateService.sessionReset.addListener(_onSessionReset);
-
-    // 🟢 Reactive Data Loading: Restart stream whenever auth state changes
-    _auth.authStateChanges().listen((user) {
-      if (user != null) {
-        _initChatStream();
-      }
-    });
-  }
-
   // ---------------------------------------------------------------------------
   // Public getters
   // ---------------------------------------------------------------------------
@@ -176,12 +175,12 @@ class ChatNotifier with ChangeNotifier {
             _optimisticIds.removeAll(serverMessages.map((m) => m.localId).toSet());
 
             if (_messages.isEmpty && !_isLoading) {
-              _createInitialGreeting();
+              unawaited(_createInitialGreeting());
             }
 
             _historyLoading = false;
             notifyListeners();
-            _loadProfileData();
+            unawaited(_loadProfileData());
           },
           onError: (e) {
             AppLogger.error('ChatNotifier: Message stream error', error: e);
@@ -199,7 +198,7 @@ class ChatNotifier with ChangeNotifier {
     await _firestoreService.saveMessage(initialMsg);
   }
 
-  void _onProfileUpdated() => _loadProfileData();
+  void _onProfileUpdated() => unawaited(_loadProfileData());
 
   void _onSessionReset() {
     _flushTimer?.cancel();
@@ -283,8 +282,8 @@ class ChatNotifier with ChangeNotifier {
   Future<ChatSendError?> send({String text = '', String? hiddenContext, String? source}) async {
     if (_isLoading) return ChatSendError.busy;
 
-    final String displayText = text.trim();
-    final List<ChatAttachment> sending = List.of(_attachments);
+    final displayText = text.trim();
+    final sending = List<ChatAttachment>.of(_attachments);
 
     if (displayText.isEmpty && sending.isEmpty) return ChatSendError.empty;
     if (!_connectionChecker.isInternetAvailable.value) return ChatSendError.offline;
@@ -313,10 +312,12 @@ class ChatNotifier with ChangeNotifier {
 
     final aiPlaceholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: '', isSwap: false, source: userMsg.source, time: DateTime.now().add(const Duration(milliseconds: 1)));
 
-    _optimisticIds.add(userMsg.localId);
-    _optimisticIds.add(aiPlaceholder.localId);
-    _messages.insert(0, userMsg);
-    _messages.insert(0, aiPlaceholder);
+    _optimisticIds
+      ..add(userMsg.localId)
+      ..add(aiPlaceholder.localId);
+    _messages
+      ..insert(0, userMsg)
+      ..insert(0, aiPlaceholder);
     _activeAiLocalId = aiPlaceholder.localId;
 
     _isLoading = true;
@@ -326,7 +327,7 @@ class ChatNotifier with ChangeNotifier {
     await _analyticsService.logEvent(name: 'message_sent', parameters: {'has_attachments': sending.isNotEmpty, 'text_length': displayText.length, 'source': userMsg.source ?? 'chat'});
 
     // 1. Upload attachments (needs an auth session for storage paths).
-    List<String> imageUrls = const [];
+    var imageUrls = const <String>[];
     if (sending.isNotEmpty) {
       if (_auth.currentUser == null) {
         _markUserMessageFailed(userMsg.localId);
@@ -493,7 +494,7 @@ class ChatNotifier with ChangeNotifier {
       chronological = chronological.sublist(0, chronological.length - 1);
     }
 
-    const int maxContextMessages = 10;
+    const maxContextMessages = 10;
     if (chronological.length > maxContextMessages) {
       chronological = chronological.sublist(chronological.length - maxContextMessages);
     }
@@ -534,7 +535,7 @@ class ChatNotifier with ChangeNotifier {
         images: images,
       );
 
-      bool hapticTriggered = false;
+      var hapticTriggered = false;
 
       _aiSubscription = stream.listen(
         (chunk) {
@@ -669,7 +670,7 @@ class ChatNotifier with ChangeNotifier {
     const forbiddenWords = ['diagnose', 'cure', 'treat', 'medical condition', 'disease', 'prescription'];
     final lowerText = text.toLowerCase();
 
-    bool foundForbidden = false;
+    var foundForbidden = false;
     for (final word in forbiddenWords) {
       if (lowerText.contains(word)) {
         foundForbidden = true;
@@ -689,7 +690,7 @@ class ChatNotifier with ChangeNotifier {
     _isSummarizing = true;
 
     try {
-      const int maxContextMessages = 6;
+      const maxContextMessages = 6;
       final chronological = _messages.reversed.where((m) => m.text.isNotEmpty).toList();
       if (chronological.length <= maxContextMessages) return;
 
@@ -734,10 +735,12 @@ class ChatNotifier with ChangeNotifier {
 
     final aiPlaceholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: AppStrings.findingSwaps, isSwap: false, source: 'chat', time: DateTime.now().add(const Duration(milliseconds: 1)));
 
-    _optimisticIds.add(userMsg.localId);
-    _optimisticIds.add(aiPlaceholder.localId);
-    _messages.insert(0, userMsg);
-    _messages.insert(0, aiPlaceholder);
+    _optimisticIds
+      ..add(userMsg.localId)
+      ..add(aiPlaceholder.localId);
+    _messages
+      ..insert(0, userMsg)
+      ..insert(0, aiPlaceholder);
 
     _isLoading = true;
     notifyListeners();
@@ -773,16 +776,16 @@ class ChatNotifier with ChangeNotifier {
       );
 
       final aiLocalId = aiPlaceholder.localId;
-      String fullText = '';
-      final Set<String> persistedTags = {};
+      final fullTextBuffer = StringBuffer();
+      final persistedTags = <String>{};
 
       await for (final chunk in stream) {
-        fullText += chunk;
+        fullTextBuffer.write(chunk);
 
         final idx = _indexOfLocalId(aiLocalId);
         if (idx == -1) break;
 
-        final result = _processChatTagUseCase(fullText, source: 'chat', persistedTagBlocks: persistedTags);
+        final result = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', persistedTagBlocks: persistedTags);
         _messages[idx] = _messages[idx].copyWith(text: result.text, swapData: result.swapData, isSwap: result.isSwap);
         notifyListeners();
       }
@@ -797,7 +800,7 @@ class ChatNotifier with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
-      _precomputeSummary();
+      unawaited(_precomputeSummary());
     }
   }
 }

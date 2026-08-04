@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 
-import '../constants/app_sizes.dart';
-import '../constants/app_strings.dart';
-import '../theme/app_color_scheme.dart';
-
 class GutStatusBadge extends StatelessWidget {
-  final bool isActive;
 
   const GutStatusBadge({super.key, required this.isActive});
+  final bool isActive;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p10, vertical: AppSizes.p4),
       decoration: BoxDecoration(color: context.appColorScheme.textPrimary, borderRadius: BorderRadius.circular(AppSizes.r100)),
       child: Row(
@@ -27,5 +25,4 @@ class GutStatusBadge extends StatelessWidget {
         ],
       ),
     );
-  }
 }

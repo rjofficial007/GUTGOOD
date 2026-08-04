@@ -8,28 +8,13 @@ import 'package:gutgood/core/models/user_profile.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
+import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../core/services/firestore_service.dart';
-import '../../../../core/services/notification_service.dart';
-
 class ProfileNotifier with ChangeNotifier {
-  final AuthRepository _authRepository;
-  final FirestoreService _firestoreService;
-  final AppStateService _appStateService;
-  final NotificationService _notificationService;
-  final AnalyticsService _analyticsService;
-  final CrashlyticsService _crashlyticsService;
-
-  UserProfile? _profile;
-  int? _previousStreak;
-  bool _isLoading = false;
-  bool _isInitialized = false;
-  bool _showStreakCelebration = false;
-  String _quickInsight = "Log more meals to see patterns.";
-  StreamSubscription<UserProfile?>? _profileSub;
 
   ProfileNotifier(this._authRepository, this._firestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService) {
     _initProfileStream();
@@ -43,6 +28,20 @@ class ProfileNotifier with ChangeNotifier {
       }
     });
   }
+  final AuthRepository _authRepository;
+  final FirestoreService _firestoreService;
+  final AppStateService _appStateService;
+  final NotificationService _notificationService;
+  final AnalyticsService _analyticsService;
+  final CrashlyticsService _crashlyticsService;
+
+  UserProfile? _profile;
+  int? _previousStreak;
+  bool _isLoading = false;
+  bool _isInitialized = false;
+  bool _showStreakCelebration = false;
+  String _quickInsight = 'Log more meals to see patterns.';
+  StreamSubscription<UserProfile?>? _profileSub;
 
   void _initProfileStream() {
     _profileSub?.cancel();
@@ -52,7 +51,7 @@ class ProfileNotifier with ChangeNotifier {
         // Detect streak increment
         if (_previousStreak != null && profile.streak > _previousStreak!) {
           _showStreakCelebration = true;
-          _analyticsService.logEvent(name: 'streak_incremented', parameters: {'streak': profile.streak});
+          unawaited(_analyticsService.logEvent(name: 'streak_incremented', parameters: {'streak': profile.streak}));
           AppLogger.info('ProfileNotifier: Streak incremented! ${profile.streak}');
         }
         _previousStreak = profile.streak;
@@ -96,7 +95,7 @@ class ProfileNotifier with ChangeNotifier {
     _previousStreak = null;
     _showStreakCelebration = false;
     _isInitialized = false;
-    _quickInsight = "Log more meals to see patterns.";
+    _quickInsight = 'Log more meals to see patterns.';
     _profileSub?.cancel();
     notifyListeners();
   }
@@ -156,10 +155,10 @@ class ProfileNotifier with ChangeNotifier {
       return;
     }
 
-    final String uid = currentUser.uid;
-    final bool isAnonymous = currentUser.isAnonymous;
-    final String? email = currentUser.email;
-    final String? finalDisplayName = displayName ?? currentUser.displayName ?? _profile?.displayName;
+    final uid = currentUser.uid;
+    final isAnonymous = currentUser.isAnonymous;
+    final email = currentUser.email;
+    final finalDisplayName = displayName ?? currentUser.displayName ?? _profile?.displayName;
 
     // 1. Update Firebase Auth if name was provided during onboarding
     if (displayName != null && displayName.isNotEmpty && displayName != currentUser.displayName) {

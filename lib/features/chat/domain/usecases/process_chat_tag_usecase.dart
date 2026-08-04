@@ -1,36 +1,36 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
-import '../../../../core/services/app_state_service.dart';
-
 class ProcessChatTagResult {
+
+  ProcessChatTagResult({required this.text, this.scanData, this.swapData, this.isSwap = false, this.foodMentions = const [], this.symptomMentions = const []});
   final String text;
   final ScanResult? scanData;
   final List<ProductSwap>? swapData;
   final bool isSwap;
   final List<String> foodMentions;
   final List<String> symptomMentions;
-
-  ProcessChatTagResult({required this.text, this.scanData, this.swapData, this.isSwap = false, this.foodMentions = const [], this.symptomMentions = const []});
 }
 
 class ProcessChatTagUseCase {
-  final FirestoreService _firestoreService;
-  final NotificationService _notificationService;
-  final AppStateService _appStateService;
 
   ProcessChatTagUseCase({required FirestoreService firestoreService, required NotificationService notificationService, required AppStateService appStateService})
     : _firestoreService = firestoreService,
       _notificationService = notificationService,
       _appStateService = appStateService;
+  final FirestoreService _firestoreService;
+  final NotificationService _notificationService;
+  final AppStateService _appStateService;
 
   /// Robustly extracts JSON from a string that might contain noise (e.g., "JSON object: { ... }")
   String? _extractJson(String? raw, {bool isArray = false}) {
@@ -52,12 +52,12 @@ class ProcessChatTagUseCase {
   /// display — nothing is written to Firestore. Used by regenerate, where the
   /// original response already logged its tags.
   ProcessChatTagResult call(String text, {String? imageUrl, String? source, Set<String>? persistedTagBlocks, bool persist = true}) {
-    String processedText = text;
+    var processedText = text;
     ScanResult? scanData;
     List<ProductSwap>? swapData;
-    bool isSwap = false;
-    final List<String> foodMentions = [];
-    final List<String> symptomMentions = [];
+    var isSwap = false;
+    final foodMentions = <String>[];
+    final symptomMentions = <String>[];
 
     if (!processedText.contains('[/')) {
       return ProcessChatTagResult(text: processedText);
@@ -75,10 +75,10 @@ class ProcessChatTagUseCase {
           try {
             final jsonStr = _extractJson(match.group(1));
             if (jsonStr != null) {
-              final Map<String, dynamic> decoded = jsonDecode(jsonStr);
+              final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
               if (persist) {
                 final log = SymptomLog.fromMap(decoded).copyWith(source: source ?? 'chat');
-                _firestoreService.logSymptom(log);
+                unawaited(_firestoreService.logSymptom(log));
                 _appStateService.notifyChatUpdated();
               }
 
@@ -107,16 +107,16 @@ class ProcessChatTagUseCase {
           try {
             final jsonStr = _extractJson(match.group(1));
             if (jsonStr != null) {
-              final Map<String, dynamic> decoded = jsonDecode(jsonStr);
+              final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
 
               final items = ModelUtils.parseList<String>(decoded['items']);
               final tags = ModelUtils.parseList<String>(decoded['tags']);
 
               if (persist) {
                 final log = MealLog.fromMap({...decoded, 'photoUrl': imageUrl}).copyWith(source: source ?? 'chat', foodTags: tags);
-                _firestoreService.logMeal(log);
-                _notificationService.schedulePostMealCheckIn();
-                _notificationService.scheduleNoMealLoggedReminder();
+                unawaited(_firestoreService.logMeal(log));
+                unawaited(_notificationService.schedulePostMealCheckIn());
+                unawaited(_notificationService.scheduleNoMealLoggedReminder());
                 _appStateService.notifyChatUpdated();
               }
               foodMentions.addAll(items);
@@ -141,10 +141,10 @@ class ProcessChatTagUseCase {
         try {
           final jsonStr = _extractJson(match.group(1));
           if (jsonStr != null) {
-            final Map<String, dynamic> decoded = jsonDecode(jsonStr);
+            final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
 
             final ingredientsList = ModelUtils.parseList<dynamic>(decoded['ingredients']);
-            final List<String> flagged = [];
+            final flagged = <String>[];
             if (ingredientsList.isNotEmpty) {
               for (var ing in ingredientsList) {
                 if (ing is Map && (ing['colorName'] == 'red' || ing['colorName'] == 'orange')) {
@@ -159,7 +159,7 @@ class ProcessChatTagUseCase {
               AppLogger.info('ProcessChatTagUseCase: [SCAN] parsed successfully: ${scanData.productName}. Image: ${imageUrl != null}');
               if (persist) {
                 // 🟢 Fix: Ensure AI Vision scans from chat are also saved to scan_history
-                _firestoreService.saveToScanHistory(scanData, userImageUrl: imageUrl);
+                unawaited(_firestoreService.saveToScanHistory(scanData, userImageUrl: imageUrl));
                 _appStateService.notifyChatUpdated();
                 AppLogger.info('ProcessChatTagUseCase: [SCAN] saved to scan_history and UI notified. UID: ${_firestoreService.getUserMetadata().then((p) => p?.uid)}');
               }

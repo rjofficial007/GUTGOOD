@@ -4,6 +4,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/app_assets.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/router/app_routes.dart';
@@ -19,19 +23,14 @@ import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/features/scanner/presentation/pages/super_scanner_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:upgrader/upgrader.dart';
-
-import '../../../../core/constants/app_assets.dart';
-import '../../../../core/constants/app_icons.dart';
-import '../../../../core/constants/app_sizes.dart';
-import '../../../../core/constants/app_strings.dart';
-import '../../../profile/presentation/providers/profile_provider.dart';
-import '../../../scanner/presentation/pages/super_scanner_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -156,19 +155,19 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!await _guardUsage(chatNotifier, authNotifier, isScan: true)) return;
 
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
       if (image == null) return;
 
       final bytes = await image.readAsBytes();
       final added = await chatNotifier.addAttachment(bytes, source: 'gallery');
 
       if (added) {
-        setState(() {
-          _pendingHiddenContext = AppStrings.analyzeGalleryVision;
-          // 🟢 Fix: Always sync text with gallery prompt
-          _controller.text = AppStrings.galleryPhotoPrompt;
-        });
-      }
+      setState(() {
+        _pendingHiddenContext = AppStrings.analyzeGalleryVision;
+        // 🟢 Fix: Always sync text with gallery prompt
+        _controller.text = AppStrings.galleryPhotoPrompt;
+      });
+    }
     } catch (e, st) {
       AppLogger.error('ChatScreen: Image pick failed', error: e, stackTrace: st);
     }
@@ -185,9 +184,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (mounted) {
       if (authNotifier.isAnonymous) {
-        showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage, onSuccess: chatNotifier.refreshHistory);
+        unawaited(showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage, onSuccess: chatNotifier.refreshHistory));
       } else {
-        showPaywallBottomSheet(context, onProceedWithLimited: () {});
+        unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
       }
     }
     return false;
@@ -196,8 +195,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _send(ChatNotifier chatNotifier, GutAuthNotifier authNotifier, [String? quickText]) async {
     if (chatNotifier.isLoading) return;
 
-    final bool hasImages = chatNotifier.pendingAttachments.isNotEmpty;
-    final String msg = (quickText ?? _controller.text).trim();
+    final hasImages = chatNotifier.pendingAttachments.isNotEmpty;
+    final msg = (quickText ?? _controller.text).trim();
     if (msg.isEmpty && !hasImages) return;
 
     if (!await _guardUsage(chatNotifier, authNotifier, isScan: hasImages)) return;
@@ -260,12 +259,12 @@ class _ChatScreenState extends State<ChatScreen> {
       onLater: () => true,
       onUpdate: () => true,
       upgrader: Upgrader(
-        durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp == true ? const Duration(seconds: 0) : const Duration(days: 3),
+        durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp == true ? Duration.zero : const Duration(days: 3),
         debugLogging: !kReleaseMode,
         debugDisplayAlways: false,
         messages: UpgraderMessages(),
         willDisplayUpgrade: ({required bool display, String? installedVersion, UpgraderVersionInfo? versionInfo}) {
-          AppLogger.debug("UpgradeAlert display: $display, installed: $installedVersion, store: ${versionInfo?.appStoreVersion}");
+          AppLogger.debug('UpgradeAlert display: $display, installed: $installedVersion, store: ${versionInfo?.appStoreVersion}');
         },
       ),
       child: Scaffold(
@@ -276,7 +275,7 @@ class _ChatScreenState extends State<ChatScreen> {
           streak: profile?.streak,
           actions: [
             GestureDetector(
-              onTap: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
+              onTap: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
               child: const Tooltip(message: AppStrings.viewPremiumBenefits, child: PremiumBadge()),
             ),
             Gap.w16,
@@ -304,7 +303,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               final msg = messages[i];
                               final prevMsg = i < messages.length - 1 ? messages[i + 1] : null;
 
-                              bool showDateHeader = false;
+                              var showDateHeader = false;
                               if (prevMsg == null) {
                                 showDateHeader = true;
                               } else {
@@ -313,8 +312,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 if (d1 != d2) showDateHeader = true;
                               }
 
-                              final bool showAvatar = msg.role == 'ai' && (prevMsg == null || prevMsg.role != 'ai' || showDateHeader);
-                              final bool isLatestAi = i == latestAi;
+                              final showAvatar = msg.role == 'ai' && (prevMsg == null || prevMsg.role != 'ai' || showDateHeader);
+                              final isLatestAi = i == latestAi;
 
                               return KeyedSubtree(
                                 key: ValueKey(msg.localId),
@@ -342,26 +341,26 @@ class _ChatScreenState extends State<ChatScreen> {
                                           onRegenerate: chatNotifier.canRegenerate
                                               ? () {
                                                   HapticHelper.light();
-                                                  chatNotifier.regenerateLastResponse();
+                                                  unawaited(chatNotifier.regenerateLastResponse());
                                                 }
                                               : null,
                                           onRetry: msg.sendFailed
-                                              ? () => chatNotifier.retryMessage(msg)
-                                              : (msg.errorKind == ChatErrorKind.connection ? () => chatNotifier.regenerateLastResponse() : null),
-                                          onQuotaPressed: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
+                                              ? () => unawaited(chatNotifier.retryMessage(msg))
+                                              : (msg.errorKind == ChatErrorKind.connection ? () => unawaited(chatNotifier.regenerateLastResponse()) : null),
+                                          onQuotaPressed: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
                                           showFeedback:
                                               isLatestAi && !chatNotifier.isStreaming && msg.text.isNotEmpty && msg.scanData == null && msg.swapData == null && msg.errorKind == ChatErrorKind.none,
                                           feedback: msg.feedback,
                                           onFeedback: (type) async {
                                             if (msg.feedback != null) return;
                                             if (type == 'helpful' || type == 'not_helpful') {
-                                              chatNotifier.handleFeedback(msg, type);
+                                              unawaited(chatNotifier.handleFeedback(msg, type));
                                               HapticHelper.light();
                                               if (mounted) {
                                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.thanksFeedback), behavior: SnackBarBehavior.floating));
                                               }
                                             } else if (type == 'tell_me_more') {
-                                              _send(chatNotifier, authNotifier, AppStrings.tellMeMorePrompt);
+                                              unawaited(_send(chatNotifier, authNotifier, AppStrings.tellMeMorePrompt));
                                             }
                                           },
                                         ),
@@ -369,7 +368,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                         if (msg.scanData != null)
                                           ScanResultInlineCard(
                                             scanData: msg.scanData!,
-                                            onViewFullReport: () => context.push(AppRoutes.scanResult, extra: {'scanData': msg.scanData!.toMap()}),
+                                            onViewFullReport: () => unawaited(context.push(AppRoutes.scanResult, extra: {'scanData': msg.scanData!.toMap()})),
                                           ),
                                       ],
                                     ),
@@ -380,7 +379,8 @@ class _ChatScreenState extends State<ChatScreen> {
                             childCount: messages.length,
                             findChildIndexCallback: (key) {
                               if (key is ValueKey<String>) {
-                                final idx = messages.indexWhere((m) => m.localId == key.value);
+                                final targetId = key.value;
+                                final idx = messages.indexWhere((m) => m.localId == targetId);
                                 return idx == -1 ? null : idx;
                               }
                               return null;
@@ -397,10 +397,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p8),
                   child: Row(
                     children: [
-                      _Chip(AppStrings.chipBloated, () => _send(chatNotifier, authNotifier, AppStrings.chipBloatedPrompt)),
-                      _Chip(AppStrings.chipHealthy, () => _send(chatNotifier, authNotifier, AppStrings.chipHealthyPrompt)),
-                      _Chip(AppStrings.chipSwap, () => _send(chatNotifier, authNotifier, AppStrings.chipSwapPrompt)),
-                      _Chip(AppStrings.chipRestaurant, () => _handleCamera(chatNotifier, authNotifier, mode: ScannerMode.menu)),
+                      _Chip(AppStrings.chipBloated, () => unawaited(_send(chatNotifier, authNotifier, AppStrings.chipBloatedPrompt))),
+                      _Chip(AppStrings.chipHealthy, () => unawaited(_send(chatNotifier, authNotifier, AppStrings.chipHealthyPrompt))),
+                      _Chip(AppStrings.chipSwap, () => unawaited(_send(chatNotifier, authNotifier, AppStrings.chipSwapPrompt))),
+                      _Chip(AppStrings.chipRestaurant, () => unawaited(_handleCamera(chatNotifier, authNotifier, mode: ScannerMode.menu))),
                     ],
                   ),
                 ),
@@ -465,11 +465,10 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildSendStopButton(ChatNotifier chatNotifier, GutAuthNotifier authNotifier) {
-    return ListenableBuilder(
+  Widget _buildSendStopButton(ChatNotifier chatNotifier, GutAuthNotifier authNotifier) => ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
-        final bool hasContent = _controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
+        final hasContent = _controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
         final colorScheme = context.appColorScheme;
 
         // Streaming → ChatGPT's stop control.
@@ -507,7 +506,7 @@ class _ChatScreenState extends State<ChatScreen> {
           );
         }
 
-        final bool enabled = hasContent;
+        final enabled = hasContent;
         return Semantics(
           label: AppStrings.sendMessage,
           button: true,
@@ -528,14 +527,13 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       },
     );
-  }
 }
 
 /// Thumbnail strip of pending attachments shown INSIDE the composer,
 /// above the (still fully editable) text field — the core ChatGPT pattern.
 class _AttachmentPreviewRow extends StatelessWidget {
-  final ChatNotifier notifier;
   const _AttachmentPreviewRow({required this.notifier});
+  final ChatNotifier notifier;
 
   @override
   Widget build(BuildContext context) {
@@ -584,15 +582,14 @@ class _AttachmentPreviewRow extends StatelessWidget {
 }
 
 class _ComposerIconButton extends StatelessWidget {
+
+  const _ComposerIconButton({required this.icon, required this.label, this.onTap});
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
 
-  const _ComposerIconButton({required this.icon, required this.label, this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return Semantics(
+  Widget build(BuildContext context) => Semantics(
       label: label,
       button: true,
       enabled: onTap != null,
@@ -616,14 +613,13 @@ class _ComposerIconButton extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 /// Runs the entrance animation exactly once per message — the previous
 /// implementation re-animated every bubble on every streaming token (jank).
 class _AnimatedChatItem extends StatefulWidget {
-  final Widget child;
   const _AnimatedChatItem({required this.child});
+  final Widget child;
 
   @override
   State<_AnimatedChatItem> createState() => _AnimatedChatItemState();
@@ -641,22 +637,19 @@ class _AnimatedChatItemState extends State<_AnimatedChatItem> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedOpacity(
+  Widget build(BuildContext context) => AnimatedOpacity(
       opacity: _visible ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
       child: AnimatedSlide(offset: _visible ? Offset.zero : const Offset(0, 0.02), duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic, child: widget.child),
     );
-  }
 }
 
 class _EmptyChatState extends StatelessWidget {
   const _EmptyChatState();
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
+  Widget build(BuildContext context) => Center(
       child: SingleChildScrollView(
         padding: EdgeInsets.all(AppSizes.p40),
         child: Column(
@@ -675,15 +668,13 @@ class _EmptyChatState extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class _ChatShimmerLoading extends StatelessWidget {
   const _ChatShimmerLoading();
 
   @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
+  Widget build(BuildContext context) => ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
       itemCount: 10,
       reverse: true,
@@ -760,12 +751,11 @@ class _ChatShimmerLoading extends StatelessWidget {
         );
       },
     );
-  }
 }
 
 class _DateHeader extends StatelessWidget {
-  final DateTime date;
   const _DateHeader({required this.date});
+  final DateTime date;
 
   @override
   Widget build(BuildContext context) {
@@ -803,12 +793,11 @@ class _DateHeader extends StatelessWidget {
 }
 
 class _Chip extends StatelessWidget {
+  const _Chip(this.label, this.onTap);
   final String label;
   final VoidCallback onTap;
-  const _Chip(this.label, this.onTap);
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
+  Widget build(BuildContext context) => GestureDetector(
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.only(right: AppSizes.p8),
@@ -824,5 +813,4 @@ class _Chip extends StatelessWidget {
         ),
       ),
     );
-  }
 }

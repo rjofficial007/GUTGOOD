@@ -6,21 +6,6 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class GutTextField extends StatelessWidget {
-  final TextEditingController? controller;
-  final String? hintText;
-  final IconData? prefixIcon;
-  final TextInputType? keyboardType;
-  final bool autofocus;
-  final int? maxLines;
-  final int? minLines;
-  final bool enabled;
-  final ValueChanged<String>? onChanged;
-  final VoidCallback? onSubmitted;
-  final TextStyle? style;
-  final bool borderless;
-  final double borderRadius;
-  final EdgeInsetsGeometry? contentPadding;
-  final TextCapitalization textCapitalization;
 
   const GutTextField({
     super.key,
@@ -40,6 +25,21 @@ class GutTextField extends StatelessWidget {
     this.contentPadding,
     this.textCapitalization = TextCapitalization.none,
   });
+  final TextEditingController? controller;
+  final String? hintText;
+  final IconData? prefixIcon;
+  final TextInputType? keyboardType;
+  final bool autofocus;
+  final int? maxLines;
+  final int? minLines;
+  final bool enabled;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onSubmitted;
+  final TextStyle? style;
+  final bool borderless;
+  final double borderRadius;
+  final EdgeInsetsGeometry? contentPadding;
+  final TextCapitalization textCapitalization;
 
   @override
   Widget build(BuildContext context) {

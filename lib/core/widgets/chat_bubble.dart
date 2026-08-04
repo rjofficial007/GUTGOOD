@@ -3,16 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/feedback_tag.dart';
-
-import '../constants/app_icons.dart';
-import '../constants/app_sizes.dart';
-import '../constants/app_strings.dart';
 
 /// ChatGPT-style chat bubble.
 ///
@@ -21,25 +20,6 @@ import '../constants/app_strings.dart';
 /// - Action bar (Copy / Regenerate) under the latest assistant turn.
 /// - Error cards with Retry / Upgrade affordances for failed turns.
 class ChatBubble extends StatelessWidget {
-  final String text;
-  final bool isUser;
-  final DateTime time;
-  final bool isLoading;
-  final List<String> imageUrls;
-  final List<Uint8List>? localImages;
-  final bool isSending;
-  final bool sendFailed;
-  final bool isStreaming;
-  final ChatErrorKind errorKind;
-  final double screenWidth;
-  final bool showFeedback;
-  final String? feedback;
-  final Function(String)? onFeedback;
-  final bool showAvatar;
-  final bool showActions;
-  final VoidCallback? onRegenerate;
-  final VoidCallback? onRetry;
-  final VoidCallback? onQuotaPressed;
 
   const ChatBubble({
     super.key,
@@ -63,6 +43,25 @@ class ChatBubble extends StatelessWidget {
     this.onRetry,
     this.onQuotaPressed,
   });
+  final String text;
+  final bool isUser;
+  final DateTime time;
+  final bool isLoading;
+  final List<String> imageUrls;
+  final List<Uint8List>? localImages;
+  final bool isSending;
+  final bool sendFailed;
+  final bool isStreaming;
+  final ChatErrorKind errorKind;
+  final double screenWidth;
+  final bool showFeedback;
+  final String? feedback;
+  final Function(String)? onFeedback;
+  final bool showAvatar;
+  final bool showActions;
+  final VoidCallback? onRegenerate;
+  final VoidCallback? onRetry;
+  final VoidCallback? onQuotaPressed;
 
   void _copyToClipboard(BuildContext context) {
     if (text.isEmpty) return;
@@ -76,99 +75,105 @@ class ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return Padding(
-        padding: EdgeInsets.only(bottom: AppSizes.p16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
-            Gap.w12,
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: context.appColorScheme.cardBackground,
-                border: Border.all(color: context.appColorScheme.border),
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
+      return Semantics(
+        label: 'AI is thinking',
+        child: Padding(
+          padding: EdgeInsets.only(bottom: AppSizes.p16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
+              Gap.w12,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: context.appColorScheme.cardBackground,
+                  border: Border.all(color: context.appColorScheme.border),
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
+                ),
+                child: const ThinkingIndicator(),
               ),
-              child: const ThinkingIndicator(),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
 
-    final int hour = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
-    final String amPm = time.hour >= 12 ? AppStrings.unitPM : AppStrings.unitAM;
-    final String formattedTime = '$hour:${time.minute.toString().padLeft(2, '0')} $amPm';
+    final hour = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
+    final amPm = time.hour >= 12 ? AppStrings.unitPM : AppStrings.unitAM;
+    final formattedTime = '$hour:${time.minute.toString().padLeft(2, '0')} $amPm';
 
     if (isUser) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            GestureDetector(
-              onLongPress: () => _copyToClipboard(context),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: screenWidth * 0.85),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: isSending ? 0.7 : 1.0),
-                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(6)),
-                    border: sendFailed ? Border.all(color: context.appColorScheme.error, width: 1.5) : null,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (_hasImages) _buildImageStrip(context, dark: true),
-                      if (_hasImages) Gap.h8,
-                      if (text.isNotEmpty) Text(text, style: context.body.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
-                      Gap.h4,
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isSending)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 4.0),
-                              child: SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7))),
-                            )
-                          else if (sendFailed)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 4.0),
-                              child: Icon(AppIcons.alertCircle, size: 11, color: Theme.of(context).colorScheme.onPrimary),
+      return Semantics(
+        label: 'User message: $text',
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onLongPress: () => _copyToClipboard(context),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: screenWidth * 0.85),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: isSending ? 0.7 : 1.0),
+                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(6)),
+                      border: sendFailed ? Border.all(color: context.appColorScheme.error, width: 1.5) : null,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (_hasImages) _buildImageStrip(context, dark: true),
+                        if (_hasImages) Gap.h8,
+                        if (text.isNotEmpty) Text(text, style: context.body.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
+                        Gap.h4,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isSending)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4.0),
+                                child: SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7))),
+                              )
+                            else if (sendFailed)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4.0),
+                                child: Icon(AppIcons.alertCircle, size: 11, color: Theme.of(context).colorScheme.onPrimary),
+                              ),
+                            Text(
+                              isSending ? AppStrings.labelSending : (sendFailed ? AppStrings.labelFailed : '$formattedTime ✓✓'),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.54), fontSize: AppSizes.s10, fontWeight: FontWeight.bold),
                             ),
-                          Text(
-                            isSending ? AppStrings.labelSending : (sendFailed ? AppStrings.labelFailed : '$formattedTime ✓✓'),
-                            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.54), fontSize: AppSizes.s10, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (sendFailed && onRetry != null)
-              Padding(
-                padding: EdgeInsets.only(bottom: AppSizes.p12),
-                child: GestureDetector(
-                  onTap: onRetry,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(AppIcons.rotateCcw, size: 13, color: context.appColorScheme.error),
-                      Gap.w4,
-                      Text(
-                        AppStrings.tapToRetry,
-                        style: context.caption.copyWith(color: context.appColorScheme.error, fontWeight: FontWeight.w700),
-                      ),
-                    ],
+              if (sendFailed && onRetry != null)
+                Padding(
+                  padding: EdgeInsets.only(bottom: AppSizes.p12),
+                  child: GestureDetector(
+                    onTap: onRetry,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(AppIcons.rotateCcw, size: 13, color: context.appColorScheme.error),
+                        Gap.w4,
+                        Text(
+                          AppStrings.tapToRetry,
+                          style: context.caption.copyWith(color: context.appColorScheme.error, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -178,99 +183,102 @@ class ChatBubble extends StatelessWidget {
       return _buildAssistantErrorCard(context);
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Opacity(
-              opacity: showAvatar ? 1.0 : 0.0,
-              child: Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
-            ),
-            Gap.w12,
-            Expanded(
-              child: GestureDetector(
-                onLongPress: () => _copyToClipboard(context),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: context.appColorScheme.cardBackground,
-                    border: Border.all(color: context.appColorScheme.border),
-                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      MarkdownBody(
-                        data: isStreaming ? '$text ▌' : text,
-                        selectable: !isStreaming,
-                        styleSheet: MarkdownStyleSheet(
-                          p: context.body.copyWith(height: 1.5),
-                          strong: context.bodyBold,
-                          h1: context.headingSm,
-                          h2: context.title,
-                          listBullet: context.body,
-                          code: context.bodySm.copyWith(fontFamily: 'monospace', backgroundColor: context.appColorScheme.elevatedSurface, color: context.appColorScheme.textPrimary),
-                          codeblockPadding: const EdgeInsets.all(12),
-                          codeblockDecoration: BoxDecoration(
-                            color: context.appColorScheme.elevatedSurface,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: context.appColorScheme.border),
-                          ),
-                          tableHead: context.bodyBold,
-                          tableBody: context.body,
-                          tableBorder: TableBorder.all(color: context.appColorScheme.border, width: 0.5),
-                          blockquote: context.body.copyWith(color: context.appColorScheme.textSecondary, fontStyle: FontStyle.italic),
-                          blockquoteDecoration: BoxDecoration(
-                            border: Border(left: BorderSide(color: context.appColorScheme.textMuted, width: 3)),
+    return Semantics(
+      label: 'AI message: $text',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Opacity(
+                opacity: showAvatar ? 1.0 : 0.0,
+                child: Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
+              ),
+              Gap.w12,
+              Expanded(
+                child: GestureDetector(
+                  onLongPress: () => _copyToClipboard(context),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.appColorScheme.cardBackground,
+                      border: Border.all(color: context.appColorScheme.border),
+                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        MarkdownBody(
+                          data: isStreaming ? '$text ▌' : text,
+                          selectable: !isStreaming,
+                          styleSheet: MarkdownStyleSheet(
+                            p: context.body.copyWith(height: 1.5),
+                            strong: context.bodyBold,
+                            h1: context.headingSm,
+                            h2: context.title,
+                            listBullet: context.body,
+                            code: context.bodySm.copyWith(fontFamily: 'monospace', backgroundColor: context.appColorScheme.elevatedSurface, color: context.appColorScheme.textPrimary),
+                            codeblockPadding: const EdgeInsets.all(12),
+                            codeblockDecoration: BoxDecoration(
+                              color: context.appColorScheme.elevatedSurface,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: context.appColorScheme.border),
+                            ),
+                            tableHead: context.bodyBold,
+                            tableBody: context.body,
+                            tableBorder: TableBorder.all(color: context.appColorScheme.border, width: 0.5),
+                            blockquote: context.body.copyWith(color: context.appColorScheme.textSecondary, fontStyle: FontStyle.italic),
+                            blockquoteDecoration: BoxDecoration(
+                              border: Border(left: BorderSide(color: context.appColorScheme.textMuted, width: 3)),
+                            ),
                           ),
                         ),
-                      ),
-                      Gap.h8,
-                      Text(formattedTime, style: context.caption.copyWith(fontSize: 10, color: context.appColorScheme.textMuted)),
-                      if (errorKind == ChatErrorKind.connection && !isStreaming) ...[Gap.h8, _buildInterruptedRow(context)],
-                    ],
+                        Gap.h8,
+                        Text(formattedTime, style: context.caption.copyWith(fontSize: 10, color: context.appColorScheme.textMuted)),
+                        if (errorKind == ChatErrorKind.connection && !isStreaming) ...[Gap.h8, _buildInterruptedRow(context)],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-        if (showActions)
-          Padding(
-            padding: const EdgeInsets.only(left: 36, bottom: 8),
-            child: _ActionIcon(icon: AppIcons.copy, tooltip: AppStrings.copyMessage, onTap: () => _copyToClipboard(context)),
+            ],
           ),
-        if (showFeedback && onFeedback != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 36, bottom: 16, right: 10),
-            child: Wrap(
-              spacing: 5,
-              runSpacing: 5,
-              children: [
-                FeedbackTag(icon: AppIcons.thumbsUp, label: AppStrings.helpful, onTap: () => onFeedback!(AppStrings.labelHelpful), isSelected: feedback == AppStrings.labelHelpful),
-                FeedbackTag(icon: AppIcons.thumbsDown, label: AppStrings.notHelpful, onTap: () => onFeedback!(AppStrings.labelNotHelpful), isSelected: feedback == AppStrings.labelNotHelpful),
-                FeedbackTag(icon: AppIcons.refreshCcw, label: AppStrings.tellMeMore, onTap: () => onFeedback!(AppStrings.labelTellMeMore)),
-              ],
+          if (showActions)
+            Padding(
+              padding: const EdgeInsets.only(left: 36, bottom: 8),
+              child: _ActionIcon(icon: AppIcons.copy, tooltip: AppStrings.copyMessage, onTap: () => _copyToClipboard(context)),
             ),
-          ),
-      ],
+          if (showFeedback && onFeedback != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 36, bottom: 16, right: 10),
+              child: Wrap(
+                spacing: 5,
+                runSpacing: 5,
+                children: [
+                  FeedbackTag(icon: AppIcons.thumbsUp, label: AppStrings.helpful, onTap: () => onFeedback!(AppStrings.labelHelpful), isSelected: feedback == AppStrings.labelHelpful),
+                  FeedbackTag(icon: AppIcons.thumbsDown, label: AppStrings.notHelpful, onTap: () => onFeedback!(AppStrings.labelNotHelpful), isSelected: feedback == AppStrings.labelNotHelpful),
+                  FeedbackTag(icon: AppIcons.refreshCcw, label: AppStrings.tellMeMore, onTap: () => onFeedback!(AppStrings.labelTellMeMore)),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildImageStrip(BuildContext context, {required bool dark}) {
     final local = localImages;
-    final int count = (local != null && local.isNotEmpty) ? local.length : imageUrls.length;
-    final double size = count > 1 ? 120 : 180;
+    final count = (local != null && local.isNotEmpty) ? local.length : imageUrls.length;
+    final size = count > 1 ? 120.0 : 180.0;
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: List.generate(count, (i) {
         final borderRadius = BorderRadius.circular(12);
-        final Widget image = (local != null && local.isNotEmpty)
+        final image = (local != null && local.isNotEmpty)
             ? Image.memory(local[i], height: size, width: size, fit: BoxFit.cover, gaplessPlayback: true)
             : CachedNetworkImage(
                 imageUrl: imageUrls[i],
@@ -291,8 +299,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildInterruptedRow(BuildContext context) {
-    return Row(
+  Widget _buildInterruptedRow(BuildContext context) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(AppIcons.alertTriangle, size: 13, color: context.appColorScheme.warning),
@@ -303,10 +310,9 @@ class ChatBubble extends StatelessWidget {
         ),
       ],
     );
-  }
 
   Widget _buildAssistantErrorCard(BuildContext context) {
-    final bool isQuota = errorKind == ChatErrorKind.quota;
+    final isQuota = errorKind == ChatErrorKind.quota;
     return Padding(
       padding: EdgeInsets.only(left: 36, bottom: AppSizes.p16),
       child: Container(
@@ -347,15 +353,14 @@ class ChatBubble extends StatelessWidget {
 }
 
 class _ActionIcon extends StatelessWidget {
+
+  const _ActionIcon({required this.icon, required this.tooltip, required this.onTap});
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
 
-  const _ActionIcon({required this.icon, required this.tooltip, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return Tooltip(
+  Widget build(BuildContext context) => Tooltip(
       message: tooltip,
       child: GestureDetector(
         onTap: () {
@@ -373,7 +378,6 @@ class _ActionIcon extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class ThinkingIndicator extends StatefulWidget {
@@ -399,16 +403,14 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator> with SingleTicker
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context) => Row(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(3, (index) {
-        return AnimatedBuilder(
+      children: List.generate(3, (index) => AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
-            final double delay = index * 0.2;
-            final double progress = (_controller.value - delay).clamp(0.0, 1.0);
-            final double offset = -4 * (progress > 0 && progress < 1 ? (progress * (1 - progress) * 4) : 0);
+            final delay = index * 0.2;
+            final progress = (_controller.value - delay).clamp(0.0, 1.0);
+            final offset = -4.0 * (progress > 0 && progress < 1 ? (progress * (1 - progress) * 4) : 0);
 
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -422,8 +424,6 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator> with SingleTicker
               ),
             );
           },
-        );
-      }),
+        )),
     );
-  }
 }

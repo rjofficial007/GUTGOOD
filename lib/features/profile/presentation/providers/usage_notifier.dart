@@ -6,11 +6,6 @@ import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 
 class UsageNotifier with ChangeNotifier {
-  final FirestoreService _firestoreService;
-  final AuthRepository _authRepository;
-
-  DailyUsage? _usage;
-  StreamSubscription<DailyUsage?>? _usageSub;
 
   UsageNotifier(this._firestoreService, this._authRepository) {
     _initUsageStream();
@@ -20,6 +15,11 @@ class UsageNotifier with ChangeNotifier {
       }
     });
   }
+  final FirestoreService _firestoreService;
+  final AuthRepository _authRepository;
+
+  DailyUsage? _usage;
+  StreamSubscription<DailyUsage?>? _usageSub;
 
   void _initUsageStream() {
     _usageSub?.cancel();

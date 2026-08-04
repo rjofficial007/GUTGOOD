@@ -7,6 +7,25 @@ import 'package:gutgood/core/utils/model_utils.dart';
 /// Meal logs track what was eaten and when, optionally including photos
 /// and AI-generated nutrient analysis.
 class MealLog extends Equatable {
+
+  const MealLog({this.id, this.firestoreId, this.uid, required this.items, this.notes, this.mealType, this.photoUrl, this.analysisResult, this.source, this.foodTags = const [], required this.time});
+
+  factory MealLog.fromMap(Map<String, dynamic> map) {
+    final rawId = map['id'] ?? map['firestoreId'];
+    return MealLog(
+      id: rawId is int ? rawId : null,
+      firestoreId: rawId is String ? rawId : null,
+      uid: map['uid'] as String?,
+      items: ModelUtils.parseList<String>(map['items']),
+      notes: map['notes'],
+      mealType: map['mealType'],
+      photoUrl: map['photoUrl'],
+      analysisResult: map['analysisResult'],
+      source: map['source'],
+      foodTags: ModelUtils.parseList<String>(map['foodTags']),
+      time: DateTimeUtils.parse(map['time']),
+    );
+  }
   /// Local SQLite primary key.
   final int? id;
 
@@ -40,8 +59,6 @@ class MealLog extends Equatable {
   /// Exact timestamp of consumption.
   final DateTime time;
 
-  const MealLog({this.id, this.firestoreId, this.uid, required this.items, this.notes, this.mealType, this.photoUrl, this.analysisResult, this.source, this.foodTags = const [], required this.time});
-
   MealLog copyWith({
     int? id,
     String? firestoreId,
@@ -54,8 +71,7 @@ class MealLog extends Equatable {
     String? source,
     List<String>? foodTags,
     DateTime? time,
-  }) {
-    return MealLog(
+  }) => MealLog(
       id: id ?? this.id,
       firestoreId: firestoreId ?? this.firestoreId,
       uid: uid ?? this.uid,
@@ -68,27 +84,8 @@ class MealLog extends Equatable {
       foodTags: foodTags ?? this.foodTags,
       time: time ?? this.time,
     );
-  }
 
-  factory MealLog.fromMap(Map<String, dynamic> map) {
-    final rawId = map['id'] ?? map['firestoreId'];
-    return MealLog(
-      id: rawId is int ? rawId : null,
-      firestoreId: rawId is String ? rawId : null,
-      uid: map['uid'] as String?,
-      items: ModelUtils.parseList<String>(map['items']),
-      notes: map['notes'],
-      mealType: map['mealType'],
-      photoUrl: map['photoUrl'],
-      analysisResult: map['analysisResult'],
-      source: map['source'],
-      foodTags: ModelUtils.parseList<String>(map['foodTags']),
-      time: DateTimeUtils.parse(map['time']),
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
+  Map<String, dynamic> toMap() => {
       'firestoreId': firestoreId,
       'items': items,
       'notes': notes,
@@ -99,7 +96,6 @@ class MealLog extends Equatable {
       'foodTags': foodTags,
       'time': time.toIso8601String(),
     };
-  }
 
   @override
   List<Object?> get props => [id, firestoreId, items, time, source];

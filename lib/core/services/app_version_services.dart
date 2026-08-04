@@ -10,10 +10,10 @@ abstract class AppVersionService {
 }
 
 class AppVersionServiceImpl implements AppVersionService {
-  String _appName = "";
-  String _packageName = "";
-  String _appVersion = "";
-  String _buildVersion = "";
+  String _appName = '';
+  String _packageName = '';
+  String _appVersion = '';
+  String _buildVersion = '';
 
   @override
   String get appName => _appName;
@@ -27,13 +27,13 @@ class AppVersionServiceImpl implements AppVersionService {
   @override
   Future<void> fetchAppInfo() async {
     try {
-      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      final packageInfo = await PackageInfo.fromPlatform();
       _appName = packageInfo.appName;
       _packageName = packageInfo.packageName;
       _appVersion = packageInfo.version;
       _buildVersion = packageInfo.buildNumber;
     } catch (e) {
-      AppLogger.error("AppVersionService: Error fetching app info", error: e);
+      AppLogger.error('AppVersionService: Error fetching app info', error: e);
     }
   }
 }

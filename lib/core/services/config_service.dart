@@ -13,15 +13,15 @@ abstract class ConfigService {
 
 class ConfigServiceImpl implements ConfigService {
   @override
-  String get appName => "GutGood";
+  String get appName => 'GutGood';
   @override
-  String get aboutUsUrl => "https://gutgood.app/about";
+  String get aboutUsUrl => 'https://gutgood.app/about';
   @override
-  String get privacyPolicyUrl => "https://gutgood.app/privacy";
+  String get privacyPolicyUrl => 'https://gutgood.app/privacy';
   @override
-  String get termsConditionUrl => "https://gutgood.app/terms";
+  String get termsConditionUrl => 'https://gutgood.app/terms';
   @override
-  String get iosAppId => "0000000000";
+  String get iosAppId => '0000000000';
   @override
   String get magicLinkUrl => ApiConstants.magicLinkUrl;
   @override

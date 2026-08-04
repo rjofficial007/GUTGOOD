@@ -9,6 +9,13 @@ import 'package:gutgood/core/utils/responsive.dart';
 /// Used to inform the user when a list or view has no data, 
 /// providing a relevant icon and encouraging next steps.
 class EmptyStateWidget extends StatelessWidget {
+
+  const EmptyStateWidget({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
   /// Large icon to represent the empty category (e.g., [AppIcons.history]).
   final IconData icon;
   
@@ -18,16 +25,8 @@ class EmptyStateWidget extends StatelessWidget {
   /// Descriptive body text explaining why the view is empty.
   final String description;
 
-  const EmptyStateWidget({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Center(
+  Widget build(BuildContext context) => Center(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: AppSizes.p40, vertical: AppSizes.p64),
         child: Column(
@@ -60,5 +59,4 @@ class EmptyStateWidget extends StatelessWidget {
         ),
       ),
     );
-  }
 }

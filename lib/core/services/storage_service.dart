@@ -15,10 +15,10 @@ abstract class StorageService {
 }
 
 class StorageServiceImpl implements StorageService {
-  final FirebaseAuth _auth;
-  final FirebaseStorage _storage;
 
   StorageServiceImpl({required FirebaseAuth auth, required FirebaseStorage storage}) : _auth = auth, _storage = storage;
+  final FirebaseAuth _auth;
+  final FirebaseStorage _storage;
 
   String? get _uid => _auth.currentUser?.uid;
 
@@ -38,12 +38,12 @@ class StorageServiceImpl implements StorageService {
     if (_uid == null) return null;
 
     try {
-      final Uint8List compressedBytes = await compressImage(bytes);
-      final String fileName = 'food_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final Reference ref = _storage.ref().child('users/$_uid/food_images/$fileName');
+      final compressedBytes = await compressImage(bytes);
+      final fileName = 'food_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = _storage.ref().child('users/$_uid/food_images/$fileName');
 
-      final UploadTask uploadTask = ref.putData(compressedBytes, SettableMetadata(contentType: 'image/jpeg'));
-      final TaskSnapshot snapshot = await uploadTask;
+      final uploadTask = ref.putData(compressedBytes, SettableMetadata(contentType: 'image/jpeg'));
+      final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
       AppLogger.error('StorageService: Food image upload failed', error: e);
@@ -56,12 +56,12 @@ class StorageServiceImpl implements StorageService {
     if (_uid == null) return null;
 
     try {
-      final Uint8List compressedBytes = await compressImage(bytes);
-      const String fileName = 'profile_pic.jpg';
-      final Reference ref = _storage.ref().child('users/$_uid/profile/$fileName');
+      final compressedBytes = await compressImage(bytes);
+      const fileName = 'profile_pic.jpg';
+      final ref = _storage.ref().child('users/$_uid/profile/$fileName');
 
-      final UploadTask uploadTask = ref.putData(compressedBytes, SettableMetadata(contentType: 'image/jpeg'));
-      final TaskSnapshot snapshot = await uploadTask;
+      final uploadTask = ref.putData(compressedBytes, SettableMetadata(contentType: 'image/jpeg'));
+      final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
       AppLogger.error('StorageService: Profile picture upload failed', error: e);
@@ -72,7 +72,7 @@ class StorageServiceImpl implements StorageService {
   @override
   Future<void> deleteImage(String url) async {
     try {
-      final Reference ref = _storage.refFromURL(url);
+      final ref = _storage.refFromURL(url);
       await ref.delete();
     } catch (e) {
       AppLogger.error('StorageService: Delete failed', error: e);

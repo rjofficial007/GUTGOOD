@@ -2,13 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-
-import '../constants/app_sizes.dart';
 
 class BottomSheetHelper {
   const BottomSheetHelper._();
@@ -21,8 +20,7 @@ class BottomSheetHelper {
     Widget? footer,
     bool isScrollControlled = true,
     Color? backgroundColor,
-  }) {
-    return showModalBottomSheet<T>(
+  }) => showModalBottomSheet<T>(
       context: context,
       isScrollControlled: isScrollControlled,
       backgroundColor: backgroundColor ?? Colors.transparent,
@@ -35,7 +33,6 @@ class BottomSheetHelper {
         ],
       ),
     );
-  }
 
   static Future<TimeOfDay?> showTimePickerSheet({
     required BuildContext context,
@@ -43,7 +40,7 @@ class BottomSheetHelper {
     required TimeOfDay initialTime,
     Color? backgroundColor,
   }) async {
-    TimeOfDay selectedTime = initialTime;
+    var selectedTime = initialTime;
 
     return showGutBottomSheet<TimeOfDay>(
       context: context,
@@ -86,13 +83,13 @@ class BottomSheetHelper {
     );
   }
 
-  static void showInfoSheet({
+  static Future<void> showInfoSheet({
     required BuildContext context,
     required String title,
     required String message,
     String? headerLabel,
-  }) {
-    showModalBottomSheet(
+  }) async {
+    await showModalBottomSheet(
       context: context,
       backgroundColor: context.appColorScheme.cardBackground,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
@@ -140,12 +137,12 @@ class BottomSheetHelper {
     );
   }
 
-  static void showLogoutSheet({
+  static Future<void> showLogoutSheet({
     required BuildContext context,
     required bool isAnonymous,
     required VoidCallback onConfirm,
-  }) {
-    showGutBottomSheet(
+  }) async {
+    await showGutBottomSheet(
       context: context,
       title: AppStrings.logout,
       children: [
@@ -179,11 +176,11 @@ class BottomSheetHelper {
     );
   }
 
-  static void showDeleteAccountSheet({
+  static Future<void> showDeleteAccountSheet({
     required BuildContext context,
     required VoidCallback onConfirm,
-  }) {
-    showGutBottomSheet(
+  }) async {
+    await showGutBottomSheet(
       context: context,
       title: AppStrings.deleteAccountTitle,
       children: [
@@ -217,8 +214,8 @@ class BottomSheetHelper {
     );
   }
 
-  static void showMedicalDisclaimer(BuildContext context) {
-    showGutBottomSheet(
+  static Future<void> showMedicalDisclaimer(BuildContext context) async {
+    await showGutBottomSheet(
       context: context,
       title: AppStrings.medicalDisclaimer,
       children: [

@@ -1,15 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/core/constants/app_sizes.dart';
 
 /// A vertical tile used for displaying rich, card-based insights in a grid.
 /// 
 /// Commonly used in the [InsightsScreen] and [InsightDetailSheet].
 /// Supports background highlighting for high-priority ("vibrant") patterns.
 class GutGridTile extends StatelessWidget {
+
+  const GutGridTile({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    this.backgroundColor,
+    this.statusColor,
+    this.onTap,
+    this.textColor,
+    this.iconContainerColor,
+  });
   /// Primary category or type of the insight.
   final String title;
   
@@ -37,28 +50,15 @@ class GutGridTile extends StatelessWidget {
   /// Optional custom background for the icon container.
   final Color? iconContainerColor;
 
-  const GutGridTile({
-    super.key,
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.icon,
-    this.backgroundColor,
-    this.statusColor,
-    this.onTap,
-    this.textColor,
-    this.iconContainerColor,
-  });
-
   @override
   Widget build(BuildContext context) {
-    final bool isFullVibrant = backgroundColor != null && backgroundColor == context.appColorScheme.textPrimary;
+    final isFullVibrant = backgroundColor != null && backgroundColor == context.appColorScheme.textPrimary;
     
-    final Color effectiveTextColor = textColor ?? (isFullVibrant 
+    final effectiveTextColor = textColor ?? (isFullVibrant 
         ? context.appColorScheme.cardBackground
         : context.appColorScheme.textPrimary);
 
-    final Color mutedTextColor = isFullVibrant 
+    final mutedTextColor = isFullVibrant 
         ? effectiveTextColor.withValues(alpha: 0.7)
         : context.appColorScheme.textMuted;
 

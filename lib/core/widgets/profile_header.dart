@@ -1,26 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-
-import '../constants/app_sizes.dart';
-import '../utils/responsive.dart';
-import 'modern_insight_card.dart';
+import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/modern_insight_card.dart';
 
 class ProfileHeader extends StatelessWidget {
-  final String name;
-  final String email;
-  final bool isPremium;
-  final String? photoUrl;
-  final int streak;
-  final int goalsCount;
-  final int sensitivitiesCount;
-  final int lifestyleCount;
-  final VoidCallback onImageTap;
-  final VoidCallback onEditTap;
-  final VoidCallback onLogoutTap;
 
   const ProfileHeader({
     super.key,
@@ -36,6 +24,17 @@ class ProfileHeader extends StatelessWidget {
     required this.onEditTap,
     required this.onLogoutTap,
   });
+  final String name;
+  final String email;
+  final bool isPremium;
+  final String? photoUrl;
+  final int streak;
+  final int goalsCount;
+  final int sensitivitiesCount;
+  final int lifestyleCount;
+  final VoidCallback onImageTap;
+  final VoidCallback onEditTap;
+  final VoidCallback onLogoutTap;
 
   String _getInitials(String name) {
     if (name.isEmpty) return 'G';
@@ -48,7 +47,7 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
+    final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
 
     return ModernInsightCard(
       title: isPremium ? AppStrings.premiumMember : AppStrings.freeMember,
@@ -155,15 +154,14 @@ class ProfileHeader extends StatelessWidget {
 }
 
 class _HeaderButton extends StatelessWidget {
+
+  const _HeaderButton({required this.label, required this.icon, required this.onTap});
   final String label;
   final IconData icon;
   final VoidCallback onTap;
 
-  const _HeaderButton({required this.label, required this.icon, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return Material(
+  Widget build(BuildContext context) => Material(
       color: AppPalette.white.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(AppSizes.r16),
       child: InkWell(
@@ -185,5 +183,4 @@ class _HeaderButton extends StatelessWidget {
         ),
       ),
     );
-  }
 }

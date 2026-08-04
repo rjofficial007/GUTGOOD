@@ -8,13 +8,13 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class ModernPatternCard extends StatelessWidget {
-  final DetectedPattern pattern;
 
   const ModernPatternCard({super.key, required this.pattern});
+  final DetectedPattern pattern;
 
   @override
   Widget build(BuildContext context) {
-    final Color mainColor = context.appColorScheme.textPrimary;
+    final mainColor = context.appColorScheme.textPrimary;
     
     return Container(
       height: 140.0.h,

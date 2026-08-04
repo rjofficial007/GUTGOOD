@@ -11,8 +11,8 @@ abstract class ScannerRepository {
 }
 
 class ScanAnalysisException implements Exception {
-  final OffProduct product;
   ScanAnalysisException(this.product);
+  final OffProduct product;
 
   @override
   String toString() => 'ScanAnalysisException: AI analysis failed for ${product.productName}';

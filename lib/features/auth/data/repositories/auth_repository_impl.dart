@@ -23,18 +23,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  final firebase.FirebaseAuth _firebaseAuth;
-  final GoogleSignIn _googleSignIn;
-  final FirestoreService _firestoreService;
-  final PurchaseService _purchaseService;
-  final SharedPreferences _prefs;
-  final AppStateService _appStateService;
-  final FirebaseFunctions _firebaseFunctions;
-  final AnalyticsService _analyticsService;
-  final CrashlyticsService _crashlyticsService;
-
-  Future<void>? _googleSignInInitFuture;
-  final _isMergingController = StreamController<bool>.broadcast();
 
   AuthRepositoryImpl({
     required firebase.FirebaseAuth firebaseAuth,
@@ -55,10 +43,20 @@ class AuthRepositoryImpl implements AuthRepository {
        _firebaseFunctions = firebaseFunctions,
        _analyticsService = analyticsService,
        _crashlyticsService = crashlyticsService;
+  final firebase.FirebaseAuth _firebaseAuth;
+  final GoogleSignIn _googleSignIn;
+  final FirestoreService _firestoreService;
+  final PurchaseService _purchaseService;
+  final SharedPreferences _prefs;
+  final AppStateService _appStateService;
+  final FirebaseFunctions _firebaseFunctions;
+  final AnalyticsService _analyticsService;
+  final CrashlyticsService _crashlyticsService;
 
-  Future<void> _ensureGoogleSignInInitialized() {
-    return _googleSignInInitFuture ??= _googleSignIn.initialize(serverClientId: ApiConstants.googleServerClientId, clientId: Platform.isIOS ? DefaultFirebaseOptions.ios.iosClientId : null);
-  }
+  Future<void>? _googleSignInInitFuture;
+  final _isMergingController = StreamController<bool>.broadcast();
+
+  Future<void> _ensureGoogleSignInInitialized() => _googleSignInInitFuture ??= _googleSignIn.initialize(serverClientId: ApiConstants.googleServerClientId, clientId: Platform.isIOS ? DefaultFirebaseOptions.ios.iosClientId : null);
 
   @override
   Stream<AuthUser?> get authStateChanges => _firebaseAuth.authStateChanges().map((user) => user != null ? AuthUserModel.fromFirebase(user) : null);
@@ -315,8 +313,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
   Future<firebase.User?> _linkOrMerge(firebase.AuthCredential credential, {Future<firebase.AuthCredential> Function()? refreshCredential}) async {
     final anonymousUser = _firebaseAuth.currentUser;
-    final bool isAnonymousActive = anonymousUser != null && anonymousUser.isAnonymous;
-    final String? anonymousUid = isAnonymousActive ? anonymousUser.uid : null;
+    final isAnonymousActive = anonymousUser != null && anonymousUser.isAnonymous;
+    final anonymousUid = isAnonymousActive ? anonymousUser.uid : null;
 
     if (!isAnonymousActive) {
       final userCredential = await _firebaseAuth.signInWithCredential(credential);
@@ -334,7 +332,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (e.code == 'credential-already-in-use' || e.code == 'email-already-in-use') {
         _isMergingController.add(true);
         try {
-          firebase.AuthCredential finalCredential = credential;
+          var finalCredential = credential;
           if (credential.providerId == 'apple.com' && refreshCredential != null) {
             finalCredential = await refreshCredential();
           }
@@ -372,7 +370,8 @@ class AuthRepositoryImpl implements AuthRepository {
       // 🟢 Fix: Move the merge server-side to bypass Security Rules and ensure idempotency.
       final result = await _firebaseFunctions.httpsCallable('mergeAnonymousAccount').call({'anonymousUid': anonymousUid});
 
-      final bool alreadyMerged = result.data['alreadyMerged'] ?? false;
+      final data = result.data as Map<String, dynamic>;
+      final bool alreadyMerged = data['alreadyMerged'] ?? false;
       AppLogger.info('AuthRepo: Cloud merge call successful. alreadyMerged: $alreadyMerged');
 
       // Local migration is now handled by Firestore's native merge and Cloud Functions.
@@ -401,19 +400,19 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> _finalizeAuth(firebase.User user, {String? displayName, String? email, String? photoUrl}) async {
     final existingProfile = await _firestoreService.getUserMetadata();
 
-    String? bestName = (displayName != null && displayName.isNotEmpty) ? displayName : null;
+    var bestName = (displayName != null && displayName.isNotEmpty) ? displayName : null;
     bestName ??= (user.displayName != null && user.displayName!.isNotEmpty) ? user.displayName : null;
     bestName ??= (existingProfile?.displayName != null && existingProfile!.displayName!.isNotEmpty) ? existingProfile.displayName : null;
 
-    String? bestEmail = (email != null && email.isNotEmpty) ? email : null;
+    var bestEmail = (email != null && email.isNotEmpty) ? email : null;
     bestEmail ??= (user.email != null && user.email!.isNotEmpty) ? user.email : null;
     bestEmail ??= (existingProfile?.email != null && existingProfile!.email!.isNotEmpty) ? existingProfile.email : null;
 
-    String? bestPhoto = (photoUrl != null && photoUrl.isNotEmpty) ? photoUrl : null;
+    var bestPhoto = (photoUrl != null && photoUrl.isNotEmpty) ? photoUrl : null;
     bestPhoto ??= (user.photoURL != null && user.photoURL!.isNotEmpty) ? user.photoURL : null;
     bestPhoto ??= (existingProfile?.photoUrl != null && existingProfile!.photoUrl!.isNotEmpty) ? existingProfile.photoUrl : null;
 
-    bool needsReload = false;
+    var needsReload = false;
     if (bestName != null && bestName != user.displayName) {
       await user.updateDisplayName(bestName);
       needsReload = true;
@@ -424,7 +423,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
     if (needsReload) await user.reload();
 
-    String? provider = user.providerData.isNotEmpty ? user.providerData.first.providerId : null;
+    var provider = user.providerData.isNotEmpty ? user.providerData.first.providerId : null;
     if (provider == null && !user.isAnonymous) {
       if (user.email != null) provider = 'password';
     }

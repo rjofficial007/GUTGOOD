@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 
-import '../theme/app_color_scheme.dart';
-
 class CycleInsightCard extends StatelessWidget {
-  final CycleInsight insight;
 
   const CycleInsightCard({super.key, required this.insight});
+  final CycleInsight insight;
 
   @override
   Widget build(BuildContext context) {
-    final Color mainColor = context.appColorScheme.textPrimary;
+    final mainColor = context.appColorScheme.textPrimary;
 
     return Container(
       margin: EdgeInsets.only(bottom: AppSizes.p16),
@@ -58,15 +57,15 @@ class CycleInsightCard extends StatelessWidget {
 }
 
 class _CycleTagPill extends StatelessWidget {
-  final CycleTag tag;
   const _CycleTagPill({required this.tag});
+  final CycleTag tag;
 
   @override
   Widget build(BuildContext context) {
-    final Color tagColor = context.appColorScheme.textPrimary;
+    final tagColor = context.appColorScheme.textPrimary;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: context.appColorScheme.elevatedSurface,
         borderRadius: BorderRadius.circular(10),

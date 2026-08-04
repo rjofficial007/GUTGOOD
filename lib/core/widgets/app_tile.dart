@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-
-import '../constants/app_icons.dart';
-import '../constants/app_sizes.dart';
-import '../utils/responsive.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 
 class AppTile extends StatelessWidget {
+
+  const AppTile({super.key, required this.icon, required this.title, this.subtitle, this.trailing, required this.onTap, this.showBottomBorder = true, this.iconColor});
   final IconData icon;
   final String title;
   final String? subtitle;
@@ -15,11 +16,8 @@ class AppTile extends StatelessWidget {
   final bool showBottomBorder;
   final Color? iconColor;
 
-  const AppTile({super.key, required this.icon, required this.title, this.subtitle, this.trailing, required this.onTap, this.showBottomBorder = true, this.iconColor});
-
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 18.0.h),
@@ -48,5 +46,4 @@ class AppTile extends StatelessWidget {
         ),
       ),
     );
-  }
 }

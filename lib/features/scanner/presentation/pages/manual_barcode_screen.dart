@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -9,19 +10,18 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/off_service.dart';
+import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../../core/services/ai_service.dart';
-import '../../../../core/services/app_state_service.dart';
-import '../../../../core/services/off_service.dart';
-import '../../../../core/services/prompts.dart';
 
 class ManualBarcodeScreen extends StatefulWidget {
   const ManualBarcodeScreen({super.key});
@@ -42,30 +42,31 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
     final canScan = await sl<UsageService>().canScan();
     if (!canScan) {
       if (mounted) {
-        showPaywallBottomSheet(context, onProceedWithLimited: () {});
+        unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
       }
       return;
     }
 
     if (!mounted) return;
-    context.push(AppRoutes.scanningAnimation);
+    unawaited(context.push(AppRoutes.scanningAnimation));
 
     try {
       final scanData = await sl<OffService>().getProduct(barcode);
 
       if (scanData != null) {
+        unawaited(sl<AnalyticsService>().logEvent(name: 'manual_barcode_search_success', parameters: {'product_name': scanData.productName}));
         final profile = await sl<FirestoreService>().getUserMetadata();
-        final String cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? AppStrings.phaseLuteal) : AppStrings.notSpecified;
+        final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? AppStrings.phaseLuteal) : AppStrings.notSpecified;
 
-        final String prompt = Prompts.productAnalysisPrompt(productData: scanData.toMap(), userGoals: profile?.goals ?? [], userSensitivities: profile?.sensitivities ?? [], cyclePhase: cyclePhase);
+        final prompt = Prompts.productAnalysisPrompt(productData: scanData.toMap(), userGoals: profile?.goals ?? [], userSensitivities: profile?.sensitivities ?? [], cyclePhase: cyclePhase);
 
         // usageType 'scan': counted once, server-side, by the aiProxy.
         final aiResultStr = await sl<AiService>().generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan');
-        final aiData = jsonDecode(aiResultStr);
-        aiData['imageUrl'] ??= scanData.imageUrl;
-        aiData['barcode'] ??= scanData.barcode;
-        aiData['nutrients'] ??= scanData.nutrients;
-        aiData['source'] = 'barcode';
+        final aiData = (jsonDecode(aiResultStr) as Map<String, dynamic>)
+          ..['imageUrl'] ??= scanData.imageUrl
+          ..['barcode'] ??= scanData.barcode
+          ..['nutrients'] ??= scanData.nutrients
+          ..['source'] = 'barcode';
 
         final userMsg = ChatMessage(
           localId: const Uuid().v4(),
@@ -81,17 +82,17 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
         // 🟢 Fix: Ensure manual scans are also saved to scan_history for Insights/Consistency
         await sl<FirestoreService>().saveToScanHistory(userMsg.scanData!);
         sl<AppStateService>().notifyChatUpdated();
-        await sl<AnalyticsService>().logEvent(name: 'manual_barcode_search_success', parameters: {'product_name': scanData.productName});
 
         if (mounted) {
           // 🟡 Professional Flow: Use go() to switch branches and reset the stack.
           context.go(AppRoutes.scanResult, extra: {'scanData': userMsg.scanData!.toMap()});
         }
       } else {
-        await sl<AnalyticsService>().logEvent(name: 'manual_barcode_search_not_found', parameters: {'barcode': barcode});
+        unawaited(sl<AnalyticsService>().logEvent(name: 'manual_barcode_search_not_found', parameters: {'barcode': barcode}));
         if (mounted) {
-          context.pop();
-          context.pushReplacement(AppRoutes.productNotFound);
+          context
+            ..pop()
+            ..pushReplacement(AppRoutes.productNotFound);
         }
       }
     } catch (e) {
@@ -104,8 +105,7 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
@@ -166,5 +166,4 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
         ],
       ),
     );
-  }
 }

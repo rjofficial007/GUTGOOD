@@ -15,9 +15,9 @@ import 'package:uuid/uuid.dart';
 /// The UI maps this to the paywall — the single source of truth for limits is
 /// now the backend, which removes the old client-tampering vector.
 class AiQuotaExceededException implements Exception {
+  const AiQuotaExceededException({required this.type, this.message = 'Daily free limit reached.'});
   final String type; // 'chat' | 'scan'
   final String message;
-  const AiQuotaExceededException({required this.type, this.message = 'Daily free limit reached.'});
 
   @override
   String toString() => 'AiQuotaExceededException($type): $message';
@@ -25,9 +25,9 @@ class AiQuotaExceededException implements Exception {
 
 /// Generic AI proxy failure (network, upstream, or protocol errors).
 class AiServiceException implements Exception {
+  const AiServiceException(this.message, {this.statusCode});
   final String message;
   final int? statusCode;
-  const AiServiceException(this.message, {this.statusCode});
 
   @override
   String toString() => 'AiServiceException($statusCode): $message';
@@ -57,11 +57,6 @@ abstract class AiService {
 ///  - Every request carries a Firebase ID token; the function verifies it and
 ///    enforces the free-tier limits server-side (tamper-proof).
 class AiServiceImpl implements AiService {
-  final Dio _dio;
-  final FirebaseAuth _auth;
-  final RemoteConfigService _config;
-  final AnalyticsService _analyticsService;
-  final CrashlyticsService _crashlyticsService;
 
   AiServiceImpl({required Dio dio, required FirebaseAuth auth, required RemoteConfigService config, required AnalyticsService analyticsService, required CrashlyticsService crashlyticsService})
     : _dio = dio,
@@ -69,6 +64,11 @@ class AiServiceImpl implements AiService {
       _config = config,
       _analyticsService = analyticsService,
       _crashlyticsService = crashlyticsService;
+  final Dio _dio;
+  final FirebaseAuth _auth;
+  final RemoteConfigService _config;
+  final AnalyticsService _analyticsService;
+  final CrashlyticsService _crashlyticsService;
 
   static const int _maxRetries = 2;
 
@@ -80,13 +80,11 @@ class AiServiceImpl implements AiService {
     return {'Authorization': 'Bearer $token', 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey};
   }
 
-  List<Map<String, String>> _historyToPayload(List<ChatMessage> history) {
-    return history.where((m) => m.text.isNotEmpty).map((m) => {'role': m.role == 'user' ? 'user' : 'assistant', 'content': m.text}).toList();
-  }
+  List<Map<String, String>> _historyToPayload(List<ChatMessage> history) => history.where((m) => m.text.isNotEmpty).map((m) => {'role': m.role == 'user' ? 'user' : 'assistant', 'content': m.text}).toList();
 
   Never _throwForStatus(int status, String body) {
-    String message = 'Unexpected AI proxy error ($status).';
-    String type = 'chat';
+    var message = 'Unexpected AI proxy error ($status).';
+    var type = 'chat';
     try {
       final decoded = jsonDecode(body) as Map<String, dynamic>;
       message = (decoded['message'] ?? decoded['error'] ?? message).toString();
@@ -101,9 +99,7 @@ class AiServiceImpl implements AiService {
     throw AiServiceException(message, statusCode: status);
   }
 
-  bool _isRetryable(DioException e) {
-    return e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError || e.type == DioExceptionType.sendTimeout;
-  }
+  bool _isRetryable(DioException e) => e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError || e.type == DioExceptionType.sendTimeout;
 
   @override
   Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images}) async* {
@@ -115,7 +111,7 @@ class AiServiceImpl implements AiService {
       'systemInstruction': systemInstruction,
       'messages': _historyToPayload(history),
       'userText': userText,
-      if (images != null && images.isNotEmpty) 'images': images.map((b) => base64Encode(b)).toList(),
+      if (images != null && images.isNotEmpty) 'images': images.map(base64Encode).toList(),
       'model': _config.openAIModel,
       'usageType': (images != null && images.isNotEmpty) ? 'scan' : 'chat',
       'idempotencyKey': idempotencyKey,
@@ -149,20 +145,21 @@ class AiServiceImpl implements AiService {
     if (stream == null) throw const AiServiceException('Empty response stream.');
 
     // Parse the SSE frames emitted by the proxy: data: {"d":"delta"}\n\n
-    String buffer = '';
-    bool sawDone = false;
+    final buffer = StringBuffer();
+    var sawDone = false;
 
     await for (final chunk in stream) {
       if (buffer.isEmpty && chunk.isNotEmpty) {
         final firstTokenLatency = DateTime.now().difference(startTime).inMilliseconds;
-        _analyticsService.logEvent(name: 'ai_stream_first_token', parameters: {'latency_ms': firstTokenLatency, 'type': images != null ? 'scan' : 'chat'});
+        unawaited(_analyticsService.logEvent(name: 'ai_stream_first_token', parameters: {'latency_ms': firstTokenLatency, 'type': images != null ? 'scan' : 'chat'}));
       }
-      buffer += utf8.decode(chunk, allowMalformed: true);
+      buffer.write(utf8.decode(chunk, allowMalformed: true));
 
+      var content = buffer.toString();
       int newlineIndex;
-      while ((newlineIndex = buffer.indexOf('\n')) != -1) {
-        final line = buffer.substring(0, newlineIndex).trim();
-        buffer = buffer.substring(newlineIndex + 1);
+      while ((newlineIndex = content.indexOf('\n')) != -1) {
+        final line = content.substring(0, newlineIndex).trim();
+        content = content.substring(newlineIndex + 1);
 
         if (!line.startsWith('data:')) continue;
         final data = line.substring(5).trim();
@@ -184,11 +181,14 @@ class AiServiceImpl implements AiService {
           // Incomplete JSON frame — ignore; the next chunk completes it.
         }
       }
+      buffer
+        ..clear()
+        ..write(content);
       if (sawDone) break;
     }
 
     // Flush any trailing frame that arrived without a newline terminator.
-    final tail = buffer.trim();
+    final tail = buffer.toString().trim();
     if (!sawDone && tail.startsWith('data:')) {
       final data = tail.substring(5).trim();
       if (data.isNotEmpty && data != '[DONE]') {
@@ -233,7 +233,7 @@ class AiServiceImpl implements AiService {
       'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
     });
 
-    int attempts = 0;
+    var attempts = 0;
     while (true) {
       attempts++;
       try {
@@ -268,8 +268,8 @@ class AiServiceImpl implements AiService {
     if (history.isEmpty) return previousSummary ?? '';
 
     // 🟢 Fix: Use toAiMap() to avoid payload-too-large (502) errors.
-    final List<Map<String, dynamic>> historyMaps = history.map((m) => m.toAiMap()).toList();
-    final String historyJson = jsonEncode(historyMaps);
+    final historyMaps = history.map((m) => m.toAiMap()).toList();
+    final historyJson = jsonEncode(historyMaps);
 
     final priorContext = previousSummary != null && previousSummary.isNotEmpty ? 'PREVIOUS SUMMARY (fold new info into this, don\'t discard it): $previousSummary\n\n' : '';
 

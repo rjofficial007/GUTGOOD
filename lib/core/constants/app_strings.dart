@@ -87,9 +87,9 @@ class AppStrings {
   static const String onboardingSensitivitiesTitle = 'Any sensitivities or allergies?';
   static const String onboardingSensitivitiesSubtitle = "We'll flag these ingredients when scanning foods and tailoring AI insights.";
   static const String onboardingLifestyleTitle = 'What describes you?';
-  static const String onboardingLifestyleSubtitle = "This helps our AI understand your patterns better.";
+  static const String onboardingLifestyleSubtitle = 'This helps our AI understand your patterns better.';
 
-  static const String bodyRhythm = "Body Rhythm";
+  static const String bodyRhythm = 'Body Rhythm';
   static const String bodyRhythmSubtitle = "Sync your gut health with your body's rhythm.";
   static const String cycleSync = 'Cycle Sync (for women)';
   static const String cycleSyncSubtitle = 'Get food insights based on your cycle phase';
@@ -214,7 +214,7 @@ class AppStrings {
   static const String analyzingPatterns = 'Analyzing patterns...';
   static const String noClearPattern = 'No clear pattern yet';
   static const String noInsightsYet = 'No insights yet';
-  static const String keepLoggingForPatterns = "No clear pattern yet. Keep logging so GutGood can learn what works for your body.";
+  static const String keepLoggingForPatterns = 'No clear pattern yet. Keep logging so GutGood can learn what works for your body.';
   static const String understandBodyImpact = 'Understand how food impacts your body.';
   static const String yourGutSnapshot = 'Your Gut Snapshot';
   static const String scoreTrend = 'Score Trend';
@@ -291,7 +291,7 @@ class AppStrings {
   static const String featurePersonalInsightsDesc = "See patterns, triggers and what's working.";
   static const String dailyUsedNote = 'Used daily to feel better, eat smarter.';
   static const String happyMembersCount = '10,000+ happy GutGood members';
-  static const String monthlyPrice = '\$4.99';
+  static const String monthlyPrice = r'$4.99';
   static const String perMonth = ' /month';
   static const String threeDayFreeTrial = '3-DAY FREE TRIAL';
   static const String cancelAnytime = 'Cancel anytime.';
@@ -633,8 +633,8 @@ class AppStrings {
   static const String bodyReactionsDesc = 'Detailed cause-and-effect mappings from your logs.';
   static const String weeklySummaryTitle = 'Weekly Summary';
   static const String weeklyRecapNarrative = "GUTGOOD's Weekly Recap: You stayed consistent for ";
-  static const String narrativeDaysAndGut = " days and your gut has been ";
-  static const String narrativeBasedOnLogs = " based on recent logs.";
+  static const String narrativeDaysAndGut = ' days and your gut has been ';
+  static const String narrativeBasedOnLogs = ' based on recent logs.';
   static const String discoveriesTitle = 'GUTGOOD\'S DISCOVERIES';
   static const String discoveriesSubtitle = 'Key patterns identified this week';
   static const String consistencyGoalAchieved = 'CONSISTENCY GOAL ACHIEVED';

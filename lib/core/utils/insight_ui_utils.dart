@@ -26,9 +26,7 @@ class InsightUiUtils {
   }
 
   /// Returns a branding-consistent color for a specific pattern category.
-  static Color getPatternColor(String iconName) {
-    return AppPalette.black;
-  }
+  static Color getPatternColor(String iconName) => AppPalette.black;
 
   /// Maps ingredient risk levels (red, orange, green) to theme colors.
   static Color getIngredientColor(String colorName, {required Color error, required Color warning, required Color success}) {

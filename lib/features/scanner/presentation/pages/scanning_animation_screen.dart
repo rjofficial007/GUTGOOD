@@ -9,9 +9,8 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-
-import '../../../../core/utils/haptic_helper.dart';
 
 class ScanningAnimationScreen extends StatefulWidget {
   const ScanningAnimationScreen({super.key});
@@ -91,8 +90,7 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       appBar: GutAppBar(
         backgroundColor: AppPalette.transparent,
@@ -113,8 +111,7 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
             Center(
               child: AnimatedBuilder(
                 animation: Listenable.merge([_progressAnimation, _pulseAnimation, _rotationAnimation, _beamAnimation]),
-                builder: (context, child) {
-                  return Column(
+                builder: (context, child) => Column(
                     children: [
                       Stack(
                         alignment: Alignment.center,
@@ -185,8 +182,7 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
                         ),
                       ),
                     ],
-                  );
-                },
+                  ),
               ),
             ),
             const Spacer(),
@@ -228,12 +224,11 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
         ),
       ),
     );
-  }
 }
 
 class _DashedCirclePainter extends CustomPainter {
-  final Color color;
   _DashedCirclePainter({required this.color});
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -244,12 +239,12 @@ class _DashedCirclePainter extends CustomPainter {
 
     const double dashWidth = 5;
     const double dashSpace = 5;
-    final double radius = size.width / 2;
-    final double circumference = 2 * math.pi * radius;
-    final int dashCount = (circumference / (dashWidth + dashSpace)).floor();
+    final radius = size.width / 2;
+    final circumference = 2 * math.pi * radius;
+    final dashCount = (circumference / (dashWidth + dashSpace)).floor();
 
-    for (int i = 0; i < dashCount; i++) {
-      final double startAngle = (i * (dashWidth + dashSpace)) / radius;
+    for (var i = 0; i < dashCount; i++) {
+      final startAngle = (i * (dashWidth + dashSpace)) / radius;
       canvas.drawArc(Rect.fromCircle(center: Offset(radius, radius), radius: radius), startAngle, dashWidth / radius, false, paint);
     }
   }

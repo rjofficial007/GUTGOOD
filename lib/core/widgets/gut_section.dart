@@ -8,6 +8,9 @@ import 'package:gutgood/core/utils/responsive.dart';
 /// A standardized section wrapper that includes an optional title header
 /// and can optionally wrap its children in a stylized card.
 class GutSection extends StatelessWidget {
+
+  const GutSection({super.key, this.title, this.info, this.child, this.children, this.showCard = false, this.opacity = 1.0, this.topPadding})
+    : assert(child == null || children == null, 'Provide either child or children, not both.');
   /// The section title (displayed as an eyebrow).
   final String? title;
 
@@ -29,12 +32,8 @@ class GutSection extends StatelessWidget {
   /// Top padding for the entire section.
   final double? topPadding;
 
-  const GutSection({super.key, this.title, this.info, this.child, this.children, this.showCard = false, this.opacity = 1.0, this.topPadding})
-    : assert(child == null || children == null, 'Provide either child or children, not both.');
-
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: EdgeInsets.only(top: topPadding ?? AppSizes.p24),
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),
@@ -48,10 +47,8 @@ class GutSection extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
+  Widget _buildHeader(BuildContext context) => Padding(
       padding: EdgeInsets.only(left: 4.0.w, bottom: 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -76,19 +73,17 @@ class GutSection extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 /// A standardized card container for section content.
 class GutSectionCard extends StatelessWidget {
+
+  const GutSectionCard({super.key, required this.children, this.padding});
   final List<Widget> children;
   final EdgeInsets? padding;
 
-  const GutSectionCard({super.key, required this.children, this.padding});
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       width: double.infinity,
       padding: padding ?? EdgeInsets.symmetric(horizontal: AppSizes.p20),
       decoration: BoxDecoration(
@@ -99,5 +94,4 @@ class GutSectionCard extends StatelessWidget {
       ),
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
-  }
 }

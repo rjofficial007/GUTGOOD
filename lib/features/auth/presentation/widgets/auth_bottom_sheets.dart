@@ -22,8 +22,7 @@ import 'package:provider/provider.dart';
 /// Shows a unified authentication bottom sheet.
 /// [customMessage] can be used to provide context (e.g., "Sign in to save your results").
 /// [onSuccess] is called after a successful authentication.
-Future<AuthUser?> showAuthBottomSheet(BuildContext context, {String? customMessage, VoidCallback? onSuccess}) {
-  return showModalBottomSheet<AuthUser?>(
+Future<AuthUser?> showAuthBottomSheet(BuildContext context, {String? customMessage, VoidCallback? onSuccess}) => showModalBottomSheet<AuthUser?>(
     context: context,
     isScrollControlled: true,
     // 🟢 Fix: Ensure the sheet is on the same navigator as the login screen.
@@ -31,11 +30,9 @@ Future<AuthUser?> showAuthBottomSheet(BuildContext context, {String? customMessa
     backgroundColor: Colors.transparent,
     builder: (context) => _LoginSheet(customMessage: customMessage, onSuccess: onSuccess),
   );
-}
 
 /// Shows a prompt to encourage guest users to create an account.
-Future<bool?> showRegistrationPrompt(BuildContext context) {
-  return BottomSheetHelper.showGutBottomSheet<bool>(
+Future<bool?> showRegistrationPrompt(BuildContext context) => BottomSheetHelper.showGutBottomSheet<bool>(
     context: context,
     title: AppStrings.saveProfileTitle,
     children: [
@@ -62,11 +59,9 @@ Future<bool?> showRegistrationPrompt(BuildContext context) {
       Gap.h12,
     ],
   );
-}
 
 /// Shows a confirmation sheet when an existing account is found.
-Future<bool?> showMergeConfirmationSheet(BuildContext context, String email) {
-  return BottomSheetHelper.showGutBottomSheet<bool>(
+Future<bool?> showMergeConfirmationSheet(BuildContext context, String email) => BottomSheetHelper.showGutBottomSheet<bool>(
     context: context,
     title: AppStrings.accountFound,
     children: [
@@ -93,13 +88,12 @@ Future<bool?> showMergeConfirmationSheet(BuildContext context, String email) {
       Gap.h12,
     ],
   );
-}
 
 class _LoginSheet extends StatefulWidget {
-  final String? customMessage;
-  final VoidCallback? onSuccess;
 
   const _LoginSheet({this.customMessage, this.onSuccess});
+  final String? customMessage;
+  final VoidCallback? onSuccess;
 
   @override
   State<_LoginSheet> createState() => _LoginSheetState();
@@ -111,8 +105,7 @@ class _LoginSheetState extends State<_LoginSheet> {
   @override
   void initState() {
     super.initState();
-    _authNotifier = context.read<GutAuthNotifier>();
-    _authNotifier.addListener(_onAuthChanged);
+    _authNotifier = context.read<GutAuthNotifier>()..addListener(_onAuthChanged);
   }
 
   @override
@@ -174,8 +167,7 @@ class _LoginSheetState extends State<_LoginSheet> {
 
   Future<void> _onAuthSuccess(BuildContext context) async {
     // Trigger verification overlay for consistent premium experience
-    final appStateService = sl<AppStateService>();
-    appStateService.setVerifyingAuth(true);
+    final appStateService = sl<AppStateService>()..setVerifyingAuth(true);
     AppLogger.info('Auth: Authentication success. Showing verification overlay.');
 
     HapticHelper.success();
@@ -185,7 +177,7 @@ class _LoginSheetState extends State<_LoginSheet> {
       Navigator.pop(context);
     }
 
-    if (widget.onSuccess != null) widget.onSuccess!();
+    widget.onSuccess?.call();
 
     // Give it a moment to show the success state/overlay before letting the global stack reset take over
     await Future.delayed(const Duration(milliseconds: 1000));
@@ -195,7 +187,7 @@ class _LoginSheetState extends State<_LoginSheet> {
   @override
   Widget build(BuildContext context) {
     final authNotifier = context.watch<GutAuthNotifier>();
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GutSheetWrapper(
       children: [

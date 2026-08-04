@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -6,20 +8,18 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_history_section.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../core/theme/app_color_scheme.dart';
-import '../../../../core/widgets/shimmer_grid_loader.dart';
 
 class InsightsHistoryScreen extends StatelessWidget {
   const InsightsHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
@@ -62,12 +62,11 @@ class InsightsHistoryScreen extends StatelessWidget {
         ],
       ),
     );
-  }
 
   Map<String, List<AIInsight>> _groupHistoryByDate(List<AIInsight> history) {
-    Map<String, List<AIInsight>> grouped = {};
+    final grouped = <String, List<AIInsight>>{};
     for (var insight in history) {
-      DateTime date = insight.updatedAt;
+      final date = insight.updatedAt;
       String key;
       if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(DateTime.now())) {
         key = AppStrings.today;
@@ -83,6 +82,6 @@ class InsightsHistoryScreen extends StatelessWidget {
   }
 
   void _showInsightDetail(BuildContext context, AIInsight insight) {
-    context.push(AppRoutes.insightDetail, extra: insight.toMap());
+    unawaited(context.push(AppRoutes.insightDetail, extra: insight.toMap()));
   }
 }

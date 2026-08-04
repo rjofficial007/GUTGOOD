@@ -9,9 +9,9 @@ abstract class PatternEngineService {
 }
 
 class PatternEngineServiceImpl implements PatternEngineService {
-  final FirestoreService _firestoreService;
 
   PatternEngineServiceImpl({required FirestoreService firestoreService}) : _firestoreService = firestoreService;
+  final FirestoreService _firestoreService;
 
   @override
   Future<void> runAnalysis() async {
@@ -25,12 +25,13 @@ class PatternEngineServiceImpl implements PatternEngineService {
       return;
     }
 
-    final List<BodyPattern> allPatterns = [];
-    allPatterns.addAll(_detectFoodSymptomPatterns(meals, symptoms));
-    allPatterns.addAll(_detectProteinEnergyPatterns(meals, symptoms));
-    allPatterns.addAll(_detectSugarCrashPatterns(meals, symptoms));
-    allPatterns.addAll(_detectCaffeineSleepPatterns(meals, symptoms));
-    allPatterns.addAll(_detectFiberDigestionPatterns(meals, symptoms));
+    final allPatterns = [
+      ..._detectFoodSymptomPatterns(meals, symptoms),
+      ..._detectProteinEnergyPatterns(meals, symptoms),
+      ..._detectSugarCrashPatterns(meals, symptoms),
+      ..._detectCaffeineSleepPatterns(meals, symptoms),
+      ..._detectFiberDigestionPatterns(meals, symptoms),
+    ];
 
     if (allPatterns.isNotEmpty) {
       AppLogger.info('PatternEngine: Found ${allPatterns.length} patterns.');
@@ -39,7 +40,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
   }
 
   List<BodyPattern> _detectFoodSymptomPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
-    final Map<String, List<String>> foodToSymptoms = {};
+    final foodToSymptoms = <String, List<String>>{};
 
     for (final symptom in symptoms) {
       final windowStart = symptom.time.subtract(const Duration(hours: 4));
@@ -54,7 +55,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
       }
     }
 
-    final List<BodyPattern> patterns = [];
+    final patterns = <BodyPattern>[];
     foodToSymptoms.forEach((food, symptomList) {
       final counts = <String, int>{};
       for (final s in symptomList) {
@@ -82,7 +83,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
   List<BodyPattern> _detectProteinEnergyPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
     final proteinKeywords = ['chicken', 'beef', 'eggs', 'tofu', 'protein', 'steak', 'fish', 'salmon', 'turkey', 'yogurt'];
-    int matchCount = 0;
+    var matchCount = 0;
 
     for (final symptom in symptoms) {
       if ((symptom.energyLevel ?? 0) >= 7) {
@@ -113,7 +114,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
   List<BodyPattern> _detectSugarCrashPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
     final sugarKeywords = ['sugar', 'soda', 'candy', 'cake', 'dessert', 'cookie', 'juice', 'syrup', 'chocolate'];
-    int matchCount = 0;
+    var matchCount = 0;
 
     for (final symptom in symptoms) {
       if ((symptom.energyLevel ?? 10) <= 3) {
@@ -143,7 +144,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
   List<BodyPattern> _detectCaffeineSleepPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
     final caffeineKeywords = ['coffee', 'espresso', 'caffeine', 'energy drink', 'latte', 'cappuccino', 'black tea'];
-    int matchCount = 0;
+    var matchCount = 0;
 
     for (final symptom in symptoms) {
       final sleep = symptom.sleep?.toLowerCase() ?? '';
@@ -176,8 +177,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
   List<BodyPattern> _detectFiberDigestionPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
     final fiberKeywords = ['fiber', 'salad', 'beans', 'lentils', 'broccoli', 'vegetables', 'spinach', 'kale', 'avocado'];
-    int gasMatch = 0;
-    int bloatMatch = 0;
+    var gasMatch = 0;
+    var bloatMatch = 0;
 
     for (final symptom in symptoms) {
       final s = symptom.symptom.toLowerCase();
@@ -193,7 +194,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
       }
     }
 
-    final List<BodyPattern> patterns = [];
+    final patterns = <BodyPattern>[];
     if (gasMatch >= 2) {
       patterns.add(
         BodyPattern(
