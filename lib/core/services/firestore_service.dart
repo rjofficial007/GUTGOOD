@@ -52,6 +52,7 @@ abstract class FirestoreService {
   Future<void> savePatternData(List<BodyPattern> patterns);
   Stream<List<BodyPattern>> getPatternDataStream();
   Future<void> saveHealthAlert(HealthAlert alert);
+  Future<void> markAlertsAsRead(List<String> alertIds);
   Stream<List<HealthAlert>> getHealthAlertsStream({int limit = 20});
 
   // Aggregation/Count methods
@@ -61,7 +62,6 @@ abstract class FirestoreService {
 }
 
 class FirestoreServiceImpl implements FirestoreService {
-
   FirestoreServiceImpl({required FirebaseAuth auth, required FirebaseFirestore db, required StorageService storageService}) : _auth = auth, _db = db, _storageService = storageService;
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
@@ -158,7 +158,19 @@ class FirestoreServiceImpl implements FirestoreService {
   Stream<List<ChatMessage>> getMessagesStream({int limit = 50}) {
     final doc = _userDoc;
     if (doc == null) return const Stream.empty();
-    return doc.collection('chat_history').orderBy('time', descending: true).limit(limit).snapshots().map((snapshot) => snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList());
+    return doc
+        .collection('chat_history')
+        .orderBy('time', descending: true)
+        .limit(limit)
+        .snapshots()
+        .handleError((e) {
+          if (e.toString().contains('permission-denied')) {
+            AppLogger.debug('FirestoreService: Chat stream closed (permission-denied)');
+          } else {
+            throw e;
+          }
+        })
+        .map((snapshot) => snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList());
   }
 
   @override
@@ -229,7 +241,11 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
     } catch (e) {
-      AppLogger.error('FirestoreService: Error getting scan history', error: e);
+      if (e.toString().contains('permission-denied')) {
+        AppLogger.debug('FirestoreService: getScanHistory suppressed (permission-denied)');
+      } else {
+        AppLogger.error('FirestoreService: Error getting scan history', error: e);
+      }
       return [];
     }
   }
@@ -242,7 +258,11 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('meal_logs').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => MealLog.fromMap(doc.data())).toList();
     } catch (e) {
-      AppLogger.error('FirestoreService: Error getting recent meal logs', error: e);
+      if (e.toString().contains('permission-denied')) {
+        AppLogger.debug('FirestoreService: getRecentMealLogs suppressed (permission-denied)');
+      } else {
+        AppLogger.error('FirestoreService: Error getting recent meal logs', error: e);
+      }
       return [];
     }
   }
@@ -255,7 +275,11 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('symptom_logs').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
     } catch (e) {
-      AppLogger.error('FirestoreService: Error getting recent symptom logs', error: e);
+      if (e.toString().contains('permission-denied')) {
+        AppLogger.debug('FirestoreService: getRecentSymptomLogs suppressed (permission-denied)');
+      } else {
+        AppLogger.error('FirestoreService: Error getting recent symptom logs', error: e);
+      }
       return [];
     }
   }
@@ -268,7 +292,11 @@ class FirestoreServiceImpl implements FirestoreService {
       final snapshot = await doc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
       return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
     } catch (e) {
-      AppLogger.error('FirestoreService: Error getting recent scans', error: e);
+      if (e.toString().contains('permission-denied')) {
+        AppLogger.debug('FirestoreService: getRecentScans suppressed (permission-denied)');
+      } else {
+        AppLogger.error('FirestoreService: Error getting recent scans', error: e);
+      }
       return [];
     }
   }
@@ -397,10 +425,19 @@ class FirestoreServiceImpl implements FirestoreService {
   Stream<UserProfile?> getUserMetadataStream() {
     final doc = _userDoc;
     if (doc == null) return Stream.value(null);
-    return doc.snapshots().map((doc) {
-      if (!doc.exists) return null;
-      return UserProfile.fromMap(doc.data() as Map<String, dynamic>, uid: _uid);
-    });
+    return doc
+        .snapshots()
+        .handleError((e) {
+          if (e.toString().contains('permission-denied')) {
+            AppLogger.debug('FirestoreService: Metadata stream closed (permission-denied)');
+          } else {
+            throw e;
+          }
+        })
+        .map((doc) {
+          if (!doc.exists) return null;
+          return UserProfile.fromMap(doc.data() as Map<String, dynamic>, uid: _uid);
+        });
   }
 
   @override
@@ -488,10 +525,21 @@ class FirestoreServiceImpl implements FirestoreService {
     final today = DateTime.now().toIso8601String().split('T')[0];
     final doc = _userDoc;
     if (doc == null) return Stream.value(null);
-    return doc.collection('daily_usage').doc(today).snapshots().map((doc) {
-      if (!doc.exists) return null;
-      return DailyUsage.fromMap({...doc.data() as Map<String, dynamic>, 'uid': _uid, 'date': today});
-    });
+    return doc
+        .collection('daily_usage')
+        .doc(today)
+        .snapshots()
+        .handleError((e) {
+          if (e.toString().contains('permission-denied')) {
+            AppLogger.debug('FirestoreService: Usage stream closed (permission-denied)');
+          } else {
+            throw e;
+          }
+        })
+        .map((doc) {
+          if (!doc.exists) return null;
+          return DailyUsage.fromMap({...doc.data() as Map<String, dynamic>, 'uid': _uid, 'date': today});
+        });
   }
 
   @override
@@ -527,10 +575,22 @@ class FirestoreServiceImpl implements FirestoreService {
   Stream<AIInsight?> getLatestInsightsStream() {
     final doc = _userDoc;
     if (doc == null) return Stream.value(null);
-    return doc.collection('insights').orderBy('updatedAt', descending: true).limit(1).snapshots().map((snapshot) {
-      if (snapshot.docs.isEmpty) return null;
-      return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
-    });
+    return doc
+        .collection('insights')
+        .orderBy('updatedAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .handleError((e) {
+          if (e.toString().contains('permission-denied')) {
+            AppLogger.debug('FirestoreService: Insights stream closed (permission-denied)');
+          } else {
+            throw e;
+          }
+        })
+        .map((snapshot) {
+          if (snapshot.docs.isEmpty) return null;
+          return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
+        });
   }
 
   @override
@@ -561,13 +621,24 @@ class FirestoreServiceImpl implements FirestoreService {
   Stream<List<BodyPattern>> getPatternDataStream() {
     final doc = _userDoc;
     if (doc == null) return Stream.value([]);
-    return doc.collection('pattern_data').doc('latest').snapshots().map((doc) {
-      if (!doc.exists) return [];
-      final data = doc.data();
-      if (data == null || data['patterns'] == null) return [];
-      final patterns = (data['patterns'] as List).map((p) => BodyPattern.fromMap(p as Map<String, dynamic>)).toList();
-      return patterns;
-    });
+    return doc
+        .collection('pattern_data')
+        .doc('latest')
+        .snapshots()
+        .handleError((e) {
+          if (e.toString().contains('permission-denied')) {
+            AppLogger.debug('FirestoreService: Patterns stream closed (permission-denied)');
+          } else {
+            throw e;
+          }
+        })
+        .map((doc) {
+          if (!doc.exists) return [];
+          final data = doc.data();
+          if (data == null || data['patterns'] == null) return [];
+          final patterns = (data['patterns'] as List).map((p) => BodyPattern.fromMap(p as Map<String, dynamic>)).toList();
+          return patterns;
+        });
   }
 
   @override
@@ -582,10 +653,42 @@ class FirestoreServiceImpl implements FirestoreService {
   }
 
   @override
+  Future<void> markAlertsAsRead(List<String> alertIds) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null || alertIds.isEmpty) return;
+
+      final batch = _db.batch();
+      final collection = doc.collection('health_alerts');
+
+      for (final id in alertIds) {
+        batch.update(collection.doc(id), {'isRead': true});
+      }
+
+      await batch.commit();
+      AppLogger.info('FirestoreService: Marked ${alertIds.length} alerts as read');
+    } catch (e) {
+      AppLogger.error('FirestoreService: Error marking alerts as read', error: e);
+    }
+  }
+
+  @override
   Stream<List<HealthAlert>> getHealthAlertsStream({int limit = 20}) {
     final doc = _userDoc;
     if (doc == null) return Stream.value([]);
-    return doc.collection('health_alerts').orderBy('time', descending: true).limit(limit).snapshots().map((snapshot) => snapshot.docs.map((doc) => HealthAlert.fromMap(doc.data(), id: doc.id)).toList());
+    return doc
+        .collection('health_alerts')
+        .orderBy('time', descending: true)
+        .limit(limit)
+        .snapshots()
+        .handleError((e) {
+          if (e.toString().contains('permission-denied')) {
+            AppLogger.debug('FirestoreService: Alerts stream closed (permission-denied)');
+          } else {
+            throw e;
+          }
+        })
+        .map((snapshot) => snapshot.docs.map((doc) => HealthAlert.fromMap(doc.data(), id: doc.id)).toList());
   }
 
   @override

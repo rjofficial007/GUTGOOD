@@ -11,7 +11,6 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 
 class StreakCard extends StatelessWidget {
-
   const StreakCard({super.key, required this.streak, this.lastActivityDate});
   final int streak;
   final String? lastActivityDate;
@@ -69,7 +68,6 @@ class StreakCard extends StatelessWidget {
 }
 
 class _WeeklyProgressRow extends StatelessWidget {
-
   const _WeeklyProgressRow({this.lastActivityDate, required this.streak});
   final String? lastActivityDate;
   final int streak;
@@ -79,7 +77,6 @@ class _WeeklyProgressRow extends StatelessWidget {
     final now = DateTime.now();
     final todayMidnight = DateTime(now.year, now.month, now.day);
     final firstDayOfWeek = todayMidnight.subtract(Duration(days: todayMidnight.weekday % 7));
-    final activeToday = _isActiveToday();
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -94,6 +91,7 @@ class _WeeklyProgressRow extends StatelessWidget {
           final lastActiveMidnight = DateTime(lastActive.year, lastActive.month, lastActive.day);
 
           final diff = todayMidnight.difference(lastActiveMidnight).inDays;
+          // If active today or yesterday, the streak is alive.
           if (diff <= 1) {
             final daysSinceThisDay = lastActiveMidnight.difference(day).inDays;
             if (daysSinceThisDay >= 0 && daysSinceThisDay < streak) {
@@ -102,8 +100,8 @@ class _WeeklyProgressRow extends StatelessWidget {
           }
         }
 
-        final showFlame = isStreakDay || isToday;
-        final isHighlighted = isStreakDay || (isToday && activeToday);
+        // A day shows a "completed" flame only if it was a streak day.
+        final isCompleted = isStreakDay;
 
         return Column(
           children: [
@@ -118,22 +116,23 @@ class _WeeklyProgressRow extends StatelessWidget {
               height: 34.0.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isHighlighted ? context.appColorScheme.textPrimary : (isToday ? context.appColorScheme.textPrimary : Colors.transparent),
-                border: Border.all(color: showFlame ? context.appColorScheme.textPrimary : context.appColorScheme.border.withValues(alpha: 0.3), width: showFlame ? 2.0 : 1.0),
+                color: isCompleted ? context.appColorScheme.textPrimary : Colors.transparent,
+                border: Border.all(
+                  color: isToday ? context.appColorScheme.textPrimary : (isCompleted ? context.appColorScheme.textPrimary : context.appColorScheme.border.withValues(alpha: 0.3)),
+                  width: isToday ? 2.0 : 1.0,
+                ),
               ),
               child: Center(
-                child: showFlame ? Icon(AppIcons.flame, color: context.appColorScheme.cardBackground, size: 18.0.w) : null,
+                child: Icon(
+                  AppIcons.flame,
+                  color: isCompleted ? context.appColorScheme.cardBackground : (isToday ? context.appColorScheme.textPrimary.withValues(alpha: 0.4) : Colors.transparent),
+                  size: 18.0.w,
+                ),
               ),
             ),
           ],
         );
       }),
     );
-  }
-
-  bool _isActiveToday() {
-    if (lastActivityDate == null) return false;
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    return lastActivityDate == today;
   }
 }

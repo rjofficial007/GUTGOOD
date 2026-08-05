@@ -207,6 +207,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onLogoutTap: () => unawaited(_showLogoutBottomSheet(authNotifier, profileNotifier)),
                 ),
 
+                // 2. Streak Progress Section
+                Padding(
+                  padding: EdgeInsets.only(top: AppSizes.p16),
+                  child: StreakCard(streak: p?.streak ?? 0, lastActivityDate: p?.lastActivityDate),
+                ),
+
                 // AI Usage Section
                 if (!(p?.isPremium ?? false)) _AIUsageCard(usageNotifier: usageNotifier),
 
@@ -290,7 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: AppStrings.account,
                   showCard: true,
                   children: [
-                    if (authNotifier.isAnonymous)
+                    if (p?.isAnonymous ?? true)
                       AppTile(
                         icon: AppIcons.userPlus,
                         title: AppStrings.signInToSync,
@@ -495,7 +501,6 @@ class _AIUsageCard extends StatelessWidget {
 }
 
 class _UsageRow extends StatelessWidget {
-
   const _UsageRow({required this.label, required this.current, required this.total, required this.color});
   final String label;
   final int current;
@@ -535,7 +540,6 @@ class _UsageRow extends StatelessWidget {
 }
 
 class _AppearanceOption extends StatelessWidget {
-
   const _AppearanceOption({required this.icon, required this.title, required this.isSelected, required this.onTap});
   final IconData icon;
   final String title;
@@ -544,37 +548,37 @@ class _AppearanceOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-      label: '${AppStrings.semanticsAppearancePrefix}$title${AppStrings.semanticsAppearanceSuffix}',
-      button: true,
-      selected: isSelected,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: EdgeInsets.only(bottom: AppSizes.p12),
-          padding: EdgeInsets.all(AppSizes.p16),
-          decoration: BoxDecoration(
-            color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.elevatedSurface,
-            borderRadius: BorderRadius.circular(AppSizes.r16),
-            border: Border.all(color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.border, width: 1.5),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(AppSizes.p8),
-                decoration: BoxDecoration(color: isSelected ? context.appColorScheme.cardBackground.withValues(alpha: 0.15) : context.appColorScheme.cardBackground, shape: BoxShape.circle),
-                child: Icon(icon, color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, size: AppSizes.icon20),
-              ),
-              Gap.w16,
-              Text(
-                title,
-                style: context.bodyBold.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, fontSize: AppSizes.s15),
-              ),
-              const Spacer(),
-              if (isSelected) Icon(AppIcons.checkCircle2, color: context.appColorScheme.cardBackground, size: AppSizes.icon20),
-            ],
-          ),
+    label: '${AppStrings.semanticsAppearancePrefix}$title${AppStrings.semanticsAppearanceSuffix}',
+    button: true,
+    selected: isSelected,
+    child: GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: EdgeInsets.only(bottom: AppSizes.p12),
+        padding: EdgeInsets.all(AppSizes.p16),
+        decoration: BoxDecoration(
+          color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.elevatedSurface,
+          borderRadius: BorderRadius.circular(AppSizes.r16),
+          border: Border.all(color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.border, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(AppSizes.p8),
+              decoration: BoxDecoration(color: isSelected ? context.appColorScheme.cardBackground.withValues(alpha: 0.15) : context.appColorScheme.cardBackground, shape: BoxShape.circle),
+              child: Icon(icon, color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, size: AppSizes.icon20),
+            ),
+            Gap.w16,
+            Text(
+              title,
+              style: context.bodyBold.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, fontSize: AppSizes.s15),
+            ),
+            const Spacer(),
+            if (isSelected) Icon(AppIcons.checkCircle2, color: context.appColorScheme.cardBackground, size: AppSizes.icon20),
+          ],
         ),
       ),
-    );
+    ),
+  );
 }

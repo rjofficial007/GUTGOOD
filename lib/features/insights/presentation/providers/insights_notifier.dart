@@ -12,7 +12,6 @@ import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
 
 class InsightsNotifier with ChangeNotifier {
-
   InsightsNotifier(this._repository, this._firestoreService, this._appStateService, this._authRepository, this._analyticsService) {
     _initInsightStream();
     _appStateService.chatUpdated.addListener(_onDataUpdated);
@@ -23,6 +22,8 @@ class InsightsNotifier with ChangeNotifier {
     _authRepository.authStateChanges.listen((user) {
       if (user != null) {
         _initInsightStream();
+      } else {
+        _onSessionReset();
       }
     });
   }
@@ -99,6 +100,21 @@ class InsightsNotifier with ChangeNotifier {
   List<HealthAlert> get healthAlerts => _healthAlerts;
   bool get isLoading => _isLoading;
   bool get isGenerating => _isGenerating;
+
+  Future<void> markAllAlertsAsRead() async {
+    final unreadIds = _healthAlerts.where((a) => !a.isRead).map((a) => a.id).toList();
+    if (unreadIds.isEmpty) return;
+
+    // Optimistic UI update
+    _healthAlerts = _healthAlerts.map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a).toList();
+    notifyListeners();
+
+    try {
+      await _firestoreService.markAlertsAsRead(unreadIds);
+    } catch (e) {
+      AppLogger.error('InsightsNotifier: Error marking alerts as read', error: e);
+    }
+  }
 
   @override
   void dispose() {

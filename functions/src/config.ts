@@ -21,7 +21,7 @@ export const DEFAULT_MODEL = 'gpt-4o-mini';
 // Safety rails (mirror client-side validation; client can never raise these).
 export const MAX_IMAGES_PER_REQUEST = 4;
 export const MAX_IMAGE_BASE64_CHARS = 1_600_000; // ≈1.2 MB decoded
-export const MAX_HISTORY_MESSAGES = 20;
+export const MAX_HISTORY_MESSAGES = 30;
 export const MAX_TEXT_CHARS = 8_000;
 export const MAX_SYSTEM_CHARS = 16_000;
 

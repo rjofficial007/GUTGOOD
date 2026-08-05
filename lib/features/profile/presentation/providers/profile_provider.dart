@@ -15,7 +15,6 @@ import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier with ChangeNotifier {
-
   ProfileNotifier(this._authRepository, this._firestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService) {
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
@@ -25,6 +24,8 @@ class ProfileNotifier with ChangeNotifier {
     _authRepository.authStateChanges.listen((user) {
       if (user != null) {
         _initProfileStream();
+      } else {
+        _onSessionReset();
       }
     });
   }
@@ -45,6 +46,9 @@ class ProfileNotifier with ChangeNotifier {
 
   void _initProfileStream() {
     _profileSub?.cancel();
+    _isInitialized = false; // Reset initialization state during user switch
+    _profile = null;        // Clear stale profile data
+
     _profileSub = _firestoreService.getUserMetadataStream().listen((profile) {
       _isInitialized = true;
       if (profile != null) {

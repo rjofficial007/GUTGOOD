@@ -21,7 +21,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final symptoms = await _firestoreService.getRecentSymptomLogs(limit: 100);
 
     if (meals.isEmpty || symptoms.isEmpty) {
-      AppLogger.debug('PatternEngine: Insufficient data.');
+      AppLogger.debug('PatternEngine: Insufficient data for correlation. (Meals: ${meals.length}, Symptoms: ${symptoms.length}). Need at least one of each.');
       return;
     }
 

@@ -18,7 +18,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class InsightDetailScreen extends StatelessWidget {
-
   const InsightDetailScreen({super.key, required this.insight});
   final AIInsight insight;
 
@@ -56,28 +55,66 @@ class InsightDetailScreen extends StatelessWidget {
             onFooterTap: () => _showFocusDetails(context),
           ),
         ),
-      if (insight.healingFoods.isNotEmpty || insight.triggerFoods.isNotEmpty)
+      if (insight.healingFoods.isNotEmpty || insight.foodImpacts.any((i) => i.impactType == 'positive'))
         DashboardEntrance(
           delay: 200,
           child: GutDashboardSection(
-            title: AppStrings.healingFoods,
-            subtitle: AppStrings.recoveryProtocol,
-            visualization: const DashboardVisualizationBar(ratio: 0.8, label: AppStrings.highHealingDensity),
+            title: 'POWER SOURCES',
+            subtitle: AppStrings.foodsToPrioritize,
+            visualization: const DashboardVisualizationBar(ratio: 0.85, label: AppStrings.highHealingDensity),
             items: [
               ...insight.healingFoods
                   .take(2)
                   .map(
                     (f) => Padding(
                       padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: f.name, subtitle: AppStrings.healing, icon: AppIcons.leaf, color: context.appColorScheme.success),
+                      child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.success),
                     ),
                   ),
-              if (insight.healingFoods.isEmpty && insight.triggerFoods.isNotEmpty)
-                DashboardDetailItem(title: insight.triggerFoods.first.name, subtitle: AppStrings.trigger, icon: AppIcons.alertCircle, color: context.appColorScheme.error),
-            ],
-            footerLabel: AppStrings.viewRecommendedFoods,
-            onFooterTap: () => _showRecoveryDetails(context),
-            titleColor: context.appColorScheme.textPrimary,
+              ...insight.foodImpacts
+                  .where((i) => i.impactType == 'positive' && i.food != 'Unknown')
+                  .take(2)
+                  .map(
+                    (i) => Padding(
+                      padding: EdgeInsets.only(bottom: AppSizes.p12),
+                      child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.success),
+                    ),
+                  ),
+            ].take(3).toList(),
+            footerLabel: 'View All Power Sources',
+            onFooterTap: () => _showPowerSourcesDetails(context),
+            titleColor: context.appColorScheme.success,
+          ),
+        ),
+      if (insight.triggerFoods.isNotEmpty || insight.foodImpacts.any((i) => i.impactType == 'negative'))
+        DashboardEntrance(
+          delay: 250,
+          child: GutDashboardSection(
+            title: 'SYSTEM TRIGGERS',
+            subtitle: AppStrings.foodsToMinimize,
+            visualization: const DashboardVisualizationBar(ratio: 0.35, label: 'Active Triggers'),
+            items: [
+              ...insight.triggerFoods
+                  .take(2)
+                  .map(
+                    (f) => Padding(
+                      padding: EdgeInsets.only(bottom: AppSizes.p12),
+                      child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.error),
+                    ),
+                  ),
+              ...insight.foodImpacts
+                  .where((i) => i.impactType == 'negative' && i.food != 'Unknown')
+                  .take(2)
+                  .map(
+                    (i) => Padding(
+                      padding: EdgeInsets.only(bottom: AppSizes.p12),
+                      child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.error),
+                    ),
+                  ),
+            ].take(3).toList(),
+            footerLabel: 'View All Triggers',
+            onFooterTap: () => _showTriggersDetails(context),
+            titleColor: context.appColorScheme.error,
           ),
         ),
       if (insight.detectedPatterns.isNotEmpty)
@@ -127,30 +164,6 @@ class InsightDetailScreen extends StatelessWidget {
             titleColor: context.appColorScheme.textPrimary,
           ),
         ),
-      if (insight.foodImpacts.isNotEmpty)
-        DashboardEntrance(
-          delay: 400,
-          child: GutDashboardSection(
-            title: AppStrings.whenIEatThis,
-            subtitle: AppStrings.bodyResponses,
-            visualization: const DashboardVisualizationBar(ratio: 0.7, label: AppStrings.responseTracking),
-            items: insight.foodImpacts.where((i) => i.food.isNotEmpty && i.food != 'Unknown').take(2).map((i) {
-              final isNegative = i.impactType == 'negative';
-              return Padding(
-                padding: EdgeInsets.only(bottom: AppSizes.p12),
-                child: DashboardDetailItem(
-                  title: i.food,
-                  subtitle: i.timeframeLabel,
-                  icon: InsightUiUtils.getReactionIcon(i.emoji),
-                  color: isNegative ? context.appColorScheme.error : context.appColorScheme.success,
-                ),
-              );
-            }).toList(),
-            footerLabel: AppStrings.viewRecentFeedback,
-            onFooterTap: () => _showReactionDetails(context),
-            titleColor: context.appColorScheme.textPrimary,
-          ),
-        ),
     ];
 
     final visibleSections = sections.whereType<Widget>().toList();
@@ -195,29 +208,69 @@ class InsightDetailScreen extends StatelessWidget {
     );
   }
 
-  void _showRecoveryDetails(BuildContext context) {
+  void _showPowerSourcesDetails(BuildContext context) {
+    final healing = insight.healingFoods;
+    final successes = insight.foodImpacts.where((i) => i.impactType == 'positive' && i.food != 'Unknown').toList();
+
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: AppStrings.recommendations,
+      title: 'Power Sources',
       children: [
-        SheetHeroSection(title: AppStrings.heal, subtitle: AppStrings.recoveryProtocol, color: context.appColorScheme.textPrimary, icon: AppIcons.leaf),
+        SheetHeroSection(title: AppStrings.heal, subtitle: 'Evidence-backed benefits', color: context.appColorScheme.success, icon: AppIcons.leaf),
         Gap.h32,
-        if (insight.healingFoods.isNotEmpty) ...[
-          SheetSectionHeader(title: AppStrings.foodsToPrioritize, color: context.appColorScheme.textPrimary),
-          ...insight.healingFoods.map(
+        if (healing.isNotEmpty) ...[
+          SheetSectionHeader(title: 'AI RECOMMENDATIONS', color: context.appColorScheme.textPrimary),
+          ...healing.map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
-              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.checkCircle, color: context.appColorScheme.textPrimary),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.success),
             ),
           ),
           Gap.h24,
         ],
-        if (insight.triggerFoods.isNotEmpty) ...[
-          SheetSectionHeader(title: AppStrings.foodsToMinimize, color: context.appColorScheme.textPrimary),
-          ...insight.triggerFoods.map(
+        if (successes.isNotEmpty) ...[
+          SheetSectionHeader(title: 'YOUR SUCCESSES', color: context.appColorScheme.textPrimary),
+          ...successes.map(
+            (i) => Padding(
+              padding: EdgeInsets.only(bottom: 16.0.h),
+              child: DashboardDetailItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.success),
+            ),
+          ),
+          Gap.h24,
+        ],
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
+  }
+
+  void _showTriggersDetails(BuildContext context) {
+    final triggers = insight.triggerFoods;
+    final reactions = insight.foodImpacts.where((i) => i.impactType == 'negative' && i.food != 'Unknown').toList();
+
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: 'System Triggers',
+      children: [
+        SheetHeroSection(title: 'ALERT', subtitle: 'Potential Triggers', color: context.appColorScheme.error, icon: AppIcons.alertTriangle),
+        Gap.h32,
+        if (triggers.isNotEmpty) ...[
+          SheetSectionHeader(title: 'AI WARNINGS', color: context.appColorScheme.textPrimary),
+          ...triggers.map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
-              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle, color: context.appColorScheme.textPrimary),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.error),
+            ),
+          ),
+          Gap.h24,
+        ],
+        if (reactions.isNotEmpty) ...[
+          SheetSectionHeader(title: 'YOUR REACTIONS', color: context.appColorScheme.textPrimary),
+          ...reactions.map(
+            (i) => Padding(
+              padding: EdgeInsets.only(bottom: 16.0.h),
+              child: DashboardDetailItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.error),
             ),
           ),
           Gap.h24,
@@ -282,32 +335,6 @@ class InsightDetailScreen extends StatelessWidget {
       ],
     );
   }
-
-  void _showReactionDetails(BuildContext context) {
-    BottomSheetHelper.showGutBottomSheet(
-      context: context,
-      title: AppStrings.bodyReactions,
-      children: [
-        SheetHeroSection(title: AppStrings.bioFeedback, subtitle: AppStrings.reactionMapping, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
-        Gap.h32,
-        ...insight.foodImpacts.map((i) {
-          final isNegative = i.impactType == 'negative';
-          return Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(
-              title: i.food,
-              subtitle: '${i.timeframeLabel}: ${i.effect}',
-              icon: InsightUiUtils.getReactionIcon(i.emoji),
-              color: isNegative ? context.appColorScheme.error : context.appColorScheme.success,
-            ),
-          );
-        }),
-        Gap.h32,
-        GutButton(label: AppStrings.gotItThanks, onTap: () => Navigator.pop(context)),
-        Gap.h24,
-      ],
-    );
-  }
 }
 
 class _ModernSmartAlert extends StatelessWidget {
@@ -316,21 +343,21 @@ class _ModernSmartAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ModernInsightCard(
-      title: insight.title,
-      icon: AppIcons.sparkles,
-      backgroundColor: context.appColorScheme.cardBackground,
-      titleColor: context.appColorScheme.textPrimary,
-      iconColor: context.appColorScheme.textPrimary,
-      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
-      footer: Text(
-        '${insight.type.toUpperCase()} INSIGHT',
-        textAlign: TextAlign.center,
-        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
-      ),
-      footerColor: context.appColorScheme.textPrimary,
-      child: Text(
-        insight.description,
-        style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
-      ),
-    );
+    title: insight.title,
+    icon: AppIcons.sparkles,
+    backgroundColor: context.appColorScheme.cardBackground,
+    titleColor: context.appColorScheme.textPrimary,
+    iconColor: context.appColorScheme.textPrimary,
+    padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
+    footer: Text(
+      '${insight.type.toUpperCase()} INSIGHT',
+      textAlign: TextAlign.center,
+      style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
+    ),
+    footerColor: context.appColorScheme.textPrimary,
+    child: Text(
+      insight.description,
+      style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
+    ),
+  );
 }

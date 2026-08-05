@@ -73,10 +73,12 @@ void main() {
       verify(() => mockAppStateService.notifyChatUpdated()).called(1);
     });
 
-    test('should extract scan when [SCAN] tag is present', () {
+    test('should extract scan and schedule reminders when [SCAN] tag is present', () {
       const text = 'Check this [SCAN]{"productName": "Oats", "brand": "Quaker", "score": 90, "impact": "Great"}[/SCAN]';
       
       when(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'))).thenAnswer((_) async => {});
+      when(() => mockNotificationService.schedulePostMealCheckIn()).thenAnswer((_) async {});
+      when(() => mockNotificationService.scheduleNoMealLoggedReminder()).thenAnswer((_) async {});
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
       when(() => mockFirestoreService.getUserMetadata()).thenAnswer((_) async => null);
 
@@ -85,6 +87,8 @@ void main() {
       expect(result.text, 'Check this');
       expect(result.scanData?.productName, 'Oats');
       verify(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'))).called(1);
+      verify(() => mockNotificationService.schedulePostMealCheckIn()).called(1);
+      verify(() => mockNotificationService.scheduleNoMealLoggedReminder()).called(1);
     });
 
     test('should return original text if no tags are present', () {

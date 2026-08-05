@@ -116,6 +116,7 @@ class _LoginSheetState extends State<_LoginSheet> {
 
   void _onAuthChanged() {
     if (_authNotifier.isAuthenticated && !_authNotifier.isAnonymous && mounted) {
+      AppLogger.info('AuthSheet: Authentication detected in background. Dismissing sheet.');
       // 🟢 Fix: If auth becomes permanent while the sheet is open (e.g. Magic Link resolve),
       // automatically close the sheet.
       _onAuthSuccess(context);

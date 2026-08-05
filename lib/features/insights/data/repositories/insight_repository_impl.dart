@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
@@ -16,7 +16,6 @@ import 'package:gutgood/features/insights/domain/repositories/insight_repository
 import 'package:shared_preferences/shared_preferences.dart';
 
 class InsightRepositoryImpl implements InsightRepository {
-
   InsightRepositoryImpl({
     required FirestoreService firestoreService,
     required AiService aiService,
@@ -64,19 +63,23 @@ class InsightRepositoryImpl implements InsightRepository {
   @override
   Future<void> generateNewInsight() async {
     final lastRunStr = _prefs.getString('last_insight_run');
-    // 🟡 Fix: Use parseToUtc for consistent comparison.
-    final lastRun = lastRunStr != null ? DateTimeUtils.parseToUtc(lastRunStr) : DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    DateTime lastRun;
+
+    if (lastRunStr != null) {
+      lastRun = DateTimeUtils.parseToUtc(lastRunStr);
+    } else {
+      // 🟢 Fix: Fallback to Firestore to prevent duplicate generation on fresh login/new device.
+      final latestCloud = await _firestoreService.getLatestInsights();
+      lastRun = latestCloud?.updatedAt.toUtc() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+      AppLogger.info('InsightRepo: No local lastRun found. Fallback to Firestore: $lastRun');
+    }
 
     // 🟢 PRD Section 8.2 Alignment: At least 24 hours since last insight
-    // 🟡 Fix: Ensure 'now' is in UTC for the difference calculation.
     final nowUtc = DateTime.now().toUtc();
     final hoursSinceLastRun = nowUtc.difference(lastRun).inHours;
 
-    // 🔴 TEMPORARY DEBUG BYPASS: Enable this to test notifications immediately.
-    const bypassTimeCheck = kDebugMode;
-
-    if (hoursSinceLastRun < 24 && !bypassTimeCheck) {
-      AppLogger.debug('InsightRepo: Last insight was generated $hoursSinceLastRun hours ago. Skipping.');
+    if (hoursSinceLastRun < 24) {
+      AppLogger.debug('InsightRepo: Last insight was generated $hoursSinceLastRun hours ago. Skipping duplicate generation.');
       return;
     }
 
@@ -84,8 +87,8 @@ class InsightRepositoryImpl implements InsightRepository {
     final mealCount = await _firestoreService.getMealLogsCountSince(lastRun);
     final symptomCount = await _firestoreService.getSymptomsCountSince(lastRun);
 
-    if (scanCount < 3 && mealCount < 1 && symptomCount < 1 && !bypassTimeCheck) {
-      AppLogger.debug('InsightRepo: Not enough new data for analysis.');
+    if (scanCount < 3 && mealCount < 1 && symptomCount < 1) {
+      AppLogger.debug('InsightRepo: Not enough new data for analysis since $lastRun. (Scans: $scanCount/3 OR Meals: $mealCount/1 OR Symptoms: $symptomCount/1). Skipping.');
       return;
     }
 
@@ -138,6 +141,20 @@ class InsightRepositoryImpl implements InsightRepository {
       await _prefs.setString('gutgood_insights_cache', cleanJson);
       await _prefs.setString('last_insight_run', DateTime.now().toUtc().toIso8601String());
       await _firestoreService.saveInsights(insight);
+
+      // 🟢 Fix: Save HealthAlert locally now that Cloud Function is removed
+      unawaited(
+        _firestoreService.saveHealthAlert(
+          HealthAlert(
+            id: '',
+            title: 'Gut Insight Ready',
+            message: 'Your latest personalized gut health analysis is ready. Open to see your new score!',
+            type: 'insight_ready',
+            time: DateTime.now(),
+            isRead: false,
+          ),
+        ),
+      );
 
       unawaited(_notificationService.showInsightGeneratedNotification());
 

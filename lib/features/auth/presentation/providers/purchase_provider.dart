@@ -11,7 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum PurchaseActionType { purchase, restore }
 
 class PurchaseProvider extends ChangeNotifier {
-
   PurchaseProvider({
     required PurchaseService purchaseService,
     required InternetConnectionChecker connectionChecker,
@@ -27,6 +26,7 @@ class PurchaseProvider extends ChangeNotifier {
        _analyticsService = analyticsService {
     _isPremium = _purchaseService.isPremium;
     fetchOfferings();
+    _appStateService.sessionReset.addListener(_onSessionReset);
   }
   final PurchaseService _purchaseService;
   final InternetConnectionChecker _connectionChecker;
@@ -171,6 +171,20 @@ class PurchaseProvider extends ChangeNotifier {
     // so it is available cross-device and to the aiProxy quota check. There
     // is intentionally no server-side RevenueCat integration.
     await _firestoreService.updatePremiumStatus(active);
+  }
+
+  @override
+  void dispose() {
+    _appStateService.sessionReset.removeListener(_onSessionReset);
+    super.dispose();
+  }
+
+  void _onSessionReset() {
+    _isPremium = false;
+    _packages = [];
+    _errorMessage = null;
+    _isPurchasing = false;
+    notifyListeners();
   }
 
   void setPremiumForDebug(bool value) {

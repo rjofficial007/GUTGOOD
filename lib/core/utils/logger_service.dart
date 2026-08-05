@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
-
 import 'package:gutgood/core/constants/logger_string.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
@@ -59,8 +58,8 @@ class AppLogger {
 
   /// Helper method to format and print the log message.
   static void _printLog(Object? prefix, Object? message, Object? error, StackTrace? stackTrace) {
-    // 🔴 1. Record errors to Crashlytics in production (even if logs are suppressed)
-    if (kReleaseMode && error != null) {
+    // 🔴 1. Record errors to Crashlytics (even if logs are suppressed locally)
+    if (error != null) {
       try {
         unawaited(sl<CrashlyticsService>().recordError(error, stackTrace, reason: message));
       } catch (e) {

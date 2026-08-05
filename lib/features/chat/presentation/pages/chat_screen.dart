@@ -23,6 +23,7 @@ import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/scanner/presentation/pages/super_scanner_screen.dart';
 import 'package:image_picker/image_picker.dart';
@@ -162,12 +163,12 @@ class _ChatScreenState extends State<ChatScreen> {
       final added = await chatNotifier.addAttachment(bytes, source: 'gallery');
 
       if (added) {
-      setState(() {
-        _pendingHiddenContext = AppStrings.analyzeGalleryVision;
-        // 🟢 Fix: Always sync text with gallery prompt
-        _controller.text = AppStrings.galleryPhotoPrompt;
-      });
-    }
+        setState(() {
+          _pendingHiddenContext = AppStrings.analyzeGalleryVision;
+          // 🟢 Fix: Always sync text with gallery prompt
+          _controller.text = AppStrings.galleryPhotoPrompt;
+        });
+      }
     } catch (e, st) {
       AppLogger.error('ChatScreen: Image pick failed', error: e, stackTrace: st);
     }
@@ -235,10 +236,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final chatNotifier = context.watch<ChatNotifier>();
     final profile = context.watch<ProfileNotifier>().profile;
+    final insightsNotifier = context.watch<InsightsNotifier>();
     final authNotifier = context.read<GutAuthNotifier>();
     final screenWidth = context.width;
     final messages = chatNotifier.messages;
     final latestAi = _latestAiIndex(messages);
+    final hasUnreadAlerts = insightsNotifier.healthAlerts.any((a) => !a.isRead);
 
     // ChatGPT follow-scroll: while tokens arrive, stick to the bottom unless
     // the user deliberately scrolled up to read.
@@ -275,10 +278,33 @@ class _ChatScreenState extends State<ChatScreen> {
           streak: profile?.streak,
           actions: [
             GestureDetector(
-              onTap: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
+              onTap: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
               child: const Tooltip(message: AppStrings.viewPremiumBenefits, child: PremiumBadge()),
             ),
-            Gap.w16,
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(AppIcons.bell, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+                  onPressed: () => context.push(AppRoutes.notificationArchive),
+                ),
+                if (hasUnreadAlerts)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: context.appColorScheme.error,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            Gap.w4,
           ],
         ),
         body: SafeArea(
@@ -466,67 +492,67 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildSendStopButton(ChatNotifier chatNotifier, GutAuthNotifier authNotifier) => ListenableBuilder(
-      listenable: _controller,
-      builder: (context, _) {
-        final hasContent = _controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
-        final colorScheme = context.appColorScheme;
+    listenable: _controller,
+    builder: (context, _) {
+      final hasContent = _controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
+      final colorScheme = context.appColorScheme;
 
-        // Streaming → ChatGPT's stop control.
-        if (chatNotifier.isStreaming) {
-          return Semantics(
-            label: AppStrings.stopGenerating,
-            button: true,
-            child: Tooltip(
-              message: AppStrings.stopGenerating,
-              child: GestureDetector(
-                onTap: () {
-                  HapticHelper.light();
-                  chatNotifier.stopGeneration();
-                },
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
-                  child: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
-                ),
-              ),
-            ),
-          );
-        }
-
-        // Uploading/preparing → inert spinner.
-        if (chatNotifier.isLoading) {
-          return Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
-            child: Center(
-              child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),
-            ),
-          );
-        }
-
-        final enabled = hasContent;
+      // Streaming → ChatGPT's stop control.
+      if (chatNotifier.isStreaming) {
         return Semantics(
-          label: AppStrings.sendMessage,
+          label: AppStrings.stopGenerating,
           button: true,
-          enabled: enabled,
           child: Tooltip(
-            message: AppStrings.sendMessage,
+            message: AppStrings.stopGenerating,
             child: GestureDetector(
-              onTap: enabled ? () => _send(chatNotifier, authNotifier) : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+              onTap: () {
+                HapticHelper.light();
+                chatNotifier.stopGeneration();
+              },
+              child: Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
-                child: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 20),
+                child: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
               ),
             ),
           ),
         );
-      },
-    );
+      }
+
+      // Uploading/preparing → inert spinner.
+      if (chatNotifier.isLoading) {
+        return Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
+          child: Center(
+            child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),
+          ),
+        );
+      }
+
+      final enabled = hasContent;
+      return Semantics(
+        label: AppStrings.sendMessage,
+        button: true,
+        enabled: enabled,
+        child: Tooltip(
+          message: AppStrings.sendMessage,
+          child: GestureDetector(
+            onTap: enabled ? () => _send(chatNotifier, authNotifier) : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
+              child: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 20),
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// Thumbnail strip of pending attachments shown INSIDE the composer,
@@ -547,9 +573,24 @@ class _AttachmentPreviewRow extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.memory(attachment.bytes, width: 60, height: 60, fit: BoxFit.cover, gaplessPlayback: true),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  opaque: false,
+                  barrierColor: Colors.black.withValues(alpha: 0.1),
+                  pageBuilder: (context, _, _) => ImagePreviewDialog(localImages: [attachment.bytes], initialIndex: 0, heroTag: 'attachment_${attachment.id}'),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
+                ),
+              );
+            },
+            child: Hero(
+              tag: 'attachment_${attachment.id}',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(attachment.bytes, width: 60, height: 60, fit: BoxFit.cover, gaplessPlayback: true),
+              ),
+            ),
           ),
           Positioned(
             top: -6,
@@ -582,7 +623,6 @@ class _AttachmentPreviewRow extends StatelessWidget {
 }
 
 class _ComposerIconButton extends StatelessWidget {
-
   const _ComposerIconButton({required this.icon, required this.label, this.onTap});
   final IconData icon;
   final String label;
@@ -590,29 +630,29 @@ class _ComposerIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-      label: label,
-      button: true,
-      enabled: onTap != null,
-      child: Tooltip(
-        message: label,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Opacity(
-            opacity: onTap == null ? 0.4 : 1.0,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: context.appColorScheme.cardBackground,
-                borderRadius: BorderRadius.circular(AppSizes.r14),
-                border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-              ),
-              child: Icon(icon, color: context.appColorScheme.textPrimary, size: 20),
+    label: label,
+    button: true,
+    enabled: onTap != null,
+    child: Tooltip(
+      message: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Opacity(
+          opacity: onTap == null ? 0.4 : 1.0,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: context.appColorScheme.cardBackground,
+              borderRadius: BorderRadius.circular(AppSizes.r14),
+              border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
             ),
+            child: Icon(icon, color: context.appColorScheme.textPrimary, size: 20),
           ),
         ),
       ),
-    );
+    ),
+  );
 }
 
 /// Runs the entrance animation exactly once per message — the previous
@@ -638,11 +678,11 @@ class _AnimatedChatItemState extends State<_AnimatedChatItem> {
 
   @override
   Widget build(BuildContext context) => AnimatedOpacity(
-      opacity: _visible ? 1.0 : 0.0,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-      child: AnimatedSlide(offset: _visible ? Offset.zero : const Offset(0, 0.02), duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic, child: widget.child),
-    );
+    opacity: _visible ? 1.0 : 0.0,
+    duration: const Duration(milliseconds: 280),
+    curve: Curves.easeOutCubic,
+    child: AnimatedSlide(offset: _visible ? Offset.zero : const Offset(0, 0.02), duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic, child: widget.child),
+  );
 }
 
 class _EmptyChatState extends StatelessWidget {
@@ -650,24 +690,24 @@ class _EmptyChatState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(AppSizes.p40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(AppAssets.appMascot, width: AppSizes.p120),
-            Gap.h32,
-            Text(AppStrings.heyImGutGood, style: context.headingMd.copyWith(fontWeight: FontWeight.w900)),
-            Gap.h12,
-            Text(
-              AppStrings.gutgoodEmptyDescription,
-              textAlign: TextAlign.center,
-              style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
-            ),
-          ],
-        ),
+    child: SingleChildScrollView(
+      padding: EdgeInsets.all(AppSizes.p40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(AppAssets.appMascot, width: AppSizes.p120),
+          Gap.h32,
+          Text(AppStrings.heyImGutGood, style: context.headingMd.copyWith(fontWeight: FontWeight.w900)),
+          Gap.h12,
+          Text(
+            AppStrings.gutgoodEmptyDescription,
+            textAlign: TextAlign.center,
+            style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
+          ),
+        ],
       ),
-    );
+    ),
+  );
 }
 
 class _ChatShimmerLoading extends StatelessWidget {
@@ -675,82 +715,82 @@ class _ChatShimmerLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
-      itemCount: 10,
-      reverse: true,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final isUser = index % 2 == 0;
-        final baseColor = context.appColorScheme.border.withValues(alpha: 0.2);
-        final highlightColor = context.appColorScheme.border.withValues(alpha: 0.5);
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
+    itemCount: 10,
+    reverse: true,
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    itemBuilder: (context, index) {
+      final isUser = index % 2 == 0;
+      final baseColor = context.appColorScheme.border.withValues(alpha: 0.2);
+      final highlightColor = context.appColorScheme.border.withValues(alpha: 0.5);
 
-        if (isUser) {
-          return Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: Shimmer.fromColors(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                child: Container(
-                  width: context.width * (0.4 + (index % 3) * 0.1),
-                  height: AppSizes.h54,
-                  decoration: BoxDecoration(
-                    color: AppPalette.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(AppSizes.r24),
-                      topRight: Radius.circular(AppSizes.r24),
-                      bottomLeft: Radius.circular(AppSizes.r24),
-                      bottomRight: Radius.circular(AppSizes.r8),
-                    ),
+      if (isUser) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: AppSizes.p12),
+            child: Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Container(
+                width: context.width * (0.4 + (index % 3) * 0.1),
+                height: AppSizes.h54,
+                decoration: BoxDecoration(
+                  color: AppPalette.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(AppSizes.r24),
+                    topRight: Radius.circular(AppSizes.r24),
+                    bottomLeft: Radius.circular(AppSizes.r24),
+                    bottomRight: Radius.circular(AppSizes.r8),
                   ),
                 ),
               ),
             ),
-          );
-        }
-
-        return Padding(
-          padding: EdgeInsets.only(bottom: AppSizes.p12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Shimmer.fromColors(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                child: Padding(
-                  padding: const EdgeInsets.all(1),
-                  child: Container(
-                    width: AppSizes.icon28,
-                    height: AppSizes.icon28,
-                    decoration: BoxDecoration(color: context.appColorScheme.cardBackground, shape: BoxShape.circle),
-                  ),
-                ),
-              ),
-              Gap.w12,
-              Shimmer.fromColors(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                child: Container(
-                  width: context.width * (0.5 + (index % 2) * 0.1),
-                  height: AppSizes.h74,
-                  decoration: BoxDecoration(
-                    color: context.appColorScheme.cardBackground,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(AppSizes.r8),
-                      topRight: Radius.circular(AppSizes.r24),
-                      bottomLeft: Radius.circular(AppSizes.r24),
-                      bottomRight: Radius.circular(AppSizes.r24),
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
         );
-      },
-    );
+      }
+
+      return Padding(
+        padding: EdgeInsets.only(bottom: AppSizes.p12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Padding(
+                padding: const EdgeInsets.all(1),
+                child: Container(
+                  width: AppSizes.icon28,
+                  height: AppSizes.icon28,
+                  decoration: BoxDecoration(color: context.appColorScheme.cardBackground, shape: BoxShape.circle),
+                ),
+              ),
+            ),
+            Gap.w12,
+            Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Container(
+                width: context.width * (0.5 + (index % 2) * 0.1),
+                height: AppSizes.h74,
+                decoration: BoxDecoration(
+                  color: context.appColorScheme.cardBackground,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(AppSizes.r8),
+                    topRight: Radius.circular(AppSizes.r24),
+                    bottomLeft: Radius.circular(AppSizes.r24),
+                    bottomRight: Radius.circular(AppSizes.r24),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
 
 class _DateHeader extends StatelessWidget {
@@ -798,19 +838,19 @@ class _Chip extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.only(right: AppSizes.p8),
-        padding: EdgeInsets.symmetric(horizontal: AppSizes.p14, vertical: AppSizes.p8),
-        decoration: BoxDecoration(
-          color: context.appColorScheme.cardBackground,
-          borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: context.appColorScheme.border),
-        ),
-        child: Text(
-          label,
-          style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600),
-        ),
+    onTap: onTap,
+    child: Container(
+      margin: EdgeInsets.only(right: AppSizes.p8),
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p14, vertical: AppSizes.p8),
+      decoration: BoxDecoration(
+        color: context.appColorScheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppSizes.r20),
+        border: Border.all(color: context.appColorScheme.border),
       ),
-    );
+      child: Text(
+        label,
+        style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600),
+      ),
+    ),
+  );
 }

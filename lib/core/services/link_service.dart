@@ -17,7 +17,6 @@ abstract class LinkService {
 }
 
 class LinkServiceImpl implements LinkService {
-
   LinkServiceImpl({required AuthRepository authRepository, required SharedPreferences prefs, required FirebaseAuth firebaseAuth, required AppStateService appStateService})
     : _authRepository = authRepository,
       _prefs = prefs,
@@ -38,7 +37,8 @@ class LinkServiceImpl implements LinkService {
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
-        unawaited(_handleLink(initialUri));
+        AppLogger.info('LinkService: Found initial link on launch: $initialUri');
+        await _handleLink(initialUri);
       }
     } catch (e) {
       AppLogger.error('LinkService: Error getting initial link', error: e);
@@ -63,7 +63,8 @@ class LinkServiceImpl implements LinkService {
 
   Future<void> _handleLink(Uri uri) async {
     final link = uri.toString();
-    AppLogger.info('LinkService: Handling link -> $link');
+    AppLogger.info('LinkService: Incoming link received: $link');
+    AppLogger.debug('LinkService: URI Details - Host: ${uri.host}, Path: ${uri.path}, Query: ${uri.queryParameters}');
 
     var effectiveLink = link;
 
@@ -71,37 +72,48 @@ class LinkServiceImpl implements LinkService {
     // We must unwrap it to find the 'oobCode' required by FirebaseAuth.
     if (!_firebaseAuth.isSignInWithEmailLink(effectiveLink)) {
       final nestedLink = uri.queryParameters['link'];
-      if (nestedLink != null && _firebaseAuth.isSignInWithEmailLink(nestedLink)) {
-        AppLogger.info('LinkService: Unwrapped nested auth link found.');
-        effectiveLink = nestedLink;
+      if (nestedLink != null) {
+        if (_firebaseAuth.isSignInWithEmailLink(nestedLink)) {
+          AppLogger.info('LinkService: Successfully unwrapped nested auth link.');
+          effectiveLink = nestedLink;
+        } else {
+          AppLogger.debug('LinkService: Nested "link" parameter found but is NOT a valid email sign-in link.');
+        }
       }
     }
 
     if (_firebaseAuth.isSignInWithEmailLink(effectiveLink)) {
+      AppLogger.info('LinkService: Valid Email Sign-in Link detected. Proceeding with verification.');
       _appStateService.setVerifyingAuth(true);
       final email = _prefs.getString('login_email');
 
       if (email != null) {
+        AppLogger.info('LinkService: Attempting sign-in for email: $email');
         try {
           final user = await _authRepository.signInWithEmailLink(email, effectiveLink);
           if (user != null) {
+            AppLogger.info('LinkService: Sign-in successful for ${user.email}');
             await _prefs.remove('login_email');
           } else {
-            _appStateService.setEmailLinkError('Failed to complete sign-in. Link may be invalid.');
+            AppLogger.warning('LinkService: signInWithEmailLink returned null user.');
+            _appStateService.setEmailLinkError('Failed to complete sign-in. Link may be invalid or expired.');
           }
         } catch (e) {
-          AppLogger.error('LinkService: Sign-in failed', error: e);
-          _appStateService.setEmailLinkError('An error occurred. Please try again.');
+          AppLogger.error('LinkService: Sign-in process failed', error: e);
+          _appStateService.setEmailLinkError('An error occurred during sign-in. Please try again.');
         } finally {
           await Future.delayed(const Duration(milliseconds: 1500));
           _appStateService.setVerifyingAuth(false);
         }
       } else {
+        AppLogger.warning('LinkService: No cached login_email found. Saving link for later.');
         await Future.delayed(const Duration(milliseconds: 1000));
         _appStateService
           ..setVerifyingAuth(false)
           ..setPendingEmailLink(effectiveLink);
       }
+    } else {
+      AppLogger.info('LinkService: Link is not a recognized Firebase Auth link.');
     }
   }
 

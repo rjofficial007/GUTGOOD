@@ -13,6 +13,7 @@ import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/data/models/auth_user_model.dart';
@@ -23,7 +24,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-
   AuthRepositoryImpl({
     required firebase.FirebaseAuth firebaseAuth,
     required GoogleSignIn googleSignIn,
@@ -34,6 +34,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required FirebaseFunctions firebaseFunctions,
     required AnalyticsService analyticsService,
     required CrashlyticsService crashlyticsService,
+    required NotificationService notificationService,
   }) : _firebaseAuth = firebaseAuth,
        _googleSignIn = googleSignIn,
        _firestoreService = firestoreService,
@@ -42,7 +43,8 @@ class AuthRepositoryImpl implements AuthRepository {
        _appStateService = appStateService,
        _firebaseFunctions = firebaseFunctions,
        _analyticsService = analyticsService,
-       _crashlyticsService = crashlyticsService;
+       _crashlyticsService = crashlyticsService,
+       _notificationService = notificationService;
   final firebase.FirebaseAuth _firebaseAuth;
   final GoogleSignIn _googleSignIn;
   final FirestoreService _firestoreService;
@@ -52,14 +54,16 @@ class AuthRepositoryImpl implements AuthRepository {
   final FirebaseFunctions _firebaseFunctions;
   final AnalyticsService _analyticsService;
   final CrashlyticsService _crashlyticsService;
+  final NotificationService _notificationService;
 
   Future<void>? _googleSignInInitFuture;
   final _isMergingController = StreamController<bool>.broadcast();
 
-  Future<void> _ensureGoogleSignInInitialized() => _googleSignInInitFuture ??= _googleSignIn.initialize(serverClientId: ApiConstants.googleServerClientId, clientId: Platform.isIOS ? DefaultFirebaseOptions.ios.iosClientId : null);
+  Future<void> _ensureGoogleSignInInitialized() =>
+      _googleSignInInitFuture ??= _googleSignIn.initialize(serverClientId: ApiConstants.googleServerClientId, clientId: Platform.isIOS ? DefaultFirebaseOptions.ios.iosClientId : null);
 
   @override
-  Stream<AuthUser?> get authStateChanges => _firebaseAuth.authStateChanges().map((user) => user != null ? AuthUserModel.fromFirebase(user) : null);
+  Stream<AuthUser?> get authStateChanges => _firebaseAuth.userChanges().map((user) => user != null ? AuthUserModel.fromFirebase(user) : null);
 
   @override
   Stream<bool> get isMerging => _isMergingController.stream;
@@ -440,9 +444,7 @@ class AuthRepositoryImpl implements AuthRepository {
     await _firestoreService.updateUserProfile(profile);
 
     // Persist onboarding status locally for fast-track checking on restart
-    if (profile.onboarded) {
-      await _prefs.setBool('onboarded', true);
-    }
+    await _prefs.setBool('onboarded', profile.onboarded);
 
     await _purchaseService.login(user.uid);
     await _identifyUser(user.uid, user.email);
@@ -468,14 +470,21 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> signOut() async {
-    _appStateService.setLoggingOut(true);
+    _appStateService
+      ..setLoggingOut(true)
+      ..resetSession(); // 🟢 Trigger early to cancel Firestore streams
+
+    // 🟢 Fix: Small delay to allow Dart streams to successfully notify native listeners
+    // to close before we invalidate the authentication token.
+    await Future.delayed(const Duration(milliseconds: 200));
+
     try {
       await _firestoreService.clearFcmToken();
+      await _notificationService.cancelAll();
       await _firebaseAuth.signOut();
       await _googleSignIn.signOut();
       await _purchaseService.logout();
       await _clearUserSessionData();
-      _appStateService.resetSession();
     } catch (e) {
       AppLogger.warning('AuthRepo: Sign out warning: $e');
     } finally {
@@ -487,16 +496,22 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> deleteAccount() async {
     final user = _firebaseAuth.currentUser;
     if (user == null) return;
-    _appStateService.setLoggingOut(true);
+    _appStateService
+      ..setLoggingOut(true)
+      ..resetSession(); // 🟢 Trigger early to cancel Firestore streams
+
+    // 🟢 Fix: Small delay to allow Dart streams to successfully notify native listeners
+    await Future.delayed(const Duration(milliseconds: 200));
+
     try {
       await _firestoreService.clearFcmToken();
+      await _notificationService.cancelAll();
       // 🟢 Fix: Authoritative cleanup is handled by the Cloud Function trigger
       // (onUserDeleted). We only delete the Auth user from the client.
       await user.delete();
 
       await _purchaseService.logout();
       await _clearUserSessionData();
-      _appStateService.resetSession();
     } finally {
       _appStateService.setLoggingOut(false);
     }

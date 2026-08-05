@@ -26,7 +26,6 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ScanResultScreen extends StatefulWidget {
-
   const ScanResultScreen({super.key, required this.scanData, this.heroTag});
   final ScanResult scanData;
   final String? heroTag;
@@ -165,10 +164,15 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             title: AppStrings.upgradeLabel,
             subtitle: AppStrings.betterSwapsLabel,
             visualization: const _SwapVisualization(),
-            items: widget.scanData.swaps.take(3).map((swap) => Padding(
-                padding: EdgeInsets.only(bottom: AppSizes.p12),
-                child: DashboardDetailItem(title: swap.title, subtitle: swap.subtitle, icon: AppIcons.sparkles, color: context.appColorScheme.textPrimary),
-              )).toList(),
+            items: widget.scanData.swaps
+                .take(3)
+                .map(
+                  (swap) => Padding(
+                    padding: EdgeInsets.only(bottom: AppSizes.p12),
+                    child: DashboardDetailItem(title: swap.title, subtitle: swap.subtitle, icon: AppIcons.sparkles, color: context.appColorScheme.textPrimary),
+                  ),
+                )
+                .toList(),
             footerLabel: AppStrings.viewAllAlternatives,
             onFooterTap: () => unawaited(_showAllSwaps(context)),
           ),
@@ -254,14 +258,14 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   }
 
   Widget _buildImpactTile(BuildContext context, ImpactDetail impact) => Padding(
-      padding: EdgeInsets.only(bottom: AppSizes.p12),
-      child: DashboardDetailItem(
-        title: impact.title,
-        subtitle: '${AppStrings.factorIndicatingState}${impact.level.toLowerCase()} state.',
-        icon: AppIcons.checkCircle,
-        color: _getImpactColorByLevel(impact.level, context),
-      ),
-    );
+    padding: EdgeInsets.only(bottom: AppSizes.p12),
+    child: DashboardDetailItem(
+      title: impact.title,
+      subtitle: '${AppStrings.factorIndicatingState}${impact.level.toLowerCase()} state.',
+      icon: AppIcons.checkCircle,
+      color: _getImpactColorByLevel(impact.level, context),
+    ),
+  );
 
   Color _getImpactColorByLevel(String level, BuildContext context) {
     switch (level.toLowerCase()) {
@@ -350,16 +354,17 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   }
 
   Widget _buildIngredientTile(BuildContext context, Ingredient ing) => Padding(
-      padding: EdgeInsets.only(bottom: AppSizes.p16),
-      child: DashboardDetailItem(
-        title: ing.name,
-        subtitle: ing.impact.isNotEmpty ? ing.impact : _getIngredientImpactLabel(ing.colorName),
-        icon: InsightUiUtils.getIngredientIcon(ing.colorName),
-        color: _getIngredientColor(ing.colorName, context),
-      ),
-    );
+    padding: EdgeInsets.only(bottom: AppSizes.p16),
+    child: DashboardDetailItem(
+      title: ing.name,
+      subtitle: ing.impact.isNotEmpty ? ing.impact : _getIngredientImpactLabel(ing.colorName),
+      icon: InsightUiUtils.getIngredientIcon(ing.colorName),
+      color: _getIngredientColor(ing.colorName, context),
+    ),
+  );
 
-  Color _getIngredientColor(String colorName, BuildContext context) => InsightUiUtils.getIngredientColor(colorName, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
+  Color _getIngredientColor(String colorName, BuildContext context) =>
+      InsightUiUtils.getIngredientColor(colorName, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
 
   Future<void> _showAllSwaps(BuildContext context) async {
     final swaps = widget.scanData.swaps;
@@ -370,10 +375,12 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       children: [
         SheetHeroSection(title: '${swaps.length}', subtitle: AppStrings.healthierAlternativesFound, color: context.appColorScheme.textPrimary, icon: AppIcons.sparkles),
         Gap.h32,
-        ...swaps.map((swap) => Padding(
+        ...swaps.map(
+          (swap) => Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p16),
             child: DashboardDetailItem(title: swap.title, subtitle: swap.subtitle, icon: AppIcons.package, color: context.appColorScheme.textPrimary),
-          )),
+          ),
+        ),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -395,7 +402,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 }
 
 class _SaveButton extends StatelessWidget {
-
   const _SaveButton({required this.isSaved, required this.isLoading, required this.onTap});
   final bool isSaved;
   final bool isLoading;
@@ -403,15 +409,15 @@ class _SaveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-      onTap: isLoading ? null : onTap,
-      child: isLoading
-          ? SizedBox(
-              width: AppSizes.icon24,
-              height: AppSizes.icon24,
-              child: CircularProgressIndicator(strokeWidth: 2.5, color: context.appColorScheme.error),
-            )
-          : Icon(isSaved ? Icons.favorite : Icons.favorite_border, color: isSaved ? context.appColorScheme.error : context.appColorScheme.textMuted, size: AppSizes.icon24),
-    );
+    onTap: isLoading ? null : onTap,
+    child: isLoading
+        ? SizedBox(
+            width: AppSizes.icon24,
+            height: AppSizes.icon24,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: context.appColorScheme.error),
+          )
+        : Icon(isSaved ? Icons.favorite : Icons.favorite_border, color: isSaved ? context.appColorScheme.error : context.appColorScheme.textMuted, size: AppSizes.icon24),
+  );
 }
 
 class _ProductHero extends StatelessWidget {
@@ -505,33 +511,33 @@ class _GutImpactChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
-      alignment: Alignment.center,
-      children: [
-        SizedBox(
-          width: AppSizes.p64,
-          height: AppSizes.p64,
-          child: CircularProgressIndicator(value: 1.0, strokeWidth: 10.0.w, color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        ),
-        SizedBox(
-          width: AppSizes.p64,
-          height: AppSizes.p64,
-          child: CircularProgressIndicator(value: score / 100, strokeWidth: 10.0.w, strokeCap: StrokeCap.round, color: context.appColorScheme.textPrimary),
-        ),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              score.toString(),
-              style: context.h1.copyWith(fontSize: AppSizes.s16, fontWeight: FontWeight.w900, color: context.appColorScheme.textPrimary),
-            ),
-            Text(
-              AppStrings.pointsUnit.toUpperCase(),
-              style: context.caption.copyWith(fontSize: AppSizes.s8, fontWeight: FontWeight.w800, color: context.appColorScheme.textMuted, letterSpacing: 1.0),
-            ),
-          ],
-        ),
-      ],
-    );
+    alignment: Alignment.center,
+    children: [
+      SizedBox(
+        width: AppSizes.p64,
+        height: AppSizes.p64,
+        child: CircularProgressIndicator(value: 1.0, strokeWidth: 10.0.w, color: context.appColorScheme.border.withValues(alpha: 0.5)),
+      ),
+      SizedBox(
+        width: AppSizes.p64,
+        height: AppSizes.p64,
+        child: CircularProgressIndicator(value: score / 100, strokeWidth: 10.0.w, strokeCap: StrokeCap.round, color: context.appColorScheme.textPrimary),
+      ),
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            score.toString(),
+            style: context.h1.copyWith(fontSize: AppSizes.s16, fontWeight: FontWeight.w900, color: context.appColorScheme.textPrimary),
+          ),
+          Text(
+            AppStrings.pointsUnit.toUpperCase(),
+            style: context.caption.copyWith(fontSize: AppSizes.s8, fontWeight: FontWeight.w800, color: context.appColorScheme.textMuted, letterSpacing: 1.0),
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 class _CycleImpactDashboardSection extends StatelessWidget {
@@ -540,60 +546,54 @@ class _CycleImpactDashboardSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(AppSizes.p24),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.textPrimary,
-        borderRadius: BorderRadius.circular(AppSizes.r28),
-        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(AppStrings.phase, style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8), letterSpacing: 2.0)),
-                    Text(
-                      insight.phase.toUpperCase(),
-                      style: context.bodyBold.copyWith(color: context.appColorScheme.cardBackground, fontSize: AppSizes.s32, fontWeight: FontWeight.w900, height: 1.1),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+    width: double.infinity,
+    padding: EdgeInsets.all(AppSizes.p24),
+    decoration: BoxDecoration(
+      color: context.appColorScheme.textPrimary,
+      borderRadius: BorderRadius.circular(AppSizes.r28),
+      boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppStrings.phase, style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8), letterSpacing: 2.0)),
+                  Text(
+                    insight.phase.toUpperCase(),
+                    style: context.bodyBold.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, height: 1.1),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              Gap.w16,
-              Container(
-                padding: EdgeInsets.all(AppSizes.p12),
-                decoration: BoxDecoration(color: context.appColorScheme.cardBackground.withValues(alpha: 0.2), shape: BoxShape.circle),
-                child: Icon(AppIcons.sun, color: context.appColorScheme.cardBackground, size: AppSizes.icon28),
-              ),
-            ],
-          ),
-          Gap.h24,
-          Text(
-            insight.description,
-            style: context.body.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.9), fontSize: AppSizes.s15, height: 1.4, fontWeight: FontWeight.w500),
-          ),
-          Gap.h16,
-          Row(
-            children: [
-              Icon(AppIcons.trendingUp, color: context.appColorScheme.cardBackground, size: AppSizes.icon14),
-              Gap.w8,
-              Text(
-                AppStrings.highMetabolicImpact,
-                style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+            ),
+          ],
+        ),
+        Gap.h24,
+        Text(
+          insight.description,
+          style: context.body.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.9), fontSize: AppSizes.s15, height: 1.4, fontWeight: FontWeight.w500),
+        ),
+        Gap.h16,
+        Row(
+          children: [
+            Icon(AppIcons.trendingUp, color: context.appColorScheme.cardBackground, size: AppSizes.icon14),
+            Gap.w8,
+            Text(
+              AppStrings.highMetabolicImpact,
+              style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
 }
 
 class _IngredientCompositionVisualization extends StatelessWidget {
@@ -625,16 +625,16 @@ class _NutrientVisualization extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const GutProgressBar(ratio: 0.7),
-        Gap.h12,
-        Text(
-          AppStrings.optimalProfileIdentified,
-          style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted),
-        ),
-      ],
-    );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const GutProgressBar(ratio: 0.7),
+      Gap.h12,
+      Text(
+        AppStrings.optimalProfileIdentified,
+        style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted),
+      ),
+    ],
+  );
 }
 
 class _CautionRiskIcon extends StatelessWidget {
@@ -663,24 +663,24 @@ class _SwapVisualization extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: EdgeInsets.all(AppSizes.p12),
-          decoration: BoxDecoration(
-            color: context.appColorScheme.elevatedSurface,
-            shape: BoxShape.circle,
-            border: Border.all(color: context.appColorScheme.border),
-          ),
-          child: Icon(AppIcons.arrowRightLeft, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        padding: EdgeInsets.all(AppSizes.p12),
+        decoration: BoxDecoration(
+          color: context.appColorScheme.elevatedSurface,
+          shape: BoxShape.circle,
+          border: Border.all(color: context.appColorScheme.border),
         ),
-        Gap.h16,
-        Text(
-          AppStrings.optimizedChoices,
-          style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted),
-        ),
-      ],
-    );
+        child: Icon(AppIcons.arrowRightLeft, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
+      ),
+      Gap.h16,
+      Text(
+        AppStrings.optimizedChoices,
+        style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted),
+      ),
+    ],
+  );
 }
 
 String _getIngredientImpactLabel(String colorName) {

@@ -9,7 +9,6 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -64,9 +63,9 @@ class _NoInsightsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const SliverFillRemaining(
-      hasScrollBody: false,
-      child: EmptyStateWidget(icon: AppIcons.barChart, title: AppStrings.noInsightsYet, description: AppStrings.keepLoggingForPatterns),
-    );
+    hasScrollBody: false,
+    child: EmptyStateWidget(icon: AppIcons.barChart, title: AppStrings.noInsightsYet, description: AppStrings.keepLoggingForPatterns),
+  );
 }
 
 class _MainDashboardSliver extends StatelessWidget {
@@ -80,10 +79,8 @@ class _MainDashboardSliver extends StatelessWidget {
 
     final sections = <Widget?>[
       GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: profile?.streak ?? 0),
-      StreakCard(streak: profile?.streak ?? 0, lastActivityDate: profile?.lastActivityDate),
       TrendCard(insights: notifier.insightHistory, currentInsight: data),
-      if (notifier.healthAlerts.isNotEmpty) _RecentAlertsCard(alerts: notifier.healthAlerts),
-      if (data.topInsight != null) _ModernSmartAlert(insight: data.topInsight!),
+
       if (data.healingGoal != null || data.triggerSymptom != null)
         DashboardEntrance(
           delay: 100,
@@ -100,28 +97,66 @@ class _MainDashboardSliver extends StatelessWidget {
             onFooterTap: () => _showFocusDetails(context),
           ),
         ),
-      if (data.healingFoods.isNotEmpty || data.triggerFoods.isNotEmpty)
+      if (data.healingFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'positive'))
         DashboardEntrance(
           delay: 200,
           child: GutDashboardSection(
-            title: AppStrings.healingFoods,
-            subtitle: AppStrings.recoveryProtocol,
-            visualization: const DashboardVisualizationBar(ratio: 0.8, label: AppStrings.highHealingDensity),
+            title: 'POWER SOURCES',
+            subtitle: AppStrings.foodsToPrioritize,
+            visualization: const DashboardVisualizationBar(ratio: 0.85, label: AppStrings.highHealingDensity),
             items: [
               ...data.healingFoods
                   .take(2)
                   .map(
                     (f) => Padding(
                       padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: f.name, subtitle: AppStrings.healing, icon: AppIcons.leaf, color: context.appColorScheme.success),
+                      child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.success),
                     ),
                   ),
-              if (data.healingFoods.isEmpty && data.triggerFoods.isNotEmpty)
-                DashboardDetailItem(title: data.triggerFoods.first.name, subtitle: AppStrings.trigger, icon: AppIcons.alertCircle, color: context.appColorScheme.error),
-            ],
-            footerLabel: AppStrings.viewRecommendedFoods,
-            onFooterTap: () => _showRecoveryDetails(context),
-            titleColor: context.appColorScheme.textPrimary,
+              ...data.foodImpacts
+                  .where((i) => i.impactType == 'positive' && i.food != 'Unknown')
+                  .take(2)
+                  .map(
+                    (i) => Padding(
+                      padding: EdgeInsets.only(bottom: AppSizes.p12),
+                      child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.success),
+                    ),
+                  ),
+            ].take(3).toList(),
+            footerLabel: 'View All Power Sources',
+            onFooterTap: () => _showPowerSourcesDetails(context),
+            titleColor: context.appColorScheme.success,
+          ),
+        ),
+      if (data.triggerFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'negative'))
+        DashboardEntrance(
+          delay: 250,
+          child: GutDashboardSection(
+            title: 'SYSTEM TRIGGERS',
+            subtitle: AppStrings.foodsToMinimize,
+            visualization: const DashboardVisualizationBar(ratio: 0.35, label: 'Active Triggers'),
+            items: [
+              ...data.triggerFoods
+                  .take(2)
+                  .map(
+                    (f) => Padding(
+                      padding: EdgeInsets.only(bottom: AppSizes.p12),
+                      child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.error),
+                    ),
+                  ),
+              ...data.foodImpacts
+                  .where((i) => i.impactType == 'negative' && i.food != 'Unknown')
+                  .take(2)
+                  .map(
+                    (i) => Padding(
+                      padding: EdgeInsets.only(bottom: AppSizes.p12),
+                      child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.error),
+                    ),
+                  ),
+            ].take(3).toList(),
+            footerLabel: 'View All Triggers',
+            onFooterTap: () => _showTriggersDetails(context),
+            titleColor: context.appColorScheme.error,
           ),
         ),
       if (data.detectedPatterns.isNotEmpty)
@@ -153,10 +188,15 @@ class _MainDashboardSliver extends StatelessWidget {
               decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
               child: Icon(AppIcons.database, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
             ),
-            items: notifier.bodyPatterns.take(2).map((p) => Padding(
-                padding: EdgeInsets.only(bottom: AppSizes.p12),
-                child: DashboardDetailItem(title: p.trigger, subtitle: p.reaction, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
-              )).toList(),
+            items: notifier.bodyPatterns
+                .take(2)
+                .map(
+                  (p) => Padding(
+                    padding: EdgeInsets.only(bottom: AppSizes.p12),
+                    child: DashboardDetailItem(title: p.trigger, subtitle: p.reaction, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
+                  ),
+                )
+                .toList(),
             footerLabel: 'View All Correlations',
             onFooterTap: () => _showSystemDiscoveryDetails(context, notifier.bodyPatterns),
           ),
@@ -190,30 +230,7 @@ class _MainDashboardSliver extends StatelessWidget {
             titleColor: context.appColorScheme.textPrimary,
           ),
         ),
-      if (data.foodImpacts.isNotEmpty)
-        DashboardEntrance(
-          delay: 400,
-          child: GutDashboardSection(
-            title: AppStrings.whenIEatThis,
-            subtitle: AppStrings.bodyResponses,
-            visualization: const DashboardVisualizationBar(ratio: 0.9, label: AppStrings.responseSensitivity),
-            items: data.foodImpacts.where((i) => i.food.isNotEmpty && i.food != 'Unknown').take(2).map((i) {
-              final isNegative = i.impactType == 'negative';
-              return Padding(
-                padding: EdgeInsets.only(bottom: AppSizes.p12),
-                child: DashboardDetailItem(
-                  title: i.food,
-                  subtitle: i.timeframeLabel,
-                  icon: InsightUiUtils.getReactionIcon(i.emoji),
-                  color: isNegative ? context.appColorScheme.error : context.appColorScheme.success,
-                ),
-              );
-            }).toList(),
-            footerLabel: AppStrings.viewRecentReactions,
-            onFooterTap: () => _showReactionDetails(context),
-            titleColor: context.appColorScheme.textPrimary,
-          ),
-        ),
+      if (data.topInsight != null) _ModernSmartAlert(insight: data.topInsight!),
       GutActionBanner(
         title: AppStrings.weeklyGutRecap,
         subtitle: AppStrings.last7DaysReady,
@@ -264,29 +281,69 @@ class _MainDashboardSliver extends StatelessWidget {
     );
   }
 
-  void _showRecoveryDetails(BuildContext context) {
+  void _showPowerSourcesDetails(BuildContext context) {
+    final healing = data.healingFoods;
+    final successes = data.foodImpacts.where((i) => i.impactType == 'positive' && i.food != 'Unknown').toList();
+
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: AppStrings.recommendations,
+      title: 'Power Sources',
       children: [
-        SheetHeroSection(title: AppStrings.heal, subtitle: AppStrings.recoveryProtocol, color: context.appColorScheme.textPrimary, icon: AppIcons.leaf),
+        SheetHeroSection(title: AppStrings.heal, subtitle: 'Evidence-backed benefits', color: context.appColorScheme.success, icon: AppIcons.leaf),
         Gap.h32,
-        if (data.healingFoods.isNotEmpty) ...[
-          SheetSectionHeader(title: AppStrings.foodsToPrioritize, color: context.appColorScheme.textPrimary),
-          ...data.healingFoods.map(
+        if (healing.isNotEmpty) ...[
+          SheetSectionHeader(title: 'AI RECOMMENDATIONS', color: context.appColorScheme.textPrimary),
+          ...healing.map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
-              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.checkCircle, color: context.appColorScheme.textPrimary),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.success),
             ),
           ),
           Gap.h24,
         ],
-        if (data.triggerFoods.isNotEmpty) ...[
-          SheetSectionHeader(title: AppStrings.foodsToMinimize, color: context.appColorScheme.textPrimary),
-          ...data.triggerFoods.map(
+        if (successes.isNotEmpty) ...[
+          SheetSectionHeader(title: 'YOUR SUCCESSES', color: context.appColorScheme.textPrimary),
+          ...successes.map(
+            (i) => Padding(
+              padding: EdgeInsets.only(bottom: 16.0.h),
+              child: DashboardDetailItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.success),
+            ),
+          ),
+          Gap.h24,
+        ],
+        Gap.h32,
+        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
+  }
+
+  void _showTriggersDetails(BuildContext context) {
+    final triggers = data.triggerFoods;
+    final reactions = data.foodImpacts.where((i) => i.impactType == 'negative' && i.food != 'Unknown').toList();
+
+    BottomSheetHelper.showGutBottomSheet(
+      context: context,
+      title: 'System Triggers',
+      children: [
+        SheetHeroSection(title: 'ALERT', subtitle: 'Potential Triggers', color: context.appColorScheme.error, icon: AppIcons.alertTriangle),
+        Gap.h32,
+        if (triggers.isNotEmpty) ...[
+          SheetSectionHeader(title: 'AI WARNINGS', color: context.appColorScheme.textPrimary),
+          ...triggers.map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
-              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle, color: context.appColorScheme.textPrimary),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.error),
+            ),
+          ),
+          Gap.h24,
+        ],
+        if (reactions.isNotEmpty) ...[
+          SheetSectionHeader(title: 'YOUR REACTIONS', color: context.appColorScheme.textPrimary),
+          ...reactions.map(
+            (i) => Padding(
+              padding: EdgeInsets.only(bottom: 16.0.h),
+              child: DashboardDetailItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.error),
             ),
           ),
           Gap.h24,
@@ -352,32 +409,6 @@ class _MainDashboardSliver extends StatelessWidget {
     );
   }
 
-  void _showReactionDetails(BuildContext context) {
-    BottomSheetHelper.showGutBottomSheet(
-      context: context,
-      title: AppStrings.bodyReactions,
-      children: [
-        SheetHeroSection(title: AppStrings.bioFeedback, subtitle: AppStrings.foodBodyMapping, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
-        Gap.h32,
-        ...data.foodImpacts.where((i) => i.food.isNotEmpty && i.food != 'Unknown').map((i) {
-          final isNegative = i.impactType == 'negative';
-          return Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(
-              title: i.food,
-              subtitle: '${i.timeframeLabel}: ${i.effect}',
-              icon: InsightUiUtils.getReactionIcon(i.emoji),
-              color: isNegative ? context.appColorScheme.error : context.appColorScheme.success,
-            ),
-          );
-        }),
-        Gap.h32,
-        GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
-        Gap.h24,
-      ],
-    );
-  }
-
   void _showSystemDiscoveryDetails(BuildContext context, List<BodyPattern> patterns) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
@@ -399,130 +430,29 @@ class _MainDashboardSliver extends StatelessWidget {
   }
 }
 
-class _RecentAlertsCard extends StatelessWidget {
-  const _RecentAlertsCard({required this.alerts});
-  final List<HealthAlert> alerts;
-
-  @override
-  Widget build(BuildContext context) => Container(
-      margin: EdgeInsets.only(top: AppSizes.p16),
-      padding: EdgeInsets.all(AppSizes.p20),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppSizes.r28),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(AppIcons.bell, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
-              Gap.w8,
-              Text('RECENT HEALTH ALERTS', style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, letterSpacing: 1.2)),
-              const Spacer(),
-              if (alerts.any((a) => !a.isRead))
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(color: context.appColorScheme.error, shape: BoxShape.circle),
-                ),
-            ],
-          ),
-          Gap.h20,
-          ...alerts.take(2).map((alert) => Padding(
-              padding: EdgeInsets.only(bottom: AppSizes.p16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(AppSizes.p8),
-                    decoration: BoxDecoration(color: _getAlertColor(alert.type, context).withValues(alpha: 0.1), shape: BoxShape.circle),
-                    child: Icon(_getAlertIcon(alert.type), color: _getAlertColor(alert.type, context), size: 16),
-                  ),
-                  Gap.w12,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(alert.title, style: context.bodyBold.copyWith(fontSize: AppSizes.s14)),
-                        Text(
-                          alert.message,
-                          style: context.caption.copyWith(color: context.appColorScheme.textMuted),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            )),
-          if (alerts.length > 2)
-            GestureDetector(
-              onTap: () => unawaited(context.push(AppRoutes.notificationArchive)),
-              child: Center(
-                child: Text(
-                  'View All Alerts',
-                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: AppSizes.s13),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-
-  IconData _getAlertIcon(String type) {
-    switch (type) {
-      case 'processed_food':
-        return AppIcons.alertTriangle;
-      case 'insight_ready':
-        return AppIcons.sparkles;
-      case 'streak_saver':
-        return AppIcons.flame;
-      default:
-        return AppIcons.bell;
-    }
-  }
-
-  Color _getAlertColor(String type, BuildContext context) {
-    switch (type) {
-      case 'processed_food':
-        return context.appColorScheme.error;
-      case 'insight_ready':
-        return context.appColorScheme.success;
-      case 'streak_saver':
-        return context.appColorScheme.warning;
-      default:
-        return context.appColorScheme.textPrimary;
-    }
-  }
-}
-
 class _ModernSmartAlert extends StatelessWidget {
   const _ModernSmartAlert({required this.insight});
   final InsightSummary insight;
 
   @override
   Widget build(BuildContext context) => ModernInsightCard(
-      title: insight.title,
-      icon: AppIcons.sparkles,
-      backgroundColor: context.appColorScheme.cardBackground,
-      titleColor: context.appColorScheme.textPrimary,
-      iconColor: context.appColorScheme.textPrimary,
-      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
-      footer: Text(
-        '${insight.type.toUpperCase()} INSIGHT',
-        textAlign: TextAlign.center,
-        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
-      ),
-      footerColor: context.appColorScheme.textPrimary,
-      child: Text(
-        insight.description,
-        style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
-      ),
-    );
+    title: insight.title,
+    icon: AppIcons.sparkles,
+    backgroundColor: context.appColorScheme.cardBackground,
+    titleColor: context.appColorScheme.textPrimary,
+    iconColor: context.appColorScheme.textPrimary,
+    padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
+    footer: Text(
+      '${insight.type.toUpperCase()} INSIGHT',
+      textAlign: TextAlign.center,
+      style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
+    ),
+    footerColor: context.appColorScheme.textPrimary,
+    child: Text(
+      insight.description,
+      style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
+    ),
+  );
 }
 
 class _InsightsLoadingState extends StatelessWidget {
@@ -530,15 +460,15 @@ class _InsightsLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SliverPadding(
-      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p10),
-      sliver: SliverList(
-        delegate: SliverChildListDelegate([
-          const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.hero),
-          Gap.h32,
-          const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.card),
-          Gap.h32,
-          const ShimmerGridLoader(itemCount: 4, variant: ShimmerVariant.grid),
-        ]),
-      ),
-    );
+    padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p10),
+    sliver: SliverList(
+      delegate: SliverChildListDelegate([
+        const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.hero),
+        Gap.h32,
+        const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.card),
+        Gap.h32,
+        const ShimmerGridLoader(itemCount: 4, variant: ShimmerVariant.grid),
+      ]),
+    ),
+  );
 }

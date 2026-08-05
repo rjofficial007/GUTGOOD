@@ -45,15 +45,13 @@ void main() async {
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Crashlytics: capture Flutter framework errors and uncaught async errors.
-  // (Previously the dependency existed but was never wired up.)
-  if (!kDebugMode) {
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-    PlatformDispatcher.instance.onError = (error, stack) {
-      unawaited(FirebaseCrashlytics.instance.recordError(error, stack, fatal: true));
-      return true;
-    };
-  }
+  // Crashlytics: capture Flutter framework errors and uncaught async errors in all modes.
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    unawaited(FirebaseCrashlytics.instance.recordError(error, stack, fatal: true));
+    return true;
+  };
 
   // Initialize App Services
   await sl<AppVersionService>().fetchAppInfo();

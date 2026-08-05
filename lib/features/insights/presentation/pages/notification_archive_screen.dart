@@ -10,8 +10,21 @@ import 'package:gutgood/features/insights/presentation/providers/insights_notifi
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-class NotificationArchiveScreen extends StatelessWidget {
+class NotificationArchiveScreen extends StatefulWidget {
   const NotificationArchiveScreen({super.key});
+
+  @override
+  State<NotificationArchiveScreen> createState() => _NotificationArchiveScreenState();
+}
+
+class _NotificationArchiveScreenState extends State<NotificationArchiveScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<InsightsNotifier>().markAllAlertsAsRead();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +36,7 @@ class NotificationArchiveScreen extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           GutSliverAppBar(
-            title: 'Health Archive',
+            title: 'Notification',
             leading: IconButton(
               icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
               onPressed: () => context.pop(),
@@ -55,36 +68,47 @@ class _AlertTile extends StatelessWidget {
   final HealthAlert alert;
 
   @override
-  Widget build(BuildContext context) => Container(
-      margin: EdgeInsets.only(bottom: AppSizes.p12),
-      padding: EdgeInsets.all(AppSizes.p16),
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.only(bottom: AppSizes.p16),
+    child: Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: context.appColorScheme.elevatedSurface,
-        borderRadius: BorderRadius.circular(AppSizes.r16),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+        color: context.appColorScheme.cardBackground,
+        border: Border.all(color: context.appColorScheme.border),
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: EdgeInsets.all(AppSizes.p8),
+                padding: const EdgeInsets.all(6),
+                margin: const EdgeInsets.only(right: 10),
                 decoration: BoxDecoration(color: _getAlertColor(alert.type, context).withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: Icon(_getAlertIcon(alert.type), color: _getAlertColor(alert.type, context), size: 16),
+                child: Icon(_getAlertIcon(alert.type), color: _getAlertColor(alert.type, context), size: 14),
               ),
-              Gap.w12,
               Expanded(
-                child: Text(alert.title, style: context.bodyBold.copyWith(fontSize: AppSizes.s15)),
+                child: Text(alert.title, style: context.bodyBold.copyWith(fontSize: AppSizes.s15, height: 1.2)),
               ),
-              Text(DateFormat('MMM d').format(alert.time), style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
+              if (!alert.isRead)
+                Container(
+                  margin: const EdgeInsets.only(left: 8, top: 4),
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(color: context.appColorScheme.error, shape: BoxShape.circle),
+                ),
             ],
           ),
+          Gap.h8,
+          Text(alert.message, style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.4)),
           Gap.h12,
-          Text(alert.message, style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary, height: 1.4)),
+          Text(DateFormat('MMM d, h:mm a').format(alert.time.toLocal()), style: context.caption.copyWith(fontSize: 10, color: context.appColorScheme.textMuted)),
         ],
       ),
-    );
+    ),
+  );
 
   IconData _getAlertIcon(String type) {
     switch (type) {

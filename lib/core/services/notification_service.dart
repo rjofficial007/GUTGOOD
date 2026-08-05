@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -55,7 +56,6 @@ abstract class NotificationService {
 }
 
 class NotificationServiceImpl implements NotificationService {
-
   NotificationServiceImpl({required FlutterLocalNotificationsPlugin notifications, required FirestoreService firestoreService, required SharedPreferences prefs})
     : _notifications = notifications,
       _firestoreService = firestoreService,
@@ -85,12 +85,7 @@ class NotificationServiceImpl implements NotificationService {
 
     // Create high importance channel for Android
     if (defaultTargetPlatform == TargetPlatform.android) {
-      const channel = AndroidNotificationChannel(
-        'gutgood_reminders',
-        'GutGood Reminders',
-        description: 'This channel is used for important health alerts and reminders.',
-        importance: Importance.max,
-      );
+      const channel = AndroidNotificationChannel('gutgood_reminders', 'GutGood Reminders', description: 'This channel is used for important health alerts and reminders.', importance: Importance.max);
 
       await _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
     }
@@ -121,6 +116,7 @@ class NotificationServiceImpl implements NotificationService {
 
     if (defaultTargetPlatform == TargetPlatform.android) {
       await Permission.notification.request();
+      // scheduleExactAlarm is only needed for Android 12+ (API 31+)
       final status = await Permission.scheduleExactAlarm.status;
       if (status.isDenied) {
         await Permission.scheduleExactAlarm.request();
@@ -152,30 +148,20 @@ class NotificationServiceImpl implements NotificationService {
 
     final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
-    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'gutgood_reminders',
-      'GutGood Reminders',
-      importance: Importance.max,
-      priority: Priority.high,
-      color: AppPalette.black,
-    );
+    const androidPlatformChannelSpecifics = AndroidNotificationDetails('gutgood_reminders', 'GutGood Reminders', importance: Importance.max, priority: Priority.high, color: AppPalette.black);
 
-    const platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-      iOS: DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true),
-    );
+    const platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics, iOS: DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true));
 
-    await flutterLocalNotificationsPlugin.show(
-      id: NotificationIds.firebaseBackground,
-      title: notification.title,
-      body: notification.body,
-      notificationDetails: platformChannelSpecifics,
-      payload: message.data['type'],
-    );
+    // 🟢 Fix: Use a dynamic ID for background notifications to prevent overwriting
+    // when multiple push messages arrive in a short window.
+    final id = NotificationIds.firebaseBackground + (message.messageId?.hashCode ?? 0) % 1000;
+
+    await flutterLocalNotificationsPlugin.show(id: id, title: notification.title, body: notification.body, notificationDetails: platformChannelSpecifics, payload: message.data['type']);
   }
 
   @override
   Future<void> scheduleNotification({required int id, required String title, required String body, required DateTime scheduledDate, String? payload}) async {
+    AppLogger.info('NotificationService: Scheduling notification "$title" (ID: $id) for $scheduledDate');
     try {
       await _notifications.zonedSchedule(
         id: id,
@@ -186,7 +172,9 @@ class NotificationServiceImpl implements NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: payload,
       );
+      AppLogger.info('NotificationService: Notification $id scheduled successfully (Exact).');
     } catch (e) {
+      AppLogger.error('NotificationService: Failed to schedule exact notification $id, trying inexact.', error: e);
       if (e.toString().contains('exact_alarms_not_permitted')) {
         await _notifications.zonedSchedule(
           id: id,
@@ -197,7 +185,9 @@ class NotificationServiceImpl implements NotificationService {
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           payload: payload,
         );
+        AppLogger.info('NotificationService: Notification $id scheduled successfully (Inexact).');
       } else {
+        AppLogger.error('NotificationService: Critical failure scheduling notification $id', error: e);
         rethrow;
       }
     }
@@ -211,6 +201,7 @@ class NotificationServiceImpl implements NotificationService {
     }
 
     try {
+      AppLogger.info('NotificationService: Scheduling daily "$title" (ID: $id) for ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
       await _notifications.zonedSchedule(
         id: id,
         title: title,
@@ -223,6 +214,7 @@ class NotificationServiceImpl implements NotificationService {
       );
     } catch (e) {
       if (e.toString().contains('exact_alarms_not_permitted')) {
+        AppLogger.warning('NotificationService: Using inexact scheduling for daily $id');
         await _notifications.zonedSchedule(
           id: id,
           title: title,
@@ -234,6 +226,7 @@ class NotificationServiceImpl implements NotificationService {
           payload: payload,
         );
       } else {
+        AppLogger.error('NotificationService: Failed to schedule daily $id', error: e);
         rethrow;
       }
     }
@@ -242,6 +235,7 @@ class NotificationServiceImpl implements NotificationService {
   @override
   Future<void> schedulePostMealCheckIn() async {
     final scheduledTime = DateTime.now().add(const Duration(hours: 2));
+    AppLogger.info('NotificationService: Triggering schedulePostMealCheckIn for $scheduledTime');
     await scheduleNotification(id: NotificationIds.postMealCheckIn, title: AppStrings.notifMealCheckTitle, body: AppStrings.notifMealCheckBody, scheduledDate: scheduledTime, payload: 'symptom_check');
   }
 
@@ -314,29 +308,28 @@ class NotificationServiceImpl implements NotificationService {
 
   @override
   Future<void> showInsightGeneratedNotification() async {
-    // 🟡 Pro Fix: This is now handled by the Cloud Function (onInsightCreated)
-    // for better reliability and cross-device consistency.
-    AppLogger.debug('NotificationService: Skipping local insight notification (handled by server)');
+    AppLogger.info('NotificationService: Showing local insight generated notification.');
+    await showNotification(id: NotificationIds.insightGenerated, title: AppStrings.notifInsightGeneratedTitle, body: AppStrings.notifInsightGeneratedBody, payload: 'insight_generated');
   }
 
   @override
   Future<void> scheduleStreakSaverReminder(int currentStreak) async {
     if (currentStreak == 0) return;
 
-    // Schedule for 8:00 PM today if they haven't been active
     final now = tz.TZDateTime.now(tz.local);
-    final scheduledTime = tz.TZDateTime(tz.local, now.year, now.month, now.day, 20, 0);
+    var scheduledTime = tz.TZDateTime(tz.local, now.year, now.month, now.day, 20, 0);
 
-    if (scheduledTime.isBefore(now)) return;
+    // 🟢 Fix: If it's already past 8:00 PM today, schedule for tomorrow evening.
+    if (scheduledTime.isBefore(now)) {
+      scheduledTime = scheduledTime.add(const Duration(days: 1));
+    }
 
     const title = AppStrings.notifStreakSaverTitle;
     final body = AppStrings.notifStreakSaverBody.replaceFirst('{streak}', currentStreak.toString());
 
     await scheduleNotification(id: NotificationIds.streakSaver, title: title, body: body, scheduledDate: scheduledTime, payload: 'streak_saver');
 
-    // Note: We don't save to Firestore yet because it's scheduled for the future.
-    // If they open the app, we cancel it.
-    AppLogger.info('NotificationService: Streak saver scheduled for 8 PM');
+    AppLogger.info('NotificationService: Streak saver scheduled for $scheduledTime');
   }
 
   @override
@@ -378,14 +371,21 @@ class NotificationServiceImpl implements NotificationService {
 
   void _handleNotificationTap(String? payload) {
     if (payload == null) return;
-    if (payload == 'symptom_check' || payload == 'daily_reminder') {
-      AppNavigator.push('/symptom-check-in');
+    AppLogger.info('NotificationService: Handling tap for payload: $payload');
+
+    if (payload == 'symptom_check' || payload == 'daily_reminder' || payload == 'streak_saver') {
+      AppNavigator.push(AppRoutes.symptomCheckIn);
     } else if (payload.startsWith('meal_reminder_') || payload == 'no_meal_logged') {
-      AppNavigator.push('/home/chat');
+      AppNavigator.push(AppRoutes.chat);
     } else if (payload == 'insight_generated') {
-      AppNavigator.push('/home/insights');
+      AppNavigator.push(AppRoutes.insights);
     } else if (payload == 'scan_reminder' || payload == 'restaurant_reminder') {
-      AppNavigator.push('/home/chat');
+      AppNavigator.push(AppRoutes.chat);
+    } else if (payload == 'health_alert' || payload == 'processed_food') {
+      AppNavigator.push(AppRoutes.notificationArchive);
+    } else {
+      AppLogger.warning('NotificationService: Unknown payload type tapped: $payload');
+      AppNavigator.push(AppRoutes.chat);
     }
   }
 }

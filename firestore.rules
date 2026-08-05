@@ -48,14 +48,14 @@ service cloud.firestore {
       allow read: if isOwner(userId);
 
       // User profile validation: includes premium fields, onboarding status,
-      // and gut score constraints. Size restricted to 100KB.
+      // and gut score constraints. Size restricted to 256KB for rich profile data.
       allow create: if isOwner(userId)
         && isValidUserProfile()
-        && request.resource.size() < 100 * 1024;
+        && request.resource.size() < 256 * 1024;
 
       allow update: if isOwner(userId)
         && isValidUserProfile()
-        && request.resource.size() < 100 * 1024;
+        && request.resource.size() < 256 * 1024;
 
       allow delete: if isOwner(userId);
 
@@ -74,19 +74,19 @@ service cloud.firestore {
 
       match /meal_logs/{docId} {
         allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 100 * 1024;
+        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
         allow delete: if isOwner(userId);
       }
 
       match /symptom_logs/{docId} {
         allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 100 * 1024;
+        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
         allow delete: if isOwner(userId);
       }
 
       match /saved_foods/{docId} {
         allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 100 * 1024;
+        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
         allow delete: if isOwner(userId);
       }
 
@@ -96,7 +96,10 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
 
-      // Usage counters are server-authoritative. Clients can only READ.
+      // Usage counters are server-authoritative now: the aiProxy Cloud
+      // Function (Admin SDK) consumes them transactionally. Clients may only
+      // READ their own usage for the paywall fast-path — never write it.
+      // (Closes the "reset your own counters" bypass from audit §3.1.)
       match /daily_usage/{docId} {
         allow read: if isOwner(userId);
         allow write: if false;
@@ -109,18 +112,19 @@ service cloud.firestore {
 
       match /health_alerts/{docId} {
         allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 100 * 1024;
+        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
         allow delete: if isOwner(userId);
       }
 
-      // Admin-only collection for merges.
+      // Idempotency markers written only by the mergeAnonymousAccount Cloud
+      // Function (Admin SDK bypasses rules). Clients can read but never forge.
       match /merges/{anonUid} {
         allow read: if isOwner(userId);
         allow write: if false;
       }
     }
 
-    // Default deny for all other collections (orphaned or global).
+    // Explicit default-deny for anything not matched above.
     match /{document=**} {
       allow read, write: if false;
     }

@@ -27,7 +27,6 @@ import 'package:uuid/uuid.dart';
 enum ChatSendError { offline, busy, empty, uploadFailed }
 
 class ChatNotifier with ChangeNotifier {
-
   ChatNotifier({
     required ChatRepository repository,
     required FirestoreService firestoreService,
@@ -61,6 +60,8 @@ class ChatNotifier with ChangeNotifier {
     _auth.authStateChanges().listen((user) {
       if (user != null) {
         _initChatStream();
+      } else {
+        _onSessionReset();
       }
     });
   }
@@ -494,7 +495,7 @@ class ChatNotifier with ChangeNotifier {
       chronological = chronological.sublist(0, chronological.length - 1);
     }
 
-    const maxContextMessages = 10;
+    const maxContextMessages = 25;
     if (chronological.length > maxContextMessages) {
       chronological = chronological.sublist(chronological.length - maxContextMessages);
     }

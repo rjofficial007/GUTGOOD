@@ -143,6 +143,7 @@ Future<void> init() async {
         firebaseFunctions: sl(),
         analyticsService: sl(),
         crashlyticsService: sl(),
+        notificationService: sl(),
       ),
     )
     ..registerLazySingleton(() => GutAuthNotifier(sl(), sl()))

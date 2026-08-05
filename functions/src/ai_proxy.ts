@@ -198,7 +198,7 @@ export const aiProxy = functions
       model: (body.model ?? DEFAULT_MODEL).slice(0, 64),
       messages,
       stream: mode === 'stream',
-      max_tokens: 1200, // PRD cost-control: concise responses
+      max_tokens: images.length > 0 ? 2048 : 1600, // Higher limit for full responses and vision analysis
     };
     if (mode === 'json') {
       payload.response_format = { type: 'json_object' };

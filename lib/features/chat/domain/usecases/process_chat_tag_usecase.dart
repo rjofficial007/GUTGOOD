@@ -160,8 +160,10 @@ class ProcessChatTagUseCase {
               if (persist) {
                 // 🟢 Fix: Ensure AI Vision scans from chat are also saved to scan_history
                 unawaited(_firestoreService.saveToScanHistory(scanData, userImageUrl: imageUrl));
+                unawaited(_notificationService.schedulePostMealCheckIn());
+                unawaited(_notificationService.scheduleNoMealLoggedReminder());
                 _appStateService.notifyChatUpdated();
-                AppLogger.info('ProcessChatTagUseCase: [SCAN] saved to scan_history and UI notified. UID: ${_firestoreService.getUserMetadata().then((p) => p?.uid)}');
+                AppLogger.info('ProcessChatTagUseCase: [SCAN] saved to scan_history and UI notified.');
               }
               persistedTagBlocks?.add(rawBlock);
             }

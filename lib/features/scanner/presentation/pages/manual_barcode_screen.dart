@@ -14,6 +14,7 @@ import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/services/usage_service.dart';
@@ -81,6 +82,8 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
 
         // 🟢 Fix: Ensure manual scans are also saved to scan_history for Insights/Consistency
         await sl<FirestoreService>().saveToScanHistory(userMsg.scanData!);
+        unawaited(sl<NotificationService>().schedulePostMealCheckIn());
+        unawaited(sl<NotificationService>().scheduleNoMealLoggedReminder());
         sl<AppStateService>().notifyChatUpdated();
 
         if (mounted) {
@@ -106,64 +109,64 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
-      body: CustomScrollView(
-        slivers: [
-          GutSliverAppBar(
-            title: AppStrings.enterBarcode,
-            leading: IconButton(
-              icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
-              onPressed: () => context.pop(),
-            ),
+    backgroundColor: context.appColorScheme.cardBackground,
+    body: CustomScrollView(
+      slivers: [
+        GutSliverAppBar(
+          title: AppStrings.enterBarcode,
+          leading: IconButton(
+            icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
+            onPressed: () => context.pop(),
           ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Padding(
-              padding: EdgeInsets.all(AppSizes.p24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppStrings.enterBarcode,
-                    style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: AppSizes.s18),
+        ),
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: EdgeInsets.all(AppSizes.p24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppStrings.enterBarcode,
+                  style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: AppSizes.s18),
+                ),
+                Gap.h8,
+                Text(
+                  AppStrings.enterBarcodeSubtitle,
+                  style: context.caption.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w500),
+                ),
+                Gap.h32,
+                GutTextField(controller: _controller, keyboardType: TextInputType.number, style: context.title, prefixIcon: AppIcons.barcode, hintText: AppStrings.enterBarcodeHint),
+                Gap.h16,
+                Container(
+                  padding: EdgeInsets.all(AppSizes.p12),
+                  decoration: BoxDecoration(
+                    color: context.appColorScheme.success.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(AppSizes.r12),
+                    border: Border.all(color: context.appColorScheme.success.withValues(alpha: 0.1)),
                   ),
-                  Gap.h8,
-                  Text(
-                    AppStrings.enterBarcodeSubtitle,
-                    style: context.caption.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w500),
-                  ),
-                  Gap.h32,
-                  GutTextField(controller: _controller, keyboardType: TextInputType.number, style: context.title, prefixIcon: AppIcons.barcode, hintText: AppStrings.enterBarcodeHint),
-                  Gap.h16,
-                  Container(
-                    padding: EdgeInsets.all(AppSizes.p12),
-                    decoration: BoxDecoration(
-                      color: context.appColorScheme.success.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(AppSizes.r12),
-                      border: Border.all(color: context.appColorScheme.success.withValues(alpha: 0.1)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(AppIcons.info, size: AppSizes.icon16, color: context.appColorScheme.success),
-                        Gap.w12,
-                        Expanded(
-                          child: Text(
-                            AppStrings.barcodeHelpText,
-                            style: context.bodySm.copyWith(color: context.appColorScheme.success, fontWeight: FontWeight.w500),
-                          ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(AppIcons.info, size: AppSizes.icon16, color: context.appColorScheme.success),
+                      Gap.w12,
+                      Expanded(
+                        child: Text(
+                          AppStrings.barcodeHelpText,
+                          style: context.bodySm.copyWith(color: context.appColorScheme.success, fontWeight: FontWeight.w500),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  GutButton(label: AppStrings.searchProduct, onTap: _searchProduct),
-                  Gap.h20,
-                ],
-              ),
+                ),
+                const Spacer(),
+                GutButton(label: AppStrings.searchProduct, onTap: _searchProduct),
+                Gap.h20,
+              ],
             ),
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
 }

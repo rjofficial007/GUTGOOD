@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
-import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/app_services.dart';
@@ -11,7 +10,6 @@ import 'package:gutgood/core/services/link_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
-import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
@@ -24,30 +22,23 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  double _progress = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
-
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
-
-    _controller.forward();
     _initializeAndNavigate();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   Future<void> _initializeAndNavigate() async {
     final stopwatch = Stopwatch()..start();
 
+    void updateProgress(double value) {
+      if (mounted) setState(() => _progress = value);
+    }
+
     try {
+      updateProgress(0.1);
       final remoteConfig = sl<RemoteConfigService>();
       final notificationService = sl<NotificationService>();
       final linkService = sl<LinkService>();
@@ -57,22 +48,26 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
       // 1. Initialize Remote Config first
       await remoteConfig.init();
+      updateProgress(0.3);
 
       // 2. Parallel initializations
       await Future.wait([notificationService.init(), linkService.init(), purchaseService.initialize()]);
+      updateProgress(0.6);
 
       // 2.5 Mark app opened (schedules daily reminder) after init
       await notificationService.markAppOpened();
+      updateProgress(0.7);
 
       // 3. Connectivity
       await connectionChecker.checkConnection();
       connectionChecker.startListening();
+      updateProgress(0.8);
 
       // 4. Background Data
       await appService.lookupUserCountry();
+      updateProgress(0.9);
 
       // 5. Initial Profile Fetch (if authenticated)
-      // Firestore will handle caching and background sync automatically.
       final authRepository = sl<AuthRepository>();
       if (authRepository.currentUser != null) {
         AppLogger.info('SplashScreen: User authenticated, warming up Firestore cache.');
@@ -84,56 +79,46 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           },
         );
       }
+      updateProgress(1.0);
     } catch (e) {
       AppLogger.error('SplashScreen: Initialization error: $e');
+      updateProgress(1.0);
     }
 
     stopwatch.stop();
 
-    // Ensure splash shows for at least 2 seconds for branded experience
+    // // Ensure splash shows for at least 2 seconds for branded experience
     final remainingTime = 2000 - stopwatch.elapsedMilliseconds;
     if (remainingTime > 0) {
       await Future.delayed(Duration(milliseconds: remainingTime));
     }
 
     if (mounted) {
-      // 🟡 Professional Flow: Always attempt to go to the app's "Home".
-      // The AppRouter's redirect logic acts as the security guard and will
-      // automatically bounce unauthenticated or non-onboarded users to the
-      // Welcome or Onboarding screens.
       context.go(AppRoutes.chat);
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: AppPalette.splashBg,
-      body: SafeArea(
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) => Transform.scale(
-                scale: _scaleAnimation.value,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(AppAssets.appIcon, width: AppSizes.p180),
-                    Gap.h20,
-                    SizedBox(
-                      width: 50,
-                      height: 2,
-                      child: LinearProgressIndicator(
-                        backgroundColor: context.appColorScheme.border.withValues(alpha: 0.2),
-                        color: AppPalette.white,
-                        borderRadius: BorderRadius.circular(AppSizes.r40 + AppSizes.r10),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    backgroundColor: Colors.black,
+    body: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Branded Logo (Silhouette style)
+          Image.asset(AppAssets.appIconBg, width: 80, color: AppPalette.white),
+          const SizedBox(height: 80), // Larger gap like macOS
+          // Boot Progress Bar
+          SizedBox(
+            width: 120,
+            height: 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(value: _progress, backgroundColor: Colors.white.withValues(alpha: 0.2), valueColor: const AlwaysStoppedAnimation<Color>(Colors.white)),
+            ),
           ),
-        ),
+        ],
       ),
-    );
+    ),
+  );
 }
