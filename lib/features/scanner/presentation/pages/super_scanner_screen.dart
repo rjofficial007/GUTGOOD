@@ -19,7 +19,6 @@ import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/paywall_bottom_sheet.dart';
@@ -181,25 +180,23 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
             setState(() => _sessionScans.insert(0, result));
             unawaited(HapticFeedback.mediumImpact());
           } else {
-            // 🟡 Professional Flow: Use go() to switch branches and reset the stack.
-            // This prevents duplicate key errors when pushing branch routes from global overlays.
             context.go(AppRoutes.scanResult, extra: {'scanData': result.toMap()});
           }
         }
       } else {
         if (capturedImage != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.productNotFoundAnalyzing), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
-        final aiResult = await notifier.processImage(capturedImage, mode: _currentMode.name);
-        if (mounted) {
-          if (aiResult != null) {
-            context.go(AppRoutes.scanResult, extra: {'scanData': aiResult.toMap()});
-          } else {
-            context.pop(); // Pop ScanningAnimation
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.couldNotAnalyzeVision)));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.productNotFoundAnalyzing), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
+          final aiResult = await notifier.processImage(capturedImage, mode: _currentMode.name);
+          if (mounted) {
+            if (aiResult != null) {
+              context.go(AppRoutes.scanResult, extra: {'scanData': aiResult.toMap()});
+            } else {
+              context.pop(); // Pop ScanningAnimation
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.couldNotAnalyzeVision)));
+            }
           }
+          return;
         }
-        return;
-      }
 
         if (!_isBatchMode && mounted) {
           context.pop();
@@ -328,27 +325,335 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       body: Stack(
         fit: StackFit.expand,
         children: [
-          RepaintBoundary(
-            key: _repaintKey,
-            child: ClipRect(
-              child: MobileScanner(
-                controller: _scannerController,
-                onDetect: _onDetect,
-                fit: BoxFit.cover, // 🟢 Fix: Ensure camera fills screen without stretching
-              ),
-            ),
+          _CameraPreview(
+            repaintKey: _repaintKey,
+            scannerController: _scannerController,
+            onDetect: _onDetect,
           ),
-          _buildTopControls(),
-          _buildBottomControls(),
-          _buildScanningFrame(),
-          if (_showModeIntro) _buildModeIntroOverlay(),
-          if (_isBatchMode && _sessionScans.isNotEmpty) _buildBatchList(),
+          _ScannerTopControls(
+            scannerController: _scannerController,
+          ),
+          _ScannerBottomControls(
+            modePageController: _modePageController,
+            currentMode: _currentMode,
+            isProcessing: _isProcessing,
+            modes: _modes,
+            onGalleryTap: _pickFromGallery,
+            onShutterTap: _capturePhoto,
+            onModeChanged: (index) {
+              setState(() {
+                _currentMode = _modes[index].mode;
+              });
+              unawaited(HapticFeedback.selectionClick());
+              unawaited(_saveMode(_currentMode));
+              _triggerModeIntro();
+            },
+          ),
+          if (!_hasPermission) const _PermissionOverlay(),
+          if (_showModeIntro) _ModeIntroOverlay(currentMode: _currentMode, modes: _modes),
+          if (_isBatchMode && _sessionScans.isNotEmpty) _BatchScanList(scans: _sessionScans),
         ],
       ),
     );
+}
 
-  Widget _buildModeIntroOverlay() {
-    final label = _modes.firstWhere((m) => m.mode == _currentMode).label.toUpperCase();
+class _CameraPreview extends StatelessWidget {
+  const _CameraPreview({
+    required this.repaintKey,
+    required this.scannerController,
+    required this.onDetect,
+  });
+
+  final GlobalKey repaintKey;
+  final MobileScannerController scannerController;
+  final Function(BarcodeCapture) onDetect;
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+      key: repaintKey,
+      child: ClipRect(
+        child: MobileScanner(
+          controller: scannerController,
+          onDetect: onDetect,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+}
+
+class _ScannerTopControls extends StatelessWidget {
+  const _ScannerTopControls({required this.scannerController});
+  final MobileScannerController scannerController;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: EdgeInsets.only(
+          top: MediaQuery.paddingOf(context).top + AppSizes.p10,
+          bottom: AppSizes.p20,
+          left: AppSizes.p16,
+          right: AppSizes.p16,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              tooltip: AppStrings.closeScanner,
+              icon: Icon(AppIcons.x, color: AppPalette.white, size: AppSizes.icon28),
+              onPressed: () {
+                unawaited(HapticFeedback.lightImpact());
+                context.pop();
+              },
+            ),
+            ValueListenableBuilder(
+              valueListenable: scannerController,
+              builder: (context, state, child) {
+                final isTorchOn = state.torchState == TorchState.on;
+                return IconButton(
+                  tooltip: isTorchOn ? AppStrings.turnTorchOff : AppStrings.turnTorchOn,
+                  icon: Icon(
+                    isTorchOn ? AppIcons.zap : AppIcons.zapOff,
+                    color: AppPalette.white,
+                    size: AppSizes.icon28,
+                  ),
+                  onPressed: () {
+                    unawaited(HapticFeedback.lightImpact());
+                    scannerController.toggleTorch();
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+}
+
+class _ScannerBottomControls extends StatelessWidget {
+  const _ScannerBottomControls({
+    required this.modePageController,
+    required this.currentMode,
+    required this.isProcessing,
+    required this.modes,
+    required this.onGalleryTap,
+    required this.onShutterTap,
+    required this.onModeChanged,
+  });
+
+  final PageController modePageController;
+  final ScannerMode currentMode;
+  final bool isProcessing;
+  final List<_ScannerModeOption> modes;
+  final VoidCallback onGalleryTap;
+  final VoidCallback onShutterTap;
+  final Function(int) onModeChanged;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(context).bottom + AppSizes.p10,
+          top: AppSizes.p20,
+        ),
+        color: AppPalette.black,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _ActionButtonsRow(
+              onGalleryTap: onGalleryTap,
+              onShutterTap: onShutterTap,
+              isProcessing: isProcessing,
+            ),
+            Gap.h24,
+            _ModeSelector(
+              controller: modePageController,
+              currentMode: currentMode,
+              modes: modes,
+              onPageChanged: onModeChanged,
+            ),
+            const _SelectionIndicator(),
+            Gap.h8,
+          ],
+        ),
+      ),
+    );
+}
+
+class _ActionButtonsRow extends StatelessWidget {
+  const _ActionButtonsRow({
+    required this.onGalleryTap,
+    required this.onShutterTap,
+    required this.isProcessing,
+  });
+
+  final VoidCallback onGalleryTap;
+  final VoidCallback onShutterTap;
+  final bool isProcessing;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _GalleryButton(onTap: onGalleryTap),
+          _ShutterButton(onTap: onShutterTap, isActive: true, isProcessing: isProcessing),
+          const _CameraSwitchButton(),
+        ],
+      ),
+    );
+}
+
+class _GalleryButton extends StatelessWidget {
+  const _GalleryButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+      onTap: () {
+        unawaited(HapticFeedback.lightImpact());
+        onTap();
+      },
+      child: Tooltip(
+        message: AppStrings.pickFromGallery,
+        child: Container(
+          width: AppSizes.p44,
+          height: AppSizes.p44,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSizes.r8),
+            border: Border.all(color: AppPalette.white, width: AppSizes.p2),
+          ),
+          child: Icon(AppIcons.image, color: AppPalette.white, size: AppSizes.icon24),
+        ),
+      ),
+    );
+}
+
+class _CameraSwitchButton extends StatelessWidget {
+  const _CameraSwitchButton();
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+      tooltip: AppStrings.switchCamera,
+      icon: Icon(AppIcons.refreshCw, color: AppPalette.white, size: AppSizes.icon32),
+      onPressed: () {
+        unawaited(HapticFeedback.lightImpact());
+        final state = context.findAncestorStateOfType<_SuperScannerScreenState>();
+        state?._scannerController.switchCamera();
+      },
+    );
+}
+
+class _ModeSelector extends StatelessWidget {
+  const _ModeSelector({
+    required this.controller,
+    required this.currentMode,
+    required this.modes,
+    required this.onPageChanged,
+  });
+
+  final PageController controller;
+  final ScannerMode currentMode;
+  final List<_ScannerModeOption> modes;
+  final Function(int) onPageChanged;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+      height: AppSizes.p40,
+      child: PageView.builder(
+        controller: controller,
+        itemCount: modes.length,
+        onPageChanged: onPageChanged,
+        itemBuilder: (context, index) {
+          final modeItem = modes[index];
+          return _ModeItem(
+            label: modeItem.label,
+            isActive: currentMode == modeItem.mode,
+            onTap: () {
+              unawaited(HapticFeedback.mediumImpact());
+              controller.animateToPage(
+                index,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+          );
+        },
+      ),
+    );
+}
+
+class _SelectionIndicator extends StatelessWidget {
+  const _SelectionIndicator();
+  @override
+  Widget build(BuildContext context) => Container(
+      width: AppSizes.p4,
+      height: AppSizes.p4,
+      decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
+    );
+}
+
+class _PermissionOverlay extends StatelessWidget {
+  const _PermissionOverlay();
+
+  @override
+  Widget build(BuildContext context) => Container(
+      color: AppPalette.black.withValues(alpha: 0.8),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSizes.p40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppSizes.r20),
+                child: Image.asset(AppAssets.appIcon, height: AppSizes.p100, width: AppSizes.p100),
+              ),
+              Gap.h32,
+              Text(
+                AppStrings.allowCameraAccess,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.headingMd
+                    .copyWith(color: AppPalette.white, fontWeight: FontWeight.bold),
+              ),
+              Gap.h16,
+              Text(
+                AppStrings.cameraAccessSubtitle,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.body.copyWith(color: AppPalette.white70, height: 1.4),
+              ),
+              Gap.h32,
+              GestureDetector(
+                onTap: () async {
+                  final state = context.findAncestorStateOfType<_SuperScannerScreenState>();
+                  await state?._requestPermission();
+                },
+                child: Text(
+                  AppStrings.openSettings,
+                  style: context.bodyBold.copyWith(color: AppPalette.blueLink, fontSize: AppSizes.s16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+}
+
+class _ModeIntroOverlay extends StatelessWidget {
+  const _ModeIntroOverlay({required this.currentMode, required this.modes});
+  final ScannerMode currentMode;
+  final List<_ScannerModeOption> modes;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = modes.firstWhere((m) => m.mode == currentMode).label.toUpperCase();
 
     return Center(
       child: IgnorePointer(
@@ -363,19 +668,19 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
               child: AnimatedBuilder(
                 animation: rotate,
                 builder: (context, child) => Transform(
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.0015)
-                      ..rotateX(rotate.value),
-                    alignment: Alignment.center,
-                    child: child,
-                  ),
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.0015)
+                    ..rotateX(rotate.value),
+                  alignment: Alignment.center,
+                  child: child,
+                ),
                 child: child,
               ),
             );
           },
           child: Text(
             label,
-            key: ValueKey<String>('intro-$_currentMode-$label'),
+            key: ValueKey<String>('intro-$currentMode-$label'),
             textAlign: TextAlign.center,
             style: context.displayLg.copyWith(
               fontSize: 50.0.sp,
@@ -383,172 +688,27 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
               letterSpacing: -2.5,
               height: 1.0,
               color: AppPalette.white,
-              shadows: [Shadow(color: AppPalette.black.withValues(alpha: 0.6), blurRadius: 30, offset: const Offset(0, 4))],
+              shadows: [
+                Shadow(
+                  color: AppPalette.black.withValues(alpha: 0.6),
+                  blurRadius: 30,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildTopControls() => Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.only(top: context.padding.top + AppSizes.p10, bottom: AppSizes.p20, left: AppSizes.p16, right: AppSizes.p16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              tooltip: AppStrings.closeScanner,
-              icon: Icon(AppIcons.x, color: AppPalette.white, size: AppSizes.icon28),
-              onPressed: () {
-                unawaited(HapticFeedback.lightImpact());
-                context.pop();
-              },
-            ),
-            ValueListenableBuilder(
-              valueListenable: _scannerController,
-              builder: (context, state, child) {
-                final isTorchOn = state.torchState == TorchState.on;
-                return IconButton(
-                  tooltip: isTorchOn ? AppStrings.turnTorchOff : AppStrings.turnTorchOn,
-                  icon: Icon(isTorchOn ? AppIcons.zap : AppIcons.zapOff, color: AppPalette.white, size: AppSizes.icon28),
-                  onPressed: () {
-                    unawaited(HapticFeedback.lightImpact());
-                    _scannerController.toggleTorch();
-                  },
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+class _BatchScanList extends StatelessWidget {
+  const _BatchScanList({required this.scans});
+  final List<ScanResult> scans;
 
-  Widget _buildScanningFrame() {
-    if (_hasPermission) return const SizedBox.shrink();
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: AppSizes.p40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppSizes.r20),
-              child: Image.asset(AppAssets.appIcon, height: AppSizes.p100, width: AppSizes.p100),
-            ),
-            Gap.h32,
-            Text(
-              AppStrings.allowCameraAccess,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.headingMd.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold, fontSize: AppSizes.s22),
-            ),
-            Gap.h16,
-            Text(
-              AppStrings.cameraAccessSubtitle,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(color: AppPalette.white70, height: 1.4),
-            ),
-            Gap.h32,
-            GestureDetector(
-              onTap: _requestPermission,
-              child: Text(
-                AppStrings.openSettings,
-                style: context.bodyBold.copyWith(color: AppPalette.blueLink, fontSize: AppSizes.s16),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomControls() => Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.only(bottom: context.padding.bottom + AppSizes.p10, top: AppSizes.p20),
-        color: AppPalette.black,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      unawaited(HapticFeedback.lightImpact());
-                      _pickFromGallery();
-                    },
-                    child: Tooltip(
-                      message: AppStrings.pickFromGallery,
-                      child: Container(
-                        width: AppSizes.p44,
-                        height: AppSizes.p44,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(AppSizes.r8),
-                          border: Border.all(color: AppPalette.white, width: AppSizes.p2),
-                        ),
-                        child: Icon(AppIcons.image, color: AppPalette.white, size: AppSizes.icon24),
-                      ),
-                    ),
-                  ),
-                  _ShutterButton(onTap: _capturePhoto, isActive: true, isProcessing: _isProcessing),
-                  IconButton(
-                    tooltip: AppStrings.switchCamera,
-                    icon: Icon(AppIcons.refreshCw, color: AppPalette.white, size: AppSizes.icon32),
-                    onPressed: () {
-                      unawaited(HapticFeedback.lightImpact());
-                      _scannerController.switchCamera();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Gap.h24,
-            SizedBox(
-              height: AppSizes.p40,
-              child: PageView.builder(
-                controller: _modePageController,
-                itemCount: _modes.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentMode = _modes[index].mode;
-                  });
-                  unawaited(HapticFeedback.selectionClick());
-                  unawaited(_saveMode(_currentMode));
-                  _triggerModeIntro();
-                },
-                itemBuilder: (context, index) {
-                  final modeItem = _modes[index];
-                  return _ModeItem(
-                    label: modeItem.label,
-                    isActive: _currentMode == modeItem.mode,
-                    onTap: () {
-                      unawaited(HapticFeedback.mediumImpact());
-                      _modePageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                    },
-                  );
-                },
-              ),
-            ),
-            Container(
-              width: AppSizes.p4,
-              height: AppSizes.p4,
-              decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
-            ),
-            Gap.h8,
-          ],
-        ),
-      ),
-    );
-
-  Widget _buildBatchList() => Positioned(
+  @override
+  Widget build(BuildContext context) => Positioned(
       bottom: AppSizes.p180,
       left: 0,
       right: 0,
@@ -557,9 +717,9 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
-          itemCount: _sessionScans.length,
+          itemCount: scans.length,
           itemBuilder: (context, index) {
-            final scan = _sessionScans[index];
+            final scan = scans[index];
             return _BatchCard(scanData: scan);
           },
         ),
@@ -575,20 +735,24 @@ class _ModeItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-      label: label,
-      selected: isActive,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: isActive ? AppPalette.white : AppPalette.white70, fontSize: AppSizes.s11, fontWeight: isActive ? FontWeight.w800 : FontWeight.w700, letterSpacing: 0.8),
+        label: label,
+        selected: isActive,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: isActive ? AppPalette.white : AppPalette.white70,
+                  fontSize: AppSizes.s11,
+                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w700,
+                  letterSpacing: 0.8),
+            ),
           ),
         ),
-      ),
-    );
+      );
 }
 
 class _ShutterButton extends StatelessWidget {
@@ -599,30 +763,32 @@ class _ShutterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-      label: AppStrings.capturePhoto,
-      button: true,
-      enabled: isActive && !isProcessing,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: AppSizes.w80,
-          height: AppSizes.w80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppPalette.white, width: AppSizes.p4 + 1),
-          ),
-          padding: const EdgeInsets.all(4),
-          child: DecoratedBox(
-            decoration: BoxDecoration(color: isProcessing ? AppPalette.white70 : AppPalette.white, shape: BoxShape.circle),
-            child: isProcessing
-                ? Center(
-                    child: CircularProgressIndicator(color: AppPalette.black, strokeWidth: AppSizes.p2),
-                  )
-                : null,
+        label: AppStrings.capturePhoto,
+        button: true,
+        enabled: isActive && !isProcessing,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: AppSizes.w80,
+            height: AppSizes.w80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppPalette.white, width: AppSizes.p4 + 1),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                  color: isProcessing ? AppPalette.white70 : AppPalette.white,
+                  shape: BoxShape.circle),
+              child: isProcessing
+                  ? Center(
+                      child: CircularProgressIndicator(color: AppPalette.black, strokeWidth: AppSizes.p2),
+                    )
+                  : null,
+            ),
           ),
         ),
-      ),
-    );
+      );
 }
 
 class _BatchCard extends StatelessWidget {
@@ -631,33 +797,37 @@ class _BatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      width: AppSizes.w140,
-      margin: EdgeInsets.only(right: AppSizes.p12),
-      padding: EdgeInsets.all(AppSizes.p8),
-      decoration: BoxDecoration(color: context.appColorScheme.cardBackground, borderRadius: BorderRadius.circular(AppSizes.r16)),
-      child: Row(
-        children: [
-          Container(
-            width: AppSizes.p40,
-            height: AppSizes.p40,
-            decoration: BoxDecoration(color: context.appColorScheme.elevatedSurface, borderRadius: BorderRadius.circular(AppSizes.r8)),
-            child: scanData.imageUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(AppSizes.r8),
-                    child: CachedNetworkImage(imageUrl: scanData.imageUrl!, fit: BoxFit.cover),
-                  )
-                : Icon(AppIcons.package, size: AppSizes.icon20),
-          ),
-          Gap.w8,
-          Expanded(
-            child: Text(
-              scanData.productName,
-              style: AppTextStyles.bodySm.copyWith(fontWeight: FontWeight.bold),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+        width: AppSizes.w140,
+        margin: EdgeInsets.only(right: AppSizes.p12),
+        padding: EdgeInsets.all(AppSizes.p8),
+        decoration: BoxDecoration(
+            color: context.appColorScheme.cardBackground,
+            borderRadius: BorderRadius.circular(AppSizes.r16)),
+        child: Row(
+          children: [
+            Container(
+              width: AppSizes.p40,
+              height: AppSizes.p40,
+              decoration: BoxDecoration(
+                  color: context.appColorScheme.elevatedSurface,
+                  borderRadius: BorderRadius.circular(AppSizes.r8)),
+              child: scanData.imageUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(AppSizes.r8),
+                      child: CachedNetworkImage(imageUrl: scanData.imageUrl!, fit: BoxFit.cover),
+                    )
+                  : Icon(AppIcons.package, size: AppSizes.icon20),
             ),
-          ),
-        ],
-      ),
-    );
+            Gap.w8,
+            Expanded(
+              child: Text(
+                scanData.productName,
+                style: AppTextStyles.bodySm.copyWith(fontWeight: FontWeight.bold),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
 }

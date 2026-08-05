@@ -2,14 +2,14 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/models/user_profile.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/features/profile/domain/repositories/profile_repository.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
 
-  ProfileRepositoryImpl({required FirebaseAuth auth, required FirestoreService firestoreService}) : _auth = auth, _firestoreService = firestoreService;
+  ProfileRepositoryImpl({required FirebaseAuth auth, required AuthFirestoreService firestoreService}) : _auth = auth, _firestoreService = firestoreService;
   final FirebaseAuth _auth;
-  final FirestoreService _firestoreService;
+  final AuthFirestoreService _firestoreService;
 
   @override
   Future<UserProfile?> getProfile() async {

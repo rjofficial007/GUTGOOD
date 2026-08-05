@@ -27,11 +27,7 @@ class _NotificationArchiveScreenState extends State<NotificationArchiveScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final notifier = context.watch<InsightsNotifier>();
-    final alerts = notifier.healthAlerts;
-
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
@@ -42,25 +38,52 @@ class _NotificationArchiveScreenState extends State<NotificationArchiveScreen> {
               onPressed: () => context.pop(),
             ),
           ),
-          if (alerts.isEmpty)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: EmptyStateWidget(icon: AppIcons.bell, title: 'No Alerts Yet', description: 'When we detect patterns or risks, they will appear here.'),
-            )
-          else
-            SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final alert = alerts[index];
-                  return _AlertTile(alert: alert);
-                }, childCount: alerts.length),
-              ),
-            ),
+          _buildBody(context),
         ],
       ),
     );
+
+  Widget _buildBody(BuildContext context) {
+    final notifier = context.watch<InsightsNotifier>();
+    final alerts = notifier.healthAlerts;
+
+    if (alerts.isEmpty) return const _NoAlertsView();
+
+    return _AlertList(alerts: alerts);
   }
+}
+
+class _NoAlertsView extends StatelessWidget {
+  const _NoAlertsView();
+
+  @override
+  Widget build(BuildContext context) => const SliverFillRemaining(
+      hasScrollBody: false,
+      child: EmptyStateWidget(
+        icon: AppIcons.bell,
+        title: 'No Alerts Yet',
+        description: 'When we detect patterns or risks, they will appear here.',
+      ),
+    );
+}
+
+class _AlertList extends StatelessWidget {
+  const _AlertList({required this.alerts});
+  final List<HealthAlert> alerts;
+
+  @override
+  Widget build(BuildContext context) => SliverPadding(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final alert = alerts[index];
+            return _AlertTile(alert: alert);
+          },
+          childCount: alerts.length,
+        ),
+      ),
+    );
 }
 
 class _AlertTile extends StatelessWidget {
@@ -69,46 +92,58 @@ class _AlertTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.only(bottom: AppSizes.p16),
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        border: Border.all(color: context.appColorScheme.border),
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                margin: const EdgeInsets.only(right: 10),
-                decoration: BoxDecoration(color: _getAlertColor(alert.type, context).withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: Icon(_getAlertIcon(alert.type), color: _getAlertColor(alert.type, context), size: 14),
-              ),
-              Expanded(
-                child: Text(alert.title, style: context.bodyBold.copyWith(fontSize: AppSizes.s15, height: 1.2)),
-              ),
-              if (!alert.isRead)
+      padding: EdgeInsets.only(bottom: AppSizes.p16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.appColorScheme.cardBackground,
+          border: Border.all(color: context.appColorScheme.border),
+          borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(6),
+              topRight: Radius.circular(20),
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Container(
-                  margin: const EdgeInsets.only(left: 8, top: 4),
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(color: context.appColorScheme.error, shape: BoxShape.circle),
+                  padding: const EdgeInsets.all(6),
+                  margin: const EdgeInsets.only(right: 10),
+                  decoration: BoxDecoration(
+                      color: _getAlertColor(alert.type, context).withValues(alpha: 0.1),
+                      shape: BoxShape.circle),
+                  child: Icon(_getAlertIcon(alert.type),
+                      color: _getAlertColor(alert.type, context), size: 14),
                 ),
-            ],
-          ),
-          Gap.h8,
-          Text(alert.message, style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.4)),
-          Gap.h12,
-          Text(DateFormat('MMM d, h:mm a').format(alert.time.toLocal()), style: context.caption.copyWith(fontSize: 10, color: context.appColorScheme.textMuted)),
-        ],
+                Expanded(
+                  child:
+                      Text(alert.title, style: context.bodyBold.copyWith(fontSize: AppSizes.s15, height: 1.2)),
+                ),
+                if (!alert.isRead)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8, top: 4),
+                    width: 6,
+                    height: 6,
+                    decoration:
+                        BoxDecoration(color: context.appColorScheme.error, shape: BoxShape.circle),
+                  ),
+              ],
+            ),
+            Gap.h8,
+            Text(alert.message,
+                style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.4)),
+            Gap.h12,
+            Text(DateFormat('MMM d, h:mm a').format(alert.time.toLocal()),
+                style: context.caption
+                    .copyWith(fontSize: 10, color: context.appColorScheme.textMuted)),
+          ],
+        ),
       ),
-    ),
-  );
+    );
 
   IconData _getAlertIcon(String type) {
     switch (type) {

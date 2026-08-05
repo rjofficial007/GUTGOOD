@@ -74,20 +74,61 @@ class _CyclePhaseScreenState extends State<CyclePhaseScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(AppStrings.selectCyclePhase, style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
-                  Gap.h8,
-                  Text(AppStrings.cycleSyncDesc, style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
+                  const _PhaseHeader(),
                   Gap.h32,
-                  SelectionWrap(options: _phaseOptions, selectedValues: _selectedPhase, onToggle: _togglePhase),
+                  SelectionWrap(
+                    options: _phaseOptions,
+                    selectedValues: _selectedPhase,
+                    onToggle: _togglePhase,
+                  ),
                 ],
               ),
             ),
           ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p32),
-            child: GutButton(label: AppStrings.saveChanges, isLoading: _isSaving, onTap: _selectedPhase.isEmpty ? null : _save),
+          _PhaseFooter(
+            isLoading: _isSaving,
+            isEnabled: _selectedPhase.isNotEmpty,
+            onSave: _save,
           ),
         ],
+      ),
+    );
+}
+
+class _PhaseHeader extends StatelessWidget {
+  const _PhaseHeader();
+
+  @override
+  Widget build(BuildContext context) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(AppStrings.selectCyclePhase,
+            style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
+        Gap.h8,
+        Text(AppStrings.cycleSyncDesc,
+            style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
+      ],
+    );
+}
+
+class _PhaseFooter extends StatelessWidget {
+  const _PhaseFooter({
+    required this.isLoading,
+    required this.isEnabled,
+    required this.onSave,
+  });
+
+  final bool isLoading;
+  final bool isEnabled;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+      padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p32),
+      child: GutButton(
+        label: AppStrings.saveChanges,
+        isLoading: isLoading,
+        onTap: isEnabled ? onSave : null,
       ),
     );
 }

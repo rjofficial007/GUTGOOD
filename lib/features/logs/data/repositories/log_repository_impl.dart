@@ -1,13 +1,13 @@
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/features/logs/domain/repositories/log_repository.dart';
 
 class LogRepositoryImpl implements LogRepository {
 
-  LogRepositoryImpl({required FirestoreService firestoreService, required AnalyticsService analyticsService}) : _firestoreService = firestoreService, _analyticsService = analyticsService;
-  final FirestoreService _firestoreService;
+  LogRepositoryImpl({required HistoryFirestoreService firestoreService, required AnalyticsService analyticsService}) : _firestoreService = firestoreService, _analyticsService = analyticsService;
+  final HistoryFirestoreService _firestoreService;
   final AnalyticsService _analyticsService;
 
   @override

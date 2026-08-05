@@ -12,7 +12,7 @@ import 'package:gutgood/core/models/user_profile.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -27,7 +27,7 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required firebase.FirebaseAuth firebaseAuth,
     required GoogleSignIn googleSignIn,
-    required FirestoreService firestoreService,
+    required AuthFirestoreService firestoreService,
     required PurchaseService purchaseService,
     required SharedPreferences prefs,
     required AppStateService appStateService,
@@ -47,7 +47,7 @@ class AuthRepositoryImpl implements AuthRepository {
        _notificationService = notificationService;
   final firebase.FirebaseAuth _firebaseAuth;
   final GoogleSignIn _googleSignIn;
-  final FirestoreService _firestoreService;
+  final AuthFirestoreService _firestoreService;
   final PurchaseService _purchaseService;
   final SharedPreferences _prefs;
   final AppStateService _appStateService;

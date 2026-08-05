@@ -10,7 +10,8 @@ import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
@@ -29,7 +30,8 @@ enum ChatSendError { offline, busy, empty, uploadFailed }
 class ChatNotifier with ChangeNotifier {
   ChatNotifier({
     required ChatRepository repository,
-    required FirestoreService firestoreService,
+    required AuthFirestoreService authFirestoreService,
+    required ChatFirestoreService chatFirestoreService,
     required AiService aiService,
     required StorageService storageService,
     required OffService offService,
@@ -40,18 +42,19 @@ class ChatNotifier with ChangeNotifier {
     required ProcessChatTagUseCase processChatTagUseCase,
     required AppStateService appStateService,
     required AnalyticsService analyticsService,
-  }) : _repository = repository,
-       _firestoreService = firestoreService,
-       _aiService = aiService,
-       _storageService = storageService,
-       _offService = offService,
-       _prefs = prefs,
-       _auth = auth,
-       _connectionChecker = connectionChecker,
-       _sendMessageStreamUseCase = sendMessageStreamUseCase,
-       _processChatTagUseCase = processChatTagUseCase,
-       _appStateService = appStateService,
-       _analyticsService = analyticsService {
+  })  : _repository = repository,
+        _authFirestoreService = authFirestoreService,
+        _chatFirestoreService = chatFirestoreService,
+        _aiService = aiService,
+        _storageService = storageService,
+        _offService = offService,
+        _prefs = prefs,
+        _auth = auth,
+        _connectionChecker = connectionChecker,
+        _sendMessageStreamUseCase = sendMessageStreamUseCase,
+        _processChatTagUseCase = processChatTagUseCase,
+        _appStateService = appStateService,
+        _analyticsService = analyticsService {
     _initChatStream();
     _appStateService.profileUpdated.addListener(_onProfileUpdated);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -65,8 +68,10 @@ class ChatNotifier with ChangeNotifier {
       }
     });
   }
+
   final ChatRepository _repository;
-  final FirestoreService _firestoreService;
+  final AuthFirestoreService _authFirestoreService;
+  final ChatFirestoreService _chatFirestoreService;
   final AiService _aiService;
   final StorageService _storageService;
   final OffService _offService;
@@ -121,6 +126,8 @@ class ChatNotifier with ChangeNotifier {
   /// [MEAL]/[SYMPTOM] tags, so the replacement response must not re-log them.
   bool _persistTagsForActiveTurn = true;
 
+  String? _pendingHiddenContext;
+
   // ---- Last request (powers regenerate) ----
   bool _hasLastRequest = false;
   String? _lastUserText;
@@ -158,7 +165,7 @@ class ChatNotifier with ChangeNotifier {
     _historyLoading = true;
     notifyListeners();
 
-    _chatStreamSub = _firestoreService
+    _chatStreamSub = _chatFirestoreService
         .getMessagesStream(limit: _pageSize)
         .listen(
           (serverMessages) {
@@ -196,7 +203,7 @@ class ChatNotifier with ChangeNotifier {
 
   Future<void> _createInitialGreeting() async {
     final initialMsg = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: AppStrings.chatInitialGreeting, isSwap: false, time: DateTime.now());
-    await _firestoreService.saveMessage(initialMsg);
+    await _chatFirestoreService.saveMessage(initialMsg);
   }
 
   void _onProfileUpdated() => unawaited(_loadProfileData());
@@ -221,26 +228,56 @@ class ChatNotifier with ChangeNotifier {
   }
 
   Future<void> _loadProfileData() async {
-    final profile = await _firestoreService.getUserMetadata();
+    final profile = await _authFirestoreService.getUserMetadata();
 
     if (profile != null) {
       _userGoals = profile.goals;
       _userSensitivities = profile.sensitivities;
       _userLifestyle = profile.lifestyle;
       _cycleSyncEnabled = profile.cycleSyncEnabled;
-      _cyclePhase = _cycleSyncEnabled ? (profile.cyclePhase ?? _defaultCyclePhase) : AppStrings.notSpecified;
+      final cp = profile.cyclePhase;
+      _cyclePhase = _cycleSyncEnabled ? (cp ?? _defaultCyclePhase) : AppStrings.notSpecified;
     } else {
       _userGoals = _prefs.getStringList('user_goals') ?? [];
       _userSensitivities = _prefs.getStringList('user_sensitivities') ?? [];
       _userLifestyle = _prefs.getStringList('user_lifestyle') ?? [];
       _cycleSyncEnabled = _prefs.getBool('cycle_sync_enabled') ?? false;
-      _cyclePhase = _cycleSyncEnabled ? (_prefs.getString('cycle_phase') ?? _defaultCyclePhase) : AppStrings.notSpecified;
+      final cp = _prefs.getString('cycle_phase');
+      _cyclePhase = _cycleSyncEnabled ? (cp ?? _defaultCyclePhase) : AppStrings.notSpecified;
     }
 
     _commStyle = _prefs.getString('ai_comm_style') ?? AppStrings.friendlySupportive;
   }
 
   String get _defaultCyclePhase => AppStrings.phaseLuteal;
+
+  String? get pendingHiddenContext => _pendingHiddenContext;
+
+  Future<bool> handleImageAttachment(Uint8List bytes, {required String type}) async {
+    final added = await addAttachment(bytes, source: type);
+    if (added) {
+      _pendingHiddenContext = switch (type) {
+        'menu' => AppStrings.restaurantMenuInstruction,
+        'label' => AppStrings.analyzeLabelVision,
+        'food' => AppStrings.analyzeMealVision,
+        _ => AppStrings.analyzeGalleryVision,
+      };
+      notifyListeners();
+    }
+    return added;
+  }
+
+  void clearPendingHiddenContext() {
+    _pendingHiddenContext = null;
+    notifyListeners();
+  }
+
+  String getPromptForType(String type) => switch (type) {
+        'menu' => AppStrings.menuPhotoPrompt,
+        'label' => AppStrings.labelPhotoPrompt,
+        'food' => AppStrings.mealPhotoPrompt,
+        _ => AppStrings.galleryPhotoPrompt,
+      };
 
   // ---------------------------------------------------------------------------
   // Attachments (ChatGPT composer model: preview first, send explicitly)

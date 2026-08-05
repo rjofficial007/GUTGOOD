@@ -3,18 +3,18 @@ import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}
 class MockNotificationService extends Mock implements NotificationService {}
 class MockAppStateService extends Mock implements AppStateService {}
 
 void main() {
   late ProcessChatTagUseCase useCase;
-  late MockFirestoreService mockFirestoreService;
+  late MockHistoryFirestoreService mockFirestoreService;
   late MockNotificationService mockNotificationService;
   late MockAppStateService mockAppStateService;
 
@@ -31,7 +31,7 @@ void main() {
   });
 
   setUp(() {
-    mockFirestoreService = MockFirestoreService();
+    mockFirestoreService = MockHistoryFirestoreService();
     mockNotificationService = MockNotificationService();
     mockAppStateService = MockAppStateService();
     useCase = ProcessChatTagUseCase(
@@ -80,7 +80,6 @@ void main() {
       when(() => mockNotificationService.schedulePostMealCheckIn()).thenAnswer((_) async {});
       when(() => mockNotificationService.scheduleNoMealLoggedReminder()).thenAnswer((_) async {});
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
-      when(() => mockFirestoreService.getUserMetadata()).thenAnswer((_) async => null);
 
       final result = useCase.call(text);
 

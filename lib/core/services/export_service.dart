@@ -1,4 +1,4 @@
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -8,9 +8,9 @@ abstract class ExportService {
 }
 
 class ExportServiceImpl implements ExportService {
-
-  ExportServiceImpl({required FirestoreService firestoreService}) : _firestoreService = firestoreService;
-  final FirestoreService _firestoreService;
+  ExportServiceImpl({required HistoryFirestoreService firestoreService})
+    : _firestoreService = firestoreService;
+  final HistoryFirestoreService _firestoreService;
 
   @override
   Future<void> exportHealthData() async {

@@ -4,7 +4,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/notification_preferences.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
@@ -43,7 +43,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _loadPrefs() async {
-    final cloudProfile = await sl<FirestoreService>().getUserMetadata();
+    final cloudProfile = await sl<AuthFirestoreService>().getUserMetadata();
     final cloudPrefs = cloudProfile?.notificationPreferences;
 
     final prefs = await SharedPreferences.getInstance();
@@ -100,7 +100,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       dinnerTime: _encodeTime(_dinnerTime),
       dailyReminderTime: _encodeTime(_dailyReminderTime),
     );
-    await sl<FirestoreService>().saveNotificationPreferences(prefs);
+    await sl<AuthFirestoreService>().saveNotificationPreferences(prefs);
   }
 
   Future<void> _applyMealReminderSchedule() async {
@@ -167,188 +167,55 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GutSection(
-              showCard: false,
-              topPadding: 0,
-              children: [
-                _ModernSettingCard(
-                  child: AppSwitchTile(title: AppStrings.enableNotifications, desc: AppStrings.receiveUpdates, value: _enableAll, onChanged: _toggleEnableAll, showBottomBorder: false),
-                ),
-              ],
+            _GlobalEnableSection(
+              isEnabled: _enableAll,
+              onToggle: _toggleEnableAll,
             ),
-
-            GutSection(
-              title: AppStrings.reminders,
-              showCard: false,
-              opacity: _enableAll ? 1.0 : 0.4,
-              children: [
-                IgnorePointer(
-                  ignoring: !_enableAll,
-                  child: Column(
-                    children: [
-                      _ModernSettingCard(
-                        child: AppSwitchTile(
-                          icon: AppIcons.utensils,
-                          title: AppStrings.mealRemindersLabel,
-                          desc: AppStrings.mealRemindersDesc,
-                          value: _mealReminders,
-                          onChanged: _enableAll
-                              ? (val) async {
-                                  setState(() => _mealReminders = val);
-                                  await _persistBool('notif_meal_reminders', val);
-                                  await _applyMealReminderSchedule();
-                                }
-                              : null,
-                          showBottomBorder: false,
-                        ),
-                      ),
-                      ClipRect(
-                        child: AnimatedSize(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          child: (_mealReminders && _enableAll)
-                              ? Padding(
-                                  padding: EdgeInsets.only(top: AppSizes.p4),
-                                  child: Column(
-                                    children: [
-                                      _ModernTimeTile(
-                                        label: AppStrings.breakfastTime,
-                                        time: _breakfastTime,
-                                        icon: AppIcons.sun,
-                                        onTap: () => _pickTime(_breakfastTime, (t) async {
-                                          setState(() => _breakfastTime = t);
-                                          await _persistTime('notif_breakfast_time', t);
-                                          await _applyMealReminderSchedule();
-                                        }),
-                                      ),
-                                      _ModernTimeTile(
-                                        label: AppStrings.lunchTime,
-                                        time: _lunchTime,
-                                        icon: AppIcons.utensils,
-                                        onTap: () => _pickTime(_lunchTime, (t) async {
-                                          setState(() => _lunchTime = t);
-                                          await _persistTime('notif_lunch_time', t);
-                                          await _applyMealReminderSchedule();
-                                        }),
-                                      ),
-                                      _ModernTimeTile(
-                                        label: AppStrings.dinnerTime,
-                                        time: _dinnerTime,
-                                        icon: AppIcons.moon,
-                                        onTap: () => _pickTime(_dinnerTime, (t) async {
-                                          setState(() => _dinnerTime = t);
-                                          await _persistTime('notif_dinner_time', t);
-                                          await _applyMealReminderSchedule();
-                                        }),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : const SizedBox(width: double.infinity),
-                        ),
-                      ),
-                      _ModernSettingCard(
-                        child: AppSwitchTile(
-                          icon: AppIcons.alertCircle,
-                          title: AppStrings.missedLoggingAlert,
-                          desc: AppStrings.missedLoggingDesc,
-                          value: _noMealLoggedReminder,
-                          onChanged: _enableAll
-                              ? (val) async {
-                                  setState(() => _noMealLoggedReminder = val);
-                                  await _persistBool('notif_no_meal_logged', val);
-                                  await _applyNoMealLoggedSchedule();
-                                }
-                              : null,
-                          showBottomBorder: false,
-                        ),
-                      ),
-                      _ModernSettingCard(
-                        child: AppSwitchTile(
-                          icon: AppIcons.bell,
-                          title: AppStrings.dailyCheckInReminder,
-                          desc: AppStrings.dailyCheckInDesc,
-                          value: _dailyReminder,
-                          onChanged: _enableAll
-                              ? (val) async {
-                                  setState(() => _dailyReminder = val);
-                                  await _persistBool('notif_daily_reminder', val);
-                                  await _applyDailyReminderSchedule();
-                                }
-                              : null,
-                          showBottomBorder: false,
-                        ),
-                      ),
-                      ClipRect(
-                        child: AnimatedSize(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          child: (_dailyReminder && _enableAll)
-                              ? Padding(
-                                  padding: EdgeInsets.only(top: AppSizes.p4),
-                                  child: _ModernTimeTile(
-                                    label: AppStrings.reminderTime,
-                                    time: _dailyReminderTime,
-                                    icon: AppIcons.clock,
-                                    onTap: () => _pickTime(_dailyReminderTime, (t) async {
-                                      setState(() => _dailyReminderTime = t);
-                                      await _persistTime('notif_daily_time', t);
-                                      await _applyDailyReminderSchedule();
-                                    }),
-                                  ),
-                                )
-                              : const SizedBox(width: double.infinity),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            _RemindersSection(
+              enableAll: _enableAll,
+              mealReminders: _mealReminders,
+              noMealLoggedReminder: _noMealLoggedReminder,
+              dailyReminder: _dailyReminder,
+              breakfastTime: _breakfastTime,
+              lunchTime: _lunchTime,
+              dinnerTime: _dinnerTime,
+              dailyReminderTime: _dailyReminderTime,
+              onMealRemindersToggle: (val) async {
+                setState(() => _mealReminders = val);
+                await _persistBool('notif_meal_reminders', val);
+                await _applyMealReminderSchedule();
+              },
+              onNoMealToggle: (val) async {
+                setState(() => _noMealLoggedReminder = val);
+                await _persistBool('notif_no_meal_logged', val);
+                await _applyNoMealLoggedSchedule();
+              },
+              onDailyToggle: (val) async {
+                setState(() => _dailyReminder = val);
+                await _persistBool('notif_daily_reminder', val);
+                await _applyDailyReminderSchedule();
+              },
+              onTimePick: _pickTime,
+              onTimePersist: _persistTime,
+              onScheduleApply: _applyMealReminderSchedule,
+              onDailyScheduleApply: _applyDailyReminderSchedule,
+              onBreakfastTimeChanged: (t) => setState(() => _breakfastTime = t),
+              onLunchTimeChanged: (t) => setState(() => _lunchTime = t),
+              onDinnerTimeChanged: (t) => setState(() => _dinnerTime = t),
+              onDailyTimeChanged: (t) => setState(() => _dailyReminderTime = t),
             ),
-
-            GutSection(
-              title: AppStrings.sectionUpdates,
-              showCard: false,
-              opacity: _enableAll ? 1.0 : 0.4,
-              children: [
-                IgnorePointer(
-                  ignoring: !_enableAll,
-                  child: Column(
-                    children: [
-                      _ModernSettingCard(
-                        child: AppSwitchTile(
-                          icon: AppIcons.zap,
-                          title: AppStrings.insightUpdatesLabel,
-                          desc: AppStrings.insightUpdatesDesc,
-                          value: _insightUpdates,
-                          onChanged: _enableAll
-                              ? (val) async {
-                                  setState(() => _insightUpdates = val);
-                                  await _persistBool('notif_insight_updates', val);
-                                }
-                              : null,
-                          showBottomBorder: false,
-                        ),
-                      ),
-                      _ModernSettingCard(
-                        child: AppSwitchTile(
-                          icon: AppIcons.calendar,
-                          title: AppStrings.weeklySummaryLabel,
-                          desc: AppStrings.weeklySummaryDesc,
-                          value: _weeklySummary,
-                          onChanged: _enableAll
-                              ? (val) async {
-                                  setState(() => _weeklySummary = val);
-                                  await _persistBool('notif_weekly_summary', val);
-                                }
-                              : null,
-                          showBottomBorder: false,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            _UpdatesSection(
+              enableAll: _enableAll,
+              insightUpdates: _insightUpdates,
+              weeklySummary: _weeklySummary,
+              onInsightToggle: (val) async {
+                setState(() => _insightUpdates = val);
+                await _persistBool('notif_insight_updates', val);
+              },
+              onWeeklyToggle: (val) async {
+                setState(() => _weeklySummary = val);
+                await _persistBool('notif_weekly_summary', val);
+              },
             ),
             Gap.h40,
           ],
@@ -356,6 +223,241 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
+}
+
+class _GlobalEnableSection extends StatelessWidget {
+  const _GlobalEnableSection({required this.isEnabled, required this.onToggle});
+  final bool isEnabled;
+  final Function(bool) onToggle;
+
+  @override
+  Widget build(BuildContext context) => GutSection(
+      showCard: false,
+      topPadding: 0,
+      children: [
+        _ModernSettingCard(
+          child: AppSwitchTile(
+            title: AppStrings.enableNotifications,
+            desc: AppStrings.receiveUpdates,
+            value: isEnabled,
+            onChanged: onToggle,
+            showBottomBorder: false,
+          ),
+        ),
+      ],
+    );
+}
+
+class _RemindersSection extends StatelessWidget {
+  const _RemindersSection({
+    required this.enableAll,
+    required this.mealReminders,
+    required this.noMealLoggedReminder,
+    required this.dailyReminder,
+    required this.breakfastTime,
+    required this.lunchTime,
+    required this.dinnerTime,
+    required this.dailyReminderTime,
+    required this.onMealRemindersToggle,
+    required this.onNoMealToggle,
+    required this.onDailyToggle,
+    required this.onTimePick,
+    required this.onTimePersist,
+    required this.onScheduleApply,
+    required this.onDailyScheduleApply,
+    required this.onBreakfastTimeChanged,
+    required this.onLunchTimeChanged,
+    required this.onDinnerTimeChanged,
+    required this.onDailyTimeChanged,
+  });
+
+  final bool enableAll;
+  final bool mealReminders;
+  final bool noMealLoggedReminder;
+  final bool dailyReminder;
+  final TimeOfDay breakfastTime;
+  final TimeOfDay lunchTime;
+  final TimeOfDay dinnerTime;
+  final TimeOfDay dailyReminderTime;
+  final Function(bool) onMealRemindersToggle;
+  final Function(bool) onNoMealToggle;
+  final Function(bool) onDailyToggle;
+  final Function(TimeOfDay, ValueChanged<TimeOfDay>) onTimePick;
+  final Function(String, TimeOfDay) onTimePersist;
+  final Future<void> Function() onScheduleApply;
+  final Future<void> Function() onDailyScheduleApply;
+  final ValueChanged<TimeOfDay> onBreakfastTimeChanged;
+  final ValueChanged<TimeOfDay> onLunchTimeChanged;
+  final ValueChanged<TimeOfDay> onDinnerTimeChanged;
+  final ValueChanged<TimeOfDay> onDailyTimeChanged;
+
+  @override
+  Widget build(BuildContext context) => GutSection(
+      title: AppStrings.reminders,
+      showCard: false,
+      opacity: enableAll ? 1.0 : 0.4,
+      children: [
+        IgnorePointer(
+          ignoring: !enableAll,
+          child: Column(
+            children: [
+              _ModernSettingCard(
+                child: AppSwitchTile(
+                  icon: AppIcons.utensils,
+                  title: AppStrings.mealRemindersLabel,
+                  desc: AppStrings.mealRemindersDesc,
+                  value: mealReminders,
+                  onChanged: enableAll ? onMealRemindersToggle : null,
+                  showBottomBorder: false,
+                ),
+              ),
+              _AnimatedTimePickerList(
+                isVisible: mealReminders && enableAll,
+                children: [
+                  _ModernTimeTile(
+                    label: AppStrings.breakfastTime,
+                    time: breakfastTime,
+                    icon: AppIcons.sun,
+                    onTap: () => onTimePick(breakfastTime, (t) async {
+                      onBreakfastTimeChanged(t);
+                      await onTimePersist('notif_breakfast_time', t);
+                      await onScheduleApply();
+                    }),
+                  ),
+                  _ModernTimeTile(
+                    label: AppStrings.lunchTime,
+                    time: lunchTime,
+                    icon: AppIcons.utensils,
+                    onTap: () => onTimePick(lunchTime, (t) async {
+                      onLunchTimeChanged(t);
+                      await onTimePersist('notif_lunch_time', t);
+                      await onScheduleApply();
+                    }),
+                  ),
+                  _ModernTimeTile(
+                    label: AppStrings.dinnerTime,
+                    time: dinnerTime,
+                    icon: AppIcons.moon,
+                    onTap: () => onTimePick(dinnerTime, (t) async {
+                      onDinnerTimeChanged(t);
+                      await onTimePersist('notif_dinner_time', t);
+                      await onScheduleApply();
+                    }),
+                  ),
+                ],
+              ),
+              _ModernSettingCard(
+                child: AppSwitchTile(
+                  icon: AppIcons.alertCircle,
+                  title: AppStrings.missedLoggingAlert,
+                  desc: AppStrings.missedLoggingDesc,
+                  value: noMealLoggedReminder,
+                  onChanged: enableAll ? onNoMealToggle : null,
+                  showBottomBorder: false,
+                ),
+              ),
+              _ModernSettingCard(
+                child: AppSwitchTile(
+                  icon: AppIcons.bell,
+                  title: AppStrings.dailyCheckInReminder,
+                  desc: AppStrings.dailyCheckInDesc,
+                  value: dailyReminder,
+                  onChanged: enableAll ? onDailyToggle : null,
+                  showBottomBorder: false,
+                ),
+              ),
+              _AnimatedTimePickerList(
+                isVisible: dailyReminder && enableAll,
+                children: [
+                  _ModernTimeTile(
+                    label: AppStrings.reminderTime,
+                    time: dailyReminderTime,
+                    icon: AppIcons.clock,
+                    onTap: () => onTimePick(dailyReminderTime, (t) async {
+                      onDailyTimeChanged(t);
+                      await onTimePersist('notif_daily_time', t);
+                      await onDailyScheduleApply();
+                    }),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+}
+
+class _UpdatesSection extends StatelessWidget {
+  const _UpdatesSection({
+    required this.enableAll,
+    required this.insightUpdates,
+    required this.weeklySummary,
+    required this.onInsightToggle,
+    required this.onWeeklyToggle,
+  });
+
+  final bool enableAll;
+  final bool insightUpdates;
+  final bool weeklySummary;
+  final Function(bool) onInsightToggle;
+  final Function(bool) onWeeklyToggle;
+
+  @override
+  Widget build(BuildContext context) => GutSection(
+      title: AppStrings.sectionUpdates,
+      showCard: false,
+      opacity: enableAll ? 1.0 : 0.4,
+      children: [
+        IgnorePointer(
+          ignoring: !enableAll,
+          child: Column(
+            children: [
+              _ModernSettingCard(
+                child: AppSwitchTile(
+                  icon: AppIcons.zap,
+                  title: AppStrings.insightUpdatesLabel,
+                  desc: AppStrings.insightUpdatesDesc,
+                  value: insightUpdates,
+                  onChanged: enableAll ? onInsightToggle : null,
+                  showBottomBorder: false,
+                ),
+              ),
+              _ModernSettingCard(
+                child: AppSwitchTile(
+                  icon: AppIcons.calendar,
+                  title: AppStrings.weeklySummaryLabel,
+                  desc: AppStrings.weeklySummaryDesc,
+                  value: weeklySummary,
+                  onChanged: enableAll ? onWeeklyToggle : null,
+                  showBottomBorder: false,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+}
+
+class _AnimatedTimePickerList extends StatelessWidget {
+  const _AnimatedTimePickerList({required this.isVisible, required this.children});
+  final bool isVisible;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => ClipRect(
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: isVisible
+            ? Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Column(children: children),
+              )
+            : const SizedBox(width: double.infinity),
+      ),
+    );
 }
 
 class _ModernSettingCard extends StatelessWidget {
@@ -376,8 +478,8 @@ class _ModernSettingCard extends StatelessWidget {
 }
 
 class _ModernTimeTile extends StatelessWidget {
-
-  const _ModernTimeTile({required this.label, required this.time, required this.icon, required this.onTap});
+  const _ModernTimeTile(
+      {required this.label, required this.time, required this.icon, required this.onTap});
   final String label;
   final TimeOfDay time;
   final IconData icon;
@@ -403,7 +505,9 @@ class _ModernTimeTile extends StatelessWidget {
                 Container(
                   width: AppSizes.w52,
                   height: AppSizes.w52,
-                  decoration: BoxDecoration(color: context.appColorScheme.textPrimary, borderRadius: BorderRadius.circular(AppSizes.r18)),
+                  decoration: BoxDecoration(
+                      color: context.appColorScheme.textPrimary,
+                      borderRadius: BorderRadius.circular(AppSizes.r18)),
                   child: Icon(icon, color: context.appColorScheme.cardBackground, size: AppSizes.icon24),
                 ),
                 Gap.w16,
@@ -413,12 +517,19 @@ class _ModernTimeTile extends StatelessWidget {
                     children: [
                       Text(
                         label.toUpperCase(),
-                        style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: AppSizes.s9),
+                        style: context.caption.copyWith(
+                            color: context.appColorScheme.textMuted,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0,
+                            fontSize: AppSizes.s9),
                       ),
                       Gap.h4,
                       Text(
                         time.format(context),
-                        style: context.headingMd.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: AppSizes.s22),
+                        style: context.headingMd.copyWith(
+                            color: context.appColorScheme.textPrimary,
+                            fontWeight: FontWeight.w900,
+                            fontSize: AppSizes.s22),
                       ),
                     ],
                   ),

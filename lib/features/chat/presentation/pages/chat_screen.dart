@@ -46,10 +46,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scroll = ScrollController();
   final ImagePicker _picker = ImagePicker();
 
-  /// Hidden vision/analysis instruction attached to scanner-captured images.
-  /// Sent to the AI alongside the user's visible text; never displayed.
-  String? _pendingHiddenContext;
-
   bool _isNearBottom = true;
   Timer? _draftDebounce;
 
@@ -70,7 +66,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onScroll() {
-    // Reverse list: offset 0 is the visual bottom.
     _isNearBottom = !_scroll.hasClients || _scroll.position.pixels <= 150;
   }
 
@@ -83,9 +78,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Draft persistence
-  // ---------------------------------------------------------------------------
   void _restoreDraft() {
     final draft = sl<SharedPreferences>().getString(_draftKey);
     if (draft != null && draft.isNotEmpty) {
@@ -111,43 +103,29 @@ class _ChatScreenState extends State<ChatScreen> {
     sl<SharedPreferences>().remove(_draftKey);
   }
 
-  // ---------------------------------------------------------------------------
-  // Attachments (ChatGPT model: previews in composer, sent only on Send)
-  // ---------------------------------------------------------------------------
-  Future<void> _handleCamera(ChatNotifier chatNotifier, GutAuthNotifier authNotifier, {ScannerMode mode = ScannerMode.label}) async {
+  Future<void> _handleCamera(ChatNotifier chatNotifier, GutAuthNotifier authNotifier,
+      {ScannerMode mode = ScannerMode.label}) async {
     if (chatNotifier.isLoading) return;
     if (!await _guardUsage(chatNotifier, authNotifier, isScan: true)) return;
 
     if (!mounted) return;
     final result = await context.push(AppRoutes.scannerPath(mode.name));
-    if (result == null || result is! Map || !result.containsKey('bytes')) return;
+    if (result == null || result is! Map<String, dynamic> || !result.containsKey('bytes')) return;
 
     final bytes = result['bytes'] as Uint8List;
     final type = result['type'] as String? ?? mode.name;
 
-    final added = await chatNotifier.addAttachment(bytes, source: type);
+    final added = await chatNotifier.handleImageAttachment(bytes, type: type);
     if (!added) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.maxAttachmentsMessage), behavior: SnackBarBehavior.floating));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(AppStrings.maxAttachmentsMessage), behavior: SnackBarBehavior.floating));
       }
       return;
     }
 
     setState(() {
-      _pendingHiddenContext = switch (type) {
-        'menu' => AppStrings.restaurantMenuInstruction,
-        'label' => AppStrings.analyzeLabelVision,
-        'food' => AppStrings.analyzeMealVision,
-        _ => AppStrings.analyzeGalleryVision,
-      };
-
-      // 🟢 Fix: Always update text to the suggested prompt for the selected mode.
-      _controller.text = switch (type) {
-        'menu' => AppStrings.menuPhotoPrompt,
-        'label' => AppStrings.labelPhotoPrompt,
-        'food' => AppStrings.mealPhotoPrompt,
-        _ => AppStrings.galleryPhotoPrompt,
-      };
+      _controller.text = chatNotifier.getPromptForType(type);
     });
   }
 
@@ -160,13 +138,11 @@ class _ChatScreenState extends State<ChatScreen> {
       if (image == null) return;
 
       final bytes = await image.readAsBytes();
-      final added = await chatNotifier.addAttachment(bytes, source: 'gallery');
+      final added = await chatNotifier.handleImageAttachment(bytes, type: 'gallery');
 
       if (added) {
         setState(() {
-          _pendingHiddenContext = AppStrings.analyzeGalleryVision;
-          // 🟢 Fix: Always sync text with gallery prompt
-          _controller.text = AppStrings.galleryPhotoPrompt;
+          _controller.text = chatNotifier.getPromptForType('gallery');
         });
       }
     } catch (e, st) {
@@ -174,18 +150,16 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Sending
-  // ---------------------------------------------------------------------------
-  Future<bool> _guardUsage(ChatNotifier chatNotifier, GutAuthNotifier authNotifier, {required bool isScan}) async {
+  Future<bool> _guardUsage(ChatNotifier chatNotifier, GutAuthNotifier authNotifier,
+      {required bool isScan}) async {
     final usageService = sl<UsageService>();
     final allowed = isScan ? await usageService.canScan() : await usageService.canChat();
-    AppLogger.debug('ChatScreen: usage guard (scan: $isScan) -> $allowed');
     if (allowed) return true;
 
     if (mounted) {
       if (authNotifier.isAnonymous) {
-        unawaited(showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage, onSuccess: chatNotifier.refreshHistory));
+        unawaited(showAuthBottomSheet(context,
+            customMessage: AppStrings.chatAuthMessage, onSuccess: chatNotifier.refreshHistory));
       } else {
         unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
       }
@@ -193,7 +167,8 @@ class _ChatScreenState extends State<ChatScreen> {
     return false;
   }
 
-  Future<void> _send(ChatNotifier chatNotifier, GutAuthNotifier authNotifier, [String? quickText]) async {
+  Future<void> _send(ChatNotifier chatNotifier, GutAuthNotifier authNotifier,
+      [String? quickText]) async {
     if (chatNotifier.isLoading) return;
 
     final hasImages = chatNotifier.pendingAttachments.isNotEmpty;
@@ -202,57 +177,46 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (!await _guardUsage(chatNotifier, authNotifier, isScan: hasImages)) return;
 
-    final error = await chatNotifier.send(text: msg, hiddenContext: hasImages ? _pendingHiddenContext : null, source: 'chat');
+    final error = await chatNotifier.send(
+        text: msg,
+        hiddenContext: hasImages ? chatNotifier.pendingHiddenContext : null,
+        source: 'chat');
 
     if (!mounted) return;
 
     if (error == null) {
       _controller.clear();
       _clearDraft();
-      setState(() => _pendingHiddenContext = null);
+      chatNotifier.clearPendingHiddenContext();
       _scrollToBottom(animated: false);
       return;
     }
 
     switch (error) {
       case ChatSendError.offline:
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
       case ChatSendError.uploadFailed:
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.connectionError), behavior: SnackBarBehavior.floating));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(AppStrings.connectionError), behavior: SnackBarBehavior.floating));
       case ChatSendError.busy:
       case ChatSendError.empty:
         break;
     }
   }
 
-  int _latestAiIndex(List<ChatMessage> messages) {
-    for (var i = 0; i < messages.length; i++) {
-      if (messages[i].role == 'ai') return i;
-    }
-    return -1;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final chatNotifier = context.watch<ChatNotifier>();
-    final profile = context.watch<ProfileNotifier>().profile;
-    final insightsNotifier = context.watch<InsightsNotifier>();
-    final authNotifier = context.read<GutAuthNotifier>();
-    final screenWidth = context.width;
-    final messages = chatNotifier.messages;
-    final latestAi = _latestAiIndex(messages);
-    final hasUnreadAlerts = insightsNotifier.healthAlerts.any((a) => !a.isRead);
-
-    // ChatGPT follow-scroll: while tokens arrive, stick to the bottom unless
-    // the user deliberately scrolled up to read.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final chatNotifier = context.read<ChatNotifier>();
       if (chatNotifier.isStreaming && _isNearBottom) {
         _scrollToBottom(animated: false);
       }
     });
 
     return UpgradeAlert(
-      dialogStyle: Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
+      dialogStyle:
+          Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
       barrierDismissible: !RemoteConfigService.instance.isForceUpdateApp,
       showReleaseNotes: !kReleaseMode,
       showIgnore: !RemoteConfigService.instance.isForceUpdateApp,
@@ -262,20 +226,54 @@ class _ChatScreenState extends State<ChatScreen> {
       onLater: () => true,
       onUpdate: () => true,
       upgrader: Upgrader(
-        durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp == true ? Duration.zero : const Duration(days: 3),
+        durationUntilAlertAgain:
+            RemoteConfigService.instance.isForceUpdateApp == true ? Duration.zero : const Duration(days: 3),
         debugLogging: !kReleaseMode,
         debugDisplayAlways: false,
         messages: UpgraderMessages(),
-        willDisplayUpgrade: ({required bool display, String? installedVersion, UpgraderVersionInfo? versionInfo}) {
-          AppLogger.debug('UpgradeAlert display: $display, installed: $installedVersion, store: ${versionInfo?.appStoreVersion}');
-        },
       ),
       child: Scaffold(
         backgroundColor: context.appColorScheme.cardBackground,
-        appBar: GutAppBar(
+        appBar: const _ChatAppBar(),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: _MessageListView(
+                  scrollController: _scroll,
+                  onSend: _send,
+                ),
+              ),
+              const _SuggestionChipsSection(),
+              _ChatComposer(
+                controller: _controller,
+                onChanged: _scheduleDraftSave,
+                onCamera: _handleCamera,
+                onGallery: _pickImages,
+                onSend: _send,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _ChatAppBar();
+
+  @override
+  Widget build(BuildContext context) => Selector2<ProfileNotifier, InsightsNotifier, (int?, bool)>(
+      selector: (_, p, i) => (p.profile?.streak, i.healthAlerts.any((a) => !a.isRead)),
+      builder: (context, data, _) {
+        final streak = data.$1;
+        final hasUnreadAlerts = data.$2;
+
+        return GutAppBar(
           title: AppStrings.gutgood,
           showBrandingIcon: true,
-          streak: profile?.streak,
+          streak: streak,
           actions: [
             GestureDetector(
               onTap: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
@@ -285,7 +283,8 @@ class _ChatScreenState extends State<ChatScreen> {
               alignment: Alignment.center,
               children: [
                 IconButton(
-                  icon: Icon(AppIcons.bell, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+                  icon: Icon(AppIcons.bell,
+                      color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
                   onPressed: () => context.push(AppRoutes.notificationArchive),
                 ),
                 if (hasUnreadAlerts)
@@ -298,7 +297,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       decoration: BoxDecoration(
                         color: context.appColorScheme.error,
                         shape: BoxShape.circle,
-                        border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
+                        border:
+                            Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
                       ),
                     ),
                   ),
@@ -306,147 +306,243 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             Gap.w4,
           ],
-        ),
-        body: SafeArea(
+        );
+      },
+    );
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
+
+class _MessageListView extends StatelessWidget {
+  const _MessageListView({required this.scrollController, required this.onSend});
+  final ScrollController scrollController;
+  final Future<void> Function(ChatNotifier, GutAuthNotifier, [String?]) onSend;
+
+  @override
+  Widget build(BuildContext context) => Selector<ChatNotifier, (bool, int, bool)>(
+      selector: (_, n) => (n.historyLoading, n.messages.length, n.isLoading),
+      builder: (context, state, _) {
+        final historyLoading = state.$1;
+        final messageCount = state.$2;
+        final isLoading = state.$3;
+
+        if (historyLoading) return const _ChatShimmerLoading();
+        if (messageCount <= 1 && !isLoading) return const _EmptyChatState();
+
+        return CustomScrollView(
+          controller: scrollController,
+          reverse: true,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
+              sliver: const _MessageSliverList(),
+            ),
+          ],
+        );
+      },
+    );
+}
+
+class _MessageSliverList extends StatelessWidget {
+  const _MessageSliverList();
+
+  @override
+  Widget build(BuildContext context) {
+    final chatNotifier = context.read<ChatNotifier>();
+    final messages = context.select<ChatNotifier, List<ChatMessage>>((n) => n.messages);
+    final isStreaming = context.select<ChatNotifier, bool>((n) => n.isStreaming);
+    final isLoading = context.select<ChatNotifier, bool>((n) => n.isLoading);
+    final latestAiIndex = _latestAiIndex(messages);
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (ctx, i) {
+          final msg = messages[i];
+          final prevMsg = i < messages.length - 1 ? messages[i + 1] : null;
+
+          var showDateHeader = false;
+          if (prevMsg == null) {
+            showDateHeader = true;
+          } else {
+            final d1 = DateTime(msg.time.year, msg.time.month, msg.time.day);
+            final d2 = DateTime(prevMsg.time.year, prevMsg.time.month, prevMsg.time.day);
+            if (d1 != d2) showDateHeader = true;
+          }
+
+          final showAvatar =
+              msg.role == 'ai' && (prevMsg == null || prevMsg.role != 'ai' || showDateHeader);
+          final isLatestAi = i == latestAiIndex;
+
+          return KeyedSubtree(
+            key: ValueKey(msg.localId),
+      child: _AnimatedChatItem(
+        child: Padding(
+          padding: EdgeInsets.only(bottom: AppSizes.p12),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: CustomScrollView(
-                  controller: _scroll,
-                  reverse: true,
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  slivers: [
-                    if (chatNotifier.historyLoading)
-                      const SliverToBoxAdapter(child: _ChatShimmerLoading())
-                    else if (messages.length <= 1 && !chatNotifier.isLoading)
-                      const SliverFillRemaining(child: _EmptyChatState())
-                    else
-                      SliverPadding(
-                        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (ctx, i) {
-                              final msg = messages[i];
-                              final prevMsg = i < messages.length - 1 ? messages[i + 1] : null;
-
-                              var showDateHeader = false;
-                              if (prevMsg == null) {
-                                showDateHeader = true;
-                              } else {
-                                final d1 = DateTime(msg.time.year, msg.time.month, msg.time.day);
-                                final d2 = DateTime(prevMsg.time.year, prevMsg.time.month, prevMsg.time.day);
-                                if (d1 != d2) showDateHeader = true;
-                              }
-
-                              final showAvatar = msg.role == 'ai' && (prevMsg == null || prevMsg.role != 'ai' || showDateHeader);
-                              final isLatestAi = i == latestAi;
-
-                              return KeyedSubtree(
-                                key: ValueKey(msg.localId),
-                                child: _AnimatedChatItem(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(bottom: AppSizes.p12),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        if (showDateHeader) _DateHeader(date: msg.time),
-                                        ChatBubble(
-                                          text: msg.text,
-                                          isUser: msg.role == 'user',
-                                          time: msg.time,
-                                          isLoading: msg.role == 'ai' && msg.text.isEmpty && msg.errorKind == ChatErrorKind.none && msg.scanData == null,
-                                          imageUrls: msg.imageUrls,
-                                          localImages: msg.localImages,
-                                          isSending: msg.isSending,
-                                          sendFailed: msg.sendFailed,
-                                          isStreaming: chatNotifier.isStreaming && isLatestAi,
-                                          errorKind: msg.errorKind,
-                                          screenWidth: screenWidth,
-                                          showAvatar: showAvatar,
-                                          showActions: isLatestAi && msg.text.isNotEmpty && !chatNotifier.isLoading,
-                                          onRegenerate: chatNotifier.canRegenerate
-                                              ? () {
-                                                  HapticHelper.light();
-                                                  unawaited(chatNotifier.regenerateLastResponse());
-                                                }
-                                              : null,
-                                          onRetry: msg.sendFailed
-                                              ? () => unawaited(chatNotifier.retryMessage(msg))
-                                              : (msg.errorKind == ChatErrorKind.connection ? () => unawaited(chatNotifier.regenerateLastResponse()) : null),
-                                          onQuotaPressed: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
-                                          showFeedback:
-                                              isLatestAi && !chatNotifier.isStreaming && msg.text.isNotEmpty && msg.scanData == null && msg.swapData == null && msg.errorKind == ChatErrorKind.none,
-                                          feedback: msg.feedback,
-                                          onFeedback: (type) async {
-                                            if (msg.feedback != null) return;
-                                            if (type == 'helpful' || type == 'not_helpful') {
-                                              unawaited(chatNotifier.handleFeedback(msg, type));
-                                              HapticHelper.light();
-                                              if (mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.thanksFeedback), behavior: SnackBarBehavior.floating));
-                                              }
-                                            } else if (type == 'tell_me_more') {
-                                              unawaited(_send(chatNotifier, authNotifier, AppStrings.tellMeMorePrompt));
-                                            }
-                                          },
-                                        ),
-                                        if (msg.isSwap == true && msg.swapData != null) SwapItContainer(swaps: msg.swapData!, onSeeMore: () => chatNotifier.handleSeeMoreSwaps(msg.text, i)),
-                                        if (msg.scanData != null)
-                                          ScanResultInlineCard(
-                                            scanData: msg.scanData!,
-                                            onViewFullReport: () => unawaited(context.push(AppRoutes.scanResult, extra: {'scanData': msg.scanData!.toMap()})),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                            childCount: messages.length,
-                            findChildIndexCallback: (key) {
-                              if (key is ValueKey<String>) {
-                                final targetId = key.value;
-                                final idx = messages.indexWhere((m) => m.localId == targetId);
-                                return idx == -1 ? null : idx;
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+              if (showDateHeader) _DateHeader(date: msg.time),
+              ChatBubble(
+                text: msg.text,
+                isUser: msg.role == 'user',
+                time: msg.time,
+                isLoading: msg.role == 'ai' &&
+                    msg.text.isEmpty &&
+                    msg.errorKind == ChatErrorKind.none &&
+                    msg.scanData == null,
+                imageUrls: msg.imageUrls,
+                localImages: msg.localImages,
+                isSending: msg.isSending,
+                sendFailed: msg.sendFailed,
+                isStreaming: isStreaming && isLatestAi,
+                errorKind: msg.errorKind,
+                screenWidth: MediaQuery.sizeOf(context).width,
+                showAvatar: showAvatar,
+                showActions: isLatestAi && msg.text.isNotEmpty && !isLoading,
+                onRegenerate: chatNotifier.canRegenerate
+                    ? () {
+                        HapticHelper.light();
+                        unawaited(chatNotifier.regenerateLastResponse());
+                      }
+                    : null,
+                onRetry: msg.sendFailed
+                    ? () => unawaited(chatNotifier.retryMessage(msg))
+                    : (msg.errorKind == ChatErrorKind.connection
+                        ? () => unawaited(chatNotifier.regenerateLastResponse())
+                        : null),
+                onQuotaPressed: () =>
+                    unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
+                showFeedback: isLatestAi &&
+                    !isStreaming &&
+                    msg.text.isNotEmpty &&
+                    msg.scanData == null &&
+                    msg.swapData == null &&
+                    msg.errorKind == ChatErrorKind.none,
+                feedback: msg.feedback,
+                onFeedback: (type) async {
+                  if (msg.feedback != null) return;
+                  if (type == 'helpful' || type == 'not_helpful') {
+                    unawaited(chatNotifier.handleFeedback(msg, type));
+                    HapticHelper.light();
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                          content: Text(AppStrings.thanksFeedback),
+                          behavior: SnackBarBehavior.floating));
+                    }
+                  }
+                },
               ),
-              if (messages.length <= 1 && !chatNotifier.isLoading && !chatNotifier.historyLoading)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p8),
-                  child: Row(
-                    children: [
-                      _Chip(AppStrings.chipBloated, () => unawaited(_send(chatNotifier, authNotifier, AppStrings.chipBloatedPrompt))),
-                      _Chip(AppStrings.chipHealthy, () => unawaited(_send(chatNotifier, authNotifier, AppStrings.chipHealthyPrompt))),
-                      _Chip(AppStrings.chipSwap, () => unawaited(_send(chatNotifier, authNotifier, AppStrings.chipSwapPrompt))),
-                      _Chip(AppStrings.chipRestaurant, () => unawaited(_handleCamera(chatNotifier, authNotifier, mode: ScannerMode.menu))),
-                    ],
-                  ),
+              if (msg.isSwap == true && msg.swapData != null)
+                SwapItContainer(
+                    swaps: msg.swapData!,
+                    onSeeMore: () => chatNotifier.handleSeeMoreSwaps(msg.text, i)),
+              if (msg.scanData != null)
+                ScanResultInlineCard(
+                  scanData: msg.scanData!,
+                  onViewFullReport: () => unawaited(context
+                      .push(AppRoutes.scanResult, extra: {'scanData': msg.scanData!.toMap()})),
                 ),
-              _buildComposer(chatNotifier, authNotifier),
             ],
           ),
         ),
       ),
+          );
+        },
+        childCount: messages.length,
+        findChildIndexCallback: (key) {
+          if (key is ValueKey<String>) {
+            final targetId = key.value;
+            final idx = messages.indexWhere((m) => m.localId == targetId);
+            return idx == -1 ? null : idx;
+          }
+          return null;
+        },
+      ),
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Composer (ChatGPT-style: previews above an editable field, smart send/stop)
-  // ---------------------------------------------------------------------------
-  Widget _buildComposer(ChatNotifier chatNotifier, GutAuthNotifier authNotifier) {
+  int _latestAiIndex(List<ChatMessage> messages) {
+    for (var i = 0; i < messages.length; i++) {
+      if (messages[i].role == 'ai') return i;
+    }
+    return -1;
+  }
+}
+
+class _SuggestionChipsSection extends StatelessWidget {
+  const _SuggestionChipsSection();
+
+  @override
+  Widget build(BuildContext context) => Selector<ChatNotifier, (int, bool, bool)>(
+      selector: (_, n) => (n.messages.length, n.isLoading, n.historyLoading),
+      builder: (context, data, _) {
+        final count = data.$1;
+        final isLoading = data.$2;
+        final historyLoading = data.$3;
+
+        if (count > 1 || isLoading || historyLoading) return const SizedBox.shrink();
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p8),
+        child: Row(
+          children: [
+            _Chip(AppStrings.chipBloated,
+                () => unawaited(_sendQuick(context, AppStrings.chipBloatedPrompt))),
+            _Chip(AppStrings.chipHealthy,
+                () => unawaited(_sendQuick(context, AppStrings.chipHealthyPrompt))),
+            _Chip(AppStrings.chipSwap,
+                () => unawaited(_sendQuick(context, AppStrings.chipSwapPrompt))),
+            _Chip(
+                AppStrings.chipRestaurant, () => _handleCameraQuick(context, ScannerMode.menu)),
+          ],
+        ),
+        );
+      },
+    );
+
+  Future<void> _sendQuick(BuildContext context, String text) async {
+    final chatNotifier = context.read<ChatNotifier>();
+    final authNotifier = context.read<GutAuthNotifier>();
+    final state = context.findAncestorStateOfType<_ChatScreenState>();
+    await state?._send(chatNotifier, authNotifier, text);
+  }
+
+  void _handleCameraQuick(BuildContext context, ScannerMode mode) {
+    final chatNotifier = context.read<ChatNotifier>();
+    final authNotifier = context.read<GutAuthNotifier>();
+    final state = context.findAncestorStateOfType<_ChatScreenState>();
+    state?._handleCamera(chatNotifier, authNotifier, mode: mode);
+  }
+}
+
+class _ChatComposer extends StatelessWidget {
+  const _ChatComposer({
+    required this.controller,
+    required this.onChanged,
+    required this.onCamera,
+    required this.onGallery,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+  final Future<void> Function(ChatNotifier, GutAuthNotifier, {ScannerMode mode})
+      onCamera;
+  final Future<void> Function(ChatNotifier, GutAuthNotifier) onGallery;
+  final Future<void> Function(ChatNotifier, GutAuthNotifier, [String?]) onSend;
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = context.appColorScheme;
+    final chatNotifier = context.watch<ChatNotifier>();
+    final authNotifier = context.read<GutAuthNotifier>();
 
     return Container(
       color: colorScheme.cardBackground,
-      padding: EdgeInsets.fromLTRB(AppSizes.p12, AppSizes.p12, AppSizes.p12, AppSizes.p12),
+      padding: EdgeInsets.all(AppSizes.p12),
       child: SafeArea(
         top: false,
         child: Column(
@@ -463,25 +559,37 @@ class _ChatScreenState extends State<ChatScreen> {
                 borderRadius: BorderRadius.circular(AppSizes.r16),
                 border: Border.all(color: colorScheme.border),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              padding: const EdgeInsets.all(4),
               child: Row(
                 children: [
                   Expanded(
                     child: GutTextField(
-                      controller: _controller,
+                      controller: controller,
                       maxLines: 5,
                       minLines: 1,
-                      onChanged: (_) => _scheduleDraftSave(),
+                      onChanged: (_) => onChanged(),
                       hintText: chatNotifier.isStreaming ? AppStrings.thinking : AppStrings.askAnything,
                       borderless: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     ),
                   ),
-                  _ComposerIconButton(icon: AppIcons.camera, label: AppStrings.scanIngredientsMeal, onTap: chatNotifier.isLoading ? null : () => _handleCamera(chatNotifier, authNotifier)),
+                  _ComposerIconButton(
+                    icon: AppIcons.camera,
+                    label: AppStrings.scanIngredientsMeal,
+                    onTap: chatNotifier.isLoading ? null : () => onCamera(chatNotifier, authNotifier),
+                  ),
                   Gap.w4,
-                  _ComposerIconButton(icon: AppIcons.image, label: AppStrings.attachPhotos, onTap: chatNotifier.isLoading ? null : () => _pickImages(chatNotifier, authNotifier)),
+                  _ComposerIconButton(
+                    icon: AppIcons.image,
+                    label: AppStrings.attachPhotos,
+                    onTap: chatNotifier.isLoading ? null : () => onGallery(chatNotifier, authNotifier),
+                  ),
                   Gap.w4,
-                  _buildSendStopButton(chatNotifier, authNotifier),
+                  _SendStopButton(
+                    controller: controller,
+                    chatNotifier: chatNotifier,
+                    onSend: () => onSend(chatNotifier, authNotifier),
+                  ),
                 ],
               ),
             ),
@@ -490,73 +598,101 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
-  Widget _buildSendStopButton(ChatNotifier chatNotifier, GutAuthNotifier authNotifier) => ListenableBuilder(
-    listenable: _controller,
-    builder: (context, _) {
-      final hasContent = _controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
-      final colorScheme = context.appColorScheme;
-
-      // Streaming → ChatGPT's stop control.
-      if (chatNotifier.isStreaming) {
-        return Semantics(
-          label: AppStrings.stopGenerating,
-          button: true,
-          child: Tooltip(
-            message: AppStrings.stopGenerating,
-            child: GestureDetector(
-              onTap: () {
-                HapticHelper.light();
-                chatNotifier.stopGeneration();
-              },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
-                child: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
-              ),
-            ),
-          ),
-        );
-      }
-
-      // Uploading/preparing → inert spinner.
-      if (chatNotifier.isLoading) {
-        return Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
-          child: Center(
-            child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),
-          ),
-        );
-      }
-
-      final enabled = hasContent;
-      return Semantics(
-        label: AppStrings.sendMessage,
-        button: true,
-        enabled: enabled,
-        child: Tooltip(
-          message: AppStrings.sendMessage,
-          child: GestureDetector(
-            onTap: enabled ? () => _send(chatNotifier, authNotifier) : null,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
-              child: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 20),
-            ),
-          ),
-        ),
-      );
-    },
-  );
 }
 
-/// Thumbnail strip of pending attachments shown INSIDE the composer,
-/// above the (still fully editable) text field — the core ChatGPT pattern.
+class _SendStopButton extends StatelessWidget {
+  const _SendStopButton({
+    required this.controller,
+    required this.chatNotifier,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final ChatNotifier chatNotifier;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final hasContent =
+            controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
+        final colorScheme = context.appColorScheme;
+
+        if (chatNotifier.isStreaming) {
+          return _ComposerActionCircle(
+            label: AppStrings.stopGenerating,
+            onTap: () {
+              HapticHelper.light();
+              chatNotifier.stopGeneration();
+            },
+            icon: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
+          );
+        }
+
+        if (chatNotifier.isLoading) {
+          return _ComposerActionCircle(
+            label: 'Loading',
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2),
+            ),
+          );
+        }
+
+        return _ComposerActionCircle(
+          label: AppStrings.sendMessage,
+          onTap: hasContent ? onSend : null,
+          enabled: hasContent,
+          icon: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 20),
+        );
+      },
+    );
+}
+
+class _ComposerActionCircle extends StatelessWidget {
+  const _ComposerActionCircle({
+    required this.label,
+    this.onTap,
+    this.icon,
+    this.child,
+    this.enabled = true,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final Widget? icon;
+  final Widget? child;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return Semantics(
+      label: label,
+      button: true,
+      enabled: enabled,
+      child: Tooltip(
+        message: label,
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: enabled ? colorScheme.textPrimary : colorScheme.textPrimary.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Center(child: child ?? icon),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AttachmentPreviewRow extends StatelessWidget {
   const _AttachmentPreviewRow({required this.notifier});
   final ChatNotifier notifier;
@@ -655,8 +791,6 @@ class _ComposerIconButton extends StatelessWidget {
   );
 }
 
-/// Runs the entrance animation exactly once per message — the previous
-/// implementation re-animated every bubble on every streaming token (jank).
 class _AnimatedChatItem extends StatefulWidget {
   const _AnimatedChatItem({required this.child});
   final Widget child;

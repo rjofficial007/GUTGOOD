@@ -78,88 +78,136 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final authNotifier = context.watch<GutAuthNotifier>();
-
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Column(
-                    children: [
-                      const Spacer(flex: 2),
-
-                      // Logo
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(AppSizes.r20),
-                        child: Image.asset(AppAssets.appIcon, height: AppSizes.w100, width: AppSizes.w100),
-                      ).animate().fadeIn(duration: 600.ms).scale(delay: 0.ms, duration: 600.ms, curve: Curves.easeOutBack),
-                      Gap.h40,
-
-                      // Content
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: AppSizes.p8),
-                        child: Column(
-                          children: [
-                            Text(
-                              AppStrings.foodIsMedicine,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.displayLg.copyWith(fontSize: AppSizes.s60, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
-                            ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
-                            Gap.h24,
-                            Text(
-                              AppStrings.understandBodyNeeds,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w400, color: context.appColorScheme.textSecondary),
-                            ).animate().fadeIn(delay: 400.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
-                          ],
-                        ),
-                      ),
-                      const Spacer(flex: 3),
-                      Text(
-                        AppStrings.healthDisclaimer,
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s10),
-                      ).animate().fadeIn(delay: 600.ms, duration: 800.ms),
-                      Gap.h20,
-                      // Buttons
-                      Column(
-                        children: [
-                          GutButton(
-                            label: AppStrings.getStarted,
-                            suffixIcon: AppIcons.arrowRight,
-                            isLoading: authNotifier.isLoading,
-                            onTap: authNotifier.isLoading ? null : () => _handleGetStarted(context, authNotifier),
-                          ),
-                          Gap.h20,
-                          RichText(
-                            text: TextSpan(
-                              style: context.body.copyWith(color: context.appColorScheme.textSecondary),
-                              children: [
-                                const TextSpan(text: '${AppStrings.alreadyHaveAccount} '),
-                                TextSpan(
-                                  text: AppStrings.signIn,
-                                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary),
-                                  recognizer: TapGestureRecognizer()..onTap = () => showAuthBottomSheet(context),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ).animate().fadeIn(delay: 800.ms, duration: 600.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuad),
-                      Gap.h20,
-                    ],
-                  ),
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const Spacer(flex: 2),
+                    const _WelcomeLogo(),
+                    Gap.h40,
+                    const _WelcomeContent(),
+                    const Spacer(flex: 3),
+                    const _WelcomeDisclaimer(),
+                    Gap.h20,
+                    _WelcomeActions(
+                      onGetStarted: (n) => _handleGetStarted(context, n),
+                    ),
+                    Gap.h20,
+                  ],
                 ),
               ),
             ),
+          ),
         ),
       ),
     );
-  }
+}
+
+class _WelcomeLogo extends StatelessWidget {
+  const _WelcomeLogo();
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+      borderRadius: BorderRadius.circular(AppSizes.r20),
+      child: Image.asset(AppAssets.appIcon, height: AppSizes.w100, width: AppSizes.w100),
+    ).animate().fadeIn(duration: 600.ms).scale(
+          delay: 0.ms,
+          duration: 600.ms,
+          curve: Curves.easeOutBack,
+        );
+}
+
+class _WelcomeContent extends StatelessWidget {
+  const _WelcomeContent();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p8),
+      child: Column(
+        children: [
+          Text(
+            AppStrings.foodIsMedicine,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.displayLg.copyWith(
+                fontSize: AppSizes.s60, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
+          ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(
+                begin: 0.2,
+                end: 0,
+                curve: Curves.easeOutQuad,
+              ),
+          Gap.h24,
+          Text(
+            AppStrings.understandBodyNeeds,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.title.copyWith(
+                fontWeight: FontWeight.w400, color: context.appColorScheme.textSecondary),
+          ).animate().fadeIn(delay: 400.ms, duration: 600.ms).slideY(
+                begin: 0.2,
+                end: 0,
+                curve: Curves.easeOutQuad,
+              ),
+        ],
+      ),
+    );
+}
+
+class _WelcomeDisclaimer extends StatelessWidget {
+  const _WelcomeDisclaimer();
+
+  @override
+  Widget build(BuildContext context) => Text(
+      AppStrings.healthDisclaimer,
+      textAlign: TextAlign.center,
+      style: AppTextStyles.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s10),
+    ).animate().fadeIn(delay: 600.ms, duration: 800.ms);
+}
+
+class _WelcomeActions extends StatelessWidget {
+  const _WelcomeActions({required this.onGetStarted});
+  final Function(GutAuthNotifier) onGetStarted;
+
+  @override
+  Widget build(BuildContext context) => Selector<GutAuthNotifier, (bool, bool)>(
+      selector: (_, n) => (n.isLoading, n.isAuthenticated),
+      builder: (context, data, _) {
+        final isLoading = data.$1;
+
+        return Column(
+          children: [
+            GutButton(
+              label: AppStrings.getStarted,
+              suffixIcon: AppIcons.arrowRight,
+              isLoading: isLoading,
+              onTap: isLoading ? null : () => onGetStarted(context.read<GutAuthNotifier>()),
+            ),
+            Gap.h20,
+            RichText(
+              text: TextSpan(
+                style: context.body.copyWith(color: context.appColorScheme.textSecondary),
+                children: [
+                  const TextSpan(text: '${AppStrings.alreadyHaveAccount} '),
+                  TextSpan(
+                    text: AppStrings.signIn,
+                    style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => showAuthBottomSheet(context),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ).animate().fadeIn(delay: 800.ms, duration: 600.ms).slideY(
+              begin: 0.1,
+              end: 0,
+              curve: Curves.easeOutQuad,
+            );
+      },
+    );
 }

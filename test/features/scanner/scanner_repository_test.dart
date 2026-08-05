@@ -5,7 +5,8 @@ import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/features/scanner/data/repositories/scanner_repository_impl.dart';
@@ -13,7 +14,8 @@ import 'package:mocktail/mocktail.dart';
 
 class MockOffService extends Mock implements OffService {}
 class MockAiService extends Mock implements AiService {}
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockChatFirestoreService extends Mock implements ChatFirestoreService {}
+class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}
 class MockNotificationService extends Mock implements NotificationService {}
 class MockAppStateService extends Mock implements AppStateService {}
 class MockAnalyticsService extends Mock implements AnalyticsService {}
@@ -22,7 +24,8 @@ void main() {
   late ScannerRepositoryImpl repository;
   late MockOffService mockOffService;
   late MockAiService mockAiService;
-  late MockFirestoreService mockFirestoreService;
+  late MockChatFirestoreService mockChatFirestoreService;
+  late MockHistoryFirestoreService mockHistoryFirestoreService;
   late MockNotificationService mockNotificationService;
   late MockAppStateService mockAppStateService;
   late MockAnalyticsService mockAnalyticsService;
@@ -46,7 +49,8 @@ void main() {
   setUp(() {
     mockOffService = MockOffService();
     mockAiService = MockAiService();
-    mockFirestoreService = MockFirestoreService();
+    mockChatFirestoreService = MockChatFirestoreService();
+    mockHistoryFirestoreService = MockHistoryFirestoreService();
     mockNotificationService = MockNotificationService();
     mockAppStateService = MockAppStateService();
     mockAnalyticsService = MockAnalyticsService();
@@ -54,7 +58,8 @@ void main() {
     repository = ScannerRepositoryImpl(
       offService: mockOffService,
       aiService: mockAiService,
-      firestoreService: mockFirestoreService,
+      chatFirestoreService: mockChatFirestoreService,
+      historyFirestoreService: mockHistoryFirestoreService,
       notificationService: mockNotificationService,
       appStateService: mockAppStateService,
       analyticsService: mockAnalyticsService,
@@ -81,16 +86,16 @@ void main() {
         impact: 'Good',
       );
 
-      when(() => mockFirestoreService.saveMessage(any())).thenAnswer((_) async => 'msg_id');
-      when(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'))).thenAnswer((_) async => 'history_id');
+      when(() => mockChatFirestoreService.saveMessage(any())).thenAnswer((_) async => 'msg_id');
+      when(() => mockHistoryFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'))).thenAnswer((_) async => 'history_id');
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
       when(() => mockNotificationService.scheduleNoMealLoggedReminder()).thenAnswer((_) async {});
       when(() => mockNotificationService.schedulePostMealCheckIn()).thenAnswer((_) async {});
 
       await repository.saveScanResult(result);
 
-      verify(() => mockFirestoreService.saveMessage(any())).called(1);
-      verify(() => mockFirestoreService.saveToScanHistory(result, userImageUrl: any(named: 'userImageUrl'))).called(1);
+      verify(() => mockChatFirestoreService.saveMessage(any())).called(1);
+      verify(() => mockHistoryFirestoreService.saveToScanHistory(result, userImageUrl: any(named: 'userImageUrl'))).called(1);
       verify(() => mockAppStateService.notifyChatUpdated()).called(1);
     });
   });

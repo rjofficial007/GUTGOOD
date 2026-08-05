@@ -21,7 +21,11 @@ import 'package:gutgood/core/services/config_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/device_info_services.dart';
 import 'package:gutgood/core/services/export_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/usage_firestore_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/link_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
@@ -43,6 +47,7 @@ import 'package:gutgood/features/chat/domain/usecases/send_message_stream_usecas
 import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
 import 'package:gutgood/features/history/data/repositories/history_repository_impl.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
+import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
 import 'package:gutgood/features/insights/data/repositories/insight_repository_impl.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
@@ -119,14 +124,18 @@ Future<void> init() async {
     ..registerLazySingleton<AiService>(() => AiServiceImpl(dio: sl(), auth: sl(), config: sl(), analyticsService: sl(), crashlyticsService: sl()))
     ..registerLazySingleton<OffService>(() => OffServiceImpl(dio: sl()))
     ..registerLazySingleton<StorageService>(() => StorageServiceImpl(auth: sl(), storage: sl()))
-    ..registerLazySingleton<FirestoreService>(() => FirestoreServiceImpl(auth: sl(), db: sl(), storageService: sl()))
-    ..registerLazySingleton<NotificationService>(() => NotificationServiceImpl(notifications: sl(), firestoreService: sl(), prefs: sl()))
-    ..registerLazySingleton<PatternEngineService>(() => PatternEngineServiceImpl(firestoreService: sl()))
+    ..registerLazySingleton<AuthFirestoreService>(() => AuthFirestoreServiceImpl(auth: sl(), db: sl(), storageService: sl()))
+    ..registerLazySingleton<ChatFirestoreService>(() => ChatFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<HistoryFirestoreService>(() => HistoryFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<InsightFirestoreService>(() => InsightFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<UsageFirestoreService>(() => UsageFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<NotificationService>(() => NotificationServiceImpl(notifications: sl(), authFirestoreService: sl(), historyFirestoreService: sl(), prefs: sl()))
+    ..registerLazySingleton<PatternEngineService>(() => PatternEngineServiceImpl(historyFirestoreService: sl(), insightFirestoreService: sl()))
     ..registerLazySingleton<InternetConnectionChecker>(InternetConnectionCheckerImpl.new)
     ..registerLazySingleton<LinkService>(() => LinkServiceImpl(authRepository: sl(), prefs: sl(), firebaseAuth: sl(), appStateService: sl()))
     ..registerLazySingleton<PurchaseService>(PurchaseServiceImpl.new)
-    ..registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), firestoreService: sl(), purchaseService: sl(), prefs: sl()))
-    ..registerLazySingleton<ExportService>(() => ExportServiceImpl(firestoreService: sl()))
+    ..registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), authFirestoreService: sl(), usageFirestoreService: sl(), purchaseService: sl(), prefs: sl()))
+    ..registerLazySingleton<ExportService>(() => ExportServiceImpl(firestoreService: sl<HistoryFirestoreService>()))
     ..registerLazySingleton(() => ThemeNotifier(sl()))
 
   //! Features
@@ -136,7 +145,7 @@ Future<void> init() async {
       () => AuthRepositoryImpl(
         firebaseAuth: sl(),
         googleSignIn: sl(),
-        firestoreService: sl(),
+        firestoreService: sl<AuthFirestoreService>(),
         purchaseService: sl(),
         prefs: sl(),
         appStateService: sl(),
@@ -147,19 +156,20 @@ Future<void> init() async {
       ),
     )
     ..registerLazySingleton(() => GutAuthNotifier(sl(), sl()))
-    ..registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), firestoreService: sl(), analyticsService: sl()))
+    ..registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), authFirestoreService: sl(), analyticsService: sl()))
 
     // Profile
-    ..registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(auth: sl(), firestoreService: sl()))
-    ..registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl()))
-    ..registerLazySingleton(() => UsageNotifier(sl(), sl()))
+    ..registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(auth: sl(), firestoreService: sl<AuthFirestoreService>()))
+    ..registerLazySingleton(() => ProfileNotifier(sl(), sl<AuthFirestoreService>(), sl(), sl(), sl(), sl()))
+    ..registerLazySingleton(() => UsageNotifier(sl<UsageFirestoreService>(), sl()))
 
     // Chat
-    ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl()))
+    ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl<ChatFirestoreService>(), aiService: sl()))
     ..registerLazySingleton(
       () => ChatNotifier(
         repository: sl(),
-        firestoreService: sl(),
+        authFirestoreService: sl(),
+        chatFirestoreService: sl(),
         aiService: sl(),
         storageService: sl(),
         offService: sl(),
@@ -175,25 +185,44 @@ Future<void> init() async {
 
     // Insights
     ..registerLazySingleton<InsightRepository>(
-      () => InsightRepositoryImpl(firestoreService: sl(), aiService: sl(), prefs: sl(), notificationService: sl(), patternEngineService: sl(), analyticsService: sl(), crashlyticsService: sl()),
+      () => InsightRepositoryImpl(
+        authFirestoreService: sl(),
+        historyFirestoreService: sl(),
+        insightFirestoreService: sl(),
+        aiService: sl(),
+        prefs: sl(),
+        notificationService: sl(),
+        patternEngineService: sl(),
+        analyticsService: sl(),
+        crashlyticsService: sl(),
+      ),
     )
     ..registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl()))
 
     // Scanner
     ..registerLazySingleton<ScannerRepository>(
-      () => ScannerRepositoryImpl(offService: sl(), aiService: sl(), firestoreService: sl(), notificationService: sl(), appStateService: sl(), analyticsService: sl()),
+      () => ScannerRepositoryImpl(
+        offService: sl(),
+        aiService: sl(),
+        chatFirestoreService: sl(),
+        historyFirestoreService: sl(),
+        notificationService: sl(),
+        appStateService: sl(),
+        analyticsService: sl(),
+      ),
     )
-    ..registerLazySingleton(() => ScannerNotifier(repository: sl(), firestoreService: sl(), offService: sl(), storageService: sl()))
+    ..registerLazySingleton(() => ScannerNotifier(repository: sl(), authFirestoreService: sl(), offService: sl(), storageService: sl()))
 
     // Logs
-    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl()))
+    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl<HistoryFirestoreService>(), analyticsService: sl()))
 
     // History
-    ..registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl()))
+    ..registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl<HistoryFirestoreService>()))
+    ..registerLazySingleton(() => SavedFoodsProvider(repository: sl(), appStateService: sl()))
 
   //! UseCases
 
     ..registerLazySingleton(() => SendMessageStreamUseCase(sl()))
-    ..registerLazySingleton(() => ProcessChatTagUseCase(firestoreService: sl(), notificationService: sl(), appStateService: sl()));
+    ..registerLazySingleton(() => ProcessChatTagUseCase(firestoreService: sl<HistoryFirestoreService>(), notificationService: sl(), appStateService: sl()));
 }
 

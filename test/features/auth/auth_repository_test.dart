@@ -6,7 +6,7 @@ import 'package:gutgood/core/models/user_profile.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/features/auth/data/repositories/auth_repository_impl.dart';
@@ -17,7 +17,7 @@ class MockFirebaseAuth extends Mock implements firebase.FirebaseAuth {}
 
 class MockGoogleSignIn extends Mock implements GoogleSignIn {}
 
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockAuthFirestoreService extends Mock implements AuthFirestoreService {}
 
 class MockPurchaseService extends Mock implements PurchaseService {}
 
@@ -45,7 +45,7 @@ void main() {
   late AuthRepositoryImpl repository;
   late MockFirebaseAuth mockFirebaseAuth;
   late MockGoogleSignIn mockGoogleSignIn;
-  late MockFirestoreService mockFirestoreService;
+  late MockAuthFirestoreService mockFirestoreService;
   late MockPurchaseService mockPurchaseService;
   late MockSharedPreferences mockSharedPreferences;
   late MockAppStateService mockAppStateService;
@@ -61,7 +61,7 @@ void main() {
   setUp(() {
     mockFirebaseAuth = MockFirebaseAuth();
     mockGoogleSignIn = MockGoogleSignIn();
-    mockFirestoreService = MockFirestoreService();
+    mockFirestoreService = MockAuthFirestoreService();
     mockPurchaseService = MockPurchaseService();
     mockSharedPreferences = MockSharedPreferences();
     mockAppStateService = MockAppStateService();

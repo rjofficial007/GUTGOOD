@@ -27,93 +27,139 @@ class ProductNotFoundScreen extends StatelessWidget {
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
             sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                Gap.h40,
-                Center(
-                  child: Container(
-                    width: AppSizes.p120,
-                    height: AppSizes.p120,
-                    decoration: BoxDecoration(
-                      color: context.appColorScheme.cardBackground,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: context.appColorScheme.border),
-                    ),
-                    child: Icon(AppIcons.search, size: AppSizes.icon48, color: context.appColorScheme.textMuted),
-                  ),
-                ),
-                Gap.h32,
-                Text(
-                  AppStrings.productNotFound,
-                  textAlign: TextAlign.center,
-                  style: context.headingMd.copyWith(fontWeight: FontWeight.w800),
-                ),
-                Gap.h12,
-                Text(
-                  AppStrings.productNotFoundSubtitle,
-                  textAlign: TextAlign.center,
-                  style: context.body.copyWith(color: context.appColorScheme.textSecondary),
-                ),
-                Gap.h64,
-
-                Container(
-                  padding: EdgeInsets.all(AppSizes.p20),
-                  decoration: BoxDecoration(
-                    color: context.appColorScheme.success.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(AppSizes.r20),
-                    border: Border.all(color: context.appColorScheme.success.withValues(alpha: 0.1)),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Icon(AppIcons.sparkles, color: context.appColorScheme.success, size: AppSizes.icon20),
-                          Gap.w12,
-                          Expanded(
-                            child: Text(AppStrings.beAContributor, style: context.bodyBold.copyWith(color: context.appColorScheme.success)),
-                          ),
-                        ],
-                      ),
-                      Gap.h8,
-                      Text(AppStrings.contributorSubtitle, style: context.bodySm.copyWith(color: context.appColorScheme.success.withValues(alpha: 0.8))),
-                      Gap.h16,
-                      _ContributeButton(
-                        label: AppStrings.takePhotosAndAdd,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.contributionComingSoon)));
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                Gap.h32,
-                _OptionTile(
-                  icon: AppIcons.sparkles,
-                  title: AppStrings.analyzeWithAi,
-                  subtitle: AppStrings.analyzeWithAiSubtitle,
-                  onTap: () {
-                    context.pop('TRIGGER_CAMERA');
-                  },
-                ),
-                Gap.h12,
-                _OptionTile(icon: AppIcons.refreshCw, title: AppStrings.tryAgain, subtitle: AppStrings.rescanBarcode, onTap: () => context.pop()),
-                Gap.h12,
-                _OptionTile(
-                  icon: AppIcons.keyboard,
-                  title: AppStrings.enterManually,
-                  subtitle: AppStrings.enterManuallySubtitle,
-                  onTap: () {
-                    unawaited(context.push(AppRoutes.manualBarcode));
-                  },
-                ),
-                Gap.h40,
-              ]),
-            ),
+                delegate: SliverChildListDelegate([
+                  Gap.h40,
+                  const _NotFoundMascot(),
+                  Gap.h32,
+                  const _NotFoundHeader(),
+                  Gap.h64,
+                  const _ContributeSection(),
+                  Gap.h32,
+                  const _ActionsSection(),
+                  Gap.h40,
+                ])),
           ),
         ],
       ),
     );
 }
+
+class _NotFoundMascot extends StatelessWidget {
+  const _NotFoundMascot();
+
+  @override
+  Widget build(BuildContext context) => Center(
+      child: Container(
+        width: AppSizes.p120,
+        height: AppSizes.p120,
+        decoration: BoxDecoration(
+          color: context.appColorScheme.cardBackground,
+          shape: BoxShape.circle,
+          border: Border.all(color: context.appColorScheme.border),
+        ),
+        child: Icon(AppIcons.search, size: AppSizes.icon48, color: context.appColorScheme.textMuted),
+      ),
+    );
+}
+
+class _NotFoundHeader extends StatelessWidget {
+  const _NotFoundHeader();
+
+  @override
+  Widget build(BuildContext context) => Column(
+      children: [
+        Text(
+          AppStrings.productNotFound,
+          textAlign: TextAlign.center,
+          style: context.headingMd.copyWith(fontWeight: FontWeight.w800),
+        ),
+        Gap.h12,
+        Text(
+          AppStrings.productNotFoundSubtitle,
+          textAlign: TextAlign.center,
+          style: context.body.copyWith(color: context.appColorScheme.textSecondary),
+        ),
+      ],
+    );
+}
+
+class _ContributeSection extends StatelessWidget {
+  const _ContributeSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return Container(
+      padding: EdgeInsets.all(AppSizes.p20),
+      decoration: BoxDecoration(
+        color: colorScheme.success.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppSizes.r20),
+        border: Border.all(color: colorScheme.success.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(AppIcons.sparkles, color: colorScheme.success, size: AppSizes.icon20),
+              Gap.w12,
+              Expanded(
+                child: Text(
+                  AppStrings.beAContributor,
+                  style: context.bodyBold.copyWith(color: colorScheme.success),
+                ),
+              ),
+            ],
+          ),
+          Gap.h8,
+          Text(
+            AppStrings.contributorSubtitle,
+            style: context.bodySm.copyWith(color: colorScheme.success.withValues(alpha: 0.8)),
+          ),
+          Gap.h16,
+          _ContributeButton(
+            label: AppStrings.takePhotosAndAdd,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text(AppStrings.contributionComingSoon)),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionsSection extends StatelessWidget {
+  const _ActionsSection();
+
+  @override
+  Widget build(BuildContext context) => Column(
+      children: [
+        _OptionTile(
+          icon: AppIcons.sparkles,
+          title: AppStrings.analyzeWithAi,
+          subtitle: AppStrings.analyzeWithAiSubtitle,
+          onTap: () => context.pop('TRIGGER_CAMERA'),
+        ),
+        Gap.h12,
+        _OptionTile(
+          icon: AppIcons.refreshCw,
+          title: AppStrings.tryAgain,
+          subtitle: AppStrings.rescanBarcode,
+          onTap: () => context.pop(),
+        ),
+        Gap.h12,
+        _OptionTile(
+          icon: AppIcons.keyboard,
+          title: AppStrings.enterManually,
+          subtitle: AppStrings.enterManuallySubtitle,
+          onTap: () => unawaited(context.push(AppRoutes.manualBarcode)),
+        ),
+      ],
+    );
+}
+
 
 class _ContributeButton extends StatelessWidget {
 

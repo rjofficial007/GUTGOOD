@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -16,23 +16,24 @@ class PurchaseProvider extends ChangeNotifier {
     required InternetConnectionChecker connectionChecker,
     required AppStateService appStateService,
     required SharedPreferences prefs,
-    required FirestoreService firestoreService,
+    required AuthFirestoreService authFirestoreService,
     required AnalyticsService analyticsService,
-  }) : _purchaseService = purchaseService,
-       _connectionChecker = connectionChecker,
-       _appStateService = appStateService,
-       _prefs = prefs,
-       _firestoreService = firestoreService,
-       _analyticsService = analyticsService {
+  })  : _purchaseService = purchaseService,
+        _connectionChecker = connectionChecker,
+        _appStateService = appStateService,
+        _prefs = prefs,
+        _authFirestoreService = authFirestoreService,
+        _analyticsService = analyticsService {
     _isPremium = _purchaseService.isPremium;
     fetchOfferings();
     _appStateService.sessionReset.addListener(_onSessionReset);
   }
+
   final PurchaseService _purchaseService;
   final InternetConnectionChecker _connectionChecker;
   final AppStateService _appStateService;
   final SharedPreferences _prefs;
-  final FirestoreService _firestoreService;
+  final AuthFirestoreService _authFirestoreService;
   final AnalyticsService _analyticsService;
 
   List<Package> _packages = [];
@@ -170,7 +171,7 @@ class PurchaseProvider extends ChangeNotifier {
     // RevenueCat SDK on-device (PurchaseService). We mirror it into Firestore
     // so it is available cross-device and to the aiProxy quota check. There
     // is intentionally no server-side RevenueCat integration.
-    await _firestoreService.updatePremiumStatus(active);
+    await _authFirestoreService.updatePremiumStatus(active);
   }
 
   @override

@@ -8,7 +8,8 @@ import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
@@ -21,19 +22,22 @@ class ScannerRepositoryImpl implements ScannerRepository {
   ScannerRepositoryImpl({
     required OffService offService,
     required AiService aiService,
-    required FirestoreService firestoreService,
+    required ChatFirestoreService chatFirestoreService,
+    required HistoryFirestoreService historyFirestoreService,
     required NotificationService notificationService,
     required AppStateService appStateService,
     required AnalyticsService analyticsService,
   }) : _offService = offService,
        _aiService = aiService,
-       _firestoreService = firestoreService,
+       _chatFirestoreService = chatFirestoreService,
+       _historyFirestoreService = historyFirestoreService,
        _notificationService = notificationService,
        _appStateService = appStateService,
        _analyticsService = analyticsService;
   final OffService _offService;
   final AiService _aiService;
-  final FirestoreService _firestoreService;
+  final ChatFirestoreService _chatFirestoreService;
+  final HistoryFirestoreService _historyFirestoreService;
   final NotificationService _notificationService;
   final AppStateService _appStateService;
   final AnalyticsService _analyticsService;
@@ -100,14 +104,14 @@ class ScannerRepositoryImpl implements ScannerRepository {
     AppLogger.info('ScannerRepository: Creating ChatMessage for scan: ${result.productName}');
     final userMsg = ChatMessage(localId: const Uuid().v4(), role: 'user', text: 'Scan: ${result.productName} ✨', scanData: result, imageUrl: userImageUrl, source: result.source, time: DateTime.now());
 
-    await _firestoreService.saveMessage(userMsg);
+    await _chatFirestoreService.saveMessage(userMsg);
     AppLogger.info('ScannerRepository: Scan result message saved to Firestore');
 
     // Passive logging (PRD §2 / §6.2 / §13): a completed scan is also a LOG.
     // Without this write, scan_history stayed empty -> the Scan History screen,
     // the Insights scan-trigger (3 scans, §8.2), scan-aware insight context and
     // the processed-food warning notification could never fire.
-    await _firestoreService.saveToScanHistory(result, userImageUrl: userImageUrl);
+    await _historyFirestoreService.saveToScanHistory(result, userImageUrl: userImageUrl);
     AppLogger.info('ScannerRepository: Scan result saved to scan_history. Image: ${userImageUrl != null}');
 
     // 🟢 Fix: Notify UI that history has updated

@@ -8,14 +8,21 @@ import 'package:gutgood/core/models/user_profile.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier with ChangeNotifier {
-  ProfileNotifier(this._authRepository, this._firestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService) {
+  ProfileNotifier(
+    this._authRepository,
+    this._firestoreService,
+    this._appStateService,
+    this._notificationService,
+    this._analyticsService,
+    this._crashlyticsService,
+  ) {
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -29,8 +36,9 @@ class ProfileNotifier with ChangeNotifier {
       }
     });
   }
+
   final AuthRepository _authRepository;
-  final FirestoreService _firestoreService;
+  final AuthFirestoreService _firestoreService;
   final AppStateService _appStateService;
   final NotificationService _notificationService;
   final AnalyticsService _analyticsService;

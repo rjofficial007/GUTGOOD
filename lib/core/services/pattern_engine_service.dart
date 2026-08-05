@@ -1,7 +1,8 @@
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class PatternEngineService {
@@ -9,16 +10,21 @@ abstract class PatternEngineService {
 }
 
 class PatternEngineServiceImpl implements PatternEngineService {
+  PatternEngineServiceImpl({
+    required HistoryFirestoreService historyFirestoreService,
+    required InsightFirestoreService insightFirestoreService,
+  })  : _historyFirestoreService = historyFirestoreService,
+        _insightFirestoreService = insightFirestoreService;
 
-  PatternEngineServiceImpl({required FirestoreService firestoreService}) : _firestoreService = firestoreService;
-  final FirestoreService _firestoreService;
+  final HistoryFirestoreService _historyFirestoreService;
+  final InsightFirestoreService _insightFirestoreService;
 
   @override
   Future<void> runAnalysis() async {
     AppLogger.info('PatternEngine: Starting analysis...');
 
-    final meals = await _firestoreService.getRecentMealLogs(limit: 100);
-    final symptoms = await _firestoreService.getRecentSymptomLogs(limit: 100);
+    final meals = await _historyFirestoreService.getRecentMealLogs(limit: 100);
+    final symptoms = await _historyFirestoreService.getRecentSymptomLogs(limit: 100);
 
     if (meals.isEmpty || symptoms.isEmpty) {
       AppLogger.debug('PatternEngine: Insufficient data for correlation. (Meals: ${meals.length}, Symptoms: ${symptoms.length}). Need at least one of each.');
@@ -226,7 +232,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
   Future<void> _savePatterns(List<BodyPattern> patterns) async {
     try {
-      await _firestoreService.savePatternData(patterns);
+      await _insightFirestoreService.savePatternData(patterns);
       AppLogger.info('PatternEngine: Synced to Firestore');
     } catch (e) {
       AppLogger.error('PatternEngine: Sync failed', error: e);

@@ -4,7 +4,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/router/app_routes.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/navigator_service.dart';
@@ -56,12 +57,19 @@ abstract class NotificationService {
 }
 
 class NotificationServiceImpl implements NotificationService {
-  NotificationServiceImpl({required FlutterLocalNotificationsPlugin notifications, required FirestoreService firestoreService, required SharedPreferences prefs})
-    : _notifications = notifications,
-      _firestoreService = firestoreService,
-      _prefs = prefs;
+  NotificationServiceImpl({
+    required FlutterLocalNotificationsPlugin notifications,
+    required AuthFirestoreService authFirestoreService,
+    required HistoryFirestoreService historyFirestoreService,
+    required SharedPreferences prefs,
+  })  : _notifications = notifications,
+        _authFirestoreService = authFirestoreService,
+        _historyFirestoreService = historyFirestoreService,
+        _prefs = prefs;
+
   final FlutterLocalNotificationsPlugin _notifications;
-  final FirestoreService _firestoreService;
+  final AuthFirestoreService _authFirestoreService;
+  final HistoryFirestoreService _historyFirestoreService;
   final SharedPreferences _prefs;
 
   @override
@@ -98,11 +106,11 @@ class NotificationServiceImpl implements NotificationService {
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         final token = await messaging.getToken();
         if (token != null) {
-          await _firestoreService.saveFcmToken(token);
+          await _authFirestoreService.saveFcmToken(token);
         }
       }
 
-      messaging.onTokenRefresh.listen(_firestoreService.saveFcmToken);
+      messaging.onTokenRefresh.listen(_authFirestoreService.saveFcmToken);
 
       // 🟢 Fix: Listen for messages while the app is in the FOREGROUND
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -282,7 +290,7 @@ class NotificationServiceImpl implements NotificationService {
     // 🟡 Fix: Use local start of day to match the user's local day experience.
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
-    final count = await _firestoreService.getMealLogsCountSince(startOfToday);
+    final count = await _historyFirestoreService.getMealLogsCountSince(startOfToday);
 
     if (count == 0) {
       await _scheduleDaily(id: NotificationIds.noMealLogged, title: AppStrings.notifNoMealLoggedTitle, body: AppStrings.notifNoMealLoggedBody, hour: hour, minute: minute, payload: 'no_meal_logged');

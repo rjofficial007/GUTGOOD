@@ -2,13 +2,13 @@ import 'dart:typed_data';
 
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/services/ai_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 
 class ChatRepositoryImpl implements ChatRepository {
 
-  ChatRepositoryImpl({required FirestoreService firestoreService, required AiService aiService}) : _firestoreService = firestoreService, _aiService = aiService;
-  final FirestoreService _firestoreService;
+  ChatRepositoryImpl({required ChatFirestoreService firestoreService, required AiService aiService}) : _firestoreService = firestoreService, _aiService = aiService;
+  final ChatFirestoreService _firestoreService;
   final AiService _aiService;
 
   @override

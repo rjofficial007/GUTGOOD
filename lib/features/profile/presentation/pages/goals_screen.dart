@@ -68,20 +68,54 @@ class _GoalsScreenState extends State<GoalsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(AppStrings.onboardingGoalsTitle, style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
-                  Gap.h8,
-                  Text(AppStrings.updatePreferencesSubtitle, style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
+                  const _SelectionHeader(
+                    title: AppStrings.onboardingGoalsTitle,
+                    subtitle: AppStrings.updatePreferencesSubtitle,
+                  ),
                   Gap.h32,
-                  SelectionWrap(options: _goalOptions, selectedValues: _selectedGoals, onToggle: _toggleGoal),
+                  SelectionWrap(
+                    options: _goalOptions,
+                    selectedValues: _selectedGoals,
+                    onToggle: _toggleGoal,
+                  ),
                 ],
               ),
             ),
           ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p32),
-            child: GutButton(label: AppStrings.saveChanges, isLoading: _isSaving, onTap: _save),
+          _SelectionFooter(
+            isLoading: _isSaving,
+            onSave: _save,
           ),
         ],
       ),
+    );
+}
+
+class _SelectionHeader extends StatelessWidget {
+  const _SelectionHeader({required this.title, required this.subtitle});
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
+        Gap.h8,
+        Text(subtitle,
+            style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
+      ],
+    );
+}
+
+class _SelectionFooter extends StatelessWidget {
+  const _SelectionFooter({required this.isLoading, required this.onSave});
+  final bool isLoading;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+      padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p32),
+      child: GutButton(label: AppStrings.saveChanges, isLoading: isLoading, onTap: onSave),
     );
 }

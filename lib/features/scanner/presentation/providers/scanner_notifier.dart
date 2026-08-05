@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -11,13 +11,17 @@ import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.
 
 class ScannerNotifier with ChangeNotifier {
 
-  ScannerNotifier({required ScannerRepository repository, required FirestoreService firestoreService, required OffService offService, required StorageService storageService})
-    : _repository = repository,
-      _firestoreService = firestoreService,
-      _offService = offService,
-      _storageService = storageService;
+  ScannerNotifier({
+    required ScannerRepository repository,
+    required AuthFirestoreService authFirestoreService,
+    required OffService offService,
+    required StorageService storageService,
+  }) : _repository = repository,
+       _authFirestoreService = authFirestoreService,
+       _offService = offService,
+       _storageService = storageService;
   final ScannerRepository _repository;
-  final FirestoreService _firestoreService;
+  final AuthFirestoreService _authFirestoreService;
   final OffService _offService;
   final StorageService _storageService;
 
@@ -42,7 +46,7 @@ class ScannerNotifier with ChangeNotifier {
         userImageUrl = await _storageService.uploadFoodImage(capturedImage);
       }
 
-      final profile = await _firestoreService.getUserMetadata();
+      final profile = await _authFirestoreService.getUserMetadata();
       final goals = profile?.goals ?? [];
       final sensitivities = profile?.sensitivities ?? [];
       final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
@@ -85,7 +89,7 @@ class ScannerNotifier with ChangeNotifier {
     try {
       final userImageUrl = await _storageService.uploadFoodImage(bytes);
 
-      final profile = await _firestoreService.getUserMetadata();
+      final profile = await _authFirestoreService.getUserMetadata();
       final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
 
       final result = await _repository.analyzeImageWithAi(

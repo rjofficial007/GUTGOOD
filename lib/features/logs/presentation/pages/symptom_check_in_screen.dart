@@ -123,82 +123,182 @@ class _SymptomCheckInScreenState extends State<SymptomCheckInScreen> {
             padding: EdgeInsets.all(AppSizes.p24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                Text(AppStrings.howAreYouFeeling, style: context.headingMd.copyWith(fontWeight: FontWeight.w900)),
-                Gap.h8,
-                Text(AppStrings.dailyCheckInDesc, style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
-
-                GutSection(
-                  title: AppStrings.symptoms,
-                  child: GutSelectionSection(
-                    title: '', // Already has title in GutSection
-                    options: _symptomOptions,
-                    selectedValue: _selectedSymptom,
-                    onSelected: (val) => setState(() => _selectedSymptom = val),
+                const _CheckInHeader(),
+                _SymptomSection(
+                  options: _symptomOptions,
+                  selected: _selectedSymptom,
+                  onSelected: (val) => setState(() => _selectedSymptom = val),
+                ),
+                if (_selectedSymptom != AppStrings.symptomNone)
+                  _SeveritySection(
+                    value: _severity,
+                    onChanged: (val) => setState(() => _severity = val),
                   ),
+                _MoodSection(
+                  options: _moodOptions,
+                  selected: _mood,
+                  onSelected: (val) => setState(() => _mood = val),
                 ),
-
-                if (_selectedSymptom != AppStrings.symptomNone) ...[
-                  GutSection(
-                    title: AppStrings.severityLabel,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${AppStrings.labelScorePrefix}${_severity.toInt()}', style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
-                        Slider(
-                          value: _severity,
-                          min: 1.0,
-                          max: 10.0,
-                          divisions: 9,
-                          activeColor: context.appColorScheme.textPrimary,
-                          inactiveColor: context.appColorScheme.border,
-                          onChanged: (val) => setState(() => _severity = val),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-
-                GutSection(
-                  title: AppStrings.mood,
-                  child: GutSelectionSection(title: '', options: _moodOptions, selectedValue: _mood, onSelected: (val) => setState(() => _mood = val)),
+                _EnergySection(
+                  value: _energy,
+                  onChanged: (val) => setState(() => _energy = val),
                 ),
-
-                GutSection(
-                  title: AppStrings.energyLevelLabel,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${AppStrings.labelScorePrefix}$_energy', style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
-                      Slider(
-                        value: _energy.toDouble(),
-                        min: 1.0,
-                        max: 10.0,
-                        divisions: 9,
-                        activeColor: context.appColorScheme.textPrimary,
-                        inactiveColor: context.appColorScheme.border,
-                        onChanged: (val) => setState(() => _energy = val.toInt()),
-                      ),
-                    ],
-                  ),
+                _SleepSection(
+                  options: _sleepOptions,
+                  selected: _sleep,
+                  onSelected: (val) => setState(() => _sleep = val),
                 ),
-
-                GutSection(
-                  title: AppStrings.lastNightSleep,
-                  child: GutSelectionSection(title: '', options: _sleepOptions, selectedValue: _sleep, onSelected: (val) => setState(() => _sleep = val)),
-                ),
-
-                GutSection(
-                  title: AppStrings.notesLabel,
-                  child: GutTextField(controller: _notesController, maxLines: 3, hintText: AppStrings.anythingToNote),
-                ),
+                _NotesSection(controller: _notesController),
                 Gap.h40,
-
-                GutButton(label: AppStrings.saveDailyCheckIn, isLoading: _isSaving, onTap: _save),
+                GutButton(
+                  label: AppStrings.saveDailyCheckIn,
+                  isLoading: _isSaving,
+                  onTap: _save,
+                ),
                 Gap.h24,
               ]),
             ),
           ),
         ],
+      ),
+    );
+}
+
+class _CheckInHeader extends StatelessWidget {
+  const _CheckInHeader();
+
+  @override
+  Widget build(BuildContext context) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(AppStrings.howAreYouFeeling,
+            style: context.headingMd.copyWith(fontWeight: FontWeight.w900)),
+        Gap.h8,
+        Text(AppStrings.dailyCheckInDesc,
+            style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
+      ],
+    );
+}
+
+class _SymptomSection extends StatelessWidget {
+  const _SymptomSection({required this.options, required this.selected, required this.onSelected});
+  final List<SelectionOption> options;
+  final String selected;
+  final Function(String) onSelected;
+
+  @override
+  Widget build(BuildContext context) => GutSection(
+      title: AppStrings.symptoms,
+      child: GutSelectionSection(
+        title: '',
+        options: options,
+        selectedValue: selected,
+        onSelected: onSelected,
+      ),
+    );
+}
+
+class _SeveritySection extends StatelessWidget {
+  const _SeveritySection({required this.value, required this.onChanged});
+  final double value;
+  final Function(double) onChanged;
+
+  @override
+  Widget build(BuildContext context) => GutSection(
+      title: AppStrings.severityLabel,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${AppStrings.labelScorePrefix}${value.toInt()}',
+              style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
+          Slider(
+            value: value,
+            min: 1.0,
+            max: 10.0,
+            divisions: 9,
+            activeColor: context.appColorScheme.textPrimary,
+            inactiveColor: context.appColorScheme.border,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+}
+
+class _MoodSection extends StatelessWidget {
+  const _MoodSection({required this.options, required this.selected, required this.onSelected});
+  final List<SelectionOption> options;
+  final String selected;
+  final Function(String) onSelected;
+
+  @override
+  Widget build(BuildContext context) => GutSection(
+      title: AppStrings.mood,
+      child: GutSelectionSection(
+        title: '',
+        options: options,
+        selectedValue: selected,
+        onSelected: onSelected,
+      ),
+    );
+}
+
+class _EnergySection extends StatelessWidget {
+  const _EnergySection({required this.value, required this.onChanged});
+  final int value;
+  final Function(int) onChanged;
+
+  @override
+  Widget build(BuildContext context) => GutSection(
+      title: AppStrings.energyLevelLabel,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${AppStrings.labelScorePrefix}$value',
+              style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
+          Slider(
+            value: value.toDouble(),
+            min: 1.0,
+            max: 10.0,
+            divisions: 9,
+            activeColor: context.appColorScheme.textPrimary,
+            inactiveColor: context.appColorScheme.border,
+            onChanged: (val) => onChanged(val.toInt()),
+          ),
+        ],
+      ),
+    );
+}
+
+class _SleepSection extends StatelessWidget {
+  const _SleepSection({required this.options, required this.selected, required this.onSelected});
+  final List<SelectionOption> options;
+  final String selected;
+  final Function(String) onSelected;
+
+  @override
+  Widget build(BuildContext context) => GutSection(
+      title: AppStrings.lastNightSleep,
+      child: GutSelectionSection(
+        title: '',
+        options: options,
+        selectedValue: selected,
+        onSelected: onSelected,
+      ),
+    );
+}
+
+class _NotesSection extends StatelessWidget {
+  const _NotesSection({required this.controller});
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) => GutSection(
+      title: AppStrings.notesLabel,
+      child: GutTextField(
+        controller: controller,
+        maxLines: 3,
+        hintText: AppStrings.anythingToNote,
       ),
     );
 }

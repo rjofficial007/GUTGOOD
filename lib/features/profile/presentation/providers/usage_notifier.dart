@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/daily_usage.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/usage_firestore_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 
 class UsageNotifier with ChangeNotifier {
@@ -19,7 +19,8 @@ class UsageNotifier with ChangeNotifier {
       }
     });
   }
-  final FirestoreService _firestoreService;
+
+  final UsageFirestoreService _firestoreService;
   final AuthRepository _authRepository;
 
   DailyUsage? _usage;

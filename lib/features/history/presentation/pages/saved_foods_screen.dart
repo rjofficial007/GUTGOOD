@@ -56,29 +56,60 @@ class _SavedFoodsScreenState extends State<SavedFoodsScreen> {
       body: CustomScrollView(
         slivers: [
           const GutSliverAppBar(title: AppStrings.savedFoods),
-          if (_isLoading)
-            SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
-              sliver: const SliverToBoxAdapter(child: ShimmerGridLoader(itemCount: 8, crossAxisCount: 1, variant: ShimmerVariant.list)),
-            )
-          else if (_savedFoods.isEmpty)
-            SliverFillRemaining(hasScrollBody: false, child: _buildEmptyState())
-          else
-            SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final scanResult = _savedFoods[index];
-                  return ScanHistoryTile(
-                    scanResult: scanResult,
-                    onTap: () => unawaited(context.push(AppRoutes.scanResult, extra: {'scanData': scanResult.toMap()})),
-                  );
-                }, childCount: _savedFoods.length),
-              ),
-            ),
+          _buildBody(),
         ],
       ),
     );
 
-  Widget _buildEmptyState() => const EmptyStateWidget(icon: Icons.bookmark_outline, title: AppStrings.noSavedItemsYet, description: AppStrings.tapHeartToSave);
+  Widget _buildBody() => _isLoading ? const _SavedFoodsLoading() : (_savedFoods.isEmpty ? const _SavedFoodsEmpty() : _SavedFoodsList(savedFoods: _savedFoods));
+}
+
+class _SavedFoodsLoading extends StatelessWidget {
+  const _SavedFoodsLoading();
+
+  @override
+  Widget build(BuildContext context) => SliverPadding(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
+      sliver: const SliverToBoxAdapter(
+        child: ShimmerGridLoader(itemCount: 8, crossAxisCount: 1, variant: ShimmerVariant.list),
+      ),
+    );
+}
+
+class _SavedFoodsEmpty extends StatelessWidget {
+  const _SavedFoodsEmpty();
+
+  @override
+  Widget build(BuildContext context) => const SliverFillRemaining(
+      hasScrollBody: false,
+      child: EmptyStateWidget(
+        icon: Icons.bookmark_outline,
+        title: AppStrings.noSavedItemsYet,
+        description: AppStrings.tapHeartToSave,
+      ),
+    );
+}
+
+class _SavedFoodsList extends StatelessWidget {
+  const _SavedFoodsList({required this.savedFoods});
+  final List<ScanResult> savedFoods;
+
+  @override
+  Widget build(BuildContext context) => SliverPadding(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final scanResult = savedFoods[index];
+            return ScanHistoryTile(
+              scanResult: scanResult,
+              onTap: () => unawaited(
+                context.push(AppRoutes.scanResult, extra: {'scanData': scanResult.toMap()}),
+              ),
+            );
+          },
+          childCount: savedFoods.length,
+        ),
+      ),
+    );
 }

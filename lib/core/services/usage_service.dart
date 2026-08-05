@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:gutgood/core/models/daily_usage.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/usage_firestore_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
@@ -21,14 +22,21 @@ abstract class UsageService {
 /// transactionally by the `aiProxy` Cloud Function, which is the authoritative
 /// gate — the client could previously reset its own counters (audit §3.1).
 class UsageServiceImpl implements UsageService {
+  UsageServiceImpl({
+    required AuthRepository authRepository,
+    required AuthFirestoreService authFirestoreService,
+    required UsageFirestoreService usageFirestoreService,
+    required PurchaseService purchaseService,
+    required SharedPreferences prefs,
+  })  : _authRepository = authRepository,
+        _authFirestoreService = authFirestoreService,
+        _usageFirestoreService = usageFirestoreService,
+        _purchaseService = purchaseService,
+        _prefs = prefs;
 
-  UsageServiceImpl({required AuthRepository authRepository, required FirestoreService firestoreService, required PurchaseService purchaseService, required SharedPreferences prefs})
-    : _authRepository = authRepository,
-      _firestoreService = firestoreService,
-      _purchaseService = purchaseService,
-      _prefs = prefs;
   final AuthRepository _authRepository;
-  final FirestoreService _firestoreService;
+  final AuthFirestoreService _authFirestoreService;
+  final UsageFirestoreService _usageFirestoreService;
   final PurchaseService _purchaseService;
   final SharedPreferences _prefs;
 
@@ -47,7 +55,7 @@ class UsageServiceImpl implements UsageService {
     final uid = _uid;
     if (uid == null) return false;
 
-    final profile = await _firestoreService.getUserMetadata();
+    final profile = await _authFirestoreService.getUserMetadata();
     if (profile != null && profile.isPremium) return true;
 
     return _prefs.getBool('is_premium') ?? false;
@@ -61,7 +69,7 @@ class UsageServiceImpl implements UsageService {
     final date = DateTime.now().toIso8601String().split('T')[0];
 
     try {
-      final cloudUsage = await _firestoreService.getUsageToday();
+      final cloudUsage = await _usageFirestoreService.getUsageToday();
       if (cloudUsage != null) return cloudUsage;
     } catch (e) {
       AppLogger.warning('UsageService: Cloud usage fetch failed: $e');

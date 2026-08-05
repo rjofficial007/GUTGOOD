@@ -12,7 +12,6 @@ import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -21,6 +20,7 @@ import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -35,173 +35,37 @@ class ScanResultScreen extends StatefulWidget {
 }
 
 class _ScanResultScreenState extends State<ScanResultScreen> {
-  bool _isSaved = false;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _checkSavedStatus();
     unawaited(sl<AnalyticsService>().logEvent(name: 'view_scan_result', parameters: {'product_name': widget.scanData.productName, 'score': widget.scanData.score}));
   }
 
-  Future<void> _checkSavedStatus() async {
-    final saved = await sl<FirestoreService>().isFoodSaved(widget.scanData.productName, barcode: widget.scanData.barcode);
-    if (mounted) setState(() => _isSaved = saved);
-  }
-
   Future<void> _toggleSave() async {
-    await sl<FirestoreService>().toggleSaveFood(widget.scanData);
-    await sl<AnalyticsService>().logEvent(name: _isSaved ? 'food_unsaved' : 'food_saved', parameters: {'product_name': widget.scanData.productName});
-    unawaited(_checkSavedStatus());
+    final provider = context.read<SavedFoodsProvider>();
+    await provider.toggleSave(widget.scanData);
+    await sl<AnalyticsService>().logEvent(name: provider.isSaved(widget.scanData.productName, barcode: widget.scanData.barcode) ? 'food_saved' : 'food_unsaved', parameters: {'product_name': widget.scanData.productName});
     sl<AppStateService>().notifyProfileUpdated();
   }
 
   @override
   Widget build(BuildContext context) {
-    final sections = <Widget?>[
-      _ProductHero(scanData: widget.scanData, heroTag: widget.heroTag),
-      DashboardEntrance(
-        delay: 100,
-        child: GutDashboardSection(
-          title: AppStrings.gutImpact,
-          subtitle: AppStrings.gutGoodScore,
-          visualization: _GutImpactChart(score: widget.scanData.score),
-          items: [
-            DashboardDetailItem(title: _getImpactLevel(AppStrings.bloodSugar), subtitle: AppStrings.bloodSugar, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
-            Gap.h12,
-            DashboardDetailItem(title: _getImpactLevel(AppStrings.inflammation), subtitle: AppStrings.inflammation, icon: AppIcons.shield, color: context.appColorScheme.textPrimary),
-            Gap.h12,
-            DashboardDetailItem(title: _getImpactLevel(AppStrings.digestibility), subtitle: AppStrings.digestibility, icon: AppIcons.moon, color: context.appColorScheme.textPrimary),
-            Gap.h12,
-            DashboardDetailItem(title: _getImpactLevel(AppStrings.satiety), subtitle: AppStrings.satiety, icon: AppIcons.target, color: context.appColorScheme.textPrimary),
-          ],
-          footerLabel: AppStrings.viewImpactDetails,
-          onFooterTap: () => unawaited(_showGutImpactDetails(context)),
-        ),
-      ),
-      _buildCycleImpactSection(context),
-      if (widget.scanData.nutrientLevels != null)
-        DashboardEntrance(
-          delay: 300,
-          child: GutDashboardSection(
-            title: AppStrings.labelHealth,
-            subtitle: AppStrings.nutrientLevelsLabel,
-            visualization: const _NutrientVisualization(),
-            items: [
-              DashboardDetailItem(
-                title: widget.scanData.nutrientLevels!.sugars,
-                subtitle: AppStrings.sugars,
-                icon: AppIcons.candy,
-                color: _getNutrientColor(widget.scanData.nutrientLevels!.sugars, context),
-              ),
-              Gap.h12,
-              DashboardDetailItem(
-                title: widget.scanData.nutrientLevels!.salt,
-                subtitle: AppStrings.salt,
-                icon: AppIcons.flaskConical,
-                color: _getNutrientColor(widget.scanData.nutrientLevels!.salt, context),
-              ),
-              Gap.h12,
-              DashboardDetailItem(
-                title: widget.scanData.nutrientLevels!.fat,
-                subtitle: AppStrings.fatLabel,
-                icon: AppIcons.beef,
-                color: _getNutrientColor(widget.scanData.nutrientLevels!.fat, context),
-              ),
-              Gap.h12,
-              DashboardDetailItem(
-                title: widget.scanData.nutrientLevels!.saturatedFat,
-                subtitle: AppStrings.satFatLabel,
-                icon: AppIcons.beef,
-                color: _getNutrientColor(widget.scanData.nutrientLevels!.saturatedFat, context),
-              ),
-            ],
-            footerLabel: AppStrings.viewStandardValues,
-            onFooterTap: () => unawaited(_showNutrientDetails(context)),
-          ),
-        ),
-      if ((widget.scanData.allergens != null && widget.scanData.allergens!.isNotEmpty) || (widget.scanData.additives != null && widget.scanData.additives!.isNotEmpty))
-        DashboardEntrance(
-          delay: 400,
-          child: GutDashboardSection(
-            title: AppStrings.safe,
-            subtitle: AppStrings.safetyCautions,
-            visualization: _CautionRiskIcon(isSafe: widget.scanData.allergens == null || widget.scanData.allergens!.isEmpty),
-            items: [
-              if (widget.scanData.allergens != null && widget.scanData.allergens!.isNotEmpty)
-                DashboardDetailItem(title: widget.scanData.allergens!, subtitle: AppStrings.allergensLabel, icon: AppIcons.alertTriangle, color: context.appColorScheme.error),
-              if (widget.scanData.allergens != null && widget.scanData.allergens!.isNotEmpty && widget.scanData.additives != null && widget.scanData.additives!.isNotEmpty) Gap.h12,
-              if (widget.scanData.additives != null && widget.scanData.additives!.isNotEmpty)
-                DashboardDetailItem(title: widget.scanData.additives!, subtitle: AppStrings.additivesLabel, icon: AppIcons.flaskConical, color: context.appColorScheme.warning),
-              if ((widget.scanData.allergens == null || widget.scanData.allergens!.isEmpty) && (widget.scanData.additives == null || widget.scanData.additives!.isEmpty))
-                Text(AppStrings.noCautionsFound, style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
-            ],
-          ),
-        ),
-      if (widget.scanData.ingredients.isNotEmpty)
-        DashboardEntrance(
-          delay: 500,
-          child: GutDashboardSection(
-            title: AppStrings.mix,
-            subtitle: AppStrings.ingredients,
-            visualization: _IngredientCompositionVisualization(ingredients: widget.scanData.ingredients),
-            items: widget.scanData.ingredients.take(4).map((ing) {
-              final color = _getIngredientColor(ing.colorName, context);
-              return Padding(
-                padding: EdgeInsets.only(bottom: AppSizes.p12),
-                child: DashboardDetailItem(title: ing.name, subtitle: _getIngredientImpactLabel(ing.colorName), icon: InsightUiUtils.getIngredientIcon(ing.colorName), color: color),
-              );
-            }).toList(),
-            footerLabel: AppStrings.viewAllIngredients,
-            onFooterTap: () => unawaited(_showAllIngredients(context)),
-          ),
-        ),
-      if (widget.scanData.swaps.isNotEmpty)
-        DashboardEntrance(
-          delay: 600,
-          child: GutDashboardSection(
-            title: AppStrings.upgradeLabel,
-            subtitle: AppStrings.betterSwapsLabel,
-            visualization: const _SwapVisualization(),
-            items: widget.scanData.swaps
-                .take(3)
-                .map(
-                  (swap) => Padding(
-                    padding: EdgeInsets.only(bottom: AppSizes.p12),
-                    child: DashboardDetailItem(title: swap.title, subtitle: swap.subtitle, icon: AppIcons.sparkles, color: context.appColorScheme.textPrimary),
-                  ),
-                )
-                .toList(),
-            footerLabel: AppStrings.viewAllAlternatives,
-            onFooterTap: () => unawaited(_showAllSwaps(context)),
-          ),
-        ),
-      GutActionBanner(
-        title: AppStrings.nutritionFacts,
-        subtitle: AppStrings.per100g,
-        icon: AppIcons.clipboardList,
-        onTap: () => unawaited(context.push(AppRoutes.nutritionFacts, extra: widget.scanData.toMap())),
-      ),
-    ];
-
-    final visibleSections = sections.whereType<Widget>().toList();
+    final visibleSections = _buildVisibleSections(context);
 
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
-          GutSliverAppBar(
-            title: AppStrings.scanResult,
-            leading: IconButton(
-              icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
-              onPressed: () => context.pop(),
-            ),
-            actions: [
-              _SaveButton(
-                isSaved: _isSaved,
+          Consumer<SavedFoodsProvider>(
+            builder: (context, savedProvider, _) {
+              final isSaved = savedProvider.isSaved(widget.scanData.productName,
+                  barcode: widget.scanData.barcode);
+              return _ScanResultAppBar(
+                isSaved: isSaved,
                 isLoading: _isLoading,
-                onTap: () async {
+                onSaveTap: () async {
                   setState(() => _isLoading = true);
                   try {
                     await _toggleSave();
@@ -209,26 +73,61 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                     if (mounted) setState(() => _isLoading = false);
                   }
                 },
-              ),
-              Gap.w16,
-            ],
+              );
+            },
           ),
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final isLast = index == visibleSections.length - 1;
-                return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
-                  child: visibleSections[index],
-                );
-              }, childCount: visibleSections.length),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final isLast = index == visibleSections.length - 1;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
+                    child: visibleSections[index],
+                  );
+                },
+                childCount: visibleSections.length,
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
+  List<Widget> _buildVisibleSections(BuildContext context) => [
+      _ProductHero(scanData: widget.scanData, heroTag: widget.heroTag),
+      _GutImpactSection(
+        scanData: widget.scanData,
+        onDetailsTap: () => unawaited(_showGutImpactDetails(context)),
+      ),
+      _CycleImpactSection(scanData: widget.scanData),
+      if (widget.scanData.nutrientLevels != null)
+        _NutrientLevelsSection(
+          scanData: widget.scanData,
+          onDetailsTap: () => unawaited(_showNutrientDetails(context)),
+        ),
+      _SafetySection(scanData: widget.scanData),
+      if (widget.scanData.ingredients.isNotEmpty)
+        _IngredientsSection(
+          scanData: widget.scanData,
+          onDetailsTap: () => unawaited(_showAllIngredients(context)),
+        ),
+      if (widget.scanData.swaps.isNotEmpty)
+        _SwapsSection(
+          scanData: widget.scanData,
+          onDetailsTap: () => unawaited(_showAllSwaps(context)),
+        ),
+      GutActionBanner(
+        title: AppStrings.nutritionFacts,
+        subtitle: AppStrings.per100g,
+        icon: AppIcons.clipboardList,
+        onTap: () => unawaited(
+          context.push(AppRoutes.nutritionFacts, extra: widget.scanData.toMap()),
+        ),
+      ),
+    ];
 
   Future<void> _showGutImpactDetails(BuildContext context) async {
     final scanData = widget.scanData;
@@ -260,7 +159,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   Widget _buildImpactTile(BuildContext context, ImpactDetail impact) => Padding(
     padding: EdgeInsets.only(bottom: AppSizes.p12),
     child: DashboardDetailItem(
-      title: impact.title,
+      title: impact.level,
       subtitle: '${AppStrings.factorIndicatingState}${impact.level.toLowerCase()} state.',
       icon: AppIcons.checkCircle,
       color: _getImpactColorByLevel(impact.level, context),
@@ -288,14 +187,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     }
   }
 
-  String _getImpactLevel(String title) {
-    final impact = widget.scanData.impacts.firstWhere(
-      (e) => e.title.toLowerCase().contains(title.toLowerCase()),
-      orElse: () => const ImpactDetail(title: '', level: 'Neutral', color: 'gold'),
-    );
-    return impact.level;
-  }
-
   Future<void> _showNutrientDetails(BuildContext context) async {
     final levels = widget.scanData.nutrientLevels!;
     unawaited(sl<AnalyticsService>().logEvent(name: 'view_nutrient_details', parameters: {'product_name': widget.scanData.productName}));
@@ -311,21 +202,19 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           textAlign: TextAlign.center,
         ),
         Gap.h32,
-        DashboardDetailItem(title: levels.sugars, subtitle: AppStrings.sugars, icon: AppIcons.candy, color: _getNutrientColor(levels.sugars, context)),
+        DashboardDetailItem(title: levels.sugars, subtitle: AppStrings.sugars, icon: AppIcons.candy, color: context.appColorScheme.textPrimary),
         Gap.h16,
-        DashboardDetailItem(title: levels.salt, subtitle: AppStrings.salt, icon: AppIcons.flaskConical, color: _getNutrientColor(levels.salt, context)),
+        DashboardDetailItem(title: levels.salt, subtitle: AppStrings.salt, icon: AppIcons.flaskConical, color: context.appColorScheme.textPrimary),
         Gap.h16,
-        DashboardDetailItem(title: levels.fat, subtitle: AppStrings.fatLabel, icon: AppIcons.beef, color: _getNutrientColor(levels.fat, context)),
+        DashboardDetailItem(title: levels.fat, subtitle: AppStrings.fatLabel, icon: AppIcons.beef, color: context.appColorScheme.textPrimary),
         Gap.h16,
-        DashboardDetailItem(title: levels.saturatedFat, subtitle: AppStrings.satFatLabel, icon: AppIcons.beef, color: _getNutrientColor(levels.saturatedFat, context)),
+        DashboardDetailItem(title: levels.saturatedFat, subtitle: AppStrings.satFatLabel, icon: AppIcons.beef, color: context.appColorScheme.textPrimary),
         Gap.h40,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
       ],
     );
   }
-
-  Color _getNutrientColor(String? val, BuildContext context) => context.appColorScheme.textPrimary;
 
   Future<void> _showAllIngredients(BuildContext context) async {
     final ingredients = widget.scanData.ingredients;
@@ -359,12 +248,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       title: ing.name,
       subtitle: ing.impact.isNotEmpty ? ing.impact : _getIngredientImpactLabel(ing.colorName),
       icon: InsightUiUtils.getIngredientIcon(ing.colorName),
-      color: _getIngredientColor(ing.colorName, context),
+      color: InsightUiUtils.getIngredientColor(ing.colorName, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success),
     ),
   );
-
-  Color _getIngredientColor(String colorName, BuildContext context) =>
-      InsightUiUtils.getIngredientColor(colorName, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
 
   Future<void> _showAllSwaps(BuildContext context) async {
     final swaps = widget.scanData.swaps;
@@ -387,18 +273,237 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       ],
     );
   }
+}
 
-  Widget? _buildCycleImpactSection(BuildContext context) {
-    final profile = context.watch<ProfileNotifier>().profile;
-    final cycleEnabled = profile?.cycleSyncEnabled ?? false;
+class _ScanResultAppBar extends StatelessWidget {
+  const _ScanResultAppBar({
+    required this.isSaved,
+    required this.isLoading,
+    required this.onSaveTap,
+  });
 
-    if (!cycleEnabled) return null;
-    if (widget.scanData.cycleInsight == null || widget.scanData.cycleInsight!.description.isEmpty) {
-      return null;
-    }
+  final bool isSaved;
+  final bool isLoading;
+  final VoidCallback onSaveTap;
 
-    return DashboardEntrance(delay: 200, child: _CycleImpactDashboardSection(insight: widget.scanData.cycleInsight!));
+  @override
+  Widget build(BuildContext context) => GutSliverAppBar(
+      title: AppStrings.scanResult,
+      leading: IconButton(
+        icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
+        onPressed: () => context.pop(),
+      ),
+      actions: [
+        _SaveButton(
+          isSaved: isSaved,
+          isLoading: isLoading,
+          onTap: onSaveTap,
+        ),
+        Gap.w16,
+      ],
+    );
+}
+
+class _GutImpactSection extends StatelessWidget {
+  const _GutImpactSection({required this.scanData, required this.onDetailsTap});
+  final ScanResult scanData;
+  final VoidCallback onDetailsTap;
+
+  @override
+  Widget build(BuildContext context) => DashboardEntrance(
+      delay: 100,
+      child: GutDashboardSection(
+        title: AppStrings.gutImpact,
+        subtitle: AppStrings.gutGoodScore,
+        visualization: _GutImpactChart(score: scanData.score),
+        items: [
+          _buildItem(context, AppStrings.bloodSugar, AppIcons.activity),
+          Gap.h12,
+          _buildItem(context, AppStrings.inflammation, AppIcons.shield),
+          Gap.h12,
+          _buildItem(context, AppStrings.digestibility, AppIcons.moon),
+          Gap.h12,
+          _buildItem(context, AppStrings.satiety, AppIcons.target),
+        ],
+        footerLabel: AppStrings.viewImpactDetails,
+        onFooterTap: onDetailsTap,
+      ),
+    );
+
+  DashboardDetailItem _buildItem(BuildContext context, String title, IconData icon) {
+    final impact = scanData.impacts.firstWhere(
+      (e) => e.title.toLowerCase().contains(title.toLowerCase()),
+      orElse: () => const ImpactDetail(title: '', level: 'Neutral', color: 'gold'),
+    );
+    return DashboardDetailItem(
+      title: impact.level,
+      subtitle: title,
+      icon: icon,
+      color: context.appColorScheme.textPrimary,
+    );
   }
+}
+
+class _CycleImpactSection extends StatelessWidget {
+  const _CycleImpactSection({required this.scanData});
+  final ScanResult scanData;
+
+  @override
+  Widget build(BuildContext context) => Selector<ProfileNotifier, bool>(
+      selector: (_, n) => n.profile?.cycleSyncEnabled ?? false,
+      builder: (context, cycleEnabled, _) {
+        if (!cycleEnabled) return const SizedBox.shrink();
+        if (scanData.cycleInsight == null || scanData.cycleInsight!.description.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return DashboardEntrance(
+          delay: 200,
+          child: _CycleImpactDashboardSection(insight: scanData.cycleInsight!),
+        );
+      },
+    );
+}
+
+class _NutrientLevelsSection extends StatelessWidget {
+  const _NutrientLevelsSection({required this.scanData, required this.onDetailsTap});
+  final ScanResult scanData;
+  final VoidCallback onDetailsTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final levels = scanData.nutrientLevels!;
+    return DashboardEntrance(
+      delay: 300,
+      child: GutDashboardSection(
+        title: AppStrings.labelHealth,
+        subtitle: AppStrings.nutrientLevelsLabel,
+        visualization: const _NutrientVisualization(),
+        items: [
+          _buildItem(context, levels.sugars, AppStrings.sugars, AppIcons.candy),
+          Gap.h12,
+          _buildItem(context, levels.salt, AppStrings.salt, AppIcons.flaskConical),
+          Gap.h12,
+          _buildItem(context, levels.fat, AppStrings.fatLabel, AppIcons.beef),
+          Gap.h12,
+          _buildItem(context, levels.saturatedFat, AppStrings.satFatLabel, AppIcons.beef),
+        ],
+        footerLabel: AppStrings.viewStandardValues,
+        onFooterTap: onDetailsTap,
+      ),
+    );
+  }
+
+  DashboardDetailItem _buildItem(BuildContext context, String val, String subtitle, IconData icon) => DashboardDetailItem(
+      title: val,
+      subtitle: subtitle,
+      icon: icon,
+      color: context.appColorScheme.textPrimary,
+    );
+}
+
+class _SafetySection extends StatelessWidget {
+  const _SafetySection({required this.scanData});
+  final ScanResult scanData;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAllergens = scanData.allergens != null && scanData.allergens!.isNotEmpty;
+    final hasAdditives = scanData.additives != null && scanData.additives!.isNotEmpty;
+
+    if (!hasAllergens && !hasAdditives) return const SizedBox.shrink();
+
+    return DashboardEntrance(
+      delay: 400,
+      child: GutDashboardSection(
+        title: AppStrings.safe,
+        subtitle: AppStrings.safetyCautions,
+        visualization: _CautionRiskIcon(isSafe: !hasAllergens),
+        items: [
+          if (hasAllergens)
+            DashboardDetailItem(
+              title: scanData.allergens!,
+              subtitle: AppStrings.allergensLabel,
+              icon: AppIcons.alertTriangle,
+              color: context.appColorScheme.error,
+            ),
+          if (hasAllergens && hasAdditives) Gap.h12,
+          if (hasAdditives)
+            DashboardDetailItem(
+              title: scanData.additives!,
+              subtitle: AppStrings.additivesLabel,
+              icon: AppIcons.flaskConical,
+              color: context.appColorScheme.warning,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IngredientsSection extends StatelessWidget {
+  const _IngredientsSection({required this.scanData, required this.onDetailsTap});
+  final ScanResult scanData;
+  final VoidCallback onDetailsTap;
+
+  @override
+  Widget build(BuildContext context) => DashboardEntrance(
+      delay: 500,
+      child: GutDashboardSection(
+        title: AppStrings.mix,
+        subtitle: AppStrings.ingredients,
+        visualization: _IngredientCompositionVisualization(ingredients: scanData.ingredients),
+        items: scanData.ingredients.take(4).map((ing) {
+          final color = InsightUiUtils.getIngredientColor(ing.colorName,
+              error: context.appColorScheme.error,
+              warning: context.appColorScheme.warning,
+              success: context.appColorScheme.success);
+          return Padding(
+            padding: EdgeInsets.only(bottom: AppSizes.p12),
+            child: DashboardDetailItem(
+              title: ing.name,
+              subtitle: _getIngredientImpactLabel(ing.colorName),
+              icon: InsightUiUtils.getIngredientIcon(ing.colorName),
+              color: color,
+            ),
+          );
+        }).toList(),
+        footerLabel: AppStrings.viewAllIngredients,
+        onFooterTap: onDetailsTap,
+      ),
+    );
+}
+
+class _SwapsSection extends StatelessWidget {
+  const _SwapsSection({required this.scanData, required this.onDetailsTap});
+  final ScanResult scanData;
+  final VoidCallback onDetailsTap;
+
+  @override
+  Widget build(BuildContext context) => DashboardEntrance(
+      delay: 600,
+      child: GutDashboardSection(
+        title: AppStrings.upgradeLabel,
+        subtitle: AppStrings.betterSwapsLabel,
+        visualization: const _SwapVisualization(),
+        items: scanData.swaps
+            .take(3)
+            .map(
+              (swap) => Padding(
+                padding: EdgeInsets.only(bottom: AppSizes.p12),
+                child: DashboardDetailItem(
+                  title: swap.title,
+                  subtitle: swap.subtitle,
+                  icon: AppIcons.sparkles,
+                  color: context.appColorScheme.textPrimary,
+                ),
+              ),
+            )
+            .toList(),
+        footerLabel: AppStrings.viewAllAlternatives,
+        onFooterTap: onDetailsTap,
+      ),
+    );
 }
 
 class _SaveButton extends StatelessWidget {

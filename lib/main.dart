@@ -23,6 +23,7 @@ import 'package:gutgood/core/widgets/verification_overlay.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/providers/purchase_provider.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
+import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/profile/presentation/providers/usage_notifier.dart';
@@ -70,6 +71,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => sl<InsightsNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<ScannerNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<PurchaseProvider>()),
+        ChangeNotifierProvider(create: (_) => sl<SavedFoodsProvider>()),
       ],
       child: const GutGoodApp(),
     ),

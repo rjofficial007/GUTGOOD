@@ -106,118 +106,227 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
         child: Column(
           children: [
             Gap.h20,
-            Text(AppStrings.scanning, style: context.headingMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+            Text(AppStrings.scanning,
+                style: context.headingMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.5)),
             const Spacer(),
-            Center(
-              child: AnimatedBuilder(
-                animation: Listenable.merge([_progressAnimation, _pulseAnimation, _rotationAnimation, _beamAnimation]),
-                builder: (context, child) => Column(
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // 1. Rotating Outer Decorative Ring
-                          Transform.rotate(
-                            angle: _rotationAnimation.value,
-                            child: CustomPaint(
-                              size: const Size(220, 220),
-                              painter: _DashedCirclePainter(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-                            ),
-                          ),
-
-                          // 2. Primary Progress Ring
-                          SizedBox(
-                            width: 180,
-                            height: 180,
-                            child: CircularProgressIndicator(
-                              value: _progressAnimation.value,
-                              strokeWidth: 10,
-                              backgroundColor: context.appColorScheme.border.withValues(alpha: 0.3),
-                              valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
-                              strokeCap: StrokeCap.round,
-                            ),
-                          ),
-
-                          // 3. Central Pulse Area
-                          ScaleTransition(
-                            scale: _pulseAnimation,
-                            child: Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), shape: BoxShape.circle),
-                              child: Icon(AppIcons.barcode, size: AppSizes.icon40, color: context.appColorScheme.textPrimary),
-                            ),
-                          ),
-
-                          // 4. Scanning Beam Effect
-                          Positioned(
-                            top: 90 + (90 * _beamAnimation.value),
-                            child: Container(
-                              width: 160,
-                              height: 2,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [context.appColorScheme.textPrimary.withValues(alpha: 0), context.appColorScheme.textPrimary, context.appColorScheme.textPrimary.withValues(alpha: 0)],
-                                ),
-                                boxShadow: [BoxShadow(color: context.appColorScheme.textPrimary.withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 2)],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Gap.h48,
-                      // Percentage Counter
-                      Text(
-                        '${(_progressAnimation.value * 100).toInt()}%',
-                        style: context.headingLg.copyWith(fontSize: AppSizes.s40, fontWeight: FontWeight.w900, color: context.appColorScheme.textPrimary),
-                      ),
-                      Gap.h8,
-                      // Narrative Loading Text
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        child: Text(
-                          _loadingTexts[_loadingTextIndex],
-                          key: ValueKey(_loadingTextIndex),
-                          style: context.body.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-              ),
+            _AnimationStack(
+              progressAnimation: _progressAnimation,
+              rotationAnimation: _rotationAnimation,
+              pulseAnimation: _pulseAnimation,
+              beamAnimation: _beamAnimation,
+              loadingText: _loadingTexts[_loadingTextIndex],
             ),
             const Spacer(),
-            // Tip Container
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p40),
-              child: Container(
-                padding: EdgeInsets.all(AppSizes.p20),
-                decoration: BoxDecoration(
-                  color: context.appColorScheme.elevatedSurface,
-                  border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-                  borderRadius: BorderRadius.circular(AppSizes.r24),
-                  boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), shape: BoxShape.circle),
-                      child: Icon(AppIcons.lightbulb, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
-                    ),
-                    Gap.w16,
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(AppStrings.tip, style: context.title.copyWith(fontSize: AppSizes.s15, fontWeight: FontWeight.w800)),
-                          Gap.h4,
-                          Text(AppStrings.barcodeTip, style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary, height: 1.4)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+            const _ScanningTip(),
+          ],
+        ),
+      ),
+    );
+}
+
+class _AnimationStack extends StatelessWidget {
+  const _AnimationStack({
+    required this.progressAnimation,
+    required this.rotationAnimation,
+    required this.pulseAnimation,
+    required this.beamAnimation,
+    required this.loadingText,
+  });
+
+  final Animation<double> progressAnimation;
+  final Animation<double> rotationAnimation;
+  final Animation<double> pulseAnimation;
+  final Animation<double> beamAnimation;
+  final String loadingText;
+
+  @override
+  Widget build(BuildContext context) => Center(
+      child: AnimatedBuilder(
+        animation: Listenable.merge([
+          progressAnimation,
+          pulseAnimation,
+          rotationAnimation,
+          beamAnimation,
+        ]),
+        builder: (context, child) => Column(
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  _RotatingDecorativeRing(angle: rotationAnimation.value),
+                  _ProgressRing(value: progressAnimation.value),
+                  _PulseIcon(animation: pulseAnimation),
+                  _ScanningBeam(beamOffset: beamAnimation.value),
+                ],
+              ),
+              Gap.h48,
+              _PercentageCounter(value: progressAnimation.value),
+              Gap.h8,
+              _StatusText(text: loadingText),
+            ],
+          ),
+      ),
+    );
+}
+
+class _RotatingDecorativeRing extends StatelessWidget {
+  const _RotatingDecorativeRing({required this.angle});
+  final double angle;
+
+  @override
+  Widget build(BuildContext context) => Transform.rotate(
+      angle: angle,
+      child: CustomPaint(
+        size: const Size(220, 220),
+        painter: _DashedCirclePainter(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+      ),
+    );
+}
+
+class _ProgressRing extends StatelessWidget {
+  const _ProgressRing({required this.value});
+  final double value;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+      width: 180,
+      height: 180,
+      child: CircularProgressIndicator(
+        value: value,
+        strokeWidth: 10,
+        backgroundColor: context.appColorScheme.border.withValues(alpha: 0.3),
+        valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
+        strokeCap: StrokeCap.round,
+      ),
+    );
+}
+
+class _PulseIcon extends StatelessWidget {
+  const _PulseIcon({required this.animation});
+  final Animation<double> animation;
+
+  @override
+  Widget build(BuildContext context) => ScaleTransition(
+      scale: animation,
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: context.appColorScheme.border.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(AppIcons.barcode, size: AppSizes.icon40, color: context.appColorScheme.textPrimary),
+      ),
+    );
+}
+
+class _ScanningBeam extends StatelessWidget {
+  const _ScanningBeam({required this.beamOffset});
+  final double beamOffset;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+      top: 90 + (90 * beamOffset),
+      child: Container(
+        width: 160,
+        height: 2,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              context.appColorScheme.textPrimary.withValues(alpha: 0),
+              context.appColorScheme.textPrimary,
+              context.appColorScheme.textPrimary.withValues(alpha: 0)
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: context.appColorScheme.textPrimary.withValues(alpha: 0.5),
+              blurRadius: 8,
+              spreadRadius: 2,
+            )
+          ],
+        ),
+      ),
+    );
+}
+
+class _PercentageCounter extends StatelessWidget {
+  const _PercentageCounter({required this.value});
+  final double value;
+
+  @override
+  Widget build(BuildContext context) => Text(
+      '${(value * 100).toInt()}%',
+      style: context.headingLg.copyWith(
+        fontSize: AppSizes.s40,
+        fontWeight: FontWeight.w900,
+        color: context.appColorScheme.textPrimary,
+      ),
+    );
+}
+
+class _StatusText extends StatelessWidget {
+  const _StatusText({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      child: Text(
+        text,
+        key: ValueKey(text),
+        style: context.body.copyWith(
+          color: context.appColorScheme.textSecondary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+}
+
+class _ScanningTip extends StatelessWidget {
+  const _ScanningTip();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p40),
+      child: Container(
+        padding: EdgeInsets.all(AppSizes.p20),
+        decoration: BoxDecoration(
+          color: context.appColorScheme.elevatedSurface,
+          border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+          borderRadius: BorderRadius.circular(AppSizes.r24),
+          boxShadow: [
+            BoxShadow(
+              color: AppPalette.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: context.appColorScheme.border.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(AppIcons.lightbulb,
+                  color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+            ),
+            Gap.w16,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(AppStrings.tip,
+                      style: context.title.copyWith(fontSize: AppSizes.s15, fontWeight: FontWeight.w800)),
+                  Gap.h4,
+                  Text(AppStrings.barcodeTip,
+                      style: context.bodySm.copyWith(
+                          color: context.appColorScheme.textSecondary, height: 1.4)),
+                ],
               ),
             ),
           ],

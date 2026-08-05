@@ -216,7 +216,6 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
         leading: IconButton(
           icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
           onPressed: () {
-            // Clear pending link if user goes back
             sl<AppStateService>().setPendingEmailLink(null);
             context.pop();
           },
@@ -225,13 +224,15 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p20),
-          child: AnimatedSwitcher(duration: const Duration(milliseconds: 300), child: _linkSent ? _buildSentState() : _buildInputState()),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _linkSent ? _buildSentState() : _buildInputState(),
+          ),
         ),
       ),
     );
 
   Widget _buildInputState() {
-    final authNotifier = context.watch<GutAuthNotifier>();
     final pendingLink = sl<AppStateService>().pendingEmailLink.value;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -239,11 +240,16 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       key: const ValueKey('input'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(pendingLink != null ? AppStrings.completeSignIn : AppStrings.welcomeBack, style: context.headingMd.copyWith(fontWeight: FontWeight.w900, fontSize: AppSizes.s24)),
-        SizedBox(height: AppSizes.p8),
-        Text(pendingLink != null ? AppStrings.completeSignInSubtitle : AppStrings.signInSubtitle, style: context.body.copyWith(color: context.appColorScheme.textSecondary)),
-        SizedBox(height: AppSizes.p32),
-
+        Text(
+          pendingLink != null ? AppStrings.completeSignIn : AppStrings.welcomeBack,
+          style: context.headingMd.copyWith(fontWeight: FontWeight.w900, fontSize: AppSizes.s24),
+        ),
+        Gap.h8,
+        Text(
+          pendingLink != null ? AppStrings.completeSignInSubtitle : AppStrings.signInSubtitle,
+          style: context.body.copyWith(color: context.appColorScheme.textSecondary),
+        ),
+        Gap.h32,
         if (pendingLink == null) ...[
           _buildLabel(AppStrings.labelYourName),
           GutTextField(
@@ -254,79 +260,149 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
             hintText: AppStrings.enterYourNameHint,
             prefixIcon: AppIcons.user,
           ),
-          SizedBox(height: AppSizes.p20),
+          Gap.h20,
         ],
-
         _buildLabel(AppStrings.emailAddress),
-        GutTextField(controller: _emailController, keyboardType: TextInputType.emailAddress, style: context.bodyBold, hintText: AppStrings.enterEmail, prefixIcon: AppIcons.mail),
-
-        SizedBox(height: AppSizes.p40),
-
-        if (authNotifier.isLoading) Center(child: CircularProgressIndicator(color: context.appColorScheme.textPrimary)) else GutButton(label: pendingLink != null ? AppStrings.confirmEmail : AppStrings.sendLink, onTap: _sendLink),
-
+        GutTextField(
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+          style: context.bodyBold,
+          hintText: AppStrings.enterEmail,
+          prefixIcon: AppIcons.mail,
+        ),
+        Gap.h40,
+        _LoginButton(
+          onTap: _sendLink,
+          isConfirm: pendingLink != null,
+        ),
         if (pendingLink == null) ...[
-          SizedBox(height: AppSizes.p32),
-
-          // Social Login Shortcuts
-          Center(
-            child: Text(AppStrings.orContinueWith, style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
-          ),
-          SizedBox(height: AppSizes.p20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _SocialIcon(assetPath: AppAssets.appleLogo, imageColor: isDark ? AppPalette.white : null, onTap: authNotifier.isLoading ? () {} : authNotifier.signInWithApple),
-              SizedBox(width: AppSizes.p16),
-              _SocialIcon(assetPath: AppAssets.googleLogo, onTap: authNotifier.isLoading ? () {} : authNotifier.signInWithGoogle),
-            ],
-          ),
+          Gap.h32,
+          const _SocialLoginDivider(),
+          Gap.h20,
+          _SocialLoginButtons(isDark: isDark),
         ],
       ],
     );
   }
 
   Widget _buildSentState() => Column(
-      key: const ValueKey('sent'),
+        key: const ValueKey('sent'),
+        children: [
+          Gap.h40,
+          Container(
+            padding:  EdgeInsets.all(AppSizes.p24),
+            decoration: BoxDecoration(
+              color: context.appColorScheme.elevatedSurface,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(AppIcons.mailCheck, size: 48, color: context.appColorScheme.textPrimary),
+          ),
+          Gap.h32,
+          Text(
+            AppStrings.checkYourEmail,
+            textAlign: TextAlign.center,
+            style: context.headingMd.copyWith(fontWeight: FontWeight.w900),
+          ),
+          Gap.h12,
+          Text(
+            AppStrings.linkSentSubtitle,
+            textAlign: TextAlign.center,
+            style: context.body.copyWith(color: context.appColorScheme.textSecondary),
+          ),
+          Gap.h40,
+          _ResendButton(
+            cooldownSeconds: _cooldownSeconds,
+            onResend: () => setState(() => _linkSent = false),
+          ),
+          Gap.h16,
+          GutButton(
+            label: AppStrings.backToSignIn,
+            isOutlined: true,
+            onTap: () {
+              sl<AppStateService>().setPendingEmailLink(null);
+              context.pop();
+            },
+          ),
+        ],
+      );
+
+  Widget _buildLabel(String text) => Padding(
+        padding: EdgeInsets.only(bottom: AppSizes.p8),
+        child: Text(text, style: context.bodyBold.copyWith(fontSize: AppSizes.s13)),
+      );
+}
+
+class _LoginButton extends StatelessWidget {
+  const _LoginButton({required this.onTap, required this.isConfirm});
+  final VoidCallback onTap;
+  final bool isConfirm;
+
+  @override
+  Widget build(BuildContext context) => Selector<GutAuthNotifier, bool>(
+      selector: (_, n) => n.isLoading,
+      builder: (context, isLoading, _) {
+        if (isLoading) {
+          return Center(
+            child: CircularProgressIndicator(color: context.appColorScheme.textPrimary),
+          );
+        }
+        return GutButton(
+          label: isConfirm ? AppStrings.confirmEmail : AppStrings.sendLink,
+          onTap: onTap,
+        );
+      },
+    );
+}
+
+class _ResendButton extends StatelessWidget {
+  const _ResendButton({required this.cooldownSeconds, required this.onResend});
+  final int cooldownSeconds;
+  final VoidCallback onResend;
+
+  @override
+  Widget build(BuildContext context) => GutButton(
+      label: cooldownSeconds > 0
+          ? '${AppStrings.resendIn}$cooldownSeconds${AppStrings.secondUnit}'
+          : AppStrings.resendLink,
+      onTap: cooldownSeconds > 0 ? null : onResend,
+    );
+}
+
+class _SocialLoginDivider extends StatelessWidget {
+  const _SocialLoginDivider();
+
+  @override
+  Widget build(BuildContext context) => Center(
+      child: Text(
+        AppStrings.orContinueWith,
+        style: context.caption.copyWith(color: context.appColorScheme.textMuted),
+      ),
+    );
+}
+
+class _SocialLoginButtons extends StatelessWidget {
+  const _SocialLoginButtons({required this.isDark});
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final authNotifier = context.read<GutAuthNotifier>();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(height: AppSizes.p40),
-        Container(
-          padding: EdgeInsets.all(AppSizes.p24),
-          decoration: BoxDecoration(color: context.appColorScheme.elevatedSurface, shape: BoxShape.circle),
-          child: Icon(AppIcons.mailCheck, size: 48, color: context.appColorScheme.textPrimary),
+        _SocialIcon(
+          assetPath: AppAssets.appleLogo,
+          imageColor: isDark ? AppPalette.white : null,
+          onTap: authNotifier.signInWithApple,
         ),
-        SizedBox(height: AppSizes.p32),
-        Text(
-          AppStrings.checkYourEmail,
-          textAlign: TextAlign.center,
-          style: context.headingMd.copyWith(fontWeight: FontWeight.w900),
-        ),
-        SizedBox(height: AppSizes.p12),
-        Text(
-          AppStrings.linkSentSubtitle,
-          textAlign: TextAlign.center,
-          style: context.body.copyWith(color: context.appColorScheme.textSecondary),
-        ),
-        SizedBox(height: AppSizes.p40),
-        GutButton(
-          label: _cooldownSeconds > 0 ? '${AppStrings.resendIn}$_cooldownSeconds${AppStrings.secondUnit}' : AppStrings.resendLink,
-          onTap: _cooldownSeconds > 0 ? null : () => setState(() => _linkSent = false),
-        ),
-        SizedBox(height: AppSizes.p16),
-        GutButton(
-          label: AppStrings.backToSignIn,
-          isOutlined: true,
-          onTap: () {
-            sl<AppStateService>().setPendingEmailLink(null);
-            context.pop();
-          },
+        Gap.w16,
+        _SocialIcon(
+          assetPath: AppAssets.googleLogo,
+          onTap: authNotifier.signInWithGoogle,
         ),
       ],
     );
-
-  Widget _buildLabel(String text) => Padding(
-      padding: EdgeInsets.only(bottom: AppSizes.p8),
-      child: Text(text, style: context.bodyBold.copyWith(fontSize: AppSizes.s13)),
-    );
+  }
 }
 
 class _SocialIcon extends StatelessWidget {

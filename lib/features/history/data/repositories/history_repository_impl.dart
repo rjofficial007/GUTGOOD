@@ -1,12 +1,12 @@
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 
 class HistoryRepositoryImpl implements HistoryRepository {
 
-  HistoryRepositoryImpl({required FirestoreService firestoreService}) : _firestoreService = firestoreService;
-  final FirestoreService _firestoreService;
+  HistoryRepositoryImpl({required HistoryFirestoreService firestoreService}) : _firestoreService = firestoreService;
+  final HistoryFirestoreService _firestoreService;
 
   @override
   Future<List<ChatMessage>> getMessages({int? limit, int? offset, DateTime? beforeTime}) async =>

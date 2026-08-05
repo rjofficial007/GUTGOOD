@@ -74,37 +74,61 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final grouped = _groupHistoryByDate();
-
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
           const GutSliverAppBar(title: AppStrings.history, showBrandingIcon: true),
-          if (_isLoading)
-            SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
-              sliver: const SliverToBoxAdapter(child: ShimmerGridLoader(itemCount: 10, crossAxisCount: 1, variant: ShimmerVariant.list)),
-            )
-          else if (_history.isEmpty)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: EmptyStateWidget(icon: AppIcons.history, title: AppStrings.noScansYet, description: AppStrings.startScanningProducts),
-            )
-          else
-            SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final dateKey = grouped.keys.elementAt(index);
-                  final items = grouped[dateKey]!;
-                  return HistorySection(title: dateKey, items: items);
-                }, childCount: grouped.length),
-              ),
-            ),
+          _buildBody(),
         ],
       ),
     );
-  }
+
+  Widget _buildBody() => _isLoading ? const _ScanHistoryLoading() : (_history.isEmpty ? const _ScanHistoryEmpty() : _ScanHistoryList(groupedHistory: _groupHistoryByDate()));
+}
+
+class _ScanHistoryLoading extends StatelessWidget {
+  const _ScanHistoryLoading();
+
+  @override
+  Widget build(BuildContext context) => SliverPadding(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
+      sliver: const SliverToBoxAdapter(
+        child: ShimmerGridLoader(itemCount: 10, crossAxisCount: 1, variant: ShimmerVariant.list),
+      ),
+    );
+}
+
+class _ScanHistoryEmpty extends StatelessWidget {
+  const _ScanHistoryEmpty();
+
+  @override
+  Widget build(BuildContext context) => const SliverFillRemaining(
+      hasScrollBody: false,
+      child: EmptyStateWidget(
+        icon: AppIcons.history,
+        title: AppStrings.noScansYet,
+        description: AppStrings.startScanningProducts,
+      ),
+    );
+}
+
+class _ScanHistoryList extends StatelessWidget {
+  const _ScanHistoryList({required this.groupedHistory});
+  final Map<String, List<HistoricalScan>> groupedHistory;
+
+  @override
+  Widget build(BuildContext context) => SliverPadding(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final dateKey = groupedHistory.keys.elementAt(index);
+            final items = groupedHistory[dateKey]!;
+            return HistorySection(title: dateKey, items: items);
+          },
+          childCount: groupedHistory.length,
+        ),
+      ),
+    );
 }

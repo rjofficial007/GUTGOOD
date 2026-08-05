@@ -6,7 +6,7 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
@@ -27,8 +27,9 @@ class InsightsNotifier with ChangeNotifier {
       }
     });
   }
+
   final InsightRepository _repository;
-  final FirestoreService _firestoreService;
+  final InsightFirestoreService _firestoreService;
   final AppStateService _appStateService;
   final AuthRepository _authRepository;
   final AnalyticsService _analyticsService;

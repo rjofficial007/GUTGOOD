@@ -4,7 +4,7 @@ import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/app_services.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/link_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
@@ -71,7 +71,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       final authRepository = sl<AuthRepository>();
       if (authRepository.currentUser != null) {
         AppLogger.info('SplashScreen: User authenticated, warming up Firestore cache.');
-        await sl<FirestoreService>().getUserMetadata().timeout(
+        await sl<AuthFirestoreService>().getUserMetadata().timeout(
           const Duration(seconds: 5),
           onTimeout: () {
             AppLogger.warning('SplashScreen: Firestore warmup timed out. Proceeding with cache.');
@@ -100,25 +100,46 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    body: Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Branded Logo (Silhouette style)
-          Image.asset(AppAssets.appIconBg, width: 80, color: AppPalette.white),
-          const SizedBox(height: 80), // Larger gap like macOS
-          // Boot Progress Bar
-          SizedBox(
-            width: 120,
-            height: 4,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(value: _progress, backgroundColor: Colors.white.withValues(alpha: 0.2), valueColor: const AlwaysStoppedAnimation<Color>(Colors.white)),
-            ),
-          ),
-        ],
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const _SplashLogo(),
+            const SizedBox(height: 80),
+            _BootProgressBar(progress: _progress),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+}
+
+class _SplashLogo extends StatelessWidget {
+  const _SplashLogo();
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+      AppAssets.appIconBg,
+      width: 80,
+      color: AppPalette.white,
+    );
+}
+
+class _BootProgressBar extends StatelessWidget {
+  const _BootProgressBar({required this.progress});
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+      width: 120,
+      height: 4,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(2),
+        child: LinearProgressIndicator(
+          value: progress,
+          backgroundColor: Colors.white.withValues(alpha: 0.2),
+          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+        ),
+      ),
+    );
 }

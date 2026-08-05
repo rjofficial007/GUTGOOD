@@ -13,7 +13,9 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
@@ -56,7 +58,7 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
 
       if (scanData != null) {
         unawaited(sl<AnalyticsService>().logEvent(name: 'manual_barcode_search_success', parameters: {'product_name': scanData.productName}));
-        final profile = await sl<FirestoreService>().getUserMetadata();
+        final profile = await sl<AuthFirestoreService>().getUserMetadata();
         final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? AppStrings.phaseLuteal) : AppStrings.notSpecified;
 
         final prompt = Prompts.productAnalysisPrompt(productData: scanData.toMap(), userGoals: profile?.goals ?? [], userSensitivities: profile?.sensitivities ?? [], cyclePhase: cyclePhase);
@@ -78,10 +80,10 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
           time: DateTime.now(),
         );
 
-        await sl<FirestoreService>().saveMessage(userMsg);
+        await sl<ChatFirestoreService>().saveMessage(userMsg);
 
         // 🟢 Fix: Ensure manual scans are also saved to scan_history for Insights/Consistency
-        await sl<FirestoreService>().saveToScanHistory(userMsg.scanData!);
+        await sl<HistoryFirestoreService>().saveToScanHistory(userMsg.scanData!);
         unawaited(sl<NotificationService>().schedulePostMealCheckIn());
         unawaited(sl<NotificationService>().scheduleNoMealLoggedReminder());
         sl<AppStateService>().notifyChatUpdated();
@@ -109,64 +111,106 @@ class _ManualBarcodeScreenState extends State<ManualBarcodeScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: context.appColorScheme.cardBackground,
-    body: CustomScrollView(
-      slivers: [
-        GutSliverAppBar(
-          title: AppStrings.enterBarcode,
-          leading: IconButton(
-            icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
-            onPressed: () => context.pop(),
-          ),
-        ),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: Padding(
-            padding: EdgeInsets.all(AppSizes.p24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppStrings.enterBarcode,
-                  style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: AppSizes.s18),
-                ),
-                Gap.h8,
-                Text(
-                  AppStrings.enterBarcodeSubtitle,
-                  style: context.caption.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w500),
-                ),
-                Gap.h32,
-                GutTextField(controller: _controller, keyboardType: TextInputType.number, style: context.title, prefixIcon: AppIcons.barcode, hintText: AppStrings.enterBarcodeHint),
-                Gap.h16,
-                Container(
-                  padding: EdgeInsets.all(AppSizes.p12),
-                  decoration: BoxDecoration(
-                    color: context.appColorScheme.success.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(AppSizes.r12),
-                    border: Border.all(color: context.appColorScheme.success.withValues(alpha: 0.1)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(AppIcons.info, size: AppSizes.icon16, color: context.appColorScheme.success),
-                      Gap.w12,
-                      Expanded(
-                        child: Text(
-                          AppStrings.barcodeHelpText,
-                          style: context.bodySm.copyWith(color: context.appColorScheme.success, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                GutButton(label: AppStrings.searchProduct, onTap: _searchProduct),
-                Gap.h20,
-              ],
+      backgroundColor: context.appColorScheme.cardBackground,
+      body: CustomScrollView(
+        slivers: [
+          GutSliverAppBar(
+            title: AppStrings.enterBarcode,
+            leading: IconButton(
+              icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
+              onPressed: () => context.pop(),
             ),
           ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: _BarcodeForm(
+              controller: _controller,
+              onSearch: _searchProduct,
+            ),
+          ),
+        ],
+      ),
+    );
+}
+
+class _BarcodeForm extends StatelessWidget {
+  const _BarcodeForm({required this.controller, required this.onSearch});
+  final TextEditingController controller;
+  final VoidCallback onSearch;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+      padding: EdgeInsets.all(AppSizes.p24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _BarcodeHeader(),
+          Gap.h32,
+          GutTextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            style: context.title,
+            prefixIcon: AppIcons.barcode,
+            hintText: AppStrings.enterBarcodeHint,
+          ),
+          Gap.h16,
+          const _BarcodeHelpCard(),
+          const Spacer(),
+          GutButton(label: AppStrings.searchProduct, onTap: onSearch),
+          Gap.h20,
+        ],
+      ),
+    );
+}
+
+class _BarcodeHeader extends StatelessWidget {
+  const _BarcodeHeader();
+
+  @override
+  Widget build(BuildContext context) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppStrings.enterBarcode,
+          style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: AppSizes.s18),
+        ),
+        Gap.h8,
+        Text(
+          AppStrings.enterBarcodeSubtitle,
+          style: context.caption
+              .copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w500),
         ),
       ],
-    ),
-  );
+    );
+}
+
+class _BarcodeHelpCard extends StatelessWidget {
+  const _BarcodeHelpCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return Container(
+      padding: EdgeInsets.all(AppSizes.p12),
+      decoration: BoxDecoration(
+        color: colorScheme.success.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppSizes.r12),
+        border: Border.all(color: colorScheme.success.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(AppIcons.info, size: AppSizes.icon16, color: colorScheme.success),
+          Gap.w12,
+          Expanded(
+            child: Text(
+              AppStrings.barcodeHelpText,
+              style:
+                  context.bodySm.copyWith(color: colorScheme.success, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

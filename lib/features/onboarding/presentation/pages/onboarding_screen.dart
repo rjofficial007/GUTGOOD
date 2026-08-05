@@ -132,33 +132,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            OnboardingHeader(currentStep: _page, totalSteps: _totalPages - 1, onBack: _back, onSkip: _next),
+            OnboardingHeader(
+              currentStep: _page,
+              totalSteps: _totalPages - 1,
+              onBack: _back,
+              onSkip: _next,
+            ),
             Expanded(
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _page = i),
                 children: [
-                  _buildSelectionPage(
+                  _OnboardingSelectionPage(
                     title: AppStrings.onboardingGoalsTitle,
                     subtitle: AppStrings.onboardingGoalsSubtitle,
                     options: _goalOptions,
                     selections: _selectedGoals,
-                    onToggle: (val) => setState(() => _selectedGoals.contains(val) ? _selectedGoals.remove(val) : _selectedGoals.add(val)),
+                    onToggle: (val) => setState(() =>
+                        _selectedGoals.contains(val)
+                            ? _selectedGoals.remove(val)
+                            : _selectedGoals.add(val)),
                   ),
-                  _buildSelectionPage(
+                  _OnboardingSelectionPage(
                     title: AppStrings.onboardingSensitivitiesTitle,
                     subtitle: AppStrings.onboardingSensitivitiesSubtitle,
                     options: _sensitivityOptions,
                     selections: _selectedSensitivities,
-                    onToggle: (val) => setState(() => _selectedSensitivities.contains(val) ? _selectedSensitivities.remove(val) : _selectedSensitivities.add(val)),
+                    onToggle: (val) => setState(() =>
+                        _selectedSensitivities.contains(val)
+                            ? _selectedSensitivities.remove(val)
+                            : _selectedSensitivities.add(val)),
                   ),
-                  _buildSelectionPage(
+                  _OnboardingSelectionPage(
                     title: AppStrings.onboardingLifestyleTitle,
                     subtitle: AppStrings.onboardingLifestyleSubtitle,
                     options: _lifestyleOptions,
                     selections: _selectedLifestyle,
-                    onToggle: (val) => setState(() => _selectedLifestyle.contains(val) ? _selectedLifestyle.remove(val) : _selectedLifestyle.add(val)),
+                    onToggle: (val) => setState(() =>
+                        _selectedLifestyle.contains(val)
+                            ? _selectedLifestyle.remove(val)
+                            : _selectedLifestyle.add(val)),
                   ),
                   CycleSyncOnboardingPage(
                     cycleSyncEnabled: _cycleSyncEnabled,
@@ -171,32 +185,89 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ],
               ),
             ),
-            if (_page < _totalPages - 1 && _page != 4)
-              Padding(
-                padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p36),
-                child: GutButton(label: AppStrings.continueButton, suffixIcon: AppIcons.arrowRight, onTap: _next),
-              ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
+            _OnboardingFooter(
+              page: _page,
+              totalPages: _totalPages,
+              onNext: _next,
+              isFinishing: _isFinishing,
+            ),
           ],
         ),
       ),
     );
+}
 
-  Widget _buildSelectionPage({required String title, required String subtitle, required List<SelectionOption> options, required Set<String> selections, required Function(String) onToggle}) => Padding(
+class _OnboardingSelectionPage extends StatelessWidget {
+  const _OnboardingSelectionPage({
+    required this.title,
+    required this.subtitle,
+    required this.options,
+    required this.selections,
+    required this.onToggle,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<SelectionOption> options;
+  final Set<String> selections;
+  final Function(String) onToggle;
+
+  @override
+  Widget build(BuildContext context) => Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Gap.h16,
-          Text(title, style: AppTextStyles.displaySm).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
+          Text(title, style: AppTextStyles.displaySm)
+              .animate()
+              .fadeIn(duration: 400.ms)
+              .slideY(begin: 0.2, end: 0),
           Gap.h10,
-          Text(subtitle, style: AppTextStyles.bodyLg.copyWith(color: context.appColorScheme.textSecondary)).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.2, end: 0),
+          Text(subtitle,
+                  style: AppTextStyles.bodyLg.copyWith(color: context.appColorScheme.textSecondary))
+              .animate()
+              .fadeIn(delay: 100.ms, duration: 400.ms)
+              .slideY(begin: 0.2, end: 0),
           Gap.h32,
           Expanded(
             child: SingleChildScrollView(
-              child: SelectionWrap(options: options, selectedValues: selections, onToggle: onToggle).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+              child: SelectionWrap(options: options, selectedValues: selections, onToggle: onToggle)
+                  .animate()
+                  .fadeIn(delay: 200.ms, duration: 500.ms),
             ),
           ),
         ],
       ),
     );
+}
+
+class _OnboardingFooter extends StatelessWidget {
+  const _OnboardingFooter({
+    required this.page,
+    required this.totalPages,
+    required this.onNext,
+    required this.isFinishing,
+  });
+
+  final int page;
+  final int totalPages;
+  final VoidCallback onNext;
+  final bool isFinishing;
+
+  @override
+  Widget build(BuildContext context) {
+    if (page >= totalPages - 1 || page == 4) return const SizedBox.shrink();
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p36),
+      child: isFinishing
+          ? const Center(child: CircularProgressIndicator())
+          : GutButton(
+              label: AppStrings.continueButton,
+              suffixIcon: AppIcons.arrowRight,
+              onTap: onNext,
+            ),
+    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0);
+  }
 }

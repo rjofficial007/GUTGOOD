@@ -6,7 +6,7 @@ import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
@@ -24,11 +24,11 @@ class ProcessChatTagResult {
 
 class ProcessChatTagUseCase {
 
-  ProcessChatTagUseCase({required FirestoreService firestoreService, required NotificationService notificationService, required AppStateService appStateService})
+  ProcessChatTagUseCase({required HistoryFirestoreService firestoreService, required NotificationService notificationService, required AppStateService appStateService})
     : _firestoreService = firestoreService,
       _notificationService = notificationService,
       _appStateService = appStateService;
-  final FirestoreService _firestoreService;
+  final HistoryFirestoreService _firestoreService;
   final NotificationService _notificationService;
   final AppStateService _appStateService;
 

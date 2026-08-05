@@ -6,7 +6,9 @@ import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
-import 'package:gutgood/core/services/firestore_service.dart';
+import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/pattern_engine_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
@@ -17,21 +19,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class InsightRepositoryImpl implements InsightRepository {
   InsightRepositoryImpl({
-    required FirestoreService firestoreService,
+    required AuthFirestoreService authFirestoreService,
+    required HistoryFirestoreService historyFirestoreService,
+    required InsightFirestoreService insightFirestoreService,
     required AiService aiService,
     required SharedPreferences prefs,
     required NotificationService notificationService,
     required PatternEngineService patternEngineService,
     required AnalyticsService analyticsService,
     required CrashlyticsService crashlyticsService,
-  }) : _firestoreService = firestoreService,
+  }) : _authFirestoreService = authFirestoreService,
+       _historyFirestoreService = historyFirestoreService,
+       _insightFirestoreService = insightFirestoreService,
        _aiService = aiService,
        _prefs = prefs,
        _notificationService = notificationService,
        _patternEngineService = patternEngineService,
        _analyticsService = analyticsService,
        _crashlyticsService = crashlyticsService;
-  final FirestoreService _firestoreService;
+  final AuthFirestoreService _authFirestoreService;
+  final HistoryFirestoreService _historyFirestoreService;
+  final InsightFirestoreService _insightFirestoreService;
   final AiService _aiService;
   final SharedPreferences _prefs;
   final NotificationService _notificationService;
@@ -41,7 +49,7 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<AIInsight?> getLatestInsight() async {
-    final cloud = await _firestoreService.getLatestInsights();
+    final cloud = await _insightFirestoreService.getLatestInsights();
     if (cloud != null) return cloud;
 
     final cached = _prefs.getString('gutgood_insights_cache');
@@ -53,11 +61,11 @@ class InsightRepositoryImpl implements InsightRepository {
   }
 
   @override
-  Future<List<AIInsight>> getInsightHistory() async => _firestoreService.getInsightsHistory();
+  Future<List<AIInsight>> getInsightHistory() async => _insightFirestoreService.getInsightsHistory();
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
-    await _firestoreService.saveInsights(insight);
+    await _insightFirestoreService.saveInsights(insight);
   }
 
   @override
@@ -69,7 +77,7 @@ class InsightRepositoryImpl implements InsightRepository {
       lastRun = DateTimeUtils.parseToUtc(lastRunStr);
     } else {
       // 🟢 Fix: Fallback to Firestore to prevent duplicate generation on fresh login/new device.
-      final latestCloud = await _firestoreService.getLatestInsights();
+      final latestCloud = await _insightFirestoreService.getLatestInsights();
       lastRun = latestCloud?.updatedAt.toUtc() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
       AppLogger.info('InsightRepo: No local lastRun found. Fallback to Firestore: $lastRun');
     }
@@ -83,16 +91,16 @@ class InsightRepositoryImpl implements InsightRepository {
       return;
     }
 
-    final scanCount = await _firestoreService.getScansCountSince(lastRun);
-    final mealCount = await _firestoreService.getMealLogsCountSince(lastRun);
-    final symptomCount = await _firestoreService.getSymptomsCountSince(lastRun);
+    final scanCount = await _historyFirestoreService.getScansCountSince(lastRun);
+    final mealCount = await _historyFirestoreService.getMealLogsCountSince(lastRun);
+    final symptomCount = await _historyFirestoreService.getSymptomsCountSince(lastRun);
 
     if (scanCount < 3 && mealCount < 1 && symptomCount < 1) {
       AppLogger.debug('InsightRepo: Not enough new data for analysis since $lastRun. (Scans: $scanCount/3 OR Meals: $mealCount/1 OR Symptoms: $symptomCount/1). Skipping.');
       return;
     }
 
-    final profile = await _firestoreService.getUserMetadata();
+    final profile = await _authFirestoreService.getUserMetadata();
     final userGoals = profile?.goals ?? _prefs.getStringList('user_goals') ?? [];
     final userSensitivities = profile?.sensitivities ?? _prefs.getStringList('user_sensitivities') ?? [];
     final userLifestyle = profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
@@ -100,9 +108,9 @@ class InsightRepositoryImpl implements InsightRepository {
     final cycleSyncEnabled = profile?.cycleSyncEnabled ?? _prefs.getBool('cycle_sync_enabled') ?? false;
     final cyclePhase = cycleSyncEnabled ? (profile?.cyclePhase ?? _prefs.getString('cycle_phase') ?? 'Luteal Phase') : 'Not specified';
 
-    final recentMeals = await _firestoreService.getRecentMealLogs(limit: 30);
-    final symptomLogs = await _firestoreService.getRecentSymptomLogs(limit: 30);
-    final recentScans = await _firestoreService.getRecentScans(limit: 20);
+    final recentMeals = await _historyFirestoreService.getRecentMealLogs(limit: 30);
+    final symptomLogs = await _historyFirestoreService.getRecentSymptomLogs(limit: 30);
+    final recentScans = await _historyFirestoreService.getRecentScans(limit: 20);
 
     const historyJson = '[]'; // Omitting chat history for simplicity in this migration step
     final mealsJson = jsonEncode(recentMeals.map((m) => m.toMap()).toList());
@@ -110,7 +118,7 @@ class InsightRepositoryImpl implements InsightRepository {
     // 🟢 Fix: Use toAiMap() for scans to avoid 502/payload errors
     final scansJson = jsonEncode(recentScans.map((s) => s.toAiMap()).toList());
 
-    final history = await _firestoreService.getInsightsHistory();
+    final history = await _insightFirestoreService.getInsightsHistory();
     // Take the last 6 scores, ensure they are in ASCENDING chronological order (Oldest -> Newest)
     final scoreHistory = history.take(6).toList().reversed.map((i) => i.gutScore).join(', ');
 
@@ -140,11 +148,11 @@ class InsightRepositoryImpl implements InsightRepository {
 
       await _prefs.setString('gutgood_insights_cache', cleanJson);
       await _prefs.setString('last_insight_run', DateTime.now().toUtc().toIso8601String());
-      await _firestoreService.saveInsights(insight);
+      await _insightFirestoreService.saveInsights(insight);
 
       // 🟢 Fix: Save HealthAlert locally now that Cloud Function is removed
       unawaited(
-        _firestoreService.saveHealthAlert(
+        _insightFirestoreService.saveHealthAlert(
           HealthAlert(
             id: '',
             title: 'Gut Insight Ready',
@@ -160,7 +168,7 @@ class InsightRepositoryImpl implements InsightRepository {
 
       if (profile != null) {
         final updatedProfile = profile.copyWith(gutScore: insight.gutScore, updatedAt: DateTime.now());
-        await _firestoreService.updateUserProfile(updatedProfile);
+        await _authFirestoreService.updateUserProfile(updatedProfile);
       }
 
       unawaited(_patternEngineService.runAnalysis());
