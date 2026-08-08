@@ -7,8 +7,8 @@ class SavedFoodsProvider with ChangeNotifier {
   SavedFoodsProvider({
     required HistoryRepository repository,
     required AppStateService appStateService,
-  })  : _repository = repository,
-        _appStateService = appStateService {
+  }) : _repository = repository,
+       _appStateService = appStateService {
     _loadSavedFoods();
     _appStateService.savedFoodsUpdated.addListener(_loadSavedFoods);
   }

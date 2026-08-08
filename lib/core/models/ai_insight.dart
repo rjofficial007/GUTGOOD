@@ -10,7 +10,6 @@ import 'package:gutgood/core/utils/model_utils.dart';
 /// This model is the core of the [InsightsScreen]. It aggregates data from
 /// chat history, meal logs, and symptoms to provide actionable advice.
 class AIInsight extends Equatable {
-
   const AIInsight({
     this.id,
     this.firestoreId,
@@ -48,24 +47,53 @@ class AIInsight extends Equatable {
       uid: map['uid'] as String?,
       gutScore: (data['gutScore'] as num?)?.toInt() ?? 0,
       scoreDiff: data['scoreDiff'] as String?,
-      topInsight: ModelUtils.parseNestedModel<InsightSummary>(data['topInsight'], InsightSummary.fromMap),
+      topInsight: ModelUtils.parseNestedModel<InsightSummary>(
+        data['topInsight'],
+        InsightSummary.fromMap,
+      ),
       healingGoal: data['healingGoal'] as String?,
-      healingFoods: ModelUtils.parseModelList<HealingFood>(data['healingFoods'], HealingFood.fromMap),
+      healingFoods: ModelUtils.parseModelList<HealingFood>(
+        data['healingFoods'],
+        HealingFood.fromMap,
+      ),
       healingTrend: data['healingTrend'] as String?,
       triggerSymptom: data['triggerSymptom'] as String?,
-      triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
+      triggerFoods: ModelUtils.parseModelList<TriggerFood>(
+        data['triggerFoods'],
+        TriggerFood.fromMap,
+      ),
       triggerTrend: data['triggerTrend'] as String?,
-      detectedPatterns: ModelUtils.parseModelList<DetectedPattern>(data['detectedPatterns'], DetectedPattern.fromMap),
-      topTrigger: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topTrigger'], TopHighlight.fromMap)),
-      topHealing: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topHealing'], TopHighlight.fromMap)),
-      foodImpacts: ModelUtils.parseModelList<FoodImpact>(data['foodImpacts'], FoodImpact.fromMap),
-      weeklyRecap: ModelUtils.parseNestedModel<WeeklyRecap>(data['weeklyRecap'], WeeklyRecap.fromMap),
+      detectedPatterns: ModelUtils.parseModelList<DetectedPattern>(
+        data['detectedPatterns'],
+        DetectedPattern.fromMap,
+      ),
+      topTrigger: _normalizeHighlight(
+        ModelUtils.parseNestedModel<TopHighlight>(
+          data['topTrigger'],
+          TopHighlight.fromMap,
+        ),
+      ),
+      topHealing: _normalizeHighlight(
+        ModelUtils.parseNestedModel<TopHighlight>(
+          data['topHealing'],
+          TopHighlight.fromMap,
+        ),
+      ),
+      foodImpacts: ModelUtils.parseModelList<FoodImpact>(
+        data['foodImpacts'],
+        FoodImpact.fromMap,
+      ),
+      weeklyRecap: ModelUtils.parseNestedModel<WeeklyRecap>(
+        data['weeklyRecap'],
+        WeeklyRecap.fromMap,
+      ),
       type: (data['type'] as String?) ?? 'Pattern',
       confidenceLevel: (data['confidenceLevel'] as String?) ?? 'Moderate',
       triggerData: data['triggerData'] as String?,
       updatedAt: DateTimeUtils.parse(map['updatedAt']),
     );
   }
+
   /// Local SQLite primary key.
   final int? id;
 
@@ -131,34 +159,44 @@ class AIInsight extends Equatable {
 
   static TopHighlight? _normalizeHighlight(TopHighlight? highlight) {
     if (highlight == null) return null;
-    if (highlight.food == '---' || highlight.food.isEmpty || highlight.food.toLowerCase() == 'none' || highlight.food.toLowerCase() == 'n/a') {
+    if (highlight.food == '---' ||
+        highlight.food.isEmpty ||
+        highlight.food.toLowerCase() == 'none' ||
+        highlight.food.toLowerCase() == 'n/a') {
       return null;
     }
     return highlight;
   }
 
   Map<String, dynamic> toMap() => {
-      'firestoreId': firestoreId,
-      'gutScore': gutScore,
-      'scoreDiff': scoreDiff,
-      'topInsight': topInsight?.toMap(),
-      'healingGoal': healingGoal,
-      'healingFoods': healingFoods.map((e) => e.toMap()).toList(),
-      'healingTrend': healingTrend,
-      'triggerSymptom': triggerSymptom,
-      'triggerFoods': triggerFoods.map((e) => e.toMap()).toList(),
-      'triggerTrend': triggerTrend,
-      'detectedPatterns': detectedPatterns.map((e) => e.toMap()).toList(),
-      'topTrigger': topTrigger?.toMap(),
-      'topHealing': topHealing?.toMap(),
-      'foodImpacts': foodImpacts.map((e) => e.toMap()).toList(),
-      'weeklyRecap': weeklyRecap?.toMap(),
-      'type': type,
-      'confidenceLevel': confidenceLevel,
-      'triggerData': triggerData,
-      'updatedAt': updatedAt.toIso8601String(),
-    };
+    'firestoreId': firestoreId,
+    'gutScore': gutScore,
+    'scoreDiff': scoreDiff,
+    'topInsight': topInsight?.toMap(),
+    'healingGoal': healingGoal,
+    'healingFoods': healingFoods.map((e) => e.toMap()).toList(),
+    'healingTrend': healingTrend,
+    'triggerSymptom': triggerSymptom,
+    'triggerFoods': triggerFoods.map((e) => e.toMap()).toList(),
+    'triggerTrend': triggerTrend,
+    'detectedPatterns': detectedPatterns.map((e) => e.toMap()).toList(),
+    'topTrigger': topTrigger?.toMap(),
+    'topHealing': topHealing?.toMap(),
+    'foodImpacts': foodImpacts.map((e) => e.toMap()).toList(),
+    'weeklyRecap': weeklyRecap?.toMap(),
+    'type': type,
+    'confidenceLevel': confidenceLevel,
+    'triggerData': triggerData,
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   @override
-  List<Object?> get props => [id, firestoreId, gutScore, type, confidenceLevel, updatedAt];
+  List<Object?> get props => [
+    id,
+    firestoreId,
+    gutScore,
+    type,
+    confidenceLevel,
+    updatedAt,
+  ];
 }

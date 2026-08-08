@@ -15,14 +15,7 @@ import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier with ChangeNotifier {
-  ProfileNotifier(
-    this._authRepository,
-    this._firestoreService,
-    this._appStateService,
-    this._notificationService,
-    this._analyticsService,
-    this._crashlyticsService,
-  ) {
+  ProfileNotifier(this._authRepository, this._firestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService) {
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -49,20 +42,22 @@ class ProfileNotifier with ChangeNotifier {
   bool _isLoading = false;
   bool _isInitialized = false;
   bool _showStreakCelebration = false;
+  bool _pendingStreakCelebration = false; // 🟢 Track if a celebration is queued
   String _quickInsight = 'Log more meals to see patterns.';
   StreamSubscription<UserProfile?>? _profileSub;
 
   void _initProfileStream() {
     _profileSub?.cancel();
     _isInitialized = false; // Reset initialization state during user switch
-    _profile = null;        // Clear stale profile data
+    _profile = null; // Clear stale profile data
+    notifyListeners(); // 🟢 Notify immediately so UI can show fallback auth data
 
     _profileSub = _firestoreService.getUserMetadataStream().listen((profile) {
       _isInitialized = true;
       if (profile != null) {
         // Detect streak increment
         if (_previousStreak != null && profile.streak > _previousStreak!) {
-          _showStreakCelebration = true;
+          _pendingStreakCelebration = true; // 🟢 Queue it, don't show yet
           unawaited(_analyticsService.logEvent(name: 'streak_incremented', parameters: {'streak': profile.streak}));
           AppLogger.info('ProfileNotifier: Streak incremented! ${profile.streak}');
         }
@@ -91,7 +86,17 @@ class ProfileNotifier with ChangeNotifier {
 
   void dismissStreakCelebration() {
     _showStreakCelebration = false;
+    _pendingStreakCelebration = false;
     notifyListeners();
+  }
+
+  void triggerPendingCelebration() {
+    if (_pendingStreakCelebration && !_showStreakCelebration) {
+      _showStreakCelebration = true;
+      _pendingStreakCelebration = false;
+      notifyListeners();
+      AppLogger.info('ProfileNotifier: Pending streak celebration triggered.');
+    }
   }
 
   @override

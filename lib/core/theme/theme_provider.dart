@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeNotifier extends ChangeNotifier {
-
   ThemeNotifier(this._prefs) : _themeMode = _loadTheme(_prefs);
   static const String _themeKey = 'theme_mode';
   final SharedPreferences _prefs;

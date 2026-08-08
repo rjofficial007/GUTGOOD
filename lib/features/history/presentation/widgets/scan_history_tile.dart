@@ -10,8 +10,13 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ScanHistoryTile extends StatelessWidget {
-
-  const ScanHistoryTile({super.key, required this.scanResult, this.time, this.userImageUrl, required this.onTap});
+  const ScanHistoryTile({
+    super.key,
+    required this.scanResult,
+    this.time,
+    this.userImageUrl,
+    required this.onTap,
+  });
   final ScanResult scanResult;
   final DateTime? time;
   final String? userImageUrl;
@@ -19,7 +24,8 @@ class ScanHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayImageUrl = userImageUrl ?? scanResult.userImageUrl ?? scanResult.imageUrl;
+    final displayImageUrl =
+        userImageUrl ?? scanResult.userImageUrl ?? scanResult.imageUrl;
 
     return GestureDetector(
       onTap: onTap,
@@ -29,7 +35,9 @@ class ScanHistoryTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appColorScheme.elevatedSurface,
           borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+          border: Border.all(
+            color: context.appColorScheme.border.withValues(alpha: 0.5),
+          ),
         ),
         child: Row(
           children: [
@@ -37,24 +45,39 @@ class ScanHistoryTile extends StatelessWidget {
             Container(
               width: AppSizes.w52,
               height: AppSizes.w52,
-              decoration: BoxDecoration(color: context.appColorScheme.cardBackground, borderRadius: BorderRadius.circular(AppSizes.r12)),
+              decoration: BoxDecoration(
+                color: context.appColorScheme.cardBackground,
+                borderRadius: BorderRadius.circular(AppSizes.r12),
+              ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppSizes.r12),
                 child: displayImageUrl != null
                     ? Hero(
-                        tag: 'scan_image_${scanResult.barcode ?? scanResult.productName}_${time?.millisecondsSinceEpoch}',
+                        tag:
+                            'scan_image_${scanResult.barcode ?? scanResult.productName}_${time?.millisecondsSinceEpoch}',
                         child: CachedNetworkImage(
                           imageUrl: displayImageUrl,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Shimmer.fromColors(
-                            baseColor: context.appColorScheme.border.withValues(alpha: 0.2),
-                            highlightColor: context.appColorScheme.border.withValues(alpha: 0.1),
+                            baseColor: context.appColorScheme.border.withValues(
+                              alpha: 0.2,
+                            ),
+                            highlightColor: context.appColorScheme.border
+                                .withValues(alpha: 0.1),
                             child: Container(color: AppPalette.white),
                           ),
-                          errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
+                          errorWidget: (_, _, _) => Icon(
+                            AppIcons.package,
+                            size: AppSizes.icon24,
+                            color: context.appColorScheme.textMuted,
+                          ),
                         ),
                       )
-                    : Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
+                    : Icon(
+                        AppIcons.package,
+                        size: AppSizes.icon24,
+                        color: context.appColorScheme.textMuted,
+                      ),
               ),
             ),
             Gap.w16,
@@ -72,7 +95,10 @@ class ScanHistoryTile extends StatelessWidget {
                   Gap.h4,
                   Text(
                     '${scanResult.brand} • ${time != null ? _formatTime(time!) : AppStrings.labelSavedItem}',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold),
+                    style: context.caption.copyWith(
+                      color: context.appColorScheme.textMuted,
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -91,12 +117,18 @@ class ScanHistoryTile extends StatelessWidget {
                     value: scanResult.score / 100,
                     strokeWidth: 5,
                     strokeCap: StrokeCap.round,
-                    backgroundColor: context.appColorScheme.textPrimary.withValues(alpha: 0.1),
-                    valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
+                    backgroundColor: context.appColorScheme.textPrimary
+                        .withValues(alpha: 0.1),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      context.appColorScheme.textPrimary,
+                    ),
                   ),
                   Text(
                     '${scanResult.score}',
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s13, fontWeight: FontWeight.w900),
+                    style: context.bodyBold.copyWith(
+                      fontSize: AppSizes.s13,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ],
               ),
@@ -108,7 +140,9 @@ class ScanHistoryTile extends StatelessWidget {
   }
 
   String _formatTime(DateTime time) {
-    final hour = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
+    final hour = time.hour > 12
+        ? time.hour - 12
+        : (time.hour == 0 ? 12 : time.hour);
     final amPm = time.hour >= 12 ? AppStrings.unitPM : AppStrings.unitAM;
     return '$hour:${time.minute.toString().padLeft(2, '0')} $amPm';
   }

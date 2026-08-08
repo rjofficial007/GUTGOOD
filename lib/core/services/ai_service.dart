@@ -42,7 +42,7 @@ class AiAuthException implements Exception {
 }
 
 abstract class AiService {
-  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images});
+  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream'});
 
   Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType});
 
@@ -57,7 +57,6 @@ abstract class AiService {
 ///  - Every request carries a Firebase ID token; the function verifies it and
 ///    enforces the free-tier limits server-side (tamper-proof).
 class AiServiceImpl implements AiService {
-
   AiServiceImpl({required Dio dio, required FirebaseAuth auth, required RemoteConfigService config, required AnalyticsService analyticsService, required CrashlyticsService crashlyticsService})
     : _dio = dio,
       _auth = auth,
@@ -80,7 +79,8 @@ class AiServiceImpl implements AiService {
     return {'Authorization': 'Bearer $token', 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey};
   }
 
-  List<Map<String, String>> _historyToPayload(List<ChatMessage> history) => history.where((m) => m.text.isNotEmpty).map((m) => {'role': m.role == 'user' ? 'user' : 'assistant', 'content': m.text}).toList();
+  List<Map<String, String>> _historyToPayload(List<ChatMessage> history) =>
+      history.where((m) => m.text.isNotEmpty).map((m) => {'role': m.role == 'user' ? 'user' : 'assistant', 'content': m.text}).toList();
 
   Never _throwForStatus(int status, String body) {
     var message = 'Unexpected AI proxy error ($status).';
@@ -102,12 +102,12 @@ class AiServiceImpl implements AiService {
   bool _isRetryable(DioException e) => e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError || e.type == DioExceptionType.sendTimeout;
 
   @override
-  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images}) async* {
+  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream'}) async* {
     final idempotencyKey = const Uuid().v4();
     final headers = await _buildHeaders(idempotencyKey);
 
     final body = jsonEncode({
-      'mode': 'stream',
+      'mode': mode,
       'systemInstruction': systemInstruction,
       'messages': _historyToPayload(history),
       'userText': userText,
@@ -146,6 +146,7 @@ class AiServiceImpl implements AiService {
 
     // Parse the SSE frames emitted by the proxy: data: {"d":"delta"}\n\n
     final buffer = StringBuffer();
+    final fullResponseBuffer = StringBuffer(); // 🟢 NEW: For logging the full result
     var sawDone = false;
 
     await for (final chunk in stream) {
@@ -175,7 +176,10 @@ class AiServiceImpl implements AiService {
             throw AiServiceException(decoded['error'].toString());
           }
           final delta = decoded['d'];
-          if (delta is String && delta.isNotEmpty) yield delta;
+          if (delta is String && delta.isNotEmpty) {
+            fullResponseBuffer.write(delta); // 🟢 Accumulate for log
+            yield delta;
+          }
         } catch (e) {
           if (e is AiServiceException) rethrow;
           // Incomplete JSON frame — ignore; the next chunk completes it.
@@ -196,12 +200,18 @@ class AiServiceImpl implements AiService {
           final decoded = jsonDecode(data) as Map<String, dynamic>;
           if (decoded['error'] != null) throw AiServiceException(decoded['error'].toString());
           final delta = decoded['d'];
-          if (delta is String && delta.isNotEmpty) yield delta;
+          if (delta is String && delta.isNotEmpty) {
+            fullResponseBuffer.write(delta);
+            yield delta;
+          }
         } catch (e) {
           if (e is AiServiceException) rethrow;
         }
       }
     }
+
+    // 🟢 Log the full stream result once finished
+    AppLogger.data('AI_STREAM_RESULT', fullResponseBuffer.toString());
   }
 
   Future<String> _readErrorBody(ResponseBody? body) async {
@@ -250,6 +260,10 @@ class AiServiceImpl implements AiService {
         await _analyticsService.logEvent(name: 'ai_json_success', parameters: {'latency_ms': duration, 'usage_type': usageType});
 
         final decoded = jsonDecode(response.data ?? '{}') as Map<String, dynamic>;
+
+        // 🟢 Log the JSON response for debugging
+        AppLogger.data('AI_JSON_RESULT ($usageType)', decoded);
+
         return (decoded['text'] ?? '').toString();
       } on DioException catch (e, st) {
         // Retry only when the request provably never reached / completed at the
@@ -296,7 +310,12 @@ class AiServiceImpl implements AiService {
         return previousSummary ?? '';
       }
       final decoded = jsonDecode(response.data ?? '{}') as Map<String, dynamic>;
-      return (decoded['text'] ?? previousSummary ?? '').toString();
+      final result = (decoded['text'] ?? previousSummary ?? '').toString();
+
+      // 🟢 Log the summary result
+      AppLogger.debug('AiService: History summary generated: $result');
+
+      return result;
     } catch (e) {
       AppLogger.error('AiService: History summarization failed', error: e);
       return previousSummary ?? '';

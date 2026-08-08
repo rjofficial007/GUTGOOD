@@ -2,7 +2,10 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 
 abstract class AnalyticsService {
-  Future<void> logEvent({required String name, Map<String, Object?>? parameters});
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object?>? parameters,
+  });
   Future<void> logScreenView({required String screenName, String? screenClass});
   Future<void> setUserId(String? id);
   Future<void> setUserProperty({required String name, required String? value});
@@ -13,7 +16,10 @@ class AnalyticsServiceImpl implements AnalyticsService {
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   @override
-  Future<void> logEvent({required String name, Map<String, Object?>? parameters}) async {
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object?>? parameters,
+  }) async {
     if (kDebugMode) {
       print('Analytics [Event]: $name, params: $parameters');
     }
@@ -38,11 +44,17 @@ class AnalyticsServiceImpl implements AnalyticsService {
   }
 
   @override
-  Future<void> logScreenView({required String screenName, String? screenClass}) async {
+  Future<void> logScreenView({
+    required String screenName,
+    String? screenClass,
+  }) async {
     if (kDebugMode) {
       print('Analytics [Screen]: $screenName, class: $screenClass');
     }
-    await _analytics.logScreenView(screenName: screenName, screenClass: screenClass);
+    await _analytics.logScreenView(
+      screenName: screenName,
+      screenClass: screenClass,
+    );
   }
 
   @override
@@ -51,10 +63,14 @@ class AnalyticsServiceImpl implements AnalyticsService {
   }
 
   @override
-  Future<void> setUserProperty({required String name, required String? value}) async {
+  Future<void> setUserProperty({
+    required String name,
+    required String? value,
+  }) async {
     await _analytics.setUserProperty(name: name, value: value);
   }
 
   @override
-  FirebaseAnalyticsObserver getObserver() => FirebaseAnalyticsObserver(analytics: _analytics);
+  FirebaseAnalyticsObserver getObserver() =>
+      FirebaseAnalyticsObserver(analytics: _analytics);
 }

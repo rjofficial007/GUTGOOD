@@ -50,17 +50,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final data = cloudPrefs ?? {};
 
     setState(() {
-      _enableAll = ModelUtils.parseBool(data['enableAll'], defaultValue: prefs.getBool('notif_enable_all') ?? true);
-      _mealReminders = ModelUtils.parseBool(data['mealReminders'], defaultValue: prefs.getBool('notif_meal_reminders') ?? true);
-      _noMealLoggedReminder = ModelUtils.parseBool(data['noMealLoggedReminder'], defaultValue: prefs.getBool('notif_no_meal_logged') ?? true);
-      _dailyReminder = ModelUtils.parseBool(data['dailyReminder'], defaultValue: prefs.getBool('notif_daily_reminder') ?? true);
-      _insightUpdates = ModelUtils.parseBool(data['insightUpdates'], defaultValue: prefs.getBool('notif_insight_updates') ?? true);
-      _weeklySummary = ModelUtils.parseBool(data['weeklySummary'], defaultValue: prefs.getBool('notif_weekly_summary') ?? true);
+      _enableAll = ModelUtils.parseBool(
+        data['enableAll'],
+        defaultValue: prefs.getBool('notif_enable_all') ?? true,
+      );
+      _mealReminders = ModelUtils.parseBool(
+        data['mealReminders'],
+        defaultValue: prefs.getBool('notif_meal_reminders') ?? true,
+      );
+      _noMealLoggedReminder = ModelUtils.parseBool(
+        data['noMealLoggedReminder'],
+        defaultValue: prefs.getBool('notif_no_meal_logged') ?? true,
+      );
+      _dailyReminder = ModelUtils.parseBool(
+        data['dailyReminder'],
+        defaultValue: prefs.getBool('notif_daily_reminder') ?? true,
+      );
+      _insightUpdates = ModelUtils.parseBool(
+        data['insightUpdates'],
+        defaultValue: prefs.getBool('notif_insight_updates') ?? true,
+      );
+      _weeklySummary = ModelUtils.parseBool(
+        data['weeklySummary'],
+        defaultValue: prefs.getBool('notif_weekly_summary') ?? true,
+      );
 
-      _breakfastTime = _decodeTime(data['breakfastTime'] ?? prefs.getString('notif_breakfast_time')) ?? _breakfastTime;
-      _lunchTime = _decodeTime(data['lunchTime'] ?? prefs.getString('notif_lunch_time')) ?? _lunchTime;
-      _dinnerTime = _decodeTime(data['dinnerTime'] ?? prefs.getString('notif_dinner_time')) ?? _dinnerTime;
-      _dailyReminderTime = _decodeTime(data['dailyReminderTime'] ?? prefs.getString('notif_daily_time')) ?? _dailyReminderTime;
+      _breakfastTime =
+          _decodeTime(
+            data['breakfastTime'] ?? prefs.getString('notif_breakfast_time'),
+          ) ??
+          _breakfastTime;
+      _lunchTime =
+          _decodeTime(
+            data['lunchTime'] ?? prefs.getString('notif_lunch_time'),
+          ) ??
+          _lunchTime;
+      _dinnerTime =
+          _decodeTime(
+            data['dinnerTime'] ?? prefs.getString('notif_dinner_time'),
+          ) ??
+          _dinnerTime;
+      _dailyReminderTime =
+          _decodeTime(
+            data['dailyReminderTime'] ?? prefs.getString('notif_daily_time'),
+          ) ??
+          _dailyReminderTime;
 
       _loading = false;
     });
@@ -70,7 +104,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (raw == null) return null;
     final parts = raw.split(':');
     if (parts.length != 2) return null;
-    return TimeOfDay(hour: int.tryParse(parts[0]) ?? 0, minute: int.tryParse(parts[1]) ?? 0);
+    return TimeOfDay(
+      hour: int.tryParse(parts[0]) ?? 0,
+      minute: int.tryParse(parts[1]) ?? 0,
+    );
   }
 
   String _encodeTime(TimeOfDay t) => '${t.hour}:${t.minute}';
@@ -106,9 +143,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _applyMealReminderSchedule() async {
     final notificationService = sl<NotificationService>();
     if (_enableAll && _mealReminders) {
-      await notificationService.scheduleBreakfastReminder(_breakfastTime.hour, _breakfastTime.minute);
-      await notificationService.scheduleLunchReminder(_lunchTime.hour, _lunchTime.minute);
-      await notificationService.scheduleDinnerReminder(_dinnerTime.hour, _dinnerTime.minute);
+      await notificationService.scheduleBreakfastReminder(
+        _breakfastTime.hour,
+        _breakfastTime.minute,
+      );
+      await notificationService.scheduleLunchReminder(
+        _lunchTime.hour,
+        _lunchTime.minute,
+      );
+      await notificationService.scheduleDinnerReminder(
+        _dinnerTime.hour,
+        _dinnerTime.minute,
+      );
     } else {
       await notificationService.cancelMealReminders();
     }
@@ -126,7 +172,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _applyDailyReminderSchedule() async {
     final notificationService = sl<NotificationService>();
     if (_enableAll && _dailyReminder) {
-      await notificationService.scheduleDailyReminder(hour: _dailyReminderTime.hour, minute: _dailyReminderTime.minute);
+      await notificationService.scheduleDailyReminder(
+        hour: _dailyReminderTime.hour,
+        minute: _dailyReminderTime.minute,
+      );
     } else {
       await notificationService.cancelDailyReminder();
     }
@@ -145,8 +194,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  Future<void> _pickTime(TimeOfDay initial, ValueChanged<TimeOfDay> onPicked) async {
-    final picked = await BottomSheetHelper.showTimePickerSheet(context: context, title: AppStrings.selectTime, initialTime: initial, backgroundColor: AppPalette.transparent);
+  Future<void> _pickTime(
+    TimeOfDay initial,
+    ValueChanged<TimeOfDay> onPicked,
+  ) async {
+    final picked = await BottomSheetHelper.showTimePickerSheet(
+      context: context,
+      title: AppStrings.selectTime,
+      initialTime: initial,
+      backgroundColor: AppPalette.transparent,
+    );
     if (picked != null) onPicked(picked);
   }
 
@@ -155,7 +212,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (_loading) {
       return Scaffold(
         backgroundColor: context.appColorScheme.cardBackground,
-        body: Center(child: CircularProgressIndicator(color: context.appColorScheme.textPrimary)),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: context.appColorScheme.textPrimary,
+          ),
+        ),
       );
     }
 
@@ -232,20 +293,20 @@ class _GlobalEnableSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GutSection(
-      showCard: false,
-      topPadding: 0,
-      children: [
-        _ModernSettingCard(
-          child: AppSwitchTile(
-            title: AppStrings.enableNotifications,
-            desc: AppStrings.receiveUpdates,
-            value: isEnabled,
-            onChanged: onToggle,
-            showBottomBorder: false,
-          ),
+    showCard: false,
+    topPadding: 0,
+    children: [
+      _ModernSettingCard(
+        child: AppSwitchTile(
+          title: AppStrings.enableNotifications,
+          desc: AppStrings.receiveUpdates,
+          value: isEnabled,
+          onChanged: onToggle,
+          showBottomBorder: false,
         ),
-      ],
-    );
+      ),
+    ],
+  );
 }
 
 class _RemindersSection extends StatelessWidget {
@@ -293,99 +354,99 @@ class _RemindersSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GutSection(
-      title: AppStrings.reminders,
-      showCard: false,
-      opacity: enableAll ? 1.0 : 0.4,
-      children: [
-        IgnorePointer(
-          ignoring: !enableAll,
-          child: Column(
-            children: [
-              _ModernSettingCard(
-                child: AppSwitchTile(
+    title: AppStrings.reminders,
+    showCard: false,
+    opacity: enableAll ? 1.0 : 0.4,
+    children: [
+      IgnorePointer(
+        ignoring: !enableAll,
+        child: Column(
+          children: [
+            _ModernSettingCard(
+              child: AppSwitchTile(
+                icon: AppIcons.utensils,
+                title: AppStrings.mealRemindersLabel,
+                desc: AppStrings.mealRemindersDesc,
+                value: mealReminders,
+                onChanged: enableAll ? onMealRemindersToggle : null,
+                showBottomBorder: false,
+              ),
+            ),
+            _AnimatedTimePickerList(
+              isVisible: mealReminders && enableAll,
+              children: [
+                _ModernTimeTile(
+                  label: AppStrings.breakfastTime,
+                  time: breakfastTime,
+                  icon: AppIcons.sun,
+                  onTap: () => onTimePick(breakfastTime, (t) async {
+                    onBreakfastTimeChanged(t);
+                    await onTimePersist('notif_breakfast_time', t);
+                    await onScheduleApply();
+                  }),
+                ),
+                _ModernTimeTile(
+                  label: AppStrings.lunchTime,
+                  time: lunchTime,
                   icon: AppIcons.utensils,
-                  title: AppStrings.mealRemindersLabel,
-                  desc: AppStrings.mealRemindersDesc,
-                  value: mealReminders,
-                  onChanged: enableAll ? onMealRemindersToggle : null,
-                  showBottomBorder: false,
+                  onTap: () => onTimePick(lunchTime, (t) async {
+                    onLunchTimeChanged(t);
+                    await onTimePersist('notif_lunch_time', t);
+                    await onScheduleApply();
+                  }),
                 ),
-              ),
-              _AnimatedTimePickerList(
-                isVisible: mealReminders && enableAll,
-                children: [
-                  _ModernTimeTile(
-                    label: AppStrings.breakfastTime,
-                    time: breakfastTime,
-                    icon: AppIcons.sun,
-                    onTap: () => onTimePick(breakfastTime, (t) async {
-                      onBreakfastTimeChanged(t);
-                      await onTimePersist('notif_breakfast_time', t);
-                      await onScheduleApply();
-                    }),
-                  ),
-                  _ModernTimeTile(
-                    label: AppStrings.lunchTime,
-                    time: lunchTime,
-                    icon: AppIcons.utensils,
-                    onTap: () => onTimePick(lunchTime, (t) async {
-                      onLunchTimeChanged(t);
-                      await onTimePersist('notif_lunch_time', t);
-                      await onScheduleApply();
-                    }),
-                  ),
-                  _ModernTimeTile(
-                    label: AppStrings.dinnerTime,
-                    time: dinnerTime,
-                    icon: AppIcons.moon,
-                    onTap: () => onTimePick(dinnerTime, (t) async {
-                      onDinnerTimeChanged(t);
-                      await onTimePersist('notif_dinner_time', t);
-                      await onScheduleApply();
-                    }),
-                  ),
-                ],
-              ),
-              _ModernSettingCard(
-                child: AppSwitchTile(
-                  icon: AppIcons.alertCircle,
-                  title: AppStrings.missedLoggingAlert,
-                  desc: AppStrings.missedLoggingDesc,
-                  value: noMealLoggedReminder,
-                  onChanged: enableAll ? onNoMealToggle : null,
-                  showBottomBorder: false,
+                _ModernTimeTile(
+                  label: AppStrings.dinnerTime,
+                  time: dinnerTime,
+                  icon: AppIcons.moon,
+                  onTap: () => onTimePick(dinnerTime, (t) async {
+                    onDinnerTimeChanged(t);
+                    await onTimePersist('notif_dinner_time', t);
+                    await onScheduleApply();
+                  }),
                 ),
+              ],
+            ),
+            _ModernSettingCard(
+              child: AppSwitchTile(
+                icon: AppIcons.alertCircle,
+                title: AppStrings.missedLoggingAlert,
+                desc: AppStrings.missedLoggingDesc,
+                value: noMealLoggedReminder,
+                onChanged: enableAll ? onNoMealToggle : null,
+                showBottomBorder: false,
               ),
-              _ModernSettingCard(
-                child: AppSwitchTile(
-                  icon: AppIcons.bell,
-                  title: AppStrings.dailyCheckInReminder,
-                  desc: AppStrings.dailyCheckInDesc,
-                  value: dailyReminder,
-                  onChanged: enableAll ? onDailyToggle : null,
-                  showBottomBorder: false,
+            ),
+            _ModernSettingCard(
+              child: AppSwitchTile(
+                icon: AppIcons.bell,
+                title: AppStrings.dailyCheckInReminder,
+                desc: AppStrings.dailyCheckInDesc,
+                value: dailyReminder,
+                onChanged: enableAll ? onDailyToggle : null,
+                showBottomBorder: false,
+              ),
+            ),
+            _AnimatedTimePickerList(
+              isVisible: dailyReminder && enableAll,
+              children: [
+                _ModernTimeTile(
+                  label: AppStrings.reminderTime,
+                  time: dailyReminderTime,
+                  icon: AppIcons.clock,
+                  onTap: () => onTimePick(dailyReminderTime, (t) async {
+                    onDailyTimeChanged(t);
+                    await onTimePersist('notif_daily_time', t);
+                    await onDailyScheduleApply();
+                  }),
                 ),
-              ),
-              _AnimatedTimePickerList(
-                isVisible: dailyReminder && enableAll,
-                children: [
-                  _ModernTimeTile(
-                    label: AppStrings.reminderTime,
-                    time: dailyReminderTime,
-                    icon: AppIcons.clock,
-                    onTap: () => onTimePick(dailyReminderTime, (t) async {
-                      onDailyTimeChanged(t);
-                      await onTimePersist('notif_daily_time', t);
-                      await onDailyScheduleApply();
-                    }),
-                  ),
-                ],
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
-      ],
-    );
+      ),
+    ],
+  );
 }
 
 class _UpdatesSection extends StatelessWidget {
@@ -405,59 +466,62 @@ class _UpdatesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GutSection(
-      title: AppStrings.sectionUpdates,
-      showCard: false,
-      opacity: enableAll ? 1.0 : 0.4,
-      children: [
-        IgnorePointer(
-          ignoring: !enableAll,
-          child: Column(
-            children: [
-              _ModernSettingCard(
-                child: AppSwitchTile(
-                  icon: AppIcons.zap,
-                  title: AppStrings.insightUpdatesLabel,
-                  desc: AppStrings.insightUpdatesDesc,
-                  value: insightUpdates,
-                  onChanged: enableAll ? onInsightToggle : null,
-                  showBottomBorder: false,
-                ),
+    title: AppStrings.sectionUpdates,
+    showCard: false,
+    opacity: enableAll ? 1.0 : 0.4,
+    children: [
+      IgnorePointer(
+        ignoring: !enableAll,
+        child: Column(
+          children: [
+            _ModernSettingCard(
+              child: AppSwitchTile(
+                icon: AppIcons.zap,
+                title: AppStrings.insightUpdatesLabel,
+                desc: AppStrings.insightUpdatesDesc,
+                value: insightUpdates,
+                onChanged: enableAll ? onInsightToggle : null,
+                showBottomBorder: false,
               ),
-              _ModernSettingCard(
-                child: AppSwitchTile(
-                  icon: AppIcons.calendar,
-                  title: AppStrings.weeklySummaryLabel,
-                  desc: AppStrings.weeklySummaryDesc,
-                  value: weeklySummary,
-                  onChanged: enableAll ? onWeeklyToggle : null,
-                  showBottomBorder: false,
-                ),
+            ),
+            _ModernSettingCard(
+              child: AppSwitchTile(
+                icon: AppIcons.calendar,
+                title: AppStrings.weeklySummaryLabel,
+                desc: AppStrings.weeklySummaryDesc,
+                value: weeklySummary,
+                onChanged: enableAll ? onWeeklyToggle : null,
+                showBottomBorder: false,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
-    );
+      ),
+    ],
+  );
 }
 
 class _AnimatedTimePickerList extends StatelessWidget {
-  const _AnimatedTimePickerList({required this.isVisible, required this.children});
+  const _AnimatedTimePickerList({
+    required this.isVisible,
+    required this.children,
+  });
   final bool isVisible;
   final List<Widget> children;
 
   @override
   Widget build(BuildContext context) => ClipRect(
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        child: isVisible
-            ? Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Column(children: children),
-              )
-            : const SizedBox(width: double.infinity),
-      ),
-    );
+    child: AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: isVisible
+          ? Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Column(children: children),
+            )
+          : const SizedBox(width: double.infinity),
+    ),
+  );
 }
 
 class _ModernSettingCard extends StatelessWidget {
@@ -466,20 +530,26 @@ class _ModernSettingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      margin: EdgeInsets.only(bottom: AppSizes.p12),
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.elevatedSurface,
-        borderRadius: BorderRadius.circular(AppSizes.r24),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+    margin: EdgeInsets.only(bottom: AppSizes.p12),
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p20),
+    decoration: BoxDecoration(
+      color: context.appColorScheme.elevatedSurface,
+      borderRadius: BorderRadius.circular(AppSizes.r24),
+      border: Border.all(
+        color: context.appColorScheme.border.withValues(alpha: 0.5),
       ),
-      child: child,
-    );
+    ),
+    child: child,
+  );
 }
 
 class _ModernTimeTile extends StatelessWidget {
-  const _ModernTimeTile(
-      {required this.label, required this.time, required this.icon, required this.onTap});
+  const _ModernTimeTile({
+    required this.label,
+    required this.time,
+    required this.icon,
+    required this.onTap,
+  });
   final String label;
   final TimeOfDay time;
   final IconData icon;
@@ -487,58 +557,70 @@ class _ModernTimeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      margin: EdgeInsets.only(bottom: AppSizes.p12),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.elevatedSurface,
-        borderRadius: BorderRadius.circular(AppSizes.r24),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+    margin: EdgeInsets.only(bottom: AppSizes.p12),
+    decoration: BoxDecoration(
+      color: context.appColorScheme.elevatedSurface,
+      borderRadius: BorderRadius.circular(AppSizes.r24),
+      border: Border.all(
+        color: context.appColorScheme.border.withValues(alpha: 0.5),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppSizes.r24),
-          child: Padding(
-            padding: EdgeInsets.all(AppSizes.p20),
-            child: Row(
-              children: [
-                Container(
-                  width: AppSizes.w52,
-                  height: AppSizes.w52,
-                  decoration: BoxDecoration(
-                      color: context.appColorScheme.textPrimary,
-                      borderRadius: BorderRadius.circular(AppSizes.r18)),
-                  child: Icon(icon, color: context.appColorScheme.cardBackground, size: AppSizes.icon24),
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizes.r24),
+        child: Padding(
+          padding: EdgeInsets.all(AppSizes.p20),
+          child: Row(
+            children: [
+              Container(
+                width: AppSizes.w52,
+                height: AppSizes.w52,
+                decoration: BoxDecoration(
+                  color: context.appColorScheme.textPrimary,
+                  borderRadius: BorderRadius.circular(AppSizes.r18),
                 ),
-                Gap.w16,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label.toUpperCase(),
-                        style: context.caption.copyWith(
-                            color: context.appColorScheme.textMuted,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.0,
-                            fontSize: AppSizes.s9),
-                      ),
-                      Gap.h4,
-                      Text(
-                        time.format(context),
-                        style: context.headingMd.copyWith(
-                            color: context.appColorScheme.textPrimary,
-                            fontWeight: FontWeight.w900,
-                            fontSize: AppSizes.s22),
-                      ),
-                    ],
-                  ),
+                child: Icon(
+                  icon,
+                  color: context.appColorScheme.cardBackground,
+                  size: AppSizes.icon24,
                 ),
-                Icon(AppIcons.chevronRight, color: context.appColorScheme.textMuted),
-              ],
-            ),
+              ),
+              Gap.w16,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label.toUpperCase(),
+                      style: context.caption.copyWith(
+                        color: context.appColorScheme.textMuted,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
+                        fontSize: AppSizes.s9,
+                      ),
+                    ),
+                    Gap.h4,
+                    Text(
+                      time.format(context),
+                      style: context.headingMd.copyWith(
+                        color: context.appColorScheme.textPrimary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: AppSizes.s22,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                AppIcons.chevronRight,
+                color: context.appColorScheme.textMuted,
+              ),
+            ],
           ),
         ),
       ),
-    );
+    ),
+  );
 }

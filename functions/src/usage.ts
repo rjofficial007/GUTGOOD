@@ -21,11 +21,14 @@ export interface UsageCheckResult {
 }
 
 function todayKey(timezoneOffsetMinutes: number = 0): string {
-  const now = new Date();
-  // Adjust UTC time by the user's local offset (in minutes) to get their local date.
-  // Note: Dart's timeZoneOffset is positive for Eastern timezones (e.g., IST is +330).
-  const localTime = new Date(now.getTime() + (timezoneOffsetMinutes * 60000));
-  return localTime.toISOString().slice(0, 10); // YYYY-MM-DD
+  try {
+    const now = new Date();
+    const offset = isNaN(timezoneOffsetMinutes) ? 0 : timezoneOffsetMinutes;
+    const localTime = new Date(now.getTime() + (offset * 60000));
+    return localTime.toISOString().slice(0, 10);
+  } catch (e) {
+    return new Date().toISOString().slice(0, 10);
+  }
 }
 
 function fieldFor(type: UsageType): 'chat_count' | 'scan_count' | 'system_count' {
@@ -40,12 +43,16 @@ function fieldFor(type: UsageType): 'chat_count' | 'scan_count' | 'system_count'
  * RevenueCat integration, by product decision).
  */
 export async function isPremiumUser(uid: string): Promise<boolean> {
-  const snap = await admin.firestore().doc(`user_profiles/${uid}`).get();
-  if (!snap.exists) return false;
-  const data = snap.data() ?? {};
-  if (data.isPremium === true) return true;
-  const status = (data.subscriptionStatus ?? 'free').toString();
-  return status !== 'free';
+  try {
+    const snap = await admin.firestore().doc(`user_profiles/${uid}`).get();
+    if (!snap.exists) return false;
+    const data = snap.data() ?? {};
+    if (data.isPremium === true) return true;
+    const status = (data.subscriptionStatus ?? 'free').toString();
+    return status !== 'free';
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
@@ -59,10 +66,7 @@ export async function checkAndConsume(
   idempotencyKey?: string,
   timezoneOffsetMinutes: number = 0,
 ): Promise<UsageCheckResult> {
-  if (await isPremiumUser(uid)) {
-    return { allowed: true, premium: true, count: 0, limit: Number.MAX_SAFE_INTEGER, alreadyCounted: false };
-  }
-
+  const isPremium = await isPremiumUser(uid);
   const limits = isAnonymous ? LIMITS.guest : LIMITS.registered;
   let limit: number;
   if (type === 'chat') limit = limits.chat;
@@ -79,23 +83,33 @@ export async function checkAndConsume(
     const [snap, userSnap] = await Promise.all([tx.get(ref), tx.get(userRef)]);
 
     const data = snap.data() ?? {};
+    const userData = userSnap.data() ?? {};
     const recentIds: string[] = Array.isArray(data.recentIds) ? data.recentIds : [];
 
     // 1. Check Idempotency (Deduplication)
     if (idempotencyKey && recentIds.includes(idempotencyKey)) {
       return {
         allowed: true,
-        premium: false,
+        premium: isPremium,
         count: (data[field] as number) ?? 0,
-        limit,
+        limit: isPremium ? Number.MAX_SAFE_INTEGER : limit,
         alreadyCounted: true,
       };
     }
 
-    // 2. Check Allowance
-    const count = ((data[field] as number) ?? 0);
-    if (count >= limit) {
-      return { allowed: false, premium: false, count, limit, alreadyCounted: false };
+    // 2. Check Allowance (only for non-premium)
+    const dailyCount = ((data[field] as number) ?? 0);
+
+    if (!isPremium) {
+      if (isAnonymous) {
+        // 🟢 LIFETIME GUEST CHECK: PRD §4 requires guests to sign up after 2 actions total.
+        const lifetimeCount = (userData[`${field}_lifetime`] as number) ?? 0;
+        if (lifetimeCount >= limit) {
+          return { allowed: false, premium: false, count: lifetimeCount, limit, alreadyCounted: false };
+        }
+      } else if (dailyCount >= limit) {
+        return { allowed: false, premium: false, count: dailyCount, limit, alreadyCounted: false };
+      }
     }
 
     // 3. Prepare Updates
@@ -104,39 +118,27 @@ export async function checkAndConsume(
       : recentIds;
 
     // 4. Streak Logic
-    let streakUpdate: any = null;
-    if (userSnap.exists) {
-      const userData = userSnap.data() ?? {};
-      const lastDate = (userData.lastActivityDate ?? '').toString();
-      let currentStreak = Number(userData.streak ?? 0);
-
-      if (lastDate !== today) {
-        // Calculate "Yesterday" relative to our Local "Today" string
-        const yesterday = new Date(today);
-        yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-        const yesterdayKey = yesterday.toISOString().slice(0, 10);
-
-        if (lastDate === yesterdayKey) {
-          currentStreak += 1;
-        } else {
-          currentStreak = 1;
-        }
-        streakUpdate = { streak: currentStreak, lastActivityDate: today, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
-      }
-    }
+    const streakUpdate = calculateStreakUpdate(userData, today);
 
     // 5. Execute Writes
-    tx.set(
-      ref,
-      { [field]: admin.firestore.FieldValue.increment(1), ...(idempotencyKey ? { recentIds: nextIds } : {}) },
-      { merge: true },
-    );
+    const dailyUpdate = { [field]: admin.firestore.FieldValue.increment(1), ...(idempotencyKey ? { recentIds: nextIds } : {}) };
+    tx.set(ref, dailyUpdate, { merge: true });
 
-    if (streakUpdate) {
-      tx.update(userRef, streakUpdate);
+    if (isAnonymous || streakUpdate) {
+      const userUpdate: any = streakUpdate ?? {};
+      if (isAnonymous) {
+        userUpdate[`${field}_lifetime`] = admin.firestore.FieldValue.increment(1);
+      }
+      tx.set(userRef, userUpdate, { merge: true });
     }
 
-    return { allowed: true, premium: false, count: count + 1, limit, alreadyCounted: false };
+    return {
+      allowed: true,
+      premium: isPremium,
+      count: isAnonymous ? ((userData[`${field}_lifetime`] as number ?? 0) + 1) : (dailyCount + 1),
+      limit: isPremium ? Number.MAX_SAFE_INTEGER : limit,
+      alreadyCounted: false,
+    };
   });
 }
 
@@ -157,4 +159,39 @@ export async function getUsage(uid: string, timezoneOffsetMinutes: number = 0): 
 /** Merges usage counters during an anonymous→permanent account merge. */
 export function usageFieldFor(type: UsageType): string {
   return fieldFor(type);
+}
+
+/**
+ * Shared streak calculation logic.
+ * Returns an update object if the streak needs to be updated, or null.
+ */
+export function calculateStreakUpdate(userData: any, today: string): any {
+  const lastDate = (userData.lastActivityDate ?? '').toString();
+  let currentStreak = Number(userData.streak ?? 0);
+  let longestStreak = Number(userData.longestStreak ?? 0);
+
+  if (lastDate === today) return null;
+
+  // Calculate "Yesterday" relative to our Local "Today" string
+  const yesterday = new Date(today);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const yesterdayKey = yesterday.toISOString().slice(0, 10);
+
+  if (lastDate === yesterdayKey) {
+    currentStreak += 1;
+  } else {
+    currentStreak = 1;
+  }
+
+  // Update longest streak if needed
+  if (currentStreak > longestStreak) {
+    longestStreak = currentStreak;
+  }
+
+  return {
+    streak: currentStreak,
+    longestStreak,
+    lastActivityDate: today,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
 }

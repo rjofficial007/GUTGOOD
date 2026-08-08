@@ -19,36 +19,40 @@ class ExportServiceImpl implements ExportService {
       final symptoms = await _firestoreService.getRecentSymptomLogs(limit: 500);
 
       final buffer = StringBuffer()
-      
-      // 1. Meals Header
-      ..writeln('--- MEAL LOGS ---')
-      ..writeln('Date,Time,Meal Type,Items,Notes,Source');
-      
+        // 1. Meals Header
+        ..writeln('--- MEAL LOGS ---')
+        ..writeln('Date,Time,Meal Type,Items,Notes,Source');
+
       for (final meal in meals) {
         final date = DateFormat('yyyy-MM-dd').format(meal.time);
         final time = DateFormat('HH:mm').format(meal.time);
         final items = meal.items.join('; ');
-        buffer.writeln('$date,$time,"${meal.mealType ?? ''}","$items","${meal.notes ?? ''}","${meal.source ?? ''}"');
+        buffer.writeln(
+          '$date,$time,"${meal.mealType ?? ''}","$items","${meal.notes ?? ''}","${meal.source ?? ''}"',
+        );
       }
 
-      buffer..writeln('\n')
-
-      // 2. Symptoms Header
-      ..writeln('--- SYMPTOM LOGS ---')
-      ..writeln('Date,Time,Symptom,Severity,Energy,Mood,Sleep,Notes,Source');
+      buffer
+        ..writeln('\n')
+        // 2. Symptoms Header
+        ..writeln('--- SYMPTOM LOGS ---')
+        ..writeln('Date,Time,Symptom,Severity,Energy,Mood,Sleep,Notes,Source');
 
       for (final symptom in symptoms) {
         final date = DateFormat('yyyy-MM-dd').format(symptom.time);
         final time = DateFormat('HH:mm').format(symptom.time);
-        buffer.writeln('$date,$time,"${symptom.symptom}",${symptom.severity ?? ''},${symptom.energyLevel ?? ''},"${symptom.mood ?? ''}","${symptom.sleep ?? ''}","${symptom.notes ?? ''}","${symptom.source ?? ''}"');
+        buffer.writeln(
+          '$date,$time,"${symptom.symptom}",${symptom.severity ?? ''},${symptom.energyLevel ?? ''},"${symptom.mood ?? ''}","${symptom.sleep ?? ''}","${symptom.notes ?? ''}","${symptom.source ?? ''}"',
+        );
       }
 
       final csvData = buffer.toString();
-      
+
       await SharePlus.instance.share(
         ShareParams(
           text: csvData,
-          subject: 'GutGood Health Data Export - ${DateFormat('MMM d, yyyy').format(DateTime.now())}',
+          subject:
+              'GutGood Health Data Export - ${DateFormat('MMM d, yyyy').format(DateTime.now())}',
         ),
       );
 

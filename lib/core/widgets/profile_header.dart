@@ -9,7 +9,6 @@ import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/modern_insight_card.dart';
 
 class ProfileHeader extends StatelessWidget {
-
   const ProfileHeader({
     super.key,
     required this.name,
@@ -17,6 +16,7 @@ class ProfileHeader extends StatelessWidget {
     required this.isPremium,
     this.photoUrl,
     required this.streak,
+    this.longestStreak = 0,
     required this.goalsCount,
     required this.sensitivitiesCount,
     required this.lifestyleCount,
@@ -29,6 +29,7 @@ class ProfileHeader extends StatelessWidget {
   final bool isPremium;
   final String? photoUrl;
   final int streak;
+  final int longestStreak;
   final int goalsCount;
   final int sensitivitiesCount;
   final int lifestyleCount;
@@ -54,7 +55,10 @@ class ProfileHeader extends StatelessWidget {
       leading: Container(
         width: AppSizes.p8,
         height: AppSizes.p8,
-        decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
+        decoration: const BoxDecoration(
+          color: AppPalette.white,
+          shape: BoxShape.circle,
+        ),
       ),
       backgroundColor: AppPalette.black,
       titleColor: AppPalette.white.withValues(alpha: 0.7),
@@ -66,8 +70,36 @@ class ProfileHeader extends StatelessWidget {
           Gap.w8,
           Text(
             '$streak ${AppStrings.dayStreakLabel}',
-            style: context.caption.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: AppSizes.s9, letterSpacing: 0.5),
+            style: context.caption.copyWith(
+              color: AppPalette.black,
+              fontWeight: FontWeight.w900,
+              fontSize: AppSizes.s9,
+              letterSpacing: 0.5,
+            ),
           ),
+          if (longestStreak > 0) ...[
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: AppSizes.p12),
+              height: AppSizes.p10,
+              width: 1,
+              color: AppPalette.black.withValues(alpha: 0.2),
+            ),
+            Icon(
+              AppIcons.trophy,
+              size: AppSizes.icon14,
+              color: AppPalette.black,
+            ),
+            Gap.w8,
+            Text(
+              '$longestStreak ${AppStrings.bestStreakLabel}',
+              style: context.caption.copyWith(
+                color: AppPalette.black,
+                fontWeight: FontWeight.w900,
+                fontSize: AppSizes.s9,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ],
       ),
       child: Column(
@@ -86,14 +118,25 @@ class ProfileHeader extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppPalette.gray800,
-                        image: hasPhoto ? DecorationImage(image: CachedNetworkImageProvider(photoUrl!), fit: BoxFit.cover) : null,
-                        border: Border.all(color: AppPalette.white.withValues(alpha: 0.1), width: 2),
+                        image: hasPhoto
+                            ? DecorationImage(
+                                image: CachedNetworkImageProvider(photoUrl!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                        border: Border.all(
+                          color: AppPalette.white.withValues(alpha: 0.1),
+                          width: 2,
+                        ),
                       ),
                       child: !hasPhoto
                           ? Center(
                               child: Text(
                                 _getInitials(name),
-                                style: context.bodyBold.copyWith(color: AppPalette.white, fontSize: AppSizes.s20),
+                                style: context.bodyBold.copyWith(
+                                  color: AppPalette.white,
+                                  fontSize: AppSizes.s20,
+                                ),
                               ),
                             )
                           : null,
@@ -103,8 +146,15 @@ class ProfileHeader extends StatelessWidget {
                       bottom: 0,
                       child: Container(
                         padding: EdgeInsets.all(AppSizes.p4),
-                        decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
-                        child: Icon(Icons.add_rounded, size: AppSizes.icon12, color: AppPalette.black),
+                        decoration: const BoxDecoration(
+                          color: AppPalette.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.add_rounded,
+                          size: AppSizes.icon12,
+                          color: AppPalette.black,
+                        ),
                       ),
                     ),
                   ],
@@ -117,13 +167,18 @@ class ProfileHeader extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: context.bodyBold.copyWith(color: AppPalette.white, fontSize: AppSizes.s18),
+                      style: context.bodyBold.copyWith(
+                        color: AppPalette.white,
+                        fontSize: AppSizes.s18,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       email,
-                      style: context.caption.copyWith(color: AppPalette.white.withValues(alpha: 0.5)),
+                      style: context.caption.copyWith(
+                        color: AppPalette.white.withValues(alpha: 0.5),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -138,11 +193,19 @@ class ProfileHeader extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _HeaderButton(label: AppStrings.editProfile, icon: AppIcons.user, onTap: onEditTap),
+                child: _HeaderButton(
+                  label: AppStrings.editProfile,
+                  icon: AppIcons.user,
+                  onTap: onEditTap,
+                ),
               ),
               Gap.w12,
               Expanded(
-                child: _HeaderButton(label: AppStrings.logout, icon: AppIcons.logOut, onTap: onLogoutTap),
+                child: _HeaderButton(
+                  label: AppStrings.logout,
+                  icon: AppIcons.logOut,
+                  onTap: onLogoutTap,
+                ),
               ),
             ],
           ),
@@ -154,33 +217,40 @@ class ProfileHeader extends StatelessWidget {
 }
 
 class _HeaderButton extends StatelessWidget {
-
-  const _HeaderButton({required this.label, required this.icon, required this.onTap});
+  const _HeaderButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
   final String label;
   final IconData icon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => Material(
-      color: AppPalette.white.withValues(alpha: 0.1),
+    color: AppPalette.white.withValues(alpha: 0.1),
+    borderRadius: BorderRadius.circular(AppSizes.r16),
+    child: InkWell(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.r16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSizes.r16),
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: AppSizes.icon14, color: AppPalette.white),
-              Gap.w8,
-              Text(
-                label,
-                style: context.caption.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold, fontSize: AppSizes.s11),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: AppSizes.icon14, color: AppPalette.white),
+            Gap.w8,
+            Text(
+              label,
+              style: context.caption.copyWith(
+                color: AppPalette.white,
+                fontWeight: FontWeight.bold,
+                fontSize: AppSizes.s11,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
+    ),
+  );
 }

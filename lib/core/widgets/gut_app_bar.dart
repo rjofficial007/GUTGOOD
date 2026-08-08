@@ -10,7 +10,6 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
-
   const GutAppBar({
     super.key,
     this.title,
@@ -37,28 +36,41 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) => AppBar(
-      title: titleWidget ?? _buildTitle(context),
-      actions: actions,
-      leading: leading,
-      centerTitle: centerTitle,
-      elevation: elevation,
-      backgroundColor: backgroundColor ?? context.appColorScheme.cardBackground.withValues(alpha: 0.8),
-      automaticallyImplyLeading: automaticallyImplyLeading,
-      flexibleSpace: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(color: AppPalette.transparent),
-        ),
+    title: titleWidget ?? _buildTitle(context),
+    actions: actions,
+    leading: leading,
+    centerTitle: centerTitle,
+    elevation: elevation,
+    backgroundColor:
+        backgroundColor ??
+        context.appColorScheme.cardBackground.withValues(alpha: 0.8),
+    automaticallyImplyLeading: automaticallyImplyLeading,
+    flexibleSpace: ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(color: AppPalette.transparent),
       ),
-    );
+    ),
+  );
 
   Widget _buildTitle(BuildContext context) {
     if (title == null) return const SizedBox.shrink();
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (showBrandingIcon) ...[Image.asset(AppAssets.appIconBg, height: 24.0.w, width: 24.0.w, color: context.appColorScheme.textPrimary), Gap.w10],
-        Text(title!.toUpperCase(), style: context.title.copyWith(letterSpacing: 0.1)),
+        if (showBrandingIcon) ...[
+          Image.asset(
+            AppAssets.appIconBg,
+            height: 24.0.w,
+            width: 24.0.w,
+            color: context.appColorScheme.textPrimary,
+          ),
+          Gap.w10,
+        ],
+        Text(
+          title!.toUpperCase(),
+          style: context.title.copyWith(letterSpacing: 0.1),
+        ),
       ],
     );
   }
@@ -68,7 +80,6 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class GutSliverAppBar extends StatelessWidget {
-
   const GutSliverAppBar({
     super.key,
     this.title,
@@ -99,32 +110,45 @@ class GutSliverAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SliverAppBar(
-      title: titleWidget ?? _buildTitle(context),
-      actions: actions,
-      leading: leading,
-      centerTitle: centerTitle,
-      floating: floating,
-      pinned: pinned,
-      snap: snap,
-      elevation: 0,
-      forceElevated: forceElevated,
-      backgroundColor: context.appColorScheme.cardBackground.withValues(alpha: 0.8),
-      automaticallyImplyLeading: automaticallyImplyLeading,
-      flexibleSpace: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(color: AppPalette.transparent),
-        ),
+    title: titleWidget ?? _buildTitle(context),
+    actions: actions,
+    leading: leading,
+    centerTitle: centerTitle,
+    floating: floating,
+    pinned: pinned,
+    snap: snap,
+    elevation: 0,
+    forceElevated: forceElevated,
+    backgroundColor: context.appColorScheme.cardBackground.withValues(
+      alpha: 0.8,
+    ),
+    automaticallyImplyLeading: automaticallyImplyLeading,
+    flexibleSpace: ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(color: AppPalette.transparent),
       ),
-    );
+    ),
+  );
 
   Widget _buildTitle(BuildContext context) {
     if (title == null) return const SizedBox.shrink();
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (showBrandingIcon) ...[Image.asset(AppAssets.appIconBg, height: 24.0.w, width: 24.0.w, color: context.appColorScheme.textPrimary), Gap.w10],
-        Text(title!.toUpperCase(), style: context.title.copyWith(letterSpacing: 0.1)),
+        if (showBrandingIcon) ...[
+          Image.asset(
+            AppAssets.appIconBg,
+            height: 24.0.w,
+            width: 24.0.w,
+            color: context.appColorScheme.textPrimary,
+          ),
+          Gap.w10,
+        ],
+        Text(
+          title!.toUpperCase(),
+          style: context.title.copyWith(letterSpacing: 0.1),
+        ),
         if (streak != null) ...[Gap.w12, _StreakBadge(streak: streak!)],
       ],
     );
@@ -132,28 +156,34 @@ class GutSliverAppBar extends StatelessWidget {
 }
 
 class _StreakBadge extends StatelessWidget {
-
   const _StreakBadge({required this.streak});
   final int streak;
 
   @override
   Widget build(BuildContext context) => Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
-      decoration: BoxDecoration(
-        color: AppPalette.orange.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: AppPalette.orange.withValues(alpha: 0.3), width: 1),
+    padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
+    decoration: BoxDecoration(
+      color: AppPalette.orange.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(100),
+      border: Border.all(
+        color: AppPalette.orange.withValues(alpha: 0.3),
+        width: 1,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(AppIcons.flame, color: AppPalette.orange, size: 14.0.w),
-          Gap.w6,
-          Text(
-            streak.toString(),
-            style: context.caption.copyWith(color: AppPalette.orange, fontWeight: FontWeight.w900, fontSize: 13.0.sp),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(AppIcons.flame, color: AppPalette.orange, size: 14.0.w),
+        Gap.w6,
+        Text(
+          streak.toString(),
+          style: context.caption.copyWith(
+            color: AppPalette.orange,
+            fontWeight: FontWeight.w900,
+            fontSize: 13.0.sp,
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
 }

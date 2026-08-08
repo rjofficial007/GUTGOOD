@@ -10,10 +10,17 @@ import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:intl/intl.dart';
 
 class TrendCard extends StatelessWidget {
-
-  const TrendCard({super.key, required this.insights, this.currentInsight, this.referenceDate, this.title = AppStrings.scoreTrend, this.subtitle = AppStrings.weeklySnapshot});
+  const TrendCard({
+    super.key,
+    required this.insights,
+    this.currentInsight,
+    this.referenceDate,
+    this.title = AppStrings.scoreTrend,
+    this.subtitle = AppStrings.weeklySnapshot,
+  });
   final List<AIInsight> insights;
-  final AIInsight? currentInsight; // 🟢 NEW: Pass current insight for guaranteed "today" fill
+  final AIInsight?
+  currentInsight; // 🟢 NEW: Pass current insight for guaranteed "today" fill
   final DateTime? referenceDate;
   final String title;
   final String subtitle;
@@ -22,7 +29,8 @@ class TrendCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Merge history and current to ensure no data gaps
     final allInsights = [...insights];
-    if (currentInsight != null && !allInsights.any((i) => i.firestoreId == currentInsight!.firestoreId)) {
+    if (currentInsight != null &&
+        !allInsights.any((i) => i.firestoreId == currentInsight!.firestoreId)) {
       allInsights.insert(0, currentInsight!);
     }
 
@@ -32,12 +40,20 @@ class TrendCard extends StatelessWidget {
     return GutDashboardSection(
       title: title,
       subtitle: subtitle,
-      visualization: _TrendBarChart(insights: allInsights, referenceDate: referenceDate ?? DateTime.now()),
+      visualization: _TrendBarChart(
+        insights: allInsights,
+        referenceDate: referenceDate ?? DateTime.now(),
+      ),
       items: [
         _TrendDirectionTile(scores: scores),
         if (allInsights.isNotEmpty) ...[
           Gap.h12,
-          DashboardDetailItem(title: '${allInsights.first.gutScore} ${AppStrings.pointsUnit}', subtitle: AppStrings.gutGoodScore, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
+          DashboardDetailItem(
+            title: '${allInsights.first.gutScore} ${AppStrings.pointsUnit}',
+            subtitle: AppStrings.gutGoodScore,
+            icon: AppIcons.activity,
+            color: context.appColorScheme.textPrimary,
+          ),
         ],
       ],
     );
@@ -45,7 +61,6 @@ class TrendCard extends StatelessWidget {
 }
 
 class _TrendBarChart extends StatelessWidget {
-
   const _TrendBarChart({required this.insights, required this.referenceDate});
   final List<AIInsight> insights;
   final DateTime referenceDate;
@@ -59,7 +74,9 @@ class _TrendBarChart extends StatelessWidget {
     final todayMidnight = DateTime(now.year, now.month, now.day);
 
     // Get Sunday of the reference week (anchor) in local time
-    final sunday = todayMidnight.subtract(Duration(days: todayMidnight.weekday % 7));
+    final sunday = todayMidnight.subtract(
+      Duration(days: todayMidnight.weekday % 7),
+    );
 
     // Map insights to days of this week
     final dayScores = <int, int>{};
@@ -99,23 +116,35 @@ class _TrendBarChart extends StatelessWidget {
                   duration: Duration(milliseconds: 600 + (index * 100)),
                   curve: Curves.easeOutQuart,
                   builder: (context, val, _) => Container(
+                    width: 8.0.w,
+                    height: 50.0.h,
+                    alignment: Alignment.bottomCenter,
+                    decoration: BoxDecoration(
+                      color: context.appColorScheme.border.withValues(
+                        alpha: 0.5,
+                      ),
+                      borderRadius: BorderRadius.circular(50.0.r),
+                    ),
+                    child: Container(
                       width: 8.0.w,
-                      height: 50.0.h,
-                      alignment: Alignment.bottomCenter,
-                      decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(50.0.r)),
-                      child: Container(
-                        width: 8.0.w,
-                        height: val.h,
-                        decoration: BoxDecoration(color: hasValue ? context.appColorScheme.textPrimary : Colors.transparent, borderRadius: BorderRadius.circular(50.0.r)),
+                      height: val.h,
+                      decoration: BoxDecoration(
+                        color: hasValue
+                            ? context.appColorScheme.textPrimary
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(50.0.r),
                       ),
                     ),
+                  ),
                 ),
                 Gap.h12,
                 Text(
                   dayName,
                   style: context.caption.copyWith(
                     fontSize: 10.0.sp,
-                    color: isToday ? context.appColorScheme.textPrimary : context.appColorScheme.textMuted,
+                    color: isToday
+                        ? context.appColorScheme.textPrimary
+                        : context.appColorScheme.textMuted,
                     fontWeight: isToday ? FontWeight.w900 : FontWeight.w600,
                   ),
                 ),
@@ -146,7 +175,9 @@ class _TrendDirectionTile extends StatelessWidget {
       title: '${isPositive ? '+' : '-'}${diff.abs()} ${AppStrings.pointsUnit}',
       subtitle: isPositive ? 'Improving' : 'Declining',
       icon: isPositive ? AppIcons.arrowUp : AppIcons.arrowDown,
-      color: isPositive ? context.appColorScheme.success : context.appColorScheme.error,
+      color: isPositive
+          ? context.appColorScheme.success
+          : context.appColorScheme.error,
     );
   }
 }

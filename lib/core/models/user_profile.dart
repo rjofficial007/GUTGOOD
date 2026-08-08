@@ -10,7 +10,6 @@ import 'package:gutgood/core/utils/model_utils.dart';
 /// It tracks personalization factors (goals, sensitivities, lifestyle) which
 /// drive the AI insight generation engine.
 class UserProfile extends Equatable {
-
   const UserProfile({
     required this.uid,
     this.onboarded = false,
@@ -28,34 +27,46 @@ class UserProfile extends Equatable {
     this.notificationPreferences = const {},
     this.gutScore = 0,
     this.streak = 0,
+    this.longestStreak = 0,
     this.lastActivityDate,
     this.subscriptionStatus = 'free',
     required this.updatedAt,
     required this.createdAt,
   });
 
-  factory UserProfile.fromMap(Map<String, dynamic> map, {String? uid}) => UserProfile(
-      uid: uid ?? map['uid'] ?? '',
-      onboarded: ModelUtils.parseBool(map['onboarded']),
-      isPremium: ModelUtils.parseBool(map['isPremium']),
-      isAnonymous: ModelUtils.parseBool(map['isAnonymous']),
-      displayName: map['displayName'],
-      email: map['email'],
-      photoUrl: map['photoUrl'],
-      authProvider: map['authProvider'],
-      goals: map['goals'] is String ? List<String>.from(jsonDecode(map['goals'])) : List<String>.from(map['goals'] ?? []),
-      sensitivities: map['sensitivities'] is String ? List<String>.from(jsonDecode(map['sensitivities'])) : List<String>.from(map['sensitivities'] ?? []),
-      lifestyle: map['lifestyle'] is String ? List<String>.from(jsonDecode(map['lifestyle'])) : List<String>.from(map['lifestyle'] ?? []),
-      cycleSyncEnabled: ModelUtils.parseBool(map['cycleSyncEnabled']),
-      cyclePhase: map['cyclePhase'],
-      notificationPreferences: map['notificationPreferences'] is String ? jsonDecode(map['notificationPreferences']) : Map<String, dynamic>.from(map['notificationPreferences'] ?? {}),
-      gutScore: map['gutScore'] ?? 0,
-      streak: map['streak'] ?? 0,
-      lastActivityDate: map['lastActivityDate'],
-      subscriptionStatus: map['subscriptionStatus'] ?? 'free',
-      updatedAt: DateTimeUtils.parse(map['updatedAt']),
-      createdAt: DateTimeUtils.parse(map['createdAt']),
-    );
+  factory UserProfile.fromMap(Map<String, dynamic> map, {String? uid}) =>
+      UserProfile(
+        uid: uid ?? map['uid'] ?? '',
+        onboarded: ModelUtils.parseBool(map['onboarded']),
+        isPremium: ModelUtils.parseBool(map['isPremium']),
+        isAnonymous: ModelUtils.parseBool(map['isAnonymous']),
+        displayName: map['displayName'],
+        email: map['email'],
+        photoUrl: map['photoUrl'],
+        authProvider: map['authProvider'],
+        goals: map['goals'] is String
+            ? List<String>.from(jsonDecode(map['goals']))
+            : List<String>.from(map['goals'] ?? []),
+        sensitivities: map['sensitivities'] is String
+            ? List<String>.from(jsonDecode(map['sensitivities']))
+            : List<String>.from(map['sensitivities'] ?? []),
+        lifestyle: map['lifestyle'] is String
+            ? List<String>.from(jsonDecode(map['lifestyle']))
+            : List<String>.from(map['lifestyle'] ?? []),
+        cycleSyncEnabled: ModelUtils.parseBool(map['cycleSyncEnabled']),
+        cyclePhase: map['cyclePhase'],
+        notificationPreferences: map['notificationPreferences'] is String
+            ? jsonDecode(map['notificationPreferences'])
+            : Map<String, dynamic>.from(map['notificationPreferences'] ?? {}),
+        gutScore: map['gutScore'] ?? 0,
+        streak: map['streak'] ?? 0,
+        longestStreak: map['longestStreak'] ?? 0,
+        lastActivityDate: map['lastActivityDate'],
+        subscriptionStatus: map['subscriptionStatus'] ?? 'free',
+        updatedAt: DateTimeUtils.parse(map['updatedAt']),
+        createdAt: DateTimeUtils.parse(map['createdAt']),
+      );
+
   /// Unique identifier from Firebase Auth.
   final String uid;
 
@@ -104,6 +115,9 @@ class UserProfile extends Equatable {
   /// Current daily check-in streak.
   final int streak;
 
+  /// All-time longest streak achieved by the user.
+  final int longestStreak;
+
   /// The last date (YYYY-MM-DD) the user was active.
   final String? lastActivityDate;
 
@@ -133,56 +147,90 @@ class UserProfile extends Equatable {
     Map<String, dynamic>? notificationPreferences,
     int? gutScore,
     int? streak,
+    int? longestStreak,
     String? lastActivityDate,
     String? subscriptionStatus,
     DateTime? updatedAt,
     DateTime? createdAt,
   }) => UserProfile(
-      uid: uid ?? this.uid,
-      onboarded: onboarded ?? this.onboarded,
-      isPremium: isPremium ?? this.isPremium,
-      isAnonymous: isAnonymous ?? this.isAnonymous,
-      displayName: displayName ?? this.displayName,
-      email: email ?? this.email,
-      photoUrl: photoUrl ?? this.photoUrl,
-      authProvider: authProvider ?? this.authProvider,
-      goals: goals ?? this.goals,
-      sensitivities: sensitivities ?? this.sensitivities,
-      lifestyle: lifestyle ?? this.lifestyle,
-      cycleSyncEnabled: cycleSyncEnabled ?? this.cycleSyncEnabled,
-      cyclePhase: cyclePhase ?? this.cyclePhase,
-      notificationPreferences: notificationPreferences ?? this.notificationPreferences,
-      gutScore: gutScore ?? this.gutScore,
-      streak: streak ?? this.streak,
-      lastActivityDate: lastActivityDate ?? this.lastActivityDate,
-      subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
-      updatedAt: updatedAt ?? this.updatedAt,
-      createdAt: createdAt ?? this.createdAt,
-    );
+    uid: uid ?? this.uid,
+    onboarded: onboarded ?? this.onboarded,
+    isPremium: isPremium ?? this.isPremium,
+    isAnonymous: isAnonymous ?? this.isAnonymous,
+    displayName: displayName ?? this.displayName,
+    email: email ?? this.email,
+    photoUrl: photoUrl ?? this.photoUrl,
+    authProvider: authProvider ?? this.authProvider,
+    goals: goals ?? this.goals,
+    sensitivities: sensitivities ?? this.sensitivities,
+    lifestyle: lifestyle ?? this.lifestyle,
+    cycleSyncEnabled: cycleSyncEnabled ?? this.cycleSyncEnabled,
+    cyclePhase: cyclePhase ?? this.cyclePhase,
+    notificationPreferences:
+        notificationPreferences ?? this.notificationPreferences,
+    gutScore: gutScore ?? this.gutScore,
+    streak: streak ?? this.streak,
+    longestStreak: longestStreak ?? this.longestStreak,
+    lastActivityDate: lastActivityDate ?? this.lastActivityDate,
+    subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+  );
 
   Map<String, dynamic> toMap() => {
-      'uid': uid,
-      'onboarded': onboarded,
-      'isPremium': isPremium,
-      'isAnonymous': isAnonymous,
-      'displayName': displayName,
-      'email': email,
-      'photoUrl': photoUrl,
-      'authProvider': authProvider,
-      'goals': goals,
-      'sensitivities': sensitivities,
-      'lifestyle': lifestyle,
-      'cycleSyncEnabled': cycleSyncEnabled,
-      'cyclePhase': cyclePhase,
-      'notificationPreferences': notificationPreferences,
-      'gutScore': gutScore,
-      'streak': streak,
-      'lastActivityDate': lastActivityDate,
-      'subscriptionStatus': subscriptionStatus,
-      'updatedAt': updatedAt.toIso8601String(),
-      'createdAt': createdAt.toIso8601String(),
-    };
+    'uid': uid,
+    'onboarded': onboarded,
+    'isPremium': isPremium,
+    'isAnonymous': isAnonymous,
+    'displayName': displayName,
+    'email': email,
+    'photoUrl': photoUrl,
+    'authProvider': authProvider,
+    'goals': goals,
+    'sensitivities': sensitivities,
+    'lifestyle': lifestyle,
+    'cycleSyncEnabled': cycleSyncEnabled,
+    'cyclePhase': cyclePhase,
+    'notificationPreferences': notificationPreferences,
+    'gutScore': gutScore,
+    'streak': streak,
+    'longestStreak': longestStreak,
+    'lastActivityDate': lastActivityDate,
+    'subscriptionStatus': subscriptionStatus,
+    'updatedAt': updatedAt.toIso8601String(),
+    'createdAt': createdAt.toIso8601String(),
+  };
+
+  /// Returns a map of fields that the client is allowed to update.
+  /// Excludes server-authoritative fields like streak, gutScore, and lastActivityDate
+  /// to prevent race-condition overwrites.
+  Map<String, dynamic> toUpdateMap() => {
+    'onboarded': onboarded,
+    'displayName': displayName,
+    'email': email,
+    'photoUrl': photoUrl,
+    'authProvider': authProvider,
+    'goals': goals,
+    'sensitivities': sensitivities,
+    'lifestyle': lifestyle,
+    'cycleSyncEnabled': cycleSyncEnabled,
+    'cyclePhase': cyclePhase,
+    'notificationPreferences': notificationPreferences,
+    'updatedAt': DateTime.now().toIso8601String(),
+  };
 
   @override
-  List<Object?> get props => [uid, onboarded, isPremium, isAnonymous, goals, sensitivities, lifestyle, gutScore, streak, lastActivityDate];
+  List<Object?> get props => [
+    uid,
+    onboarded,
+    isPremium,
+    isAnonymous,
+    goals,
+    sensitivities,
+    lifestyle,
+    gutScore,
+    streak,
+    longestStreak,
+    lastActivityDate,
+  ];
 }

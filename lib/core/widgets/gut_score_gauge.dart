@@ -6,65 +6,76 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class GutScoreGauge extends StatelessWidget {
-
   const GutScoreGauge({super.key, required this.score, this.size = 200});
   final int score;
   final double size;
 
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<int>(
-      tween: IntTween(begin: 0, end: score),
-      duration: const Duration(milliseconds: 1200),
-      curve: Curves.easeOutCubic,
-      builder: (context, animatedScore, _) => Semantics(
-          label: 'Gut Score',
-          value: score.toString(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: size,
-                height: size / 1.5,
-                child: CustomPaint(
-                  painter: _GaugePainter(
-                    score: animatedScore,
-                    trackColor: context.appColorScheme.border.withValues(alpha: 0.5),
-                    progressColor: context.appColorScheme.textPrimary,
-                  ),
-                  child: Stack(
-                    alignment: Alignment.bottomCenter,
-                    children: [
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '$animatedScore',
-                              style: context.h1.copyWith(fontSize: 48.0.sp, fontWeight: FontWeight.w900, height: 1),
-                            ),
-                            Text(
-                              'Gut Score',
-                              style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+    tween: IntTween(begin: 0, end: score),
+    duration: const Duration(milliseconds: 1200),
+    curve: Curves.easeOutCubic,
+    builder: (context, animatedScore, _) => Semantics(
+      label: 'Gut Score',
+      value: score.toString(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: size,
+            height: size / 1.5,
+            child: CustomPaint(
+              painter: _GaugePainter(
+                score: animatedScore,
+                trackColor: context.appColorScheme.border.withValues(
+                  alpha: 0.5,
                 ),
+                progressColor: context.appColorScheme.textPrimary,
               ),
-            ],
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$animatedScore',
+                          style: context.h1.copyWith(
+                            fontSize: 48.0.sp,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
+                        ),
+                        Text(
+                          'Gut Score',
+                          style: context.caption.copyWith(
+                            color: context.appColorScheme.textMuted,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-    );
+        ],
+      ),
+    ),
+  );
 }
 
 class _GaugePainter extends CustomPainter {
-
-  _GaugePainter({required this.score, required this.trackColor, required this.progressColor});
+  _GaugePainter({
+    required this.score,
+    required this.trackColor,
+    required this.progressColor,
+  });
   final int score;
   final Color trackColor;
   final Color progressColor;
@@ -92,8 +103,14 @@ class _GaugePainter extends CustomPainter {
       final innerRadius = radius - strokeWidth;
       final outerRadius = radius;
 
-      final p1 = Offset(center.dx + innerRadius * cos(angle), center.dy + innerRadius * sin(angle));
-      final p2 = Offset(center.dx + outerRadius * cos(angle), center.dy + outerRadius * sin(angle));
+      final p1 = Offset(
+        center.dx + innerRadius * cos(angle),
+        center.dy + innerRadius * sin(angle),
+      );
+      final p2 = Offset(
+        center.dx + outerRadius * cos(angle),
+        center.dy + outerRadius * sin(angle),
+      );
       canvas.drawLine(p1, p2, trackPaint);
     }
 
@@ -112,8 +129,14 @@ class _GaugePainter extends CustomPainter {
       final innerRadius = radius - strokeWidth - 4;
       final outerRadius = radius + 2;
 
-      final p1 = Offset(center.dx + innerRadius * cos(angle), center.dy + innerRadius * sin(angle));
-      final p2 = Offset(center.dx + outerRadius * cos(angle), center.dy + outerRadius * sin(angle));
+      final p1 = Offset(
+        center.dx + innerRadius * cos(angle),
+        center.dy + innerRadius * sin(angle),
+      );
+      final p2 = Offset(
+        center.dx + outerRadius * cos(angle),
+        center.dy + outerRadius * sin(angle),
+      );
       canvas.drawLine(p1, p2, progressPaint);
     }
 
@@ -124,7 +147,10 @@ class _GaugePainter extends CustomPainter {
 
     final needleAngle = startAngle + progressSweep;
     final needleRadius = radius + 15;
-    final needlePos = Offset(center.dx + needleRadius * cos(needleAngle), center.dy + needleRadius * sin(needleAngle));
+    final needlePos = Offset(
+      center.dx + needleRadius * cos(needleAngle),
+      center.dy + needleRadius * sin(needleAngle),
+    );
 
     canvas.drawCircle(needlePos, 4, needlePaint);
   }

@@ -9,8 +9,16 @@ import 'package:gutgood/core/utils/responsive.dart';
 /// A generic, pill-shaped action banner used for primary CTAs like Weekly Recaps or Nutrition Facts.
 /// Defaults to the vibrant "Lime" theme as requested in PRD Section 7.
 class GutActionBanner extends StatelessWidget {
-
-  const GutActionBanner({super.key, required this.title, required this.subtitle, required this.icon, required this.onTap, this.backgroundColor, this.iconColor, this.iconContainerColor});
+  const GutActionBanner({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+    this.backgroundColor,
+    this.iconColor,
+    this.iconContainerColor,
+  });
   final String title;
   final String subtitle;
   final IconData icon;
@@ -28,8 +36,11 @@ class GutActionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveBg = backgroundColor ?? context.appColorScheme.textPrimary;
-    final effectiveIconColor = iconColor ?? context.appColorScheme.cardBackground;
-    final effectiveIconContainer = iconContainerColor ?? context.appColorScheme.cardBackground.withValues(alpha: 0.1);
+    final effectiveIconColor =
+        iconColor ?? context.appColorScheme.cardBackground;
+    final effectiveIconContainer =
+        iconContainerColor ??
+        context.appColorScheme.cardBackground.withValues(alpha: 0.1);
 
     return GestureDetector(
       onTap: onTap,
@@ -39,14 +50,25 @@ class GutActionBanner extends StatelessWidget {
         decoration: BoxDecoration(
           color: effectiveBg,
           borderRadius: BorderRadius.circular(50.0.r),
-          border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-          boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.04), blurRadius: 24, offset: const Offset(0, 8))],
+          border: Border.all(
+            color: context.appColorScheme.border.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppPalette.black.withValues(alpha: 0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
               padding: EdgeInsets.all(12.0.w),
-              decoration: BoxDecoration(color: effectiveIconContainer, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: effectiveIconContainer,
+                shape: BoxShape.circle,
+              ),
               child: Icon(icon, color: effectiveIconColor, size: 18.0.w),
             ),
             Gap.w14,
@@ -56,13 +78,19 @@ class GutActionBanner extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: context.bodyBold.copyWith(fontSize: 14.0.sp, color: effectiveIconColor),
+                    style: context.bodyBold.copyWith(
+                      fontSize: 14.0.sp,
+                      color: effectiveIconColor,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     subtitle,
-                    style: context.caption.copyWith(color: effectiveIconColor.withValues(alpha: 0.7), fontWeight: FontWeight.w600),
+                    style: context.caption.copyWith(
+                      color: effectiveIconColor.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w600,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -73,8 +101,15 @@ class GutActionBanner extends StatelessWidget {
               onTap: onTap,
               child: Container(
                 padding: EdgeInsets.all(Responsive.w(15.0)),
-                decoration: BoxDecoration(color: effectiveIconColor, shape: BoxShape.circle),
-                child: Icon(AppIcons.chevronRight, size: 16.0.w, color: effectiveBg),
+                decoration: BoxDecoration(
+                  color: effectiveIconColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  AppIcons.chevronRight,
+                  size: 16.0.w,
+                  color: effectiveBg,
+                ),
               ),
             ),
           ],

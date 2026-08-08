@@ -7,8 +7,11 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:intl/intl.dart';
 
 class InsightHistoryTile extends StatelessWidget {
-
-  const InsightHistoryTile({super.key, required this.insight, required this.onTap});
+  const InsightHistoryTile({
+    super.key,
+    required this.insight,
+    required this.onTap,
+  });
   final AIInsight insight;
   final VoidCallback onTap;
 
@@ -25,7 +28,9 @@ class InsightHistoryTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appColorScheme.elevatedSurface,
           borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+          border: Border.all(
+            color: context.appColorScheme.border.withValues(alpha: 0.5),
+          ),
         ),
         child: Row(
           children: [
@@ -33,8 +38,15 @@ class InsightHistoryTile extends StatelessWidget {
             Container(
               width: AppSizes.w52,
               height: AppSizes.w52,
-              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(AppSizes.r12)),
-              child: Icon(_getIconForType(type), color: effectColor, size: AppSizes.icon24),
+              decoration: BoxDecoration(
+                color: context.appColorScheme.border.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(AppSizes.r12),
+              ),
+              child: Icon(
+                _getIconForType(type),
+                color: effectColor,
+                size: AppSizes.icon24,
+              ),
             ),
             Gap.w16,
             // 2. Info (Title, Type, Time)
@@ -51,7 +63,10 @@ class InsightHistoryTile extends StatelessWidget {
                   Gap.h4,
                   Text(
                     '${type.toUpperCase()} • ${DateFormat('h:mm a').format(insight.updatedAt)}',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold),
+                    style: context.caption.copyWith(
+                      color: context.appColorScheme.textMuted,
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -70,12 +85,17 @@ class InsightHistoryTile extends StatelessWidget {
                     value: insight.gutScore / 100,
                     strokeWidth: 5,
                     strokeCap: StrokeCap.round,
-                    backgroundColor: context.appColorScheme.border.withValues(alpha: 0.5),
+                    backgroundColor: context.appColorScheme.border.withValues(
+                      alpha: 0.5,
+                    ),
                     valueColor: AlwaysStoppedAnimation<Color>(effectColor),
                   ),
                   Text(
                     '${insight.gutScore}',
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s13, fontWeight: FontWeight.w900),
+                    style: context.bodyBold.copyWith(
+                      fontSize: AppSizes.s13,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ],
               ),

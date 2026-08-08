@@ -7,6 +7,32 @@
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { REGION } from './config';
+import { calculateStreakUpdate } from './usage';
+
+/**
+ * Shared helper to update user streak based on activity time.
+ */
+async function handleActivityStreak(uid: string, docTime: string) {
+  const db = admin.firestore();
+  const userRef = db.doc(`user_profiles/${uid}`);
+  const today = (docTime || '').slice(0, 10);
+  if (!today) return;
+
+  try {
+    await db.runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists) return;
+
+      const update = calculateStreakUpdate(userSnap.data(), today);
+      if (update) {
+        functions.logger.info(`Streak update for ${uid}: ${update.streak} (date: ${today})`);
+        tx.set(userRef, update, { merge: true });
+      }
+    });
+  } catch (e) {
+    functions.logger.error(`Failed to update streak for ${uid}`, e);
+  }
+}
 
 export const onScanCreated = functions
   .region(REGION)
@@ -16,6 +42,10 @@ export const onScanCreated = functions
     const scanData = snapshot.data();
     if (!scanData) return;
 
+    // 1. Update Streak
+    await handleActivityStreak(uid, scanData.time);
+
+    // 2. Process warnings (existing logic)
     const novaGroup = (scanData.novaGroup || '').toString();
     // Only proceed if the current scan is processed (3 or 4)
     if (novaGroup !== '3' && novaGroup !== '4') return;
@@ -109,6 +139,62 @@ export const onScanCreated = functions
           }
         }
       }
+    }
+  });
+
+/**
+ * onMealCreated: Update streak when a manual meal is logged.
+ */
+export const onMealCreated = functions
+  .region(REGION)
+  .firestore.document('user_profiles/{uid}/meal_logs/{docId}')
+  .onCreate(async (snapshot, context) => {
+    const { uid } = context.params;
+    const data = snapshot.data();
+    if (data) {
+      await handleActivityStreak(uid, data.time);
+    }
+  });
+
+/**
+ * onInsightCreated: Update the profile's aggregate gutScore when a new insight is generated.
+ */
+export const onInsightCreated = functions
+  .region(REGION)
+  .firestore.document('user_profiles/{uid}/insights/{docId}')
+  .onCreate(async (snapshot, context) => {
+    const { uid } = context.params;
+    const data = snapshot.data();
+    if (!data) return;
+
+    const gutScore = Math.round(Number(data.gutScore));
+    if (isNaN(gutScore)) return;
+
+    const db = admin.firestore();
+    const userRef = db.doc(`user_profiles/${uid}`);
+
+    try {
+      await userRef.update({
+        gutScore,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      functions.logger.info(`Updated gutScore for ${uid} to ${gutScore}`);
+    } catch (e) {
+      functions.logger.error(`Failed to update gutScore for ${uid}`, e);
+    }
+  });
+
+/**
+ * onSymptomCreated: Update streak when a manual symptom check-in is performed.
+ */
+export const onSymptomCreated = functions
+  .region(REGION)
+  .firestore.document('user_profiles/{uid}/symptom_logs/{docId}')
+  .onCreate(async (snapshot, context) => {
+    const { uid } = context.params;
+    const data = snapshot.data();
+    if (data) {
+      await handleActivityStreak(uid, data.time);
     }
   });
 

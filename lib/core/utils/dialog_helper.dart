@@ -19,25 +19,39 @@ class DialogHelper {
     String cancelLabel = AppStrings.cancel,
     bool isDestructive = false,
   }) => showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.appColorScheme.cardBackground,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.r24)),
-        title: Text(title, style: context.bodyBold.copyWith(fontSize: 18.0.sp)),
-        content: Text(message, style: context.body.copyWith(color: context.appColorScheme.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => context.pop(false),
-            child: Text(cancelLabel, style: context.bodyBold.copyWith(color: context.appColorScheme.textMuted)),
-          ),
-          TextButton(
-            onPressed: () => context.pop(true),
-            style: TextButton.styleFrom(foregroundColor: context.appColorScheme.textPrimary),
-            child: Text(confirmLabel, style: context.bodyBold),
-          ),
-        ],
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: context.appColorScheme.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.r24),
       ),
-    );
+      title: Text(title, style: context.bodyBold.copyWith(fontSize: 18.0.sp)),
+      content: Text(
+        message,
+        style: context.body.copyWith(
+          color: context.appColorScheme.textSecondary,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => context.pop(false),
+          child: Text(
+            cancelLabel,
+            style: context.bodyBold.copyWith(
+              color: context.appColorScheme.textMuted,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () => context.pop(true),
+          style: TextButton.styleFrom(
+            foregroundColor: context.appColorScheme.textPrimary,
+          ),
+          child: Text(confirmLabel, style: context.bodyBold),
+        ),
+      ],
+    ),
+  );
 
   static void showActionSheet({
     required BuildContext context,
@@ -51,7 +65,6 @@ class DialogHelper {
     String? secondaryActionLabel,
     VoidCallback? onSecondaryAction,
   }) {
-
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: title,
@@ -59,15 +72,24 @@ class DialogHelper {
         if (icon != null) ...[
           Container(
             padding: EdgeInsets.all(AppSizes.p16),
-            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
-            child: Icon(icon, color: context.appColorScheme.textPrimary, size: 28.0.w),
+            decoration: BoxDecoration(
+              color: context.appColorScheme.border.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: context.appColorScheme.textPrimary,
+              size: 28.0.w,
+            ),
           ),
           Gap.h24,
         ],
         Text(
           message,
           textAlign: TextAlign.center,
-          style: context.body.copyWith(color: context.appColorScheme.textSecondary),
+          style: context.body.copyWith(
+            color: context.appColorScheme.textSecondary,
+          ),
         ),
         Gap.h32,
         if (secondaryActionLabel != null) ...[
@@ -89,7 +111,12 @@ class DialogHelper {
           },
         ),
         Gap.h12,
-        if (secondaryActionLabel == null) GutButton(label: AppStrings.cancel, isOutlined: true, onTap: () => context.pop()),
+        if (secondaryActionLabel == null)
+          GutButton(
+            label: AppStrings.cancel,
+            isOutlined: true,
+            onTap: () => context.pop(),
+          ),
         Gap.h24,
       ],
     );

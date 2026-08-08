@@ -6,8 +6,11 @@ import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/features/profile/domain/repositories/profile_repository.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
-
-  ProfileRepositoryImpl({required FirebaseAuth auth, required AuthFirestoreService firestoreService}) : _auth = auth, _firestoreService = firestoreService;
+  ProfileRepositoryImpl({
+    required FirebaseAuth auth,
+    required AuthFirestoreService firestoreService,
+  }) : _auth = auth,
+       _firestoreService = firestoreService;
   final FirebaseAuth _auth;
   final AuthFirestoreService _firestoreService;
 
@@ -25,5 +28,6 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<String?> uploadProfilePicture(File file) async => _firestoreService.uploadProfilePicture(file);
+  Future<String?> uploadProfilePicture(File file) async =>
+      _firestoreService.uploadProfilePicture(file);
 }

@@ -3,7 +3,6 @@ import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class OffProduct extends Equatable {
-
   const OffProduct({
     required this.productName,
     this.brand,
@@ -30,29 +29,38 @@ class OffProduct extends Equatable {
   });
 
   factory OffProduct.fromMap(Map<String, dynamic> map) => OffProduct(
-      productName: map['productName'] ?? 'Unknown Product',
-      brand: map['brand'],
-      imageUrl: map['imageUrl'],
-      barcode: map['barcode'],
-      score: map['score'] as int?,
-      status: map['status'],
-      statusColor: map['statusColor'],
-      nutriscore: map['nutriscore'],
-      novaGroup: map['novaGroup'] as int?,
-      ecoscore: map['ecoscore'],
-      ingredientsText: map['ingredientsText'],
-      ingredients: ModelUtils.parseList<String>(map['ingredients']),
-      additivesCount: map['additivesCount'] as int?,
-      additives: ModelUtils.parseList<String>(map['additives']),
-      allergens: ModelUtils.parseList<String>(map['allergens']),
-      allergensText: map['allergensText'],
-      labels: ModelUtils.parseList<String>(map['labels']),
-      category: map['category'],
-      categoryTag: map['categoryTag'],
-      nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'], NutrientLevels.fromMap),
-      nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
-      impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
-    );
+    productName: map['productName'] ?? 'Unknown Product',
+    brand: map['brand'],
+    imageUrl: map['imageUrl'],
+    barcode: map['barcode'],
+    score: map['score'] as int?,
+    status: map['status'],
+    statusColor: map['statusColor'],
+    nutriscore: map['nutriscore'],
+    novaGroup: map['novaGroup'] as int?,
+    ecoscore: map['ecoscore'],
+    ingredientsText: map['ingredientsText'],
+    ingredients: ModelUtils.parseList<String>(map['ingredients']),
+    additivesCount: map['additivesCount'] as int?,
+    additives: ModelUtils.parseList<String>(map['additives']),
+    allergens: ModelUtils.parseList<String>(map['allergens']),
+    allergensText: map['allergensText'],
+    labels: ModelUtils.parseList<String>(map['labels']),
+    category: map['category'],
+    categoryTag: map['categoryTag'],
+    nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(
+      map['nutrientLevels'],
+      NutrientLevels.fromMap,
+    ),
+    nutrients: ModelUtils.parseNestedModel<NutrientData>(
+      map['nutrients'],
+      NutrientData.fromMap,
+    ),
+    impacts: ModelUtils.parseModelList<ImpactDetail>(
+      map['impacts'],
+      ImpactDetail.fromMap,
+    ),
+  );
   final String productName;
   final String? brand;
   final String? imageUrl;
@@ -77,29 +85,29 @@ class OffProduct extends Equatable {
   final List<ImpactDetail>? impacts;
 
   Map<String, dynamic> toMap() => {
-      'productName': productName,
-      'brand': brand,
-      'imageUrl': imageUrl,
-      'barcode': barcode,
-      'score': score,
-      'status': status,
-      'statusColor': statusColor,
-      'nutriscore': nutriscore,
-      'novaGroup': novaGroup,
-      'ecoscore': ecoscore,
-      'ingredientsText': ingredientsText,
-      'ingredients': ingredients,
-      'additivesCount': additivesCount,
-      'additives': additives,
-      'allergens': allergens,
-      'allergensText': allergensText,
-      'labels': labels,
-      'category': category,
-      'categoryTag': categoryTag,
-      'nutrientLevels': nutrientLevels?.toMap(),
-      'nutrients': nutrients?.toMap(),
-      'impacts': impacts?.map((e) => e.toMap()).toList(),
-    };
+    'productName': productName,
+    'brand': brand,
+    'imageUrl': imageUrl,
+    'barcode': barcode,
+    'score': score,
+    'status': status,
+    'statusColor': statusColor,
+    'nutriscore': nutriscore,
+    'novaGroup': novaGroup,
+    'ecoscore': ecoscore,
+    'ingredientsText': ingredientsText,
+    'ingredients': ingredients,
+    'additivesCount': additivesCount,
+    'additives': additives,
+    'allergens': allergens,
+    'allergensText': allergensText,
+    'labels': labels,
+    'category': category,
+    'categoryTag': categoryTag,
+    'nutrientLevels': nutrientLevels?.toMap(),
+    'nutrients': nutrients?.toMap(),
+    'impacts': impacts?.map((e) => e.toMap()).toList(),
+  };
 
   @override
   List<Object?> get props => [productName, barcode, score];

@@ -14,7 +14,6 @@ enum ChatErrorKind { none, connection, quota, upload }
 /// Messages can contain rich data including images, AI scan results,
 /// and product swaps. The [role] field identifies the sender (user vs. assistant).
 class ChatMessage extends Equatable {
-
   const ChatMessage({
     this.id,
     this.firestoreId,
@@ -45,7 +44,11 @@ class ChatMessage extends Equatable {
     // Multi-image field with legacy single-image fallback.
     final imageUrls = ModelUtils.parseList<String>(map['imageUrls']);
     final legacyImageUrl = map['imageUrl'] as String?;
-    final resolvedImageUrls = imageUrls.isNotEmpty ? imageUrls : (legacyImageUrl != null && legacyImageUrl.isNotEmpty ? [legacyImageUrl] : const <String>[]);
+    final resolvedImageUrls = imageUrls.isNotEmpty
+        ? imageUrls
+        : (legacyImageUrl != null && legacyImageUrl.isNotEmpty
+              ? [legacyImageUrl]
+              : const <String>[]);
 
     return ChatMessage(
       id: rawLocalId is int ? rawLocalId : null,
@@ -54,10 +57,18 @@ class ChatMessage extends Equatable {
       uid: map['uid'] as String?,
       role: map['role'] ?? 'user',
       text: map['text'] ?? '',
-      imageUrl: resolvedImageUrls.isNotEmpty ? resolvedImageUrls.first : legacyImageUrl,
+      imageUrl: resolvedImageUrls.isNotEmpty
+          ? resolvedImageUrls.first
+          : legacyImageUrl,
       imageUrls: resolvedImageUrls,
-      scanData: ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap),
-      swapData: ModelUtils.parseModelList<ProductSwap>(map['swapData'], ProductSwap.fromMap),
+      scanData: ModelUtils.parseNestedModel<ScanResult>(
+        map['scanData'],
+        ScanResult.fromMap,
+      ),
+      swapData: ModelUtils.parseModelList<ProductSwap>(
+        map['swapData'],
+        ProductSwap.fromMap,
+      ),
       isSwap: ModelUtils.parseBool(map['isSwap']),
       feedback: map['feedback'],
       source: map['source'],
@@ -66,6 +77,7 @@ class ChatMessage extends Equatable {
       time: DateTimeUtils.parse(map['time']),
     );
   }
+
   /// Local SQLite primary key (legacy, kept for backward compatibility).
   final int? id;
 
@@ -134,7 +146,10 @@ class ChatMessage extends Equatable {
   final DateTime time;
 
   /// Back-compat getter for single-image widgets.
-  Uint8List? get localImageBytes => (localImages != null && localImages!.isNotEmpty) ? localImages!.first : null;
+  Uint8List? get localImageBytes =>
+      (localImages != null && localImages!.isNotEmpty)
+      ? localImages!.first
+      : null;
 
   ChatMessage copyWith({
     int? id,
@@ -167,7 +182,9 @@ class ChatMessage extends Equatable {
       uid: uid ?? this.uid,
       role: role ?? this.role,
       text: text ?? this.text,
-      imageUrl: imageUrl ?? (nextImageUrls.isNotEmpty ? nextImageUrls.first : this.imageUrl),
+      imageUrl:
+          imageUrl ??
+          (nextImageUrls.isNotEmpty ? nextImageUrls.first : this.imageUrl),
       imageUrls: nextImageUrls,
       localImages: clearLocalImages ? null : (localImages ?? this.localImages),
       scanData: scanData ?? this.scanData,
@@ -185,31 +202,46 @@ class ChatMessage extends Equatable {
   }
 
   Map<String, dynamic> toMap() => {
-      'id': id,
-      'firestoreId': firestoreId,
-      'localId': localId,
-      'uid': uid,
-      'role': role,
-      'text': text,
-      'imageUrl': imageUrl,
-      'imageUrls': imageUrls,
-      'scanData': scanData?.toMap(),
-      'swapData': swapData?.map((e) => e.toMap()).toList(),
-      'isSwap': isSwap,
-      'feedback': feedback,
-      'source': source,
-      'foodMentions': foodMentions,
-      'symptomMentions': symptomMentions,
-      'time': time.toIso8601String(),
-    };
+    'id': id,
+    'firestoreId': firestoreId,
+    'localId': localId,
+    'uid': uid,
+    'role': role,
+    'text': text,
+    'imageUrl': imageUrl,
+    'imageUrls': imageUrls,
+    'scanData': scanData?.toMap(),
+    'swapData': swapData?.map((e) => e.toMap()).toList(),
+    'isSwap': isSwap,
+    'feedback': feedback,
+    'source': source,
+    'foodMentions': foodMentions,
+    'symptomMentions': symptomMentions,
+    'time': time.toIso8601String(),
+  };
 
   /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
   Map<String, dynamic> toAiMap() => {
-      'role': role,
-      'text': text,
-      if (scanData != null) 'scanData': scanData!.toAiMap(),
-    };
+    'role': role,
+    'text': text,
+    if (scanData != null) 'scanData': scanData!.toAiMap(),
+  };
 
   @override
-  List<Object?> get props => [id, firestoreId, localId, role, text, imageUrl, imageUrls, scanData, isSwap, feedback, isSending, sendFailed, errorKind, time];
+  List<Object?> get props => [
+    id,
+    firestoreId,
+    localId,
+    role,
+    text,
+    imageUrl,
+    imageUrls,
+    scanData,
+    isSwap,
+    feedback,
+    isSending,
+    sendFailed,
+    errorKind,
+    time,
+  ];
 }

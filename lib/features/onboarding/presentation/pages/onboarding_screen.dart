@@ -39,7 +39,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final Set<String> _selectedSensitivities = {};
   final Set<String> _selectedLifestyle = {};
   bool _cycleSyncEnabled = false;
-  String _selectedCyclePhase = AppStrings.notSpecified; // 🟢 PRD Alignment: Default to Not Specified
+  String _selectedCyclePhase = AppStrings.phaseLuteal; // 🟢 Default to Luteal Phase when enabled
 
   final List<SelectionOption> _goalOptions = AppConfigData.goalOptions;
   final List<SelectionOption> _sensitivityOptions = AppConfigData.sensitivityOptions;
@@ -47,6 +47,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<String> _cyclePhases = AppConfigData.cyclePhases;
 
   int get _totalPages => 5;
+
+  bool get _canContinue {
+    switch (_page) {
+      case 0:
+        return _selectedGoals.isNotEmpty;
+      case 1:
+        return _selectedSensitivities.isNotEmpty;
+      case 2:
+        return _selectedLifestyle.isNotEmpty;
+      default:
+        return true;
+    }
+  }
 
   @override
   void initState() {
@@ -101,7 +114,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       sensitivities: _selectedSensitivities.toList(),
       lifestyle: _selectedLifestyle.toList(),
       cycleSyncEnabled: _cycleSyncEnabled,
-      cyclePhase: _selectedCyclePhase,
+      cyclePhase: _cycleSyncEnabled ? _selectedCyclePhase : null,
     );
 
     await sl<NotificationService>().setupDefaultReminders();
@@ -128,83 +141,64 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            OnboardingHeader(
-              currentStep: _page,
-              totalSteps: _totalPages - 1,
-              onBack: _back,
-              onSkip: _next,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    body: SafeArea(
+      child: Column(
+        children: [
+          OnboardingHeader(
+            currentStep: _page,
+            totalSteps: _totalPages - 1,
+            onBack: _back,
+            onSkip: _page < _totalPages - 1 ? _next : null,
+            showSkip: _page < _totalPages - 1, // Show skip for all except AI Personalization
+          ),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              onPageChanged: (i) => setState(() => _page = i),
+              children: [
+                _OnboardingSelectionPage(
+                  title: AppStrings.onboardingGoalsTitle,
+                  subtitle: AppStrings.onboardingGoalsSubtitle,
+                  options: _goalOptions,
+                  selections: _selectedGoals,
+                  onToggle: (val) => setState(() => _selectedGoals.contains(val) ? _selectedGoals.remove(val) : _selectedGoals.add(val)),
+                ),
+                _OnboardingSelectionPage(
+                  title: AppStrings.onboardingSensitivitiesTitle,
+                  subtitle: AppStrings.onboardingSensitivitiesSubtitle,
+                  options: _sensitivityOptions,
+                  selections: _selectedSensitivities,
+                  onToggle: (val) => setState(() => _selectedSensitivities.contains(val) ? _selectedSensitivities.remove(val) : _selectedSensitivities.add(val)),
+                ),
+                _OnboardingSelectionPage(
+                  title: AppStrings.onboardingLifestyleTitle,
+                  subtitle: AppStrings.onboardingLifestyleSubtitle,
+                  options: _lifestyleOptions,
+                  selections: _selectedLifestyle,
+                  onToggle: (val) => setState(() => _selectedLifestyle.contains(val) ? _selectedLifestyle.remove(val) : _selectedLifestyle.add(val)),
+                ),
+                CycleSyncOnboardingPage(
+                  cycleSyncEnabled: _cycleSyncEnabled,
+                  selectedCyclePhase: _selectedCyclePhase,
+                  cyclePhases: _cyclePhases,
+                  onToggleEnabled: (val) => setState(() => _cycleSyncEnabled = val),
+                  onPhaseSelected: (val) => setState(() => _selectedCyclePhase = val),
+                ),
+                AIPersonalizationOnboardingPage(onFinish: _next),
+              ],
             ),
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (i) => setState(() => _page = i),
-                children: [
-                  _OnboardingSelectionPage(
-                    title: AppStrings.onboardingGoalsTitle,
-                    subtitle: AppStrings.onboardingGoalsSubtitle,
-                    options: _goalOptions,
-                    selections: _selectedGoals,
-                    onToggle: (val) => setState(() =>
-                        _selectedGoals.contains(val)
-                            ? _selectedGoals.remove(val)
-                            : _selectedGoals.add(val)),
-                  ),
-                  _OnboardingSelectionPage(
-                    title: AppStrings.onboardingSensitivitiesTitle,
-                    subtitle: AppStrings.onboardingSensitivitiesSubtitle,
-                    options: _sensitivityOptions,
-                    selections: _selectedSensitivities,
-                    onToggle: (val) => setState(() =>
-                        _selectedSensitivities.contains(val)
-                            ? _selectedSensitivities.remove(val)
-                            : _selectedSensitivities.add(val)),
-                  ),
-                  _OnboardingSelectionPage(
-                    title: AppStrings.onboardingLifestyleTitle,
-                    subtitle: AppStrings.onboardingLifestyleSubtitle,
-                    options: _lifestyleOptions,
-                    selections: _selectedLifestyle,
-                    onToggle: (val) => setState(() =>
-                        _selectedLifestyle.contains(val)
-                            ? _selectedLifestyle.remove(val)
-                            : _selectedLifestyle.add(val)),
-                  ),
-                  CycleSyncOnboardingPage(
-                    cycleSyncEnabled: _cycleSyncEnabled,
-                    selectedCyclePhase: _selectedCyclePhase,
-                    cyclePhases: _cyclePhases,
-                    onToggleEnabled: (val) => setState(() => _cycleSyncEnabled = val),
-                    onPhaseSelected: (val) => setState(() => _selectedCyclePhase = val),
-                  ),
-                  AIPersonalizationOnboardingPage(onFinish: _next),
-                ],
-              ),
-            ),
-            _OnboardingFooter(
-              page: _page,
-              totalPages: _totalPages,
-              onNext: _next,
-              isFinishing: _isFinishing,
-            ),
-          ],
-        ),
+          ),
+          _OnboardingFooter(page: _page, totalPages: _totalPages, onNext: _next, isFinishing: _isFinishing, canContinue: _canContinue),
+        ],
       ),
-    );
+    ),
+  );
 }
 
 class _OnboardingSelectionPage extends StatelessWidget {
-  const _OnboardingSelectionPage({
-    required this.title,
-    required this.subtitle,
-    required this.options,
-    required this.selections,
-    required this.onToggle,
-  });
+  const _OnboardingSelectionPage({required this.title, required this.subtitle, required this.options, required this.selections, required this.onToggle});
 
   final String title;
   final String subtitle;
@@ -214,59 +208,48 @@ class _OnboardingSelectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Gap.h16,
-          Text(title, style: AppTextStyles.displaySm)
-              .animate()
-              .fadeIn(duration: 400.ms)
-              .slideY(begin: 0.2, end: 0),
-          Gap.h10,
-          Text(subtitle,
-                  style: AppTextStyles.bodyLg.copyWith(color: context.appColorScheme.textSecondary))
-              .animate()
-              .fadeIn(delay: 100.ms, duration: 400.ms)
-              .slideY(begin: 0.2, end: 0),
-          Gap.h32,
-          Expanded(
-            child: SingleChildScrollView(
-              child: SelectionWrap(options: options, selectedValues: selections, onToggle: onToggle)
-                  .animate()
-                  .fadeIn(delay: 200.ms, duration: 500.ms),
-            ),
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Gap.h16,
+        Text(title, style: AppTextStyles.displaySm).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
+        Gap.h10,
+        Text(subtitle, style: AppTextStyles.bodyLg.copyWith(color: context.appColorScheme.textSecondary)).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.2, end: 0),
+        Gap.h32,
+        Expanded(
+          child: SingleChildScrollView(
+            child: SelectionWrap(options: options, selectedValues: selections, onToggle: onToggle).animate().fadeIn(delay: 200.ms, duration: 500.ms),
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
 }
 
 class _OnboardingFooter extends StatelessWidget {
-  const _OnboardingFooter({
-    required this.page,
-    required this.totalPages,
-    required this.onNext,
-    required this.isFinishing,
-  });
+  const _OnboardingFooter({required this.page, required this.totalPages, required this.onNext, required this.isFinishing, required this.canContinue});
 
   final int page;
   final int totalPages;
   final VoidCallback onNext;
   final bool isFinishing;
+  final bool canContinue;
 
   @override
   Widget build(BuildContext context) {
     if (page >= totalPages - 1 || page == 4) return const SizedBox.shrink();
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p36),
+      padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p24),
       child: isFinishing
           ? const Center(child: CircularProgressIndicator())
           : GutButton(
               label: AppStrings.continueButton,
               suffixIcon: AppIcons.arrowRight,
-              onTap: onNext,
+              onTap: canContinue ? onNext : null,
+              color: canContinue ? null : context.appColorScheme.border,
+              textColor: canContinue ? null : context.appColorScheme.textMuted,
             ),
     ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0);
   }

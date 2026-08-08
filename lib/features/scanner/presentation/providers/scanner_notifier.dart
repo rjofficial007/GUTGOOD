@@ -1,25 +1,22 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 
 class ScannerNotifier with ChangeNotifier {
-
-  ScannerNotifier({
-    required ScannerRepository repository,
-    required AuthFirestoreService authFirestoreService,
-    required OffService offService,
-    required StorageService storageService,
-  }) : _repository = repository,
-       _authFirestoreService = authFirestoreService,
-       _offService = offService,
-       _storageService = storageService;
+  ScannerNotifier({required ScannerRepository repository, required AuthFirestoreService authFirestoreService, required OffService offService, required StorageService storageService})
+    : _repository = repository,
+      _authFirestoreService = authFirestoreService,
+      _offService = offService,
+      _storageService = storageService;
   final ScannerRepository _repository;
   final AuthFirestoreService _authFirestoreService;
   final OffService _offService;
@@ -66,6 +63,10 @@ class ScannerNotifier with ChangeNotifier {
         await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl);
 
         _lastResult = finalResult;
+
+        // 🟢 Trigger streak celebration if one is pending (Scan finished)
+        sl<ProfileNotifier>().triggerPendingCelebration();
+
         return finalResult;
       } catch (e, st) {
         AppLogger.error('ScannerNotifier: AI analysis failed for known product ${product.productName}', error: e, stackTrace: st);
@@ -105,6 +106,10 @@ class ScannerNotifier with ChangeNotifier {
       await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl);
 
       _lastResult = finalResult;
+
+      // 🟢 Trigger streak celebration if one is pending (Scan finished)
+      sl<ProfileNotifier>().triggerPendingCelebration();
+
       return finalResult;
     } catch (e) {
       AppLogger.error('ScannerNotifier: Image processing failed', error: e);

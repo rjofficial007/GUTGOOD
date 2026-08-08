@@ -17,11 +17,15 @@ abstract class LinkService {
 }
 
 class LinkServiceImpl implements LinkService {
-  LinkServiceImpl({required AuthRepository authRepository, required SharedPreferences prefs, required FirebaseAuth firebaseAuth, required AppStateService appStateService})
-    : _authRepository = authRepository,
-      _prefs = prefs,
-      _firebaseAuth = firebaseAuth,
-      _appStateService = appStateService;
+  LinkServiceImpl({
+    required AuthRepository authRepository,
+    required SharedPreferences prefs,
+    required FirebaseAuth firebaseAuth,
+    required AppStateService appStateService,
+  }) : _authRepository = authRepository,
+       _prefs = prefs,
+       _firebaseAuth = firebaseAuth,
+       _appStateService = appStateService;
   final AuthRepository _authRepository;
   final SharedPreferences _prefs;
   final FirebaseAuth _firebaseAuth;
@@ -37,14 +41,20 @@ class LinkServiceImpl implements LinkService {
     try {
       final initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
-        AppLogger.info('LinkService: Found initial link on launch: $initialUri');
+        AppLogger.info(
+          'LinkService: Found initial link on launch: $initialUri',
+        );
         await _handleLink(initialUri);
       }
     } catch (e) {
       AppLogger.error('LinkService: Error getting initial link', error: e);
     }
 
-    _linkSubscription = _appLinks.uriLinkStream.listen(_handleLink, onError: (err) => AppLogger.error('LinkService: Stream error', error: err));
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      _handleLink,
+      onError: (err) =>
+          AppLogger.error('LinkService: Stream error', error: err),
+    );
 
     await _checkAppleCredentialState();
     await _checkPendingMerge();
@@ -56,15 +66,24 @@ class LinkServiceImpl implements LinkService {
     final currentUser = _firebaseAuth.currentUser;
 
     if (anonUid != null && currentUser != null && !currentUser.isAnonymous) {
-      AppLogger.info('LinkService: Found pending merge conflict for $anonUid. Re-surfacing prompt.');
-      _appStateService.setPendingMergeConflict({'anonymousUid': anonUid, 'permanentUid': currentUser.uid, 'email': currentUser.email ?? 'Unknown', 'attemptedProvider': provider ?? 'Unknown'});
+      AppLogger.info(
+        'LinkService: Found pending merge conflict for $anonUid. Re-surfacing prompt.',
+      );
+      _appStateService.setPendingMergeConflict({
+        'anonymousUid': anonUid,
+        'permanentUid': currentUser.uid,
+        'email': currentUser.email ?? 'Unknown',
+        'attemptedProvider': provider ?? 'Unknown',
+      });
     }
   }
 
   Future<void> _handleLink(Uri uri) async {
     final link = uri.toString();
     AppLogger.info('LinkService: Incoming link received: $link');
-    AppLogger.debug('LinkService: URI Details - Host: ${uri.host}, Path: ${uri.path}, Query: ${uri.queryParameters}');
+    AppLogger.debug(
+      'LinkService: URI Details - Host: ${uri.host}, Path: ${uri.path}, Query: ${uri.queryParameters}',
+    );
 
     var effectiveLink = link;
 
@@ -74,46 +93,65 @@ class LinkServiceImpl implements LinkService {
       final nestedLink = uri.queryParameters['link'];
       if (nestedLink != null) {
         if (_firebaseAuth.isSignInWithEmailLink(nestedLink)) {
-          AppLogger.info('LinkService: Successfully unwrapped nested auth link.');
+          AppLogger.info(
+            'LinkService: Successfully unwrapped nested auth link.',
+          );
           effectiveLink = nestedLink;
         } else {
-          AppLogger.debug('LinkService: Nested "link" parameter found but is NOT a valid email sign-in link.');
+          AppLogger.debug(
+            'LinkService: Nested "link" parameter found but is NOT a valid email sign-in link.',
+          );
         }
       }
     }
 
     if (_firebaseAuth.isSignInWithEmailLink(effectiveLink)) {
-      AppLogger.info('LinkService: Valid Email Sign-in Link detected. Proceeding with verification.');
+      AppLogger.info(
+        'LinkService: Valid Email Sign-in Link detected. Proceeding with verification.',
+      );
       _appStateService.setVerifyingAuth(true);
       final email = _prefs.getString('login_email');
 
       if (email != null) {
         AppLogger.info('LinkService: Attempting sign-in for email: $email');
         try {
-          final user = await _authRepository.signInWithEmailLink(email, effectiveLink);
+          final user = await _authRepository.signInWithEmailLink(
+            email,
+            effectiveLink,
+          );
           if (user != null) {
             AppLogger.info('LinkService: Sign-in successful for ${user.email}');
             await _prefs.remove('login_email');
           } else {
-            AppLogger.warning('LinkService: signInWithEmailLink returned null user.');
-            _appStateService.setEmailLinkError('Failed to complete sign-in. Link may be invalid or expired.');
+            AppLogger.warning(
+              'LinkService: signInWithEmailLink returned null user.',
+            );
+            _appStateService.setEmailLinkError(
+              'Failed to complete sign-in. Link may be invalid or expired.',
+            );
           }
         } catch (e) {
           AppLogger.error('LinkService: Sign-in process failed', error: e);
-          _appStateService.setEmailLinkError('An error occurred during sign-in. Please try again.');
+          _appStateService.setEmailLinkError(
+            'An error occurred during sign-in. Please try again.',
+          );
         } finally {
           await Future.delayed(const Duration(milliseconds: 1500));
           _appStateService.setVerifyingAuth(false);
         }
       } else {
-        AppLogger.warning('LinkService: No cached login_email found. Saving link for later.');
+        AppLogger.warning(
+          'LinkService: No cached login_email found. Saving link for later.',
+        );
         await Future.delayed(const Duration(milliseconds: 1000));
         _appStateService
           ..setVerifyingAuth(false)
           ..setPendingEmailLink(effectiveLink);
       }
     } else {
-      AppLogger.info('LinkService: Link is not a recognized Firebase Auth link.');
+      AppLogger.info(
+        'LinkService: Link is not a recognized Firebase Auth link.',
+      );
     }
   }
 
@@ -122,20 +160,27 @@ class LinkServiceImpl implements LinkService {
 
     final user = _firebaseAuth.currentUser;
     if (user == null) return;
-    final appleProviderData = user.providerData.where((p) => p.providerId == 'apple.com');
+    final appleProviderData = user.providerData.where(
+      (p) => p.providerId == 'apple.com',
+    );
     if (appleProviderData.isEmpty) return;
 
     final appleUid = appleProviderData.first.uid;
     if (appleUid == null) return;
 
     try {
-      final credentialState = await SignInWithApple.getCredentialState(appleUid);
+      final credentialState = await SignInWithApple.getCredentialState(
+        appleUid,
+      );
       if (credentialState == CredentialState.revoked) {
         AppLogger.warning('LinkService: Apple credential revoked externally.');
         await _authRepository.signOut();
       }
     } catch (e) {
-      AppLogger.error('LinkService: Apple credential check failed (Expected in some dev environments)', error: e);
+      AppLogger.error(
+        'LinkService: Apple credential check failed (Expected in some dev environments)',
+        error: e,
+      );
     }
   }
 

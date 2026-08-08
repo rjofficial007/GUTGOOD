@@ -13,11 +13,18 @@ import 'package:gutgood/features/scanner/data/repositories/scanner_repository_im
 import 'package:mocktail/mocktail.dart';
 
 class MockOffService extends Mock implements OffService {}
+
 class MockAiService extends Mock implements AiService {}
+
 class MockChatFirestoreService extends Mock implements ChatFirestoreService {}
-class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}
+
+class MockHistoryFirestoreService extends Mock
+    implements HistoryFirestoreService {}
+
 class MockNotificationService extends Mock implements NotificationService {}
+
 class MockAppStateService extends Mock implements AppStateService {}
+
 class MockAnalyticsService extends Mock implements AnalyticsService {}
 
 void main() {
@@ -31,19 +38,18 @@ void main() {
   late MockAnalyticsService mockAnalyticsService;
 
   setUpAll(() {
-    registerFallbackValue(const ScanResult(
-      productName: '',
-      brand: '',
-      score: 0,
-      impactType: ImpactType.neutral,
-      impact: '',
-    ));
-    registerFallbackValue(ChatMessage(
-      localId: '',
-      role: '',
-      text: '',
-      time: DateTime.now(),
-    ));
+    registerFallbackValue(
+      const ScanResult(
+        productName: '',
+        brand: '',
+        score: 0,
+        impactType: ImpactType.neutral,
+        impact: '',
+      ),
+    );
+    registerFallbackValue(
+      ChatMessage(localId: '', role: '', text: '', time: DateTime.now()),
+    );
   });
 
   setUp(() {
@@ -68,8 +74,14 @@ void main() {
 
   group('ScannerRepository', () {
     test('getProductByBarcode calls OffService', () async {
-      const product = OffProduct(barcode: '123', productName: 'Test', brand: 'Brand');
-      when(() => mockOffService.getProduct('123')).thenAnswer((_) async => product);
+      const product = OffProduct(
+        barcode: '123',
+        productName: 'Test',
+        brand: 'Brand',
+      );
+      when(
+        () => mockOffService.getProduct('123'),
+      ).thenAnswer((_) async => product);
 
       final result = await repository.getProductByBarcode('123');
 
@@ -86,16 +98,32 @@ void main() {
         impact: 'Good',
       );
 
-      when(() => mockChatFirestoreService.saveMessage(any())).thenAnswer((_) async => 'msg_id');
-      when(() => mockHistoryFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'))).thenAnswer((_) async => 'history_id');
+      when(
+        () => mockChatFirestoreService.saveMessage(any()),
+      ).thenAnswer((_) async => 'msg_id');
+      when(
+        () => mockHistoryFirestoreService.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+        ),
+      ).thenAnswer((_) async => 'history_id');
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
-      when(() => mockNotificationService.scheduleNoMealLoggedReminder()).thenAnswer((_) async {});
-      when(() => mockNotificationService.schedulePostMealCheckIn()).thenAnswer((_) async {});
+      when(
+        () => mockNotificationService.scheduleNoMealLoggedReminder(),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockNotificationService.schedulePostMealCheckIn(),
+      ).thenAnswer((_) async {});
 
       await repository.saveScanResult(result);
 
       verify(() => mockChatFirestoreService.saveMessage(any())).called(1);
-      verify(() => mockHistoryFirestoreService.saveToScanHistory(result, userImageUrl: any(named: 'userImageUrl'))).called(1);
+      verify(
+        () => mockHistoryFirestoreService.saveToScanHistory(
+          result,
+          userImageUrl: any(named: 'userImageUrl'),
+        ),
+      ).called(1);
       verify(() => mockAppStateService.notifyChatUpdated()).called(1);
     });
   });

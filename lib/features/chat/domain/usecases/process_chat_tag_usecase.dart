@@ -12,7 +12,6 @@ import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class ProcessChatTagResult {
-
   ProcessChatTagResult({required this.text, this.scanData, this.swapData, this.isSwap = false, this.foodMentions = const [], this.symptomMentions = const []});
   final String text;
   final ScanResult? scanData;
@@ -23,7 +22,6 @@ class ProcessChatTagResult {
 }
 
 class ProcessChatTagUseCase {
-
   ProcessChatTagUseCase({required HistoryFirestoreService firestoreService, required NotificationService notificationService, required AppStateService appStateService})
     : _firestoreService = firestoreService,
       _notificationService = notificationService,
@@ -66,8 +64,9 @@ class ProcessChatTagUseCase {
     // 1. SYMPTOM
     if (processedText.contains('[/SYMPTOM]')) {
       final regex = RegExp(r'\[SYMPTOM\](.*?)\[/SYMPTOM\]', dotAll: true);
-      final match = regex.firstMatch(processedText);
-      if (match != null) {
+      final matches = regex.allMatches(processedText);
+
+      for (final match in matches) {
         final rawBlock = match.group(0) ?? '';
         final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
 
@@ -80,6 +79,7 @@ class ProcessChatTagUseCase {
                 final log = SymptomLog.fromMap(decoded).copyWith(source: source ?? 'chat');
                 unawaited(_firestoreService.logSymptom(log));
                 _appStateService.notifyChatUpdated();
+                AppLogger.info('ProcessChatTagUseCase: [SYMPTOM] logged successfully: ${log.symptom}');
               }
 
               if (decoded['symptom'] != null) {
@@ -91,15 +91,16 @@ class ProcessChatTagUseCase {
             AppLogger.error('ProcessChatTagUseCase: Symptom parse failed', error: e);
           }
         }
-        processedText = processedText.replaceAll(regex, '').trim();
       }
+      processedText = processedText.replaceAll(regex, '').trim();
     }
 
     // 2. MEAL
     if (processedText.contains('[/MEAL]')) {
       final regex = RegExp(r'\[MEAL\](.*?)\[/MEAL\]', dotAll: true);
-      final match = regex.firstMatch(processedText);
-      if (match != null) {
+      final matches = regex.allMatches(processedText);
+
+      for (final match in matches) {
         final rawBlock = match.group(0) ?? '';
         final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
 
@@ -118,6 +119,10 @@ class ProcessChatTagUseCase {
                 unawaited(_notificationService.schedulePostMealCheckIn());
                 unawaited(_notificationService.scheduleNoMealLoggedReminder());
                 _appStateService.notifyChatUpdated();
+                AppLogger.info('ProcessChatTagUseCase: [MEAL] logged successfully: ${log.items.join(', ')}');
+
+                // 🟢 Mark that a meal was logged in this turn to avoid double-logging from [SCAN] tags
+                persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');
               }
               foodMentions.addAll(items);
               persistedTagBlocks?.add(rawBlock);
@@ -126,15 +131,16 @@ class ProcessChatTagUseCase {
             AppLogger.error('ProcessChatTagUseCase: Meal parse failed', error: e);
           }
         }
-        processedText = processedText.replaceAll(regex, '').trim();
       }
+      processedText = processedText.replaceAll(regex, '').trim();
     }
 
     // 3. SCAN
     if (processedText.contains('[/SCAN]')) {
       final regex = RegExp(r'\[SCAN\](.*?)\[/SCAN\]', dotAll: true);
-      final match = regex.firstMatch(processedText);
-      if (match != null) {
+      final matches = regex.allMatches(processedText);
+
+      for (final match in matches) {
         final rawBlock = match.group(0) ?? '';
         final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
 
@@ -153,13 +159,27 @@ class ProcessChatTagUseCase {
               }
             }
 
-            scanData = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl, flaggedIngredients: flagged);
+            final currentScan = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl, flaggedIngredients: flagged);
+
+            // The last scan found in the message will be shown in the UI bubble.
+            scanData = currentScan;
 
             if (!alreadyPersisted) {
-              AppLogger.info('ProcessChatTagUseCase: [SCAN] parsed successfully: ${scanData.productName}. Image: ${imageUrl != null}');
+              AppLogger.info('ProcessChatTagUseCase: [SCAN] parsed successfully: ${currentScan.productName}. Image: ${imageUrl != null}');
               if (persist) {
-                // 🟢 Fix: Ensure AI Vision scans from chat are also saved to scan_history
-                unawaited(_firestoreService.saveToScanHistory(scanData, userImageUrl: imageUrl));
+                unawaited(_firestoreService.saveToScanHistory(currentScan, userImageUrl: imageUrl));
+
+                // 🟢 Automatically log as a meal if it's a food image source OR if an image is present in the turn
+                final isFoodImage = source == 'food' || source == 'meal' || source == 'gallery' || imageUrl != null;
+                final alreadyLogged = persistedTagBlocks?.contains('__MEAL_LOGGED_IN_TURN__') ?? false;
+
+                if (isFoodImage && !alreadyLogged) {
+                  final mealLog = MealLog(items: [currentScan.productName], photoUrl: imageUrl ?? currentScan.imageUrl, time: DateTime.now(), source: source ?? 'chat');
+                  unawaited(_firestoreService.logMeal(mealLog));
+                  persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');
+                  AppLogger.info('ProcessChatTagUseCase: Food image automatically logged as a meal from [SCAN] tag (Image: ${imageUrl != null})');
+                }
+
                 unawaited(_notificationService.schedulePostMealCheckIn());
                 unawaited(_notificationService.scheduleNoMealLoggedReminder());
                 _appStateService.notifyChatUpdated();
@@ -171,8 +191,8 @@ class ProcessChatTagUseCase {
         } catch (e) {
           AppLogger.error('ProcessChatTagUseCase: SCAN parse failed', error: e);
         }
-        processedText = processedText.replaceAll(regex, '').replaceAll('```json', '').replaceAll('```', '').trim();
       }
+      processedText = processedText.replaceAll(regex, '').replaceAll('```json', '').replaceAll('```', '').trim();
     }
 
     // 4. SWAPS

@@ -107,7 +107,7 @@ class AuthRepositoryImpl implements AuthRepository {
         updatedAt: DateTime.now(),
         createdAt: DateTime.now(),
       );
-      await _firestoreService.updateUserProfile(profile);
+      await _firestoreService.saveUserProfile(profile);
 
       // 🟢 Fix: Explicitly set onboarded to false in SharedPreferences for new Guest.
       // This prevents the app from incorrectly jumping to Chat if a previous session left a stale flag.
@@ -441,7 +441,11 @@ class AuthRepositoryImpl implements AuthRepository {
       updatedAt: DateTime.now(),
     );
 
-    await _firestoreService.updateUserProfile(profile);
+    if (existingProfile == null) {
+      await _firestoreService.saveUserProfile(profile);
+    } else {
+      await _firestoreService.updateUserProfile(profile);
+    }
 
     // Persist onboarding status locally for fast-track checking on restart
     await _prefs.setBool('onboarded', profile.onboarded);
@@ -479,11 +483,17 @@ class AuthRepositoryImpl implements AuthRepository {
     await Future.delayed(const Duration(milliseconds: 200));
 
     try {
+      final isAnonymous = _firebaseAuth.currentUser?.isAnonymous ?? true;
       await _firestoreService.clearFcmToken();
       await _notificationService.cancelAll();
       await _firebaseAuth.signOut();
       await _googleSignIn.signOut();
-      await _purchaseService.logout();
+
+      // 🟢 Fix: RevenueCat throws if logOut() is called while the current user is anonymous.
+      if (!isAnonymous) {
+        await _purchaseService.logout();
+      }
+
       await _clearUserSessionData();
     } catch (e) {
       AppLogger.warning('AuthRepo: Sign out warning: $e');
@@ -504,13 +514,18 @@ class AuthRepositoryImpl implements AuthRepository {
     await Future.delayed(const Duration(milliseconds: 200));
 
     try {
+      final isAnonymous = user.isAnonymous;
       await _firestoreService.clearFcmToken();
       await _notificationService.cancelAll();
       // 🟢 Fix: Authoritative cleanup is handled by the Cloud Function trigger
       // (onUserDeleted). We only delete the Auth user from the client.
       await user.delete();
 
-      await _purchaseService.logout();
+      // 🟢 Fix: RevenueCat throws if logOut() is called while the current user is anonymous.
+      if (!isAnonymous) {
+        await _purchaseService.logout();
+      }
+
       await _clearUserSessionData();
     } finally {
       _appStateService.setLoggingOut(false);

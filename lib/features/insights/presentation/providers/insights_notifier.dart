@@ -12,7 +12,13 @@ import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
 
 class InsightsNotifier with ChangeNotifier {
-  InsightsNotifier(this._repository, this._firestoreService, this._appStateService, this._authRepository, this._analyticsService) {
+  InsightsNotifier(
+    this._repository,
+    this._firestoreService,
+    this._appStateService,
+    this._authRepository,
+    this._analyticsService,
+  ) {
     _initInsightStream();
     _appStateService.chatUpdated.addListener(_onDataUpdated);
     _appStateService.profileUpdated.addListener(_onDataUpdated);
@@ -67,6 +73,9 @@ class InsightsNotifier with ChangeNotifier {
     _insightSub = _firestoreService.getLatestInsightsStream().listen(
       (insight) {
         _latestInsight = insight;
+        if (_latestInsight != null) {
+          // AppLogger.data('LATEST_INSIGHT', _latestInsight!.toMap());
+        }
         _appStateService.setInsightsData(_latestInsight);
 
         if (_latestInsight == null && !_isGenerating) {
@@ -88,7 +97,11 @@ class InsightsNotifier with ChangeNotifier {
   Future<void> _fetchHistory() async {
     try {
       _insightHistory = await _repository.getInsightHistory();
-      await _analyticsService.logEvent(name: 'insight_history_viewed', parameters: {'count': _insightHistory.length});
+      // AppLogger.data('INSIGHT_HISTORY', _insightHistory.map((i) => i.toMap()).toList());
+      await _analyticsService.logEvent(
+        name: 'insight_history_viewed',
+        parameters: {'count': _insightHistory.length},
+      );
       notifyListeners();
     } catch (e) {
       AppLogger.error('InsightsNotifier: Failed to fetch history', error: e);
@@ -103,17 +116,25 @@ class InsightsNotifier with ChangeNotifier {
   bool get isGenerating => _isGenerating;
 
   Future<void> markAllAlertsAsRead() async {
-    final unreadIds = _healthAlerts.where((a) => !a.isRead).map((a) => a.id).toList();
+    final unreadIds = _healthAlerts
+        .where((a) => !a.isRead)
+        .map((a) => a.id)
+        .toList();
     if (unreadIds.isEmpty) return;
 
     // Optimistic UI update
-    _healthAlerts = _healthAlerts.map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a).toList();
+    _healthAlerts = _healthAlerts
+        .map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a)
+        .toList();
     notifyListeners();
 
     try {
       await _firestoreService.markAlertsAsRead(unreadIds);
     } catch (e) {
-      AppLogger.error('InsightsNotifier: Error marking alerts as read', error: e);
+      AppLogger.error(
+        'InsightsNotifier: Error marking alerts as read',
+        error: e,
+      );
     }
   }
 
@@ -133,7 +154,11 @@ class InsightsNotifier with ChangeNotifier {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(seconds: 5), () {
       generateNewInsight().catchError((e, st) {
-        AppLogger.error('InsightsNotifier: background generation failed', error: e, stackTrace: st);
+        AppLogger.error(
+          'InsightsNotifier: background generation failed',
+          error: e,
+          stackTrace: st,
+        );
       });
     });
   }

@@ -28,7 +28,7 @@ service cloud.firestore {
       let data = request.resource.data;
       return isValidPremiumFields()
         && data.get('onboarded', false) is bool
-        && data.get('gutScore', 0) is int
+        && data.get('gutScore', 0) is number
         && data.get('gutScore', 0) >= 0
         && data.get('gutScore', 0) <= 100;
     }
@@ -55,6 +55,9 @@ service cloud.firestore {
 
       allow update: if isOwner(userId)
         && isValidUserProfile()
+        && (request.resource.data.get('streak', 0) == resource.data.get('streak', 0))
+        && (request.resource.data.get('gutScore', 0) == resource.data.get('gutScore', 0))
+        && (request.resource.data.get('lastActivityDate', '') == resource.data.get('lastActivityDate', ''))
         && request.resource.size() < 256 * 1024;
 
       allow delete: if isOwner(userId);

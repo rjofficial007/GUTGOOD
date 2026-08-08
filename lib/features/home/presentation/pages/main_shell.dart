@@ -10,7 +10,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 class MainShell extends StatelessWidget {
-
   const MainShell({super.key, required this.navigationShell});
   final StatefulNavigationShell navigationShell;
 
@@ -25,25 +24,53 @@ class MainShell extends StatelessWidget {
           navigationShell,
           if (profileNotifier.showStreakCelebration)
             Positioned.fill(
-              child: StreakCelebrationOverlay(streak: profileNotifier.profile?.streak ?? 0, onDismiss: profileNotifier.dismissStreakCelebration),
+              child: StreakCelebrationOverlay(
+                streak: profileNotifier.profile?.streak ?? 0,
+                onDismiss: profileNotifier.dismissStreakCelebration,
+              ),
             ),
         ],
       ),
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           color: context.appColorScheme.cardBackground,
-          border: Border(top: BorderSide(color: context.appColorScheme.border, width: 0.5)),
+          border: Border(
+            top: BorderSide(color: context.appColorScheme.border, width: 0.5),
+          ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p4),
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSizes.p8,
+              vertical: AppSizes.p4,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _TabItem(icon: LucideIcons.messageCircle, label: AppStrings.chat, active: navigationShell.currentIndex == 0, onTap: () => navigationShell.goBranch(0)),
-                _TabItem(icon: LucideIcons.barChart, label: AppStrings.insightsTab, active: navigationShell.currentIndex == 1, onTap: () => navigationShell.goBranch(1)),
-                _TabItem(icon: LucideIcons.history, label: AppStrings.history, active: navigationShell.currentIndex == 2, onTap: () => navigationShell.goBranch(2)),
-                _TabItem(icon: LucideIcons.user, label: AppStrings.profileTab, active: navigationShell.currentIndex == 3, onTap: () => navigationShell.goBranch(3)),
+                _TabItem(
+                  icon: LucideIcons.messageCircle,
+                  label: AppStrings.chat,
+                  active: navigationShell.currentIndex == 0,
+                  onTap: () => navigationShell.goBranch(0),
+                ),
+                _TabItem(
+                  icon: LucideIcons.barChart,
+                  label: AppStrings.insightsTab,
+                  active: navigationShell.currentIndex == 1,
+                  onTap: () => navigationShell.goBranch(1),
+                ),
+                _TabItem(
+                  icon: LucideIcons.history,
+                  label: AppStrings.history,
+                  active: navigationShell.currentIndex == 2,
+                  onTap: () => navigationShell.goBranch(2),
+                ),
+                _TabItem(
+                  icon: LucideIcons.user,
+                  label: AppStrings.profileTab,
+                  active: navigationShell.currentIndex == 3,
+                  onTap: () => navigationShell.goBranch(3),
+                ),
               ],
             ),
           ),
@@ -54,7 +81,12 @@ class MainShell extends StatelessWidget {
 }
 
 class _TabItem extends StatelessWidget {
-  const _TabItem({required this.icon, required this.label, required this.active, required this.onTap});
+  const _TabItem({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
   final IconData icon;
   final String label;
   final bool active;
@@ -62,26 +94,34 @@ class _TabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSizes.p8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: active ? Theme.of(context).colorScheme.primary : context.appColorScheme.textMuted, size: AppSizes.icon24),
-              Gap.h4,
-              Text(
-                label,
-                style: context.caption.copyWith(
-                  color: active ? Theme.of(context).colorScheme.primary : context.appColorScheme.textMuted,
-                  fontSize: AppSizes.s10,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                ),
+    child: InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSizes.p8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: active
+                  ? Theme.of(context).colorScheme.primary
+                  : context.appColorScheme.textMuted,
+              size: AppSizes.icon24,
+            ),
+            Gap.h4,
+            Text(
+              label,
+              style: context.caption.copyWith(
+                color: active
+                    ? Theme.of(context).colorScheme.primary
+                    : context.appColorScheme.textMuted,
+                fontSize: AppSizes.s10,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
+    ),
+  );
 }

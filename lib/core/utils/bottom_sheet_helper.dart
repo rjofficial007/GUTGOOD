@@ -21,18 +21,18 @@ class BottomSheetHelper {
     bool isScrollControlled = true,
     Color? backgroundColor,
   }) => showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: isScrollControlled,
-      backgroundColor: backgroundColor ?? Colors.transparent,
-      builder: (context) => GutSheetWrapper(
-        footer: footer,
-        padding: padding,
-        children: [
-          GutSheetHeader(title: title),
-          ...children,
-        ],
-      ),
-    );
+    context: context,
+    isScrollControlled: isScrollControlled,
+    backgroundColor: backgroundColor ?? Colors.transparent,
+    builder: (context) => GutSheetWrapper(
+      footer: footer,
+      padding: padding,
+      children: [
+        GutSheetHeader(title: title),
+        ...children,
+      ],
+    ),
+  );
 
   static Future<TimeOfDay?> showTimePickerSheet({
     required BuildContext context,
@@ -60,9 +60,18 @@ class BottomSheetHelper {
             ),
             child: CupertinoDatePicker(
               mode: CupertinoDatePickerMode.time,
-              initialDateTime: DateTime(2026, 1, 1, initialTime.hour, initialTime.minute),
+              initialDateTime: DateTime(
+                2026,
+                1,
+                1,
+                initialTime.hour,
+                initialTime.minute,
+              ),
               onDateTimeChanged: (DateTime newDateTime) {
-                selectedTime = TimeOfDay(hour: newDateTime.hour, minute: newDateTime.minute);
+                selectedTime = TimeOfDay(
+                  hour: newDateTime.hour,
+                  minute: newDateTime.minute,
+                );
               },
             ),
           ),
@@ -92,7 +101,9 @@ class BottomSheetHelper {
     await showModalBottomSheet(
       context: context,
       backgroundColor: context.appColorScheme.cardBackground,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       builder: (context) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -103,14 +114,24 @@ class BottomSheetHelper {
               children: [
                 Container(
                   padding: EdgeInsets.all(Responsive.w(16.0)),
-                  decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
-                  child: Icon(AppIcons.info, color: context.appColorScheme.textPrimary, size: 32.0.w),
+                  decoration: BoxDecoration(
+                    color: context.appColorScheme.border.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    AppIcons.info,
+                    color: context.appColorScheme.textPrimary,
+                    size: 32.0.w,
+                  ),
                 ),
                 Gap.h24,
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
+                  style: context.body.copyWith(
+                    color: context.appColorScheme.textSecondary,
+                    height: 1.5,
+                  ),
                 ),
                 Gap.h40,
               ],
@@ -119,15 +140,26 @@ class BottomSheetHelper {
           Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(vertical: 16.0.h),
-            decoration: BoxDecoration(color: context.appColorScheme.textPrimary),
+            decoration: BoxDecoration(
+              color: context.appColorScheme.textPrimary,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(AppIcons.sparkles, size: 14, color: context.appColorScheme.cardBackground),
+                Icon(
+                  AppIcons.sparkles,
+                  size: 14,
+                  color: context.appColorScheme.cardBackground,
+                ),
                 Gap.w8,
                 Text(
                   headerLabel ?? AppStrings.gutgoodHealthIntelligence,
-                  style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 10.0.sp, letterSpacing: 1.2),
+                  style: context.caption.copyWith(
+                    color: context.appColorScheme.cardBackground,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10.0.sp,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ],
             ),
@@ -148,14 +180,26 @@ class BottomSheetHelper {
       children: [
         Container(
           padding: EdgeInsets.all(Responsive.w(16.0)),
-          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
-          child: Icon(AppIcons.alertTriangle, color: context.appColorScheme.textPrimary, size: 32.0.w),
+          decoration: BoxDecoration(
+            color: context.appColorScheme.border.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            AppIcons.alertTriangle,
+            color: context.appColorScheme.textPrimary,
+            size: 32.0.w,
+          ),
         ),
         Gap.h20,
         Text(
-          isAnonymous ? AppStrings.logoutGuestWarning : AppStrings.logoutConfirmMessage,
+          isAnonymous
+              ? AppStrings.logoutGuestWarning
+              : AppStrings.logoutConfirmMessage,
           textAlign: TextAlign.center,
-          style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
+          style: context.body.copyWith(
+            color: context.appColorScheme.textSecondary,
+            height: 1.5,
+          ),
         ),
         Gap.h32,
         GutButton(
@@ -186,14 +230,24 @@ class BottomSheetHelper {
       children: [
         Container(
           padding: EdgeInsets.all(Responsive.w(16.0)),
-          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
-          child: Icon(AppIcons.trash2, color: context.appColorScheme.textPrimary, size: 32.0.w),
+          decoration: BoxDecoration(
+            color: context.appColorScheme.border.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            AppIcons.trash2,
+            color: context.appColorScheme.textPrimary,
+            size: 32.0.w,
+          ),
         ),
         Gap.h20,
         Text(
           AppStrings.deleteAccountConfirm,
           textAlign: TextAlign.center,
-          style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
+          style: context.body.copyWith(
+            color: context.appColorScheme.textSecondary,
+            height: 1.5,
+          ),
         ),
         Gap.h32,
         GutButton(
@@ -221,7 +275,10 @@ class BottomSheetHelper {
       children: [
         Text(
           AppStrings.medicalDisclaimerContent,
-          style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
+          style: context.body.copyWith(
+            color: context.appColorScheme.textSecondary,
+            height: 1.5,
+          ),
         ),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),

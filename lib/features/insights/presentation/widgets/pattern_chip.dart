@@ -8,21 +8,23 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class ModernPatternCard extends StatelessWidget {
-
   const ModernPatternCard({super.key, required this.pattern});
   final DetectedPattern pattern;
 
   @override
   Widget build(BuildContext context) {
     final mainColor = context.appColorScheme.textPrimary;
-    
+
     return Container(
       height: 140.0.h,
       padding: EdgeInsets.all(AppSizes.p16),
       decoration: BoxDecoration(
         color: context.appColorScheme.elevatedSurface,
         borderRadius: BorderRadius.circular(AppSizes.r28),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5), width: 1.5),
+        border: Border.all(
+          color: context.appColorScheme.border.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: AppPalette.black.withValues(alpha: 0.02),

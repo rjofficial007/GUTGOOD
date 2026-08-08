@@ -11,25 +11,32 @@ class PremiumBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: 'Premium User',
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
-          decoration: BoxDecoration(
-            color: context.appColorScheme.cardBackground,
-            border: Border.all(color: context.appColorScheme.border),
-            borderRadius: BorderRadius.circular(20.0.r),
+    label: 'Premium User',
+    child: Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
+      decoration: BoxDecoration(
+        color: context.appColorScheme.cardBackground,
+        border: Border.all(color: context.appColorScheme.border),
+        borderRadius: BorderRadius.circular(20.0.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            AppIcons.sparkles,
+            color: context.appColorScheme.textPrimary,
+            size: 12.0.w,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: 12.0.w),
-              Gap.w4,
-              Text(
-                AppStrings.premium,
-                style: AppTextStyles.overline.copyWith(color: context.appColorScheme.textPrimary, fontSize: 10.0.sp),
-              ),
-            ],
+          Gap.w4,
+          Text(
+            AppStrings.premium,
+            style: AppTextStyles.overline.copyWith(
+              color: context.appColorScheme.textPrimary,
+              fontSize: 10.0.sp,
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }

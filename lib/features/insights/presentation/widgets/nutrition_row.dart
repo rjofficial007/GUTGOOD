@@ -4,8 +4,13 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 
 class NutritionRow extends StatelessWidget {
-
-  const NutritionRow({super.key, required this.label, required this.weight, this.isBold = false, this.indent = false});
+  const NutritionRow({
+    super.key,
+    required this.label,
+    required this.weight,
+    this.isBold = false,
+    this.indent = false,
+  });
   final String label;
   final String weight;
   final bool isBold;
@@ -13,17 +18,27 @@ class NutritionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      padding: EdgeInsets.symmetric(vertical: AppSizes.p8),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: context.appColorScheme.border)),
-      ),
-      child: Row(
-        children: [
-          if (indent) Gap.w16,
-          Text(label, style: context.bodySm.copyWith(fontWeight: isBold ? FontWeight.w800 : FontWeight.w500)),
-          const Spacer(),
-          Text(weight, style: context.bodySm.copyWith(fontWeight: isBold ? FontWeight.w800 : FontWeight.w500)),
-        ],
-      ),
-    );
+    padding: EdgeInsets.symmetric(vertical: AppSizes.p8),
+    decoration: BoxDecoration(
+      border: Border(bottom: BorderSide(color: context.appColorScheme.border)),
+    ),
+    child: Row(
+      children: [
+        if (indent) Gap.w16,
+        Text(
+          label,
+          style: context.bodySm.copyWith(
+            fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          weight,
+          style: context.bodySm.copyWith(
+            fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
+          ),
+        ),
+      ],
+    ),
+  );
 }

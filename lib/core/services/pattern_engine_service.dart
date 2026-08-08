@@ -13,8 +13,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
   PatternEngineServiceImpl({
     required HistoryFirestoreService historyFirestoreService,
     required InsightFirestoreService insightFirestoreService,
-  })  : _historyFirestoreService = historyFirestoreService,
-        _insightFirestoreService = insightFirestoreService;
+  }) : _historyFirestoreService = historyFirestoreService,
+       _insightFirestoreService = insightFirestoreService;
 
   final HistoryFirestoreService _historyFirestoreService;
   final InsightFirestoreService _insightFirestoreService;
@@ -24,10 +24,14 @@ class PatternEngineServiceImpl implements PatternEngineService {
     AppLogger.info('PatternEngine: Starting analysis...');
 
     final meals = await _historyFirestoreService.getRecentMealLogs(limit: 100);
-    final symptoms = await _historyFirestoreService.getRecentSymptomLogs(limit: 100);
+    final symptoms = await _historyFirestoreService.getRecentSymptomLogs(
+      limit: 100,
+    );
 
     if (meals.isEmpty || symptoms.isEmpty) {
-      AppLogger.debug('PatternEngine: Insufficient data for correlation. (Meals: ${meals.length}, Symptoms: ${symptoms.length}). Need at least one of each.');
+      AppLogger.debug(
+        'PatternEngine: Insufficient data for correlation. (Meals: ${meals.length}, Symptoms: ${symptoms.length}). Need at least one of each.',
+      );
       return;
     }
 
@@ -45,12 +49,17 @@ class PatternEngineServiceImpl implements PatternEngineService {
     }
   }
 
-  List<BodyPattern> _detectFoodSymptomPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
+  List<BodyPattern> _detectFoodSymptomPatterns(
+    List<MealLog> meals,
+    List<SymptomLog> symptoms,
+  ) {
     final foodToSymptoms = <String, List<String>>{};
 
     for (final symptom in symptoms) {
       final windowStart = symptom.time.subtract(const Duration(hours: 4));
-      final relevantMeals = meals.where((m) => m.time.isAfter(windowStart) && m.time.isBefore(symptom.time));
+      final relevantMeals = meals.where(
+        (m) => m.time.isAfter(windowStart) && m.time.isBefore(symptom.time),
+      );
 
       for (final meal in relevantMeals) {
         for (final food in meal.items) {
@@ -87,8 +96,22 @@ class PatternEngineServiceImpl implements PatternEngineService {
     return patterns;
   }
 
-  List<BodyPattern> _detectProteinEnergyPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
-    final proteinKeywords = ['chicken', 'beef', 'eggs', 'tofu', 'protein', 'steak', 'fish', 'salmon', 'turkey', 'yogurt'];
+  List<BodyPattern> _detectProteinEnergyPatterns(
+    List<MealLog> meals,
+    List<SymptomLog> symptoms,
+  ) {
+    final proteinKeywords = [
+      'chicken',
+      'beef',
+      'eggs',
+      'tofu',
+      'protein',
+      'steak',
+      'fish',
+      'salmon',
+      'turkey',
+      'yogurt',
+    ];
     var matchCount = 0;
 
     for (final symptom in symptoms) {
@@ -96,7 +119,15 @@ class PatternEngineServiceImpl implements PatternEngineService {
         final windowStart = symptom.time.subtract(const Duration(hours: 6));
         final windowEnd = symptom.time.subtract(const Duration(hours: 2));
 
-        final hasProtein = meals.any((m) => m.time.isAfter(windowStart) && m.time.isBefore(windowEnd) && m.items.any((item) => proteinKeywords.any((k) => item.toLowerCase().contains(k))));
+        final hasProtein = meals.any(
+          (m) =>
+              m.time.isAfter(windowStart) &&
+              m.time.isBefore(windowEnd) &&
+              m.items.any(
+                (item) =>
+                    proteinKeywords.any((k) => item.toLowerCase().contains(k)),
+              ),
+        );
 
         if (hasProtein) matchCount++;
       }
@@ -110,7 +141,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
           reaction: 'High Energy',
           frequency: matchCount,
           confidence: matchCount >= 3 ? 'High' : 'Moderate',
-          description: 'Protein-rich meals are linked to sustained energy levels for you.',
+          description:
+              'Protein-rich meals are linked to sustained energy levels for you.',
           updatedAt: DateTime.now().toIso8601String(),
         ),
       ];
@@ -118,15 +150,36 @@ class PatternEngineServiceImpl implements PatternEngineService {
     return [];
   }
 
-  List<BodyPattern> _detectSugarCrashPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
-    final sugarKeywords = ['sugar', 'soda', 'candy', 'cake', 'dessert', 'cookie', 'juice', 'syrup', 'chocolate'];
+  List<BodyPattern> _detectSugarCrashPatterns(
+    List<MealLog> meals,
+    List<SymptomLog> symptoms,
+  ) {
+    final sugarKeywords = [
+      'sugar',
+      'soda',
+      'candy',
+      'cake',
+      'dessert',
+      'cookie',
+      'juice',
+      'syrup',
+      'chocolate',
+    ];
     var matchCount = 0;
 
     for (final symptom in symptoms) {
       if ((symptom.energyLevel ?? 10) <= 3) {
         final windowStart = symptom.time.subtract(const Duration(hours: 3));
 
-        final hasSugar = meals.any((m) => m.time.isAfter(windowStart) && m.time.isBefore(symptom.time) && m.items.any((item) => sugarKeywords.any((k) => item.toLowerCase().contains(k))));
+        final hasSugar = meals.any(
+          (m) =>
+              m.time.isAfter(windowStart) &&
+              m.time.isBefore(symptom.time) &&
+              m.items.any(
+                (item) =>
+                    sugarKeywords.any((k) => item.toLowerCase().contains(k)),
+              ),
+        );
 
         if (hasSugar) matchCount++;
       }
@@ -140,7 +193,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
           reaction: 'Energy Crash',
           frequency: matchCount,
           confidence: matchCount >= 3 ? 'High' : 'Moderate',
-          description: 'Your logs show a pattern of energy crashes after high sugar intake.',
+          description:
+              'Your logs show a pattern of energy crashes after high sugar intake.',
           updatedAt: DateTime.now().toIso8601String(),
         ),
       ];
@@ -148,17 +202,39 @@ class PatternEngineServiceImpl implements PatternEngineService {
     return [];
   }
 
-  List<BodyPattern> _detectCaffeineSleepPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
-    final caffeineKeywords = ['coffee', 'espresso', 'caffeine', 'energy drink', 'latte', 'cappuccino', 'black tea'];
+  List<BodyPattern> _detectCaffeineSleepPatterns(
+    List<MealLog> meals,
+    List<SymptomLog> symptoms,
+  ) {
+    final caffeineKeywords = [
+      'coffee',
+      'espresso',
+      'caffeine',
+      'energy drink',
+      'latte',
+      'cappuccino',
+      'black tea',
+    ];
     var matchCount = 0;
 
     for (final symptom in symptoms) {
       final sleep = symptom.sleep?.toLowerCase() ?? '';
       if (sleep == 'poor' || sleep == 'interrupted') {
-        final startOfPreviousDay = DateTime(symptom.time.year, symptom.time.month, symptom.time.day).subtract(const Duration(days: 1));
+        final startOfPreviousDay = DateTime(
+          symptom.time.year,
+          symptom.time.month,
+          symptom.time.day,
+        ).subtract(const Duration(days: 1));
 
         final hasLateCaffeine = meals.any(
-          (m) => m.time.isAfter(startOfPreviousDay) && m.time.isBefore(symptom.time) && m.time.hour >= 14 && m.items.any((item) => caffeineKeywords.any((k) => item.toLowerCase().contains(k))),
+          (m) =>
+              m.time.isAfter(startOfPreviousDay) &&
+              m.time.isBefore(symptom.time) &&
+              m.time.hour >= 14 &&
+              m.items.any(
+                (item) =>
+                    caffeineKeywords.any((k) => item.toLowerCase().contains(k)),
+              ),
         );
 
         if (hasLateCaffeine) matchCount++;
@@ -173,7 +249,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
           reaction: 'Poor Sleep',
           frequency: matchCount,
           confidence: matchCount >= 3 ? 'High' : 'Moderate',
-          description: 'Caffeine after 2:00 PM is frequently followed by interrupted sleep patterns.',
+          description:
+              'Caffeine after 2:00 PM is frequently followed by interrupted sleep patterns.',
           updatedAt: DateTime.now().toIso8601String(),
         ),
       ];
@@ -181,8 +258,21 @@ class PatternEngineServiceImpl implements PatternEngineService {
     return [];
   }
 
-  List<BodyPattern> _detectFiberDigestionPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
-    final fiberKeywords = ['fiber', 'salad', 'beans', 'lentils', 'broccoli', 'vegetables', 'spinach', 'kale', 'avocado'];
+  List<BodyPattern> _detectFiberDigestionPatterns(
+    List<MealLog> meals,
+    List<SymptomLog> symptoms,
+  ) {
+    final fiberKeywords = [
+      'fiber',
+      'salad',
+      'beans',
+      'lentils',
+      'broccoli',
+      'vegetables',
+      'spinach',
+      'kale',
+      'avocado',
+    ];
     var gasMatch = 0;
     var bloatMatch = 0;
 
@@ -191,7 +281,15 @@ class PatternEngineServiceImpl implements PatternEngineService {
       if (s == 'gas' || s == 'bloating') {
         final windowStart = symptom.time.subtract(const Duration(hours: 6));
 
-        final hasFiber = meals.any((m) => m.time.isAfter(windowStart) && m.time.isBefore(symptom.time) && m.items.any((item) => fiberKeywords.any((k) => item.toLowerCase().contains(k))));
+        final hasFiber = meals.any(
+          (m) =>
+              m.time.isAfter(windowStart) &&
+              m.time.isBefore(symptom.time) &&
+              m.items.any(
+                (item) =>
+                    fiberKeywords.any((k) => item.toLowerCase().contains(k)),
+              ),
+        );
 
         if (hasFiber) {
           if (s == 'gas') gasMatch++;
@@ -209,7 +307,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
           reaction: 'Gas',
           frequency: gasMatch,
           confidence: gasMatch >= 3 ? 'High' : 'Moderate',
-          description: 'Your system shows a sensitive reaction (gas) to high-fiber intake.',
+          description:
+              'Your system shows a sensitive reaction (gas) to high-fiber intake.',
           updatedAt: DateTime.now().toIso8601String(),
         ),
       );
@@ -222,7 +321,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
           reaction: 'Bloating',
           frequency: bloatMatch,
           confidence: bloatMatch >= 3 ? 'High' : 'Moderate',
-          description: 'High fiber intake appears to correlate with temporary bloating.',
+          description:
+              'High fiber intake appears to correlate with temporary bloating.',
           updatedAt: DateTime.now().toIso8601String(),
         ),
       );

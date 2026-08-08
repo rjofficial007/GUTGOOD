@@ -59,7 +59,7 @@ class AppPalette {
   static const lime = Color(0xFFD9FF30);
   static const softBlue = Color(0xFF98B7FF);
   static const blueLink = Color(0xFF3897F0);
-  
+
   // --- Misc ---
   static const splashBg = Color(0xFF060606);
   static const transparent = Colors.transparent;
@@ -68,4 +68,3 @@ class AppPalette {
   static const white70 = Color(0xB3FFFFFF);
   static const black12 = Color(0x1F000000);
 }
-

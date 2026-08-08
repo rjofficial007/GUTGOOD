@@ -15,8 +15,11 @@ abstract class StorageService {
 }
 
 class StorageServiceImpl implements StorageService {
-
-  StorageServiceImpl({required FirebaseAuth auth, required FirebaseStorage storage}) : _auth = auth, _storage = storage;
+  StorageServiceImpl({
+    required FirebaseAuth auth,
+    required FirebaseStorage storage,
+  }) : _auth = auth,
+       _storage = storage;
   final FirebaseAuth _auth;
   final FirebaseStorage _storage;
 
@@ -25,7 +28,12 @@ class StorageServiceImpl implements StorageService {
   @override
   Future<Uint8List> compressImage(Uint8List bytes) async {
     try {
-      final compressedBytes = await FlutterImageCompress.compressWithList(bytes, minHeight: 512, minWidth: 512, quality: 80);
+      final compressedBytes = await FlutterImageCompress.compressWithList(
+        bytes,
+        minHeight: 512,
+        minWidth: 512,
+        quality: 80,
+      );
       return compressedBytes;
     } catch (e) {
       AppLogger.error('StorageService: Compression failed', error: e);
@@ -42,7 +50,10 @@ class StorageServiceImpl implements StorageService {
       final fileName = 'food_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final ref = _storage.ref().child('users/$_uid/food_images/$fileName');
 
-      final uploadTask = ref.putData(compressedBytes, SettableMetadata(contentType: 'image/jpeg'));
+      final uploadTask = ref.putData(
+        compressedBytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
       final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
@@ -60,11 +71,17 @@ class StorageServiceImpl implements StorageService {
       const fileName = 'profile_pic.jpg';
       final ref = _storage.ref().child('users/$_uid/profile/$fileName');
 
-      final uploadTask = ref.putData(compressedBytes, SettableMetadata(contentType: 'image/jpeg'));
+      final uploadTask = ref.putData(
+        compressedBytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
       final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
-      AppLogger.error('StorageService: Profile picture upload failed', error: e);
+      AppLogger.error(
+        'StorageService: Profile picture upload failed',
+        error: e,
+      );
       return null;
     }
   }
@@ -89,12 +106,20 @@ class StorageServiceImpl implements StorageService {
         for (final item in listResult.items) {
           final bytes = await item.getData();
           if (bytes == null) continue;
-          final destRef = _storage.ref().child('users/$toUid/$folder/${item.name}');
-          await destRef.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+          final destRef = _storage.ref().child(
+            'users/$toUid/$folder/${item.name}',
+          );
+          await destRef.putData(
+            bytes,
+            SettableMetadata(contentType: 'image/jpeg'),
+          );
           await item.delete();
         }
       } catch (e) {
-        AppLogger.error('StorageService: Migration failed for $folder', error: e);
+        AppLogger.error(
+          'StorageService: Migration failed for $folder',
+          error: e,
+        );
       }
     }
   }

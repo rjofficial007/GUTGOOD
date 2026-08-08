@@ -14,8 +14,8 @@ abstract class DeviceInfoService {
 }
 
 class DeviceInfoServiceImpl implements DeviceInfoService {
-
-  DeviceInfoServiceImpl({required DeviceInfoPlugin deviceInfoPlugin}) : _deviceInfoPlugin = deviceInfoPlugin;
+  DeviceInfoServiceImpl({required DeviceInfoPlugin deviceInfoPlugin})
+    : _deviceInfoPlugin = deviceInfoPlugin;
   final DeviceInfoPlugin _deviceInfoPlugin;
 
   @override
@@ -49,7 +49,10 @@ class DeviceInfoServiceImpl implements DeviceInfoService {
         deviceOsVersion = info.systemVersion;
       }
     } catch (e) {
-      AppLogger.error('DeviceInfoService: Error fetching device info', error: e);
+      AppLogger.error(
+        'DeviceInfoService: Error fetching device info',
+        error: e,
+      );
     }
   }
 }

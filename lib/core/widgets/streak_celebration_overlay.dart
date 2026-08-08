@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
@@ -9,11 +11,43 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
 import 'package:lottie/lottie.dart';
 
-class StreakCelebrationOverlay extends StatelessWidget {
-
+class StreakCelebrationOverlay extends StatefulWidget {
   const StreakCelebrationOverlay({super.key, required this.streak, required this.onDismiss});
   final int streak;
   final VoidCallback onDismiss;
+
+  @override
+  State<StreakCelebrationOverlay> createState() => _StreakCelebrationOverlayState();
+}
+
+class _StreakCelebrationOverlayState extends State<StreakCelebrationOverlay> with SingleTickerProviderStateMixin {
+  late AnimationController _lottieController;
+  Timer? _lottieTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _lottieController = AnimationController(vsync: this);
+    _lottieController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _lottieController.repeat(min: 0.58, max: 1.0, reverse: false);
+      }
+    });
+
+    // Match StreakCard's timing for starting the animation
+    _lottieTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        _lottieController.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _lottieController.dispose();
+    _lottieTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,8 +61,16 @@ class StreakCelebrationOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Animated Flame Icon
-              Lottie.asset(AppAssets.streakAnimation, height: AppSizes.p100),
+              // Animated Flame Icon - Same logic as StreakCard
+              Lottie.asset(
+                AppAssets.streakAnimation,
+                height: AppSizes.p120,
+                width: AppSizes.p120,
+                controller: _lottieController,
+                onLoaded: (composition) {
+                  _lottieController.duration = composition.duration;
+                },
+              ),
 
               Gap.h32,
 
@@ -40,7 +82,7 @@ class StreakCelebrationOverlay extends StatelessWidget {
               Gap.h16,
 
               Text(
-                '$streak',
+                '${widget.streak}',
                 style: context.h1.copyWith(color: colorScheme.textPrimary, fontSize: AppSizes.s120, fontWeight: FontWeight.w900, height: 1.0),
               ).animate().scale(delay: 400.ms, duration: 500.ms, curve: Curves.elasticOut),
 
@@ -59,7 +101,7 @@ class StreakCelebrationOverlay extends StatelessWidget {
 
               Gap.h48,
 
-              GutButton(label: AppStrings.continueAction, onTap: onDismiss).animate().fadeIn(delay: 1000.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
+              GutButton(label: AppStrings.continueAction, onTap: widget.onDismiss).animate().fadeIn(delay: 1000.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
             ],
           ),
         ),

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 
 class AppColorScheme extends ThemeExtension<AppColorScheme> {
-
   const AppColorScheme({
     required this.cardBackground,
     required this.elevatedSurface,
@@ -40,20 +39,23 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? warning,
     Color? info,
   }) => AppColorScheme(
-      cardBackground: cardBackground ?? this.cardBackground,
-      elevatedSurface: elevatedSurface ?? this.elevatedSurface,
-      border: border ?? this.border,
-      textPrimary: textPrimary ?? this.textPrimary,
-      textSecondary: textSecondary ?? this.textSecondary,
-      textMuted: textMuted ?? this.textMuted,
-      success: success ?? this.success,
-      error: error ?? this.error,
-      warning: warning ?? this.warning,
-      info: info ?? this.info,
-    );
+    cardBackground: cardBackground ?? this.cardBackground,
+    elevatedSurface: elevatedSurface ?? this.elevatedSurface,
+    border: border ?? this.border,
+    textPrimary: textPrimary ?? this.textPrimary,
+    textSecondary: textSecondary ?? this.textSecondary,
+    textMuted: textMuted ?? this.textMuted,
+    success: success ?? this.success,
+    error: error ?? this.error,
+    warning: warning ?? this.warning,
+    info: info ?? this.info,
+  );
 
   @override
-  ThemeExtension<AppColorScheme> lerp(ThemeExtension<AppColorScheme>? other, double t) {
+  ThemeExtension<AppColorScheme> lerp(
+    ThemeExtension<AppColorScheme>? other,
+    double t,
+  ) {
     if (other is! AppColorScheme) return this;
     return AppColorScheme(
       cardBackground: Color.lerp(cardBackground, other.cardBackground, t)!,
@@ -97,5 +99,6 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
 }
 
 extension AppColorSchemeX on BuildContext {
-  AppColorScheme get appColorScheme => Theme.of(this).extension<AppColorScheme>()!;
+  AppColorScheme get appColorScheme =>
+      Theme.of(this).extension<AppColorScheme>()!;
 }

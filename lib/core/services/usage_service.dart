@@ -28,11 +28,11 @@ class UsageServiceImpl implements UsageService {
     required UsageFirestoreService usageFirestoreService,
     required PurchaseService purchaseService,
     required SharedPreferences prefs,
-  })  : _authRepository = authRepository,
-        _authFirestoreService = authFirestoreService,
-        _usageFirestoreService = usageFirestoreService,
-        _purchaseService = purchaseService,
-        _prefs = prefs;
+  }) : _authRepository = authRepository,
+       _authFirestoreService = authFirestoreService,
+       _usageFirestoreService = usageFirestoreService,
+       _purchaseService = purchaseService,
+       _prefs = prefs;
 
   final AuthRepository _authRepository;
   final AuthFirestoreService _authFirestoreService;

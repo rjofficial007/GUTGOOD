@@ -28,10 +28,20 @@ class UsageNotifier with ChangeNotifier {
 
   void _initUsageStream() {
     _usageSub?.cancel();
-    _usageSub = _firestoreService.getUsageTodayStream().listen((usage) {
-      _usage = usage;
-      notifyListeners();
-    });
+    final user = _authRepository.currentUser;
+    if (user == null) return;
+
+    if (user.isAnonymous) {
+      _usageSub = _firestoreService.getLifetimeUsageStream().listen((usage) {
+        _usage = usage;
+        notifyListeners();
+      });
+    } else {
+      _usageSub = _firestoreService.getUsageTodayStream().listen((usage) {
+        _usage = usage;
+        notifyListeners();
+      });
+    }
   }
 
   DailyUsage? get usage => _usage;

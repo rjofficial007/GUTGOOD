@@ -16,13 +16,13 @@ import 'package:gutgood/core/widgets/gut_button.dart';
 import 'package:gutgood/features/auth/presentation/pages/email_login_screen.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
+import 'package:gutgood/features/chat/presentation/pages/notification_archive_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
-import 'package:gutgood/features/insights/presentation/pages/notification_archive_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/logs/presentation/pages/symptom_check_in_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
@@ -77,7 +77,10 @@ class AppRouter {
       }
 
       // Use Profile as source of truth, fallback to local prefs (for Guest fast-path)
-      final onboarded = profileNotifier.profile?.onboarded ?? prefs.getBool('onboarded') ?? false;
+      // 🟢 Fix: Use OR logic to ensure that if EITHER Firestore or Local Prefs says
+      // we are onboarded, we don't redirect back to onboarding. This prevents
+      // race conditions where the local flag is updated before the Firestore stream.
+      final onboarded = (profileNotifier.profile?.onboarded == true) || (prefs.getBool('onboarded') == true);
 
       final isSplash = state.matchedLocation == AppRoutes.splash;
       final isWelcome = state.matchedLocation == AppRoutes.welcome;

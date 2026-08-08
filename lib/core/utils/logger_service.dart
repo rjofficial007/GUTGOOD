@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
@@ -54,6 +55,26 @@ class AppLogger {
   /// Logs a firebase remote config related message.
   static void firebaseRemoteConfig(Object? message) {
     _printLog(AppLoggerStrings.logFirebaseRemoteConfig, message, null, null);
+  }
+
+  /// Specialized method to dump raw backend data objects to the console.
+  static void data(String screenName, dynamic rawData) {
+    if (kReleaseMode) return;
+
+    String prettyData;
+    try {
+      prettyData = const JsonEncoder.withIndent('  ').convert(rawData);
+    } catch (e) {
+      prettyData = rawData.toString();
+    }
+
+    final buffer = StringBuffer()
+      ..writeln('------------------------------------------------------------')
+      ..writeln('📊 BACKEND DATA DUMP: $screenName')
+      ..writeln('------------------------------------------------------------')
+      ..writeln(prettyData)
+      ..writeln('------------------------------------------------------------');
+    developer.log(buffer.toString(), name: 'GUTGOOD_DATA');
   }
 
   /// Helper method to format and print the log message.

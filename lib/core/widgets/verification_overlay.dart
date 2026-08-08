@@ -18,7 +18,12 @@ class VerificationOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final appStateService = sl<AppStateService>();
     return ListenableBuilder(
-      listenable: Listenable.merge([appStateService.isVerifyingAuth, appStateService.isLoggingOut, appStateService.isRestoringPurchases, appStateService.isMigrating]),
+      listenable: Listenable.merge([
+        appStateService.isVerifyingAuth,
+        appStateService.isLoggingOut,
+        appStateService.isRestoringPurchases,
+        appStateService.isMigrating,
+      ]),
       builder: (context, child) {
         final isVerifying = appStateService.isVerifyingAuth.value;
         final isLoggingOut = appStateService.isLoggingOut.value;
@@ -51,7 +56,11 @@ class VerificationOverlay extends StatelessWidget {
               Positioned.fill(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8)),
+                  child: Container(
+                    color: context.appColorScheme.cardBackground.withValues(
+                      alpha: 0.8,
+                    ),
+                  ),
                 ),
               ),
 
@@ -65,15 +74,26 @@ class VerificationOverlay extends StatelessWidget {
                       tween: Tween(begin: 0.8, end: 1.0),
                       duration: const Duration(milliseconds: 800),
                       curve: Curves.elasticOut,
-                      builder: (context, value, child) => Transform.scale(scale: value, child: child),
+                      builder: (context, value, child) =>
+                          Transform.scale(scale: value, child: child),
                       child: Container(
                         width: 100.0.w,
                         height: 100.0.w,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(AppSizes.r24),
-                          boxShadow: [BoxShadow(color: context.appColorScheme.textPrimary.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: 5)],
+                          boxShadow: [
+                            BoxShadow(
+                              color: context.appColorScheme.textPrimary
+                                  .withValues(alpha: 0.1),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                            ),
+                          ],
                         ),
-                        child: ClipRRect(borderRadius: BorderRadius.circular(AppSizes.r24), child: Image.asset(AppAssets.appIcon)),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppSizes.r24),
+                          child: Image.asset(AppAssets.appIcon),
+                        ),
                       ),
                     ),
                     Gap.h32,
@@ -81,17 +101,28 @@ class VerificationOverlay extends StatelessWidget {
                     // Status Text
                     Text(
                       title,
-                      style: context.h1.copyWith(fontSize: 20.0.sp, fontWeight: FontWeight.w900),
+                      style: context.h1.copyWith(
+                        fontSize: 20.0.sp,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     Gap.h12,
-                    Text(subtitle, style: context.body.copyWith(color: context.appColorScheme.textSecondary)),
+                    Text(
+                      subtitle,
+                      style: context.body.copyWith(
+                        color: context.appColorScheme.textSecondary,
+                      ),
+                    ),
                     Gap.h40,
 
                     // Spinner
                     SizedBox(
                       width: 24.0.w,
                       height: 24.0.w,
-                      child: CircularProgressIndicator(strokeWidth: 3, color: context.appColorScheme.textPrimary),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: context.appColorScheme.textPrimary,
+                      ),
                     ),
                   ],
                 ),

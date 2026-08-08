@@ -2,7 +2,7 @@ export 'app_switch_tile.dart';
 export 'app_tile.dart';
 export 'auth_option_tile.dart';
 export 'caution_badge.dart';
-export 'chat_bubble.dart';
+export 'chat/chat_bubble.dart';
 export 'cycle_insight_card.dart';
 export 'empty_state_widget.dart';
 export 'feedback_tag.dart';

@@ -11,7 +11,6 @@ import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
 class AIPersonalizationOnboardingPage extends StatefulWidget {
-
   const AIPersonalizationOnboardingPage({super.key, required this.onFinish});
   final VoidCallback onFinish;
 
@@ -63,37 +62,39 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
 
   @override
   Widget build(BuildContext context) => Padding(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Gap.h16,
-          // Persistent Header
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(_isSuccess ? AppStrings.analysisComplete : AppStrings.aiPersonalization, style: context.displaySm),
-              Gap.h10,
-              Text(_isSuccess ? AppStrings.gutTeaReady : AppStrings.aiPersonalizationDesc, style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary)),
-            ],
-          ).animate().fadeIn(duration: 400.ms),
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Gap.h16,
+        // Persistent Header
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_isSuccess ? AppStrings.analysisComplete : AppStrings.aiPersonalization, style: context.displaySm),
+            Gap.h10,
+            Text(_isSuccess ? AppStrings.gutTeaReady : AppStrings.aiPersonalizationDesc, style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary)),
+          ],
+        ).animate().fadeIn(duration: 400.ms),
 
-          // Main Center Area
-          Expanded(child: Center(child: _isAnalyzing ? _buildHeroFlipText() : _buildMinimalSuccessIcon())),
+        // Main Center Area
+        Expanded(child: Center(child: _isAnalyzing ? _buildHeroFlipText() : _buildMinimalSuccessIcon())),
 
-          // Bottom Button
-          if (_isSuccess)
-            Padding(
-              padding: EdgeInsets.only(bottom: AppSizes.p36),
-              child: GutButton(label: AppStrings.continueButton, suffixIcon: AppIcons.arrowRight, onTap: widget.onFinish),
-            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0)
-          else
-            Gap.h32, // Reserved space for button
-        ],
-      ),
-    );
+        // Bottom Button
+        if (_isSuccess)
+          Padding(
+            padding: EdgeInsets.only(bottom: AppSizes.p24),
+            child: GutButton(label: AppStrings.continueButton, suffixIcon: AppIcons.arrowRight, onTap: widget.onFinish),
+          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0)
+        else
+          Gap.h32, // Reserved space for button
+      ],
+    ),
+  );
 
-  Widget _buildHeroFlipText() => AnimatedSwitcher(
+  Widget _buildHeroFlipText() => Padding(
+    padding: EdgeInsets.only(bottom: AppSizes.p100),
+    child: AnimatedSwitcher(
       duration: const Duration(milliseconds: 800),
       switchInCurve: Curves.easeOutBack,
       switchOutCurve: Curves.easeInBack,
@@ -104,12 +105,12 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
           child: AnimatedBuilder(
             animation: rotate,
             builder: (context, child) => Transform(
-                transform: Matrix4.identity()
-                  ..setEntry(3, 2, 0.0015)
-                  ..rotateX(rotate.value),
-                alignment: Alignment.center,
-                child: child,
-              ),
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.0015)
+                ..rotateX(rotate.value),
+              alignment: Alignment.center,
+              child: child,
+            ),
             child: child,
           ),
         );
@@ -120,19 +121,20 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         textAlign: TextAlign.center,
         style: context.displayLg.copyWith(fontSize: 50.0.sp, fontWeight: FontWeight.w900, letterSpacing: -2.5, height: 1.0, color: context.appColorScheme.textPrimary),
       ),
-    );
+    ),
+  );
 
   Widget _buildMinimalSuccessIcon() => Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: AppSizes.p120,
-          height: AppSizes.p120,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: context.appColorScheme.textPrimary),
-          child: Icon(AppIcons.check, color: context.appColorScheme.cardBackground, size: AppSizes.icon60),
-        ).animate().scale(duration: 800.ms, curve: Curves.elasticOut),
-        Gap.h32,
-        Text(AppStrings.labelReady, style: context.displayMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1)).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
-      ],
-    );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: AppSizes.p120,
+        height: AppSizes.p120,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: context.appColorScheme.textPrimary),
+        child: Icon(AppIcons.check, color: context.appColorScheme.cardBackground, size: AppSizes.icon60),
+      ).animate().scale(duration: 800.ms, curve: Curves.elasticOut),
+      Gap.h32,
+      Text(AppStrings.labelReady, style: context.displayMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1)).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+    ],
+  );
 }

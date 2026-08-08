@@ -8,6 +8,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 abstract class PurchaseService {
   Future<void> initialize();
   bool get isPremium;
+  Stream<bool> get premiumStatusStream;
   bool get isConfigured;
   Future<List<Package>> fetchOffers();
   Future<bool> purchasePackage(Package package);
@@ -15,14 +16,19 @@ abstract class PurchaseService {
   Future<void> login(String uid);
   Future<void> logout();
   void setProStatusForDebug(bool isPro);
+  void dispose();
 }
 
 class PurchaseServiceImpl implements PurchaseService {
   bool _isPremium = false;
   bool _isConfigured = false;
+  final _premiumStatusController = StreamController<bool>.broadcast();
 
   @override
   bool get isPremium => _isPremium;
+
+  @override
+  Stream<bool> get premiumStatusStream => _premiumStatusController.stream;
 
   @override
   bool get isConfigured => _isConfigured;
@@ -69,6 +75,7 @@ class PurchaseServiceImpl implements PurchaseService {
     final isProUser = customerInfo.entitlements.active.isNotEmpty;
     if (_isPremium != isProUser) {
       _isPremium = isProUser;
+      _premiumStatusController.add(isProUser);
       AppLogger.premium('PurchaseService: Status updated -> $_isPremium');
     }
   }
@@ -137,6 +144,12 @@ class PurchaseServiceImpl implements PurchaseService {
   @override
   void setProStatusForDebug(bool isPro) {
     _isPremium = isPro;
+    _premiumStatusController.add(isPro);
     AppLogger.premium('PurchaseService: Debug status -> $_isPremium');
+  }
+
+  @override
+  void dispose() {
+    _premiumStatusController.close();
   }
 }

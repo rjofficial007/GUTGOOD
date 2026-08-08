@@ -73,21 +73,27 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     appState.setPendingMergeConflict(null);
 
     try {
-      final shouldMerge = await showMergeConfirmationSheet(context, conflict['email'] ?? '');
+      final shouldMerge = await showMergeConfirmationSheet(
+        context,
+        conflict['email'] ?? '',
+      );
       if (!mounted) return;
       final authNotifier = context.read<GutAuthNotifier>();
       if (shouldMerge == true) {
         try {
-          await authNotifier.confirmMerge(conflict['anonymousUid']!, conflict['permanentUid']!);
+          await authNotifier.confirmMerge(
+            conflict['anonymousUid']!,
+            conflict['permanentUid']!,
+          );
           if (mounted && context.canPop()) {
             // 🟢 Fix: Pop with result to allow the sheet to dismiss itself cleanly.
             context.pop(authNotifier.user);
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text(AppStrings.authSyncDelayedMessage)));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text(AppStrings.authSyncDelayedMessage)),
+            );
           }
         }
       } else if (shouldMerge == false) {
@@ -108,7 +114,9 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   }
 
   void _onAuthChanged() {
-    if (_authNotifier?.isAuthenticated == true && !(_authNotifier?.isAnonymous ?? true) && mounted) {
+    if (_authNotifier?.isAuthenticated == true &&
+        !(_authNotifier?.isAnonymous ?? true) &&
+        mounted) {
       context.pop(_authNotifier?.user);
     }
   }
@@ -141,17 +149,23 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     final appStateService = sl<AppStateService>();
 
     if (name.isEmpty && appStateService.pendingEmailLink.value == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.enterNameContinuePrompt)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.enterNameContinuePrompt)),
+      );
       return;
     }
 
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.enterEmailToContinue)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.enterEmailToContinue)),
+      );
       return;
     }
 
     if (!email.isValidEmail) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.invalidEmail)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(AppStrings.invalidEmail)));
       return;
     }
 
@@ -168,7 +182,10 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
         } on AuthMergeConflictException catch (e) {
           appStateService.setPendingEmailLink(null);
           if (mounted) {
-            final shouldMerge = await showMergeConfirmationSheet(context, e.email);
+            final shouldMerge = await showMergeConfirmationSheet(
+              context,
+              e.email,
+            );
             if (shouldMerge == true && mounted) {
               await authNotifier.confirmMerge(e.anonymousUid, e.permanentUid);
             } else if (shouldMerge == false && mounted) {
@@ -203,34 +220,42 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
     } catch (e) {
       if (mounted) {
         final message = AuthErrorHandler.mapException(e);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    appBar: GutAppBar(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: GutAppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        leading: IconButton(
-          icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
-          onPressed: () {
-            sl<AppStateService>().setPendingEmailLink(null);
-            context.pop();
-          },
+      leading: IconButton(
+        icon: Icon(
+          AppIcons.chevronLeft,
+          color: context.appColorScheme.textPrimary,
+        ),
+        onPressed: () {
+          sl<AppStateService>().setPendingEmailLink(null);
+          context.pop();
+        },
+      ),
+    ),
+    body: SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSizes.p24,
+          vertical: AppSizes.p20,
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: _linkSent ? _buildSentState() : _buildInputState(),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p20),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: _linkSent ? _buildSentState() : _buildInputState(),
-          ),
-        ),
-      ),
-    );
+    ),
+  );
 
   Widget _buildInputState() {
     final pendingLink = sl<AppStateService>().pendingEmailLink.value;
@@ -241,13 +266,22 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          pendingLink != null ? AppStrings.completeSignIn : AppStrings.welcomeBack,
-          style: context.headingMd.copyWith(fontWeight: FontWeight.w900, fontSize: AppSizes.s24),
+          pendingLink != null
+              ? AppStrings.completeSignIn
+              : AppStrings.welcomeBack,
+          style: context.headingMd.copyWith(
+            fontWeight: FontWeight.w900,
+            fontSize: AppSizes.s24,
+          ),
         ),
         Gap.h8,
         Text(
-          pendingLink != null ? AppStrings.completeSignInSubtitle : AppStrings.signInSubtitle,
-          style: context.body.copyWith(color: context.appColorScheme.textSecondary),
+          pendingLink != null
+              ? AppStrings.completeSignInSubtitle
+              : AppStrings.signInSubtitle,
+          style: context.body.copyWith(
+            color: context.appColorScheme.textSecondary,
+          ),
         ),
         Gap.h32,
         if (pendingLink == null) ...[
@@ -271,10 +305,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
           prefixIcon: AppIcons.mail,
         ),
         Gap.h40,
-        _LoginButton(
-          onTap: _sendLink,
-          isConfirm: pendingLink != null,
-        ),
+        _LoginButton(onTap: _sendLink, isConfirm: pendingLink != null),
         if (pendingLink == null) ...[
           Gap.h32,
           const _SocialLoginDivider(),
@@ -286,50 +317,56 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   }
 
   Widget _buildSentState() => Column(
-        key: const ValueKey('sent'),
-        children: [
-          Gap.h40,
-          Container(
-            padding:  EdgeInsets.all(AppSizes.p24),
-            decoration: BoxDecoration(
-              color: context.appColorScheme.elevatedSurface,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(AppIcons.mailCheck, size: 48, color: context.appColorScheme.textPrimary),
-          ),
-          Gap.h32,
-          Text(
-            AppStrings.checkYourEmail,
-            textAlign: TextAlign.center,
-            style: context.headingMd.copyWith(fontWeight: FontWeight.w900),
-          ),
-          Gap.h12,
-          Text(
-            AppStrings.linkSentSubtitle,
-            textAlign: TextAlign.center,
-            style: context.body.copyWith(color: context.appColorScheme.textSecondary),
-          ),
-          Gap.h40,
-          _ResendButton(
-            cooldownSeconds: _cooldownSeconds,
-            onResend: () => setState(() => _linkSent = false),
-          ),
-          Gap.h16,
-          GutButton(
-            label: AppStrings.backToSignIn,
-            isOutlined: true,
-            onTap: () {
-              sl<AppStateService>().setPendingEmailLink(null);
-              context.pop();
-            },
-          ),
-        ],
-      );
+    key: const ValueKey('sent'),
+    children: [
+      Gap.h40,
+      Container(
+        padding: EdgeInsets.all(AppSizes.p24),
+        decoration: BoxDecoration(
+          color: context.appColorScheme.elevatedSurface,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          AppIcons.mailCheck,
+          size: 48,
+          color: context.appColorScheme.textPrimary,
+        ),
+      ),
+      Gap.h32,
+      Text(
+        AppStrings.checkYourEmail,
+        textAlign: TextAlign.center,
+        style: context.headingMd.copyWith(fontWeight: FontWeight.w900),
+      ),
+      Gap.h12,
+      Text(
+        AppStrings.linkSentSubtitle,
+        textAlign: TextAlign.center,
+        style: context.body.copyWith(
+          color: context.appColorScheme.textSecondary,
+        ),
+      ),
+      Gap.h40,
+      _ResendButton(
+        cooldownSeconds: _cooldownSeconds,
+        onResend: () => setState(() => _linkSent = false),
+      ),
+      Gap.h16,
+      GutButton(
+        label: AppStrings.backToSignIn,
+        isOutlined: true,
+        onTap: () {
+          sl<AppStateService>().setPendingEmailLink(null);
+          context.pop();
+        },
+      ),
+    ],
+  );
 
   Widget _buildLabel(String text) => Padding(
-        padding: EdgeInsets.only(bottom: AppSizes.p8),
-        child: Text(text, style: context.bodyBold.copyWith(fontSize: AppSizes.s13)),
-      );
+    padding: EdgeInsets.only(bottom: AppSizes.p8),
+    child: Text(text, style: context.bodyBold.copyWith(fontSize: AppSizes.s13)),
+  );
 }
 
 class _LoginButton extends StatelessWidget {
@@ -339,19 +376,21 @@ class _LoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Selector<GutAuthNotifier, bool>(
-      selector: (_, n) => n.isLoading,
-      builder: (context, isLoading, _) {
-        if (isLoading) {
-          return Center(
-            child: CircularProgressIndicator(color: context.appColorScheme.textPrimary),
-          );
-        }
-        return GutButton(
-          label: isConfirm ? AppStrings.confirmEmail : AppStrings.sendLink,
-          onTap: onTap,
+    selector: (_, n) => n.isLoading,
+    builder: (context, isLoading, _) {
+      if (isLoading) {
+        return Center(
+          child: CircularProgressIndicator(
+            color: context.appColorScheme.textPrimary,
+          ),
         );
-      },
-    );
+      }
+      return GutButton(
+        label: isConfirm ? AppStrings.confirmEmail : AppStrings.sendLink,
+        onTap: onTap,
+      );
+    },
+  );
 }
 
 class _ResendButton extends StatelessWidget {
@@ -361,11 +400,11 @@ class _ResendButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GutButton(
-      label: cooldownSeconds > 0
-          ? '${AppStrings.resendIn}$cooldownSeconds${AppStrings.secondUnit}'
-          : AppStrings.resendLink,
-      onTap: cooldownSeconds > 0 ? null : onResend,
-    );
+    label: cooldownSeconds > 0
+        ? '${AppStrings.resendIn}$cooldownSeconds${AppStrings.secondUnit}'
+        : AppStrings.resendLink,
+    onTap: cooldownSeconds > 0 ? null : onResend,
+  );
 }
 
 class _SocialLoginDivider extends StatelessWidget {
@@ -373,11 +412,11 @@ class _SocialLoginDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-      child: Text(
-        AppStrings.orContinueWith,
-        style: context.caption.copyWith(color: context.appColorScheme.textMuted),
-      ),
-    );
+    child: Text(
+      AppStrings.orContinueWith,
+      style: context.caption.copyWith(color: context.appColorScheme.textMuted),
+    ),
+  );
 }
 
 class _SocialLoginButtons extends StatelessWidget {
@@ -406,22 +445,31 @@ class _SocialLoginButtons extends StatelessWidget {
 }
 
 class _SocialIcon extends StatelessWidget {
-  const _SocialIcon({required this.assetPath, required this.onTap, this.imageColor});
+  const _SocialIcon({
+    required this.assetPath,
+    required this.onTap,
+    this.imageColor,
+  });
   final String assetPath;
   final VoidCallback onTap;
   final Color? imageColor;
 
   @override
   Widget build(BuildContext context) => InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSizes.r12),
-      child: Container(
-        padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          border: Border.all(color: context.appColorScheme.border),
-          borderRadius: BorderRadius.circular(AppSizes.r12),
-        ),
-        child: Image.asset(assetPath, width: AppSizes.icon24, height: AppSizes.icon24, color: imageColor),
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(AppSizes.r12),
+    child: Container(
+      padding: EdgeInsets.all(AppSizes.p12),
+      decoration: BoxDecoration(
+        border: Border.all(color: context.appColorScheme.border),
+        borderRadius: BorderRadius.circular(AppSizes.r12),
       ),
-    );
+      child: Image.asset(
+        assetPath,
+        width: AppSizes.icon24,
+        height: AppSizes.icon24,
+        color: imageColor,
+      ),
+    ),
+  );
 }

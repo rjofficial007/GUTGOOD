@@ -39,7 +39,8 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
         }
       } else {
         _failureCount++;
-        if (_failureCount >= _maxFailuresBeforeOffline && isInternetAvailable.value) {
+        if (_failureCount >= _maxFailuresBeforeOffline &&
+            isInternetAvailable.value) {
           isInternetAvailable.value = false;
           AppLogger.warning('InternetConnectionChecker: Disconnected');
         }
@@ -64,9 +65,13 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
 }
 
 class _InternalChecker {
-
   _InternalChecker.createInstance({List<InternetAddress>? addresses})
-    : addresses = addresses ?? [InternetAddress('1.1.1.1', type: InternetAddressType.IPv4), InternetAddress('8.8.4.4', type: InternetAddressType.IPv4)],
+    : addresses =
+          addresses ??
+          [
+            InternetAddress('1.1.1.1', type: InternetAddressType.IPv4),
+            InternetAddress('8.8.4.4', type: InternetAddressType.IPv4),
+          ],
       checkInterval = const Duration(seconds: 10) {
     _statusController.onListen = _maybeEmitStatusUpdate;
     _statusController.onCancel = () {
@@ -89,7 +94,11 @@ class _InternalChecker {
 
   Future<bool> _isReachable(InternetAddress addr) async {
     try {
-      final socket = await Socket.connect(addr, 53, timeout: const Duration(seconds: 4));
+      final socket = await Socket.connect(
+        addr,
+        53,
+        timeout: const Duration(seconds: 4),
+      );
       socket.destroy();
       return true;
     } catch (_) {
@@ -99,13 +108,17 @@ class _InternalChecker {
 
   InternetConnectionStatus? _lastStatus;
   Timer? _timerHandle;
-  final StreamController<InternetConnectionStatus> _statusController = StreamController.broadcast();
+  final StreamController<InternetConnectionStatus> _statusController =
+      StreamController.broadcast();
 
-  Stream<InternetConnectionStatus> get onStatusChange => _statusController.stream;
+  Stream<InternetConnectionStatus> get onStatusChange =>
+      _statusController.stream;
 
   Future<void> _maybeEmitStatusUpdate() async {
     _timerHandle?.cancel();
-    final currentStatus = await hasConnection ? InternetConnectionStatus.connected : InternetConnectionStatus.disconnected;
+    final currentStatus = await hasConnection
+        ? InternetConnectionStatus.connected
+        : InternetConnectionStatus.disconnected;
     if (_lastStatus != currentStatus && _statusController.hasListener) {
       _statusController.add(currentStatus);
     }

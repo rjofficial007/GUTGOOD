@@ -11,7 +11,6 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
@@ -26,28 +25,24 @@ class InsightsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
-      body: RefreshIndicator(
-        onRefresh: () => context.read<InsightsNotifier>().generateNewInsight(),
-        color: AppPalette.black,
-        child: CustomScrollView(
-          slivers: [
-            GutSliverAppBar(
-              title: AppStrings.insights,
-              showBrandingIcon: true,
-              actions: [
-                IconButton(
-                  icon: Icon(AppIcons.history, color: context.appColorScheme.textPrimary),
-                  onPressed: () => unawaited(context.push(AppRoutes.insightHistory)),
-                ),
-                Gap.w10,
-              ],
+    backgroundColor: context.appColorScheme.cardBackground,
+    body: CustomScrollView(
+      slivers: [
+        GutSliverAppBar(
+          title: AppStrings.insights,
+          showBrandingIcon: true,
+          actions: [
+            IconButton(
+              icon: Icon(AppIcons.history, color: context.appColorScheme.textPrimary),
+              onPressed: () => unawaited(context.push(AppRoutes.insightHistory)),
             ),
-            const _InsightsView(),
+            Gap.w10,
           ],
         ),
-      ),
-    );
+        const _InsightsView(),
+      ],
+    ),
+  );
 }
 
 class _InsightsView extends StatelessWidget {
@@ -55,15 +50,15 @@ class _InsightsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Consumer<InsightsNotifier>(
-      builder: (context, notifier, _) {
-        if (notifier.isLoading) return const _InsightsLoadingState();
+    builder: (context, notifier, _) {
+      if (notifier.isLoading) return const _InsightsLoadingState();
 
-        final data = notifier.latestInsight;
-        if (data == null) return const _NoInsightsState();
+      final data = notifier.latestInsight;
+      if (data == null) return const _NoInsightsState();
 
-        return _MainDashboardSliver(data: data);
-      },
-    );
+      return _MainDashboardSliver(data: data);
+    },
+  );
 }
 
 class _NoInsightsState extends StatelessWidget {
@@ -71,13 +66,9 @@ class _NoInsightsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const SliverFillRemaining(
-        hasScrollBody: false,
-        child: EmptyStateWidget(
-          icon: AppIcons.barChart,
-          title: AppStrings.noInsightsYet,
-          description: AppStrings.keepLoggingForPatterns,
-        ),
-      );
+    hasScrollBody: false,
+    child: EmptyStateWidget(icon: AppIcons.barChart, title: AppStrings.noInsightsYet, description: AppStrings.keepLoggingForPatterns),
+  );
 }
 
 class _MainDashboardSliver extends StatelessWidget {
@@ -86,66 +77,57 @@ class _MainDashboardSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sections = _buildSections(context);
+    final notifier = context.watch<InsightsNotifier>();
+    final profile = context.watch<ProfileNotifier>();
+
+    final sections = _buildSections(context: context, streak: profile.profile?.streak ?? 0, history: notifier.insightHistory, patterns: notifier.bodyPatterns);
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
+      padding: EdgeInsets.fromLTRB(AppSizes.p20, AppSizes.p10, AppSizes.p20, AppSizes.p20),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final isLast = index == sections.length - 1;
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: isLast ? AppSizes.p64 : AppSizes.p32,
-              ),
-              child: sections[index],
-            );
-          },
-          childCount: sections.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final isLast = index == sections.length - 1;
+          return Padding(
+            padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
+            child: sections[index],
+          );
+        }, childCount: sections.length),
       ),
     );
   }
 
-  List<Widget> _buildSections(BuildContext context) => [
-      Selector<ProfileNotifier, int>(
-        selector: (_, provider) => provider.profile?.streak ?? 0,
-        builder: (context, streak, _) => GutSnapshotHeroCard(
-          score: data.gutScore,
-          scoreDiff: data.scoreDiff,
-          streak: streak,
-        ),
-      ),
-      Selector<InsightsNotifier, List<AIInsight>>(
-        selector: (_, provider) => provider.insightHistory,
-        builder: (context, history, _) => TrendCard(
-          insights: history,
-          currentInsight: data,
-        ),
-      ),
-      if (data.healingGoal != null || data.triggerSymptom != null) GoalDashboardSection(insight: data),
-      if (data.healingFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'positive'))
-        PowerSourcesDashboardSection(insight: data),
-      if (data.triggerFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'negative'))
-        TriggersDashboardSection(insight: data),
-      if (data.detectedPatterns.isNotEmpty)
-        PatternsDashboardSection(
-          insight: data,
-          delay: 300,
-        ),
-      Selector<InsightsNotifier, List<BodyPattern>>(
-        selector: (_, provider) => provider.bodyPatterns,
-        builder: (context, patterns, _) {
-          if (patterns.isEmpty) return const SizedBox.shrink();
-          return _SystemDiscoverySection(patterns: patterns);
-        },
-      ),
-      if (data.topHealing != null || data.topTrigger != null)
-        HighlightsDashboardSection(
-          insight: data,
-          delay: 350,
-        ),
-      if (data.topInsight != null) ModernSmartAlert(insight: data.topInsight!),
+  List<Widget> _buildSections({required BuildContext context, required int streak, required List<AIInsight> history, required List<BodyPattern> patterns}) {
+    final sections = <Widget>[GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: streak), TrendCard(insights: history, currentInsight: data)];
+
+    if (data.healingGoal != null || data.triggerSymptom != null) {
+      sections.add(GoalDashboardSection(insight: data));
+    }
+
+    if (data.healingFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'positive')) {
+      sections.add(PowerSourcesDashboardSection(insight: data));
+    }
+
+    if (data.triggerFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'negative')) {
+      sections.add(TriggersDashboardSection(insight: data));
+    }
+
+    if (data.detectedPatterns.isNotEmpty) {
+      sections.add(PatternsDashboardSection(insight: data, delay: 300));
+    }
+
+    if (patterns.isNotEmpty) {
+      sections.add(_SystemDiscoverySection(patterns: patterns));
+    }
+
+    if (data.topHealing != null || data.topTrigger != null) {
+      sections.add(HighlightsDashboardSection(insight: data, delay: 350));
+    }
+
+    if (data.topInsight != null) {
+      sections.add(ModernSmartAlert(insight: data.topInsight!));
+    }
+
+    sections.add(
       GutActionBanner(
         title: AppStrings.weeklyGutRecap,
         subtitle: AppStrings.last7DaysReady,
@@ -160,7 +142,10 @@ class _MainDashboardSliver extends StatelessWidget {
           }
         },
       ),
-    ];
+    );
+
+    return sections;
+  }
 }
 
 class _SystemDiscoverySection extends StatelessWidget {
@@ -169,62 +154,40 @@ class _SystemDiscoverySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DashboardEntrance(
-      delay: 320,
-      child: GutDashboardSection(
-        title: 'SYSTEM DISCOVERIES',
-        subtitle: 'Evidence-based correlations',
-        visualization: Container(
-          padding: EdgeInsets.all(AppSizes.p12),
-          decoration: BoxDecoration(
-            color: context.appColorScheme.border.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            AppIcons.database,
-            color: context.appColorScheme.textPrimary,
-            size: AppSizes.icon32,
-          ),
-        ),
-        items: patterns
-            .take(2)
-            .map(
-              (p) => Padding(
-                padding: EdgeInsets.only(bottom: AppSizes.p12),
-                child: DashboardDetailItem(
-                  title: p.trigger,
-                  subtitle: p.reaction,
-                  icon: AppIcons.activity,
-                  color: context.appColorScheme.textPrimary,
-                ),
-              ),
-            )
-            .toList(),
-        footerLabel: 'View All Correlations',
-        onFooterTap: () => _showSystemDiscoveryDetails(context, patterns),
+    delay: 320,
+    child: GutDashboardSection(
+      title: 'SYSTEM DISCOVERIES',
+      subtitle: 'Evidence-based correlations',
+      visualization: Container(
+        padding: EdgeInsets.all(AppSizes.p12),
+        decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+        child: Icon(AppIcons.database, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
       ),
-    );
+      items: patterns
+          .take(2)
+          .map(
+            (p) => Padding(
+              padding: EdgeInsets.only(bottom: AppSizes.p12),
+              child: DashboardDetailItem(title: p.trigger, subtitle: p.reaction, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
+            ),
+          )
+          .toList(),
+      footerLabel: 'View All Correlations',
+      onFooterTap: () => _showSystemDiscoveryDetails(context, patterns),
+    ),
+  );
 
   void _showSystemDiscoveryDetails(BuildContext context, List<BodyPattern> patterns) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: 'SYSTEM DISCOVERIES',
       children: [
-        SheetHeroSection(
-          title: 'DATA',
-          subtitle: 'Verified Correlations',
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.database,
-        ),
+        SheetHeroSection(title: 'DATA', subtitle: 'Verified Correlations', color: context.appColorScheme.textPrimary, icon: AppIcons.database),
         Gap.h32,
         ...patterns.map(
           (p) => Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(
-              title: p.trigger,
-              subtitle: p.description,
-              icon: AppIcons.checkCircle,
-              color: context.appColorScheme.textPrimary,
-            ),
+            child: DashboardDetailItem(title: p.trigger, subtitle: p.description, icon: AppIcons.checkCircle, color: context.appColorScheme.textPrimary),
           ),
         ),
         Gap.h32,
@@ -240,15 +203,15 @@ class _InsightsLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SliverPadding(
-        padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p10),
-        sliver: SliverList(
-          delegate: SliverChildListDelegate([
-            const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.hero),
-            Gap.h32,
-            const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.card),
-            Gap.h32,
-            const ShimmerGridLoader(itemCount: 4, variant: ShimmerVariant.grid),
-          ]),
-        ),
-      );
+    padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p10),
+    sliver: SliverList(
+      delegate: SliverChildListDelegate([
+        const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.hero),
+        Gap.h32,
+        const ShimmerGridLoader(itemCount: 1, crossAxisCount: 1, variant: ShimmerVariant.card),
+        Gap.h32,
+        const ShimmerGridLoader(itemCount: 4, variant: ShimmerVariant.grid),
+      ]),
+    ),
+  );
 }

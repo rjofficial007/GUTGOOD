@@ -17,11 +17,7 @@ class NutritionFactsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nutrients = scanData.nutrients;
-    final hasData = nutrients != null &&
-        (nutrients.calories != null ||
-            nutrients.fat != null ||
-            nutrients.carbs != null ||
-            nutrients.proteins != null);
+    final hasData = nutrients != null && (nutrients.calories != null || nutrients.fat != null || nutrients.carbs != null || nutrients.proteins != null);
 
     return Scaffold(
       appBar: GutAppBar(
@@ -41,15 +37,15 @@ class _NoNutritionData extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-      child: Padding(
-        padding: EdgeInsets.all(AppSizes.p40),
-        child: Text(
-          AppStrings.noNutritionData,
-          textAlign: TextAlign.center,
-          style: context.body.copyWith(color: context.appColorScheme.textMuted),
-        ),
+    child: Padding(
+      padding: EdgeInsets.all(AppSizes.p40),
+      child: Text(
+        AppStrings.noNutritionData,
+        textAlign: TextAlign.center,
+        style: context.body.copyWith(color: context.appColorScheme.textMuted),
       ),
-    );
+    ),
+  );
 }
 
 class _NutritionList extends StatelessWidget {
@@ -58,62 +54,32 @@ class _NutritionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-      padding: EdgeInsets.all(AppSizes.p24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(AppStrings.per100g,
-              style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
-          Gap.h8,
-          if (nutrients.calories != null)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(AppStrings.calories, style: context.title.copyWith(fontWeight: FontWeight.w800)),
-                Text('${nutrients.calories}',
-                    style: context.headingMd.copyWith(fontWeight: FontWeight.w900)),
-              ],
-            ),
-          Divider(height: 32, thickness: 1, color: context.appColorScheme.textPrimary),
-          Gap.h16,
-          if (nutrients.fat != null)
-            NutritionRow(
-                label: AppStrings.totalFat,
-                weight: '${nutrients.fat}${AppStrings.labelGramSuffix}',
-                isBold: true),
-          if (nutrients.saturatedFat != null)
-            NutritionRow(
-                label: AppStrings.saturatedFat,
-                weight: '${nutrients.saturatedFat}${AppStrings.labelGramSuffix}',
-                indent: true),
-          if (nutrients.carbs != null)
-            NutritionRow(
-                label: AppStrings.totalCarbohydrate,
-                weight: '${nutrients.carbs}${AppStrings.labelGramSuffix}',
-                isBold: true),
-          if (nutrients.fiber != null)
-            NutritionRow(
-                label: AppStrings.fiber,
-                weight: '${nutrients.fiber}${AppStrings.labelGramSuffix}',
-                indent: true),
-          if (nutrients.sugars != null)
-            NutritionRow(
-                label: AppStrings.sugars,
-                weight: '${nutrients.sugars}${AppStrings.labelGramSuffix}',
-                indent: true),
-          if (nutrients.proteins != null)
-            NutritionRow(
-                label: AppStrings.protein,
-                weight: '${nutrients.proteins}${AppStrings.labelGramSuffix}',
-                isBold: true),
-          if (nutrients.salt != null)
-            NutritionRow(
-                label: AppStrings.salt,
-                weight: '${nutrients.salt}${AppStrings.labelGramSuffix}',
-                isBold: true),
-          Divider(height: 32, thickness: 8, color: context.appColorScheme.textPrimary),
-          Gap.h32,
-        ],
-      ),
-    );
+    padding: EdgeInsets.all(AppSizes.p24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(AppStrings.per100g, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
+        Gap.h8,
+        if (nutrients.calories != null)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(AppStrings.calories, style: context.title.copyWith(fontWeight: FontWeight.w800)),
+              Text('${nutrients.calories}', style: context.headingMd.copyWith(fontWeight: FontWeight.w900)),
+            ],
+          ),
+        Divider(height: 32, thickness: 1, color: context.appColorScheme.textPrimary),
+        Gap.h16,
+        if (nutrients.fat != null) NutritionRow(label: AppStrings.totalFat, weight: '${nutrients.fat}${AppStrings.labelGramSuffix}', isBold: true),
+        if (nutrients.saturatedFat != null) NutritionRow(label: AppStrings.saturatedFat, weight: '${nutrients.saturatedFat}${AppStrings.labelGramSuffix}', indent: true),
+        if (nutrients.carbs != null) NutritionRow(label: AppStrings.totalCarbohydrate, weight: '${nutrients.carbs}${AppStrings.labelGramSuffix}', isBold: true),
+        if (nutrients.fiber != null) NutritionRow(label: AppStrings.fiber, weight: '${nutrients.fiber}${AppStrings.labelGramSuffix}', indent: true),
+        if (nutrients.sugars != null) NutritionRow(label: AppStrings.sugars, weight: '${nutrients.sugars}${AppStrings.labelGramSuffix}', indent: true),
+        if (nutrients.proteins != null) NutritionRow(label: AppStrings.protein, weight: '${nutrients.proteins}${AppStrings.labelGramSuffix}', isBold: true),
+        if (nutrients.salt != null) NutritionRow(label: AppStrings.salt, weight: '${nutrients.salt}${AppStrings.labelGramSuffix}', isBold: true),
+        Divider(height: 32, thickness: 8, color: context.appColorScheme.textPrimary),
+        Gap.h32,
+      ],
+    ),
+  );
 }

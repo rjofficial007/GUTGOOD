@@ -26,11 +26,7 @@ abstract class HistoryFirestoreService {
 }
 
 class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
-  HistoryFirestoreServiceImpl({
-    required FirebaseAuth auth,
-    required FirebaseFirestore db,
-  })  : _auth = auth,
-        _db = db;
+  HistoryFirestoreServiceImpl({required FirebaseAuth auth, required FirebaseFirestore db}) : _auth = auth, _db = db;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
@@ -55,30 +51,11 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       }
       if (bestImageUrl != null && bestImageUrl.isEmpty) bestImageUrl = null;
 
-      if (barcode != null && barcode.isNotEmpty) {
-        final existing = await doc.collection('scan_history').where('barcode', isEqualTo: barcode).limit(1).get();
-        if (existing.docs.isNotEmpty) {
-          final existingData = existing.docs.first.data();
-          final dbImageUrl = existingData['userImageUrl'] as String?;
-
-          if (bestImageUrl == null || bestImageUrl.isEmpty) {
-            bestImageUrl = dbImageUrl;
-          }
-
-          await existing.docs.first.reference.update({
-            'timestamp': FieldValue.serverTimestamp(),
-            'time': DateTime.now().toIso8601String(),
-            'userImageUrl': bestImageUrl
-          });
-          return;
-        }
-      }
-
       await doc.collection('scan_history').add({
         ...scanData.toMap(),
         'userImageUrl': bestImageUrl,
         'timestamp': FieldValue.serverTimestamp(),
-        'time': DateTime.now().toIso8601String()
+        'time': DateTime.now().toIso8601String(),
       });
     } catch (e) {
       AppLogger.error('HistoryFirestoreService: Error saving to scan history', error: e);
@@ -91,7 +68,9 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
       final snapshot = await doc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
-      return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
+      final results = snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
+      // AppLogger.data('SCAN_HISTORY', results.map((r) => r.toMap()).toList());
+      return results;
     } catch (e) {
       AppLogger.error('HistoryFirestoreService: Error getting scan history', error: e);
       return [];
@@ -147,7 +126,9 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
       final snapshot = await doc.collection('saved_foods').get();
-      return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
+      final results = snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
+      // AppLogger.data('SAVED_FOODS', results.map((r) => r.toMap()).toList());
+      return results;
     } catch (e) {
       AppLogger.error('HistoryFirestoreService: Error getting saved foods', error: e);
       return [];
@@ -160,12 +141,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return null;
       final docRef = doc.collection('meal_logs').doc();
-      final data = {
-        ...log.toMap(),
-        'firestoreId': docRef.id,
-        'source': log.source ?? 'chat',
-        'createdAt': FieldValue.serverTimestamp()
-      };
+      final data = {...log.toMap(), 'firestoreId': docRef.id, 'source': log.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
@@ -180,7 +156,9 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
       final snapshot = await doc.collection('meal_logs').orderBy('time', descending: true).limit(limit).get();
-      return snapshot.docs.map((doc) => MealLog.fromMap(doc.data())).toList();
+      final results = snapshot.docs.map((doc) => MealLog.fromMap(doc.data())).toList();
+      // AppLogger.data('MEAL_LOGS', results.map((r) => r.toMap()).toList());
+      return results;
     } catch (e) {
       AppLogger.error('HistoryFirestoreService: Error getting recent meal logs', error: e);
       return [];
@@ -193,12 +171,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return null;
       final docRef = doc.collection('symptom_logs').doc();
-      final data = {
-        ...log.toMap(),
-        'firestoreId': docRef.id,
-        'source': log.source ?? 'manual',
-        'createdAt': FieldValue.serverTimestamp()
-      };
+      final data = {...log.toMap(), 'firestoreId': docRef.id, 'source': log.source ?? 'manual', 'createdAt': FieldValue.serverTimestamp()};
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
@@ -213,7 +186,9 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
       final snapshot = await doc.collection('symptom_logs').orderBy('time', descending: true).limit(limit).get();
-      return snapshot.docs.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
+      final results = snapshot.docs.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
+      // AppLogger.data('SYMPTOM_LOGS', results.map((r) => r.toMap()).toList());
+      return results;
     } catch (e) {
       AppLogger.error('HistoryFirestoreService: Error getting recent symptom logs', error: e);
       return [];

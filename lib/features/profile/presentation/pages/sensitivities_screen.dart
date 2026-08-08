@@ -22,7 +22,8 @@ class _SensitivitiesScreenState extends State<SensitivitiesScreen> {
   final Set<String> _selectedSensitivities = {};
   bool _isSaving = false;
 
-  final List<SelectionOption> _sensitivityOptions = AppConfigData.sensitivityOptions;
+  final List<SelectionOption> _sensitivityOptions =
+      AppConfigData.sensitivityOptions;
 
   @override
   void initState() {
@@ -36,7 +37,10 @@ class _SensitivitiesScreenState extends State<SensitivitiesScreen> {
 
     final notifier = context.read<ProfileNotifier>();
     if (notifier.profile != null) {
-      final updatedProfile = notifier.profile!.copyWith(sensitivities: sensitivitiesList, updatedAt: DateTime.now());
+      final updatedProfile = notifier.profile!.copyWith(
+        sensitivities: sensitivitiesList,
+        updatedAt: DateTime.now(),
+      );
       await notifier.updateUserProfile(updatedProfile);
     }
 
@@ -58,37 +62,34 @@ class _SensitivitiesScreenState extends State<SensitivitiesScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: const GutAppBar(title: AppStrings.sensitivities),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(AppSizes.p24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _SelectionHeader(
-                    title: AppStrings.onboardingSensitivitiesTitle,
-                    subtitle: AppStrings.updatePreferencesSubtitle,
-                  ),
-                  Gap.h32,
-                  SelectionWrap(
-                    options: _sensitivityOptions,
-                    selectedValues: _selectedSensitivities,
-                    onToggle: _toggleSensitivity,
-                  ),
-                ],
-              ),
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    appBar: const GutAppBar(title: AppStrings.sensitivities),
+    body: Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(AppSizes.p24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _SelectionHeader(
+                  title: AppStrings.onboardingSensitivitiesTitle,
+                  subtitle: AppStrings.updatePreferencesSubtitle,
+                ),
+                Gap.h32,
+                SelectionWrap(
+                  options: _sensitivityOptions,
+                  selectedValues: _selectedSensitivities,
+                  onToggle: _toggleSensitivity,
+                ),
+              ],
             ),
           ),
-          _SelectionFooter(
-            isLoading: _isSaving,
-            onSave: _save,
-          ),
-        ],
-      ),
-    );
+        ),
+        _SelectionFooter(isLoading: _isSaving, onSave: _save),
+      ],
+    ),
+  );
 }
 
 class _SelectionHeader extends StatelessWidget {
@@ -98,14 +99,24 @@ class _SelectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
-        Gap.h8,
-        Text(subtitle,
-            style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
-      ],
-    );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        title,
+        style: AppTextStyles.title.copyWith(
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+        ),
+      ),
+      Gap.h8,
+      Text(
+        subtitle,
+        style: AppTextStyles.bodySm.copyWith(
+          color: context.appColorScheme.textSecondary,
+        ),
+      ),
+    ],
+  );
 }
 
 class _SelectionFooter extends StatelessWidget {
@@ -115,7 +126,16 @@ class _SelectionFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-      padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p32),
-      child: GutButton(label: AppStrings.saveChanges, isLoading: isLoading, onTap: onSave),
-    );
+    padding: EdgeInsets.fromLTRB(
+      AppSizes.p24,
+      AppSizes.p16,
+      AppSizes.p24,
+      AppSizes.p32,
+    ),
+    child: GutButton(
+      label: AppStrings.saveChanges,
+      isLoading: isLoading,
+      onTap: onSave,
+    ),
+  );
 }

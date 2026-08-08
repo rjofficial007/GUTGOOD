@@ -10,7 +10,6 @@ import 'package:gutgood/core/utils/responsive.dart';
 /// Features a distinctive header with an icon, optional action button,
 /// and a footer for metadata (like confidence levels or timestamps).
 class ModernInsightCard extends StatelessWidget {
-
   const ModernInsightCard({
     super.key,
     required this.title,
@@ -27,6 +26,7 @@ class ModernInsightCard extends StatelessWidget {
     this.action,
     this.onTap,
   });
+
   /// Primary title for the card.
   final String title;
 
@@ -84,8 +84,15 @@ class ModernInsightCard extends StatelessWidget {
               bottom: 0,
               child: Container(
                 height: Responsive.h(120.0),
-                padding: EdgeInsets.only(bottom: 12.0.h, left: 16.0.w, right: 16.0.w),
-                decoration: BoxDecoration(color: footerColor ?? context.appColorScheme.textPrimary, borderRadius: BorderRadius.circular(radius)),
+                padding: EdgeInsets.only(
+                  bottom: 12.0.h,
+                  left: 16.0.w,
+                  right: 16.0.w,
+                ),
+                decoration: BoxDecoration(
+                  color: footerColor ?? context.appColorScheme.textPrimary,
+                  borderRadius: BorderRadius.circular(radius),
+                ),
                 alignment: Alignment.bottomCenter,
                 child: footerWidget,
               ),
@@ -96,9 +103,16 @@ class ModernInsightCard extends StatelessWidget {
             padding: EdgeInsets.only(bottom: footerWidget != null ? 40.0.h : 0),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: backgroundColor ?? context.appColorScheme.elevatedSurface,
+                color:
+                    backgroundColor ?? context.appColorScheme.elevatedSurface,
                 borderRadius: BorderRadius.circular(radius),
-                boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, 8))],
+                boxShadow: [
+                  BoxShadow(
+                    color: AppPalette.black.withValues(alpha: 0.1),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(radius),
@@ -107,15 +121,37 @@ class ModernInsightCard extends StatelessWidget {
                   children: [
                     // Header Row
                     Padding(
-                      padding: EdgeInsets.fromLTRB(20.0.w, 20.0.h, 20.0.w, 12.0.h),
+                      padding: EdgeInsets.fromLTRB(
+                        20.0.w,
+                        20.0.h,
+                        20.0.w,
+                        12.0.h,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
                             children: [
-                              if (leading != null) leading! else if (icon != null) Icon(icon, color: iconColor ?? context.appColorScheme.textPrimary, size: 20.0.w),
+                              if (leading != null)
+                                leading!
+                              else if (icon != null)
+                                Icon(
+                                  icon,
+                                  color:
+                                      iconColor ??
+                                      context.appColorScheme.textPrimary,
+                                  size: 20.0.w,
+                                ),
                               if (leading != null || icon != null) Gap.w12,
-                              Text(title.toUpperCase(), style: context.eyebrow.copyWith(color: titleColor ?? context.appColorScheme.textPrimary, letterSpacing: 1.2)),
+                              Text(
+                                title.toUpperCase(),
+                                style: context.eyebrow.copyWith(
+                                  color:
+                                      titleColor ??
+                                      context.appColorScheme.textPrimary,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
                             ],
                           ),
                           ?actionWidget,
@@ -125,7 +161,8 @@ class ModernInsightCard extends StatelessWidget {
 
                     // Content
                     Padding(
-                      padding: padding ?? EdgeInsets.symmetric(horizontal: 20.0.w),
+                      padding:
+                          padding ?? EdgeInsets.symmetric(horizontal: 20.0.w),
                       child: child,
                     ),
 

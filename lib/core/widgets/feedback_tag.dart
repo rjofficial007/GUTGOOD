@@ -4,8 +4,13 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 
 class FeedbackTag extends StatelessWidget {
-
-  const FeedbackTag({super.key, required this.icon, required this.label, required this.onTap, this.isSelected = false});
+  const FeedbackTag({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isSelected = false,
+  });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -13,25 +18,42 @@ class FeedbackTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.cardBackground,
-          border: Border.all(color: isSelected ? context.appColorScheme.textPrimary : context.appColorScheme.border),
-          borderRadius: BorderRadius.circular(20),
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? context.appColorScheme.textPrimary
+            : context.appColorScheme.cardBackground,
+        border: Border.all(
+          color: isSelected
+              ? context.appColorScheme.textPrimary
+              : context.appColorScheme.border,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 12, color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: AppTextStyles.caption.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+        borderRadius: BorderRadius.circular(20),
       ),
-    );
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 12,
+            color: isSelected
+                ? context.appColorScheme.cardBackground
+                : context.appColorScheme.textPrimary,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(
+              color: isSelected
+                  ? context.appColorScheme.cardBackground
+                  : context.appColorScheme.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

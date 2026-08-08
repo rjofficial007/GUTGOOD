@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/services/ai_service.dart';
@@ -14,11 +15,11 @@ import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:uuid/uuid.dart';
 
 class ScannerRepositoryImpl implements ScannerRepository {
-
   ScannerRepositoryImpl({
     required OffService offService,
     required AiService aiService,
@@ -62,7 +63,12 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan');
 
-    final Map<String, dynamic> aiData = jsonDecode(aiResultStr);
+    final jsonStr = ModelUtils.extractJson(aiResultStr);
+    if (jsonStr == null) {
+      throw Exception('ScannerRepository: Could not parse AI barcode analysis result');
+    }
+
+    final Map<String, dynamic> aiData = jsonDecode(jsonStr);
     aiData['imageUrl'] ??= product.imageUrl;
     aiData['barcode'] ??= product.barcode;
     aiData['nutrients'] ??= product.nutrients?.toMap();
@@ -89,8 +95,10 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     final scanRegex = RegExp(r'\[SCAN\](.*?)\[/SCAN\]', dotAll: true);
     final match = scanRegex.firstMatch(aiResultStr);
-    if (match != null) {
-      final jsonStr = match.group(1)?.replaceAll('```json', '').replaceAll('```', '').trim() ?? '';
+    final rawJson = match != null ? match.group(1) : aiResultStr;
+
+    final jsonStr = ModelUtils.extractJson(rawJson);
+    if (jsonStr != null) {
       final result = ScanResult.fromMap(jsonDecode(jsonStr));
       await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'vision', 'product_name': result.productName, 'score': result.score});
       return result;
@@ -114,12 +122,19 @@ class ScannerRepositoryImpl implements ScannerRepository {
     await _historyFirestoreService.saveToScanHistory(result, userImageUrl: userImageUrl);
     AppLogger.info('ScannerRepository: Scan result saved to scan_history. Image: ${userImageUrl != null}');
 
+    // 🟢 Automatically add to Meal Log if it's a food image/snap or gallery upload
+    if (result.source == 'food' || result.source == 'meal' || result.source == 'gallery') {
+      final mealLog = MealLog(items: [result.productName], photoUrl: userImageUrl ?? result.imageUrl, time: DateTime.now(), source: result.source);
+      await _historyFirestoreService.logMeal(mealLog);
+      AppLogger.info('ScannerRepository: Food image (${result.source}) automatically logged as a meal');
+    }
+
     // 🟢 Fix: Notify UI that history has updated
     _appStateService.notifyChatUpdated();
     AppLogger.info('ScannerRepository: UI notified of scan history update');
 
     unawaited(_notificationService.scheduleNoMealLoggedReminder());
-    
+
     // 🚀 Professional Loop: Schedule a symptom check-in 2 hours after a scan.
     // This helps the Pattern Engine find correlations later.
     unawaited(_notificationService.schedulePostMealCheckIn());

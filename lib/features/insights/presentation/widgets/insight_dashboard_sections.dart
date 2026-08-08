@@ -19,63 +19,32 @@ class GoalDashboardSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DashboardEntrance(
-      delay: 100,
-      child: GutDashboardSection(
-        title: AppStrings.topBodyInsights,
-        subtitle: AppStrings.primaryObjectives,
-        visualization: const DashboardVisualizationBar(
-          ratio: 0.65,
-          label: AppStrings.trackingStability,
-        ),
-        items: [
-          if (insight.healingGoal != null)
-            DashboardDetailItem(
-              title: insight.healingGoal!,
-              subtitle: AppStrings.activeGoal,
-              icon: AppIcons.target,
-              color: context.appColorScheme.success,
-            ),
-          if (insight.healingGoal != null && insight.triggerSymptom != null) Gap.h12,
-          if (insight.triggerSymptom != null)
-            DashboardDetailItem(
-              title: insight.triggerSymptom!,
-              subtitle: AppStrings.symptomWatch,
-              icon: AppIcons.activity,
-              color: context.appColorScheme.warning,
-            ),
-        ],
-        footerLabel: AppStrings.viewGoalProgress,
-        onFooterTap: () => _showFocusDetails(context),
-      ),
-    );
+    delay: 100,
+    child: GutDashboardSection(
+      title: AppStrings.topBodyInsights,
+      subtitle: AppStrings.primaryObjectives,
+      visualization: const DashboardVisualizationBar(ratio: 0.65, label: AppStrings.trackingStability),
+      items: [
+        if (insight.healingGoal != null) DashboardDetailItem(title: insight.healingGoal!, subtitle: AppStrings.activeGoal, icon: AppIcons.target, color: context.appColorScheme.success),
+        if (insight.healingGoal != null && insight.triggerSymptom != null) Gap.h12,
+        if (insight.triggerSymptom != null) DashboardDetailItem(title: insight.triggerSymptom!, subtitle: AppStrings.symptomWatch, icon: AppIcons.activity, color: context.appColorScheme.warning),
+      ],
+      footerLabel: AppStrings.viewGoalProgress,
+      onFooterTap: () => _showFocusDetails(context),
+    ),
+  );
 
   void _showFocusDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.currentFocus,
       children: [
-        SheetHeroSection(
-          title: AppStrings.target,
-          subtitle: AppStrings.healthGoals,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.target,
-        ),
+        SheetHeroSection(title: AppStrings.target, subtitle: AppStrings.healthGoals, color: context.appColorScheme.textPrimary, icon: AppIcons.target),
         Gap.h32,
-        if (insight.healingGoal != null)
-          DashboardDetailItem(
-            title: insight.healingGoal!,
-            subtitle: AppStrings.primaryHealingObjective,
-            icon: AppIcons.leaf,
-            color: context.appColorScheme.success,
-          ),
+        if (insight.healingGoal != null) DashboardDetailItem(title: insight.healingGoal!, subtitle: AppStrings.primaryHealingObjective, icon: AppIcons.leaf, color: context.appColorScheme.success),
         Gap.h16,
         if (insight.triggerSymptom != null)
-          DashboardDetailItem(
-            title: insight.triggerSymptom!,
-            subtitle: AppStrings.symptomTrackedForPatterns,
-            icon: AppIcons.alertTriangle,
-            color: context.appColorScheme.warning,
-          ),
+          DashboardDetailItem(title: insight.triggerSymptom!, subtitle: AppStrings.symptomTrackedForPatterns, icon: AppIcons.alertTriangle, color: context.appColorScheme.warning),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -91,15 +60,12 @@ class PowerSourcesDashboardSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      ...insight.healingFoods.take(2).map(
+      ...insight.healingFoods
+          .take(2)
+          .map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: DashboardDetailItem(
-                title: f.name,
-                subtitle: f.effect,
-                icon: InsightUiUtils.getReactionIcon(f.emoji),
-                color: context.appColorScheme.success,
-              ),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.success),
             ),
           ),
       ...insight.foodImpacts
@@ -108,12 +74,7 @@ class PowerSourcesDashboardSection extends StatelessWidget {
           .map(
             (i) => Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: DashboardDetailItem(
-                title: i.food,
-                subtitle: i.effect,
-                icon: InsightUiUtils.getReactionIcon(i.emoji),
-                color: context.appColorScheme.success,
-              ),
+              child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.success),
             ),
           ),
     ].take(3).toList();
@@ -123,49 +84,30 @@ class PowerSourcesDashboardSection extends StatelessWidget {
       child: GutDashboardSection(
         title: 'POWER SOURCES',
         subtitle: AppStrings.foodsToPrioritize,
-        visualization: const DashboardVisualizationBar(
-          ratio: 0.85,
-          label: AppStrings.highHealingDensity,
-        ),
+        visualization: const DashboardVisualizationBar(ratio: 0.85, label: AppStrings.highHealingDensity),
         items: items,
         footerLabel: 'View All Power Sources',
         onFooterTap: () => _showPowerSourcesDetails(context),
-        titleColor: context.appColorScheme.success,
       ),
     );
   }
 
   void _showPowerSourcesDetails(BuildContext context) {
     final healing = insight.healingFoods;
-    final successes = insight.foodImpacts
-        .where((i) => i.impactType == 'positive' && i.food != 'Unknown')
-        .toList();
+    final successes = insight.foodImpacts.where((i) => i.impactType == 'positive' && i.food != 'Unknown').toList();
 
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: 'Power Sources',
       children: [
-        SheetHeroSection(
-          title: AppStrings.heal,
-          subtitle: 'Evidence-backed benefits',
-          color: context.appColorScheme.success,
-          icon: AppIcons.leaf,
-        ),
+        SheetHeroSection(title: AppStrings.heal, subtitle: 'Evidence-backed benefits', color: context.appColorScheme.success, icon: AppIcons.leaf),
         Gap.h32,
         if (healing.isNotEmpty) ...[
-          SheetSectionHeader(
-            title: 'AI RECOMMENDATIONS',
-            color: context.appColorScheme.textPrimary,
-          ),
+          SheetSectionHeader(title: 'AI RECOMMENDATIONS', color: context.appColorScheme.textPrimary),
           ...healing.map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
-              child: DashboardDetailItem(
-                title: f.name,
-                subtitle: f.effect,
-                icon: InsightUiUtils.getReactionIcon(f.emoji),
-                color: context.appColorScheme.success,
-              ),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.success),
             ),
           ),
           Gap.h24,
@@ -175,12 +117,7 @@ class PowerSourcesDashboardSection extends StatelessWidget {
           ...successes.map(
             (i) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
-              child: DashboardDetailItem(
-                title: i.food,
-                subtitle: '${i.timeframeLabel}: ${i.effect}',
-                icon: InsightUiUtils.getReactionIcon(i.emoji),
-                color: context.appColorScheme.success,
-              ),
+              child: DashboardDetailItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.success),
             ),
           ),
           Gap.h24,
@@ -200,15 +137,12 @@ class TriggersDashboardSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      ...insight.triggerFoods.take(2).map(
+      ...insight.triggerFoods
+          .take(2)
+          .map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: DashboardDetailItem(
-                title: f.name,
-                subtitle: f.effect,
-                icon: InsightUiUtils.getReactionIcon(f.emoji),
-                color: context.appColorScheme.error,
-              ),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.error),
             ),
           ),
       ...insight.foodImpacts
@@ -217,12 +151,7 @@ class TriggersDashboardSection extends StatelessWidget {
           .map(
             (i) => Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: DashboardDetailItem(
-                title: i.food,
-                subtitle: i.effect,
-                icon: InsightUiUtils.getReactionIcon(i.emoji),
-                color: context.appColorScheme.error,
-              ),
+              child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.error),
             ),
           ),
     ].take(3).toList();
@@ -236,39 +165,26 @@ class TriggersDashboardSection extends StatelessWidget {
         items: items,
         footerLabel: 'View All Triggers',
         onFooterTap: () => _showTriggersDetails(context),
-        titleColor: context.appColorScheme.error,
       ),
     );
   }
 
   void _showTriggersDetails(BuildContext context) {
     final triggers = insight.triggerFoods;
-    final reactions = insight.foodImpacts
-        .where((i) => i.impactType == 'negative' && i.food != 'Unknown')
-        .toList();
+    final reactions = insight.foodImpacts.where((i) => i.impactType == 'negative' && i.food != 'Unknown').toList();
 
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: 'System Triggers',
       children: [
-        SheetHeroSection(
-          title: 'ALERT',
-          subtitle: 'Potential Triggers',
-          color: context.appColorScheme.error,
-          icon: AppIcons.alertTriangle,
-        ),
+        SheetHeroSection(title: 'ALERT', subtitle: 'Potential Triggers', color: context.appColorScheme.error, icon: AppIcons.alertTriangle),
         Gap.h32,
         if (triggers.isNotEmpty) ...[
           SheetSectionHeader(title: 'AI WARNINGS', color: context.appColorScheme.textPrimary),
           ...triggers.map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
-              child: DashboardDetailItem(
-                title: f.name,
-                subtitle: f.effect,
-                icon: InsightUiUtils.getReactionIcon(f.emoji),
-                color: context.appColorScheme.error,
-              ),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.error),
             ),
           ),
           Gap.h24,
@@ -278,12 +194,7 @@ class TriggersDashboardSection extends StatelessWidget {
           ...reactions.map(
             (i) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
-              child: DashboardDetailItem(
-                title: i.food,
-                subtitle: '${i.timeframeLabel}: ${i.effect}',
-                icon: InsightUiUtils.getReactionIcon(i.emoji),
-                color: context.appColorScheme.error,
-              ),
+              child: DashboardDetailItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.error),
             ),
           ),
           Gap.h24,
@@ -303,52 +214,34 @@ class PatternsDashboardSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DashboardEntrance(
-      delay: delay,
-      child: GutDashboardSection(
-        title: AppStrings.aiPatterns,
-        subtitle: AppStrings.detectedPatterns,
-        visualization: const DashboardVisualizationBar(
-          ratio: 0.45,
-          label: AppStrings.patternConsistency,
-        ),
-        items: insight.detectedPatterns.take(2).map((p) {
-          final color = InsightUiUtils.getPatternColor(p.icon);
-          return Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.p12),
-            child: DashboardDetailItem(
-              title: p.title,
-              subtitle: AppStrings.observation,
-              icon: InsightUiUtils.getReactionIcon(p.icon),
-              color: color,
-            ),
-          );
-        }).toList(),
-        footerLabel: AppStrings.viewDetailedPatterns,
-        onFooterTap: () => _showTrendDetails(context),
-      ),
-    );
+    delay: delay,
+    child: GutDashboardSection(
+      title: AppStrings.aiPatterns,
+      subtitle: AppStrings.detectedPatterns,
+      visualization: const DashboardVisualizationBar(ratio: 0.45, label: AppStrings.patternConsistency),
+      items: insight.detectedPatterns.take(2).map((p) {
+        final color = InsightUiUtils.getPatternColor(p.icon);
+        return Padding(
+          padding: EdgeInsets.only(bottom: AppSizes.p12),
+          child: DashboardDetailItem(title: p.title, subtitle: AppStrings.observation, icon: InsightUiUtils.getReactionIcon(p.icon), color: color),
+        );
+      }).toList(),
+      footerLabel: AppStrings.viewDetailedPatterns,
+      onFooterTap: () => _showTrendDetails(context),
+    ),
+  );
 
   void _showTrendDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.observedPatterns,
       children: [
-        SheetHeroSection(
-          title: AppStrings.trends,
-          subtitle: AppStrings.behavioralAnalysis,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.activity,
-        ),
+        SheetHeroSection(title: AppStrings.trends, subtitle: AppStrings.behavioralAnalysis, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...insight.detectedPatterns.map(
           (p) => Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(
-              title: p.title,
-              subtitle: p.description,
-              icon: InsightUiUtils.getReactionIcon(p.icon),
-              color: InsightUiUtils.getPatternColor(p.icon),
-            ),
+            child: DashboardDetailItem(title: p.title, subtitle: p.description, icon: InsightUiUtils.getReactionIcon(p.icon), color: InsightUiUtils.getPatternColor(p.icon)),
           ),
         ),
         Gap.h32,
@@ -366,54 +259,43 @@ class HighlightsDashboardSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DashboardEntrance(
-      delay: delay,
-      child: GutDashboardSection(
-        title: AppStrings.performanceHighlights,
-        subtitle: AppStrings.performanceHighs,
-        visualization: const DashboardVisualizationBar(
-          ratio: 0.75,
-          label: AppStrings.optimizationEfficiency,
-        ),
-        items: [
-          if (insight.topHealing != null)
-            DashboardDetailItem(
-              title: insight.topHealing!.food,
-              subtitle: AppStrings.bestForGut,
-              icon: InsightUiUtils.getReactionIcon(insight.topHealing?.emoji ?? ''),
-              color: context.appColorScheme.success,
-            ),
-          if (insight.topHealing != null && insight.topTrigger != null) Gap.h12,
-          if (insight.topTrigger != null)
-            DashboardDetailItem(
-              title: insight.topTrigger!.food,
-              subtitle: AppStrings.avoidNextTime,
-              icon: InsightUiUtils.getReactionIcon(insight.topTrigger?.emoji ?? ''),
-              color: context.appColorScheme.error,
-            ),
-        ],
-        footerLabel: AppStrings.viewPerformanceHighs,
-        onFooterTap: () => _showHighlightDetails(context),
-        titleColor: context.appColorScheme.textPrimary,
-      ),
-    );
+    delay: delay,
+    child: GutDashboardSection(
+      title: AppStrings.performanceHighlights,
+      subtitle: AppStrings.performanceHighs,
+      visualization: const DashboardVisualizationBar(ratio: 0.75, label: AppStrings.optimizationEfficiency),
+      items: [
+        if (insight.topHealing != null)
+          DashboardDetailItem(
+            title: insight.topHealing!.food,
+            subtitle: AppStrings.bestForGut,
+            icon: InsightUiUtils.getReactionIcon(insight.topHealing?.emoji ?? ''),
+            color: context.appColorScheme.success,
+          ),
+        if (insight.topHealing != null && insight.topTrigger != null) Gap.h12,
+        if (insight.topTrigger != null)
+          DashboardDetailItem(
+            title: insight.topTrigger!.food,
+            subtitle: AppStrings.avoidNextTime,
+            icon: InsightUiUtils.getReactionIcon(insight.topTrigger?.emoji ?? ''),
+            color: context.appColorScheme.error,
+          ),
+      ],
+      footerLabel: AppStrings.viewPerformanceHighs,
+      onFooterTap: () => _showHighlightDetails(context),
+      titleColor: context.appColorScheme.textPrimary,
+    ),
+  );
 
   void _showHighlightDetails(BuildContext context) {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.performanceHighlights,
       children: [
-        SheetHeroSection(
-          title: AppStrings.bioStats,
-          subtitle: AppStrings.performanceAnalysis,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.trophy,
-        ),
+        SheetHeroSection(title: AppStrings.bioStats, subtitle: AppStrings.performanceAnalysis, color: context.appColorScheme.textPrimary, icon: AppIcons.trophy),
         Gap.h32,
         if (insight.topHealing != null) ...[
-          SheetSectionHeader(
-            title: AppStrings.topPerformer,
-            color: context.appColorScheme.textPrimary,
-          ),
+          SheetSectionHeader(title: AppStrings.topPerformer, color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: insight.topHealing!.food,
             subtitle: insight.topHealing!.effects,
@@ -423,10 +305,7 @@ class HighlightsDashboardSection extends StatelessWidget {
           Gap.h24,
         ],
         if (insight.topTrigger != null) ...[
-          SheetSectionHeader(
-            title: AppStrings.criticalTrigger,
-            color: context.appColorScheme.textPrimary,
-          ),
+          SheetSectionHeader(title: AppStrings.criticalTrigger, color: context.appColorScheme.textPrimary),
           DashboardDetailItem(
             title: insight.topTrigger!.food,
             subtitle: insight.topTrigger!.effects,
@@ -449,30 +328,23 @@ class ModernSmartAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ModernInsightCard(
-        title: insight.title,
-        icon: AppIcons.sparkles,
-        backgroundColor: context.appColorScheme.cardBackground,
-        titleColor: context.appColorScheme.textPrimary,
-        iconColor: context.appColorScheme.textPrimary,
-        padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
-        footer: Text(
-          '${insight.type.toUpperCase()} INSIGHT',
-          textAlign: TextAlign.center,
-          style: context.caption.copyWith(
-            color: context.appColorScheme.cardBackground,
-            fontWeight: FontWeight.w900,
-            fontSize: AppSizes.s10,
-            letterSpacing: 1.0,
-          ),
-        ),
-        footerColor: context.appColorScheme.textPrimary,
-        child: Text(
-          insight.description,
-          style: context.bodySm.copyWith(
-            color: context.appColorScheme.textPrimary,
-            height: 1.4,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      );
+    title: insight.title,
+    icon: AppIcons.sparkles,
+    backgroundColor: context.appColorScheme.cardBackground,
+    titleColor: context.appColorScheme.textPrimary,
+    iconColor: context.appColorScheme.textPrimary,
+    padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
+    footer: Text(
+      '${insight.type.toUpperCase()} INSIGHT',
+      textAlign: TextAlign.center,
+      style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
+    ),
+    footerColor: context.appColorScheme.textPrimary,
+    child: Text(
+      insight.description,
+      style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
+      softWrap: true,
+      maxLines: null,
+    ),
+  );
 }

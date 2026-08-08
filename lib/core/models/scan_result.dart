@@ -11,7 +11,6 @@ enum ImpactType { positive, neutral, negative }
 /// the [ScanResultScreen], including nutrient levels, ingredient breakdown,
 /// and hormonal cycle insights.
 class ScanResult extends Equatable {
-
   const ScanResult({
     required this.productName,
     required this.brand,
@@ -64,19 +63,40 @@ class ScanResult extends Equatable {
       novaGroup: map['novaGroup']?.toString(),
       allergens: map['allergens'],
       additives: map['additives'],
-      ingredients: ModelUtils.parseModelList<Ingredient>(map['ingredients'], Ingredient.fromMap),
-      nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
-      nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'], NutrientLevels.fromMap),
-      impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
-      swaps: ModelUtils.parseModelList<ProductSwap>(map['swaps'], ProductSwap.fromMap),
-      cycleInsight: ModelUtils.parseNestedModel<CycleInsight>(map['cycleInsight'], CycleInsight.fromMap),
+      ingredients: ModelUtils.parseModelList<Ingredient>(
+        map['ingredients'],
+        Ingredient.fromMap,
+      ),
+      nutrients: ModelUtils.parseNestedModel<NutrientData>(
+        map['nutrients'],
+        NutrientData.fromMap,
+      ),
+      nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(
+        map['nutrientLevels'],
+        NutrientLevels.fromMap,
+      ),
+      impacts: ModelUtils.parseModelList<ImpactDetail>(
+        map['impacts'],
+        ImpactDetail.fromMap,
+      ),
+      swaps: ModelUtils.parseModelList<ProductSwap>(
+        map['swaps'],
+        ProductSwap.fromMap,
+      ),
+      cycleInsight: ModelUtils.parseNestedModel<CycleInsight>(
+        map['cycleInsight'],
+        CycleInsight.fromMap,
+      ),
       barcode: map['barcode'],
       source: map['source'],
       userImageUrl: map['userImageUrl'],
-      flaggedIngredients: ModelUtils.parseList<String>(map['flaggedIngredients']),
+      flaggedIngredients: ModelUtils.parseList<String>(
+        map['flaggedIngredients'],
+      ),
       time: map['time'] != null ? DateTime.tryParse(map['time']) : null,
     );
   }
+
   /// The official name of the product.
   final String productName;
 
@@ -167,67 +187,76 @@ class ScanResult extends Equatable {
     List<String>? flaggedIngredients,
     DateTime? time,
   }) => ScanResult(
-      productName: productName ?? this.productName,
-      brand: brand ?? this.brand,
-      imageUrl: imageUrl ?? this.imageUrl,
-      score: score ?? this.score,
-      impactType: impactType ?? this.impactType,
-      impact: impact ?? this.impact,
-      badge: badge ?? this.badge,
-      nutriscore: nutriscore ?? this.nutriscore,
-      novaGroup: novaGroup ?? this.novaGroup,
-      allergens: allergens ?? this.allergens,
-      additives: additives ?? this.additives,
-      ingredients: ingredients ?? this.ingredients,
-      nutrients: nutrients ?? this.nutrients,
-      nutrientLevels: nutrientLevels ?? this.nutrientLevels,
-      impacts: impacts ?? this.impacts,
-      swaps: swaps ?? this.swaps,
-      cycleInsight: cycleInsight ?? this.cycleInsight,
-      barcode: barcode ?? this.barcode,
-      source: source ?? this.source,
-      userImageUrl: userImageUrl ?? this.userImageUrl,
-      flaggedIngredients: flaggedIngredients ?? this.flaggedIngredients,
-      time: time ?? this.time,
-    );
+    productName: productName ?? this.productName,
+    brand: brand ?? this.brand,
+    imageUrl: imageUrl ?? this.imageUrl,
+    score: score ?? this.score,
+    impactType: impactType ?? this.impactType,
+    impact: impact ?? this.impact,
+    badge: badge ?? this.badge,
+    nutriscore: nutriscore ?? this.nutriscore,
+    novaGroup: novaGroup ?? this.novaGroup,
+    allergens: allergens ?? this.allergens,
+    additives: additives ?? this.additives,
+    ingredients: ingredients ?? this.ingredients,
+    nutrients: nutrients ?? this.nutrients,
+    nutrientLevels: nutrientLevels ?? this.nutrientLevels,
+    impacts: impacts ?? this.impacts,
+    swaps: swaps ?? this.swaps,
+    cycleInsight: cycleInsight ?? this.cycleInsight,
+    barcode: barcode ?? this.barcode,
+    source: source ?? this.source,
+    userImageUrl: userImageUrl ?? this.userImageUrl,
+    flaggedIngredients: flaggedIngredients ?? this.flaggedIngredients,
+    time: time ?? this.time,
+  );
 
   Map<String, dynamic> toMap() => {
-      'productName': productName,
-      'brand': brand,
-      'imageUrl': imageUrl,
-      'score': score,
-      'impactType': impactType.name,
-      'impact': impact,
-      'badge': badge,
-      'nutriscore': nutriscore,
-      'novaGroup': novaGroup,
-      'allergens': allergens,
-      'additives': additives,
-      'ingredients': ingredients.map((e) => e.toMap()).toList(),
-      'nutrients': nutrients?.toMap(),
-      'nutrientLevels': nutrientLevels?.toMap(),
-      'impacts': impacts.map((e) => e.toMap()).toList(),
-      'swaps': swaps.map((e) => e.toMap()).toList(),
-      'cycleInsight': cycleInsight?.toMap(),
-      'barcode': barcode,
-      'source': source,
-      'userImageUrl': userImageUrl,
-      'flaggedIngredients': flaggedIngredients,
-      'time': time?.toIso8601String(),
-    };
+    'productName': productName,
+    'brand': brand,
+    'imageUrl': imageUrl,
+    'score': score,
+    'impactType': impactType.name,
+    'impact': impact,
+    'badge': badge,
+    'nutriscore': nutriscore,
+    'novaGroup': novaGroup,
+    'allergens': allergens,
+    'additives': additives,
+    'ingredients': ingredients.map((e) => e.toMap()).toList(),
+    'nutrients': nutrients?.toMap(),
+    'nutrientLevels': nutrientLevels?.toMap(),
+    'impacts': impacts.map((e) => e.toMap()).toList(),
+    'swaps': swaps.map((e) => e.toMap()).toList(),
+    'cycleInsight': cycleInsight?.toMap(),
+    'barcode': barcode,
+    'source': source,
+    'userImageUrl': userImageUrl,
+    'flaggedIngredients': flaggedIngredients,
+    'time': time?.toIso8601String(),
+  };
 
   /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
   /// Excludes large fields like full ingredients, nutrients, and swaps.
   Map<String, dynamic> toAiMap() => {
-      'productName': productName,
-      'brand': brand,
-      'score': score,
-      'impact': impact,
-      'nutriscore': nutriscore,
-      'novaGroup': novaGroup,
-      'flaggedIngredients': flaggedIngredients,
-    };
+    'productName': productName,
+    'brand': brand,
+    'score': score,
+    'impact': impact,
+    'nutriscore': nutriscore,
+    'novaGroup': novaGroup,
+    'flaggedIngredients': flaggedIngredients,
+  };
 
   @override
-  List<Object?> get props => [productName, brand, score, impactType, impact, barcode, userImageUrl, flaggedIngredients];
+  List<Object?> get props => [
+    productName,
+    brand,
+    score,
+    impactType,
+    impact,
+    barcode,
+    userImageUrl,
+    flaggedIngredients,
+  ];
 }

@@ -55,7 +55,13 @@ void main() {
   late MockNotificationService mockNotificationService;
 
   setUpAll(() {
-    registerFallbackValue(UserProfile(uid: '', updatedAt: DateTime.now(), createdAt: DateTime.now()));
+    registerFallbackValue(
+      UserProfile(
+        uid: '',
+        updatedAt: DateTime.now(),
+        createdAt: DateTime.now(),
+      ),
+    );
   });
 
   setUp(() {
@@ -85,37 +91,58 @@ void main() {
   });
 
   group('AuthRepository', () {
-    test('signInAnonymously performs Firebase sign in and updates profile', () async {
-      final mockUser = MockUser();
-      final mockCredential = MockUserCredential();
+    test(
+      'signInAnonymously performs Firebase sign in and updates profile',
+      () async {
+        final mockUser = MockUser();
+        final mockCredential = MockUserCredential();
 
-      when(() => mockUser.uid).thenReturn('anon-123');
-      when(() => mockUser.email).thenReturn(null);
-      when(() => mockUser.isAnonymous).thenReturn(true);
-      when(() => mockUser.displayName).thenReturn(null);
-      when(() => mockCredential.user).thenReturn(mockUser);
+        when(() => mockUser.uid).thenReturn('anon-123');
+        when(() => mockUser.email).thenReturn(null);
+        when(() => mockUser.isAnonymous).thenReturn(true);
+        when(() => mockUser.displayName).thenReturn(null);
+        when(() => mockCredential.user).thenReturn(mockUser);
 
-      firebase.User? currentUser;
-      when(() => mockFirebaseAuth.currentUser).thenAnswer((_) => currentUser);
-      when(() => mockFirebaseAuth.signInAnonymously()).thenAnswer((_) async {
-        currentUser = mockUser;
-        return mockCredential;
-      });
-      when(() => mockFirestoreService.updateUserProfile(any())).thenAnswer((_) async {});
-      when(() => mockSharedPreferences.setBool(any(), any())).thenAnswer((_) async => true);
-      when(() => mockAppStateService.notifyProfileUpdated()).thenAnswer((_) {});
-      when(() => mockAnalyticsService.logEvent(name: any(named: 'name'))).thenAnswer((_) async {});
-      when(() => mockAnalyticsService.setUserId(any())).thenAnswer((_) async {});
-      when(() => mockCrashlyticsService.setUserId(any())).thenAnswer((_) async {});
+        firebase.User? currentUser;
+        when(() => mockFirebaseAuth.currentUser).thenAnswer((_) => currentUser);
+        when(() => mockFirebaseAuth.signInAnonymously()).thenAnswer((_) async {
+          currentUser = mockUser;
+          return mockCredential;
+        });
+        when(
+          () => mockFirestoreService.updateUserProfile(any()),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockSharedPreferences.setBool(any(), any()),
+        ).thenAnswer((_) async => true);
+        when(
+          () => mockAppStateService.notifyProfileUpdated(),
+        ).thenAnswer((_) {});
+        when(
+          () => mockAnalyticsService.logEvent(name: any(named: 'name')),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockAnalyticsService.setUserId(any()),
+        ).thenAnswer((_) async {});
+        when(
+          () => mockCrashlyticsService.setUserId(any()),
+        ).thenAnswer((_) async {});
 
-      await repository.signInAnonymously();
+        await repository.signInAnonymously();
 
-      verify(() => mockFirebaseAuth.signInAnonymously()).called(1);
-      verify(() => mockFirestoreService.updateUserProfile(any())).called(1);
-      verify(() => mockSharedPreferences.setBool('onboarded', false)).called(1);
-    });
+        verify(() => mockFirebaseAuth.signInAnonymously()).called(1);
+        verify(() => mockFirestoreService.updateUserProfile(any())).called(1);
+        verify(
+          () => mockSharedPreferences.setBool('onboarded', false),
+        ).called(1);
+      },
+    );
 
     test('signOut cleans up services and session', () async {
+      final mockUser = MockUser();
+      when(() => mockUser.isAnonymous).thenReturn(false);
+      when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+
       when(() => mockAppStateService.setLoggingOut(any())).thenAnswer((_) {});
       when(() => mockFirestoreService.clearFcmToken()).thenAnswer((_) async {});
       when(() => mockNotificationService.cancelAll()).thenAnswer((_) async {});
@@ -133,27 +160,46 @@ void main() {
     });
 
     group('Merging', () {
-      test('confirmMerge calls cloud function and updates local state', () async {
-        final mockCallable = MockHttpsCallable();
-        final mockResult = MockHttpsCallableResult();
+      test(
+        'confirmMerge calls cloud function and updates local state',
+        () async {
+          final mockCallable = MockHttpsCallable();
+          final mockResult = MockHttpsCallableResult();
 
-        when(() => mockFirebaseFunctions.httpsCallable(any())).thenReturn(mockCallable);
-        when(() => mockCallable.call(any())).thenAnswer((_) async => mockResult);
-        when(() => mockResult.data).thenReturn(const {'alreadyMerged': false});
+          when(
+            () => mockFirebaseFunctions.httpsCallable(any()),
+          ).thenReturn(mockCallable);
+          when(
+            () => mockCallable.call(any()),
+          ).thenAnswer((_) async => mockResult);
+          when(
+            () => mockResult.data,
+          ).thenReturn(const {'alreadyMerged': false});
 
-        when(() => mockAppStateService.setMigrating(any())).thenAnswer((_) {});
-        when(() => mockAppStateService.resetSession()).thenAnswer((_) {});
-        when(() => mockSharedPreferences.setBool(any(), any())).thenAnswer((_) async => true);
-        when(() => mockSharedPreferences.remove(any())).thenAnswer((_) async => true);
+          when(
+            () => mockAppStateService.setMigrating(any()),
+          ).thenAnswer((_) {});
+          when(() => mockAppStateService.resetSession()).thenAnswer((_) {});
+          when(
+            () => mockSharedPreferences.setBool(any(), any()),
+          ).thenAnswer((_) async => true);
+          when(
+            () => mockSharedPreferences.remove(any()),
+          ).thenAnswer((_) async => true);
 
-        when(() => mockFirebaseAuth.currentUser).thenReturn(null);
+          when(() => mockFirebaseAuth.currentUser).thenReturn(null);
 
-        await repository.confirmMerge('anon-uid', 'perm-uid');
+          await repository.confirmMerge('anon-uid', 'perm-uid');
 
-        verify(() => mockFirebaseFunctions.httpsCallable('mergeAnonymousAccount')).called(1);
-        verify(() => mockAppStateService.resetSession()).called(1);
-        verify(() => mockSharedPreferences.setBool('onboarded', true)).called(1);
-      });
+          verify(
+            () => mockFirebaseFunctions.httpsCallable('mergeAnonymousAccount'),
+          ).called(1);
+          verify(() => mockAppStateService.resetSession()).called(1);
+          verify(
+            () => mockSharedPreferences.setBool('onboarded', true),
+          ).called(1);
+        },
+      );
     });
   });
 }

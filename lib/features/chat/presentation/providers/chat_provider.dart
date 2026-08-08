@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/chat_attachment.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
@@ -21,6 +22,7 @@ import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/send_message_stream_usecase.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -42,19 +44,19 @@ class ChatNotifier with ChangeNotifier {
     required ProcessChatTagUseCase processChatTagUseCase,
     required AppStateService appStateService,
     required AnalyticsService analyticsService,
-  })  : _repository = repository,
-        _authFirestoreService = authFirestoreService,
-        _chatFirestoreService = chatFirestoreService,
-        _aiService = aiService,
-        _storageService = storageService,
-        _offService = offService,
-        _prefs = prefs,
-        _auth = auth,
-        _connectionChecker = connectionChecker,
-        _sendMessageStreamUseCase = sendMessageStreamUseCase,
-        _processChatTagUseCase = processChatTagUseCase,
-        _appStateService = appStateService,
-        _analyticsService = analyticsService {
+  }) : _repository = repository,
+       _authFirestoreService = authFirestoreService,
+       _chatFirestoreService = chatFirestoreService,
+       _aiService = aiService,
+       _storageService = storageService,
+       _offService = offService,
+       _prefs = prefs,
+       _auth = auth,
+       _connectionChecker = connectionChecker,
+       _sendMessageStreamUseCase = sendMessageStreamUseCase,
+       _processChatTagUseCase = processChatTagUseCase,
+       _appStateService = appStateService,
+       _analyticsService = analyticsService {
     _initChatStream();
     _appStateService.profileUpdated.addListener(_onProfileUpdated);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -179,6 +181,8 @@ class ChatNotifier with ChangeNotifier {
               ..addAll(pending)
               ..addAll(serverMessages);
 
+            // AppLogger.data('CHAT_MESSAGES', _messages.map((m) => m.toMap()).toList());
+
             // Confirmed messages no longer need optimistic protection.
             _optimisticIds.removeAll(serverMessages.map((m) => m.localId).toSet());
 
@@ -258,9 +262,9 @@ class ChatNotifier with ChangeNotifier {
     if (added) {
       _pendingHiddenContext = switch (type) {
         'menu' => AppStrings.restaurantMenuInstruction,
-        'label' => AppStrings.analyzeLabelVision,
-        'food' => AppStrings.analyzeMealVision,
-        _ => AppStrings.analyzeGalleryVision,
+        'label' => AppStrings.ingredientLabelInstruction,
+        'food' => AppStrings.mealPhotoInstruction,
+        _ => AppStrings.visionScanInstruction,
       };
       notifyListeners();
     }
@@ -273,11 +277,11 @@ class ChatNotifier with ChangeNotifier {
   }
 
   String getPromptForType(String type) => switch (type) {
-        'menu' => AppStrings.menuPhotoPrompt,
-        'label' => AppStrings.labelPhotoPrompt,
-        'food' => AppStrings.mealPhotoPrompt,
-        _ => AppStrings.galleryPhotoPrompt,
-      };
+    'menu' => AppStrings.menuPhotoPrompt,
+    'label' => AppStrings.labelPhotoPrompt,
+    'food' => AppStrings.mealPhotoPrompt,
+    _ => AppStrings.galleryPhotoPrompt,
+  };
 
   // ---------------------------------------------------------------------------
   // Attachments (ChatGPT composer model: preview first, send explicitly)
@@ -324,7 +328,9 @@ class ChatNotifier with ChangeNotifier {
     final sending = List<ChatAttachment>.of(_attachments);
 
     if (displayText.isEmpty && sending.isEmpty) return ChatSendError.empty;
-    if (!_connectionChecker.isInternetAvailable.value) return ChatSendError.offline;
+    if (!_connectionChecker.isInternetAvailable.value) {
+      return ChatSendError.offline;
+    }
 
     // Freeze the request for regenerate BEFORE clearing local state.
     _hasLastRequest = true;
@@ -504,6 +510,9 @@ class ChatNotifier with ChangeNotifier {
     _isStreaming = false;
     _activeAiLocalId = null;
     notifyListeners();
+
+    // 🟢 Trigger streak celebration if one is pending (AI response finished)
+    sl<ProfileNotifier>().triggerPendingCelebration();
   }
 
   List<ChatMessage> _buildHistory() {
@@ -515,7 +524,9 @@ class ChatNotifier with ChangeNotifier {
     final filtered = all.where((m) {
       if (m.localId == activeId) return false;
       if (m.sendFailed) return false;
-      if (m.role == 'ai' && m.text.isEmpty && m.scanData == null) return false; // stray placeholders
+      if (m.role == 'ai' && m.text.isEmpty && m.scanData == null) {
+        return false; // stray placeholders
+      }
       if (m.role == 'ai' && m.errorKind == ChatErrorKind.quota) return false;
       return m.text.isNotEmpty || m.scanData != null;
     }).toList();

@@ -7,8 +7,19 @@ import 'package:gutgood/core/utils/model_utils.dart';
 /// Meal logs track what was eaten and when, optionally including photos
 /// and AI-generated nutrient analysis.
 class MealLog extends Equatable {
-
-  const MealLog({this.id, this.firestoreId, this.uid, required this.items, this.notes, this.mealType, this.photoUrl, this.analysisResult, this.source, this.foodTags = const [], required this.time});
+  const MealLog({
+    this.id,
+    this.firestoreId,
+    this.uid,
+    required this.items,
+    this.notes,
+    this.mealType,
+    this.photoUrl,
+    this.analysisResult,
+    this.source,
+    this.foodTags = const [],
+    required this.time,
+  });
 
   factory MealLog.fromMap(Map<String, dynamic> map) {
     final rawId = map['id'] ?? map['firestoreId'];
@@ -26,6 +37,7 @@ class MealLog extends Equatable {
       time: DateTimeUtils.parse(map['time']),
     );
   }
+
   /// Local SQLite primary key.
   final int? id;
 
@@ -72,30 +84,30 @@ class MealLog extends Equatable {
     List<String>? foodTags,
     DateTime? time,
   }) => MealLog(
-      id: id ?? this.id,
-      firestoreId: firestoreId ?? this.firestoreId,
-      uid: uid ?? this.uid,
-      items: items ?? this.items,
-      notes: notes ?? this.notes,
-      mealType: mealType ?? this.mealType,
-      photoUrl: photoUrl ?? this.photoUrl,
-      analysisResult: analysisResult ?? this.analysisResult,
-      source: source ?? this.source,
-      foodTags: foodTags ?? this.foodTags,
-      time: time ?? this.time,
-    );
+    id: id ?? this.id,
+    firestoreId: firestoreId ?? this.firestoreId,
+    uid: uid ?? this.uid,
+    items: items ?? this.items,
+    notes: notes ?? this.notes,
+    mealType: mealType ?? this.mealType,
+    photoUrl: photoUrl ?? this.photoUrl,
+    analysisResult: analysisResult ?? this.analysisResult,
+    source: source ?? this.source,
+    foodTags: foodTags ?? this.foodTags,
+    time: time ?? this.time,
+  );
 
   Map<String, dynamic> toMap() => {
-      'firestoreId': firestoreId,
-      'items': items,
-      'notes': notes,
-      'mealType': mealType,
-      'photoUrl': photoUrl,
-      'analysisResult': analysisResult,
-      'source': source,
-      'foodTags': foodTags,
-      'time': time.toIso8601String(),
-    };
+    'firestoreId': firestoreId,
+    'items': items,
+    'notes': notes,
+    'mealType': mealType,
+    'photoUrl': photoUrl,
+    'analysisResult': analysisResult,
+    'source': source,
+    'foodTags': foodTags,
+    'time': time.toIso8601String(),
+  };
 
   @override
   List<Object?> get props => [id, firestoreId, items, time, source];

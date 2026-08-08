@@ -26,9 +26,9 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
     required FirebaseAuth auth,
     required FirebaseFirestore db,
     required StorageService storageService,
-  })  : _auth = auth,
-        _db = db,
-        _storageService = storageService;
+  }) : _auth = auth,
+       _db = db,
+       _storageService = storageService;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
@@ -50,7 +50,10 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
       if (doc == null) return;
       await doc.set(profile.toMap(), SetOptions(merge: true));
     } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error saving user profile', error: e);
+      AppLogger.error(
+        'AuthFirestoreService: Error saving user profile',
+        error: e,
+      );
     }
   }
 
@@ -59,9 +62,14 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
-      await doc.set(profile.toMap(), SetOptions(merge: true));
+      // 🟢 Fix: Use toUpdateMap() to avoid overwriting server-managed fields
+      // like streak, gutScore, and lastActivityDate.
+      await doc.update(profile.toUpdateMap());
     } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error updating user profile', error: e);
+      AppLogger.error(
+        'AuthFirestoreService: Error updating user profile',
+        error: e,
+      );
     }
   }
 
@@ -72,9 +80,15 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
       if (doc == null) return null;
       final snap = await doc.get();
       if (!snap.exists) return null;
-      return UserProfile.fromMap(snap.data() as Map<String, dynamic>, uid: _uid);
+      return UserProfile.fromMap(
+        snap.data() as Map<String, dynamic>,
+        uid: _uid,
+      );
     } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error getting user metadata', error: e);
+      AppLogger.error(
+        'AuthFirestoreService: Error getting user metadata',
+        error: e,
+      );
       return null;
     }
   }
@@ -83,16 +97,24 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
   Stream<UserProfile?> getUserMetadataStream() {
     final doc = _userDoc;
     if (doc == null) return Stream.value(null);
-    return doc.snapshots().handleError((e) {
-      if (e.toString().contains('permission-denied')) {
-        AppLogger.debug('AuthFirestoreService: Metadata stream closed (permission-denied)');
-      } else {
-        throw e;
-      }
-    }).map((doc) {
-      if (!doc.exists) return null;
-      return UserProfile.fromMap(doc.data() as Map<String, dynamic>, uid: _uid);
-    });
+    return doc
+        .snapshots()
+        .handleError((e) {
+          if (e.toString().contains('permission-denied')) {
+            AppLogger.debug(
+              'AuthFirestoreService: Metadata stream closed (permission-denied)',
+            );
+          } else {
+            throw e;
+          }
+        })
+        .map((doc) {
+          if (!doc.exists) return null;
+          return UserProfile.fromMap(
+            doc.data() as Map<String, dynamic>,
+            uid: _uid,
+          );
+        });
   }
 
   @override
@@ -102,7 +124,10 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
       if (doc == null) return;
       await doc.set({'onboarded': onboarded}, SetOptions(merge: true));
     } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error updating onboarding status', error: e);
+      AppLogger.error(
+        'AuthFirestoreService: Error updating onboarding status',
+        error: e,
+      );
     }
   }
 
@@ -114,24 +139,32 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
       await doc.set({
         'isPremium': isPremium,
         'subscriptionStatus': isPremium ? 'premium' : 'free',
-        'updatedAt': FieldValue.serverTimestamp()
+        'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error updating premium status', error: e);
+      AppLogger.error(
+        'AuthFirestoreService: Error updating premium status',
+        error: e,
+      );
     }
   }
 
   @override
-  Future<void> saveNotificationPreferences(NotificationPreferences prefs) async {
+  Future<void> saveNotificationPreferences(
+    NotificationPreferences prefs,
+  ) async {
     try {
       final doc = _userDoc;
       if (doc == null) return;
       await doc.set({
         'notificationPreferences': prefs.toMap(),
-        'updatedAt': FieldValue.serverTimestamp()
+        'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error syncing notification preferences', error: e);
+      AppLogger.error(
+        'AuthFirestoreService: Error syncing notification preferences',
+        error: e,
+      );
     }
   }
 
@@ -142,10 +175,13 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
       if (doc == null) return;
       await doc.set({
         'fcmToken': token,
-        'updatedAt': FieldValue.serverTimestamp()
+        'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error syncing FCM token', error: e);
+      AppLogger.error(
+        'AuthFirestoreService: Error syncing FCM token',
+        error: e,
+      );
     }
   }
 
@@ -156,21 +192,28 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
       if (doc == null) return;
       await doc.update({
         'fcmToken': FieldValue.delete(),
-        'updatedAt': FieldValue.serverTimestamp()
+        'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error clearing FCM token', error: e);
+      AppLogger.error(
+        'AuthFirestoreService: Error clearing FCM token',
+        error: e,
+      );
     }
   }
 
   @override
   Future<void> mergeData(String fromUid, String toUid) async {
-    AppLogger.info('AuthFirestoreService: Data migration should be handled by Cloud Function');
+    AppLogger.info(
+      'AuthFirestoreService: Data migration should be handled by Cloud Function',
+    );
   }
 
   @override
   Future<void> deleteAllUserData(String uid) async {
-    AppLogger.info('AuthFirestoreService: User data deletion triggered by Auth onDelete');
+    AppLogger.info(
+      'AuthFirestoreService: User data deletion triggered by Auth onDelete',
+    );
   }
 
   @override
@@ -183,12 +226,17 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
       if (downloadUrl != null) {
         final profile = await getUserMetadata();
         if (profile != null) {
-          await updateUserProfile(profile.copyWith(photoUrl: downloadUrl, updatedAt: DateTime.now()));
+          await updateUserProfile(
+            profile.copyWith(photoUrl: downloadUrl, updatedAt: DateTime.now()),
+          );
         }
       }
       return downloadUrl;
     } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error uploading profile picture', error: e);
+      AppLogger.error(
+        'AuthFirestoreService: Error uploading profile picture',
+        error: e,
+      );
       return null;
     }
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -18,15 +20,25 @@ class PurchaseProvider extends ChangeNotifier {
     required SharedPreferences prefs,
     required AuthFirestoreService authFirestoreService,
     required AnalyticsService analyticsService,
-  })  : _purchaseService = purchaseService,
-        _connectionChecker = connectionChecker,
-        _appStateService = appStateService,
-        _prefs = prefs,
-        _authFirestoreService = authFirestoreService,
-        _analyticsService = analyticsService {
+  }) : _purchaseService = purchaseService,
+       _connectionChecker = connectionChecker,
+       _appStateService = appStateService,
+       _prefs = prefs,
+       _authFirestoreService = authFirestoreService,
+       _analyticsService = analyticsService {
     _isPremium = _purchaseService.isPremium;
     fetchOfferings();
     _appStateService.sessionReset.addListener(_onSessionReset);
+
+    // 🟢 Fix: Listen for live subscription updates (expiry, renewals, etc.)
+    // to ensure the Firestore profile (aiProxy quota check) stays in sync.
+    _premiumSubscription = _purchaseService.premiumStatusStream.listen((active) {
+      if (_isPremium != active) {
+        _isPremium = active;
+        _persistPremiumStatus(active);
+        notifyListeners();
+      }
+    });
   }
 
   final PurchaseService _purchaseService;
@@ -36,6 +48,7 @@ class PurchaseProvider extends ChangeNotifier {
   final AuthFirestoreService _authFirestoreService;
   final AnalyticsService _analyticsService;
 
+  StreamSubscription<bool>? _premiumSubscription;
   List<Package> _packages = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -177,6 +190,7 @@ class PurchaseProvider extends ChangeNotifier {
   @override
   void dispose() {
     _appStateService.sessionReset.removeListener(_onSessionReset);
+    _premiumSubscription?.cancel();
     super.dispose();
   }
 

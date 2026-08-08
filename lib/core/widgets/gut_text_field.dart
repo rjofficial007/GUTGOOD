@@ -6,7 +6,6 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class GutTextField extends StatelessWidget {
-
   const GutTextField({
     super.key,
     this.controller,
@@ -58,20 +57,46 @@ class GutTextField extends StatelessWidget {
       style: inputStyle,
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: inputStyle.copyWith(color: context.appColorScheme.textMuted.withValues(alpha: 0.5)),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: AppSizes.icon18, color: context.appColorScheme.textMuted) : null,
+        hintStyle: inputStyle.copyWith(
+          color: context.appColorScheme.textMuted.withValues(alpha: 0.5),
+        ),
+        prefixIcon: prefixIcon != null
+            ? Icon(
+                prefixIcon,
+                size: AppSizes.icon18,
+                color: context.appColorScheme.textMuted,
+              )
+            : null,
         filled: !borderless,
-        fillColor: borderless ? AppPalette.transparent : context.appColorScheme.elevatedSurface,
-        contentPadding: contentPadding ?? EdgeInsets.symmetric(vertical: AppSizes.p16, horizontal: AppSizes.p16),
+        fillColor: borderless
+            ? AppPalette.transparent
+            : context.appColorScheme.elevatedSurface,
+        contentPadding:
+            contentPadding ??
+            EdgeInsets.symmetric(
+              vertical: AppSizes.p16,
+              horizontal: AppSizes.p16,
+            ),
         border: _buildBorder(context, AppPalette.transparent),
         enabledBorder: _buildBorder(context, context.appColorScheme.border),
-        focusedBorder: _buildBorder(context, context.appColorScheme.textPrimary, width: 1.5),
-        disabledBorder: _buildBorder(context, context.appColorScheme.border.withValues(alpha: 0.5)),
+        focusedBorder: _buildBorder(
+          context,
+          context.appColorScheme.textPrimary,
+          width: 1.5,
+        ),
+        disabledBorder: _buildBorder(
+          context,
+          context.appColorScheme.border.withValues(alpha: 0.5),
+        ),
       ),
     );
   }
 
-  InputBorder _buildBorder(BuildContext context, Color color, {double width = 1.0}) {
+  InputBorder _buildBorder(
+    BuildContext context,
+    Color color, {
+    double width = 1.0,
+  }) {
     if (borderless) return InputBorder.none;
 
     return OutlineInputBorder(

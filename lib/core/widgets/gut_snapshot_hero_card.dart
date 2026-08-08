@@ -13,8 +13,16 @@ import 'package:gutgood/core/widgets/modern_insight_card.dart';
 /// Includes a circular [GutScoreGauge] to visualize the user's overall health.
 /// Used at the top of the [InsightsScreen] and [WeeklyRecapScreen].
 class GutSnapshotHeroCard extends StatelessWidget {
+  const GutSnapshotHeroCard({
+    super.key,
+    required this.score,
+    this.scoreDiff,
+    required this.streak,
+    this.isActive = true,
+    this.onTap,
+    this.borderRadius,
+  });
 
-  const GutSnapshotHeroCard({super.key, required this.score, this.scoreDiff, required this.streak, this.isActive = true, this.onTap, this.borderRadius});
   /// The numerical gut health score (0-100).
   final int score;
 
@@ -35,40 +43,57 @@ class GutSnapshotHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ModernInsightCard(
-      title: AppStrings.gutSnapshot,
-      icon: AppIcons.activity,
-      iconColor: context.appColorScheme.textPrimary,
-      backgroundColor: context.appColorScheme.cardBackground,
-      titleColor: context.appColorScheme.textPrimary.withValues(alpha: 0.7),
-      onTap: onTap,
-      borderRadius: borderRadius,
-      padding: EdgeInsets.all(Responsive.w(24.0)),
-      footerColor: context.appColorScheme.textPrimary,
-      footer: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(AppIcons.flame, size: 14, color: context.appColorScheme.cardBackground),
-          Gap.w8,
-          Text('$streak${AppStrings.dayStreakLabel}'.toUpperCase(), style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground, letterSpacing: 1.0)),
-        ],
-      ),
-      child: Column(
-        children: [
-          Center(
-            child: GutScoreGauge(score: score, size: Responsive.w(200)),
+    title: AppStrings.gutSnapshot,
+    icon: AppIcons.activity,
+    iconColor: context.appColorScheme.textPrimary,
+    backgroundColor: context.appColorScheme.cardBackground,
+    titleColor: context.appColorScheme.textPrimary.withValues(alpha: 0.7),
+    onTap: onTap,
+    borderRadius: borderRadius,
+    padding: EdgeInsets.all(Responsive.w(24.0)),
+    footerColor: context.appColorScheme.textPrimary,
+    footer: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          AppIcons.flame,
+          size: 14,
+          color: context.appColorScheme.cardBackground,
+        ),
+        Gap.w8,
+        Text(
+          '$streak${AppStrings.dayStreakLabel}'.toUpperCase(),
+          style: context.eyebrow.copyWith(
+            color: context.appColorScheme.cardBackground,
+            letterSpacing: 1.0,
           ),
-          if (scoreDiff != null && scoreDiff!.isNotEmpty) ...[
-            Gap.h12,
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
-              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(100)),
-              child: Text(
-                scoreDiff!,
-                style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 10.0.sp),
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        Center(
+          child: GutScoreGauge(score: score, size: Responsive.w(200)),
+        ),
+        if (scoreDiff != null && scoreDiff!.isNotEmpty) ...[
+          Gap.h12,
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
+            decoration: BoxDecoration(
+              color: context.appColorScheme.border.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: Text(
+              scoreDiff!,
+              style: context.caption.copyWith(
+                color: context.appColorScheme.textPrimary,
+                fontWeight: FontWeight.w900,
+                fontSize: 10.0.sp,
               ),
             ),
-          ],
+          ),
         ],
-      ),
-    );
+      ],
+    ),
+  );
 }

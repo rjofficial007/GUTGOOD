@@ -13,8 +13,8 @@ abstract class RemoteConfigService {
 }
 
 class RemoteConfigServiceImpl implements RemoteConfigService {
-
-  RemoteConfigServiceImpl({required FirebaseRemoteConfig remoteConfig}) : _remoteConfig = remoteConfig;
+  RemoteConfigServiceImpl({required FirebaseRemoteConfig remoteConfig})
+    : _remoteConfig = remoteConfig;
   final FirebaseRemoteConfig _remoteConfig;
 
   static const String _defaultOpenAIModel = 'gpt-4o-mini';
@@ -25,14 +25,25 @@ class RemoteConfigServiceImpl implements RemoteConfigService {
       // NOTE: No secrets in defaults. The OpenAI key is intentionally NOT here —
       // PRD §3d forbids shipping it to devices. All AI traffic goes through the
       // aiProxy Cloud Function which authenticates the caller server-side.
-      await _remoteConfig.setDefaults({'openai_model': _defaultOpenAIModel, 'ai_proxy_url': ApiConstants.aiProxyUrl, 'is_force_update': false});
+      await _remoteConfig.setDefaults({
+        'openai_model': _defaultOpenAIModel,
+        'ai_proxy_url': ApiConstants.aiProxyUrl,
+        'is_force_update': false,
+      });
 
       if (kDebugMode) {
-        AppLogger.firebaseRemoteConfig('Remote Config: Skipping fetch in Debug Mode (defaults active).');
+        AppLogger.firebaseRemoteConfig(
+          'Remote Config: Skipping fetch in Debug Mode (defaults active).',
+        );
         return;
       }
 
-      await _remoteConfig.setConfigSettings(RemoteConfigSettings(fetchTimeout: const Duration(minutes: 1), minimumFetchInterval: const Duration(hours: 1)));
+      await _remoteConfig.setConfigSettings(
+        RemoteConfigSettings(
+          fetchTimeout: const Duration(minutes: 1),
+          minimumFetchInterval: const Duration(hours: 1),
+        ),
+      );
 
       await _remoteConfig.fetchAndActivate();
       AppLogger.firebaseRemoteConfig('Remote Config: Initialized and fetched.');

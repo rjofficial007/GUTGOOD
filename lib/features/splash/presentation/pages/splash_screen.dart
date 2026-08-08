@@ -100,29 +100,25 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const _SplashLogo(),
-            const SizedBox(height: 80),
-            _BootProgressBar(progress: _progress),
-          ],
-        ),
+    backgroundColor: Colors.black,
+    body: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const _SplashLogo(),
+          const SizedBox(height: 80),
+          _BootProgressBar(progress: _progress),
+        ],
       ),
-    );
+    ),
+  );
 }
 
 class _SplashLogo extends StatelessWidget {
   const _SplashLogo();
 
   @override
-  Widget build(BuildContext context) => Image.asset(
-      AppAssets.appIconBg,
-      width: 80,
-      color: AppPalette.white,
-    );
+  Widget build(BuildContext context) => Image.asset(AppAssets.appIconBg, width: 50, color: AppPalette.white);
 }
 
 class _BootProgressBar extends StatelessWidget {
@@ -131,15 +127,11 @@ class _BootProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-      width: 120,
-      height: 4,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(2),
-        child: LinearProgressIndicator(
-          value: progress,
-          backgroundColor: Colors.white.withValues(alpha: 0.2),
-          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-        ),
-      ),
-    );
+    width: 120,
+    height: 4,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(2),
+      child: LinearProgressIndicator(value: progress, backgroundColor: Colors.white.withValues(alpha: 0.2), valueColor: const AlwaysStoppedAnimation<Color>(Colors.white)),
+    ),
+  );
 }

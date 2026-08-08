@@ -12,7 +12,7 @@
  *
  * Protocol (all requests are POST + JSON):
  *   {
- *     mode: 'stream' | 'json' | 'plain',
+ *     mode: 'stream' | 'stream-json' | 'json' | 'plain',
  *     systemInstruction?: string,
  *     messages?: [{ role: 'user'|'assistant', content: string }],
  *     userText?: string,             // the current user turn
@@ -143,7 +143,7 @@ export const aiProxy = functions
 
     const body = (req.body ?? {}) as ProxyRequest;
     const mode = body.mode ?? 'stream';
-    if (!['stream', 'json', 'plain'].includes(mode)) {
+    if (!['stream', 'json', 'plain', 'stream-json'].includes(mode)) {
       fail(res, 400, 'invalid_argument', { message: `Unsupported mode '${mode}'.` });
       return;
     }
@@ -197,10 +197,11 @@ export const aiProxy = functions
     const payload: Record<string, unknown> = {
       model: (body.model ?? DEFAULT_MODEL).slice(0, 64),
       messages,
-      stream: mode === 'stream',
-      max_tokens: images.length > 0 ? 2048 : 1600, // Higher limit for full responses and vision analysis
+      stream: mode === 'stream' || mode === 'stream-json',
+      max_tokens: images.length > 0 ? 4096 : 2048, // Higher limit for full responses and vision analysis
+      temperature: 0.2, // Increased consistency for JSON responses
     };
-    if (mode === 'json') {
+    if (mode === 'json' || mode === 'stream-json') {
       payload.response_format = { type: 'json_object' };
     }
 
@@ -229,7 +230,7 @@ export const aiProxy = functions
       return;
     }
 
-    if (mode !== 'stream') {
+    if (mode === 'json' || mode === 'plain') {
       try {
         const json = (await upstream.json()) as {
           choices?: Array<{ message?: { content?: string } }>;

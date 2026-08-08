@@ -8,7 +8,6 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class IngredientTile extends StatelessWidget {
-
   const IngredientTile({super.key, required this.ingredient});
   final Ingredient ingredient;
 
@@ -22,8 +21,16 @@ class IngredientTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appColorScheme.elevatedSurface,
         borderRadius: BorderRadius.circular(AppSizes.r24),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(
+          color: context.appColorScheme.border.withValues(alpha: 0.5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppPalette.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,9 +45,16 @@ class IngredientTile extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: context.appColorScheme.cardBackground,
                       shape: BoxShape.circle,
-                      border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 1.5),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
                     ),
-                    child: Icon(_getIcon(ingredient.colorName), size: AppSizes.icon14, color: context.appColorScheme.textPrimary),
+                    child: Icon(
+                      _getIcon(ingredient.colorName),
+                      size: AppSizes.icon14,
+                      color: context.appColorScheme.textPrimary,
+                    ),
                   ),
                   Positioned(
                     right: 0,
@@ -51,8 +65,16 @@ class IngredientTile extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: accentColor,
                         shape: BoxShape.circle,
-                        border: Border.all(color: context.appColorScheme.elevatedSurface, width: 1.5),
-                        boxShadow: [BoxShadow(color: accentColor.withValues(alpha: 0.5), blurRadius: 4)],
+                        border: Border.all(
+                          color: context.appColorScheme.elevatedSurface,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withValues(alpha: 0.5),
+                            blurRadius: 4,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -63,20 +85,32 @@ class IngredientTile extends StatelessWidget {
           const Spacer(),
           Text(
             _getLabel(ingredient.colorName).toUpperCase(),
-            style: context.caption.copyWith(fontWeight: FontWeight.w900, fontSize: AppSizes.s8, letterSpacing: 1.2, color: context.appColorScheme.textMuted),
+            style: context.caption.copyWith(
+              fontWeight: FontWeight.w900,
+              fontSize: AppSizes.s8,
+              letterSpacing: 1.2,
+              color: context.appColorScheme.textMuted,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Gap.h2,
           Text(
             ingredient.name,
-            style: context.bodyBold.copyWith(fontSize: AppSizes.s13, color: context.appColorScheme.textPrimary),
+            style: context.bodyBold.copyWith(
+              fontSize: AppSizes.s13,
+              color: context.appColorScheme.textPrimary,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
             ingredient.impact,
-            style: context.caption.copyWith(fontSize: AppSizes.s9, color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold),
+            style: context.caption.copyWith(
+              fontSize: AppSizes.s9,
+              color: context.appColorScheme.textMuted,
+              fontWeight: FontWeight.bold,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

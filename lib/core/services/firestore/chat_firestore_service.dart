@@ -14,8 +14,8 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
   ChatFirestoreServiceImpl({
     required FirebaseAuth auth,
     required FirebaseFirestore db,
-  })  : _auth = auth,
-        _db = db;
+  }) : _auth = auth,
+       _db = db;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
@@ -38,7 +38,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
         ...cloudSafeData,
         'firestoreId': docRef.id,
         'source': message.source ?? 'chat',
-        'createdAt': FieldValue.serverTimestamp()
+        'createdAt': FieldValue.serverTimestamp(),
       };
       await docRef.set(data);
       return docRef.id;
@@ -58,14 +58,22 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
         .limit(limit)
         .snapshots()
         .handleError((e) {
-      if (e.toString().contains('permission-denied')) {
-        AppLogger.debug('ChatFirestoreService: Chat stream closed (permission-denied)');
-      } else {
-        throw e;
-      }
-    }).map((snapshot) => snapshot.docs
-            .map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id}))
-            .toList());
+          if (e.toString().contains('permission-denied')) {
+            AppLogger.debug(
+              'ChatFirestoreService: Chat stream closed (permission-denied)',
+            );
+          } else {
+            throw e;
+          }
+        })
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) =>
+                    ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id}),
+              )
+              .toList(),
+        );
   }
 
   @override
@@ -84,9 +92,14 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
-      await doc.collection('chat_history').doc(messageId).update({'feedback': feedback});
+      await doc.collection('chat_history').doc(messageId).update({
+        'feedback': feedback,
+      });
     } catch (e) {
-      AppLogger.error('ChatFirestoreService: Error updating message feedback', error: e);
+      AppLogger.error(
+        'ChatFirestoreService: Error updating message feedback',
+        error: e,
+      );
     }
   }
 }

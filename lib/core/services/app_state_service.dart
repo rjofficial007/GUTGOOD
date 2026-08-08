@@ -51,7 +51,8 @@ class AppStateServiceImpl implements AppStateService {
   @override
   final ValueNotifier<String?> pendingEmailLink = ValueNotifier(null);
   @override
-  final ValueNotifier<Map<String, String>?> pendingMergeConflict = ValueNotifier(null);
+  final ValueNotifier<Map<String, String>?> pendingMergeConflict =
+      ValueNotifier(null);
   @override
   final ValueNotifier<bool> isMigrating = ValueNotifier(false);
   @override
@@ -64,7 +65,8 @@ class AppStateServiceImpl implements AppStateService {
   @override
   void notifyChatUpdated() => chatUpdated.value = !chatUpdated.value;
   @override
-  void notifySavedFoodsUpdated() => savedFoodsUpdated.value = !savedFoodsUpdated.value;
+  void notifySavedFoodsUpdated() =>
+      savedFoodsUpdated.value = !savedFoodsUpdated.value;
   @override
   void notifyProfileUpdated() => profileUpdated.value = !profileUpdated.value;
   @override
@@ -74,7 +76,8 @@ class AppStateServiceImpl implements AppStateService {
   @override
   void setPendingEmailLink(String? link) => pendingEmailLink.value = link;
   @override
-  void setPendingMergeConflict(Map<String, String>? conflict) => pendingMergeConflict.value = conflict;
+  void setPendingMergeConflict(Map<String, String>? conflict) =>
+      pendingMergeConflict.value = conflict;
   @override
   void setMigrating(bool value) => isMigrating.value = value;
   @override

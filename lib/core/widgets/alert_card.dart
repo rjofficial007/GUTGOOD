@@ -6,8 +6,12 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class AlertCard extends StatelessWidget {
-
-  const AlertCard({super.key, required this.text, this.color, this.icon = AppIcons.shield});
+  const AlertCard({
+    super.key,
+    required this.text,
+    this.color,
+    this.icon = AppIcons.shield,
+  });
   final String text;
   final Color? color;
   final IconData icon;
@@ -18,7 +22,10 @@ class AlertCard extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.all(AppSizes.p12),
-      decoration: BoxDecoration(color: effectiveColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(AppSizes.r12)),
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppSizes.r12),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -27,7 +34,12 @@ class AlertCard extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: AppTextStyles.bodySm.copyWith(color: effectiveColor, fontWeight: FontWeight.w500, fontSize: 11.0.sp, height: 1.4),
+              style: AppTextStyles.bodySm.copyWith(
+                color: effectiveColor,
+                fontWeight: FontWeight.w500,
+                fontSize: 11.0.sp,
+                height: 1.4,
+              ),
             ),
           ),
         ],
