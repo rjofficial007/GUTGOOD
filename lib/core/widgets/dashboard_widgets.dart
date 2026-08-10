@@ -210,6 +210,44 @@ class GutProgressBar extends StatelessWidget {
   }
 }
 
+class DashboardIconVisualization extends StatelessWidget {
+  const DashboardIconVisualization({super.key, required this.icon, this.color});
+  final IconData icon;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.all(AppSizes.p12),
+    decoration: BoxDecoration(
+      color: context.appColorScheme.elevatedSurface,
+      shape: BoxShape.circle,
+      border: Border.all(color: context.appColorScheme.border),
+    ),
+    child: Icon(icon, color: color ?? context.appColorScheme.textPrimary, size: AppSizes.icon32),
+  );
+}
+
+class TopPerformersVisualization extends StatelessWidget {
+  const TopPerformersVisualization({super.key});
+
+  @override
+  Widget build(BuildContext context) => const DashboardIconVisualization(icon: AppIcons.trophy);
+}
+
+class CautionRiskIcon extends StatelessWidget {
+  const CautionRiskIcon({super.key, required this.isSafe});
+  final bool isSafe;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0.0, end: 1.0),
+    duration: const Duration(milliseconds: 800),
+    curve: Curves.elasticOut,
+    builder: (context, value, child) => Transform.scale(scale: value, child: child),
+    child: DashboardIconVisualization(icon: isSafe ? AppIcons.shieldCheck : AppIcons.alertCircle),
+  );
+}
+
 class SheetHeroSection extends StatelessWidget {
   const SheetHeroSection({super.key, required this.title, required this.subtitle, required this.color, required this.icon});
   final String title;

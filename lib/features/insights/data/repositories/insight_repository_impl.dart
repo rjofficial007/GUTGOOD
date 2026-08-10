@@ -7,6 +7,7 @@ import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
@@ -23,6 +24,7 @@ class InsightRepositoryImpl implements InsightRepository {
     required AuthFirestoreService authFirestoreService,
     required HistoryFirestoreService historyFirestoreService,
     required InsightFirestoreService insightFirestoreService,
+    required ChatFirestoreService chatFirestoreService,
     required AiService aiService,
     required SharedPreferences prefs,
     required NotificationService notificationService,
@@ -32,6 +34,7 @@ class InsightRepositoryImpl implements InsightRepository {
   }) : _authFirestoreService = authFirestoreService,
        _historyFirestoreService = historyFirestoreService,
        _insightFirestoreService = insightFirestoreService,
+       _chatFirestoreService = chatFirestoreService,
        _aiService = aiService,
        _prefs = prefs,
        _notificationService = notificationService,
@@ -41,6 +44,7 @@ class InsightRepositoryImpl implements InsightRepository {
   final AuthFirestoreService _authFirestoreService;
   final HistoryFirestoreService _historyFirestoreService;
   final InsightFirestoreService _insightFirestoreService;
+  final ChatFirestoreService _chatFirestoreService;
   final AiService _aiService;
   final SharedPreferences _prefs;
   final NotificationService _notificationService;
@@ -62,8 +66,7 @@ class InsightRepositoryImpl implements InsightRepository {
   }
 
   @override
-  Future<List<AIInsight>> getInsightHistory() async =>
-      _insightFirestoreService.getInsightsHistory();
+  Future<List<AIInsight>> getInsightHistory() async => _insightFirestoreService.getInsightsHistory();
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
@@ -80,12 +83,8 @@ class InsightRepositoryImpl implements InsightRepository {
     } else {
       // 🟢 Fix: Fallback to Firestore to prevent duplicate generation on fresh login/new device.
       final latestCloud = await _insightFirestoreService.getLatestInsights();
-      lastRun =
-          latestCloud?.updatedAt.toUtc() ??
-          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-      AppLogger.info(
-        'InsightRepo: No local lastRun found. Fallback to Firestore: $lastRun',
-      );
+      lastRun = latestCloud?.updatedAt.toUtc() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+      AppLogger.info('InsightRepo: No local lastRun found. Fallback to Firestore: $lastRun');
     }
 
     // 🟢 PRD Section 8.2 Alignment: At least 24 hours since last insight
@@ -93,72 +92,50 @@ class InsightRepositoryImpl implements InsightRepository {
     final hoursSinceLastRun = nowUtc.difference(lastRun).inHours;
 
     if (hoursSinceLastRun < 24) {
-      AppLogger.debug(
-        'InsightRepo: Last insight was generated $hoursSinceLastRun hours ago. Skipping duplicate generation.',
-      );
+      AppLogger.debug('InsightRepo: Last insight was generated $hoursSinceLastRun hours ago. Skipping duplicate generation.');
       return;
     }
 
-    final scanCount = await _historyFirestoreService.getScansCountSince(
-      lastRun,
-    );
-    final mealCount = await _historyFirestoreService.getMealLogsCountSince(
-      lastRun,
-    );
-    final symptomCount = await _historyFirestoreService.getSymptomsCountSince(
-      lastRun,
-    );
+    final scanCount = await _historyFirestoreService.getScansCountSince(lastRun);
+    final mealCount = await _historyFirestoreService.getMealLogsCountSince(lastRun);
+    final symptomCount = await _historyFirestoreService.getSymptomsCountSince(lastRun);
 
     // 🟢 PRD Alignment: Do not generate if there is not enough data for a meaningful analysis.
     // We require a minimum threshold of new activity to trigger a new AI insight.
     if (scanCount < 3 && mealCount < 1 && symptomCount < 1) {
-      AppLogger.debug(
-        'InsightRepo: Not enough new data for analysis since $lastRun. (Scans: $scanCount/3 OR Meals: $mealCount/1 OR Symptoms: $symptomCount/1). Skipping.',
-      );
+      AppLogger.debug('InsightRepo: Not enough new data for analysis since $lastRun. (Scans: $scanCount/3 OR Meals: $mealCount/1 OR Symptoms: $symptomCount/1). Skipping.');
       return;
     }
 
     final profile = await _authFirestoreService.getUserMetadata();
-    final userGoals =
-        profile?.goals ?? _prefs.getStringList('user_goals') ?? [];
-    final userSensitivities =
-        profile?.sensitivities ??
-        _prefs.getStringList('user_sensitivities') ??
-        [];
-    final userLifestyle =
-        profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
+    final userGoals = profile?.goals ?? _prefs.getStringList('user_goals') ?? [];
+    final userSensitivities = profile?.sensitivities ?? _prefs.getStringList('user_sensitivities') ?? [];
+    final userLifestyle = profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
 
-    final cycleSyncEnabled =
-        profile?.cycleSyncEnabled ??
-        _prefs.getBool('cycle_sync_enabled') ??
-        false;
-    final cyclePhase = cycleSyncEnabled
-        ? (profile?.cyclePhase ??
-              _prefs.getString('cycle_phase') ??
-              'Luteal Phase')
-        : 'Not specified';
+    final cycleSyncEnabled = profile?.cycleSyncEnabled ?? _prefs.getBool('cycle_sync_enabled') ?? false;
+    final cyclePhase = cycleSyncEnabled ? (profile?.cyclePhase ?? _prefs.getString('cycle_phase') ?? 'Luteal Phase') : 'Not specified';
 
-    final recentMeals = await _historyFirestoreService.getRecentMealLogs(
-      limit: 30,
-    );
-    final symptomLogs = await _historyFirestoreService.getRecentSymptomLogs(
-      limit: 30,
-    );
-    final recentScans = await _historyFirestoreService.getRecentScans(
-      limit: 20,
-    );
+    // 🟢 Fetch and Filter Chat History for Insight Engine
+    final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
+    final chatHistory = await _chatFirestoreService.getMessages(limit: 50, since: sevenDaysAgo);
+
+    // Only include messages that mention food or symptoms to keep tokens low
+    final relevantChat = chatHistory.where((m) => m.foodMentions.isNotEmpty || m.symptomMentions.isNotEmpty).toList();
+
+    final historyJson = jsonEncode(relevantChat.map((m) => m.toAiMap()).toList());
+    final historySummary = profile?.chatSummary;
+
+    final recentMeals = await _historyFirestoreService.getRecentMealLogs(limit: 30);
+    final symptomLogs = await _historyFirestoreService.getRecentSymptomLogs(limit: 30);
+    final recentScans = await _historyFirestoreService.getRecentScans(limit: 20);
 
     // 🟢 Fix: Do not generate insight if the core data streams are insufficient for analysis.
     // A "Cause & Effect" analysis requires at least some meals or scans to analyze.
     if (recentMeals.isEmpty && recentScans.isEmpty) {
-      AppLogger.debug(
-        'InsightRepo: Insufficient total data for analysis. (Meals: ${recentMeals.length}, Scans: ${recentScans.length}). Skipping.',
-      );
+      AppLogger.debug('InsightRepo: Insufficient total data for analysis. (Meals: ${recentMeals.length}, Scans: ${recentScans.length}). Skipping.');
       return;
     }
 
-    const historyJson =
-        '[]'; // Omitting chat history for simplicity in this migration step
     final mealsJson = jsonEncode(recentMeals.map((m) => m.toMap()).toList());
     final symptomsJson = jsonEncode(symptomLogs.map((m) => m.toMap()).toList());
     // 🟢 Fix: Use toAiMap() for scans to avoid 502/payload errors
@@ -166,17 +143,10 @@ class InsightRepositoryImpl implements InsightRepository {
 
     final history = await _insightFirestoreService.getInsightsHistory();
     // Take the last 6 scores, ensure they are in ASCENDING chronological order (Oldest -> Newest)
-    final scoreHistory = history
-        .take(6)
-        .toList()
-        .reversed
-        .map((i) => i.gutScore)
-        .join(', ');
+    final scoreHistory = history.take(6).toList().reversed.map((i) => i.gutScore).join(', ');
 
     try {
-      AppLogger.info(
-        'InsightRepo: Generating insight. History: ${scoreHistory.isEmpty ? "None" : scoreHistory}',
-      );
+      AppLogger.info('InsightRepo: Generating insight. History: ${scoreHistory.isEmpty ? "None" : scoreHistory}');
       final startTime = DateTime.now();
 
       final cleanJson = await _aiService.generateContent(
@@ -186,6 +156,7 @@ class InsightRepositoryImpl implements InsightRepository {
           userLifestyle: userLifestyle,
           cyclePhase: cyclePhase,
           historyJson: historyJson,
+          historySummary: historySummary,
           mealsJson: mealsJson,
           symptomsJson: symptomsJson,
           scansJson: scansJson,
@@ -202,16 +173,10 @@ class InsightRepositoryImpl implements InsightRepository {
       final insight = AIInsight.fromMap(decoded);
 
       final duration = DateTime.now().difference(startTime).inSeconds;
-      await _analyticsService.logEvent(
-        name: 'insight_generated',
-        parameters: {'gut_score': insight.gutScore, 'duration_sec': duration},
-      );
+      await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
 
       await _prefs.setString('gutgood_insights_cache', cleanJson);
-      await _prefs.setString(
-        'last_insight_run',
-        DateTime.now().toUtc().toIso8601String(),
-      );
+      await _prefs.setString('last_insight_run', DateTime.now().toUtc().toIso8601String());
       await _insightFirestoreService.saveInsights(insight);
 
       // 🟢 Fix: Save HealthAlert locally now that Cloud Function is removed
@@ -220,8 +185,7 @@ class InsightRepositoryImpl implements InsightRepository {
           HealthAlert(
             id: '',
             title: 'Gut Insight Ready',
-            message:
-                'Your latest personalized gut health analysis is ready. Open to see your new score!',
+            message: 'Your latest personalized gut health analysis is ready. Open to see your new score!',
             type: 'insight_ready',
             time: DateTime.now(),
             isRead: false,
@@ -232,25 +196,15 @@ class InsightRepositoryImpl implements InsightRepository {
       unawaited(_notificationService.showInsightGeneratedNotification());
 
       if (profile != null) {
-        final updatedProfile = profile.copyWith(
-          gutScore: insight.gutScore,
-          updatedAt: DateTime.now(),
-        );
+        final updatedProfile = profile.copyWith(gutScore: insight.gutScore, updatedAt: DateTime.now());
         await _authFirestoreService.updateUserProfile(updatedProfile);
       }
 
       unawaited(_patternEngineService.runAnalysis());
     } catch (e, st) {
       AppLogger.error('InsightRepo: AI Analysis failed', error: e);
-      await _analyticsService.logEvent(
-        name: 'insight_generation_failed',
-        parameters: {'error': e.toString()},
-      );
-      await _crashlyticsService.recordError(
-        e,
-        st,
-        reason: 'AI Insight generation failed',
-      );
+      await _analyticsService.logEvent(name: 'insight_generation_failed', parameters: {'error': e.toString()});
+      await _crashlyticsService.recordError(e, st, reason: 'AI Insight generation failed');
       rethrow;
     }
   }

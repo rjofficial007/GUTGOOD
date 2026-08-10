@@ -31,15 +31,7 @@ class WeeklyRecapScreen extends StatelessWidget {
     final highlights = recap?.highlights ?? [];
 
     if (insight != null) {
-      unawaited(
-        sl<AnalyticsService>().logEvent(
-          name: 'view_weekly_recap',
-          parameters: {
-            'avg_score': recap?.avgScore ?? 0,
-            'foods_logged': recap?.foodsLogged ?? 0,
-          },
-        ),
-      );
+      unawaited(sl<AnalyticsService>().logEvent(name: 'view_weekly_recap', parameters: {'avg_score': recap?.avgScore ?? 0, 'foods_logged': recap?.foodsLogged ?? 0}));
     }
 
     if (insight == null) {
@@ -52,17 +44,12 @@ class WeeklyRecapScreen extends StatelessWidget {
       backgroundColor: context.appColorScheme.cardBackground,
       appBar: const GutAppBar(title: AppStrings.weeklyRecap),
       body: ListView.builder(
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSizes.p20,
-          vertical: AppSizes.p10,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
         itemCount: visibleSections.length,
         itemBuilder: (context, index) {
           final isLast = index == visibleSections.length - 1;
           return Padding(
-            padding: EdgeInsets.only(
-              bottom: isLast ? AppSizes.p64 : AppSizes.p32,
-            ),
+            padding: EdgeInsets.only(bottom: isLast ? AppSizes.p64 : AppSizes.p32),
             child: visibleSections[index],
           );
         },
@@ -70,58 +57,25 @@ class WeeklyRecapScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildSections(
-    BuildContext context,
-    WeeklyRecap? recap,
-    List<RecapHighlight> highlights,
-  ) {
-    final notifier = context.watch<InsightsNotifier>();
+  List<Widget> _buildSections(BuildContext context, WeeklyRecap? recap, List<RecapHighlight> highlights) {
     final profile = context.watch<ProfileNotifier>();
 
     final sections = <Widget>[
       const _RecapDateHeader(),
-      GutSnapshotHeroCard(
-        score: recap?.avgScore ?? 0,
-        scoreDiff: recap?.scoreSub,
-        streak: profile.profile?.streak ?? 0,
-        isActive: true,
-      ),
-      TrendCard(insights: notifier.insightHistory, currentInsight: insight!),
-      DashboardEntrance(
-        delay: 100,
-        child: _ModernSmartAlert(insight: insight!),
-      ),
+      GutSnapshotHeroCard(score: recap?.avgScore ?? 0, scoreDiff: recap?.scoreSub, streak: profile.profile?.streak ?? 0, isActive: true),
+
       DashboardEntrance(
         delay: 200,
         child: GutDashboardSection(
           title: AppStrings.performanceHighlights,
           subtitle: AppStrings.sevenDayAverage,
-          visualization: DashboardVisualizationBar(
-            ratio: (recap?.avgScore ?? 0) / 100,
-            label:
-                '${recap?.avgScore ?? 0} ${AppStrings.averageGutScore.toLowerCase()}',
-          ),
+          visualization: DashboardVisualizationBar(ratio: (recap?.avgScore ?? 0) / 100, label: '${recap?.avgScore ?? 0} ${AppStrings.averageGutScore.toLowerCase()}'),
           items: [
-            DashboardDetailItem(
-              title: recap?.bestDay ?? 'N/A',
-              subtitle: AppStrings.peakPerformance,
-              icon: AppIcons.trophy,
-              color: context.appColorScheme.textPrimary,
-            ),
+            DashboardDetailItem(title: recap?.bestDay ?? 'N/A', subtitle: AppStrings.peakPerformance, icon: AppIcons.trophy, color: context.appColorScheme.textPrimary),
             Gap.h12,
-            DashboardDetailItem(
-              title: '${recap?.foodsLogged ?? 0}',
-              subtitle: AppStrings.totalLogs,
-              icon: AppIcons.clipboardList,
-              color: context.appColorScheme.textPrimary,
-            ),
+            DashboardDetailItem(title: '${recap?.foodsLogged ?? 0}', subtitle: AppStrings.totalLogs, icon: AppIcons.clipboardList, color: context.appColorScheme.textPrimary),
             Gap.h12,
-            DashboardDetailItem(
-              title: insight!.healingTrend?.toUpperCase() ?? AppStrings.stable,
-              subtitle: AppStrings.weeklyTrend,
-              icon: AppIcons.zap,
-              color: context.appColorScheme.textPrimary,
-            ),
+            DashboardDetailItem(title: insight!.healingTrend?.toUpperCase() ?? AppStrings.stable, subtitle: AppStrings.weeklyTrend, icon: AppIcons.zap, color: context.appColorScheme.textPrimary),
           ],
           footerLabel: AppStrings.viewDetailedMetrics,
           onFooterTap: () => _showRecapDetails(context, recap, insight),
@@ -130,53 +84,33 @@ class WeeklyRecapScreen extends StatelessWidget {
     ];
 
     if (highlights.isNotEmpty) {
-      sections.add(
-        _RecapHighlightsSection(
-          highlights: highlights,
-          onDetailsTap: () => _showDiscoveryDetails(context, highlights),
-        ),
-      );
+      sections.add(_RecapHighlightsSection(highlights: highlights, onDetailsTap: () => _showDiscoveryDetails(context, highlights)));
     }
 
-    sections.add(const _AchievementBanner());
+    sections
+      ..add(DashboardEntrance(delay: 300, child: _ModernSmartAlert(insight: insight!)))
+      ..add(const _AchievementBanner());
 
     return sections;
   }
 
-  void _showRecapDetails(
-    BuildContext context,
-    WeeklyRecap? recap,
-    AIInsight? insight,
-  ) {
+  void _showRecapDetails(BuildContext context, WeeklyRecap? recap, AIInsight? insight) {
     unawaited(sl<AnalyticsService>().logEvent(name: 'view_recap_metrics'));
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.weeklyPerformance,
       children: [
-        SheetHeroSection(
-          title: '${recap?.avgScore ?? 0}',
-          subtitle: AppStrings.averageGutScore,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.activity,
-        ),
+        SheetHeroSection(title: '${recap?.avgScore ?? 0}', subtitle: AppStrings.averageGutScore, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
-        SheetSectionHeader(
-          title: AppStrings.activityBreakdown,
-          color: context.appColorScheme.textPrimary,
-        ),
+        SheetSectionHeader(title: AppStrings.activityBreakdown, color: context.appColorScheme.textPrimary),
         DashboardDetailItem(
           title: '${recap?.foodsLogged ?? 0} ${AppStrings.foodsLogged}',
-          subtitle: recap?.loggedSub ?? 'Keep it up!',
+          subtitle: recap?.loggedSub ?? AppStrings.keepItUp,
           icon: AppIcons.utensils,
           color: context.appColorScheme.textPrimary,
         ),
         Gap.h16,
-        DashboardDetailItem(
-          title: '${AppStrings.bestDay}: ${recap?.bestDay ?? 'N/A'}',
-          subtitle: AppStrings.bestPerformanceSubtitle,
-          icon: AppIcons.trophy,
-          color: context.appColorScheme.textPrimary,
-        ),
+        DashboardDetailItem(title: '${AppStrings.bestDay}: ${recap?.bestDay ?? 'N/A'}', subtitle: AppStrings.bestPerformanceSubtitle, icon: AppIcons.trophy, color: context.appColorScheme.textPrimary),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,
@@ -184,31 +118,18 @@ class WeeklyRecapScreen extends StatelessWidget {
     );
   }
 
-  void _showDiscoveryDetails(
-    BuildContext context,
-    List<RecapHighlight> highlights,
-  ) {
+  void _showDiscoveryDetails(BuildContext context, List<RecapHighlight> highlights) {
     unawaited(sl<AnalyticsService>().logEvent(name: 'view_recap_discoveries'));
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.discoveriesTitle,
       children: [
-        SheetHeroSection(
-          title: AppStrings.insights,
-          subtitle: AppStrings.aiDrivenFindings,
-          color: context.appColorScheme.textPrimary,
-          icon: AppIcons.sparkles,
-        ),
+        SheetHeroSection(title: AppStrings.insights, subtitle: AppStrings.aiDrivenFindings, color: context.appColorScheme.textPrimary, icon: AppIcons.sparkles),
         Gap.h32,
         ...highlights.map(
           (RecapHighlight h) => Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(
-              title: h.text,
-              subtitle: AppStrings.detectedThisWeek,
-              icon: InsightUiUtils.getReactionIcon(h.icon),
-              color: context.appColorScheme.textPrimary,
-            ),
+            child: DashboardDetailItem(title: h.text, subtitle: AppStrings.detectedThisWeek, icon: InsightUiUtils.getReactionIcon(h.icon), color: context.appColorScheme.textPrimary),
           ),
         ),
         Gap.h32,
@@ -227,10 +148,7 @@ class _RecapLoadingView extends StatelessWidget {
     backgroundColor: context.appColorScheme.cardBackground,
     appBar: const GutAppBar(title: AppStrings.weeklyRecap),
     body: Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: AppSizes.p20,
-        vertical: AppSizes.p10,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
       child: const ShimmerGridLoader(variant: ShimmerVariant.recap),
     ),
   );
@@ -244,10 +162,7 @@ class _RecapDateHeader extends StatelessWidget {
     final recap = context.read<InsightsNotifier>().latestInsight?.weeklyRecap;
     return Center(
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSizes.p16,
-          vertical: AppSizes.p6,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p6),
         decoration: BoxDecoration(
           color: context.appColorScheme.border.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(100),
@@ -255,10 +170,7 @@ class _RecapDateHeader extends StatelessWidget {
         ),
         child: Text(
           recap?.dateRange ?? AppStrings.last7Days,
-          style: context.eyebrow.copyWith(
-            color: context.appColorScheme.textPrimary,
-            fontWeight: FontWeight.w900,
-          ),
+          style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900),
         ),
       ),
     );
@@ -266,10 +178,7 @@ class _RecapDateHeader extends StatelessWidget {
 }
 
 class _RecapHighlightsSection extends StatelessWidget {
-  const _RecapHighlightsSection({
-    required this.highlights,
-    required this.onDetailsTap,
-  });
+  const _RecapHighlightsSection({required this.highlights, required this.onDetailsTap});
 
   final List<RecapHighlight> highlights;
   final VoidCallback onDetailsTap;
@@ -282,31 +191,14 @@ class _RecapHighlightsSection extends StatelessWidget {
       subtitle: AppStrings.weeklyHighlights,
       visualization: Container(
         padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          color: context.appColorScheme.border.withValues(alpha: 0.2),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          AppIcons.sparkles,
-          color: context.appColorScheme.textPrimary,
-          size: AppSizes.icon32,
-        ),
+        decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+        child: Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
       ),
       items: highlights.take(3).map((RecapHighlight h) {
-        final color = InsightUiUtils.getIngredientColor(
-          h.color,
-          error: context.appColorScheme.error,
-          warning: context.appColorScheme.warning,
-          success: context.appColorScheme.success,
-        );
+        final color = InsightUiUtils.getIngredientColor(h.color, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
         return Padding(
           padding: EdgeInsets.only(bottom: AppSizes.p12),
-          child: DashboardDetailItem(
-            title: AppStrings.discovery,
-            subtitle: h.text,
-            icon: InsightUiUtils.getReactionIcon(h.icon),
-            color: color,
-          ),
+          child: DashboardDetailItem(title: AppStrings.discovery, subtitle: h.text, icon: InsightUiUtils.getReactionIcon(h.icon), color: color),
         );
       }).toList(),
       footerLabel: AppStrings.viewAllDiscoveries,
@@ -328,30 +220,15 @@ class _AchievementBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
         borderRadius: BorderRadius.circular(AppSizes.r28),
-        border: Border.all(
-          color: context.appColorScheme.border.withValues(alpha: 0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppPalette.black.withValues(alpha: 0.02),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(AppSizes.p12),
-            decoration: BoxDecoration(
-              color: context.appColorScheme.border.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              AppIcons.trophy,
-              color: context.appColorScheme.textPrimary,
-              size: AppSizes.icon24,
-            ),
+            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+            child: Icon(AppIcons.trophy, color: context.appColorScheme.textPrimary, size: AppSizes.icon24),
           ),
           Gap.w16,
           Expanded(
@@ -360,28 +237,17 @@ class _AchievementBanner extends StatelessWidget {
               children: [
                 Text(
                   AppStrings.champion.toUpperCase(),
-                  style: context.eyebrow.copyWith(
-                    color: context.appColorScheme.textPrimary,
-                    fontSize: AppSizes.s10,
-                    letterSpacing: 1.5,
-                  ),
+                  style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, fontSize: AppSizes.s10, letterSpacing: 1.5),
                 ),
                 Gap.h4,
                 Text(
                   AppStrings.greatConsistency,
-                  style: context.bodyBold.copyWith(
-                    color: context.appColorScheme.textPrimary,
-                    fontSize: AppSizes.s13,
-                  ),
+                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: AppSizes.s13),
                 ),
               ],
             ),
           ),
-          Icon(
-            AppIcons.sparkles,
-            color: context.appColorScheme.textPrimary,
-            size: AppSizes.icon16,
-          ),
+          Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon16),
         ],
       ),
     ),
@@ -397,8 +263,7 @@ class _ModernSmartAlert extends StatelessWidget {
     final profile = context.watch<ProfileNotifier>().profile;
     final streak = profile?.streak ?? 0;
     final healingTrend = insight.healingTrend ?? AppStrings.optimizing;
-    final description =
-        '${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}';
+    final description = '${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}';
 
     return ModernInsightCard(
       title: AppStrings.weeklyPulse,
@@ -410,21 +275,12 @@ class _ModernSmartAlert extends StatelessWidget {
       footer: Text(
         AppStrings.aiSummary,
         textAlign: TextAlign.center,
-        style: context.caption.copyWith(
-          color: context.appColorScheme.cardBackground,
-          fontWeight: FontWeight.w900,
-          fontSize: AppSizes.s10,
-          letterSpacing: 1.0,
-        ),
+        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
       ),
       footerColor: context.appColorScheme.textPrimary,
       child: Text(
         description,
-        style: context.bodySm.copyWith(
-          color: context.appColorScheme.textPrimary,
-          height: 1.4,
-          fontWeight: FontWeight.w500,
-        ),
+        style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
       ),
     );
   }

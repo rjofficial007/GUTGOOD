@@ -19,6 +19,7 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/app_version_services.dart';
 import 'package:gutgood/core/services/config_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
+import 'package:gutgood/core/services/debug_mock_data_service.dart';
 import 'package:gutgood/core/services/device_info_services.dart';
 import 'package:gutgood/core/services/export_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
@@ -96,11 +97,7 @@ Future<void> _initExternal() async {
       return auth;
     })
     ..registerLazySingleton(() {
-      final firestore = FirebaseFirestore.instance
-        ..settings = const Settings(
-          persistenceEnabled: true,
-          cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-        );
+      final firestore = FirebaseFirestore.instance..settings = const Settings(persistenceEnabled: true, cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
       if (_useFirebaseEmulator && kDebugMode) {
         firestore.useFirestoreEmulator(_emulatorHost, 8080);
       }
@@ -123,14 +120,7 @@ Future<void> _initExternal() async {
     ..registerLazySingleton(() => FirebaseRemoteConfig.instance)
     ..registerLazySingleton(() => GoogleSignIn.instance)
     ..registerLazySingleton(DeviceInfoPlugin.new)
-    ..registerLazySingleton(
-      () => Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 15),
-        ),
-      ),
-    )
+    ..registerLazySingleton(() => Dio(BaseOptions(connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 15))))
     ..registerLazySingleton(FlutterLocalNotificationsPlugin.new);
 }
 
@@ -140,88 +130,26 @@ void _initCoreServices() {
     ..registerLazySingleton<AnalyticsService>(AnalyticsServiceImpl.new)
     ..registerLazySingleton<CrashlyticsService>(CrashlyticsServiceImpl.new)
     ..registerLazySingleton<AppVersionService>(AppVersionServiceImpl.new)
-    ..registerLazySingleton<DeviceInfoService>(
-      () => DeviceInfoServiceImpl(deviceInfoPlugin: sl()),
-    )
-    ..registerLazySingleton<AppService>(
-      () => AppServiceImpl(
-        appVersionService: sl(),
-        deviceInfoService: sl(),
-        configService: sl(),
-        dio: sl(),
-      ),
-    )
+    ..registerLazySingleton<DeviceInfoService>(() => DeviceInfoServiceImpl(deviceInfoPlugin: sl()))
+    ..registerLazySingleton<AppService>(() => AppServiceImpl(appVersionService: sl(), deviceInfoService: sl(), configService: sl(), dio: sl()))
     ..registerLazySingleton<AppStateService>(AppStateServiceImpl.new)
-    ..registerLazySingleton<RemoteConfigService>(
-      () => RemoteConfigServiceImpl(remoteConfig: sl()),
-    )
-    ..registerLazySingleton<AiService>(
-      () => AiServiceImpl(
-        dio: sl(),
-        auth: sl(),
-        config: sl(),
-        analyticsService: sl(),
-        crashlyticsService: sl(),
-      ),
-    )
+    ..registerLazySingleton<RemoteConfigService>(() => RemoteConfigServiceImpl(remoteConfig: sl()))
+    ..registerLazySingleton<AiService>(() => AiServiceImpl(dio: sl(), auth: sl(), config: sl(), analyticsService: sl(), crashlyticsService: sl()))
     ..registerLazySingleton<OffService>(() => OffServiceImpl(dio: sl()))
-    ..registerLazySingleton<StorageService>(
-      () => StorageServiceImpl(auth: sl(), storage: sl()),
-    )
-    ..registerLazySingleton<AuthFirestoreService>(
-      () =>
-          AuthFirestoreServiceImpl(auth: sl(), db: sl(), storageService: sl()),
-    )
-    ..registerLazySingleton<ChatFirestoreService>(
-      () => ChatFirestoreServiceImpl(auth: sl(), db: sl()),
-    )
-    ..registerLazySingleton<HistoryFirestoreService>(
-      () => HistoryFirestoreServiceImpl(auth: sl(), db: sl()),
-    )
-    ..registerLazySingleton<InsightFirestoreService>(
-      () => InsightFirestoreServiceImpl(auth: sl(), db: sl()),
-    )
-    ..registerLazySingleton<UsageFirestoreService>(
-      () => UsageFirestoreServiceImpl(auth: sl(), db: sl()),
-    )
-    ..registerLazySingleton<NotificationService>(
-      () => NotificationServiceImpl(
-        notifications: sl(),
-        authFirestoreService: sl(),
-        historyFirestoreService: sl(),
-        prefs: sl(),
-      ),
-    )
-    ..registerLazySingleton<PatternEngineService>(
-      () => PatternEngineServiceImpl(
-        historyFirestoreService: sl(),
-        insightFirestoreService: sl(),
-      ),
-    )
-    ..registerLazySingleton<InternetConnectionChecker>(
-      InternetConnectionCheckerImpl.new,
-    )
-    ..registerLazySingleton<LinkService>(
-      () => LinkServiceImpl(
-        authRepository: sl(),
-        prefs: sl(),
-        firebaseAuth: sl(),
-        appStateService: sl(),
-      ),
-    )
+    ..registerLazySingleton<StorageService>(() => StorageServiceImpl(auth: sl(), storage: sl()))
+    ..registerLazySingleton<AuthFirestoreService>(() => AuthFirestoreServiceImpl(auth: sl(), db: sl(), storageService: sl()))
+    ..registerLazySingleton<ChatFirestoreService>(() => ChatFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<HistoryFirestoreService>(() => HistoryFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<InsightFirestoreService>(() => InsightFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<UsageFirestoreService>(() => UsageFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<NotificationService>(() => NotificationServiceImpl(notifications: sl(), authFirestoreService: sl(), historyFirestoreService: sl(), prefs: sl()))
+    ..registerLazySingleton<PatternEngineService>(() => PatternEngineServiceImpl(historyFirestoreService: sl(), insightFirestoreService: sl()))
+    ..registerLazySingleton<InternetConnectionChecker>(InternetConnectionCheckerImpl.new)
+    ..registerLazySingleton<LinkService>(() => LinkServiceImpl(authRepository: sl(), prefs: sl(), firebaseAuth: sl(), appStateService: sl()))
     ..registerLazySingleton<PurchaseService>(PurchaseServiceImpl.new)
-    ..registerLazySingleton<UsageService>(
-      () => UsageServiceImpl(
-        authRepository: sl(),
-        authFirestoreService: sl(),
-        usageFirestoreService: sl(),
-        purchaseService: sl(),
-        prefs: sl(),
-      ),
-    )
-    ..registerLazySingleton<ExportService>(
-      () => ExportServiceImpl(firestoreService: sl<HistoryFirestoreService>()),
-    )
+    ..registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), authFirestoreService: sl(), usageFirestoreService: sl(), purchaseService: sl(), prefs: sl()))
+    ..registerLazySingleton<ExportService>(() => ExportServiceImpl(firestoreService: sl<HistoryFirestoreService>()))
+    ..registerLazySingleton<DebugMockDataService>(() => DebugMockDataService(historyFirestoreService: sl(), insightFirestoreService: sl()))
     ..registerLazySingleton(() => ThemeNotifier(sl()));
 }
 
@@ -243,43 +171,13 @@ void _initFeatures() {
       ),
     )
     ..registerLazySingleton(() => GutAuthNotifier(sl(), sl()))
-    ..registerLazySingleton(
-      () => PurchaseProvider(
-        purchaseService: sl(),
-        connectionChecker: sl(),
-        appStateService: sl(),
-        prefs: sl(),
-        authFirestoreService: sl(),
-        analyticsService: sl(),
-      ),
-    )
+    ..registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), authFirestoreService: sl(), analyticsService: sl()))
     // --- Profile ---
-    ..registerLazySingleton<ProfileRepository>(
-      () => ProfileRepositoryImpl(
-        auth: sl(),
-        firestoreService: sl<AuthFirestoreService>(),
-      ),
-    )
-    ..registerLazySingleton(
-      () => ProfileNotifier(
-        sl(),
-        sl<AuthFirestoreService>(),
-        sl(),
-        sl(),
-        sl(),
-        sl(),
-      ),
-    )
-    ..registerLazySingleton(
-      () => UsageNotifier(sl<UsageFirestoreService>(), sl()),
-    )
+    ..registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(auth: sl(), firestoreService: sl<AuthFirestoreService>()))
+    ..registerLazySingleton(() => ProfileNotifier(sl(), sl<AuthFirestoreService>(), sl(), sl(), sl(), sl()))
+    ..registerLazySingleton(() => UsageNotifier(sl<UsageFirestoreService>(), sl()))
     // --- Chat ---
-    ..registerLazySingleton<ChatRepository>(
-      () => ChatRepositoryImpl(
-        firestoreService: sl<ChatFirestoreService>(),
-        aiService: sl(),
-      ),
-    )
+    ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl<ChatFirestoreService>(), aiService: sl()))
     ..registerLazySingleton(
       () => ChatNotifier(
         repository: sl(),
@@ -303,6 +201,7 @@ void _initFeatures() {
         authFirestoreService: sl(),
         historyFirestoreService: sl(),
         insightFirestoreService: sl(),
+        chatFirestoreService: sl(),
         aiService: sl(),
         prefs: sl(),
         notificationService: sl(),
@@ -311,55 +210,22 @@ void _initFeatures() {
         crashlyticsService: sl(),
       ),
     )
-    ..registerLazySingleton(
-      () => InsightsNotifier(sl(), sl(), sl(), sl(), sl()),
-    )
+    ..registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl()))
     // --- Scanner ---
     ..registerLazySingleton<ScannerRepository>(
-      () => ScannerRepositoryImpl(
-        offService: sl(),
-        aiService: sl(),
-        chatFirestoreService: sl(),
-        historyFirestoreService: sl(),
-        notificationService: sl(),
-        appStateService: sl(),
-        analyticsService: sl(),
-      ),
+      () =>
+          ScannerRepositoryImpl(offService: sl(), aiService: sl(), chatFirestoreService: sl(), historyFirestoreService: sl(), notificationService: sl(), appStateService: sl(), analyticsService: sl()),
     )
-    ..registerLazySingleton(
-      () => ScannerNotifier(
-        repository: sl(),
-        authFirestoreService: sl(),
-        offService: sl(),
-        storageService: sl(),
-      ),
-    )
+    ..registerLazySingleton(() => ScannerNotifier(repository: sl(), authFirestoreService: sl(), offService: sl(), storageService: sl()))
     // --- Logs ---
-    ..registerLazySingleton<LogRepository>(
-      () => LogRepositoryImpl(
-        firestoreService: sl<HistoryFirestoreService>(),
-        analyticsService: sl(),
-      ),
-    )
+    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl<HistoryFirestoreService>(), analyticsService: sl()))
     // --- History ---
-    ..registerLazySingleton<HistoryRepository>(
-      () => HistoryRepositoryImpl(
-        firestoreService: sl<HistoryFirestoreService>(),
-      ),
-    )
-    ..registerLazySingleton(
-      () => SavedFoodsProvider(repository: sl(), appStateService: sl()),
-    );
+    ..registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl<HistoryFirestoreService>()))
+    ..registerLazySingleton(() => SavedFoodsProvider(repository: sl(), appStateService: sl()));
 }
 
 void _initUseCases() {
   sl
     ..registerLazySingleton(() => SendMessageStreamUseCase(sl()))
-    ..registerLazySingleton(
-      () => ProcessChatTagUseCase(
-        firestoreService: sl<HistoryFirestoreService>(),
-        notificationService: sl(),
-        appStateService: sl(),
-      ),
-    );
+    ..registerLazySingleton(() => ProcessChatTagUseCase(firestoreService: sl<HistoryFirestoreService>(), notificationService: sl(), appStateService: sl()));
 }

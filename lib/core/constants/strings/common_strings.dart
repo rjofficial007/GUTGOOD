@@ -2,8 +2,7 @@ class CommonStrings {
   const CommonStrings._();
 
   static const String appName = 'GutGood';
-  static const String visionTagline =
-      'GutGood doesn\'t nag users — it learns them.';
+  static const String visionTagline = 'GutGood doesn\'t nag users — it learns them.';
   static const String gutgood = 'GUTGOOD';
   static const String dataSecure = 'Your data is secure';
   static const String freeTrial = 'Start 3-day free trial';
@@ -24,11 +23,9 @@ class CommonStrings {
   static const String edit = 'Edit';
   static const String save = 'Save';
   static const String delete = 'Delete';
-  static const String errorOccurred =
-      'An unexpected error occurred. Please try again.';
+  static const String errorOccurred = 'An unexpected error occurred. Please try again.';
   static const String noInternetConnection = 'No internet connection.';
-  static const String offlineMessage =
-      'No internet connection. Please try again when you\'re back online.';
+  static const String offlineMessage = 'No internet connection. Please try again when you\'re back online.';
   static const String comingSoon = 'Coming soon! ✨';
   static const String tryAgain = 'Try Again';
   static const String back = 'Back';
@@ -39,8 +36,7 @@ class CommonStrings {
   static const String labelGramSuffix = 'g';
 
   // Paywall
-  static const String planUnavailable =
-      'Plan currently unavailable. Please try again later.';
+  static const String planUnavailable = 'Plan currently unavailable. Please try again later.';
   static const String welcomeToPremium = 'Welcome to GutGood Premium! ✨';
   static const String freeTrialSuffix = ' FREE TRIAL';
   static const String perMonth = ' /month';
@@ -48,27 +44,20 @@ class CommonStrings {
   static const String perWeek = '/week';
   static const String perPeriod = '/period';
   static const String startHealingGut = 'Start healing your gut.';
-  static const String knowWhatHelps =
-      'Know what helps vs hurts you — instantly.';
+  static const String knowWhatHelps = 'Know what helps vs hurts you — instantly.';
   static const String featureFoodsHurtHeal = 'See what foods hurt vs heal you';
-  static const String featureFoodsHurtHealDesc =
-      'Get clear answers about any food or ingredient.';
-  static const String featureInstantSwaps =
-      'Get instant swaps that feel better';
-  static const String featureInstantSwapsDesc =
-      "Smarter alternatives you'll actually enjoy.";
-  static const String featurePersonalInsights =
-      'Unlock your personal gut insights';
-  static const String featurePersonalInsightsDesc =
-      "See patterns, triggers and what's working.";
+  static const String featureFoodsHurtHealDesc = 'Get clear answers about any food or ingredient.';
+  static const String featureInstantSwaps = 'Get instant swaps that feel better';
+  static const String featureInstantSwapsDesc = "Smarter alternatives you'll actually enjoy.";
+  static const String featurePersonalInsights = 'Unlock your personal gut insights';
+  static const String featurePersonalInsightsDesc = "See patterns, triggers and what's working.";
   static const String dailyUsedNote = 'Used daily to feel better, eat smarter.';
   static const String happyMembersCount = '10,000+ happy GutGood members';
   static const String startFreeTrial = 'Start Free Trial';
   static const String subscribeNow = 'Subscribe Now';
   static const String refreshPlans = 'Refresh Plans';
   static const String continueLimitedAccess = 'Continue with limited access';
-  static const String paywallFooterPrefix =
-      '🔒 Secure payment. Cancel anytime.\n';
+  static const String paywallFooterPrefix = '🔒 Secure payment. Cancel anytime.\n';
   static const String paywallRestore = 'Restore purchases';
   static const String paywallTerms = 'Terms';
   static const String paywallPrivacy = 'Privacy';
@@ -103,4 +92,13 @@ class CommonStrings {
   static const String skipForNow = 'Skip for now';
   static const String notSpecified = 'Not specified';
   static const String selectTime = 'Select Time';
+
+  static const String pageNotFound = 'Oops! Page not found.';
+  static const String routeNotFoundPrefix = 'We couldn\'t find the route: ';
+  static const String backToSafety = 'BACK TO SAFETY';
+  static const String keepItUp = 'Keep it up!';
+
+  static const String notification = 'Notification';
+  static const String noAlertsYet = 'No Alerts Yet';
+  static const String alertsEmptyDescription = 'When we detect patterns or risks, they will appear here.';
 }

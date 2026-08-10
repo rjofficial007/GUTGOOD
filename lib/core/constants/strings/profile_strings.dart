@@ -24,47 +24,37 @@ class ProfileStrings {
   static const String appearance = 'Appearance';
   static const String backupAndSync = 'Backup & Sync';
   static const String helpAndSupport = 'Help & Support';
-  static const String personalizeAiExperience =
-      'Personalize your AI experience';
-  static const String personalizeAiDesc =
-      'Customize how AI helps you on your gut health journey.';
+  static const String personalizeAiExperience = 'Personalize your AI experience';
+  static const String personalizeAiDesc = 'Customize how AI helps you on your gut health journey.';
   static const String communicationStyle = 'Communication Style';
   static const String enableNotifications = 'Enable Notifications';
   static const String receiveUpdates = 'Receive updates and reminders';
   static const String reminders = 'Reminders';
   static const String deleteAccountTitle = 'Delete Account?';
-  static const String deleteAccountConfirm =
-      'This action is permanent and cannot be undone. All your data, history, and scans will be permanently deleted.';
+  static const String deleteAccountConfirm = 'This action is permanent and cannot be undone. All your data, history, and scans will be permanently deleted.';
   static const String deletePermanently = 'Delete Permanently';
   static const String dataExport = 'Data Export';
   static const String downloadData = 'Download your data';
   static const String dataAndPrivacy = 'Data & Privacy';
-  static const String privacyPolicyNote =
-      'Your privacy matters. We never sell your data. Your health data is private and secure.';
-  static const String selectVisualStyle =
-      'Select your preferred visual style for the app.';
-  static const String updatePreferencesSubtitle =
-      'Update your preferences to help AI personalize your experience.';
-  static const String cycleSyncDesc =
-      'Syncing your gut health with your hormonal rhythm helps provide more accurate insights.';
+  static const String privacyPolicyNote = 'Your privacy matters. We never sell your data. Your health data is private and secure.';
+  static const String selectVisualStyle = 'Select your preferred visual style for the app.';
+  static const String updatePreferencesSubtitle = 'Update your preferences to help AI personalize your experience.';
+  static const String cycleSyncDesc = 'Syncing your gut health with your hormonal rhythm helps provide more accurate insights.';
   static const String cyclePhase = 'Cycle Phase';
   static const String selectTime = 'Select Time';
   static const String mealRemindersLabel = 'Meal Reminders';
-  static const String mealRemindersDesc =
-      'Stay on track with breakfast, lunch, and dinner nudges.';
+  static const String mealRemindersDesc = 'Stay on track with breakfast, lunch, and dinner nudges.';
   static const String breakfastTime = 'Breakfast time';
   static const String lunchTime = 'Lunch time';
   static const String dinnerTime = 'Dinner time';
   static const String missedLoggingAlert = 'Missed Logging Alert';
-  static const String missedLoggingDesc =
-      'A gentle nudge if you haven\'t spilled the gut tea today.';
+  static const String missedLoggingDesc = 'A gentle nudge if you haven\'t spilled the gut tea today.';
   static const String dailyCheckInReminder = 'Daily Check-in Reminder';
   static const String dailyCheckInDesc = 'Your daily gut vibe check-in.';
   static const String reminderTime = 'Reminder time';
   static const String sectionUpdates = 'UPDATES';
   static const String insightUpdatesLabel = 'Insight Updates';
-  static const String insightUpdatesDesc =
-      'New pattern-based insights and tips';
+  static const String insightUpdatesDesc = 'New pattern-based insights and tips';
   static const String weeklySummaryLabel = 'Weekly Summary';
   static const String weeklySummaryDesc = 'Weekly progress summary';
   static const String whatShouldWeCallYou = 'What should we call you?';
@@ -82,8 +72,7 @@ class ProfileStrings {
   static const String deleteAccountLabel = 'Delete Account';
   static const String shareWithFriends = 'Share with Friends';
   static const String contactUs = 'Contact Us';
-  static const String labelFeedbackSubject =
-      'I have some feedback regarding GutGood:';
+  static const String labelFeedbackSubject = 'I have some feedback regarding GutGood:';
   static const String rateApp = 'Rate GutGood';
   static const String aboutUs = 'About Us';
   static const String termsAndConditions = 'Terms & Conditions';
@@ -104,14 +93,25 @@ class ProfileStrings {
   static const String clinicalDirectDesc = 'Factual and science-based';
   static const String receiveUpdatesDesc = 'Receive updates and reminders';
   static const String backupAndSyncLabel = 'Backup & Sync';
-  static const String deleteAccountConfirmMessage =
-      'This action is permanent and cannot be undone. All your data, history, and scans will be permanently deleted.';
-  static const String personalizeInsightsPhase =
-      'Personalize insights based on your cycle phase';
+  static const String deleteAccountConfirmMessage = 'This action is permanent and cannot be undone. All your data, history, and scans will be permanently deleted.';
+  static const String personalizeInsightsPhase = 'Personalize insights based on your cycle phase';
   static const String streakOnFire = 'You\'re on fire today! 🔥';
   static const String streakKeepAlive = 'Keep the flame alive!';
   static const String streakUp = 'STREAK UP!';
   static const String daysInARow = 'DAYS IN A ROW';
-  static const String streakQuote =
-      'You\'re building a healthy habit, one day at a time. Keep it up!';
+  static const String streakQuote = 'You\'re building a healthy habit, one day at a time. Keep it up!';
+
+  static const String exportHealthData = 'Export Health Data (CSV)';
+  static const String testPushNotification = 'Test Push Notification';
+  static const String copyFcmToken = 'Copy FCM Token';
+  static const String copyFcmTokenSubtitle = 'Tap to copy your push token for testing';
+  static const String fcmTokenCopied = 'FCM Token copied to clipboard!';
+  static const String generateMockData = 'Generate 2 Weeks Mock Data';
+  static const String generateMockDataSubtitle = 'Adds meal logs, symptoms, and insights';
+  static const String mockDataGenerated = '2 weeks of mock data generated!';
+  static const String guestAiActivity = 'GUEST AI ACTIVITY';
+  static const String dailyAiActivity = 'DAILY AI ACTIVITY';
+  static const String aiChats = 'AI Chats';
+  static const String productScans = 'Product Scans';
+  static const String upgradeForUnlimited = 'Upgrade for Unlimited Access';
 }

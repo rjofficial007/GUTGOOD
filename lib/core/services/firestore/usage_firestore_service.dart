@@ -41,7 +41,7 @@ class UsageFirestoreServiceImpl implements UsageFirestoreService {
   @override
   Future<DailyUsage> getLifetimeUsage() async {
     final uid = _uid;
-    if (uid == null) return DailyUsage(uid: '', date: 'lifetime');
+    if (uid == null) return const DailyUsage(uid: '', date: 'lifetime');
     try {
       final doc = _userDoc;
       if (doc == null) return DailyUsage(uid: uid, date: 'lifetime');
@@ -85,7 +85,7 @@ class UsageFirestoreServiceImpl implements UsageFirestoreService {
   @override
   Stream<DailyUsage> getLifetimeUsageStream() {
     final doc = _userDoc;
-    if (doc == null) return Stream.value(DailyUsage(uid: '', date: 'lifetime'));
+    if (doc == null) return Stream.value(const DailyUsage(uid: '', date: 'lifetime'));
     return doc.snapshots().map((snap) {
       if (!snap.exists) return DailyUsage(uid: _uid ?? '', date: 'lifetime');
       final data = snap.data() as Map<String, dynamic>;

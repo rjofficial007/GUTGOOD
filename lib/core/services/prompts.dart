@@ -50,7 +50,7 @@ class Prompts {
     STRICT TAG ENFORCEMENT:
     - If the user provides a photo, you MUST NOT respond with only text. You MUST include the relevant JSON tags ([SCAN], [MEAL]).
     - If the user mentions how they feel or their energy level, you MUST include a [SYMPTOM] tag.
-    - If you fail to include these tags, the user\'s data cannot be saved.
+    - If you fail to include these tags, the user's data cannot be saved.
     - Treat the JSON tags as the most important part of your response.
 
     CRITICAL INSTRUCTION FOR MEALS (PASSIVE LOGGING):
@@ -315,6 +315,7 @@ class Prompts {
     required List<String> userLifestyle,
     required String cyclePhase,
     required String historyJson,
+    String? historySummary,
     String? mealsJson,
     String? symptomsJson,
     String? scansJson,
@@ -336,6 +337,8 @@ class Prompts {
       
       DATA STREAMS:
       1. CHAT HISTORY (Behavioral signals & specific questions):
+      ${historySummary != null ? 'LONG-TERM SUMMARY: $historySummary\n' : ''}
+      RECENT CHAT LOGS:
       $historyJson
 
       2. STRUCTURED MEAL LOGS (What they ate and when):
@@ -372,12 +375,19 @@ class Prompts {
          - gutScore: A proprietary 1-100 score of current gut health.
          
          SCORING ALGORITHM:
-         * Baseline: 50.
-         * Deductions: High severity symptoms (-5 to -15), NOVA 4 ultra-processed foods (-5), missed logs (-2).
-         * Additions: Probiotic/Fermented foods (+5), high-fiber meals (+3), NOVA 1 whole foods (+4).
-         
+         * Baseline: Use the weighted average of 'score' from the provided 'STRUCTURED SCAN LOGS'.
+         * Fallback: If no scans are available, use the most recent score from 'PREVIOUS GUT SCORES' or 50 as a hard baseline.
+         * Deductions: 
+           - High severity symptoms (-5 to -15 depending on severity).
+           - Frequent NOVA 4 ultra-processed foods (-8).
+           - Significant gaps in logging (-3).
+         * Additions: 
+           - Probiotic/Fermented/Whole foods (+5 to +10).
+           - Achieving health goals in logs (+5).
+           
          DATA CONTINUITY RULES:
-         * Ensure 'gutScore' does not deviate by more than 15 points from the most recent historical score unless logs show extreme changes.
+         * The 'gutScore' MUST reflect the trend of the individual product scores provided in 'SCAN LOGS'.
+         * Ensure 'gutScore' does not deviate by more than 15 points from the most recent historical score unless current logs show extreme changes.
       
       5. Categorization Rules (CRITICAL):
          - DO NOT include the same food in both 'healingFoods' and 'triggerFoods'.

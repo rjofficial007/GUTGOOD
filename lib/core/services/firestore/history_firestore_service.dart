@@ -43,7 +43,6 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
-      final barcode = scanData.barcode;
 
       var bestImageUrl = userImageUrl;
       if (bestImageUrl == null || bestImageUrl.isEmpty) {

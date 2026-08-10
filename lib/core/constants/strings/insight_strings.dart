@@ -17,10 +17,8 @@ class InsightStrings {
   static const String analyzingPatterns = 'Analyzing patterns...';
   static const String noClearPattern = 'No clear pattern yet';
   static const String noInsightsYet = 'No insights yet';
-  static const String keepLoggingForPatterns =
-      'No clear pattern yet. Keep logging so GutGood can learn what works for your body.';
-  static const String understandBodyImpact =
-      'Understand how food impacts your body.';
+  static const String keepLoggingForPatterns = 'No clear pattern yet. Keep logging so GutGood can learn what works for your body.';
+  static const String understandBodyImpact = 'Understand how food impacts your body.';
   static const String yourGutSnapshot = 'Your Gut Snapshot';
   static const String scoreTrend = 'Score Trend';
   static const String topBodyInsights = 'Top Body Insights';
@@ -31,8 +29,7 @@ class InsightStrings {
   static const String personalizedImpactLabel = 'PERSONALIZED IMPACT';
   static const String productSaved = 'Product saved!';
   static const String noSavedItemsYet = 'No saved items yet';
-  static const String tapHeartToSave =
-      'Tap the heart icon when scanning a product to save it.';
+  static const String tapHeartToSave = 'Tap the heart icon when scanning a product to save it.';
   static const String myFavorites = 'My Favorites';
   static const String viewSavedFoods = 'View Saved Foods';
   static const String scanAnotherProduct = 'Scan Another Product';
@@ -47,10 +44,8 @@ class InsightStrings {
   static const String whyThisIsBetter = 'Why this is better';
   static const String patternsDetected = 'PATTERNS DETECTED';
   static const String loggingMoreMeals = 'Logging more meals...';
-  static const String keepLoggingForHighlights =
-      'Keep logging to generate highlights...';
-  static const String greatConsistency =
-      'Great consistency! Every log helps GutGood build more accurate patterns for your body.';
+  static const String keepLoggingForHighlights = 'Keep logging to generate highlights...';
+  static const String greatConsistency = 'Great consistency! Every log helps GutGood build more accurate patterns for your body.';
   static const String foodsLinkedTo = 'Foods linked to';
   static const String gutSnapshot = 'Gut Snapshot';
   static const String topHighlights = 'Top Highlights';
@@ -68,10 +63,8 @@ class InsightStrings {
   static const String yourGutHealthStory = 'Your Gut Health Story';
   static const String trackingStability = 'Tracking stability';
   static const String healthGoals = 'HEALTH GOALS';
-  static const String primaryHealingObjective =
-      'Your primary healing objective.';
-  static const String symptomTrackedForPatterns =
-      'Symptom being tracked for patterns.';
+  static const String primaryHealingObjective = 'Your primary healing objective.';
+  static const String symptomTrackedForPatterns = 'Symptom being tracked for patterns.';
   static const String highHealingDensity = 'High healing density';
   static const String behavioralVariance = 'Behavioral variance';
   static const String optimizationEfficiency = 'Optimization efficiency';
@@ -113,11 +106,9 @@ class InsightStrings {
   static const String findings = 'FINDINGS';
   static const String optimalProfileIdentified = 'Optimal profile identified';
   static const String optimizedChoices = 'Optimized choices for your profile';
-  static const String factorIndicatingState =
-      'This factor currently indicates a ';
+  static const String factorIndicatingState = 'This factor currently indicates a ';
   static const String viewAllDiscoveries = 'View All Discoveries';
-  static const String gutHealthStoryDesc =
-      'Every analysis you run with GUTGOOD will appear here. Start logging to build your archive.';
+  static const String gutHealthStoryDesc = 'Every analysis you run with GUTGOOD will appear here. Start logging to build your archive.';
   static const String activeGoal = 'Active Goal';
   static const String symptomWatch = 'Symptom Watch';
   static const String target = 'TARGET';
@@ -130,23 +121,17 @@ class InsightStrings {
   static const String freeMember = 'FREE MEMBER';
   static const String scoreTrendLine = 'Score Trend';
   static const String currentFocus = 'CURRENT FOCUS';
-  static const String currentFocusDesc =
-      'GUTGOOD is tracking your chosen goal and recurring symptom to find correlations.';
+  static const String currentFocusDesc = 'GUTGOOD is tracking your chosen goal and recurring symptom to find correlations.';
   static const String recommendations = 'RECOMMENDATIONS';
-  static const String recommendationsDesc =
-      'Specific foods GUTGOOD suggests for your body based on recent data.';
+  static const String recommendationsDesc = 'Specific foods GUTGOOD suggests for your body based on recent data.';
   static const String detectedPatternsLabel = 'DETECTED PATTERNS';
-  static const String detectedPatternsDesc =
-      'Habits and body signals GUTGOOD has identified over the last 7 days.';
+  static const String detectedPatternsDesc = 'Habits and body signals GUTGOOD has identified over the last 7 days.';
   static const String highlightsLabel = 'HIGHLIGHTS';
-  static const String highlightsDesc =
-      'Your best performing foods and notable energy boosts.';
+  static const String highlightsDesc = 'Your best performing foods and notable energy boosts.';
   static const String bodyReactionsLabel = 'BODY REACTIONS';
-  static const String bodyReactionsDesc =
-      'Detailed cause-and-effect mappings from your logs.';
+  static const String bodyReactionsDesc = 'Detailed cause-and-effect mappings from your logs.';
   static const String weeklySummaryTitle = 'Weekly Summary';
-  static const String weeklyRecapNarrative =
-      "GUTGOOD's Weekly Recap: You stayed consistent for ";
+  static const String weeklyRecapNarrative = "GUTGOOD's Weekly Recap: You stayed consistent for ";
   static const String narrativeDaysAndGut = ' days and your gut has been ';
   static const String narrativeBasedOnLogs = ' based on recent logs.';
   static const String discoveriesTitle = 'GUTGOOD\'S DISCOVERIES';
@@ -177,4 +162,46 @@ class InsightStrings {
   static const String bioStats = 'BIO-STATS';
   static const String criticalTrigger = 'Critical Trigger';
   static const String analyzingProductInfo = 'Analyzing product...';
+
+  // --- Insight Dashboard & Detail Strings ---
+  static const String betterEnergy = 'BETTER ENERGY';
+  static const String bloating = 'BLOATING';
+  static const String systemDiscoveries = 'SYSTEM DISCOVERIES';
+  static const String logicBasedCorrelations = 'Logic-based correlations';
+  static const String directBodyFeedback = 'Direct body feedback';
+  static const String frequencyBasedAnalysis = 'Frequency-based analysis';
+  static const String viewAllPowerSources = 'View All Power Sources';
+  static const String viewAllTriggers = 'View All Triggers';
+  static const String viewPatternBreakdown = 'View Pattern Breakdown';
+  static const String viewFrequencyStats = 'View Frequency Stats';
+
+  static const String betterEnergyTitle = 'Better Energy';
+  static const String bloatingAndTriggersTitle = 'Bloating & Triggers';
+  static const String systemDiscoveriesTitle = 'System Discoveries';
+  static const String recentActivityTitle = 'Recent Activity';
+  static const String frequencyStatsTitle = 'Frequency Stats';
+
+  static const String alert = 'ALERT';
+  static const String logic = 'LOGIC';
+  static const String evidenceBackedBenefits = 'Evidence-backed benefits';
+  static const String deterministicCorrelations = 'Deterministic Correlations';
+  static const String historicalCorrelations = 'Historical Correlations';
+  static const String highConfidenceFrequency = 'High Confidence Frequency';
+
+  static const String loggedSuccesses = 'LOGGED SUCCESSES';
+  static const String warnings = 'WARNINGS';
+  static const String loggedReactions = 'LOGGED REACTIONS';
+  static const String mostReactive = 'MOST REACTIVE';
+
+  static const String currentFocusLabel = 'CURRENT FOCUS';
+  static const String powerSources = 'POWER SOURCES';
+  static const String powerSourcesTitle = 'Power Sources';
+  static const String aiRecommendations = 'AI RECOMMENDATIONS';
+  static const String yourSuccesses = 'YOUR SUCCESSES';
+  static const String systemTriggers = 'SYSTEM TRIGGERS';
+  static const String systemTriggersTitle = 'System Triggers';
+  static const String aiWarnings = 'AI WARNINGS';
+  static const String yourReactions = 'YOUR REACTIONS';
+  static const String insightLabelSuffix = ' INSIGHT';
+  static const String topPerformers = 'TOP PERFORMERS';
 }

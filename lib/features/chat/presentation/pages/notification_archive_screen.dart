@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -32,7 +33,7 @@ class _NotificationArchiveScreenState extends State<NotificationArchiveScreen> {
     body: CustomScrollView(
       slivers: [
         GutSliverAppBar(
-          title: 'Notification',
+          title: AppStrings.notification,
           leading: IconButton(
             icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
             onPressed: () => context.pop(),
@@ -59,7 +60,7 @@ class _NoAlertsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const SliverFillRemaining(
     hasScrollBody: false,
-    child: EmptyStateWidget(icon: AppIcons.bell, title: 'No Alerts Yet', description: 'When we detect patterns or risks, they will appear here.'),
+    child: EmptyStateWidget(icon: AppIcons.bell, title: AppStrings.noAlertsYet, description: AppStrings.alertsEmptyDescription),
   );
 }
 

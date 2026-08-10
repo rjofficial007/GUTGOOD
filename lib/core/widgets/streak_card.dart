@@ -21,8 +21,7 @@ class StreakCard extends StatefulWidget {
   State<StreakCard> createState() => _StreakCardState();
 }
 
-class _StreakCardState extends State<StreakCard>
-    with SingleTickerProviderStateMixin {
+class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateMixin {
   late AnimationController _lottieController;
   Timer? _lottieTimer;
 
@@ -58,18 +57,10 @@ class _StreakCardState extends State<StreakCard>
     return Container(
       padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
+        color: context.appColorScheme.elevatedSurface,
         borderRadius: BorderRadius.circular(AppSizes.r28),
-        border: Border.all(
-          color: context.appColorScheme.border.withValues(alpha: 0.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppPalette.black.withValues(alpha: 0.02),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,33 +73,16 @@ class _StreakCardState extends State<StreakCard>
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        AppIcons.flame,
-                        color: isActiveToday
-                            ? context.appColorScheme.textPrimary
-                            : context.appColorScheme.textMuted,
-                        size: AppSizes.icon24,
-                      ),
+                      Icon(AppIcons.flame, color: isActiveToday ? context.appColorScheme.textPrimary : context.appColorScheme.textMuted, size: AppSizes.icon24),
                       Gap.h8,
                       Text(
                         '${widget.streak} ${AppStrings.dayStreakLabel}',
-                        style: context.eyebrow.copyWith(
-                          color: isActiveToday
-                              ? context.appColorScheme.textPrimary
-                              : context.appColorScheme.textMuted,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                        ),
+                        style: context.eyebrow.copyWith(color: isActiveToday ? context.appColorScheme.textPrimary : context.appColorScheme.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1.5),
                       ),
                     ],
                   ),
                   Gap.h4,
-                  Text(
-                    isActiveToday
-                        ? AppStrings.streakOnFire
-                        : AppStrings.streakKeepAlive,
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s16),
-                  ),
+                  Text(isActiveToday ? AppStrings.streakOnFire : AppStrings.streakKeepAlive, style: context.bodyBold.copyWith(fontSize: AppSizes.s16)),
                 ],
               ),
               Lottie.asset(
@@ -123,10 +97,7 @@ class _StreakCardState extends State<StreakCard>
             ],
           ),
           Gap.h24,
-          _WeeklyProgressRow(
-            lastActivityDate: widget.lastActivityDate,
-            streak: widget.streak,
-          ),
+          _WeeklyProgressRow(lastActivityDate: widget.lastActivityDate, streak: widget.streak),
         ],
       ),
     );
@@ -148,9 +119,7 @@ class _WeeklyProgressRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final todayMidnight = DateTime(now.year, now.month, now.day);
-    final firstDayOfWeek = todayMidnight.subtract(
-      Duration(days: todayMidnight.weekday % 7),
-    );
+    final firstDayOfWeek = todayMidnight.subtract(Duration(days: todayMidnight.weekday % 7));
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -162,11 +131,7 @@ class _WeeklyProgressRow extends StatelessWidget {
         var isStreakDay = false;
         if (lastActivityDate != null && streak > 0) {
           final lastActive = DateTime.parse(lastActivityDate!);
-          final lastActiveMidnight = DateTime(
-            lastActive.year,
-            lastActive.month,
-            lastActive.day,
-          );
+          final lastActiveMidnight = DateTime(lastActive.year, lastActive.month, lastActive.day);
 
           final diff = todayMidnight.difference(lastActiveMidnight).inDays;
           // If active today or yesterday, the streak is alive.
@@ -186,12 +151,7 @@ class _WeeklyProgressRow extends StatelessWidget {
           children: [
             Text(
               dayName,
-              style: context.caption.copyWith(
-                fontWeight: isToday ? FontWeight.w900 : FontWeight.w600,
-                color: isToday
-                    ? context.appColorScheme.textPrimary
-                    : context.appColorScheme.textMuted,
-              ),
+              style: context.caption.copyWith(fontWeight: isToday ? FontWeight.w900 : FontWeight.w600, color: isToday ? context.appColorScheme.textPrimary : context.appColorScheme.textMuted),
             ),
             Gap.h10,
             AnimatedContainer(
@@ -200,23 +160,11 @@ class _WeeklyProgressRow extends StatelessWidget {
               height: 34.0.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isCompleted
-                    ? context.appColorScheme.textPrimary
-                    : (isMissed
-                          ? context.appColorScheme.border.withValues(alpha: 0.1)
-                          : Colors.transparent),
+                color: isCompleted ? context.appColorScheme.textPrimary : (isMissed ? context.appColorScheme.border.withValues(alpha: 0.1) : Colors.transparent),
                 border: Border.all(
                   color: isToday
                       ? context.appColorScheme.textPrimary
-                      : (isCompleted
-                            ? context.appColorScheme.textPrimary
-                            : (isMissed
-                                  ? context.appColorScheme.border.withValues(
-                                      alpha: 0.2,
-                                    )
-                                  : context.appColorScheme.border.withValues(
-                                      alpha: 0.3,
-                                    ))),
+                      : (isCompleted ? context.appColorScheme.textPrimary : (isMissed ? context.appColorScheme.border.withValues(alpha: 0.2) : context.appColorScheme.border.withValues(alpha: 0.3))),
                   width: isToday ? 2.0 : 1.0,
                 ),
               ),
@@ -225,14 +173,7 @@ class _WeeklyProgressRow extends StatelessWidget {
                   AppIcons.flame,
                   color: isCompleted
                       ? context.appColorScheme.cardBackground
-                      : (isMissed
-                            ? context.appColorScheme.textMuted.withValues(
-                                alpha: 0.2,
-                              )
-                            : (isToday
-                                  ? context.appColorScheme.textPrimary
-                                        .withValues(alpha: 0.4)
-                                  : Colors.transparent)),
+                      : (isMissed ? context.appColorScheme.textMuted.withValues(alpha: 0.2) : (isToday ? context.appColorScheme.textPrimary.withValues(alpha: 0.4) : Colors.transparent)),
                   size: 18.0.w,
                 ),
               ),

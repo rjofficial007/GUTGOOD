@@ -20,6 +20,7 @@ class ProfileHeader extends StatelessWidget {
     required this.goalsCount,
     required this.sensitivitiesCount,
     required this.lifestyleCount,
+    required this.gutScore,
     required this.onImageTap,
     required this.onEditTap,
     required this.onLogoutTap,
@@ -33,6 +34,7 @@ class ProfileHeader extends StatelessWidget {
   final int goalsCount;
   final int sensitivitiesCount;
   final int lifestyleCount;
+  final int gutScore;
   final VoidCallback onImageTap;
   final VoidCallback onEditTap;
   final VoidCallback onLogoutTap;
@@ -55,10 +57,7 @@ class ProfileHeader extends StatelessWidget {
       leading: Container(
         width: AppSizes.p8,
         height: AppSizes.p8,
-        decoration: const BoxDecoration(
-          color: AppPalette.white,
-          shape: BoxShape.circle,
-        ),
+        decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
       ),
       backgroundColor: AppPalette.black,
       titleColor: AppPalette.white.withValues(alpha: 0.7),
@@ -70,12 +69,7 @@ class ProfileHeader extends StatelessWidget {
           Gap.w8,
           Text(
             '$streak ${AppStrings.dayStreakLabel}',
-            style: context.caption.copyWith(
-              color: AppPalette.black,
-              fontWeight: FontWeight.w900,
-              fontSize: AppSizes.s9,
-              letterSpacing: 0.5,
-            ),
+            style: context.caption.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: AppSizes.s9, letterSpacing: 0.5),
           ),
           if (longestStreak > 0) ...[
             Container(
@@ -84,20 +78,11 @@ class ProfileHeader extends StatelessWidget {
               width: 1,
               color: AppPalette.black.withValues(alpha: 0.2),
             ),
-            Icon(
-              AppIcons.trophy,
-              size: AppSizes.icon14,
-              color: AppPalette.black,
-            ),
+            Icon(AppIcons.trophy, size: AppSizes.icon14, color: AppPalette.black),
             Gap.w8,
             Text(
               '$longestStreak ${AppStrings.bestStreakLabel}',
-              style: context.caption.copyWith(
-                color: AppPalette.black,
-                fontWeight: FontWeight.w900,
-                fontSize: AppSizes.s9,
-                letterSpacing: 0.5,
-              ),
+              style: context.caption.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: AppSizes.s9, letterSpacing: 0.5),
             ),
           ],
         ],
@@ -118,25 +103,14 @@ class ProfileHeader extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppPalette.gray800,
-                        image: hasPhoto
-                            ? DecorationImage(
-                                image: CachedNetworkImageProvider(photoUrl!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                        border: Border.all(
-                          color: AppPalette.white.withValues(alpha: 0.1),
-                          width: 2,
-                        ),
+                        image: hasPhoto ? DecorationImage(image: CachedNetworkImageProvider(photoUrl!), fit: BoxFit.cover) : null,
+                        border: Border.all(color: AppPalette.white.withValues(alpha: 0.1), width: 2),
                       ),
                       child: !hasPhoto
                           ? Center(
                               child: Text(
                                 _getInitials(name),
-                                style: context.bodyBold.copyWith(
-                                  color: AppPalette.white,
-                                  fontSize: AppSizes.s20,
-                                ),
+                                style: context.bodyBold.copyWith(color: AppPalette.white, fontSize: AppSizes.s20),
                               ),
                             )
                           : null,
@@ -146,15 +120,8 @@ class ProfileHeader extends StatelessWidget {
                       bottom: 0,
                       child: Container(
                         padding: EdgeInsets.all(AppSizes.p4),
-                        decoration: const BoxDecoration(
-                          color: AppPalette.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.add_rounded,
-                          size: AppSizes.icon12,
-                          color: AppPalette.black,
-                        ),
+                        decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
+                        child: Icon(Icons.add_rounded, size: AppSizes.icon12, color: AppPalette.black),
                       ),
                     ),
                   ],
@@ -167,20 +134,37 @@ class ProfileHeader extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: context.bodyBold.copyWith(
-                        color: AppPalette.white,
-                        fontSize: AppSizes.s18,
-                      ),
+                      style: context.bodyBold.copyWith(color: AppPalette.white, fontSize: AppSizes.s18),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       email,
-                      style: context.caption.copyWith(
-                        color: AppPalette.white.withValues(alpha: 0.5),
-                      ),
+                      style: context.caption.copyWith(color: AppPalette.white.withValues(alpha: 0.5)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Gap.w12,
+              // Score Badge (Circular Progress)
+              SizedBox(
+                width: 48.0.w,
+                height: 48.0.w,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      value: gutScore / 100,
+                      strokeWidth: 4,
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: AppPalette.white.withValues(alpha: 0.1),
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.white),
+                    ),
+                    Text(
+                      '$gutScore',
+                      style: context.bodyBold.copyWith(color: AppPalette.white, fontSize: AppSizes.s13, fontWeight: FontWeight.w900),
                     ),
                   ],
                 ),
@@ -193,19 +177,11 @@ class ProfileHeader extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _HeaderButton(
-                  label: AppStrings.editProfile,
-                  icon: AppIcons.user,
-                  onTap: onEditTap,
-                ),
+                child: _HeaderButton(label: AppStrings.editProfile, icon: AppIcons.user, onTap: onEditTap),
               ),
               Gap.w12,
               Expanded(
-                child: _HeaderButton(
-                  label: AppStrings.logout,
-                  icon: AppIcons.logOut,
-                  onTap: onLogoutTap,
-                ),
+                child: _HeaderButton(label: AppStrings.logout, icon: AppIcons.logOut, onTap: onLogoutTap),
               ),
             ],
           ),
@@ -217,11 +193,7 @@ class ProfileHeader extends StatelessWidget {
 }
 
 class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
+  const _HeaderButton({required this.label, required this.icon, required this.onTap});
   final String label;
   final IconData icon;
   final VoidCallback onTap;
@@ -242,11 +214,7 @@ class _HeaderButton extends StatelessWidget {
             Gap.w8,
             Text(
               label,
-              style: context.caption.copyWith(
-                color: AppPalette.white,
-                fontWeight: FontWeight.bold,
-                fontSize: AppSizes.s11,
-              ),
+              style: context.caption.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold, fontSize: AppSizes.s11),
             ),
           ],
         ),

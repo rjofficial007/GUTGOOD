@@ -87,7 +87,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     stopwatch.stop();
 
-    // // Ensure splash shows for at least 2 seconds for branded experience
+    // Ensure splash shows for at least 2 seconds for branded experience
     final remainingTime = 2000 - stopwatch.elapsedMilliseconds;
     if (remainingTime > 0) {
       await Future.delayed(Duration(milliseconds: remainingTime));
@@ -101,15 +101,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.black,
-    body: Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const _SplashLogo(),
-          const SizedBox(height: 80),
-          _BootProgressBar(progress: _progress),
-        ],
-      ),
+    body: Stack(
+      children: [
+        const Center(child: _SplashLogo()),
+        Align(
+          alignment: const Alignment(0, 0.25),
+          child: _BootProgressBar(progress: _progress),
+        ),
+      ],
     ),
   );
 }
@@ -118,7 +117,7 @@ class _SplashLogo extends StatelessWidget {
   const _SplashLogo();
 
   @override
-  Widget build(BuildContext context) => Image.asset(AppAssets.appIconBg, width: 50, color: AppPalette.white);
+  Widget build(BuildContext context) => Image.asset(AppAssets.appIconBg, width: 60, color: AppPalette.white);
 }
 
 class _BootProgressBar extends StatelessWidget {

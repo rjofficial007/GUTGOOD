@@ -6,16 +6,13 @@ import 'package:gutgood/core/utils/logger_service.dart';
 abstract class ChatFirestoreService {
   Future<String?> saveMessage(ChatMessage message);
   Stream<List<ChatMessage>> getMessagesStream({int limit = 50});
+  Future<List<ChatMessage>> getMessages({int limit = 50, DateTime? since});
   Future<void> updateMessageFeedback(String messageId, String feedback);
   Future<void> deleteMessage(String messageId);
 }
 
 class ChatFirestoreServiceImpl implements ChatFirestoreService {
-  ChatFirestoreServiceImpl({
-    required FirebaseAuth auth,
-    required FirebaseFirestore db,
-  }) : _auth = auth,
-       _db = db;
+  ChatFirestoreServiceImpl({required FirebaseAuth auth, required FirebaseFirestore db}) : _auth = auth, _db = db;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
@@ -34,12 +31,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       if (doc == null) return null;
       final docRef = doc.collection('chat_history').doc();
       final cloudSafeData = message.toMap()..remove('id');
-      final data = {
-        ...cloudSafeData,
-        'firestoreId': docRef.id,
-        'source': message.source ?? 'chat',
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+      final data = {...cloudSafeData, 'firestoreId': docRef.id, 'source': message.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
@@ -59,21 +51,32 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug(
-              'ChatFirestoreService: Chat stream closed (permission-denied)',
-            );
+            AppLogger.debug('ChatFirestoreService: Chat stream closed (permission-denied)');
           } else {
             throw e;
           }
         })
-        .map(
-          (snapshot) => snapshot.docs
-              .map(
-                (doc) =>
-                    ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id}),
-              )
-              .toList(),
-        );
+        .map((snapshot) => snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList());
+  }
+
+  @override
+  Future<List<ChatMessage>> getMessages({int limit = 50, DateTime? since}) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return [];
+
+      var query = doc.collection('chat_history').orderBy('time', descending: true).limit(limit);
+
+      if (since != null) {
+        query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+      }
+
+      final snapshot = await query.get();
+      return snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList();
+    } catch (e) {
+      AppLogger.error('ChatFirestoreService: Error getting messages', error: e);
+      return [];
+    }
   }
 
   @override
@@ -92,14 +95,9 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
-      await doc.collection('chat_history').doc(messageId).update({
-        'feedback': feedback,
-      });
+      await doc.collection('chat_history').doc(messageId).update({'feedback': feedback});
     } catch (e) {
-      AppLogger.error(
-        'ChatFirestoreService: Error updating message feedback',
-        error: e,
-      );
+      AppLogger.error('ChatFirestoreService: Error updating message feedback', error: e);
     }
   }
 }

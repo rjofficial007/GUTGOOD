@@ -25,6 +25,7 @@ class UserProfile extends Equatable {
     this.cycleSyncEnabled = false,
     this.cyclePhase,
     this.notificationPreferences = const {},
+    this.chatSummary,
     this.gutScore = 0,
     this.streak = 0,
     this.longestStreak = 0,
@@ -34,38 +35,30 @@ class UserProfile extends Equatable {
     required this.createdAt,
   });
 
-  factory UserProfile.fromMap(Map<String, dynamic> map, {String? uid}) =>
-      UserProfile(
-        uid: uid ?? map['uid'] ?? '',
-        onboarded: ModelUtils.parseBool(map['onboarded']),
-        isPremium: ModelUtils.parseBool(map['isPremium']),
-        isAnonymous: ModelUtils.parseBool(map['isAnonymous']),
-        displayName: map['displayName'],
-        email: map['email'],
-        photoUrl: map['photoUrl'],
-        authProvider: map['authProvider'],
-        goals: map['goals'] is String
-            ? List<String>.from(jsonDecode(map['goals']))
-            : List<String>.from(map['goals'] ?? []),
-        sensitivities: map['sensitivities'] is String
-            ? List<String>.from(jsonDecode(map['sensitivities']))
-            : List<String>.from(map['sensitivities'] ?? []),
-        lifestyle: map['lifestyle'] is String
-            ? List<String>.from(jsonDecode(map['lifestyle']))
-            : List<String>.from(map['lifestyle'] ?? []),
-        cycleSyncEnabled: ModelUtils.parseBool(map['cycleSyncEnabled']),
-        cyclePhase: map['cyclePhase'],
-        notificationPreferences: map['notificationPreferences'] is String
-            ? jsonDecode(map['notificationPreferences'])
-            : Map<String, dynamic>.from(map['notificationPreferences'] ?? {}),
-        gutScore: map['gutScore'] ?? 0,
-        streak: map['streak'] ?? 0,
-        longestStreak: map['longestStreak'] ?? 0,
-        lastActivityDate: map['lastActivityDate'],
-        subscriptionStatus: map['subscriptionStatus'] ?? 'free',
-        updatedAt: DateTimeUtils.parse(map['updatedAt']),
-        createdAt: DateTimeUtils.parse(map['createdAt']),
-      );
+  factory UserProfile.fromMap(Map<String, dynamic> map, {String? uid}) => UserProfile(
+    uid: uid ?? map['uid'] ?? '',
+    onboarded: ModelUtils.parseBool(map['onboarded']),
+    isPremium: ModelUtils.parseBool(map['isPremium']),
+    isAnonymous: ModelUtils.parseBool(map['isAnonymous']),
+    displayName: map['displayName'],
+    email: map['email'],
+    photoUrl: map['photoUrl'],
+    authProvider: map['authProvider'],
+    goals: map['goals'] is String ? List<String>.from(jsonDecode(map['goals'])) : List<String>.from(map['goals'] ?? []),
+    sensitivities: map['sensitivities'] is String ? List<String>.from(jsonDecode(map['sensitivities'])) : List<String>.from(map['sensitivities'] ?? []),
+    lifestyle: map['lifestyle'] is String ? List<String>.from(jsonDecode(map['lifestyle'])) : List<String>.from(map['lifestyle'] ?? []),
+    cycleSyncEnabled: ModelUtils.parseBool(map['cycleSyncEnabled']),
+    cyclePhase: map['cyclePhase'],
+    notificationPreferences: map['notificationPreferences'] is String ? jsonDecode(map['notificationPreferences']) : Map<String, dynamic>.from(map['notificationPreferences'] ?? {}),
+    chatSummary: map['chatSummary'],
+    gutScore: map['gutScore'] ?? 0,
+    streak: map['streak'] ?? 0,
+    longestStreak: map['longestStreak'] ?? 0,
+    lastActivityDate: map['lastActivityDate'],
+    subscriptionStatus: map['subscriptionStatus'] ?? 'free',
+    updatedAt: DateTimeUtils.parse(map['updatedAt']),
+    createdAt: DateTimeUtils.parse(map['createdAt']),
+  );
 
   /// Unique identifier from Firebase Auth.
   final String uid;
@@ -109,6 +102,9 @@ class UserProfile extends Equatable {
   /// User-defined notification settings.
   final Map<String, dynamic> notificationPreferences;
 
+  /// A short AI-generated summary of the user's recent chat history.
+  final String? chatSummary;
+
   /// Current aggregate gut health score (0-100).
   final int gutScore;
 
@@ -145,6 +141,7 @@ class UserProfile extends Equatable {
     bool? cycleSyncEnabled,
     String? cyclePhase,
     Map<String, dynamic>? notificationPreferences,
+    String? chatSummary,
     int? gutScore,
     int? streak,
     int? longestStreak,
@@ -166,8 +163,8 @@ class UserProfile extends Equatable {
     lifestyle: lifestyle ?? this.lifestyle,
     cycleSyncEnabled: cycleSyncEnabled ?? this.cycleSyncEnabled,
     cyclePhase: cyclePhase ?? this.cyclePhase,
-    notificationPreferences:
-        notificationPreferences ?? this.notificationPreferences,
+    notificationPreferences: notificationPreferences ?? this.notificationPreferences,
+    chatSummary: chatSummary ?? this.chatSummary,
     gutScore: gutScore ?? this.gutScore,
     streak: streak ?? this.streak,
     longestStreak: longestStreak ?? this.longestStreak,
@@ -192,6 +189,7 @@ class UserProfile extends Equatable {
     'cycleSyncEnabled': cycleSyncEnabled,
     'cyclePhase': cyclePhase,
     'notificationPreferences': notificationPreferences,
+    'chatSummary': chatSummary,
     'gutScore': gutScore,
     'streak': streak,
     'longestStreak': longestStreak,
@@ -216,21 +214,10 @@ class UserProfile extends Equatable {
     'cycleSyncEnabled': cycleSyncEnabled,
     'cyclePhase': cyclePhase,
     'notificationPreferences': notificationPreferences,
+    'chatSummary': chatSummary,
     'updatedAt': DateTime.now().toIso8601String(),
   };
 
   @override
-  List<Object?> get props => [
-    uid,
-    onboarded,
-    isPremium,
-    isAnonymous,
-    goals,
-    sensitivities,
-    lifestyle,
-    gutScore,
-    streak,
-    longestStreak,
-    lastActivityDate,
-  ];
+  List<Object?> get props => [uid, onboarded, isPremium, isAnonymous, goals, sensitivities, lifestyle, chatSummary, gutScore, streak, longestStreak, lastActivityDate];
 }

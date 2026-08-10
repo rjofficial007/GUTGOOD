@@ -12,6 +12,51 @@ import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
+
+class StrategicFocusBadge extends StatelessWidget {
+  const StrategicFocusBadge({super.key, required this.goal});
+  final String goal;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
+    decoration: BoxDecoration(
+      color: context.appColorScheme.success.withValues(alpha: 0.05),
+      borderRadius: BorderRadius.circular(AppSizes.r20),
+      border: Border.all(color: context.appColorScheme.success.withValues(alpha: 0.15), width: 1.5),
+    ),
+    child: Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(AppSizes.p8),
+          decoration: BoxDecoration(color: context.appColorScheme.success.withValues(alpha: 0.1), shape: BoxShape.circle),
+          child: Icon(AppIcons.target, color: context.appColorScheme.success, size: AppSizes.icon18),
+        ),
+        Gap.w16,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppStrings.currentFocusLabel,
+                style: context.caption.copyWith(color: context.appColorScheme.success, fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: AppSizes.s10),
+              ),
+              Gap.h2,
+              Text(
+                goal.toUpperCase(),
+                style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: AppSizes.s15, height: 1.1),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
 class GoalDashboardSection extends StatelessWidget {
   const GoalDashboardSection({super.key, required this.insight});
@@ -23,7 +68,7 @@ class GoalDashboardSection extends StatelessWidget {
     child: GutDashboardSection(
       title: AppStrings.topBodyInsights,
       subtitle: AppStrings.primaryObjectives,
-      visualization: const DashboardVisualizationBar(ratio: 0.65, label: AppStrings.trackingStability),
+      visualization: const NutrientVisualization(),
       items: [
         if (insight.healingGoal != null) DashboardDetailItem(title: insight.healingGoal!, subtitle: AppStrings.activeGoal, icon: AppIcons.target, color: context.appColorScheme.success),
         if (insight.healingGoal != null && insight.triggerSymptom != null) Gap.h12,
@@ -82,11 +127,11 @@ class PowerSourcesDashboardSection extends StatelessWidget {
     return DashboardEntrance(
       delay: 200,
       child: GutDashboardSection(
-        title: 'POWER SOURCES',
+        title: AppStrings.powerSources,
         subtitle: AppStrings.foodsToPrioritize,
-        visualization: const DashboardVisualizationBar(ratio: 0.85, label: AppStrings.highHealingDensity),
+        visualization: const CautionRiskIcon(isSafe: true),
         items: items,
-        footerLabel: 'View All Power Sources',
+        footerLabel: AppStrings.viewAllPowerSources,
         onFooterTap: () => _showPowerSourcesDetails(context),
       ),
     );
@@ -98,12 +143,12 @@ class PowerSourcesDashboardSection extends StatelessWidget {
 
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'Power Sources',
+      title: AppStrings.powerSourcesTitle,
       children: [
-        SheetHeroSection(title: AppStrings.heal, subtitle: 'Evidence-backed benefits', color: context.appColorScheme.success, icon: AppIcons.leaf),
+        SheetHeroSection(title: AppStrings.heal, subtitle: AppStrings.evidenceBackedBenefits, color: context.appColorScheme.success, icon: AppIcons.leaf),
         Gap.h32,
         if (healing.isNotEmpty) ...[
-          SheetSectionHeader(title: 'AI RECOMMENDATIONS', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.aiRecommendations, color: context.appColorScheme.textPrimary),
           ...healing.map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
@@ -113,7 +158,7 @@ class PowerSourcesDashboardSection extends StatelessWidget {
           Gap.h24,
         ],
         if (successes.isNotEmpty) ...[
-          SheetSectionHeader(title: 'YOUR SUCCESSES', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.yourSuccesses, color: context.appColorScheme.textPrimary),
           ...successes.map(
             (i) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
@@ -159,11 +204,11 @@ class TriggersDashboardSection extends StatelessWidget {
     return DashboardEntrance(
       delay: 250,
       child: GutDashboardSection(
-        title: 'SYSTEM TRIGGERS',
+        title: AppStrings.systemTriggers,
         subtitle: AppStrings.foodsToMinimize,
-        visualization: const DashboardVisualizationBar(ratio: 0.35, label: 'Active Triggers'),
+        visualization: const CautionRiskIcon(isSafe: false),
         items: items,
-        footerLabel: 'View All Triggers',
+        footerLabel: AppStrings.viewAllTriggers,
         onFooterTap: () => _showTriggersDetails(context),
       ),
     );
@@ -175,12 +220,12 @@ class TriggersDashboardSection extends StatelessWidget {
 
     BottomSheetHelper.showGutBottomSheet(
       context: context,
-      title: 'System Triggers',
+      title: AppStrings.systemTriggersTitle,
       children: [
-        SheetHeroSection(title: 'ALERT', subtitle: 'Potential Triggers', color: context.appColorScheme.error, icon: AppIcons.alertTriangle),
+        SheetHeroSection(title: AppStrings.alert, subtitle: AppStrings.potentialTriggers, color: context.appColorScheme.error, icon: AppIcons.alertTriangle),
         Gap.h32,
         if (triggers.isNotEmpty) ...[
-          SheetSectionHeader(title: 'AI WARNINGS', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.aiWarnings, color: context.appColorScheme.textPrimary),
           ...triggers.map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
@@ -190,7 +235,7 @@ class TriggersDashboardSection extends StatelessWidget {
           Gap.h24,
         ],
         if (reactions.isNotEmpty) ...[
-          SheetSectionHeader(title: 'YOUR REACTIONS', color: context.appColorScheme.textPrimary),
+          SheetSectionHeader(title: AppStrings.yourReactions, color: context.appColorScheme.textPrimary),
           ...reactions.map(
             (i) => Padding(
               padding: EdgeInsets.only(bottom: 16.0.h),
@@ -218,7 +263,7 @@ class PatternsDashboardSection extends StatelessWidget {
     child: GutDashboardSection(
       title: AppStrings.aiPatterns,
       subtitle: AppStrings.detectedPatterns,
-      visualization: const DashboardVisualizationBar(ratio: 0.45, label: AppStrings.patternConsistency),
+      visualization: const DashboardIconVisualization(icon: AppIcons.brain),
       items: insight.detectedPatterns.take(2).map((p) {
         final color = InsightUiUtils.getPatternColor(p.icon);
         return Padding(
@@ -263,7 +308,7 @@ class HighlightsDashboardSection extends StatelessWidget {
     child: GutDashboardSection(
       title: AppStrings.performanceHighlights,
       subtitle: AppStrings.performanceHighs,
-      visualization: const DashboardVisualizationBar(ratio: 0.75, label: AppStrings.optimizationEfficiency),
+      visualization: const SwapVisualization(),
       items: [
         if (insight.topHealing != null)
           DashboardDetailItem(
@@ -335,7 +380,7 @@ class ModernSmartAlert extends StatelessWidget {
     iconColor: context.appColorScheme.textPrimary,
     padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
     footer: Text(
-      '${insight.type.toUpperCase()} INSIGHT',
+      '${insight.type.toUpperCase()}${AppStrings.insightLabelSuffix}',
       textAlign: TextAlign.center,
       style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
     ),

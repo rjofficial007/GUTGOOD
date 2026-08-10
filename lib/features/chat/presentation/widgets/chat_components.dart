@@ -373,7 +373,7 @@ class ComposerActionCircle extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: enabled ? colorScheme.textPrimary : colorScheme.textPrimary.withValues(alpha: 0.3), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
             child: Center(child: child ?? icon),
           ),
         ),

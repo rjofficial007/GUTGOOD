@@ -19,13 +19,13 @@
     {
       "layers" : [
         {
-          "image-name" : "app logo white.png",
-          "name" : "app logo white",
+          "image-name" : "gutgood_logo.png",
+          "name" : "gutgood_logo",
           "position" : {
-            "scale" : 1.5,
+            "scale" : 1,
             "translation-in-points" : [
               0,
-              0
+              10.53668212890625
             ]
           }
         }

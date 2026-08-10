@@ -16,6 +16,7 @@ import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_services.dart';
 import 'package:gutgood/core/services/app_version_services.dart';
 import 'package:gutgood/core/services/config_service.dart';
+import 'package:gutgood/core/services/debug_mock_data_service.dart';
 import 'package:gutgood/core/services/export_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
@@ -57,6 +58,7 @@ class ProfileHeaderSection extends StatelessWidget {
         goalsCount: p?.goals.length ?? 0,
         sensitivitiesCount: p?.sensitivities.length ?? 0,
         lifestyleCount: p?.lifestyle.length ?? 0,
+        gutScore: p?.gutScore ?? 0,
         onImageTap: () {
           SemanticsService.sendAnnouncement(View.of(context), AppStrings.uploadingProfilePicture, TextDirection.ltr);
           onImageTap(profileNotifier);
@@ -290,7 +292,7 @@ class SupportSection extends StatelessWidget {
       AppTile(icon: AppIcons.shield, title: AppStrings.medicalDisclaimer, onTap: () => unawaited(BottomSheetHelper.showMedicalDisclaimer(context))),
       AppTile(
         icon: AppIcons.download,
-        title: 'Export Health Data (CSV)',
+        title: AppStrings.exportHealthData,
         onTap: () async {
           unawaited(sl<AnalyticsService>().logEvent(name: 'export_data_requested'));
           unawaited(sl<ExportService>().exportHealthData());
@@ -338,22 +340,33 @@ class DebugToolsSection extends StatelessWidget {
           ),
           AppTile(
             icon: AppIcons.bell,
-            title: 'Test Push Notification',
+            title: AppStrings.testPushNotification,
             onTap: () async {
               await sl<NotificationService>().testNotification();
             },
           ),
           AppTile(
             icon: AppIcons.copy,
-            title: 'Copy FCM Token',
-            subtitle: 'Tap to copy your push token for testing',
+            title: AppStrings.copyFcmToken,
+            subtitle: AppStrings.copyFcmTokenSubtitle,
             onTap: () async {
               final token = await FirebaseMessaging.instance.getToken();
               if (token != null) {
                 await Clipboard.setData(ClipboardData(text: token));
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('FCM Token copied to clipboard!')));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.fcmTokenCopied)));
                 }
+              }
+            },
+          ),
+          AppTile(
+            icon: Icons.data_array,
+            title: AppStrings.generateMockData,
+            subtitle: AppStrings.generateMockDataSubtitle,
+            onTap: () async {
+              await sl<DebugMockDataService>().generateTwoWeeksData();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.mockDataGenerated)));
               }
             },
             showBottomBorder: false,
@@ -418,7 +431,7 @@ class AIUsageCard extends StatelessWidget {
       margin: EdgeInsets.only(top: AppSizes.p16),
       padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
+        color: context.appColorScheme.elevatedSurface,
         borderRadius: BorderRadius.circular(AppSizes.r24),
         border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
         boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
@@ -430,13 +443,13 @@ class AIUsageCard extends StatelessWidget {
             children: [
               Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
               Gap.w8,
-              Text(isAnon ? 'GUEST AI ACTIVITY' : 'DAILY AI ACTIVITY', style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, letterSpacing: 1.2)),
+              Text(isAnon ? AppStrings.guestAiActivity : AppStrings.dailyAiActivity, style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, letterSpacing: 1.2)),
             ],
           ),
           Gap.h20,
-          UsageRow(label: 'AI Chats', current: chatCount, total: maxChats, color: context.appColorScheme.textPrimary),
+          UsageRow(label: AppStrings.aiChats, current: chatCount, total: maxChats, color: context.appColorScheme.textPrimary),
           Gap.h16,
-          UsageRow(label: 'Product Scans', current: scanCount, total: maxScans, color: context.appColorScheme.textPrimary),
+          UsageRow(label: AppStrings.productScans, current: scanCount, total: maxScans, color: context.appColorScheme.textPrimary),
           Gap.h20,
           GestureDetector(
             onTap: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
@@ -444,7 +457,7 @@ class AIUsageCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Upgrade for Unlimited Access',
+                  AppStrings.upgradeForUnlimited,
                   style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: AppSizes.s13),
                 ),
                 Gap.w4,

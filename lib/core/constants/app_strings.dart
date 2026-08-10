@@ -98,10 +98,55 @@ class AppStrings {
   static const String labelHealth = CommonStrings.labelHealth;
   static const String chatTab = CommonStrings.chatTab;
   static const String insightsTab = CommonStrings.insightsTab;
+
+  // --- Insight Dashboard & Detail ---
+  static const String betterEnergy = InsightStrings.betterEnergy;
+  static const String bloating = InsightStrings.bloating;
+  static const String systemDiscoveries = InsightStrings.systemDiscoveries;
+  static const String logicBasedCorrelations = InsightStrings.logicBasedCorrelations;
+  static const String directBodyFeedback = InsightStrings.directBodyFeedback;
+  static const String frequencyBasedAnalysis = InsightStrings.frequencyBasedAnalysis;
+  static const String viewAllPowerSources = InsightStrings.viewAllPowerSources;
+  static const String viewAllTriggers = InsightStrings.viewAllTriggers;
+  static const String viewPatternBreakdown = InsightStrings.viewPatternBreakdown;
+  static const String viewFrequencyStats = InsightStrings.viewFrequencyStats;
+  static const String betterEnergyTitle = InsightStrings.betterEnergyTitle;
+  static const String bloatingAndTriggersTitle = InsightStrings.bloatingAndTriggersTitle;
+  static const String systemDiscoveriesTitle = InsightStrings.systemDiscoveriesTitle;
+  static const String recentActivityTitle = InsightStrings.recentActivityTitle;
+  static const String frequencyStatsTitle = InsightStrings.frequencyStatsTitle;
+  static const String alert = InsightStrings.alert;
+  static const String logic = InsightStrings.logic;
+  static const String evidenceBackedBenefits = InsightStrings.evidenceBackedBenefits;
+  static const String deterministicCorrelations = InsightStrings.deterministicCorrelations;
+  static const String historicalCorrelations = InsightStrings.historicalCorrelations;
+  static const String highConfidenceFrequency = InsightStrings.highConfidenceFrequency;
+  static const String loggedSuccesses = InsightStrings.loggedSuccesses;
+  static const String warnings = InsightStrings.warnings;
+  static const String loggedReactions = InsightStrings.loggedReactions;
+  static const String currentFocusLabel = InsightStrings.currentFocusLabel;
+  static const String powerSources = InsightStrings.powerSources;
+  static const String powerSourcesTitle = InsightStrings.powerSourcesTitle;
+  static const String aiRecommendations = InsightStrings.aiRecommendations;
+  static const String yourSuccesses = InsightStrings.yourSuccesses;
+  static const String systemTriggers = InsightStrings.systemTriggers;
+  static const String systemTriggersTitle = InsightStrings.systemTriggersTitle;
+  static const String aiWarnings = InsightStrings.aiWarnings;
+  static const String yourReactions = InsightStrings.yourReactions;
+  static const String insightLabelSuffix = InsightStrings.insightLabelSuffix;
+  static const String mostReactive = InsightStrings.mostReactive;
+  static const String topPerformers = InsightStrings.topPerformers;
   static const String profileTab = CommonStrings.profileTab;
   static const String confirmAction = CommonStrings.confirmAction;
   static const String skipForNow = CommonStrings.skipForNow;
   static const String notSpecified = CommonStrings.notSpecified;
+  static const String pageNotFound = CommonStrings.pageNotFound;
+  static const String routeNotFoundPrefix = CommonStrings.routeNotFoundPrefix;
+  static const String backToSafety = CommonStrings.backToSafety;
+  static const String keepItUp = CommonStrings.keepItUp;
+  static const String notification = CommonStrings.notification;
+  static const String noAlertsYet = CommonStrings.noAlertsYet;
+  static const String alertsEmptyDescription = CommonStrings.alertsEmptyDescription;
 
   // --- Auth ---
   static const String accountCreated = AuthStrings.accountCreated;
@@ -581,6 +626,21 @@ class AppStrings {
   static const String streakUp = ProfileStrings.streakUp;
   static const String daysInARow = ProfileStrings.daysInARow;
   static const String streakQuote = ProfileStrings.streakQuote;
+
+  // --- Profile Activity & Debug ---
+  static const String exportHealthData = ProfileStrings.exportHealthData;
+  static const String testPushNotification = ProfileStrings.testPushNotification;
+  static const String copyFcmToken = ProfileStrings.copyFcmToken;
+  static const String copyFcmTokenSubtitle = ProfileStrings.copyFcmTokenSubtitle;
+  static const String fcmTokenCopied = ProfileStrings.fcmTokenCopied;
+  static const String generateMockData = ProfileStrings.generateMockData;
+  static const String generateMockDataSubtitle = ProfileStrings.generateMockDataSubtitle;
+  static const String mockDataGenerated = ProfileStrings.mockDataGenerated;
+  static const String guestAiActivity = ProfileStrings.guestAiActivity;
+  static const String dailyAiActivity = ProfileStrings.dailyAiActivity;
+  static const String aiChats = ProfileStrings.aiChats;
+  static const String productScans = ProfileStrings.productScans;
+  static const String upgradeForUnlimited = ProfileStrings.upgradeForUnlimited;
 
   // --- Scanner ---
   static const String history = ScannerStrings.history;

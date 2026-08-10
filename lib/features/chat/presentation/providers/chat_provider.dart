@@ -753,6 +753,15 @@ class ChatNotifier with ChangeNotifier {
 
       AppLogger.debug('ChatNotifier: Summarizing ${newlyAgedOut.length} messages.');
       _cachedSummary = await _aiService.summarizeHistory(newlyAgedOut, previousSummary: _cachedSummary);
+
+      // 🟢 Persist summary to user profile so Insights engine can use it
+      final profile = await _authFirestoreService.getUserMetadata();
+      if (profile != null) {
+        await _authFirestoreService.updateUserProfile(
+          profile.copyWith(chatSummary: _cachedSummary),
+        );
+      }
+
       final last = agedOut.last;
       _summarizedThroughMessageId = last.firestoreId?.toString() ?? last.localId;
     } catch (e, st) {

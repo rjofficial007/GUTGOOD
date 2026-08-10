@@ -297,74 +297,11 @@ class NutrientVisualization extends StatelessWidget {
   );
 }
 
-class CautionRiskIcon extends StatelessWidget {
-  const CautionRiskIcon({super.key, required this.isSafe});
-  final bool isSafe;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = context.appColorScheme.textPrimary;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.elasticOut,
-      builder: (context, value, child) => Transform.scale(scale: value, child: child),
-      child: Container(
-        padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-        child: Icon(isSafe ? AppIcons.shieldCheck : AppIcons.alertCircle, color: color, size: AppSizes.icon32),
-      ),
-    );
-  }
-}
-
-class IngredientCompositionVisualization extends StatelessWidget {
-  const IngredientCompositionVisualization({super.key, required this.ingredients});
-  final List<Ingredient> ingredients;
-
-  @override
-  Widget build(BuildContext context) {
-    final cleanCount = ingredients.where((e) => e.colorName.toLowerCase() == 'green' || e.colorName.toLowerCase() == 'low').length;
-    final total = ingredients.isNotEmpty ? ingredients.length : 1;
-    final cleanRatio = cleanCount / total;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GutProgressBar(ratio: cleanRatio.clamp(0.0, 1.0)),
-        Gap.h12,
-        Text(
-          '${(cleanRatio * 100).toInt()}% ${AppStrings.cleanComposition}',
-          style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted),
-        ),
-      ],
-    );
-  }
-}
-
 class SwapVisualization extends StatelessWidget {
   const SwapVisualization({super.key});
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Container(
-        padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          color: context.appColorScheme.elevatedSurface,
-          shape: BoxShape.circle,
-          border: Border.all(color: context.appColorScheme.border),
-        ),
-        child: Icon(AppIcons.arrowRightLeft, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
-      ),
-      Gap.h16,
-      Text(
-        AppStrings.optimizedChoices,
-        style: context.caption.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) => const DashboardIconVisualization(icon: AppIcons.arrowRightLeft);
 }
 
 String getIngredientImpactLabel(String colorName) {
