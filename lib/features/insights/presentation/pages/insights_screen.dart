@@ -11,6 +11,7 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
@@ -19,6 +20,7 @@ import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
+import 'package:gutgood/features/insights/presentation/widgets/neon_glow_card.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -103,34 +105,22 @@ class _MainDashboardSliver extends StatelessWidget {
 
     // 2. BETTER ENERGY (healingFoods)
     if (data.healingFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'positive')) {
+      final healingCount = data.healingFoods.length + data.foodImpacts.where((i) => i.impactType == 'positive').length;
       sections.add(
         DashboardEntrance(
           delay: 100,
-          child: GutDashboardSection(
-            title: AppStrings.betterEnergy,
-            subtitle: AppStrings.foodsLinkedTo,
-            visualization: const CautionRiskIcon(isSafe: true),
-            items: [
-              ...data.healingFoods
-                  .take(2)
-                  .map(
-                    (f) => Padding(
-                      padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.success),
-                    ),
-                  ),
-              ...data.foodImpacts
-                  .where((i) => i.impactType == 'positive' && i.food != 'Unknown')
-                  .take(1)
-                  .map(
-                    (i) => Padding(
-                      padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.success),
-                    ),
-                  ),
-            ].take(3).toList(),
-            footerLabel: AppStrings.viewAllPowerSources,
-            onFooterTap: () => _showBetterEnergyDetails(context),
+          child: GestureDetector(
+            onTap: () => _showBetterEnergyDetails(context),
+            child: NeonGlowCard(
+              metric: '$healingCount',
+              label: 'BETTER ENERGY',
+              icon: Icons.bolt,
+              glowColor: AppPalette.green,
+              items: [
+                ...data.healingFoods.map((f) => NeonGlowItem(title: f.name, subtitle: f.effect, isDone: true)),
+                ...data.foodImpacts.where((i) => i.impactType == 'positive').map((i) => NeonGlowItem(title: i.food, subtitle: i.effect, isDone: true)),
+              ],
+            ),
           ),
         ),
       );
@@ -138,34 +128,22 @@ class _MainDashboardSliver extends StatelessWidget {
 
     // 3. BLOATING (triggerFoods)
     if (data.triggerFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'negative')) {
+      final triggerCount = data.triggerFoods.length + data.foodImpacts.where((i) => i.impactType == 'negative').length;
       sections.add(
         DashboardEntrance(
           delay: 200,
-          child: GutDashboardSection(
-            title: AppStrings.bloating,
-            subtitle: AppStrings.foodsLinkedTo,
-            visualization: const CautionRiskIcon(isSafe: false),
-            items: [
-              ...data.triggerFoods
-                  .take(2)
-                  .map(
-                    (f) => Padding(
-                      padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.error),
-                    ),
-                  ),
-              ...data.foodImpacts
-                  .where((i) => i.impactType == 'negative' && i.food != 'Unknown')
-                  .take(1)
-                  .map(
-                    (i) => Padding(
-                      padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.error),
-                    ),
-                  ),
-            ].take(3).toList(),
-            footerLabel: AppStrings.viewAllTriggers,
-            onFooterTap: () => _showBloatingDetails(context),
+          child: GestureDetector(
+            onTap: () => _showBloatingDetails(context),
+            child: NeonGlowCard(
+              metric: '$triggerCount',
+              label: 'BLOATING TRIGGERS',
+              icon: Icons.error_outline,
+              glowColor: AppPalette.red,
+              items: [
+                ...data.triggerFoods.map((f) => NeonGlowItem(title: f.name, subtitle: f.effect, isDone: true)),
+                ...data.foodImpacts.where((i) => i.impactType == 'negative').map((i) => NeonGlowItem(title: i.food, subtitle: i.effect, isDone: true)),
+              ],
+            ),
           ),
         ),
       );
@@ -176,21 +154,15 @@ class _MainDashboardSliver extends StatelessWidget {
       sections.add(
         DashboardEntrance(
           delay: 300,
-          child: GutDashboardSection(
-            title: AppStrings.systemDiscoveries,
-            subtitle: AppStrings.logicBasedCorrelations,
-            visualization: const DashboardIconVisualization(icon: AppIcons.database),
-            items: patterns
-                .take(3)
-                .map(
-                  (p) => Padding(
-                    padding: EdgeInsets.only(bottom: AppSizes.p12),
-                    child: DashboardDetailItem(title: p.trigger.toUpperCase(), subtitle: p.reaction, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
-                  ),
-                )
-                .toList(),
-            footerLabel: AppStrings.viewPatternBreakdown,
-            onFooterTap: () => _showSystemDiscoveryDetails(context),
+          child: GestureDetector(
+            onTap: () => _showSystemDiscoveryDetails(context),
+            child: NeonGlowCard(
+              metric: '${patterns.length}',
+              label: 'SYSTEM DISCOVERIES',
+              icon: Icons.psychology,
+              glowColor: AppPalette.purple,
+              items: patterns.map((p) => NeonGlowItem(title: p.trigger.toUpperCase(), subtitle: p.description, isDone: true)).toList(),
+            ),
           ),
         ),
       );
@@ -201,21 +173,15 @@ class _MainDashboardSliver extends StatelessWidget {
       sections.add(
         DashboardEntrance(
           delay: 400,
-          child: GutDashboardSection(
-            title: AppStrings.recentLogs,
-            subtitle: AppStrings.directBodyFeedback,
-            visualization: const DashboardIconVisualization(icon: AppIcons.activity),
-            items: data.foodImpacts
-                .take(4)
-                .map(
-                  (i) => Padding(
-                    padding: EdgeInsets.only(bottom: AppSizes.p12),
-                    child: DashboardDetailItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.textPrimary),
-                  ),
-                )
-                .toList(),
-            footerLabel: AppStrings.history,
-            onFooterTap: () => _showRecentPatternsDetails(context),
+          child: GestureDetector(
+            onTap: () => _showRecentPatternsDetails(context),
+            child: NeonGlowCard(
+              metric: '${data.foodImpacts.length}',
+              label: 'RECENT LOGS',
+              icon: Icons.history,
+              glowColor: AppPalette.blue,
+              items: data.foodImpacts.map((i) => NeonGlowItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}')).toList(),
+            ),
           ),
         ),
       );
@@ -226,19 +192,18 @@ class _MainDashboardSliver extends StatelessWidget {
       sections.add(
         DashboardEntrance(
           delay: 500,
-          child: GutDashboardSection(
-            title: AppStrings.topPerformers,
-            subtitle: AppStrings.frequencyBasedAnalysis,
-            visualization: const TopPerformersVisualization(),
-            items: [
-              if (data.topHealing != null)
-                DashboardDetailItem(title: data.topHealing!.food, subtitle: '${data.topHealing!.frequency} Log Rate', icon: AppIcons.trophy, color: context.appColorScheme.success),
-              if (data.topHealing != null && data.topTrigger != null) Gap.h12,
-              if (data.topTrigger != null)
-                DashboardDetailItem(title: data.topTrigger!.food, subtitle: '${data.topTrigger!.frequency} Log Rate', icon: AppIcons.alertTriangle, color: context.appColorScheme.error),
-            ],
-            footerLabel: AppStrings.viewFrequencyStats,
-            onFooterTap: () => _showTopPerformersDetails(context),
+          child: GestureDetector(
+            onTap: () => _showTopPerformersDetails(context),
+            child: NeonGlowCard(
+              metric: data.topHealing?.frequency ?? 'MVP',
+              label: 'TOP PERFORMANCE',
+              icon: Icons.emoji_events_outlined,
+              glowColor: AppPalette.green,
+              items: [
+                if (data.topHealing != null) NeonGlowItem(title: 'BEST: ${data.topHealing!.food}', subtitle: data.topHealing!.effects, isDone: true),
+                if (data.topTrigger != null) NeonGlowItem(title: 'MOST REACTIVE: ${data.topTrigger!.food}', subtitle: data.topTrigger!.effects),
+              ],
+            ),
           ),
         ),
       );

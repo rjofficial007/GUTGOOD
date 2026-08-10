@@ -162,6 +162,7 @@ class InsightStrings {
   static const String bioStats = 'BIO-STATS';
   static const String criticalTrigger = 'Critical Trigger';
   static const String analyzingProductInfo = 'Analyzing product...';
+  static const String analysisBasedOnLogs = 'Analysis based on recent logs';
 
   // --- Insight Dashboard & Detail Strings ---
   static const String betterEnergy = 'BETTER ENERGY';

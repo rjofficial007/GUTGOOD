@@ -99,6 +99,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
 }
 
 extension AppColorSchemeX on BuildContext {
-  AppColorScheme get appColorScheme =>
-      Theme.of(this).extension<AppColorScheme>()!;
+  AppColorScheme get appColorScheme {
+    final extension = Theme.of(this).extension<AppColorScheme>();
+    if (extension != null) return extension;
+    
+    // Fallback to light scheme if not found (prevents crash)
+    return AppColorScheme.light;
+  }
 }

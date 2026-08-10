@@ -464,6 +464,7 @@ class AppStrings {
   static const String performanceHighs = InsightStrings.performanceHighs;
   static const String bioStats = InsightStrings.bioStats;
   static const String criticalTrigger = InsightStrings.criticalTrigger;
+  static const String analysisBasedOnLogs = InsightStrings.analysisBasedOnLogs;
 
   // --- Onboarding ---
   static const String onboardingGoalsTitle = OnboardingStrings.onboardingGoalsTitle;

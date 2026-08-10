@@ -18,6 +18,7 @@ import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/neon_glow_card.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -66,25 +67,39 @@ class WeeklyRecapScreen extends StatelessWidget {
 
       DashboardEntrance(
         delay: 200,
-        child: GutDashboardSection(
-          title: AppStrings.performanceHighlights,
-          subtitle: AppStrings.sevenDayAverage,
-          visualization: DashboardVisualizationBar(ratio: (recap?.avgScore ?? 0) / 100, label: '${recap?.avgScore ?? 0} ${AppStrings.averageGutScore.toLowerCase()}'),
-          items: [
-            DashboardDetailItem(title: recap?.bestDay ?? 'N/A', subtitle: AppStrings.peakPerformance, icon: AppIcons.trophy, color: context.appColorScheme.textPrimary),
-            Gap.h12,
-            DashboardDetailItem(title: '${recap?.foodsLogged ?? 0}', subtitle: AppStrings.totalLogs, icon: AppIcons.clipboardList, color: context.appColorScheme.textPrimary),
-            Gap.h12,
-            DashboardDetailItem(title: insight!.healingTrend?.toUpperCase() ?? AppStrings.stable, subtitle: AppStrings.weeklyTrend, icon: AppIcons.zap, color: context.appColorScheme.textPrimary),
-          ],
-          footerLabel: AppStrings.viewDetailedMetrics,
-          onFooterTap: () => _showRecapDetails(context, recap, insight),
+        child: GestureDetector(
+          onTap: () => _showRecapDetails(context, recap, insight),
+          child: NeonGlowCard(
+            metric: '${recap?.avgScore ?? 0}',
+            label: AppStrings.performanceHighlights,
+            icon: AppIcons.barChart,
+            glowColor: AppPalette.green,
+            items: [
+              NeonGlowItem(title: recap?.bestDay ?? 'N/A', subtitle: AppStrings.peakPerformance, isDone: true),
+              NeonGlowItem(title: '${recap?.foodsLogged ?? 0}', subtitle: AppStrings.totalLogs, isDone: true),
+              NeonGlowItem(title: insight!.healingTrend?.toUpperCase() ?? AppStrings.stable, subtitle: AppStrings.weeklyTrend, isDone: true),
+            ],
+          ),
         ),
       ),
     ];
 
     if (highlights.isNotEmpty) {
-      sections.add(_RecapHighlightsSection(highlights: highlights, onDetailsTap: () => _showDiscoveryDetails(context, highlights)));
+      sections.add(
+        DashboardEntrance(
+          delay: 300,
+          child: GestureDetector(
+            onTap: () => _showDiscoveryDetails(context, highlights),
+            child: NeonGlowCard(
+              metric: '${highlights.length}',
+              label: AppStrings.aiPatterns,
+              icon: AppIcons.brain,
+              glowColor: AppPalette.purple,
+              items: highlights.map((h) => NeonGlowItem(title: h.text, subtitle: AppStrings.discovery, isDone: true)).toList(),
+            ),
+          ),
+        ),
+      );
     }
 
     sections
@@ -175,37 +190,6 @@ class _RecapDateHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-class _RecapHighlightsSection extends StatelessWidget {
-  const _RecapHighlightsSection({required this.highlights, required this.onDetailsTap});
-
-  final List<RecapHighlight> highlights;
-  final VoidCallback onDetailsTap;
-
-  @override
-  Widget build(BuildContext context) => DashboardEntrance(
-    delay: 300,
-    child: GutDashboardSection(
-      title: AppStrings.aiPatterns,
-      subtitle: AppStrings.weeklyHighlights,
-      visualization: Container(
-        padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
-        child: Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
-      ),
-      items: highlights.take(3).map((RecapHighlight h) {
-        final color = InsightUiUtils.getIngredientColor(h.color, error: context.appColorScheme.error, warning: context.appColorScheme.warning, success: context.appColorScheme.success);
-        return Padding(
-          padding: EdgeInsets.only(bottom: AppSizes.p12),
-          child: DashboardDetailItem(title: AppStrings.discovery, subtitle: h.text, icon: InsightUiUtils.getReactionIcon(h.icon), color: color),
-        );
-      }).toList(),
-      footerLabel: AppStrings.viewAllDiscoveries,
-      onFooterTap: onDetailsTap,
-      titleColor: context.appColorScheme.textPrimary,
-    ),
-  );
 }
 
 class _AchievementBanner extends StatelessWidget {

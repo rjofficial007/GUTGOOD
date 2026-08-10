@@ -6,6 +6,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
@@ -13,6 +14,7 @@ import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
+import 'package:gutgood/features/insights/presentation/widgets/neon_glow_card.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -67,34 +69,22 @@ class _InsightContentList extends StatelessWidget {
 
     // 2. BETTER ENERGY Section
     if (insight.healingFoods.isNotEmpty || insight.foodImpacts.any((i) => i.impactType == 'positive')) {
+      final healingCount = insight.healingFoods.length + insight.foodImpacts.where((i) => i.impactType == 'positive').length;
       sections.add(
         DashboardEntrance(
           delay: 100,
-          child: GutDashboardSection(
-            title: AppStrings.betterEnergy,
-            subtitle: AppStrings.foodsLinkedTo,
-            visualization: const CautionRiskIcon(isSafe: true),
-            items: [
-              ...insight.healingFoods
-                  .take(2)
-                  .map(
-                    (f) => Padding(
-                      padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.success),
-                    ),
-                  ),
-              ...insight.foodImpacts
-                  .where((i) => i.impactType == 'positive' && i.food != 'Unknown')
-                  .take(1)
-                  .map(
-                    (i) => Padding(
-                      padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.success),
-                    ),
-                  ),
-            ].take(3).toList(),
-            footerLabel: AppStrings.viewAllPowerSources,
-            onFooterTap: () => _showBetterEnergyDetails(context),
+          child: GestureDetector(
+            onTap: () => _showBetterEnergyDetails(context),
+            child: NeonGlowCard(
+              metric: '$healingCount',
+              label: AppStrings.betterEnergy,
+              icon: AppIcons.zap,
+              glowColor: AppPalette.green,
+              items: [
+                ...insight.healingFoods.map((f) => NeonGlowItem(title: f.name, subtitle: f.effect, isDone: true)),
+                ...insight.foodImpacts.where((i) => i.impactType == 'positive').map((i) => NeonGlowItem(title: i.food, subtitle: i.effect, isDone: true)),
+              ],
+            ),
           ),
         ),
       );
@@ -102,34 +92,22 @@ class _InsightContentList extends StatelessWidget {
 
     // 3. BLOATING Section
     if (insight.triggerFoods.isNotEmpty || insight.foodImpacts.any((i) => i.impactType == 'negative')) {
+      final triggerCount = insight.triggerFoods.length + insight.foodImpacts.where((i) => i.impactType == 'negative').length;
       sections.add(
         DashboardEntrance(
           delay: 200,
-          child: GutDashboardSection(
-            title: AppStrings.bloating,
-            subtitle: AppStrings.foodsLinkedTo,
-            visualization: const CautionRiskIcon(isSafe: false),
-            items: [
-              ...insight.triggerFoods
-                  .take(2)
-                  .map(
-                    (f) => Padding(
-                      padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.error),
-                    ),
-                  ),
-              ...insight.foodImpacts
-                  .where((i) => i.impactType == 'negative' && i.food != 'Unknown')
-                  .take(1)
-                  .map(
-                    (i) => Padding(
-                      padding: EdgeInsets.only(bottom: AppSizes.p12),
-                      child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.error),
-                    ),
-                  ),
-            ].take(3).toList(),
-            footerLabel: AppStrings.viewAllTriggers,
-            onFooterTap: () => _showBloatingDetails(context),
+          child: GestureDetector(
+            onTap: () => _showBloatingDetails(context),
+            child: NeonGlowCard(
+              metric: '$triggerCount',
+              label: AppStrings.bloating,
+              icon: AppIcons.alertTriangle,
+              glowColor: AppPalette.red,
+              items: [
+                ...insight.triggerFoods.map((f) => NeonGlowItem(title: f.name, subtitle: f.effect, isDone: true)),
+                ...insight.foodImpacts.where((i) => i.impactType == 'negative').map((i) => NeonGlowItem(title: i.food, subtitle: i.effect, isDone: true)),
+              ],
+            ),
           ),
         ),
       );
@@ -140,21 +118,15 @@ class _InsightContentList extends StatelessWidget {
       sections.add(
         DashboardEntrance(
           delay: 300,
-          child: GutDashboardSection(
-            title: AppStrings.systemDiscoveries,
-            subtitle: AppStrings.logicBasedCorrelations,
-            visualization: const DashboardIconVisualization(icon: AppIcons.database),
-            items: patterns
-                .take(3)
-                .map(
-                  (p) => Padding(
-                    padding: EdgeInsets.only(bottom: AppSizes.p12),
-                    child: DashboardDetailItem(title: p.trigger.toUpperCase(), subtitle: p.reaction, icon: AppIcons.activity, color: context.appColorScheme.textPrimary),
-                  ),
-                )
-                .toList(),
-            footerLabel: AppStrings.viewPatternBreakdown,
-            onFooterTap: () => _showSystemDiscoveryDetails(context, patterns),
+          child: GestureDetector(
+            onTap: () => _showSystemDiscoveryDetails(context, patterns),
+            child: NeonGlowCard(
+              metric: '${patterns.length}',
+              label: AppStrings.systemDiscoveries,
+              icon: AppIcons.brain,
+              glowColor: AppPalette.purple,
+              items: patterns.map((p) => NeonGlowItem(title: p.trigger.toUpperCase(), subtitle: p.description, isDone: true)).toList(),
+            ),
           ),
         ),
       );
@@ -165,21 +137,15 @@ class _InsightContentList extends StatelessWidget {
       sections.add(
         DashboardEntrance(
           delay: 400,
-          child: GutDashboardSection(
-            title: AppStrings.recentLogs,
-            subtitle: AppStrings.directBodyFeedback,
-            visualization: const DashboardIconVisualization(icon: AppIcons.activity),
-            items: insight.foodImpacts
-                .take(4)
-                .map(
-                  (i) => Padding(
-                    padding: EdgeInsets.only(bottom: AppSizes.p12),
-                    child: DashboardDetailItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.textPrimary),
-                  ),
-                )
-                .toList(),
-            footerLabel: AppStrings.history,
-            onFooterTap: () => _showRecentPatternsDetails(context),
+          child: GestureDetector(
+            onTap: () => _showRecentPatternsDetails(context),
+            child: NeonGlowCard(
+              metric: '${insight.foodImpacts.length}',
+              label: AppStrings.recentLogs,
+              icon: AppIcons.history,
+              glowColor: AppPalette.blue,
+              items: insight.foodImpacts.map((i) => NeonGlowItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}')).toList(),
+            ),
           ),
         ),
       );
@@ -190,19 +156,18 @@ class _InsightContentList extends StatelessWidget {
       sections.add(
         DashboardEntrance(
           delay: 500,
-          child: GutDashboardSection(
-            title: AppStrings.topPerformers,
-            subtitle: AppStrings.frequencyBasedAnalysis,
-            visualization: const TopPerformersVisualization(),
-            items: [
-              if (insight.topHealing != null)
-                DashboardDetailItem(title: insight.topHealing!.food, subtitle: '${insight.topHealing!.frequency} Log Rate', icon: AppIcons.trophy, color: context.appColorScheme.success),
-              if (insight.topHealing != null && insight.topTrigger != null) Gap.h12,
-              if (insight.topTrigger != null)
-                DashboardDetailItem(title: insight.topTrigger!.food, subtitle: '${insight.topTrigger!.frequency} Log Rate', icon: AppIcons.alertTriangle, color: context.appColorScheme.error),
-            ],
-            footerLabel: AppStrings.viewFrequencyStats,
-            onFooterTap: () => _showTopPerformersDetails(context),
+          child: GestureDetector(
+            onTap: () => _showTopPerformersDetails(context),
+            child: NeonGlowCard(
+              metric: insight.topHealing?.frequency ?? 'MVP',
+              label: AppStrings.topPerformers,
+              icon: AppIcons.trophy,
+              glowColor: AppPalette.green,
+              items: [
+                if (insight.topHealing != null) NeonGlowItem(title: 'BEST: ${insight.topHealing!.food}', subtitle: insight.topHealing!.effects, isDone: true),
+                if (insight.topTrigger != null) NeonGlowItem(title: 'MOST REACTIVE: ${insight.topTrigger!.food}', subtitle: insight.topTrigger!.effects),
+              ],
+            ),
           ),
         ),
       );
