@@ -43,19 +43,9 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
   Future<void> _loadHistory() async {
     final scans = await sl<HistoryRepository>().getScanHistory();
-    AppLogger.debug(
-      'ScanHistoryScreen: Fetched ${scans.length} scans from repository',
-    );
+    AppLogger.debug('ScanHistoryScreen: Fetched ${scans.length} scans from repository');
 
-    final historicalScans = scans
-        .map(
-          (s) => HistoricalScan(
-            data: s,
-            time: s.time ?? DateTime.now(),
-            userImageUrl: s.userImageUrl,
-          ),
-        )
-        .toList();
+    final historicalScans = scans.map((s) => HistoricalScan(data: s, time: s.time ?? DateTime.now(), userImageUrl: s.userImageUrl)).toList();
 
     if (mounted) {
       setState(() {
@@ -70,13 +60,9 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     for (var item in _history) {
       final date = item.time;
       String key;
-      if (DateFormat('yyyy-MM-dd').format(date) ==
-          DateFormat('yyyy-MM-dd').format(DateTime.now())) {
+      if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(DateTime.now())) {
         key = AppStrings.today;
-      } else if (DateFormat('yyyy-MM-dd').format(date) ==
-          DateFormat(
-            'yyyy-MM-dd',
-          ).format(DateTime.now().subtract(const Duration(days: 1)))) {
+      } else if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(const Duration(days: 1)))) {
         key = AppStrings.yesterday;
       } else {
         key = DateFormat('MMMM d, yyyy').format(date);
@@ -92,20 +78,13 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     backgroundColor: context.appColorScheme.cardBackground,
     body: CustomScrollView(
       slivers: [
-        const GutSliverAppBar(
-          title: AppStrings.history,
-          showBrandingIcon: true,
-        ),
+        const GutSliverAppBar(title: AppStrings.history),
         _buildBody(),
       ],
     ),
   );
 
-  Widget _buildBody() => _isLoading
-      ? const _ScanHistoryLoading()
-      : (_history.isEmpty
-            ? const _ScanHistoryEmpty()
-            : _ScanHistoryList(groupedHistory: _groupHistoryByDate()));
+  Widget _buildBody() => _isLoading ? const _ScanHistoryLoading() : (_history.isEmpty ? const _ScanHistoryEmpty() : _ScanHistoryList(groupedHistory: _groupHistoryByDate()));
 }
 
 class _ScanHistoryLoading extends StatelessWidget {
@@ -113,17 +92,8 @@ class _ScanHistoryLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SliverPadding(
-    padding: EdgeInsets.symmetric(
-      horizontal: AppSizes.p20,
-      vertical: AppSizes.p16,
-    ),
-    sliver: const SliverToBoxAdapter(
-      child: ShimmerGridLoader(
-        itemCount: 10,
-        crossAxisCount: 1,
-        variant: ShimmerVariant.list,
-      ),
-    ),
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
+    sliver: const SliverToBoxAdapter(child: ShimmerGridLoader(itemCount: 10, crossAxisCount: 1, variant: ShimmerVariant.list)),
   );
 }
 
@@ -133,11 +103,7 @@ class _ScanHistoryEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const SliverFillRemaining(
     hasScrollBody: false,
-    child: EmptyStateWidget(
-      icon: AppIcons.history,
-      title: AppStrings.noScansYet,
-      description: AppStrings.startScanningProducts,
-    ),
+    child: EmptyStateWidget(icon: AppIcons.history, title: AppStrings.noScansYet, description: AppStrings.startScanningProducts),
   );
 }
 
@@ -147,10 +113,7 @@ class _ScanHistoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SliverPadding(
-    padding: EdgeInsets.symmetric(
-      horizontal: AppSizes.p20,
-      vertical: AppSizes.p16,
-    ),
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
     sliver: SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final dateKey = groupedHistory.keys.elementAt(index);

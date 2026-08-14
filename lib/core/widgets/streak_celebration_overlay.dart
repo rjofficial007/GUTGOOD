@@ -61,6 +61,7 @@ class _StreakCelebrationOverlayState extends State<StreakCelebrationOverlay> wit
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Spacer(),
               // Animated Flame Icon - Same logic as StreakCard
               Lottie.asset(
                 AppAssets.streakAnimation,
@@ -100,6 +101,7 @@ class _StreakCelebrationOverlayState extends State<StreakCelebrationOverlay> wit
               ).animate().fadeIn(delay: 800.ms),
 
               Gap.h48,
+              const Spacer(),
 
               GutButton(label: AppStrings.continueAction, onTap: widget.onDismiss).animate().fadeIn(delay: 1000.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
             ],

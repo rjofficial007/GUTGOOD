@@ -13,51 +13,48 @@ class CycleInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = context.appColorScheme;
-    const mainColor = AppPalette.pink;
-    const bgColor = AppPalette.pinkLight;
+
+    final mainColor = isDark ? const Color(0xFFF472B6) : AppPalette.pink; // Lighter pink for dark mode
+    final bgColor = isDark ? mainColor.withValues(alpha: 0.08) : AppPalette.pinkLight.withValues(alpha: 0.5);
 
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(AppSizes.p12),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(AppSizes.r10),
+        borderRadius: BorderRadius.circular(AppSizes.r12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(AppIcons.flower, color: mainColor, size: 18.0.w),
-          Gap.w8,
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: mainColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: Icon(AppIcons.flower, color: mainColor, size: 16.0.w),
+          ),
+          Gap.w10,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: 2),
                 Text(
                   insight.phase.toUpperCase(),
-                  style: context.caption.copyWith(
-                    color: mainColor,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
-                    fontSize: 10.0.sp,
-                  ),
+                  style: context.eyebrow.copyWith(color: mainColor, fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 10.0.sp),
                 ),
                 Gap.h4,
                 Text(
                   insight.description,
-                  style: context.caption.copyWith(
-                    color: colorScheme.textSecondary,
-                    height: 1.3,
-                  ),
+                  style: context.caption.copyWith(color: isDark ? colorScheme.textPrimary : colorScheme.textSecondary, height: 1.4, fontWeight: isDark ? FontWeight.w500 : FontWeight.w400),
                 ),
                 if (insight.tags != null && insight.tags!.isNotEmpty) ...[
-                  Gap.h8,
+                  Gap.h10,
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children: insight.tags!
-                        .map((tag) => _CycleTagPill(tag: tag))
-                        .toList(),
+                    children: insight.tags!.map((tag) => _CycleTagPill(tag: tag, baseColor: mainColor)).toList(),
                   ),
                 ],
               ],
@@ -70,39 +67,29 @@ class CycleInsightCard extends StatelessWidget {
 }
 
 class _CycleTagPill extends StatelessWidget {
-  const _CycleTagPill({required this.tag});
+  const _CycleTagPill({required this.tag, required this.baseColor});
   final CycleTag tag;
+  final Color baseColor;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: colorScheme.textPrimary.withValues(alpha: 0.05),
+        color: baseColor.withValues(alpha: isDark ? 0.1 : 0.05),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: colorScheme.textPrimary.withValues(alpha: 0.1),
-        ),
+        border: Border.all(color: baseColor.withValues(alpha: 0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _getIcon(tag.icon),
-            size: 10,
-            color: colorScheme.textPrimary.withValues(alpha: 0.7),
-          ),
+          Icon(_getIcon(tag.icon), size: 10, color: isDark ? baseColor : baseColor.withValues(alpha: 0.8)),
           Gap.w4,
           Text(
             tag.text.toUpperCase(),
-            style: context.caption.copyWith(
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              color: colorScheme.textPrimary.withValues(alpha: 0.7),
-              letterSpacing: 0.2,
-            ),
+            style: context.caption.copyWith(fontSize: 9.sp, fontWeight: FontWeight.w900, color: isDark ? baseColor : baseColor.withValues(alpha: 0.8), letterSpacing: 0.5),
           ),
         ],
       ),

@@ -167,23 +167,27 @@ class ProcessChatTagUseCase {
             if (!alreadyPersisted) {
               AppLogger.info('ProcessChatTagUseCase: [SCAN] parsed successfully: ${currentScan.productName}. Image: ${imageUrl != null}');
               if (persist) {
-                unawaited(_firestoreService.saveToScanHistory(currentScan, userImageUrl: imageUrl));
+                // 🚀 Professional Filter: Only persist scans and auto-log meals if it's an actual product.
+                if (currentScan.isLoggableProduct) {
+                  unawaited(_firestoreService.saveToScanHistory(currentScan, userImageUrl: imageUrl));
 
-                // 🟢 Automatically log as a meal if it's a food image source OR if an image is present in the turn
-                final isFoodImage = source == 'food' || source == 'meal' || source == 'gallery' || imageUrl != null;
-                final alreadyLogged = persistedTagBlocks?.contains('__MEAL_LOGGED_IN_TURN__') ?? false;
+                  // 🟢 Automatically log as a meal if it's a food image source OR if an image is present in the turn
+                  final isFoodImage = source == 'food' || source == 'meal' || source == 'gallery' || imageUrl != null;
+                  final alreadyLogged = persistedTagBlocks?.contains('__MEAL_LOGGED_IN_TURN__') ?? false;
 
-                if (isFoodImage && !alreadyLogged) {
-                  final mealLog = MealLog(items: [currentScan.productName], photoUrl: imageUrl ?? currentScan.imageUrl, time: DateTime.now(), source: source ?? 'chat');
-                  unawaited(_firestoreService.logMeal(mealLog));
-                  persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');
-                  AppLogger.info('ProcessChatTagUseCase: Food image automatically logged as a meal from [SCAN] tag (Image: ${imageUrl != null})');
+                  if (isFoodImage && !alreadyLogged) {
+                    final mealLog = MealLog(items: [currentScan.productName], photoUrl: imageUrl ?? currentScan.imageUrl, time: DateTime.now(), source: source ?? 'chat');
+                    unawaited(_firestoreService.logMeal(mealLog));
+                    persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');
+                    AppLogger.info('ProcessChatTagUseCase: Food image automatically logged as a meal from [SCAN] tag (Image: ${imageUrl != null})');
+                  }
+                } else {
+                  AppLogger.info('ProcessChatTagUseCase: Skipping history/meal log for non-product scan: ${currentScan.productName}');
                 }
 
                 unawaited(_notificationService.schedulePostMealCheckIn());
                 unawaited(_notificationService.scheduleNoMealLoggedReminder());
                 _appStateService.notifyChatUpdated();
-                AppLogger.info('ProcessChatTagUseCase: [SCAN] saved to scan_history and UI notified.');
               }
               persistedTagBlocks?.add(rawBlock);
             }

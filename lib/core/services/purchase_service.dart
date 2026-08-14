@@ -41,7 +41,9 @@ class PurchaseServiceImpl implements PurchaseService {
   Future<void> initialize() async {
     try {
       await Purchases.setLogLevel(LogLevel.debug);
-      final configuration = PurchasesConfiguration(Platform.isAndroid ? _googleApiKey : _appleApiKey);
+      final apiKey = Platform.isAndroid ? _googleApiKey : _appleApiKey;
+      AppLogger.premium('PurchaseService: Configuring with API Key: $apiKey');
+      final configuration = PurchasesConfiguration(apiKey);
       await Purchases.configure(configuration);
       _isConfigured = true;
 
@@ -83,11 +85,73 @@ class PurchaseServiceImpl implements PurchaseService {
   @override
   Future<List<Package>> fetchOffers() async {
     try {
+      AppLogger.premium('PurchaseService: Fetching offerings...');
       final offerings = await Purchases.getOfferings();
-      return offerings.all[_offering]?.availablePackages ?? [];
+      await printAllOfferings(offerings);
+
+      final targetOffering = offerings.all[_offering];
+      if (targetOffering == null) {
+        AppLogger.warning('PurchaseService: Specific offering "$_offering" not found in offerings.all');
+      }
+
+      return targetOffering?.availablePackages ?? [];
     } on PlatformException catch (e) {
       AppLogger.error('PurchaseService: Fetch offers failed', error: e);
       return [];
+    }
+  }
+
+  Future<void> printAllOfferings(Offerings offeringsData) async {
+    try {
+      if (offeringsData.all.isEmpty) {
+        Logger.debug('No offerings found.');
+        return;
+      }
+
+      // Loop through all offerings
+      offeringsData.all.forEach((offeringId, offering) {
+        Logger.premium('Offering: ${offering.identifier}');
+        Logger.premium('Description: ${offering.serverDescription}');
+
+        // Loop through all packages in this offering
+        for (var package in offering.availablePackages) {
+          Logger.premium('Package Details:');
+          Logger.premium('Identifier: ${package.identifier}');
+          Logger.premium('Package Type: ${package.packageType}');
+          Logger.premium('Store Product:');
+          Logger.premium('\tIdentifier: ${package.storeProduct.identifier}');
+          Logger.premium('\tDescription: ${package.storeProduct.description}');
+          Logger.premium('\tTitle: ${package.storeProduct.title}');
+          Logger.premium('\tPrice: ${package.storeProduct.price}');
+          Logger.premium('\tPrice String: ${package.storeProduct.priceString}');
+          Logger.premium('\tCurrency Code: ${package.storeProduct.currencyCode}');
+
+          Logger.premium('\tDiscounts: ${package.storeProduct.discounts}');
+          Logger.premium('\tProduct Category: ${package.storeProduct.productCategory}');
+          Logger.premium('\tDefault Option: ${package.storeProduct.defaultOption}');
+          Logger.premium('\tSubscription Options: ${package.storeProduct.subscriptionOptions}');
+          Logger.premium('\tPresented Offering Identifier: ${package.storeProduct.presentedOfferingContext}');
+          Logger.premium('\tSubscription Period: ${package.storeProduct.subscriptionPeriod}');
+
+          if (package.storeProduct.introductoryPrice != null) {
+            Logger.premium('Introductory Price:');
+            Logger.premium('\tPrice: ${package.storeProduct.introductoryPrice!.price}');
+            Logger.premium('\tPrice String: ${package.storeProduct.introductoryPrice!.priceString}');
+            Logger.premium('\tPeriod: ${package.storeProduct.introductoryPrice!.period}');
+            Logger.premium('\tCycles: ${package.storeProduct.introductoryPrice!.cycles}');
+            Logger.premium('\tPeriod Unit: ${package.storeProduct.introductoryPrice!.periodUnit}');
+            Logger.premium('\tPeriod Number of Units: ${package.storeProduct.introductoryPrice!.periodNumberOfUnits}');
+          }
+
+          Logger.premium('Product Category: ${package.storeProduct.productCategory}');
+          Logger.premium('Default Option: ${package.storeProduct.defaultOption}');
+          Logger.premium('Subscription Period: ${package.storeProduct.subscriptionPeriod}');
+          Logger.premium('Offering Identifier: ${package.presentedOfferingContext}');
+          Logger.premium('------------------------------------');
+        }
+      });
+    } catch (e) {
+      Logger.error('Error fetching offerings: $e');
     }
   }
 

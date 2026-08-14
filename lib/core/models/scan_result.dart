@@ -34,6 +34,7 @@ class ScanResult extends Equatable {
     this.userImageUrl,
     this.flaggedIngredients = const [],
     this.time,
+    this.isSaved = false,
   });
 
   factory ScanResult.fromMap(Map<String, dynamic> map) {
@@ -63,37 +64,18 @@ class ScanResult extends Equatable {
       novaGroup: map['novaGroup']?.toString(),
       allergens: map['allergens'],
       additives: map['additives'],
-      ingredients: ModelUtils.parseModelList<Ingredient>(
-        map['ingredients'],
-        Ingredient.fromMap,
-      ),
-      nutrients: ModelUtils.parseNestedModel<NutrientData>(
-        map['nutrients'],
-        NutrientData.fromMap,
-      ),
-      nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(
-        map['nutrientLevels'],
-        NutrientLevels.fromMap,
-      ),
-      impacts: ModelUtils.parseModelList<ImpactDetail>(
-        map['impacts'],
-        ImpactDetail.fromMap,
-      ),
-      swaps: ModelUtils.parseModelList<ProductSwap>(
-        map['swaps'],
-        ProductSwap.fromMap,
-      ),
-      cycleInsight: ModelUtils.parseNestedModel<CycleInsight>(
-        map['cycleInsight'],
-        CycleInsight.fromMap,
-      ),
+      ingredients: ModelUtils.parseModelList<Ingredient>(map['ingredients'], Ingredient.fromMap),
+      nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
+      nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'], NutrientLevels.fromMap),
+      impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
+      swaps: ModelUtils.parseModelList<ProductSwap>(map['swaps'], ProductSwap.fromMap),
+      cycleInsight: ModelUtils.parseNestedModel<CycleInsight>(map['cycleInsight'], CycleInsight.fromMap),
       barcode: map['barcode'],
       source: map['source'],
       userImageUrl: map['userImageUrl'],
-      flaggedIngredients: ModelUtils.parseList<String>(
-        map['flaggedIngredients'],
-      ),
+      flaggedIngredients: ModelUtils.parseList<String>(map['flaggedIngredients']),
       time: map['time'] != null ? DateTime.tryParse(map['time']) : null,
+      isSaved: ModelUtils.parseBool(map['isSaved']),
     );
   }
 
@@ -163,6 +145,27 @@ class ScanResult extends Equatable {
   /// The timestamp when this scan was created.
   final DateTime? time;
 
+  /// Whether this product is saved as a favorite.
+  final bool isSaved;
+
+  /// Returns true if this result represents a specific food product suitable for history.
+  ///
+  /// Filters out generic utility scans like "Restaurant Menus" or "Ingredient Labels"
+  /// which are analyzed for immediate feedback but shouldn't clutter the Pattern Engine.
+  bool get isLoggableProduct {
+    // Barcode scans are always legitimate products from the database.
+    if (barcode != null && barcode!.isNotEmpty) return true;
+
+    final name = productName.toLowerCase();
+
+    // Heuristics for identifying non-product scans (Menus, Ingredients lists, etc.)
+    final isMenu = name.contains('menu') && !name.contains('meal') && !name.contains('combo');
+    final isLabelOnly = name.contains('ingredients list') || name.contains('nutrition label') || name.contains('ingredients only');
+    final isGeneric = const {'menu', 'ingredients', 'label', 'nutrition', 'facts'}.contains(name);
+
+    return !(isMenu || isLabelOnly || isGeneric);
+  }
+
   ScanResult copyWith({
     String? productName,
     String? brand,
@@ -186,6 +189,7 @@ class ScanResult extends Equatable {
     String? userImageUrl,
     List<String>? flaggedIngredients,
     DateTime? time,
+    bool? isSaved,
   }) => ScanResult(
     productName: productName ?? this.productName,
     brand: brand ?? this.brand,
@@ -209,6 +213,7 @@ class ScanResult extends Equatable {
     userImageUrl: userImageUrl ?? this.userImageUrl,
     flaggedIngredients: flaggedIngredients ?? this.flaggedIngredients,
     time: time ?? this.time,
+    isSaved: isSaved ?? this.isSaved,
   );
 
   Map<String, dynamic> toMap() => {
@@ -234,6 +239,7 @@ class ScanResult extends Equatable {
     'userImageUrl': userImageUrl,
     'flaggedIngredients': flaggedIngredients,
     'time': time?.toIso8601String(),
+    'isSaved': isSaved,
   };
 
   /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
@@ -249,14 +255,5 @@ class ScanResult extends Equatable {
   };
 
   @override
-  List<Object?> get props => [
-    productName,
-    brand,
-    score,
-    impactType,
-    impact,
-    barcode,
-    userImageUrl,
-    flaggedIngredients,
-  ];
+  List<Object?> get props => [productName, brand, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved];
 }

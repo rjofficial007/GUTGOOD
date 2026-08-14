@@ -87,12 +87,6 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
 
-      match /saved_foods/{docId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
-        allow delete: if isOwner(userId);
-      }
-
       match /insights/{docId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;

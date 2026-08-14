@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
@@ -261,7 +262,7 @@ class PatternsDashboardSection extends StatelessWidget {
   Widget build(BuildContext context) => DashboardEntrance(
     delay: delay,
     child: GutDashboardSection(
-      title: AppStrings.aiPatterns,
+      title: AppStrings.yourPatterns,
       subtitle: AppStrings.detectedPatterns,
       visualization: const DashboardIconVisualization(icon: AppIcons.brain),
       items: insight.detectedPatterns.take(2).map((p) {
@@ -372,24 +373,27 @@ class ModernSmartAlert extends StatelessWidget {
   final InsightSummary insight;
 
   @override
-  Widget build(BuildContext context) => ModernInsightCard(
-    title: insight.title,
-    icon: AppIcons.sparkles,
-    backgroundColor: context.appColorScheme.cardBackground,
-    titleColor: context.appColorScheme.textPrimary,
-    iconColor: context.appColorScheme.textPrimary,
-    padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
-    footer: Text(
-      '${insight.type.toUpperCase()}${AppStrings.insightLabelSuffix}',
-      textAlign: TextAlign.center,
-      style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
-    ),
-    footerColor: context.appColorScheme.textPrimary,
-    child: Text(
-      insight.description,
-      style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
-      softWrap: true,
-      maxLines: null,
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: () => context.push(AppRoutes.patternDetail, extra: insight.toBodyPattern()),
+    child: ModernInsightCard(
+      title: insight.title,
+      icon: AppIcons.salad,
+      backgroundColor: context.appColorScheme.cardBackground,
+      titleColor: context.appColorScheme.textPrimary,
+      iconColor: context.appColorScheme.textPrimary,
+      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
+      footer: Text(
+        '${insight.type.toUpperCase()}${AppStrings.insightLabelSuffix}  ➜',
+        textAlign: TextAlign.center,
+        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
+      ),
+      footerColor: context.appColorScheme.textPrimary,
+      child: Text(
+        insight.description,
+        style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
+        softWrap: true,
+        maxLines: null,
+      ),
     ),
   );
 }

@@ -40,7 +40,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
 
   void _startAnalysis() {
     Future.doWhile(() async {
-      await Future.delayed(const Duration(milliseconds: 1400));
+      await Future.delayed(const Duration(milliseconds: 700));
       if (mounted && _isAnalyzing) {
         setState(() {
           _statusIndex = (_statusIndex + 1) % _statusMessages.length;
@@ -50,7 +50,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
       return false;
     });
 
-    Future.delayed(const Duration(seconds: 8), () {
+    Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
         setState(() {
           _isAnalyzing = false;
@@ -71,7 +71,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_isSuccess ? AppStrings.analysisComplete : AppStrings.aiPersonalization, style: context.displaySm),
+            Text(_isSuccess ? AppStrings.analysisComplete : AppStrings.builtAroundYou, style: context.displaySm),
             Gap.h10,
             Text(_isSuccess ? AppStrings.gutTeaReady : AppStrings.aiPersonalizationDesc, style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary)),
           ],
@@ -83,7 +83,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         // Bottom Button
         if (_isSuccess)
           Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.p24),
+            padding: EdgeInsets.only(bottom: AppSizes.p20),
             child: GutButton(label: AppStrings.continueButton, suffixIcon: AppIcons.arrowRight, onTap: widget.onFinish),
           ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0)
         else
@@ -95,7 +95,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
   Widget _buildHeroFlipText() => Padding(
     padding: EdgeInsets.only(bottom: AppSizes.p100),
     child: AnimatedSwitcher(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 400),
       switchInCurve: Curves.easeOutBack,
       switchOutCurve: Curves.easeInBack,
       transitionBuilder: (child, animation) {

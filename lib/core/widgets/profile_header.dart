@@ -7,6 +7,7 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/modern_insight_card.dart';
+import 'package:intl/intl.dart';
 
 class ProfileHeader extends StatelessWidget {
   const ProfileHeader({
@@ -15,12 +16,10 @@ class ProfileHeader extends StatelessWidget {
     required this.email,
     required this.isPremium,
     this.photoUrl,
-    required this.streak,
-    this.longestStreak = 0,
+    this.memberSince,
     required this.goalsCount,
     required this.sensitivitiesCount,
     required this.lifestyleCount,
-    required this.gutScore,
     required this.onImageTap,
     required this.onEditTap,
     required this.onLogoutTap,
@@ -29,12 +28,10 @@ class ProfileHeader extends StatelessWidget {
   final String email;
   final bool isPremium;
   final String? photoUrl;
-  final int streak;
-  final int longestStreak;
+  final DateTime? memberSince;
   final int goalsCount;
   final int sensitivitiesCount;
   final int lifestyleCount;
-  final int gutScore;
   final VoidCallback onImageTap;
   final VoidCallback onEditTap;
   final VoidCallback onLogoutTap;
@@ -65,26 +62,12 @@ class ProfileHeader extends StatelessWidget {
       footer: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(AppIcons.flame, size: AppSizes.icon14, color: AppPalette.black),
+          Icon(AppIcons.calendar, size: AppSizes.icon14, color: AppPalette.black),
           Gap.w8,
           Text(
-            '$streak ${AppStrings.dayStreakLabel}',
+            '${AppStrings.memberSince} ${memberSince != null ? DateFormat('MMMM yyyy').format(memberSince!).toUpperCase() : '—'}',
             style: context.caption.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: AppSizes.s9, letterSpacing: 0.5),
           ),
-          if (longestStreak > 0) ...[
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: AppSizes.p12),
-              height: AppSizes.p10,
-              width: 1,
-              color: AppPalette.black.withValues(alpha: 0.2),
-            ),
-            Icon(AppIcons.trophy, size: AppSizes.icon14, color: AppPalette.black),
-            Gap.w8,
-            Text(
-              '$longestStreak ${AppStrings.bestStreakLabel}',
-              style: context.caption.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: AppSizes.s9, letterSpacing: 0.5),
-            ),
-          ],
         ],
       ),
       child: Column(
@@ -134,7 +117,7 @@ class ProfileHeader extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: context.bodyBold.copyWith(color: AppPalette.white, fontSize: AppSizes.s18),
+                      style: context.bodyBold.copyWith(color: AppPalette.white, fontSize: AppSizes.s22),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -148,27 +131,6 @@ class ProfileHeader extends StatelessWidget {
                 ),
               ),
               Gap.w12,
-              // Score Badge (Circular Progress)
-              SizedBox(
-                width: 48.0.w,
-                height: 48.0.w,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      value: gutScore / 100,
-                      strokeWidth: 4,
-                      strokeCap: StrokeCap.round,
-                      backgroundColor: AppPalette.white.withValues(alpha: 0.1),
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.white),
-                    ),
-                    Text(
-                      '$gutScore',
-                      style: context.bodyBold.copyWith(color: AppPalette.white, fontSize: AppSizes.s13, fontWeight: FontWeight.w900),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
           Gap.h32,

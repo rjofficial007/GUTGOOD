@@ -12,18 +12,16 @@ import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/router/app_routes.dart';
-import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
-import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
 import 'package:image_picker/image_picker.dart';
@@ -80,7 +78,13 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     _scannerController = MobileScannerController(detectionSpeed: DetectionSpeed.noDuplicates, facing: CameraFacing.back, torchEnabled: false);
     unawaited(_checkPermission());
     unawaited(_loadSavedMode());
+    unawaited(_checkQuota());
     _triggerModeIntro();
+  }
+
+  Future<void> _checkQuota() async {
+    if (!mounted) return;
+    await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true);
   }
 
   void _triggerModeIntro() {
@@ -148,8 +152,9 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   void _onDetect(BarcodeCapture capture) {}
 
   Future<void> _handleBarcode(String barcode, {Uint8List? capturedImage}) async {
+    if (!await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true)) return;
+    if (!mounted) return;
     final notifier = context.read<ScannerNotifier>();
-    final authNotifier = context.read<GutAuthNotifier>();
     setState(() => _isProcessing = true);
     unawaited(HapticFeedback.lightImpact());
 
@@ -158,19 +163,6 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     }
 
     try {
-      final canScan = await sl<UsageService>().canScan();
-      if (!canScan) {
-        if (mounted) {
-          context.pop();
-          if (authNotifier.isAnonymous) {
-            unawaited(showAuthBottomSheet(context, customMessage: AppStrings.guestLifetimeLimitMessage));
-          } else {
-            unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
-          }
-        }
-        return;
-      }
-
       final result = await notifier.processBarcode(barcode, capturedImage: capturedImage);
 
       if (result != null) {
@@ -179,7 +171,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
             setState(() => _sessionScans.insert(0, result));
             unawaited(HapticFeedback.mediumImpact());
           } else {
-            context.go(AppRoutes.scanResult, extra: {'scanData': result.toMap()});
+            context.go(AppRoutes.scanResult, extra: ScanResultArgs(scanData: result));
           }
         }
       } else {
@@ -188,7 +180,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
           final aiResult = await notifier.processImage(capturedImage, mode: _currentMode.name);
           if (mounted) {
             if (aiResult != null) {
-              context.go(AppRoutes.scanResult, extra: {'scanData': aiResult.toMap()});
+              context.go(AppRoutes.scanResult, extra: ScanResultArgs(scanData: aiResult));
             } else {
               context.pop(); // Pop ScanningAnimation
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.couldNotAnalyzeVision)));
@@ -225,18 +217,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
 
   Future<void> _capturePhoto() async {
     if (_isProcessing) return;
-    final authNotifier = context.read<GutAuthNotifier>();
-    final canScan = await sl<UsageService>().canScan();
-    if (!canScan) {
-      if (mounted) {
-        if (authNotifier.isAnonymous) {
-          unawaited(showAuthBottomSheet(context, customMessage: AppStrings.guestLifetimeLimitMessage));
-        } else {
-          unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
-        }
-      }
-      return;
-    }
+    if (!await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true)) return;
 
     setState(() => _isProcessing = true);
     unawaited(HapticFeedback.mediumImpact());
@@ -278,18 +259,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   }
 
   Future<void> _pickFromGallery() async {
-    final canScan = await sl<UsageService>().canScan();
-    if (!canScan) {
-      if (mounted) {
-        final authNotifier = context.read<GutAuthNotifier>();
-        if (authNotifier.isAnonymous) {
-          unawaited(showAuthBottomSheet(context, customMessage: AppStrings.guestLifetimeLimitMessage));
-        } else {
-          unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
-        }
-      }
-      return;
-    }
+    if (!await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true)) return;
 
     final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (image != null && mounted) {

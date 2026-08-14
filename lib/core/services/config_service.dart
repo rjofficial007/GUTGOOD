@@ -23,7 +23,7 @@ class ConfigServiceImpl implements ConfigService {
   @override
   String get email => 'info@macymind.com';
   @override
-  String get iosAppId => '0000000000';
+  String get iosAppId => '6791954813';
   @override
   String get magicLinkUrl => ApiConstants.magicLinkUrl;
   @override

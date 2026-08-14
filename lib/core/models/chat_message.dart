@@ -34,6 +34,7 @@ class ChatMessage extends Equatable {
     this.source,
     this.foodMentions = const [],
     this.symptomMentions = const [],
+    this.isHidden = false,
     required this.time,
   }) : _imageUrl = imageUrl;
 
@@ -44,11 +45,7 @@ class ChatMessage extends Equatable {
     // Multi-image field with legacy single-image fallback.
     final imageUrls = ModelUtils.parseList<String>(map['imageUrls']);
     final legacyImageUrl = map['imageUrl'] as String?;
-    final resolvedImageUrls = imageUrls.isNotEmpty
-        ? imageUrls
-        : (legacyImageUrl != null && legacyImageUrl.isNotEmpty
-              ? [legacyImageUrl]
-              : const <String>[]);
+    final resolvedImageUrls = imageUrls.isNotEmpty ? imageUrls : (legacyImageUrl != null && legacyImageUrl.isNotEmpty ? [legacyImageUrl] : const <String>[]);
 
     return ChatMessage(
       id: rawLocalId is int ? rawLocalId : null,
@@ -57,23 +54,16 @@ class ChatMessage extends Equatable {
       uid: map['uid'] as String?,
       role: map['role'] ?? 'user',
       text: map['text'] ?? '',
-      imageUrl: resolvedImageUrls.isNotEmpty
-          ? resolvedImageUrls.first
-          : legacyImageUrl,
+      imageUrl: resolvedImageUrls.isNotEmpty ? resolvedImageUrls.first : legacyImageUrl,
       imageUrls: resolvedImageUrls,
-      scanData: ModelUtils.parseNestedModel<ScanResult>(
-        map['scanData'],
-        ScanResult.fromMap,
-      ),
-      swapData: ModelUtils.parseModelList<ProductSwap>(
-        map['swapData'],
-        ProductSwap.fromMap,
-      ),
+      scanData: ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap),
+      swapData: ModelUtils.parseModelList<ProductSwap>(map['swapData'], ProductSwap.fromMap),
       isSwap: ModelUtils.parseBool(map['isSwap']),
       feedback: map['feedback'],
       source: map['source'],
       foodMentions: ModelUtils.parseList<String>(map['foodMentions']),
       symptomMentions: ModelUtils.parseList<String>(map['symptomMentions']),
+      isHidden: ModelUtils.parseBool(map['isHidden'] ?? false),
       time: DateTimeUtils.parse(map['time']),
     );
   }
@@ -142,14 +132,14 @@ class ChatMessage extends Equatable {
   /// Structured list of physical symptoms identified in this message.
   final List<String> symptomMentions;
 
+  /// Whether this message is hidden from the UI (but still used for context).
+  final bool isHidden;
+
   /// The exact time the message was created or received.
   final DateTime time;
 
   /// Back-compat getter for single-image widgets.
-  Uint8List? get localImageBytes =>
-      (localImages != null && localImages!.isNotEmpty)
-      ? localImages!.first
-      : null;
+  Uint8List? get localImageBytes => (localImages != null && localImages!.isNotEmpty) ? localImages!.first : null;
 
   ChatMessage copyWith({
     int? id,
@@ -171,6 +161,7 @@ class ChatMessage extends Equatable {
     String? source,
     List<String>? foodMentions,
     List<String>? symptomMentions,
+    bool? isHidden,
     DateTime? time,
     bool clearLocalImages = false,
   }) {
@@ -182,9 +173,7 @@ class ChatMessage extends Equatable {
       uid: uid ?? this.uid,
       role: role ?? this.role,
       text: text ?? this.text,
-      imageUrl:
-          imageUrl ??
-          (nextImageUrls.isNotEmpty ? nextImageUrls.first : this.imageUrl),
+      imageUrl: imageUrl ?? (nextImageUrls.isNotEmpty ? nextImageUrls.first : this.imageUrl),
       imageUrls: nextImageUrls,
       localImages: clearLocalImages ? null : (localImages ?? this.localImages),
       scanData: scanData ?? this.scanData,
@@ -197,6 +186,7 @@ class ChatMessage extends Equatable {
       source: source ?? this.source,
       foodMentions: foodMentions ?? this.foodMentions,
       symptomMentions: symptomMentions ?? this.symptomMentions,
+      isHidden: isHidden ?? this.isHidden,
       time: time ?? this.time,
     );
   }
@@ -217,31 +207,13 @@ class ChatMessage extends Equatable {
     'source': source,
     'foodMentions': foodMentions,
     'symptomMentions': symptomMentions,
+    'isHidden': isHidden,
     'time': time.toIso8601String(),
   };
 
   /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
-  Map<String, dynamic> toAiMap() => {
-    'role': role,
-    'text': text,
-    if (scanData != null) 'scanData': scanData!.toAiMap(),
-  };
+  Map<String, dynamic> toAiMap() => {'role': role, 'text': text, if (scanData != null) 'scanData': scanData!.toAiMap(), if (isHidden) 'isHidden': isHidden};
 
   @override
-  List<Object?> get props => [
-    id,
-    firestoreId,
-    localId,
-    role,
-    text,
-    imageUrl,
-    imageUrls,
-    scanData,
-    isSwap,
-    feedback,
-    isSending,
-    sendFailed,
-    errorKind,
-    time,
-  ];
+  List<Object?> get props => [id, firestoreId, localId, role, text, imageUrl, imageUrls, scanData, isSwap, feedback, isSending, sendFailed, errorKind, isHidden, time];
 }

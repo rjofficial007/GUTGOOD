@@ -21,10 +21,10 @@ import 'package:gutgood/core/services/export_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/profile_header.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
@@ -53,12 +53,10 @@ class ProfileHeaderSection extends StatelessWidget {
         email: p?.email ?? (authNotifier.isAnonymous ? AppStrings.signInToSyncData : authNotifier.user?.email ?? ''),
         isPremium: p?.isPremium ?? false,
         photoUrl: p?.photoUrl,
-        streak: p?.streak ?? 0,
-        longestStreak: p?.longestStreak ?? 0,
+        memberSince: p?.createdAt,
         goalsCount: p?.goals.length ?? 0,
         sensitivitiesCount: p?.sensitivities.length ?? 0,
         lifestyleCount: p?.lifestyle.length ?? 0,
-        gutScore: p?.gutScore ?? 0,
         onImageTap: () {
           SemanticsService.sendAnnouncement(View.of(context), AppStrings.uploadingProfilePicture, TextDirection.ltr);
           onImageTap(profileNotifier);
@@ -76,11 +74,11 @@ class StreakAndUsageSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Selector<ProfileNotifier, (int, String?)>(
-        selector: (_, n) => (n.profile?.streak ?? 0, n.profile?.lastActivityDate),
+      Selector<ProfileNotifier, (int, String?, int)>(
+        selector: (_, n) => (n.profile?.streak ?? 0, n.profile?.lastActivityDate, n.profile?.gutScore ?? 0),
         builder: (context, data, _) => Padding(
           padding: EdgeInsets.only(top: AppSizes.p16),
-          child: StreakCard(streak: data.$1, lastActivityDate: data.$2),
+          child: StreakCard(streak: data.$1, lastActivityDate: data.$2, gutScore: data.$3),
         ),
       ),
       Selector<ProfileNotifier, bool>(
@@ -210,7 +208,8 @@ class BodyRhythmSection extends StatelessWidget {
 }
 
 class AccountSection extends StatelessWidget {
-  const AccountSection({super.key, required this.onLogoutTap, required this.onDeleteTap});
+  const AccountSection({super.key, required this.onEditTap, required this.onLogoutTap, required this.onDeleteTap});
+  final Function(ProfileNotifier) onEditTap;
   final Function(GutAuthNotifier, ProfileNotifier) onLogoutTap;
   final Function(GutAuthNotifier) onDeleteTap;
 
@@ -235,6 +234,7 @@ class AccountSection extends StatelessWidget {
                 title: AppStrings.signInToSync,
                 onTap: () => unawaited(showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage, onSuccess: profileNotifier.refresh)),
               ),
+            AppTile(icon: AppIcons.user, title: AppStrings.editProfile, onTap: () => onEditTap(profileNotifier)),
             AppTile(
               icon: AppIcons.creditCard,
               title: AppStrings.premiumPlanName,
@@ -383,7 +383,7 @@ class AppVersionInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GutSection(
     showCard: true,
-    topPadding: AppSizes.p40,
+    topPadding: AppSizes.p20,
     children: [
       Padding(
         padding: EdgeInsets.symmetric(vertical: AppSizes.p18),
@@ -418,6 +418,11 @@ class AIUsageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = context.appColorScheme;
+    final textColor = scheme.textPrimary;
+    final borderColor = scheme.border.withValues(alpha: 0.5);
+
     final usageNotifier = context.watch<UsageNotifier>();
     final usage = usageNotifier.usage;
     final maxChats = usageNotifier.maxChats;
@@ -429,43 +434,86 @@ class AIUsageCard extends StatelessWidget {
 
     return Container(
       margin: EdgeInsets.only(top: AppSizes.p16),
-      padding: EdgeInsets.all(AppSizes.p20),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: context.appColorScheme.elevatedSurface,
-        borderRadius: BorderRadius.circular(AppSizes.r24),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
-              Gap.w8,
-              Text(isAnon ? AppStrings.guestAiActivity : AppStrings.dailyAiActivity, style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, letterSpacing: 1.2)),
-            ],
-          ),
-          Gap.h20,
-          UsageRow(label: AppStrings.aiChats, current: chatCount, total: maxChats, color: context.appColorScheme.textPrimary),
-          Gap.h16,
-          UsageRow(label: AppStrings.productScans, current: scanCount, total: maxScans, color: context.appColorScheme.textPrimary),
-          Gap.h20,
-          GestureDetector(
-            onTap: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  AppStrings.upgradeForUnlimited,
-                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: AppSizes.s13),
-                ),
-                Gap.w4,
-                Icon(AppIcons.chevronRight, size: 14, color: context.appColorScheme.textPrimary),
-              ],
-            ),
+        color: scheme.elevatedSurface,
+        borderRadius: BorderRadius.circular(AppSizes.r32),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            // Left Section: AI Branding (Matching StreakCard Style)
+            Container(
+              width: 110.w,
+              padding: EdgeInsets.symmetric(vertical: 20.h),
+              decoration: BoxDecoration(
+                color: scheme.border.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(AppAssets.appIconBg, height: 34.w, width: 34.w, color: textColor),
+
+                  // Icon(AppIcons.salad, color: textColor, size: 40.w),
+                  Gap.h10,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4.w),
+                      child: Text(
+                        'LIMITS',
+                        style: context.headingSm.copyWith(color: textColor, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    isAnon ? 'GUEST' : 'DAILY',
+                    style: context.caption.copyWith(color: textColor.withValues(alpha: 0.5), fontWeight: FontWeight.w700, fontSize: 9.sp),
+                  ),
+                ],
+              ),
+            ),
+            Gap.w16,
+            // Right Section: Usage Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  UsageRow(label: AppStrings.aiChats, current: chatCount, total: maxChats, color: textColor),
+                  Gap.h16,
+                  UsageRow(label: AppStrings.productScans, current: scanCount, total: maxScans, color: textColor),
+                  Gap.h20,
+                  GestureDetector(
+                    onTap: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          AppStrings.upgradeForUnlimited,
+                          style: context.bodyBold.copyWith(color: textColor, fontSize: AppSizes.s12, letterSpacing: 0.5),
+                        ),
+                        Gap.w4,
+                        Icon(AppIcons.chevronRight, size: 14, color: textColor),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Gap.w10,
+          ],
+        ),
       ),
     );
   }
@@ -489,21 +537,19 @@ class UsageRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              label,
-              style: context.body.copyWith(fontSize: AppSizes.s14, fontWeight: FontWeight.w600),
+              label.toUpperCase(),
+              style: context.eyebrow.copyWith(fontSize: 8.sp, color: context.appColorScheme.textSecondary),
             ),
-            Text('$current / $total', style: context.caption.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              '$current / $total',
+              style: context.caption.copyWith(fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
+            ),
           ],
         ),
-        Gap.h8,
+        Gap.h6,
         ClipRRect(
           borderRadius: BorderRadius.circular(100),
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: context.appColorScheme.border.withValues(alpha: 0.3),
-            valueColor: AlwaysStoppedAnimation<Color>(progress >= 1.0 ? context.appColorScheme.error : color),
-            minHeight: 6,
-          ),
+          child: LinearProgressIndicator(value: progress, backgroundColor: context.appColorScheme.border.withValues(alpha: 0.5), valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 5),
         ),
       ],
     );

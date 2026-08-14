@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
@@ -46,7 +46,7 @@ class ChatShimmerLoading extends StatelessWidget {
   Widget build(BuildContext context) => ListView.builder(
     padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
     itemCount: 10,
-    reverse: true,
+    reverse: false,
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
     itemBuilder: (context, index) {
@@ -128,21 +128,70 @@ class ChatEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: SingleChildScrollView(
-      padding: EdgeInsets.all(AppSizes.p40),
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(AppAssets.appMascot, width: AppSizes.p120),
-          Gap.h32,
-          Text(AppStrings.heyImGutGood, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
-          Gap.h12,
+          Text(AppStrings.emptyStateTitle, style: context.displayMd, textAlign: .center),
+          Gap.h24,
           Text(
-            AppStrings.gutgoodEmptyDescription,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.appColorScheme.textSecondary, height: 1.2),
+            AppStrings.emptyStateSubtitle,
+            style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary),
+            textAlign: .center,
+          ),
+          Gap.h24,
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: AppSizes.p4,
+            mainAxisSpacing: AppSizes.p4,
+            childAspectRatio: 0.7,
+            children: const [
+              _EmptyStateCard(icon: AppIcons.scan, title: AppStrings.emptyStateScanFood, subtitle: AppStrings.emptyStateScanFoodDesc),
+              _EmptyStateCard(icon: AppIcons.clipboardList, title: AppStrings.emptyStateCheckIngredients, subtitle: AppStrings.emptyStateCheckIngredientsDesc),
+              _EmptyStateCard(icon: AppIcons.messageCircle, title: AppStrings.emptyStateAskGutGood, subtitle: AppStrings.emptyStateAskGutGoodDesc),
+            ],
           ),
         ],
       ),
+    ),
+  );
+}
+
+class _EmptyStateCard extends StatelessWidget {
+  const _EmptyStateCard({required this.icon, required this.title, required this.subtitle});
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p10),
+    decoration: BoxDecoration(
+      color: context.appColorScheme.cardBackground,
+      borderRadius: BorderRadius.circular(AppSizes.r20),
+      border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+    ),
+    child: Column(
+      children: [
+        Gap.h4,
+        Container(
+          padding: EdgeInsets.all(AppSizes.p14),
+          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.5), shape: BoxShape.circle),
+          child: Icon(icon, size: AppSizes.icon24, color: context.appColorScheme.textPrimary),
+        ),
+        Gap.h16,
+        Text(title, textAlign: TextAlign.center, style: context.bodyBold.copyWith(height: 1.1)),
+        Gap.h8,
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: context.caption.copyWith(color: context.appColorScheme.textSecondary, height: 1.2),
+        ),
+      ],
     ),
   );
 }
@@ -168,7 +217,7 @@ class DateHeader extends StatelessWidget {
     }
 
     return Container(
-      margin: EdgeInsets.symmetric(vertical: AppSizes.p24),
+      margin: EdgeInsets.only(bottom: AppSizes.p24),
       child: Row(
         children: [
           Expanded(child: Divider(color: context.appColorScheme.border)),

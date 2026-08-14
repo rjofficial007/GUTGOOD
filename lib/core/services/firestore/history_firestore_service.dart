@@ -50,9 +50,13 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       }
       if (bestImageUrl != null && bestImageUrl.isEmpty) bestImageUrl = null;
 
+      // 🟢 Check if this product is already saved in history to persist the 'isSaved' state
+      final isSaved = await isFoodSaved(scanData.productName, barcode: scanData.barcode);
+
       await doc.collection('scan_history').add({
         ...scanData.toMap(),
         'userImageUrl': bestImageUrl,
+        'isSaved': isSaved,
         'timestamp': FieldValue.serverTimestamp(),
         'time': DateTime.now().toIso8601String(),
       });
@@ -67,8 +71,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
       final snapshot = await doc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
-      final results = snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
-      // AppLogger.data('SCAN_HISTORY', results.map((r) => r.toMap()).toList());
+      final results = snapshot.docs.map((doc) => ScanResult.fromMap({...doc.data(), 'id': doc.id})).toList();
       return results;
     } catch (e) {
       AppLogger.error('HistoryFirestoreService: Error getting scan history', error: e);
@@ -85,15 +88,26 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return;
 
-      final docId = _getFoodDocId(scanData.productName, barcode: scanData.barcode);
-      final ref = doc.collection('saved_foods').doc(docId);
-      final snap = await ref.get();
+      final isCurrentlySaved = await isFoodSaved(scanData.productName, barcode: scanData.barcode);
+      final newState = !isCurrentlySaved;
 
-      if (snap.exists) {
-        await ref.delete();
+      // 🟢 Update ALL instances of this product in scan_history
+      final collection = doc.collection('scan_history');
+      Query query;
+      if (scanData.barcode != null && scanData.barcode!.isNotEmpty) {
+        query = collection.where('barcode', isEqualTo: scanData.barcode);
       } else {
-        await ref.set({...scanData.toMap(), 'savedAt': FieldValue.serverTimestamp()});
+        query = collection.where('productName', isEqualTo: scanData.productName);
       }
+
+      final snapshot = await query.get();
+      final batch = _db.batch();
+      for (final doc in snapshot.docs) {
+        batch.update(doc.reference, {'isSaved': newState});
+      }
+      await batch.commit();
+
+      AppLogger.info('HistoryFirestoreService: Toggled isSaved to $newState for ${scanData.productName}');
     } catch (e) {
       AppLogger.error('HistoryFirestoreService: Error toggling saved food', error: e);
     }
@@ -105,18 +119,19 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return false;
 
-      final docId = _getFoodDocId(productName, barcode: barcode);
-      final snap = await doc.collection('saved_foods').doc(docId).get();
-      return snap.exists;
+      final collection = doc.collection('scan_history');
+      Query query;
+      if (barcode != null && barcode.isNotEmpty) {
+        query = collection.where('barcode', isEqualTo: barcode);
+      } else {
+        query = collection.where('productName', isEqualTo: productName);
+      }
+
+      final snapshot = await query.where('isSaved', isEqualTo: true).limit(1).get();
+      return snapshot.docs.isNotEmpty;
     } catch (e) {
       return false;
     }
-  }
-
-  String _getFoodDocId(String? productName, {String? barcode}) {
-    if (barcode != null && barcode.isNotEmpty) return 'bc_$barcode';
-    final safeName = (productName ?? 'unknown').replaceAll(RegExp('[^a-zA-Z0-9]'), '_').toLowerCase();
-    return 'name_$safeName';
   }
 
   @override
@@ -124,10 +139,22 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
-      final snapshot = await doc.collection('saved_foods').get();
-      final results = snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
-      // AppLogger.data('SAVED_FOODS', results.map((r) => r.toMap()).toList());
-      return results;
+
+      // 🟢 Get all saved items from history, ordered by time
+      final snapshot = await doc.collection('scan_history').where('isSaved', isEqualTo: true).orderBy('time', descending: true).get();
+
+      final allSaved = snapshot.docs.map((doc) => ScanResult.fromMap({...doc.data(), 'id': doc.id})).toList();
+
+      // 🟢 Deduplicate by barcode or name to show unique products only
+      final uniqueProducts = <String, ScanResult>{};
+      for (final scan in allSaved) {
+        final key = scan.barcode ?? scan.productName;
+        if (!uniqueProducts.containsKey(key)) {
+          uniqueProducts[key] = scan;
+        }
+      }
+
+      return uniqueProducts.values.toList();
     } catch (e) {
       AppLogger.error('HistoryFirestoreService: Error getting saved foods', error: e);
       return [];

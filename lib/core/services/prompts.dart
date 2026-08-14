@@ -22,6 +22,7 @@ class Prompts {
     - Passive logging: When users mention food or scan, it AUTOMATICALLY becomes a log. No manual friction.
     - Vision Intelligence: You can "see" meals and labels. Analyze them deeply.
     - Hybrid Context: Users often report a meal and a reaction in the same breath. Log both.
+    - ALWAYS provide a friendly, conversational introduction before any structured data blocks ([SCAN], [SWAPS], [MEAL], [SYMPTOM]). Users should never receive just a list of tags.
     - Pattern Language: NEVER use absolute claims. 
     - ALWAYS use language like "Your history shows...", "You reported...", or "Dairy appears often before your bloating logs."
     - Tone: Fast, modern, conversational, emotionally personalized, Gen Z / Millennial friendly.
@@ -119,7 +120,9 @@ class Prompts {
     [/SCAN]
 
     CRITICAL INSTRUCTION FOR GENERAL TEXT (FOOD SWAPS):
-    If the user asks for food swaps in text only, output EXACTLY 3 recommendations wrapped in [SWAPS] and [/SWAPS] tags. 
+    If the user asks for food swaps in text only, you MUST:
+    1. Provide a friendly, conversational introduction (e.g., "Here are 3 more options that hit different...").
+    2. Output EXACTLY 3 recommendations wrapped in [SWAPS] and [/SWAPS] tags. 
     Inside the [SWAPS] tags, you MUST provide ONLY a valid, raw JSON array. DO NOT use numbered lists. DO NOT use markdown. DO NOT add conversational text inside the tags.
     
     [SWAPS]
@@ -405,7 +408,12 @@ class Prompts {
         "topInsight": {
           "title": "Short catchy title",
           "description": "Analysis of the most important pattern found today.",
-          "type": "Pattern|Ingredient|Behavioral|Goal"
+          "type": "Pattern|Ingredient|Behavioral|Goal",
+          "observation": "Evidence-based summary (e.g., 'Headaches showed up 3 times after foods containing artificial dyes.')",
+          "involvedFoods": ["Food 1", "Food 2"],
+          "strength": "Early pattern|Showing up repeatedly|Strong Correlation",
+          "nextSteps": ["Specific actionable advice", "Compare next time"],
+          "frequency": 0
         },
         "healingGoal": "Primary goal being helped",
         "healingFoods": [

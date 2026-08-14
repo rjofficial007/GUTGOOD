@@ -6,8 +6,11 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/router/route_codec.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -23,6 +26,7 @@ import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
+import 'package:gutgood/features/insights/presentation/pages/pattern_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/logs/presentation/pages/symptom_check_in_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
@@ -55,6 +59,7 @@ class AppRouter {
     navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: kDebugMode,
+    extraCodec: const RouteCodec(),
     observers: [sl<AnalyticsService>().getObserver()],
     refreshListenable: Listenable.merge([sl<GutAuthNotifier>(), sl<ProfileNotifier>()]),
     redirect: (context, state) async {
@@ -153,19 +158,17 @@ class AppRouter {
               GoRoute(path: AppRoutes.insights, builder: (context, state) => const InsightsScreen()),
               GoRoute(
                 path: AppRoutes.weeklyRecap,
-                builder: (context, state) {
-                  final insightMap = state.extra as Map<String, dynamic>?;
-                  return WeeklyRecapScreen(insight: insightMap != null ? AIInsight.fromMap(insightMap) : null);
-                },
+                builder: (context, state) => WeeklyRecapScreen(insight: state.extra as AIInsight?),
               ),
               GoRoute(
                 path: AppRoutes.insightDetail,
-                builder: (context, state) {
-                  final insightMap = state.extra as Map<String, dynamic>;
-                  return InsightDetailScreen(insight: AIInsight.fromMap(insightMap));
-                },
+                builder: (context, state) => InsightDetailScreen(insight: state.extra as AIInsight),
               ),
               GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
+              GoRoute(
+                path: AppRoutes.patternDetail,
+                builder: (context, state) => PatternDetailScreen(pattern: state.extra as BodyPattern),
+              ),
               GoRoute(path: AppRoutes.notificationArchive, builder: (context, state) => const NotificationArchiveScreen()),
             ],
           ),
@@ -177,17 +180,13 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.scanResult,
                 builder: (context, state) {
-                  final extra = state.extra as Map<String, dynamic>;
-                  final scanDataMap = extra['scanData'] as Map<String, dynamic>;
-                  return ScanResultScreen(scanData: ScanResult.fromMap(scanDataMap), heroTag: extra['heroTag'] as String?);
+                  final args = state.extra as ScanResultArgs;
+                  return ScanResultScreen(scanData: args.scanData, heroTag: args.heroTag);
                 },
               ),
               GoRoute(
                 path: AppRoutes.nutritionFacts,
-                builder: (context, state) {
-                  final scanDataMap = state.extra as Map<String, dynamic>;
-                  return NutritionFactsScreen(scanData: ScanResult.fromMap(scanDataMap));
-                },
+                builder: (context, state) => NutritionFactsScreen(scanData: state.extra as ScanResult),
               ),
             ],
           ),

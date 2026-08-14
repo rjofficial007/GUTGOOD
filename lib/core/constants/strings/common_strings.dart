@@ -39,10 +39,10 @@ class CommonStrings {
   static const String planUnavailable = 'Plan currently unavailable. Please try again later.';
   static const String welcomeToPremium = 'Welcome to GutGood Premium! ✨';
   static const String freeTrialSuffix = ' FREE TRIAL';
-  static const String perMonth = ' /month';
-  static const String perYear = '/year';
-  static const String perWeek = '/week';
-  static const String perPeriod = '/period';
+  static const String perMonth = ' per month';
+  static const String perYear = 'per year';
+  static const String perWeek = 'per week';
+  static const String perPeriod = 'per period';
   static const String startHealingGut = 'Start healing your gut.';
   static const String knowWhatHelps = 'Know what helps vs hurts you — instantly.';
   static const String featureFoodsHurtHeal = 'See what foods hurt vs heal you';

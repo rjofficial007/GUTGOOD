@@ -169,7 +169,7 @@ writing the Cloud Function, so it's listed only as a fallback.
 ### 1.3 Non-idempotent `daily_usage` merge
 
 Inside `mergeData`, most subcollections are deduped by comparing content (`chat_history`, `meal_logs`,
-`symptom_logs`) or are safe to overwrite by re-using the same doc ID (`scan_history`, `saved_foods`, `insights`,
+`symptom_logs`) or are safe to overwrite by re-using the same doc ID (`scan_history`, `insights`,
 `pattern_data`). `daily_usage` is the exception:
 
 ```dart
@@ -506,11 +506,6 @@ service cloud.firestore {
       }
 
       match /symptom_logs/{docId} {
-        allow read, write: if isOwner(userId) && request.resource.size() < 256 * 1024;
-        allow delete: if isOwner(userId);
-      }
-
-      match /saved_foods/{docId} {
         allow read, write: if isOwner(userId) && request.resource.size() < 256 * 1024;
         allow delete: if isOwner(userId);
       }

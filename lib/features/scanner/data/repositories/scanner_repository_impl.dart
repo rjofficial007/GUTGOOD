@@ -115,18 +115,21 @@ class ScannerRepositoryImpl implements ScannerRepository {
     await _chatFirestoreService.saveMessage(userMsg);
     AppLogger.info('ScannerRepository: Scan result message saved to Firestore');
 
-    // Passive logging (PRD §2 / §6.2 / §13): a completed scan is also a LOG.
-    // Without this write, scan_history stayed empty -> the Scan History screen,
-    // the Insights scan-trigger (3 scans, §8.2), scan-aware insight context and
-    // the processed-food warning notification could never fire.
-    await _historyFirestoreService.saveToScanHistory(result, userImageUrl: userImageUrl);
-    AppLogger.info('ScannerRepository: Scan result saved to scan_history. Image: ${userImageUrl != null}');
+    // 🚀 Professional Filter: Only persist scans and auto-log meals if it's an actual product.
+    // Restaurant menus and raw ingredient labels are analyzed for the chat context but 
+    // shouldn't clutter the history or impact the gut health trend.
+    if (result.isLoggableProduct) {
+      await _historyFirestoreService.saveToScanHistory(result, userImageUrl: userImageUrl);
+      AppLogger.info('ScannerRepository: Scan result saved to scan_history. Image: ${userImageUrl != null}');
 
-    // 🟢 Automatically add to Meal Log if it's a food image/snap or gallery upload
-    if (result.source == 'food' || result.source == 'meal' || result.source == 'gallery') {
-      final mealLog = MealLog(items: [result.productName], photoUrl: userImageUrl ?? result.imageUrl, time: DateTime.now(), source: result.source);
-      await _historyFirestoreService.logMeal(mealLog);
-      AppLogger.info('ScannerRepository: Food image (${result.source}) automatically logged as a meal');
+      // 🟢 Automatically add to Meal Log if it's a food image/snap or gallery upload
+      if (result.source == 'food' || result.source == 'meal' || result.source == 'gallery') {
+        final mealLog = MealLog(items: [result.productName], photoUrl: userImageUrl ?? result.imageUrl, time: DateTime.now(), source: result.source);
+        await _historyFirestoreService.logMeal(mealLog);
+        AppLogger.info('ScannerRepository: Food image (${result.source}) automatically logged as a meal');
+      }
+    } else {
+      AppLogger.info('ScannerRepository: Skipping history/meal log for non-product scan: ${result.productName}');
     }
 
     // 🟢 Fix: Notify UI that history has updated

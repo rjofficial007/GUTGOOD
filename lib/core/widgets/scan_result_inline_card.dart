@@ -16,11 +16,7 @@ import 'package:gutgood/features/profile/presentation/providers/profile_provider
 import 'package:provider/provider.dart';
 
 class ScanResultInlineCard extends StatelessWidget {
-  const ScanResultInlineCard({
-    super.key,
-    required this.scanData,
-    required this.onViewFullReport,
-  });
+  const ScanResultInlineCard({super.key, required this.scanData, required this.onViewFullReport});
   final ScanResult scanData;
   final VoidCallback onViewFullReport;
 
@@ -28,49 +24,28 @@ class ScanResultInlineCard extends StatelessWidget {
     BottomSheetHelper.showGutBottomSheet(
       context: context,
       title: AppStrings.analysisDetail,
-      padding: EdgeInsets.fromLTRB(
-        AppSizes.p24,
-        0,
-        AppSizes.p24,
-        context.padding.bottom + AppSizes.p24,
-      ),
+      padding: EdgeInsets.fromLTRB(AppSizes.p24, 0, AppSizes.p24, context.padding.bottom + AppSizes.p24),
       children: [
         Row(
-          children: [
-            Icon(
-              AppIcons.sparkles,
-              color: context.appColorScheme.textPrimary,
-              size: 24.0.w,
-            ),
-            Gap.w12,
-            Expanded(
-              child: Text(AppStrings.gutGoodAnalysis, style: context.h2),
-            ),
-          ],
+          children: [Expanded(child: Text(AppStrings.gutGoodAnalysis, style: context.h2))],
         ),
-        Gap.h16,
+        Gap.h10,
         _buildIngredientInfo(context),
-        Gap.h24,
-        Text(AppStrings.keyBenefits, style: context.overline),
-        Gap.h12,
-        _InlineBenefitRow(
-          icon: AppIcons.shieldCheck,
-          title: AppStrings.gutProtection,
-          description: scanData.impact,
+        Gap.h16,
+        Align(
+          alignment: .topLeft,
+          child: Text(AppStrings.keyBenefits, style: context.overline, textAlign: .start),
         ),
+        Gap.h12,
+        _InlineBenefitRow(icon: AppIcons.shieldCheck, title: AppStrings.gutProtection, description: scanData.impact),
         Gap.h16,
         _InlineBenefitRow(
           icon: AppIcons.leaf,
           title: AppStrings.cleanIngredients,
-          description:
-              'We prioritize options without the ${scanData.ingredients.length} questionable ingredients found in your scan.',
+          description: 'We prioritize options without the ${scanData.ingredients.length} questionable ingredients found in your scan.',
         ),
         Gap.h16,
-        const _InlineBenefitRow(
-          icon: AppIcons.zap,
-          title: AppStrings.bioAvailability,
-          description: AppStrings.bioAvailabilityDesc,
-        ),
+        const _InlineBenefitRow(icon: AppIcons.zap, title: AppStrings.bioAvailability, description: AppStrings.bioAvailabilityDesc),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
       ],
@@ -88,8 +63,7 @@ class ScanResultInlineCard extends StatelessWidget {
     var prodImg = scanData.imageUrl;
     if (prodImg != null && prodImg.isEmpty) prodImg = null;
 
-    final displayImgUrl =
-        userImg ?? prodImg ?? getDynamicImageUrl(scanData.productName);
+    final displayImgUrl = userImg ?? prodImg ?? getDynamicImageUrl(scanData.productName);
 
     final impactColor = scanData.impactType == ImpactType.positive
         ? context.appColorScheme.success
@@ -105,12 +79,12 @@ class ScanResultInlineCard extends StatelessWidget {
 
     return Container(
       margin: EdgeInsets.only(bottom: AppSizes.p16),
-      padding: EdgeInsets.all(AppSizes.p16),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppSizes.r24),
-        border: Border.all(color: context.appColorScheme.border),
-      ),
+      // padding: EdgeInsets.all(AppSizes.p16),
+      // decoration: BoxDecoration(
+      //   color: context.appColorScheme.cardBackground,
+      //   borderRadius: BorderRadius.circular(AppSizes.r24),
+      //   border: Border.all(color: context.appColorScheme.border),
+      // ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -123,10 +97,7 @@ class ScanResultInlineCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: context.appColorScheme.elevatedSurface,
                   borderRadius: BorderRadius.circular(AppSizes.r8),
-                  image: DecorationImage(
-                    image: CachedNetworkImageProvider(displayImgUrl),
-                    fit: BoxFit.cover,
-                  ),
+                  image: DecorationImage(image: CachedNetworkImageProvider(displayImgUrl), fit: BoxFit.cover),
                 ),
               ),
               Gap.w12,
@@ -134,28 +105,14 @@ class ScanResultInlineCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      scanData.productName,
-                      style: context.bodyBold,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(scanData.productName, style: context.bodyBold, maxLines: 2, overflow: TextOverflow.ellipsis),
                     Gap.h6,
                     Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.0.w,
-                        vertical: 2.0.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: impactBgColor,
-                        borderRadius: BorderRadius.circular(AppSizes.r8),
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 8.0.w, vertical: 2.0.h),
+                      decoration: BoxDecoration(color: impactBgColor, borderRadius: BorderRadius.circular(AppSizes.r8)),
                       child: Text(
                         scanData.badge ?? 'Unknown',
-                        style: context.caption.copyWith(
-                          color: impactColor,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: context.caption.copyWith(color: impactColor, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
@@ -166,37 +123,20 @@ class ScanResultInlineCard extends StatelessWidget {
           Gap.h16,
           Text(AppStrings.contains, style: context.overline),
           Gap.h6,
-          Wrap(
-            spacing: 8.0.w,
-            runSpacing: 8.0.h,
-            children: ingredients
-                .map(
-                  (ing) => _ITag(ing.name, _getColor(context, ing.colorName)),
-                )
-                .toList(),
-          ),
+          Wrap(spacing: 8.0.w, runSpacing: 8.0.h, children: ingredients.map((ing) => _ITag(ing.name, _getColor(context, ing.colorName))).toList()),
           Gap.h16,
           Text(AppStrings.likelyImpact, style: context.overline),
           Gap.h6,
           Container(
             padding: EdgeInsets.all(AppSizes.p12),
-            decoration: BoxDecoration(
-              color: impactBgColor,
-              borderRadius: BorderRadius.circular(AppSizes.r10),
-            ),
+            decoration: BoxDecoration(color: impactBgColor, borderRadius: BorderRadius.circular(AppSizes.r10)),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(impactIcon, color: impactColor, size: 18.0.w),
                 Gap.w8,
                 Expanded(
-                  child: Text(
-                    scanData.impact,
-                    style: context.caption.copyWith(
-                      color: impactColor,
-                      height: 1.3,
-                    ),
-                  ),
+                  child: Text(scanData.impact, style: context.caption.copyWith(color: impactColor, height: 1.3)),
                 ),
               ],
             ),
@@ -210,18 +150,9 @@ class ScanResultInlineCard extends StatelessWidget {
           if (swaps.isNotEmpty) ...[
             Row(
               children: [
-                Icon(
-                  AppIcons.sparkles,
-                  size: 18.0.w,
-                  color: context.appColorScheme.textPrimary,
-                ),
+                Icon(AppIcons.sparkles, size: 18.0.w, color: context.appColorScheme.textPrimary),
                 Gap.w8,
-                Text(
-                  AppStrings.swapThisInstead,
-                  style: context.overline.copyWith(
-                    color: context.appColorScheme.textPrimary,
-                  ),
-                ),
+                Text(AppStrings.swapThisInstead, style: context.overline.copyWith(color: context.appColorScheme.textPrimary)),
               ],
             ),
             Gap.h12,
@@ -241,17 +172,8 @@ class ScanResultInlineCard extends StatelessWidget {
                   }
 
                   return Padding(
-                    padding: EdgeInsets.only(
-                      right: idx == swaps.length - 1 ? 0 : 12.0.w,
-                    ),
-                    child: SwapCard(
-                      title: swap.title,
-                      subtitle: swap.subtitle,
-                      imageKeyword: swap.imageKeyword,
-                      imageUrl: swap.imageUrl,
-                      tag: calculatedTag,
-                      badge: idx == 0 ? '#1 PICK' : swap.badge,
-                    ),
+                    padding: EdgeInsets.only(right: idx == swaps.length - 1 ? 0 : 12.0.w),
+                    child: SwapCard(title: swap.title, subtitle: swap.subtitle, imageKeyword: swap.imageKeyword, imageUrl: swap.imageUrl, tag: calculatedTag, badge: idx == 0 ? '#1 PICK' : swap.badge),
                   );
                 }).toList(),
               ),
@@ -265,23 +187,14 @@ class ScanResultInlineCard extends StatelessWidget {
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: 12.0.h),
                 decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: context.appColorScheme.border),
-                  ),
+                  border: Border(top: BorderSide(color: context.appColorScheme.border)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      AppStrings.whyBetter,
-                      style: context.bodyBold.copyWith(fontSize: 13.0.sp),
-                    ),
+                    Text(AppStrings.whyBetter, style: context.bodyBold.copyWith(fontSize: 13.0.sp)),
                     Gap.w4,
-                    Icon(
-                      AppIcons.chevronRight,
-                      size: 16.0.w,
-                      color: context.appColorScheme.textPrimary,
-                    ),
+                    Icon(AppIcons.chevronRight, size: 16.0.w, color: context.appColorScheme.textPrimary),
                   ],
                 ),
               ),
@@ -294,10 +207,8 @@ class ScanResultInlineCard extends StatelessWidget {
     );
   }
 
-  Widget _buildIngredientInfo(BuildContext context) => Text(
-    '${AppStrings.comparingAnalysis}${scanData.productName}${AppStrings.withSwaps}',
-    style: context.body.copyWith(color: context.appColorScheme.textMuted),
-  );
+  Widget _buildIngredientInfo(BuildContext context) =>
+      Text('${AppStrings.comparingAnalysis}${scanData.productName}${AppStrings.withSwaps}', style: context.body.copyWith(color: context.appColorScheme.textMuted));
 
   Widget _buildCycleInsight(BuildContext context) {
     final profile = context.watch<ProfileNotifier>().profile;
@@ -323,11 +234,7 @@ class ScanResultInlineCard extends StatelessWidget {
 }
 
 class _InlineBenefitRow extends StatelessWidget {
-  const _InlineBenefitRow({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
+  const _InlineBenefitRow({required this.icon, required this.title, required this.description});
   final IconData icon;
   final String title;
   final String description;
@@ -337,15 +244,8 @@ class _InlineBenefitRow extends StatelessWidget {
     children: [
       Container(
         padding: EdgeInsets.all(AppSizes.p8),
-        decoration: BoxDecoration(
-          color: context.appColorScheme.elevatedSurface,
-          borderRadius: BorderRadius.circular(AppSizes.r10),
-        ),
-        child: Icon(
-          icon,
-          size: 20.0.w,
-          color: context.appColorScheme.textPrimary,
-        ),
+        decoration: BoxDecoration(color: context.appColorScheme.elevatedSurface, borderRadius: BorderRadius.circular(AppSizes.r10)),
+        child: Icon(icon, size: 20.0.w, color: context.appColorScheme.textPrimary),
       ),
       Gap.w16,
       Expanded(
@@ -382,10 +282,7 @@ class _ITag extends StatelessWidget {
         Flexible(
           child: Text(
             label,
-            style: context.caption.copyWith(
-              color: context.appColorScheme.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
+            style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

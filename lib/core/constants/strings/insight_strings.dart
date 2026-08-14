@@ -2,7 +2,7 @@ class InsightStrings {
   const InsightStrings._();
 
   static const String insights = 'INSIGHTS';
-  static const String aiPatterns = 'AI Patterns';
+  static const String yourPatterns = 'Your Patterns';
   static const String betterAlternatives = 'Better Alternatives';
   static const String compareProducts = 'Compare Products';
   static const String moodAndEnergy = 'Mood & Energy';

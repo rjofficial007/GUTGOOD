@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
@@ -32,13 +31,7 @@ class _NotificationArchiveScreenState extends State<NotificationArchiveScreen> {
     backgroundColor: context.appColorScheme.cardBackground,
     body: CustomScrollView(
       slivers: [
-        GutSliverAppBar(
-          title: AppStrings.notification,
-          leading: IconButton(
-            icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
-            onPressed: () => context.pop(),
-          ),
-        ),
+        const GutSliverAppBar(title: AppStrings.notification),
         _buildBody(context),
       ],
     ),
@@ -153,7 +146,7 @@ class _AlertTile extends StatelessWidget {
       case 'processed_food':
         return AppIcons.alertTriangle;
       case 'insight_ready':
-        return AppIcons.sparkles;
+        return AppIcons.salad;
       case 'streak_saver':
         return AppIcons.flame;
       default:

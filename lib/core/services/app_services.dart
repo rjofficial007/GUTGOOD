@@ -12,30 +12,19 @@ import 'package:url_launcher/url_launcher.dart';
 
 abstract class AppService {
   String get shareWithFriendsText;
-  Future<void> urlLauncher(
-    BuildContext context,
-    String urlString, {
-    LaunchMode mode = LaunchMode.platformDefault,
-  });
-  Future<void> sendingMails({
-    required String mailContent,
-    required bool isFromReview,
-  });
+  Future<void> urlLauncher(BuildContext context, String urlString, {LaunchMode mode = LaunchMode.platformDefault});
+  Future<void> sendingMails({required String mailContent, required bool isFromReview});
   void shareWithFriends(BuildContext context);
   Future<void> lookupUserCountry();
   Future<void> requestReview();
 }
 
 class AppServiceImpl implements AppService {
-  AppServiceImpl({
-    required AppVersionService appVersionService,
-    required DeviceInfoService deviceInfoService,
-    required ConfigService configService,
-    required Dio dio,
-  }) : _appVersionService = appVersionService,
-       _deviceInfoService = deviceInfoService,
-       _configService = configService,
-       _dio = dio;
+  AppServiceImpl({required AppVersionService appVersionService, required DeviceInfoService deviceInfoService, required ConfigService configService, required Dio dio})
+    : _appVersionService = appVersionService,
+      _deviceInfoService = deviceInfoService,
+      _configService = configService,
+      _dio = dio;
   final AppVersionService _appVersionService;
   final DeviceInfoService _deviceInfoService;
   final ConfigService _configService;
@@ -43,14 +32,10 @@ class AppServiceImpl implements AppService {
 
   @override
   String get shareWithFriendsText =>
-      '''Hey! I’ve been using ${_configService.appName}, it's my personalized gut health assistant! 🌿 Each scan helps me understand what foods actually work for my body. You should try it!.\n\nhttps://play.google.com/store/apps/details?id=${_appVersionService.packageName}\n\nhttps://apps.apple.com/app/id${_configService.iosAppId}''';
+      '''Maybe we don’t need another diet. Maybe we just need to understand our food better.\n\nGutGood. Food is information.\n\nhttps://apps.apple.com/app/id${_configService.iosAppId}''';
 
   @override
-  Future<void> urlLauncher(
-    BuildContext context,
-    String urlString, {
-    LaunchMode mode = LaunchMode.platformDefault,
-  }) async {
+  Future<void> urlLauncher(BuildContext context, String urlString, {LaunchMode mode = LaunchMode.platformDefault}) async {
     final url = Uri.parse(urlString);
     if (Platform.isIOS && urlString.contains('apps.apple.com')) {
       if (await canLaunchUrl(url)) {
@@ -64,10 +49,7 @@ class AppServiceImpl implements AppService {
   }
 
   @override
-  Future<void> sendingMails({
-    required String mailContent,
-    required bool isFromReview,
-  }) async {
+  Future<void> sendingMails({required String mailContent, required bool isFromReview}) async {
     AppLogger.debug('AppService: Preparing to send email...');
 
     final email = Uri.encodeComponent(_configService.email);
@@ -97,13 +79,9 @@ class AppServiceImpl implements AppService {
   Future<void> shareWithFriends(BuildContext context) async {
     try {
       final box = context.findRenderObject() as RenderBox?;
-      final origin = box != null
-          ? (box.localToGlobal(Offset.zero) & box.size)
-          : null;
+      final origin = box != null ? (box.localToGlobal(Offset.zero) & box.size) : null;
 
-      await SharePlus.instance.share(
-        ShareParams(sharePositionOrigin: origin, text: shareWithFriendsText),
-      );
+      await SharePlus.instance.share(ShareParams(sharePositionOrigin: origin, text: shareWithFriendsText));
     } catch (e) {
       AppLogger.error('AppService: Share failed', error: e);
     }
@@ -117,18 +95,14 @@ class AppServiceImpl implements AppService {
     try {
       final response = await _dio.get(
         'http://ip-api.com/json',
-        options: Options(
-          receiveTimeout: const Duration(seconds: 5),
-          sendTimeout: const Duration(seconds: 5),
-        ),
+        options: Options(receiveTimeout: const Duration(seconds: 5), sendTimeout: const Duration(seconds: 5)),
       );
 
       if (response.statusCode == 200) {
         final data = response.data;
 
         if (data is Map<String, dynamic> && data['status'] == 'success') {
-          _countryCode =
-              (data['countryCode'] as String?)?.toUpperCase() ?? 'US';
+          _countryCode = (data['countryCode'] as String?)?.toUpperCase() ?? 'US';
           AppLogger.debug('AppService: Country code: $_countryCode');
           return;
         }

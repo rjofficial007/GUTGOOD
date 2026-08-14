@@ -25,7 +25,7 @@ class InsightUiUtils {
       _ when s.contains('⚠️') || s.contains('🚫') || s.contains('alert') => AppIcons.alertTriangle,
       _ when s.contains('🌟') || s.contains('⭐') || s.contains('star') => AppIcons.star,
       _ when s.contains('🏆') || s.contains('trophy') => AppIcons.trophy,
-      _ => AppIcons.sparkles,
+      _ => AppIcons.salad,
     };
   }
 
@@ -33,22 +33,17 @@ class InsightUiUtils {
   static Color getPatternColor(String iconName) => AppPalette.black;
 
   /// Maps ingredient risk levels (red, orange, green) to theme colors.
-  static Color getIngredientColor(
-    String colorName, {
-    required Color error,
-    required Color warning,
-    required Color success,
-  }) => switch (colorName.toLowerCase()) {
-      'red' || 'error' => error,
-      'orange' || 'warning' || 'gold' => warning,
-      'green' || 'success' => success,
-      _ => success,
-    };
+  static Color getIngredientColor(String colorName, {required Color error, required Color warning, required Color success}) => switch (colorName.toLowerCase()) {
+    'red' || 'error' => error,
+    'orange' || 'warning' || 'gold' => warning,
+    'green' || 'success' => success,
+    _ => success,
+  };
 
   /// Maps ingredient risk levels to appropriate icons.
   static IconData getIngredientIcon(String colorName) => switch (colorName.toLowerCase()) {
-      'red' => AppIcons.alertTriangle,
-      'orange' => AppIcons.alertCircle,
-      _ => AppIcons.leaf,
-    };
+    'red' => AppIcons.alertTriangle,
+    'orange' => AppIcons.alertCircle,
+    _ => AppIcons.leaf,
+  };
 }

@@ -16,7 +16,7 @@ const BATCH_LIMIT = 400;
 const READ_LIMIT = 500;
 
 const ID_COLLECTIONS = ['chat_history', 'meal_logs', 'symptom_logs', 'health_alerts'];
-const SCAN_COLLECTIONS = ['scan_history', 'saved_foods'];
+const SCAN_COLLECTIONS = ['scan_history'];
 const INSIGHT_COLLECTION = 'insights';
 const PATTERN_COLLECTION = 'pattern_data';
 const USAGE_COLLECTION = 'daily_usage';

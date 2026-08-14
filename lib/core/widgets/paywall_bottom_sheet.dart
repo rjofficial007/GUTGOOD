@@ -13,7 +13,6 @@ import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_bottom_sheet.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
 import 'package:gutgood/features/auth/presentation/providers/purchase_provider.dart';
@@ -21,56 +20,34 @@ import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// Static trigger function to display the premium paywall sheet from anywhere
-Future<void> showPaywallBottomSheet(
-  BuildContext context, {
-  required VoidCallback onProceedWithLimited,
-}) => showModalBottomSheet(
+Future<void> showPaywallBottomSheet(BuildContext context, {required VoidCallback onProceedWithLimited}) => showModalBottomSheet(
   context: context,
   isScrollControlled: true,
+  useRootNavigator: true, // 🟢 Ensures the paywall covers the bottom navigation bar
   backgroundColor: AppPalette.transparent,
-  builder: (context) =>
-      GutPaywallBottomSheet(onProceedWithLimited: onProceedWithLimited),
+  builder: (context) => GutPaywallBottomSheet(onProceedWithLimited: onProceedWithLimited),
 );
 
 class GutPaywallBottomSheet extends StatelessWidget {
   const GutPaywallBottomSheet({super.key, required this.onProceedWithLimited});
   final VoidCallback onProceedWithLimited;
 
-  Future<void> _handlePurchase(
-    BuildContext context,
-    PurchaseProvider purchaseProvider,
-    Package? package,
-  ) async {
+  Future<void> _handlePurchase(BuildContext context, PurchaseProvider purchaseProvider, Package? package) async {
     if (package == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(AppStrings.planUnavailable),
-          backgroundColor: context.appColorScheme.error,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text(AppStrings.planUnavailable), backgroundColor: context.appColorScheme.error));
       return;
     }
 
     // Check internet before purchase
     if (!sl<InternetConnectionChecker>().isInternetAvailable.value) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(AppStrings.noInternetConnection),
-          backgroundColor: context.appColorScheme.error,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text(AppStrings.noInternetConnection), backgroundColor: context.appColorScheme.error));
       return;
     }
 
     final success = await purchaseProvider.purchasePackage(package);
 
     if (success && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(AppStrings.welcomeToPremium),
-          backgroundColor: context.appColorScheme.success,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text(AppStrings.welcomeToPremium), backgroundColor: context.appColorScheme.success));
       context.pop();
     }
   }
@@ -100,12 +77,7 @@ class GutPaywallBottomSheet extends StatelessWidget {
     final packages = purchaseProvider.packages;
     final selectedId = purchaseProvider.selectedPackageIdentifier;
 
-    final selectedPackage = packages.isEmpty
-        ? null
-        : packages.firstWhere(
-            (p) => p.identifier == selectedId,
-            orElse: () => packages.first,
-          );
+    final selectedPackage = packages.isEmpty ? null : packages.firstWhere((p) => p.identifier == selectedId, orElse: () => packages.first);
 
     final isLoaded = packages.isNotEmpty;
     final trialString = _getTrialPeriodString(selectedPackage);
@@ -125,31 +97,14 @@ class GutPaywallBottomSheet extends StatelessWidget {
                 style: context.h1.copyWith(fontSize: AppSizes.s28, height: 1.1),
               ),
               Gap.h8,
-              Text(
-                AppStrings.knowWhatHelps,
-                style: context.body.copyWith(
-                  color: context.appColorScheme.textMuted,
-                ),
-              ),
+              Text(AppStrings.knowWhatHelps, style: context.body.copyWith(color: context.appColorScheme.textMuted)),
               Gap.h28,
 
-              const _PaywallRow(
-                icon: AppIcons.leaf,
-                title: AppStrings.featureFoodsHurtHeal,
-                subtitle: AppStrings.featureFoodsHurtHealDesc,
-              ),
+              const _PaywallRow(icon: AppIcons.leaf, title: AppStrings.featureFoodsHurtHeal, subtitle: AppStrings.featureFoodsHurtHealDesc),
               Gap.h18,
-              const _PaywallRow(
-                icon: AppIcons.arrowRightLeft,
-                title: AppStrings.featureInstantSwaps,
-                subtitle: AppStrings.featureInstantSwapsDesc,
-              ),
+              const _PaywallRow(icon: AppIcons.arrowRightLeft, title: AppStrings.featureInstantSwaps, subtitle: AppStrings.featureInstantSwapsDesc),
               Gap.h18,
-              const _PaywallRow(
-                icon: AppIcons.barChart,
-                title: AppStrings.featurePersonalInsights,
-                subtitle: AppStrings.featurePersonalInsightsDesc,
-              ),
+              const _PaywallRow(icon: AppIcons.barChart, title: AppStrings.featurePersonalInsights, subtitle: AppStrings.featurePersonalInsightsDesc),
               Gap.h28,
 
               Row(
@@ -164,15 +119,8 @@ class GutPaywallBottomSheet extends StatelessWidget {
                           left: index * 18,
                           child: CircleAvatar(
                             radius: 16,
-                            backgroundColor:
-                                context.appColorScheme.cardBackground,
-                            child: CircleAvatar(
-                              radius: 14,
-                              backgroundColor: context.appColorScheme.border,
-                              backgroundImage: NetworkImage(
-                                'https://i.pravatar.cc/100?img=${index + 10}',
-                              ),
-                            ),
+                            backgroundColor: context.appColorScheme.cardBackground,
+                            child: CircleAvatar(radius: 14, backgroundColor: context.appColorScheme.border, backgroundImage: NetworkImage('https://i.pravatar.cc/100?img=${index + 10}')),
                           ),
                         ),
                       ),
@@ -184,28 +132,13 @@ class GutPaywallBottomSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: List.generate(
-                            5,
-                            (_) => Icon(
-                              Icons.star_rounded,
-                              color: AppPalette.yellow,
-                              size: AppSizes.icon16,
-                            ),
-                          ),
+                          children: List.generate(5, (_) => Icon(Icons.star_rounded, color: AppPalette.yellow, size: AppSizes.icon16)),
                         ),
                         Gap.h2,
-                        Text(
-                          AppStrings.dailyUsedNote,
-                          style: context.bodyBold.copyWith(
-                            fontSize: AppSizes.s12,
-                          ),
-                        ),
+                        Text(AppStrings.dailyUsedNote, style: context.bodyBold.copyWith(fontSize: AppSizes.s12)),
                         Text(
                           AppStrings.happyMembersCount,
-                          style: context.caption.copyWith(
-                            fontSize: AppSizes.s11,
-                            color: context.appColorScheme.textMuted,
-                          ),
+                          style: context.caption.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textMuted),
                         ),
                       ],
                     ),
@@ -217,12 +150,7 @@ class GutPaywallBottomSheet extends StatelessWidget {
               if (purchaseProvider.errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    purchaseProvider.errorMessage!,
-                    style: context.body.copyWith(
-                      color: context.appColorScheme.error,
-                    ),
-                  ),
+                  child: Text(purchaseProvider.errorMessage!, style: context.body.copyWith(color: context.appColorScheme.error)),
                 ),
 
               // Plan Selection
@@ -238,53 +166,51 @@ class GutPaywallBottomSheet extends StatelessWidget {
                     final trial = _getTrialPeriodString(package);
                     final period = _getPeriodString(package);
 
+                    // Find monthly package for savings calculation
+                    Package? monthly;
+                    try {
+                      monthly = packages.firstWhere((p) => p.packageType == PackageType.monthly);
+                    } catch (_) {}
+
                     return _PlanCard(
                       package: package,
                       isSelected: isSelected,
                       trialString: trial,
                       periodString: period,
-                      onTap: () =>
-                          purchaseProvider.selectPackage(package.identifier),
+                      monthlyPackage: monthly,
+                      onTap: () => purchaseProvider.selectPackage(package.identifier),
                     );
                   },
                 )
               else
-                const Center(child: CircularProgressIndicator()),
-
-              Gap.h24,
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 20),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
 
               GutButton(
-                label: isLoaded
-                    ? (hasTrial
-                          ? AppStrings.startFreeTrial
-                          : AppStrings.subscribeNow)
-                    : AppStrings.refreshPlans,
-                isLoading:
-                    purchaseProvider.isLoading || purchaseProvider.isPurchasing,
-                onTap:
-                    (purchaseProvider.isLoading ||
-                        purchaseProvider.isPurchasing)
+                label: isLoaded ? (hasTrial ? AppStrings.startFreeTrial : AppStrings.subscribeNow) : AppStrings.refreshPlans,
+                isLoading: purchaseProvider.isLoading || purchaseProvider.isPurchasing,
+                onTap: (purchaseProvider.isLoading || purchaseProvider.isPurchasing)
                     ? null
                     : () {
                         if (isLoaded) {
-                          _handlePurchase(
-                            context,
-                            purchaseProvider,
-                            selectedPackage,
-                          );
+                          _handlePurchase(context, purchaseProvider, selectedPackage);
                         } else {
                           purchaseProvider.retryFetchOfferings();
                         }
                       },
               ),
-              Gap.h12,
-              GutButton(
-                label: AppStrings.continueLimitedAccess,
-                isOutlined: true,
-                onTap: () {
+              Gap.h8,
+              TextButton(
+                onPressed: () {
                   context.pop();
                   onProceedWithLimited();
                 },
+                child: Text(
+                  AppStrings.continueLimitedAccess,
+                  style: context.bodySm.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w600),
+                ),
               ),
               Gap.h16,
 
@@ -292,43 +218,21 @@ class GutPaywallBottomSheet extends StatelessWidget {
                 child: RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    style: context.overline.copyWith(
-                      fontSize: AppSizes.s10,
-                      color: context.appColorScheme.textMuted,
-                      letterSpacing: 0.2,
-                    ),
+                    style: context.overline.copyWith(fontSize: AppSizes.s10, color: context.appColorScheme.textMuted, letterSpacing: 0.2),
                     children: [
                       const TextSpan(text: AppStrings.paywallFooterPrefix),
-                      TextSpan(
-                        text: AppStrings.paywallRestore,
-                        style: context.underline,
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () =>
-                              unawaited(purchaseProvider.restorePurchases()),
-                      ),
+                      TextSpan(text: AppStrings.paywallRestore, style: context.underline, recognizer: TapGestureRecognizer()..onTap = () => unawaited(purchaseProvider.restorePurchases())),
                       const TextSpan(text: '  |  '),
                       TextSpan(
                         text: AppStrings.paywallTerms,
                         style: context.underline,
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () => unawaited(
-                            sl<AppService>().urlLauncher(
-                              context,
-                              sl<ConfigService>().termsConditionUrl,
-                            ),
-                          ),
+                        recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl)),
                       ),
                       const TextSpan(text: '  |  '),
                       TextSpan(
                         text: AppStrings.paywallPrivacy,
                         style: context.underline,
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () => unawaited(
-                            sl<AppService>().urlLauncher(
-                              context,
-                              sl<ConfigService>().privacyPolicyUrl,
-                            ),
-                          ),
+                        recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl)),
                       ),
                     ],
                   ),
@@ -344,111 +248,115 @@ class GutPaywallBottomSheet extends StatelessWidget {
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({
-    required this.package,
-    required this.isSelected,
-    required this.trialString,
-    required this.periodString,
-    required this.onTap,
-  });
+  const _PlanCard({required this.package, required this.isSelected, required this.trialString, required this.periodString, this.monthlyPackage, required this.onTap});
   final Package package;
   final bool isSelected;
   final String trialString;
   final String periodString;
+  final Package? monthlyPackage;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
     final storeProduct = package.storeProduct;
-    final hasTrial = trialString.isNotEmpty;
+    final isAnnual = package.packageType == PackageType.annual;
+    final intro = storeProduct.introductoryPrice;
+    final hasFreeTrial = intro != null && intro.price == 0;
+
+    String? savingsText;
+    String? originalPriceText;
+
+    if (isAnnual && monthlyPackage != null) {
+      final monthlyPrice = monthlyPackage!.storeProduct.price;
+      final annualPrice = storeProduct.price;
+      final fullAnnualPrice = monthlyPrice * 12;
+      final savings = ((fullAnnualPrice - annualPrice) / fullAnnualPrice * 100).round();
+      if (savings > 0) {
+        savingsText = 'Save $savings%';
+        originalPriceText = '${monthlyPackage!.storeProduct.currencyCode == 'USD' ? r'$' : ''}${fullAnnualPrice.toStringAsFixed(2)} / year';
+      }
+    }
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSizes.p20,
-          vertical: AppSizes.p16,
-        ),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected
-              ? context.appColorScheme.success.withValues(alpha: 0.05)
-              : context.appColorScheme.cardBackground,
+          color: isSelected ? scheme.success.withValues(alpha: 0.05) : scheme.cardBackground,
           borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(
-            color: isSelected
-                ? context.appColorScheme.success
-                : context.appColorScheme.border,
-            width: isSelected ? 1.5 : 1.0,
-          ),
+          border: Border.all(color: isSelected ? scheme.success : scheme.border, width: isSelected ? 1.5 : 1.0),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
           children: [
-            // Left: Price + Period
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      storeProduct.priceString,
-                      style: context.h1.copyWith(
-                        fontSize: AppSizes.s28,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -1,
-                      ),
+                // Radio Indicator
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: isSelected ? scheme.success : scheme.textMuted.withValues(alpha: 0.4), width: 1.5),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: isSelected ? scheme.success : Colors.transparent),
                     ),
-                    Gap.w4,
-                    Text(
-                      periodString,
-                      style: context.body.copyWith(
-                        color: context.appColorScheme.textPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: AppSizes.s14,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
-            const Spacer(),
-            // Right: Trial Badge + Cancel text
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (hasTrial)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.appColorScheme.success.withValues(
-                        alpha: 0.1,
+                const SizedBox(width: 16),
+
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(isAnnual ? 'Yearly' : 'Monthly', style: context.bodyBold.copyWith(fontSize: 16, color: scheme.textPrimary)),
+                          if (isAnnual) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(color: scheme.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
+                              child: Text(
+                                'BEST VALUE',
+                                style: context.overline.copyWith(color: scheme.success, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Text(
-                      trialString,
-                      style: context.overline.copyWith(
-                        color: context.appColorScheme.success,
-                        fontSize: AppSizes.s10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
+                      const SizedBox(height: 2),
+                      if (savingsText != null)
+                        Text(savingsText, style: context.bodyBold.copyWith(color: scheme.success, fontSize: 13))
+                      else if (!hasFreeTrial)
+                        Text('${storeProduct.priceString} / month', style: context.bodySm.copyWith(color: scheme.textMuted)),
+                      if (hasFreeTrial)
+                        Text(
+                          '${intro.periodNumberOfUnits} ${intro.periodUnit.name.toLowerCase()}s FREE TRIAL',
+                          style: context.bodyBold.copyWith(color: scheme.success, fontSize: 13, letterSpacing: 0.2),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // Price Column
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(storeProduct.priceString, style: context.bodyBold.copyWith(fontSize: 18, color: scheme.textPrimary)),
+                    Text(periodString, style: context.caption.copyWith(color: scheme.textMuted)),
+                    if (originalPriceText != null)
+                      Text(
+                        originalPriceText,
+                        style: context.caption.copyWith(color: scheme.textMuted.withValues(alpha: 0.6), decoration: TextDecoration.lineThrough),
                       ),
-                    ),
-                  ),
-                if (hasTrial) Gap.h6,
-                Text(
-                  AppStrings.cancelAnytime,
-                  style: context.caption.copyWith(
-                    fontSize: AppSizes.s10,
-                    color: context.appColorScheme.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -460,11 +368,7 @@ class _PlanCard extends StatelessWidget {
 }
 
 class _PaywallRow extends StatelessWidget {
-  const _PaywallRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
+  const _PaywallRow({required this.icon, required this.title, required this.subtitle});
   final IconData icon;
   final String title;
   final String subtitle;
@@ -476,10 +380,7 @@ class _PaywallRow extends StatelessWidget {
       Container(
         width: 40,
         height: 40,
-        decoration: BoxDecoration(
-          color: context.appColorScheme.success.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: context.appColorScheme.success.withValues(alpha: 0.1), shape: BoxShape.circle),
         child: Icon(icon, color: context.appColorScheme.success, size: 20),
       ),
       Gap.w14,
@@ -487,17 +388,11 @@ class _PaywallRow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: context.bodyBold.copyWith(fontSize: AppSizes.s14),
-            ),
+            Text(title, style: context.bodyBold.copyWith(fontSize: AppSizes.s14)),
             Gap.h2,
             Text(
               subtitle,
-              style: context.caption.copyWith(
-                fontSize: AppSizes.s12,
-                color: context.appColorScheme.textMuted,
-              ),
+              style: context.caption.copyWith(fontSize: AppSizes.s12, color: context.appColorScheme.textMuted),
             ),
           ],
         ),

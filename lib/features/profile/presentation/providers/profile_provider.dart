@@ -160,6 +160,7 @@ class ProfileNotifier with ChangeNotifier {
     required bool cycleSyncEnabled,
     String? cyclePhase,
     String? displayName,
+    bool markOnboarded = true,
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -188,7 +189,7 @@ class ProfileNotifier with ChangeNotifier {
 
     final updatedProfile = (_profile ?? UserProfile(uid: uid, updatedAt: DateTime.now(), createdAt: DateTime.now())).copyWith(
       uid: uid,
-      onboarded: true,
+      onboarded: markOnboarded,
       isAnonymous: isAnonymous,
       email: email,
       displayName: finalDisplayName,
@@ -201,17 +202,32 @@ class ProfileNotifier with ChangeNotifier {
     );
 
     await _firestoreService.updateUserProfile(updatedProfile);
-    // _profile will be updated via stream
+    _profile = updatedProfile; // 🟢 Optimistic update to ensure downstream calls (like markOnboardingComplete) have fresh data.
 
     await _analyticsService.logEvent(
       name: 'onboarding_completed',
       parameters: {'goals_count': goals.length, 'sensitivities_count': sensitivities.length, 'lifestyle_count': lifestyle.length, 'cycle_sync_enabled': cycleSyncEnabled},
     );
 
+    if (markOnboarded) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('onboarded', true);
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> markOnboardingComplete() async {
+    if (_profile == null) return;
+
+    final updatedProfile = _profile!.copyWith(onboarded: true, updatedAt: DateTime.now());
+    await _firestoreService.updateUserProfile(updatedProfile);
+    _profile = updatedProfile; // 🟢 Optimistic update
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarded', true);
 
-    _isLoading = false;
     notifyListeners();
   }
 

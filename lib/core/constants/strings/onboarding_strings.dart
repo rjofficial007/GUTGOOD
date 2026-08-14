@@ -4,9 +4,9 @@ class OnboardingStrings {
   static const String onboardingGoalsTitle = 'What are your goals?';
   static const String onboardingGoalsSubtitle = "Pick as many as you'd like. This helps us personalize your experience.";
   static const String onboardingSensitivitiesTitle = 'Any sensitivities or allergies?';
-  static const String onboardingSensitivitiesSubtitle = "We'll flag these ingredients when scanning foods and tailoring AI insights.";
+  static const String onboardingSensitivitiesSubtitle = 'We’ll keep these in mind as you scan food and discover your patterns.';
   static const String onboardingLifestyleTitle = 'What describes you?';
-  static const String onboardingLifestyleSubtitle = 'This helps our AI understand your patterns better.';
+  static const String onboardingLifestyleSubtitle = 'Choose anything that fits. You can always change it later.';
   static const String bodyRhythm = 'Body Rhythm';
   static const String bodyRhythmSubtitle = "Sync your gut health with your body's rhythm.";
   static const String cycleSync = 'Cycle Sync (for women)';
@@ -14,6 +14,7 @@ class OnboardingStrings {
   static const String cycleSyncHormonalPatterns = 'When enabled, GutGood will factor hormonal patterns into food recommendations.';
   static const String selectCyclePhase = 'Which phase are you in?';
   static const String aiPersonalization = 'AI Personalization';
+  static const String builtAroundYou = 'Built around you';
   static const String aiPersonalizationDesc = 'GUTGOOD builds your personalized story with every scan, chat, and body signal you log.';
   static const String analysisComplete = 'Analysis Complete';
   static const String gutTeaReady = 'Ready to spill your gut tea?';
@@ -21,7 +22,7 @@ class OnboardingStrings {
   static const String statusCheckingSensitivities = 'Checking sensitivities';
   static const String statusAnalyzingLifestyle = 'Analyzing lifestyle';
   static const String statusOptimizing = 'Optimizing for you';
-  static const String statusPersonalizingGutGood = 'Personalizing GUTGOOD';
+  static const String statusPersonalizingGutGood = 'Personalizing GutGood';
   static const String statusAlmostReady = 'Almost ready';
 
   // Goals

@@ -34,12 +34,7 @@ class BottomSheetHelper {
     ),
   );
 
-  static Future<TimeOfDay?> showTimePickerSheet({
-    required BuildContext context,
-    required String title,
-    required TimeOfDay initialTime,
-    Color? backgroundColor,
-  }) async {
+  static Future<TimeOfDay?> showTimePickerSheet({required BuildContext context, required String title, required TimeOfDay initialTime, Color? backgroundColor}) async {
     var selectedTime = initialTime;
 
     return showGutBottomSheet<TimeOfDay>(
@@ -52,154 +47,42 @@ class BottomSheetHelper {
           child: CupertinoTheme(
             data: CupertinoThemeData(
               textTheme: CupertinoTextThemeData(
-                dateTimePickerTextStyle: context.bodyBold.copyWith(
-                  fontSize: 22.sp,
-                  color: context.appColorScheme.textPrimary,
-                ),
+                dateTimePickerTextStyle: context.bodyBold.copyWith(fontSize: 22.sp, color: context.appColorScheme.textPrimary),
               ),
             ),
             child: CupertinoDatePicker(
               mode: CupertinoDatePickerMode.time,
-              initialDateTime: DateTime(
-                2026,
-                1,
-                1,
-                initialTime.hour,
-                initialTime.minute,
-              ),
+              initialDateTime: DateTime(2026, 1, 1, initialTime.hour, initialTime.minute),
               onDateTimeChanged: (DateTime newDateTime) {
-                selectedTime = TimeOfDay(
-                  hour: newDateTime.hour,
-                  minute: newDateTime.minute,
-                );
+                selectedTime = TimeOfDay(hour: newDateTime.hour, minute: newDateTime.minute);
               },
             ),
           ),
         ),
         Gap.h32,
-        GutButton(
-          label: AppStrings.confirm,
-          onTap: () => context.pop(selectedTime),
-        ),
+        GutButton(label: AppStrings.confirm, onTap: () => context.pop(selectedTime)),
         Gap.h12,
-        GutButton(
-          label: AppStrings.cancel,
-          isOutlined: true,
-          onTap: () => context.pop(),
-        ),
+        GutButton(label: AppStrings.cancel, isOutlined: true, onTap: () => context.pop()),
         Gap.h24,
       ],
     );
   }
 
-  static Future<void> showInfoSheet({
-    required BuildContext context,
-    required String title,
-    required String message,
-    String? headerLabel,
-  }) async {
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: context.appColorScheme.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GutSheetHeader(title: title),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
-            child: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(Responsive.w(16.0)),
-                  decoration: BoxDecoration(
-                    color: context.appColorScheme.border.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    AppIcons.info,
-                    color: context.appColorScheme.textPrimary,
-                    size: 32.0.w,
-                  ),
-                ),
-                Gap.h24,
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: context.body.copyWith(
-                    color: context.appColorScheme.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
-                Gap.h40,
-              ],
-            ),
-          ),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 16.0.h),
-            decoration: BoxDecoration(
-              color: context.appColorScheme.textPrimary,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  AppIcons.sparkles,
-                  size: 14,
-                  color: context.appColorScheme.cardBackground,
-                ),
-                Gap.w8,
-                Text(
-                  headerLabel ?? AppStrings.gutgoodHealthIntelligence,
-                  style: context.caption.copyWith(
-                    color: context.appColorScheme.cardBackground,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 10.0.sp,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Future<void> showLogoutSheet({
-    required BuildContext context,
-    required bool isAnonymous,
-    required VoidCallback onConfirm,
-  }) async {
+  static Future<void> showLogoutSheet({required BuildContext context, required bool isAnonymous, required VoidCallback onConfirm}) async {
     await showGutBottomSheet(
       context: context,
       title: AppStrings.logout,
       children: [
         Container(
           padding: EdgeInsets.all(Responsive.w(16.0)),
-          decoration: BoxDecoration(
-            color: context.appColorScheme.border.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            AppIcons.alertTriangle,
-            color: context.appColorScheme.textPrimary,
-            size: 32.0.w,
-          ),
+          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+          child: Icon(AppIcons.alertTriangle, color: context.appColorScheme.textPrimary, size: 32.0.w),
         ),
         Gap.h20,
         Text(
-          isAnonymous
-              ? AppStrings.logoutGuestWarning
-              : AppStrings.logoutConfirmMessage,
+          isAnonymous ? AppStrings.logoutGuestWarning : AppStrings.logoutConfirmMessage,
           textAlign: TextAlign.center,
-          style: context.body.copyWith(
-            color: context.appColorScheme.textSecondary,
-            height: 1.5,
-          ),
+          style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
         ),
         Gap.h32,
         GutButton(
@@ -210,44 +93,27 @@ class BottomSheetHelper {
           },
         ),
         Gap.h12,
-        GutButton(
-          label: AppStrings.cancel,
-          isOutlined: true,
-          onTap: () => context.pop(),
-        ),
+        GutButton(label: AppStrings.cancel, isOutlined: true, onTap: () => context.pop()),
         Gap.h24,
       ],
     );
   }
 
-  static Future<void> showDeleteAccountSheet({
-    required BuildContext context,
-    required VoidCallback onConfirm,
-  }) async {
+  static Future<void> showDeleteAccountSheet({required BuildContext context, required VoidCallback onConfirm}) async {
     await showGutBottomSheet(
       context: context,
       title: AppStrings.deleteAccountTitle,
       children: [
         Container(
           padding: EdgeInsets.all(Responsive.w(16.0)),
-          decoration: BoxDecoration(
-            color: context.appColorScheme.border.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            AppIcons.trash2,
-            color: context.appColorScheme.textPrimary,
-            size: 32.0.w,
-          ),
+          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+          child: Icon(AppIcons.trash2, color: context.appColorScheme.textPrimary, size: 32.0.w),
         ),
         Gap.h20,
         Text(
           AppStrings.deleteAccountConfirm,
           textAlign: TextAlign.center,
-          style: context.body.copyWith(
-            color: context.appColorScheme.textSecondary,
-            height: 1.5,
-          ),
+          style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
         ),
         Gap.h32,
         GutButton(
@@ -258,11 +124,7 @@ class BottomSheetHelper {
           },
         ),
         Gap.h12,
-        GutButton(
-          label: AppStrings.cancel,
-          isOutlined: true,
-          onTap: () => context.pop(),
-        ),
+        GutButton(label: AppStrings.cancel, isOutlined: true, onTap: () => context.pop()),
         Gap.h24,
       ],
     );
@@ -273,13 +135,7 @@ class BottomSheetHelper {
       context: context,
       title: AppStrings.medicalDisclaimer,
       children: [
-        Text(
-          AppStrings.medicalDisclaimerContent,
-          style: context.body.copyWith(
-            color: context.appColorScheme.textSecondary,
-            height: 1.5,
-          ),
-        ),
+        Text(AppStrings.medicalDisclaimerContent, style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5)),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),
         Gap.h24,

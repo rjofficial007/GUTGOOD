@@ -1,7 +1,7 @@
 class ChatStrings {
   const ChatStrings._();
 
-  static const String chatInitialGreeting = 'Hey! 👋\nHow can I help your gut today?';
+  static const String chatInitialGreeting = 'What’s good? 👋 Scan • Snap • Ask';
   static const String chatAuthMessage = 'Create a free account to save your results and start tracking your GutGood Score.';
   static const String imageUploadAnalysis = 'Image Upload Analysis 📷';
   static const String imageUploadInstruction = 'Analyze this image, product, barcode, QR code, or ingredient label for gut health.';
@@ -52,7 +52,7 @@ class ChatStrings {
   static const String labelPhotoPrompt = 'Is this good for my gut?';
   static const String mealPhotoPrompt = 'What do you think of this meal?';
   static const String menuPhotoPrompt = 'What should I order here?';
-  static const String galleryPhotoPrompt = 'What should I know about this?';
+  static const String galleryPhotoPrompt = 'What am I getting from this?';
   static const String heyImGutGood = 'Hey, I\'m GUTGOOD.';
   static const String gutgoodEmptyDescription = 'I\'m your gut health assistant. You can ask me anything about your food, log your meals, or scan products to see how they hit your body.';
   static const String helpful = 'Helpful';
@@ -83,4 +83,14 @@ class ChatStrings {
   static const String contains = 'CONTAINS';
   static const String likelyImpact = 'LIKELY IMPACT';
   static const String swapThisInstead = 'SWAP THIS INSTEAD';
+  static const String hereAreSomeBetterSwaps = 'Here are some better swaps for you:';
+
+  static const String emptyStateTitle = 'Your food.\nYour body.\nYour patterns.';
+  static const String emptyStateSubtitle = 'No judgment. No perfect diet.\nJust a better understanding of\nwhat works for you.';
+  static const String emptyStateScanFood = 'Scan\na food';
+  static const String emptyStateScanFoodDesc = 'Scan a product or ingredients';
+  static const String emptyStateCheckIngredients = 'Check ingredients';
+  static const String emptyStateCheckIngredientsDesc = "See what's really in your food";
+  static const String emptyStateAskGutGood = 'Ask\nGutGood';
+  static const String emptyStateAskGutGoodDesc = 'Ask anything about your food';
 }

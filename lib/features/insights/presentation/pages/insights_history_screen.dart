@@ -37,10 +37,7 @@ class InsightsHistoryScreen extends StatelessWidget {
             final history = snapshot.data!;
             final grouped = _groupHistoryByDate(history);
 
-            return _HistoryList(
-              groupedHistory: grouped,
-              onTileTap: (insight) => _showInsightDetail(context, insight),
-            );
+            return _HistoryList(groupedHistory: grouped, onTileTap: (insight) => _showInsightDetail(context, insight));
           },
         ),
       ],
@@ -55,11 +52,9 @@ class InsightsHistoryScreen extends StatelessWidget {
       final today = DateTime.now();
       final yesterday = today.subtract(const Duration(days: 1));
 
-      if (DateFormat('yyyy-MM-dd').format(date) ==
-          DateFormat('yyyy-MM-dd').format(today)) {
+      if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(today)) {
         key = AppStrings.today;
-      } else if (DateFormat('yyyy-MM-dd').format(date) ==
-          DateFormat('yyyy-MM-dd').format(yesterday)) {
+      } else if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(yesterday)) {
         key = AppStrings.yesterday;
       } else {
         key = DateFormat('MMMM d, yyyy').format(date);
@@ -71,7 +66,7 @@ class InsightsHistoryScreen extends StatelessWidget {
   }
 
   void _showInsightDetail(BuildContext context, AIInsight insight) {
-    unawaited(context.push(AppRoutes.insightDetail, extra: insight.toMap()));
+    unawaited(context.push(AppRoutes.insightDetail, extra: insight));
   }
 }
 
@@ -80,17 +75,8 @@ class _HistoryLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SliverPadding(
-    padding: EdgeInsets.symmetric(
-      horizontal: Responsive.w(20.0),
-      vertical: 16.0.h,
-    ),
-    sliver: const SliverToBoxAdapter(
-      child: ShimmerGridLoader(
-        itemCount: 10,
-        crossAxisCount: 1,
-        variant: ShimmerVariant.list,
-      ),
-    ),
+    padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: 16.0.h),
+    sliver: const SliverToBoxAdapter(child: ShimmerGridLoader(itemCount: 10, crossAxisCount: 1, variant: ShimmerVariant.list)),
   );
 }
 
@@ -100,11 +86,7 @@ class _HistoryEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const SliverFillRemaining(
     hasScrollBody: false,
-    child: EmptyStateWidget(
-      icon: AppIcons.history,
-      title: AppStrings.yourGutHealthStory,
-      description: AppStrings.gutHealthStoryDesc,
-    ),
+    child: EmptyStateWidget(icon: AppIcons.history, title: AppStrings.yourGutHealthStory, description: AppStrings.gutHealthStoryDesc),
   );
 }
 
@@ -115,19 +97,12 @@ class _HistoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SliverPadding(
-    padding: EdgeInsets.symmetric(
-      horizontal: Responsive.w(20.0),
-      vertical: 16.0.h,
-    ),
+    padding: EdgeInsets.symmetric(horizontal: Responsive.w(20.0), vertical: 16.0.h),
     sliver: SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final dateKey = groupedHistory.keys.elementAt(index);
         final dayInsights = groupedHistory[dateKey]!;
-        return InsightHistorySection(
-          title: dateKey,
-          insights: dayInsights,
-          onTileTap: onTileTap,
-        );
+        return InsightHistorySection(title: dateKey, insights: dayInsights, onTileTap: onTileTap);
       }, childCount: groupedHistory.keys.length),
     ),
   );

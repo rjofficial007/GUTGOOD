@@ -19,7 +19,7 @@ class ThemeNotifier extends ChangeNotifier {
     } catch (_) {
       // Fallback for any storage issues
     }
-    return ThemeMode.system;
+    return ThemeMode.light;
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {

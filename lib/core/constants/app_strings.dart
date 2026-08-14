@@ -272,6 +272,14 @@ class AppStrings {
   static const String galleryPhotoPrompt = ChatStrings.galleryPhotoPrompt;
   static const String heyImGutGood = ChatStrings.heyImGutGood;
   static const String gutgoodEmptyDescription = ChatStrings.gutgoodEmptyDescription;
+  static const String emptyStateTitle = ChatStrings.emptyStateTitle;
+  static const String emptyStateSubtitle = ChatStrings.emptyStateSubtitle;
+  static const String emptyStateScanFood = ChatStrings.emptyStateScanFood;
+  static const String emptyStateScanFoodDesc = ChatStrings.emptyStateScanFoodDesc;
+  static const String emptyStateCheckIngredients = ChatStrings.emptyStateCheckIngredients;
+  static const String emptyStateCheckIngredientsDesc = ChatStrings.emptyStateCheckIngredientsDesc;
+  static const String emptyStateAskGutGood = ChatStrings.emptyStateAskGutGood;
+  static const String emptyStateAskGutGoodDesc = ChatStrings.emptyStateAskGutGoodDesc;
   static const String helpful = ChatStrings.helpful;
   static const String notHelpful = ChatStrings.notHelpful;
   static const String tellMeMore = ChatStrings.tellMeMore;
@@ -291,6 +299,7 @@ class AppStrings {
   static const String uploadFromGallery = ChatStrings.uploadFromGallery;
   static const String attachPhotosLabel = ChatStrings.attachPhotosLabel;
   static const String keyBenefits = ChatStrings.keyBenefits;
+  static const String hereAreSomeBetterSwaps = ChatStrings.hereAreSomeBetterSwaps;
   static const String gutProtection = ChatStrings.gutProtection;
   static const String gutProtectionDesc = ChatStrings.gutProtectionDesc;
   static const String cleanIngredients = ChatStrings.cleanIngredients;
@@ -304,7 +313,7 @@ class AppStrings {
 
   // --- Insights ---
   static const String insights = InsightStrings.insights;
-  static const String aiPatterns = InsightStrings.aiPatterns;
+  static const String yourPatterns = InsightStrings.yourPatterns;
   static const String betterAlternatives = InsightStrings.betterAlternatives;
   static const String compareProducts = InsightStrings.compareProducts;
   static const String moodAndEnergy = InsightStrings.moodAndEnergy;
@@ -480,6 +489,7 @@ class AppStrings {
   static const String cycleSyncHormonalPatterns = OnboardingStrings.cycleSyncHormonalPatterns;
   static const String selectCyclePhase = OnboardingStrings.selectCyclePhase;
   static const String aiPersonalization = OnboardingStrings.aiPersonalization;
+  static const String builtAroundYou = OnboardingStrings.builtAroundYou;
   static const String aiPersonalizationDesc = OnboardingStrings.aiPersonalizationDesc;
   static const String analysisComplete = OnboardingStrings.analysisComplete;
   static const String gutTeaReady = OnboardingStrings.gutTeaReady;
@@ -642,6 +652,7 @@ class AppStrings {
   static const String aiChats = ProfileStrings.aiChats;
   static const String productScans = ProfileStrings.productScans;
   static const String upgradeForUnlimited = ProfileStrings.upgradeForUnlimited;
+  static const String memberSince = ProfileStrings.memberSince;
 
   // --- Scanner ---
   static const String history = ScannerStrings.history;
@@ -771,8 +782,10 @@ class AppStrings {
   static const String anythingToNote = 'Anything else to note?';
   static const String checkInSaved = 'Check-in saved! Your insights will update soon.';
   static const String checkInFailed = 'Failed to save check-in. Please try again.';
-  static const String foodIsMedicine = 'Food is\nmedicine.';
+  static const String foodIsInformation = 'Food is\ninformation.';
   static const String understandBodyNeeds = "Let's understand what your body actually needs.";
+  static const String understandBodyNeeds2 = 'Understand what you eat.\nUnderstand your body.';
+
   static const String healthDisclaimer = 'GutGood provides health patterns, not medical diagnoses.';
   static const String moodHappy = 'Happy';
   static const String moodCalm = 'Calm';

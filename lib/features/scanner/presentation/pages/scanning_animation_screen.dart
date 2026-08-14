@@ -16,12 +16,10 @@ class ScanningAnimationScreen extends StatefulWidget {
   const ScanningAnimationScreen({super.key});
 
   @override
-  State<ScanningAnimationScreen> createState() =>
-      _ScanningAnimationScreenState();
+  State<ScanningAnimationScreen> createState() => _ScanningAnimationScreenState();
 }
 
-class _ScanningAnimationScreenState extends State<ScanningAnimationScreen>
-    with TickerProviderStateMixin {
+class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with TickerProviderStateMixin {
   late AnimationController _progressController;
   late AnimationController _pulseController;
   late AnimationController _rotationController;
@@ -47,46 +45,25 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen>
     super.initState();
 
     // 1. Progress Controller (0 to ~98% for simulated activity)
-    _progressController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    );
-    _progressAnimation = Tween<double>(begin: 0.0, end: 0.98).animate(
-      CurvedAnimation(parent: _progressController, curve: Curves.easeInOutSine),
-    );
+    _progressController = AnimationController(vsync: this, duration: const Duration(seconds: 3));
+    _progressAnimation = Tween<double>(begin: 0.0, end: 0.98).animate(CurvedAnimation(parent: _progressController, curve: Curves.easeInOutSine));
 
     // 2. Pulse Controller (Subtle heartbeat)
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
+    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
 
     // 3. Rotation Controller (Mechanical outer ring)
-    _rotationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-    _rotationAnimation = Tween<double>(
-      begin: 0,
-      end: 2 * math.pi,
-    ).animate(_rotationController);
+    _rotationController = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
+    _rotationAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(_rotationController);
 
     // 4. Beam Controller (Scanning laser)
-    _beamController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
-    _beamAnimation = Tween<double>(begin: -1.0, end: 1.0).animate(
-      CurvedAnimation(parent: _beamController, curve: Curves.easeInOut),
-    );
+    _beamController = AnimationController(vsync: this, duration: const Duration(milliseconds: 2000))..repeat(reverse: true);
+    _beamAnimation = Tween<double>(begin: -1.0, end: 1.0).animate(CurvedAnimation(parent: _beamController, curve: Curves.easeInOut));
 
     _progressController.forward();
 
-    // Cycle text every 1.2 seconds
-    _textTimer = Timer.periodic(const Duration(milliseconds: 1200), (timer) {
+    // Cycle text every 0.8 seconds
+    _textTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
       if (mounted) {
         setState(() {
           _loadingTextIndex = (_loadingTextIndex + 1) % _loadingTexts.length;
@@ -129,13 +106,7 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen>
       child: Column(
         children: [
           Gap.h20,
-          Text(
-            AppStrings.scanning,
-            style: context.headingMd.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-            ),
-          ),
+          Text(AppStrings.scanning, style: context.headingMd.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.5)),
           const Spacer(),
           _AnimationStack(
             progressAnimation: _progressAnimation,
@@ -153,13 +124,7 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen>
 }
 
 class _AnimationStack extends StatelessWidget {
-  const _AnimationStack({
-    required this.progressAnimation,
-    required this.rotationAnimation,
-    required this.pulseAnimation,
-    required this.beamAnimation,
-    required this.loadingText,
-  });
+  const _AnimationStack({required this.progressAnimation, required this.rotationAnimation, required this.pulseAnimation, required this.beamAnimation, required this.loadingText});
 
   final Animation<double> progressAnimation;
   final Animation<double> rotationAnimation;
@@ -170,12 +135,7 @@ class _AnimationStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: AnimatedBuilder(
-      animation: Listenable.merge([
-        progressAnimation,
-        pulseAnimation,
-        rotationAnimation,
-        beamAnimation,
-      ]),
+      animation: Listenable.merge([progressAnimation, pulseAnimation, rotationAnimation, beamAnimation]),
       builder: (context, child) => Column(
         children: [
           Stack(
@@ -206,9 +166,7 @@ class _RotatingDecorativeRing extends StatelessWidget {
     angle: angle,
     child: CustomPaint(
       size: const Size(220, 220),
-      painter: _DashedCirclePainter(
-        color: context.appColorScheme.border.withValues(alpha: 0.5),
-      ),
+      painter: _DashedCirclePainter(color: context.appColorScheme.border.withValues(alpha: 0.5)),
     ),
   );
 }
@@ -225,9 +183,7 @@ class _ProgressRing extends StatelessWidget {
       value: value,
       strokeWidth: 10,
       backgroundColor: context.appColorScheme.border.withValues(alpha: 0.3),
-      valueColor: AlwaysStoppedAnimation<Color>(
-        context.appColorScheme.textPrimary,
-      ),
+      valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
       strokeCap: StrokeCap.round,
     ),
   );
@@ -243,15 +199,8 @@ class _PulseIcon extends StatelessWidget {
     child: Container(
       width: 100,
       height: 100,
-      decoration: BoxDecoration(
-        color: context.appColorScheme.border.withValues(alpha: 0.3),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        AppIcons.barcode,
-        size: AppSizes.icon40,
-        color: context.appColorScheme.textPrimary,
-      ),
+      decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), shape: BoxShape.circle),
+      child: Icon(AppIcons.barcode, size: AppSizes.icon40, color: context.appColorScheme.textPrimary),
     ),
   );
 }
@@ -267,20 +216,8 @@ class _ScanningBeam extends StatelessWidget {
       width: 160,
       height: 2,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            context.appColorScheme.textPrimary.withValues(alpha: 0),
-            context.appColorScheme.textPrimary,
-            context.appColorScheme.textPrimary.withValues(alpha: 0),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: context.appColorScheme.textPrimary.withValues(alpha: 0.5),
-            blurRadius: 8,
-            spreadRadius: 2,
-          ),
-        ],
+        gradient: LinearGradient(colors: [context.appColorScheme.textPrimary.withValues(alpha: 0), context.appColorScheme.textPrimary, context.appColorScheme.textPrimary.withValues(alpha: 0)]),
+        boxShadow: [BoxShadow(color: context.appColorScheme.textPrimary.withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 2)],
       ),
     ),
   );
@@ -293,11 +230,7 @@ class _PercentageCounter extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     '${(value * 100).toInt()}%',
-    style: context.headingLg.copyWith(
-      fontSize: AppSizes.s40,
-      fontWeight: FontWeight.w900,
-      color: context.appColorScheme.textPrimary,
-    ),
+    style: context.headingLg.copyWith(fontSize: AppSizes.s40, fontWeight: FontWeight.w900, color: context.appColorScheme.textPrimary),
   );
 }
 
@@ -311,10 +244,7 @@ class _StatusText extends StatelessWidget {
     child: Text(
       text,
       key: ValueKey(text),
-      style: context.body.copyWith(
-        color: context.appColorScheme.textSecondary,
-        fontWeight: FontWeight.w600,
-      ),
+      style: context.body.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w600),
     ),
   );
 }
@@ -324,40 +254,22 @@ class _ScanningTip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(
-      horizontal: AppSizes.p24,
-      vertical: AppSizes.p40,
-    ),
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p40),
     child: Container(
       padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
         color: context.appColorScheme.elevatedSurface,
-        border: Border.all(
-          color: context.appColorScheme.border.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
         borderRadius: BorderRadius.circular(AppSizes.r24),
-        boxShadow: [
-          BoxShadow(
-            color: AppPalette.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: context.appColorScheme.border.withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              AppIcons.lightbulb,
-              color: context.appColorScheme.textPrimary,
-              size: AppSizes.icon20,
-            ),
+            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), shape: BoxShape.circle),
+            child: Icon(AppIcons.lightbulb, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
           ),
           Gap.w16,
           Expanded(
@@ -366,19 +278,10 @@ class _ScanningTip extends StatelessWidget {
               children: [
                 Text(
                   AppStrings.tip,
-                  style: context.title.copyWith(
-                    fontSize: AppSizes.s15,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: context.title.copyWith(fontSize: AppSizes.s15, fontWeight: FontWeight.w800),
                 ),
                 Gap.h4,
-                Text(
-                  AppStrings.barcodeTip,
-                  style: context.bodySm.copyWith(
-                    color: context.appColorScheme.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
+                Text(AppStrings.barcodeTip, style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary, height: 1.4)),
               ],
             ),
           ),
@@ -407,13 +310,7 @@ class _DashedCirclePainter extends CustomPainter {
 
     for (var i = 0; i < dashCount; i++) {
       final startAngle = (i * (dashWidth + dashSpace)) / radius;
-      canvas.drawArc(
-        Rect.fromCircle(center: Offset(radius, radius), radius: radius),
-        startAngle,
-        dashWidth / radius,
-        false,
-        paint,
-      );
+      canvas.drawArc(Rect.fromCircle(center: Offset(radius, radius), radius: radius), startAngle, dashWidth / radius, false, paint);
     }
   }
 

@@ -99,8 +99,7 @@ class ProfileStrings {
   static const String streakKeepAlive = 'Keep the flame alive!';
   static const String streakUp = 'STREAK UP!';
   static const String daysInARow = 'DAYS IN A ROW';
-  static const String streakQuote = 'You\'re building a healthy habit, one day at a time. Keep it up!';
-
+  static const String streakQuote = 'Small steps, big changes. Your gut will thank you!';
   static const String exportHealthData = 'Export Health Data (CSV)';
   static const String testPushNotification = 'Test Push Notification';
   static const String copyFcmToken = 'Copy FCM Token';
@@ -111,7 +110,8 @@ class ProfileStrings {
   static const String mockDataGenerated = '2 weeks of mock data generated!';
   static const String guestAiActivity = 'GUEST AI ACTIVITY';
   static const String dailyAiActivity = 'DAILY AI ACTIVITY';
-  static const String aiChats = 'AI Chats';
+  static const String aiChats = 'Chats';
   static const String productScans = 'Product Scans';
   static const String upgradeForUnlimited = 'Upgrade for Unlimited Access';
+  static const String memberSince = 'MEMBER SINCE';
 }

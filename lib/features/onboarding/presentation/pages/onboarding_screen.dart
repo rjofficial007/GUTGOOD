@@ -12,7 +12,6 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/selection_option.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
-import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -115,23 +114,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       lifestyle: _selectedLifestyle.toList(),
       cycleSyncEnabled: _cycleSyncEnabled,
       cyclePhase: _cycleSyncEnabled ? _selectedCyclePhase : null,
+      markOnboarded: false, // 🟢 Delay onboarded status until after paywall
     );
 
     await sl<NotificationService>().setupDefaultReminders();
 
     if (mounted) {
+      // 🟢 Show the paywall while STILL on the Onboarding screen context.
+      // This works now because the AppRouter hasn't redirected us to /home/chat yet.
       await showPaywallBottomSheet(context, onProceedWithLimited: () {});
 
-      // 🟢 Fix: Notify profile updated AFTER the paywall is dismissed.
-      // This prevents AppRouter from triggering a premature redirect to /home/chat
-      // while the paywall is still supposed to be visible.
-      sl<AppStateService>().notifyProfileUpdated();
+      // 🟢 Finally mark onboarding as officially complete.
+      // This will trigger the ProfileNotifier listener in AppRouter and perform the redirect.
+      await profileNotifier.markOnboardingComplete();
 
-      // 🟢 Fix: Ensure bottom sheet pop animation finishes before main navigation.
-      // This prevents "Failed assertion: _dependents.isEmpty: is not true" during unmount.
       if (mounted) {
-        Future.delayed(Duration.zero, () {
-          if (mounted) {
+        // Fallback navigation in case listener doesn't fire immediately
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted && context.mounted) {
             context.go(AppRoutes.chat);
           }
         });

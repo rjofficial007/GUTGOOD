@@ -95,7 +95,8 @@ class ChatNotifier with ChangeNotifier {
   bool _isLoading = false; // busy: uploading and/or streaming
   bool _isStreaming = false; // tokens actively arriving
   bool _historyLoading = true;
-  final int _pageSize = 50;
+  bool _isPaginationLoading = false;
+  int _currentLimit = 50;
 
   // ---- Composer attachments (ChatGPT model: preview first, send later) ----
   final List<ChatAttachment> _attachments = [];
@@ -164,11 +165,13 @@ class ChatNotifier with ChangeNotifier {
   // ---------------------------------------------------------------------------
   void _initChatStream() {
     _chatStreamSub?.cancel();
-    _historyLoading = true;
+    if (!_isPaginationLoading) {
+      _historyLoading = true;
+    }
     notifyListeners();
 
     _chatStreamSub = _chatFirestoreService
-        .getMessagesStream(limit: _pageSize)
+        .getMessagesStream(limit: _currentLimit)
         .listen(
           (serverMessages) {
             final serverLocalIds = serverMessages.map((m) => m.localId).toSet();
@@ -204,6 +207,22 @@ class ChatNotifier with ChangeNotifier {
 
   /// Re-subscribes the message stream (e.g. after an account upgrade).
   void refreshHistory() => _initChatStream();
+
+  Future<void> loadMore() async {
+    if (_isPaginationLoading || _isLoading || _historyLoading) return;
+
+    // Check if we already loaded all messages (simplistic check)
+    if (_messages.length < _currentLimit) return;
+
+    _isPaginationLoading = true;
+    _currentLimit += 50;
+    _initChatStream();
+
+    // Reset pagination loading after a short delay to allow stream to update
+    await Future.delayed(const Duration(milliseconds: 500));
+    _isPaginationLoading = false;
+    notifyListeners();
+  }
 
   Future<void> _createInitialGreeting() async {
     final initialMsg = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: AppStrings.chatInitialGreeting, isSwap: false, time: DateTime.now());
@@ -630,8 +649,13 @@ class ChatNotifier with ChangeNotifier {
 
     final result = _processChatTagUseCase(_fullAiText, imageUrl: imageUrl, source: source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn);
 
+    var finalToDisplay = _applySafetyGuardrails(result.text);
+    if (finalToDisplay.isEmpty && (result.scanData != null || (result.swapData != null && result.swapData!.isNotEmpty))) {
+      finalToDisplay = AppStrings.resultsFound;
+    }
+
     _messages[idx] = _messages[idx].copyWith(
-      text: _applySafetyGuardrails(result.text),
+      text: finalToDisplay,
       scanData: result.scanData,
       imageUrl: imageUrl,
       imageUrls: imageUrl != null ? [imageUrl] : null,
@@ -757,9 +781,7 @@ class ChatNotifier with ChangeNotifier {
       // 🟢 Persist summary to user profile so Insights engine can use it
       final profile = await _authFirestoreService.getUserMetadata();
       if (profile != null) {
-        await _authFirestoreService.updateUserProfile(
-          profile.copyWith(chatSummary: _cachedSummary),
-        );
+        await _authFirestoreService.updateUserProfile(profile.copyWith(chatSummary: _cachedSummary));
       }
 
       final last = agedOut.last;
@@ -789,7 +811,7 @@ class ChatNotifier with ChangeNotifier {
     if (_isLoading) return;
     if (!_connectionChecker.isInternetAvailable.value) return;
 
-    final userMsg = ChatMessage(localId: const Uuid().v4(), role: 'user', text: '${AppStrings.moreSwapsPrompt}$prompt', isSwap: false, source: 'chat', time: DateTime.now());
+    final userMsg = ChatMessage(localId: const Uuid().v4(), role: 'user', text: '${AppStrings.moreSwapsPrompt}$prompt', isSwap: false, isHidden: true, source: 'chat', time: DateTime.now());
 
     final aiPlaceholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: AppStrings.findingSwaps, isSwap: false, source: 'chat', time: DateTime.now().add(const Duration(milliseconds: 1)));
 
@@ -802,6 +824,8 @@ class ChatNotifier with ChangeNotifier {
 
     _isLoading = true;
     notifyListeners();
+
+    await _analyticsService.logEvent(name: 'see_more_swaps_clicked', parameters: {'prompt': prompt});
 
     try {
       final savedMsg = await _repository.saveMessage(userMsg);
@@ -844,7 +868,13 @@ class ChatNotifier with ChangeNotifier {
         if (idx == -1) break;
 
         final result = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', persistedTagBlocks: persistedTags);
-        _messages[idx] = _messages[idx].copyWith(text: result.text, swapData: result.swapData, isSwap: result.isSwap);
+
+        var finalToDisplay = result.text;
+        if (finalToDisplay.isEmpty && result.swapData != null && result.swapData!.isNotEmpty) {
+          finalToDisplay = AppStrings.hereAreSomeBetterSwaps;
+        }
+
+        _messages[idx] = _messages[idx].copyWith(text: finalToDisplay, swapData: result.swapData, isSwap: result.isSwap);
         notifyListeners();
       }
 

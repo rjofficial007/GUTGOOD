@@ -27,6 +27,7 @@ class AppIcons {
   static const eyeOff = LucideIcons.eyeOff;
   static const user = LucideIcons.user;
   static const userCheck = LucideIcons.userCheck;
+  static const edit = LucideIcons.edit;
   static const shieldCheck = LucideIcons.shieldCheck;
   static const zap = LucideIcons.zap;
   static const timer = LucideIcons.timer;
@@ -103,6 +104,8 @@ class AppIcons {
   static const moon = LucideIcons.moon;
   static const cloud = LucideIcons.cloud;
   static const barcode = LucideIcons.barcode;
+
+  static const scan = LucideIcons.scan;
   static const keyboard = LucideIcons.keyboard;
   static const clipboardList = LucideIcons.clipboardList;
   static const arrowRightLeft = LucideIcons.arrowRightLeft;

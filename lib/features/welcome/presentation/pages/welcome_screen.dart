@@ -46,24 +46,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     appState.setPendingMergeConflict(null);
 
     try {
-      final shouldMerge = await showMergeConfirmationSheet(
-        context,
-        conflict['email'] ?? '',
-      );
+      final shouldMerge = await showMergeConfirmationSheet(context, conflict['email'] ?? '');
       if (!mounted) return;
       final authNotifier = context.read<GutAuthNotifier>();
       if (shouldMerge == true) {
         try {
-          await authNotifier.confirmMerge(
-            conflict['anonymousUid']!,
-            conflict['permanentUid']!,
-          );
+          await authNotifier.confirmMerge(conflict['anonymousUid']!, conflict['permanentUid']!);
           // 🟢 Fix: GoRouter's redirect handles navigation automatically.
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text(AppStrings.authSyncDelayedMessage)),
-            );
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.authSyncDelayedMessage)));
           }
         }
       } else if (shouldMerge == false) {
@@ -74,18 +66,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
   }
 
-  Future<void> _handleGetStarted(
-    BuildContext context,
-    GutAuthNotifier authNotifier,
-  ) async {
+  Future<void> _handleGetStarted(BuildContext context, GutAuthNotifier authNotifier) async {
     try {
       await authNotifier.signInAnonymously();
     } catch (e) {
       if (context.mounted) {
         final message = AuthErrorHandler.mapException(e);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }
@@ -102,16 +89,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             child: IntrinsicHeight(
               child: Column(
                 children: [
-                  const Spacer(flex: 2),
+                  const Spacer(),
                   const _WelcomeLogo(),
                   Gap.h40,
                   const _WelcomeContent(),
-                  const Spacer(flex: 3),
+                  const Spacer(),
                   const _WelcomeDisclaimer(),
                   Gap.h20,
-                  _WelcomeActions(
-                    onGetStarted: (n) => _handleGetStarted(context, n),
-                  ),
+                  _WelcomeActions(onGetStarted: (n) => _handleGetStarted(context, n)),
                   Gap.h20,
                 ],
               ),
@@ -127,18 +112,10 @@ class _WelcomeLogo extends StatelessWidget {
   const _WelcomeLogo();
 
   @override
-  Widget build(BuildContext context) =>
-      ClipRRect(
-            borderRadius: BorderRadius.circular(AppSizes.r20),
-            child: Image.asset(
-              AppAssets.appIcon,
-              height: AppSizes.w100,
-              width: AppSizes.w100,
-            ),
-          )
-          .animate()
-          .fadeIn(duration: 600.ms)
-          .scale(delay: 0.ms, duration: 600.ms, curve: Curves.easeOutBack);
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(AppSizes.r20),
+    child: Image.asset(AppAssets.appIcon, height: AppSizes.w100, width: AppSizes.w100),
+  ).animate().fadeIn(duration: 600.ms).scale(delay: 0.ms, duration: 600.ms, curve: Curves.easeOutBack);
 }
 
 class _WelcomeContent extends StatelessWidget {
@@ -150,30 +127,16 @@ class _WelcomeContent extends StatelessWidget {
     child: Column(
       children: [
         Text(
-              AppStrings.foodIsMedicine,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.displayLg.copyWith(
-                fontSize: AppSizes.s60,
-                height: 0.95,
-                letterSpacing: -2.0,
-                fontWeight: FontWeight.w900,
-              ),
-            )
-            .animate()
-            .fadeIn(delay: 200.ms, duration: 600.ms)
-            .slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
+          AppStrings.foodIsInformation,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.displayLg.copyWith(fontSize: AppSizes.s60, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
+        ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
         Gap.h24,
         Text(
-              AppStrings.understandBodyNeeds,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.title.copyWith(
-                fontWeight: FontWeight.w400,
-                color: context.appColorScheme.textSecondary,
-              ),
-            )
-            .animate()
-            .fadeIn(delay: 400.ms, duration: 600.ms)
-            .slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
+          AppStrings.understandBodyNeeds2,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w400, color: context.appColorScheme.textSecondary),
+        ).animate().fadeIn(delay: 400.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
       ],
     ),
   );
@@ -186,10 +149,7 @@ class _WelcomeDisclaimer extends StatelessWidget {
   Widget build(BuildContext context) => Text(
     AppStrings.healthDisclaimer,
     textAlign: TextAlign.center,
-    style: AppTextStyles.caption.copyWith(
-      color: context.appColorScheme.textMuted,
-      fontSize: AppSizes.s10,
-    ),
+    style: AppTextStyles.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s10),
   ).animate().fadeIn(delay: 600.ms, duration: 800.ms);
 }
 
@@ -204,39 +164,24 @@ class _WelcomeActions extends StatelessWidget {
       final isLoading = data.$1;
 
       return Column(
-            children: [
-              GutButton(
-                label: AppStrings.getStarted,
-                suffixIcon: AppIcons.arrowRight,
-                isLoading: isLoading,
-                onTap: isLoading
-                    ? null
-                    : () => onGetStarted(context.read<GutAuthNotifier>()),
-              ),
-              Gap.h20,
-              RichText(
-                text: TextSpan(
-                  style: context.body.copyWith(
-                    color: context.appColorScheme.textSecondary,
-                  ),
-                  children: [
-                    const TextSpan(text: '${AppStrings.alreadyHaveAccount} '),
-                    TextSpan(
-                      text: AppStrings.signIn,
-                      style: context.bodyBold.copyWith(
-                        color: context.appColorScheme.textPrimary,
-                      ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () => showAuthBottomSheet(context),
-                    ),
-                  ],
+        children: [
+          GutButton(label: AppStrings.getStarted, suffixIcon: AppIcons.arrowRight, isLoading: isLoading, onTap: isLoading ? null : () => onGetStarted(context.read<GutAuthNotifier>())),
+          Gap.h20,
+          RichText(
+            text: TextSpan(
+              style: context.body.copyWith(color: context.appColorScheme.textSecondary),
+              children: [
+                const TextSpan(text: '${AppStrings.alreadyHaveAccount} '),
+                TextSpan(
+                  text: AppStrings.signIn,
+                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary),
+                  recognizer: TapGestureRecognizer()..onTap = () => showAuthBottomSheet(context),
                 ),
-              ),
-            ],
-          )
-          .animate()
-          .fadeIn(delay: 800.ms, duration: 600.ms)
-          .slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuad);
+              ],
+            ),
+          ),
+        ],
+      ).animate().fadeIn(delay: 800.ms, duration: 600.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuad);
     },
   );
 }

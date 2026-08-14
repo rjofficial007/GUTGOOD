@@ -81,24 +81,36 @@ class UsageServiceImpl implements UsageService {
   @override
   Future<bool> canChat() async {
     if (await isPremium()) return true;
-    final usage = await _getTodayUsage();
     final isAnon = _authRepository.currentUser?.isAnonymous != false;
-    final limit = isAnon ? maxGuestChats : maxFreeChats;
 
-    final allowed = usage.chatCount < limit;
-    AppLogger.debug('UsageService: canChat? $allowed (${usage.chatCount}/$limit, guest: $isAnon)');
+    if (isAnon) {
+      final usage = await _usageFirestoreService.getLifetimeUsage();
+      final allowed = usage.chatCount < maxGuestChats;
+      AppLogger.debug('UsageService: canChat? $allowed (lifetime guest: ${usage.chatCount}/$maxGuestChats)');
+      return allowed;
+    }
+
+    final usage = await _getTodayUsage();
+    final allowed = usage.chatCount < maxFreeChats;
+    AppLogger.debug('UsageService: canChat? $allowed (daily free: ${usage.chatCount}/$maxFreeChats)');
     return allowed;
   }
 
   @override
   Future<bool> canScan() async {
     if (await isPremium()) return true;
-    final usage = await _getTodayUsage();
     final isAnon = _authRepository.currentUser?.isAnonymous != false;
-    final limit = isAnon ? maxGuestScans : maxFreeScans;
 
-    final allowed = usage.scanCount < limit;
-    AppLogger.debug('UsageService: canScan? $allowed (${usage.scanCount}/$limit, guest: $isAnon)');
+    if (isAnon) {
+      final usage = await _usageFirestoreService.getLifetimeUsage();
+      final allowed = usage.scanCount < maxGuestScans;
+      AppLogger.debug('UsageService: canScan? $allowed (lifetime guest: ${usage.scanCount}/$maxGuestScans)');
+      return allowed;
+    }
+
+    final usage = await _getTodayUsage();
+    final allowed = usage.scanCount < maxFreeScans;
+    AppLogger.debug('UsageService: canScan? $allowed (daily free: ${usage.scanCount}/$maxFreeScans)');
     return allowed;
   }
 

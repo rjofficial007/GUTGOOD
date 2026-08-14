@@ -8,19 +8,8 @@ import 'package:gutgood/core/utils/responsive.dart';
 /// A standardized section wrapper that includes an optional title header
 /// and can optionally wrap its children in a stylized card.
 class GutSection extends StatelessWidget {
-  const GutSection({
-    super.key,
-    this.title,
-    this.info,
-    this.child,
-    this.children,
-    this.showCard = false,
-    this.opacity = 1.0,
-    this.topPadding,
-  }) : assert(
-         child == null || children == null,
-         'Provide either child or children, not both.',
-       );
+  const GutSection({super.key, this.title, this.info, this.child, this.children, this.showCard = false, this.opacity = 1.0, this.topPadding})
+    : assert(child == null || children == null, 'Provide either child or children, not both.');
 
   /// The section title (displayed as an eyebrow).
   final String? title;
@@ -53,10 +42,7 @@ class GutSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (title != null) ...[_buildHeader(context), Gap.h8],
-          if (showCard)
-            GutSectionCard(children: children ?? [child!])
-          else
-            child ?? Column(children: children!),
+          if (showCard) GutSectionCard(children: children ?? [child!]) else child ?? Column(children: children!),
         ],
       ),
     ),
@@ -66,25 +52,7 @@ class GutSection extends StatelessWidget {
     padding: EdgeInsets.only(left: 4.0.w, bottom: 0),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(title!.toUpperCase(), style: context.eyebrow),
-        // if (info != null)
-        //   IconButton(
-        //     onPressed: () => BottomSheetHelper.showInfoSheet(
-        //       context: context,
-        //       title: title!,
-        //       message: info!,
-        //     ),
-        //     icon: Icon(
-        //       AppIcons.info,
-        //       size: 14.0.w,
-        //       color: context.appColorScheme.textMuted.withValues(alpha: 0.5),
-        //     ),
-        //     padding: EdgeInsets.zero,
-        //     constraints: const BoxConstraints(),
-        //     splashRadius: 16.0.w,
-        //   ),
-      ],
+      children: [Text(title!.toUpperCase(), style: context.eyebrow)],
     ),
   );
 }
@@ -102,16 +70,8 @@ class GutSectionCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: context.appColorScheme.elevatedSurface,
       borderRadius: BorderRadius.circular(AppSizes.r24),
-      border: Border.all(
-        color: context.appColorScheme.border.withValues(alpha: 0.5),
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: AppPalette.black.withValues(alpha: 0.02),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        ),
-      ],
+      border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+      boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
     ),
     child: Column(mainAxisSize: MainAxisSize.min, children: children),
   );

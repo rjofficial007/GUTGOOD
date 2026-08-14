@@ -25,6 +25,7 @@ class AppSizes {
   static double get p48 => 48.0.w;
   static double get p56 => 56.0.w;
   static double get p64 => 64.0.w;
+  static double get p72 => 72.0.w;
   static double get p80 => 80.0.w;
   static double get p100 => 100.0.w;
   static double get p120 => 120.0.w;

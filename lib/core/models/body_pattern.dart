@@ -8,6 +8,8 @@ class BodyPattern extends Equatable {
     required this.frequency,
     required this.confidence,
     required this.description,
+    this.involvedFoods = const [],
+    this.recommendation,
     required this.updatedAt,
   });
 
@@ -18,6 +20,8 @@ class BodyPattern extends Equatable {
     frequency: (map['frequency'] as num?)?.toInt() ?? 0,
     confidence: map['confidence'] ?? 'Moderate',
     description: map['description'] ?? '',
+    involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
+    recommendation: map['recommendation'] as String?,
     updatedAt: map['updatedAt'] ?? DateTime.now().toIso8601String(),
   );
   final String type;
@@ -26,6 +30,8 @@ class BodyPattern extends Equatable {
   final int frequency;
   final String confidence;
   final String description;
+  final List<String> involvedFoods;
+  final String? recommendation;
   final String updatedAt;
 
   Map<String, dynamic> toMap() => {
@@ -35,6 +41,8 @@ class BodyPattern extends Equatable {
     'frequency': frequency,
     'confidence': confidence,
     'description': description,
+    'involvedFoods': involvedFoods,
+    'recommendation': recommendation,
     'updatedAt': updatedAt,
   };
 
@@ -46,6 +54,8 @@ class BodyPattern extends Equatable {
     frequency,
     confidence,
     description,
+    involvedFoods,
+    recommendation,
     updatedAt,
   ];
 }

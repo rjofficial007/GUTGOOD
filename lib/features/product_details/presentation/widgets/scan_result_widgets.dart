@@ -26,7 +26,7 @@ class ScanResultAppBar extends StatelessWidget {
   Widget build(BuildContext context) => GutSliverAppBar(
     title: AppStrings.scanResult,
     leading: IconButton(
-      icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary),
+      icon: Icon(AppIcons.arrowLeft, color: context.appColorScheme.textPrimary),
       onPressed: () {
         if (context.canPop()) {
           context.pop();
@@ -69,120 +69,200 @@ class ProductHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = context.appColorScheme;
+    final textColor = scheme.textPrimary;
+    final invertedColor = scheme.cardBackground;
+    final borderColor = scheme.border.withValues(alpha: 0.5);
+
     var userImg = scanData.userImageUrl;
     if (userImg != null && userImg.isEmpty) userImg = null;
     var prodImg = scanData.imageUrl;
     if (prodImg != null && prodImg.isEmpty) prodImg = null;
-
     final displayImageUrl = userImg ?? prodImg;
 
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppSizes.r24),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        color: scheme.elevatedSurface,
+        borderRadius: BorderRadius.circular(AppSizes.r32),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: EdgeInsets.all(AppSizes.p16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: AppSizes.w80,
-              height: AppSizes.w80,
-              decoration: BoxDecoration(color: AppPalette.gray50, borderRadius: BorderRadius.circular(AppSizes.r16)),
-              child: displayImageUrl != null
-                  ? Hero(
-                      tag: heroTag ?? '${AppStrings.scanImageHero}${scanData.barcode ?? scanData.productName}',
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppSizes.r16),
-                        child: CachedNetworkImage(
-                          imageUrl: displayImageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Shimmer.fromColors(
-                            baseColor: context.appColorScheme.border.withValues(alpha: 0.2),
-                            highlightColor: context.appColorScheme.border.withValues(alpha: 0.1),
-                            child: Container(color: AppPalette.white),
-                          ),
-                          errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon32, color: context.appColorScheme.textMuted),
-                        ),
-                      ),
-                    )
-                  : Icon(AppIcons.package, size: AppSizes.icon32, color: context.appColorScheme.textMuted),
+      padding: const EdgeInsets.all(5),
+      child: Column(
+        children: [
+          // Header Section
+          Container(
+            constraints: const BoxConstraints(minHeight: 120),
+            decoration: BoxDecoration(
+              color: scheme.border.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: borderColor),
             ),
-            Gap.w16,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    scanData.productName,
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s18, fontWeight: FontWeight.w800, height: 1.2),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    scanData.brand,
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s13),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Gap.h12,
-                  Wrap(
-                    spacing: AppSizes.p8,
-                    runSpacing: AppSizes.p8,
-                    children: [
-                      if (scanData.nutriscore != null) ClassificationBadge(label: AppStrings.nutriScore.toUpperCase(), value: scanData.nutriscore!.toUpperCase()),
-                      if (scanData.novaGroup != null) ClassificationBadge(label: AppStrings.nova.toUpperCase(), value: scanData.novaGroup!),
-                    ],
-                  ),
-                ],
+            padding: const EdgeInsets.fromLTRB(20, 18, 18, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            scanData.productName,
+                            style: context.headingMd.copyWith(color: textColor, fontWeight: FontWeight.w900, letterSpacing: -1.0, height: 1.1, fontFeatures: const [FontFeature.tabularFigures()]),
+                          ),
+                          Gap.h8,
+                          Text(
+                            scanData.brand.toUpperCase(),
+                            style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(color: textColor, borderRadius: BorderRadius.circular(14)),
+                      child: displayImageUrl != null
+                          ? Hero(
+                              tag: heroTag ?? '${AppStrings.scanImageHero}${scanData.barcode ?? scanData.productName}',
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: CachedNetworkImage(
+                                  imageUrl: displayImageUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Shimmer.fromColors(
+                                    baseColor: scheme.border.withValues(alpha: 0.2),
+                                    highlightColor: scheme.border.withValues(alpha: 0.1),
+                                    child: Container(color: AppPalette.white),
+                                  ),
+                                  errorWidget: (_, _, _) => Icon(AppIcons.package, size: 22, color: invertedColor),
+                                ),
+                              ),
+                            )
+                          : Icon(AppIcons.package, size: 22, color: invertedColor),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Gut Impact Summary Row (New Integrated Style)
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: _ProductHeroRow(
+              title: '${scanData.score} ${AppStrings.pointsUnit.toUpperCase()}',
+              subtitle: AppStrings.gutImpact,
+              isDone: true,
+              textColor: textColor,
+              borderColor: borderColor,
+              icon: AppIcons.activity,
+            ),
+          ),
+
+          if (scanData.nutriscore != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: _ProductHeroRow(title: AppStrings.nutriScore, subtitle: 'Grade ${scanData.nutriscore!.toUpperCase()}', isDone: true, textColor: textColor, borderColor: borderColor),
+            ),
+          if (scanData.novaGroup != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: _ProductHeroRow(title: AppStrings.nova, subtitle: 'Processing Group ${scanData.novaGroup}', isDone: true, textColor: textColor, borderColor: borderColor),
+            ),
+
+          // Individual Impact Details
+          ...scanData.impacts.map(
+            (e) => Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: _ProductHeroRow(
+                title: e.title,
+                subtitle: e.level,
+                isDone: ['good', 'positive', 'healing', 'high', 'neutral'].contains(e.level.toLowerCase()),
+                textColor: textColor,
+                borderColor: borderColor,
+                icon: ['good', 'positive', 'healing', 'high', 'neutral'].contains(e.level.toLowerCase()) ? AppIcons.check : AppIcons.alertCircle,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class ClassificationBadge extends StatelessWidget {
-  const ClassificationBadge({super.key, required this.label, required this.value});
-  final String label;
-  final String value;
+class _ProductHeroRow extends StatelessWidget {
+  const _ProductHeroRow({required this.title, this.subtitle, this.isDone = false, required this.textColor, required this.borderColor, this.icon});
+
+  final String title;
+  final String? subtitle;
+  final bool isDone;
+  final Color textColor;
+  final Color borderColor;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    var badgeColor = context.appColorScheme.elevatedSurface;
-    if (label == AppStrings.nova.toUpperCase()) {
-      badgeColor = context.appColorScheme.elevatedSurface;
-    }
+    // Smart Radius Heuristic: If it has a subtitle or very long title, it's likely 2+ lines.
+    final isLong = (subtitle?.length ?? 0) > 40 || title.length > 30;
+    final radius = isLong ? 24.0 : 50.0;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p10, vertical: AppSizes.p4 / 1.3),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppSizes.r8),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+        color: context.appColorScheme.elevatedSurface,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(label, style: context.eyebrow.copyWith(fontSize: AppSizes.s9, letterSpacing: 0.5)),
-          Gap.w8,
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p6, vertical: AppSizes.p2),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
-              color: badgeColor,
-              borderRadius: BorderRadius.circular(AppSizes.r4),
-              border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+              shape: BoxShape.circle,
+              color: textColor,
+              border: Border.all(color: textColor, width: 1.5),
             ),
-            child: Text(
-              value,
-              style: context.bodyBold.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textPrimary),
+            child: Icon(icon ?? AppIcons.check, size: 14, color: context.appColorScheme.cardBackground),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: context.bodySm.copyWith(fontWeight: FontWeight.w600, color: textColor),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    style: context.caption.copyWith(color: textColor.withValues(alpha: 0.5), fontSize: 11.sp),
+                  ),
+                ],
+              ],
             ),
           ),
+          const SizedBox(width: 8),
+          Icon(AppIcons.chevronRight, size: 20, color: textColor.withValues(alpha: 0.3)),
         ],
       ),
     );

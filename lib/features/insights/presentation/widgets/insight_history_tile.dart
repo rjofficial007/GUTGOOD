@@ -117,7 +117,7 @@ class InsightHistoryTile extends StatelessWidget {
       case 'goal':
         return AppIcons.target;
       default:
-        return AppIcons.sparkles;
+        return AppIcons.salad;
     }
   }
 }
