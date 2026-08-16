@@ -69,125 +69,67 @@ class _MainDashboardSliver extends StatelessWidget {
   List<Widget> _buildSections({required BuildContext context, required int streak, required List<BodyPattern> patterns}) {
     final sections = <Widget>[GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: streak, isActive: false)];
 
-    // 1. STRATEGIC FOCUS
-    if (data.healingGoal != null || data.triggerSymptom != null) {
-      sections.add(
-        DashboardEntrance(
-          delay: 50,
-          child: AnalysisCard(
-            metric: 'FOCUS',
-            label: 'STRATEGY AT THE TIME',
-            icon: AppIcons.target,
-            glowColor: AppPalette.blue,
-            items: [
-              if (data.healingGoal != null) AnalysisItem(title: 'GOAL: ${data.healingGoal!.toUpperCase()}', subtitle: 'Primary healing objective', icon: AppIcons.leaf, isDone: true),
-              if (data.triggerSymptom != null) AnalysisItem(title: 'WATCHING: ${data.triggerSymptom!.toUpperCase()}', subtitle: 'Tracking for patterns', icon: AppIcons.activity),
-            ],
+    // helper to map patterns to core 6
+    final corePatterns = {
+      'Bloating': patterns.where((p) => p.trigger.toLowerCase().contains('bloat') || p.description.toLowerCase().contains('bloat')).toList(),
+      'Energy': patterns.where((p) => p.trigger.toLowerCase().contains('energy') || p.description.toLowerCase().contains('energy') || p.description.toLowerCase().contains('fatigue')).toList(),
+      'Headache': patterns.where((p) => p.trigger.toLowerCase().contains('headache') || p.description.toLowerCase().contains('headache') || p.description.toLowerCase().contains('migraine')).toList(),
+      'Digestion': patterns.where((p) => p.trigger.toLowerCase().contains('digest') || p.description.toLowerCase().contains('gas') || p.description.toLowerCase().contains('stomach')).toList(),
+      'Fullness': patterns.where((p) => p.trigger.toLowerCase().contains('full') || p.description.toLowerCase().contains('satisfied') || p.description.toLowerCase().contains('hungry')).toList(),
+      'Sleep': patterns.where((p) => p.trigger.toLowerCase().contains('sleep') || p.description.toLowerCase().contains('night')).toList(),
+    };
+
+    final icons = {
+      'Bloating': AppIcons.alertTriangle,
+      'Energy': AppIcons.zap,
+      'Headache': AppIcons.activity,
+      'Digestion': AppIcons.leaf,
+      'Fullness': AppIcons.utensils,
+      'Sleep': AppIcons.moon,
+    };
+
+    // 1. Core 6 Patterns (Only show if data exists)
+    int delay = 100;
+    for (final entry in corePatterns.entries) {
+      if (entry.value.isNotEmpty) {
+        sections.add(
+          DashboardEntrance(
+            delay: delay,
+            child: AnalysisCard(
+              metric: '${entry.value.length}',
+              label: '${entry.key.toUpperCase()} PATTERN',
+              icon: icons[entry.key] ?? AppIcons.activity,
+              glowColor: AppPalette.gray400, // Premium/Monochrome instead of green
+              items: entry.value.map((p) => AnalysisItem(title: p.trigger.toUpperCase(), subtitle: p.description, icon: AppIcons.lightbulb)).toList(),
+            ),
           ),
-        ),
-      );
+        );
+        delay += 50;
+      }
     }
 
-    // 2. BETTER ENERGY (healingFoods)
-    if (data.healingFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'positive')) {
-      final healingCount = data.healingFoods.length + data.foodImpacts.where((i) => i.impactType == 'positive').length;
-      final label = data.healingTrend != null ? 'BETTER ENERGY • ${data.healingTrend}' : 'BETTER ENERGY';
-
-      sections.add(
-        DashboardEntrance(
-          delay: 100,
-          child: AnalysisCard(
-            metric: '$healingCount',
-            label: label,
-            icon: AppIcons.zap,
-            glowColor: AppPalette.green,
-            items: [
-              ...data.healingFoods.map((f) => AnalysisItem(title: f.name, subtitle: f.effect, icon: AppIcons.check)),
-              ...data.foodImpacts.where((i) => i.impactType == 'positive').map((i) => AnalysisItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: AppIcons.check)),
-            ],
-          ),
-        ),
-      );
+    // 2. AI SMART ALERT (Top Insight)
+    if (data.topInsight != null) {
+      sections.add(DashboardEntrance(delay: delay, child: ModernSmartAlert(insight: data.topInsight!)));
+      delay += 50;
     }
 
-    // 3. BLOATING (triggerFoods)
-    if (data.triggerFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'negative')) {
-      final triggerCount = data.triggerFoods.length + data.foodImpacts.where((i) => i.impactType == 'negative').length;
-      final label = data.triggerTrend != null ? 'BLOATING TRIGGERS • ${data.triggerTrend}' : 'BLOATING TRIGGERS';
-
-      sections.add(
-        DashboardEntrance(
-          delay: 200,
-          child: AnalysisCard(
-            metric: '$triggerCount',
-            label: label,
-            icon: AppIcons.alertTriangle,
-            glowColor: AppPalette.red,
-            items: [
-              ...data.triggerFoods.map((f) => AnalysisItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle)),
-              ...data.foodImpacts.where((i) => i.impactType == 'negative').map((i) => AnalysisItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: AppIcons.alertCircle)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 4. SYSTEM DISCOVERIES (PatternEngine Data)
-    if (patterns.isNotEmpty) {
-      sections.add(
-        DashboardEntrance(
-          delay: 300,
-          child: AnalysisCard(
-            metric: '${patterns.length}',
-            label: 'SYSTEM DISCOVERIES',
-            icon: AppIcons.brain,
-            glowColor: AppPalette.purple,
-            items: patterns.map((p) => AnalysisItem(title: p.trigger.toUpperCase(), subtitle: p.description, icon: AppIcons.lightbulb)).toList(),
-          ),
-        ),
-      );
-    }
-
-    // 5. RECENT PATTERNS (foodImpacts)
+    // 3. RECENT LOGS (if any)
     if (data.foodImpacts.isNotEmpty) {
       sections.add(
         DashboardEntrance(
-          delay: 400,
+          delay: delay,
           child: AnalysisCard(
             metric: '${data.foodImpacts.length}',
             label: 'RECENT LOGS',
             icon: AppIcons.history,
-            glowColor: AppPalette.blue,
+            glowColor: AppPalette.gray400,
             items: data.foodImpacts
                 .map((i) => AnalysisItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: i.impactType == 'positive' ? AppIcons.check : AppIcons.alertCircle))
                 .toList(),
           ),
         ),
       );
-    }
-
-    // 6. STATISTICAL MVP (topHealing/topTrigger)
-    if (data.topHealing != null || data.topTrigger != null) {
-      sections.add(
-        DashboardEntrance(
-          delay: 500,
-          child: AnalysisCard(
-            metric: data.topHealing?.frequency ?? 'MVP',
-            label: 'TOP PERFORMANCE',
-            icon: AppIcons.trophy,
-            glowColor: AppPalette.green,
-            items: [
-              if (data.topHealing != null) AnalysisItem(title: 'BEST: ${data.topHealing!.food}', subtitle: data.topHealing!.effects, icon: AppIcons.star),
-              if (data.topTrigger != null) AnalysisItem(title: 'MOST REACTIVE: ${data.topTrigger!.food}', subtitle: data.topTrigger!.effects, icon: AppIcons.alertTriangle),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 7. AI SMART ALERT
-    if (data.topInsight != null) {
-      sections.add(ModernSmartAlert(insight: data.topInsight!));
     }
 
     sections.add(

@@ -205,4 +205,11 @@ class InsightStrings {
   static const String yourReactions = 'YOUR REACTIONS';
   static const String insightLabelSuffix = ' INSIGHT';
   static const String topPerformers = 'TOP PERFORMERS';
+
+  static const String aiScanHistory = 'AI SCAN HUB';
+  static const String dailyMealJournal = 'DAILY MEAL JOURNAL';
+  static const String bodySymptomTracker = 'BODY & SYMPTOM TRACKER';
+  static const String viewAllScans = 'View All Scans';
+  static const String noMealsLogged = 'No meals logged today.';
+  static const String noSymptomsLogged = 'No feelings logged today.';
 }

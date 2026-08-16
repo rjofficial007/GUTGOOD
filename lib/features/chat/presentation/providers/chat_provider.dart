@@ -647,7 +647,7 @@ class ChatNotifier with ChangeNotifier {
     final idx = _indexOfLocalId(aiLocalId);
     if (idx == -1) return;
 
-    final result = _processChatTagUseCase(_fullAiText, imageUrl: imageUrl, source: source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn);
+    final result = _processChatTagUseCase(_fullAiText, imageUrl: imageUrl, source: source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: false);
 
     var finalToDisplay = _applySafetyGuardrails(result.text);
     if (finalToDisplay.isEmpty && (result.scanData != null || (result.swapData != null && result.swapData!.isNotEmpty))) {
@@ -676,9 +676,16 @@ class ChatNotifier with ChangeNotifier {
       return;
     }
 
-    // Flush whatever arrived before the failure.
-    if (_chunkBuffer.isNotEmpty) {
-      _flushChunkBuffer(imageUrl: _messages[idx].imageUrl, source: _messages[idx].source);
+    // Flush whatever arrived before the failure with isFinal: true
+    if (_chunkBuffer.isNotEmpty || _fullAiText.isNotEmpty) {
+      _fullAiText += _chunkBuffer;
+      _chunkBuffer = '';
+      final result = _processChatTagUseCase(_fullAiText, imageUrl: _messages[idx].imageUrl, source: _messages[idx].source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: true);
+       _messages[idx] = _messages[idx].copyWith(
+        text: _applySafetyGuardrails(result.text),
+        scanData: result.scanData,
+        swapData: result.swapData,
+      );
     }
 
     final kind = error is AiQuotaExceededException ? ChatErrorKind.quota : ChatErrorKind.connection;
@@ -711,7 +718,16 @@ class ChatNotifier with ChangeNotifier {
       return;
     }
 
-    _flushChunkBuffer(imageUrl: _messages[idx].imageUrl, source: _messages[idx].source);
+    // Final flush with isFinal: true to capture unclosed tags
+    _fullAiText += _chunkBuffer;
+    _chunkBuffer = '';
+    final result = _processChatTagUseCase(_fullAiText, imageUrl: _messages[idx].imageUrl, source: _messages[idx].source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: true);
+    
+    _messages[idx] = _messages[idx].copyWith(
+      text: _applySafetyGuardrails(result.text),
+      scanData: result.scanData,
+      swapData: result.swapData,
+    );
 
     if (_messages[idx].text.isEmpty && _messages[idx].scanData == null) {
       // Never persist an empty assistant bubble.

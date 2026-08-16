@@ -210,7 +210,7 @@ void _initFeatures() {
         crashlyticsService: sl(),
       ),
     )
-    ..registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl()))
+    ..registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl(), sl()))
     // --- Scanner ---
     ..registerLazySingleton<ScannerRepository>(
       () =>

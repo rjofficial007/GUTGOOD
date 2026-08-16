@@ -6,6 +6,7 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
@@ -18,6 +19,7 @@ class InsightsNotifier with ChangeNotifier {
     this._appStateService,
     this._authRepository,
     this._analyticsService,
+    this._historyService,
   ) {
     _initInsightStream();
     _appStateService.chatUpdated.addListener(_onDataUpdated);
@@ -39,11 +41,17 @@ class InsightsNotifier with ChangeNotifier {
   final AppStateService _appStateService;
   final AuthRepository _authRepository;
   final AnalyticsService _analyticsService;
+  final HistoryFirestoreService _historyService;
 
   AIInsight? _latestInsight;
   List<AIInsight> _insightHistory = [];
   List<BodyPattern> _bodyPatterns = [];
   List<HealthAlert> _healthAlerts = [];
+
+  int _totalMeals = 0;
+  int _totalSymptoms = 0;
+  int _totalScans = 0;
+
   bool _isLoading = false;
   bool _isGenerating = false;
   Timer? _debounceTimer;
@@ -70,19 +78,18 @@ class InsightsNotifier with ChangeNotifier {
       notifyListeners();
     });
 
+    _updateCounts();
+
     _insightSub = _firestoreService.getLatestInsightsStream().listen(
       (insight) {
         _latestInsight = insight;
-        if (_latestInsight != null) {
-          // AppLogger.data('LATEST_INSIGHT', _latestInsight!.toMap());
-        }
         _appStateService.setInsightsData(_latestInsight);
 
         if (_latestInsight == null && !_isGenerating) {
           generateNewInsight();
         }
 
-        _fetchHistory(); // Refresh history when latest changes
+        _fetchHistory();
         _isLoading = false;
         notifyListeners();
       },
@@ -97,7 +104,6 @@ class InsightsNotifier with ChangeNotifier {
   Future<void> _fetchHistory() async {
     try {
       _insightHistory = await _repository.getInsightHistory();
-      // AppLogger.data('INSIGHT_HISTORY', _insightHistory.map((i) => i.toMap()).toList());
       await _analyticsService.logEvent(
         name: 'insight_history_viewed',
         parameters: {'count': _insightHistory.length},
@@ -108,33 +114,42 @@ class InsightsNotifier with ChangeNotifier {
     }
   }
 
+  Future<void> _updateCounts() async {
+    try {
+      _totalMeals = await _historyService.getTotalMealLogsCount();
+      _totalSymptoms = await _historyService.getTotalSymptomsCount();
+      _totalScans = await _historyService.getTotalScansCount();
+      notifyListeners();
+    } catch (e) {
+      AppLogger.error('InsightsNotifier: Failed to update counts', error: e);
+    }
+  }
+
   AIInsight? get latestInsight => _latestInsight;
   List<AIInsight> get insightHistory => _insightHistory;
   List<BodyPattern> get bodyPatterns => _bodyPatterns;
   List<HealthAlert> get healthAlerts => _healthAlerts;
+
+  int get totalMeals => _totalMeals;
+  int get totalSymptoms => _totalSymptoms;
+  int get totalScans => _totalScans;
+
+  bool get isSufficient => _totalScans >= 3 || (_totalMeals >= 3 && _totalSymptoms >= 1);
+
   bool get isLoading => _isLoading;
   bool get isGenerating => _isGenerating;
 
   Future<void> markAllAlertsAsRead() async {
-    final unreadIds = _healthAlerts
-        .where((a) => !a.isRead)
-        .map((a) => a.id)
-        .toList();
+    final unreadIds = _healthAlerts.where((a) => !a.isRead).map((a) => a.id).toList();
     if (unreadIds.isEmpty) return;
 
-    // Optimistic UI update
-    _healthAlerts = _healthAlerts
-        .map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a)
-        .toList();
+    _healthAlerts = _healthAlerts.map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a).toList();
     notifyListeners();
 
     try {
       await _firestoreService.markAlertsAsRead(unreadIds);
     } catch (e) {
-      AppLogger.error(
-        'InsightsNotifier: Error marking alerts as read',
-        error: e,
-      );
+      AppLogger.error('InsightsNotifier: Error marking alerts as read', error: e);
     }
   }
 
@@ -151,6 +166,7 @@ class InsightsNotifier with ChangeNotifier {
   }
 
   void _onDataUpdated() {
+    _updateCounts();
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(seconds: 5), () {
       generateNewInsight().catchError((e, st) {

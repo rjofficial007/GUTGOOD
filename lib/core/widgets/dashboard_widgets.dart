@@ -6,21 +6,54 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
-class DashboardEntrance extends StatelessWidget {
+class DashboardEntrance extends StatefulWidget {
   const DashboardEntrance({super.key, required this.child, required this.delay});
   final Widget child;
   final int delay;
 
   @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-    tween: Tween(begin: 0.0, end: 1.0),
-    duration: const Duration(milliseconds: 800),
-    curve: Curves.easeOutCubic,
-    builder: (context, value, child) => Opacity(
-      opacity: value,
-      child: Transform.translate(offset: Offset(0, 30 * (1 - value)), child: child),
+  State<DashboardEntrance> createState() => _DashboardEntranceState();
+}
+
+class _DashboardEntranceState extends State<DashboardEntrance> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+  late Animation<Offset> _offset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
+    );
+
+    _offset = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+    opacity: _opacity,
+    child: SlideTransition(
+      position: _offset,
+      child: widget.child,
     ),
-    child: child,
   );
 }
 
@@ -37,7 +70,6 @@ class DashboardCard extends StatelessWidget {
       color: context.appColorScheme.cardBackground,
       borderRadius: BorderRadius.circular(AppSizes.r28),
       border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-      boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 8))],
     ),
     child: Column(
       mainAxisSize: MainAxisSize.min,

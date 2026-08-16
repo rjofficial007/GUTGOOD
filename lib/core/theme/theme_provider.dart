@@ -11,15 +11,14 @@ class ThemeNotifier extends ChangeNotifier {
 
   static ThemeMode _loadTheme(SharedPreferences prefs) {
     try {
-      final theme = prefs.get(_themeKey);
-      if (theme is String) {
-        if (theme == 'light') return ThemeMode.light;
-        if (theme == 'dark') return ThemeMode.dark;
-      }
+      final theme = prefs.getString(_themeKey);
+      if (theme == 'light') return ThemeMode.light;
+      if (theme == 'dark') return ThemeMode.dark;
+      if (theme == 'system') return ThemeMode.system;
     } catch (_) {
       // Fallback for any storage issues
     }
-    return ThemeMode.light;
+    return ThemeMode.light; // Default to light as requested
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -27,13 +26,19 @@ class ThemeNotifier extends ChangeNotifier {
     _themeMode = mode;
     notifyListeners();
 
-    if (mode == ThemeMode.light) {
-      await _prefs.setString(_themeKey, 'light');
-    } else if (mode == ThemeMode.dark) {
-      await _prefs.setString(_themeKey, 'dark');
-    } else {
-      await _prefs.remove(_themeKey);
+    String themeStr;
+    switch (mode) {
+      case ThemeMode.light:
+        themeStr = 'light';
+        break;
+      case ThemeMode.dark:
+        themeStr = 'dark';
+        break;
+      case ThemeMode.system:
+        themeStr = 'system';
+        break;
     }
+    await _prefs.setString(_themeKey, themeStr);
   }
 
   bool get isDarkMode => _themeMode == ThemeMode.dark;

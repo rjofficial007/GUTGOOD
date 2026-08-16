@@ -1,5 +1,7 @@
 import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 
@@ -30,4 +32,12 @@ class HistoryRepositoryImpl implements HistoryRepository {
   @override
   Future<bool> isFoodSaved(String? productName, {String? barcode}) async =>
       _firestoreService.isFoodSaved(productName, barcode: barcode);
+
+  @override
+  Future<List<MealLog>> getRecentMealLogs({int limit = 30}) async =>
+      _firestoreService.getRecentMealLogs(limit: limit);
+
+  @override
+  Future<List<SymptomLog>> getRecentSymptomLogs({int limit = 30}) async =>
+      _firestoreService.getRecentSymptomLogs(limit: limit);
 }

@@ -10,6 +10,7 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
@@ -60,9 +61,119 @@ class _NoInsightsState extends StatelessWidget {
   const _NoInsightsState();
 
   @override
-  Widget build(BuildContext context) => const SliverFillRemaining(
-    hasScrollBody: false,
-    child: EmptyStateWidget(icon: AppIcons.barChart, title: AppStrings.noInsightsYet, description: AppStrings.keepLoggingForPatterns),
+  Widget build(BuildContext context) {
+    final notifier = context.watch<InsightsNotifier>();
+    final meals = notifier.totalMeals;
+    final symptoms = notifier.totalSymptoms;
+    final scans = notifier.totalScans;
+
+    String title;
+    String description;
+    IconData icon = AppIcons.barChart;
+
+    if (scans == 0 && meals == 0) {
+      title = 'Keep logging meals.';
+      description = 'GutGood needs a little more information before it can identify patterns.';
+    } else if (scans < 3 && meals < 3) {
+      title = "You're getting closer.";
+      description = 'Log a few more meals and symptoms so GutGood can start identifying meaningful trends.';
+    } else if (symptoms == 0) {
+      title = 'Meals recorded ✔';
+      description = "Add a few symptom check-ins so GutGood can connect food with how you're feeling.";
+      icon = AppIcons.activity;
+    } else {
+      title = AppStrings.noInsightsYet;
+      description = AppStrings.keepLoggingForPatterns;
+    }
+
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Padding(
+        padding: EdgeInsets.all(AppSizes.p40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(AppSizes.p24),
+              decoration: BoxDecoration(
+                color: context.appColorScheme.aiResponseBackground,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 48, color: context.appColorScheme.textPrimary),
+            ),
+            Gap.h24,
+            Text(title, style: AppTextStyles.title.copyWith(color: context.appColorScheme.textPrimary), textAlign: TextAlign.center),
+            Gap.h12,
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary),
+            ),
+            Gap.h32,
+            _ProgressIndicator(meals: meals, symptoms: symptoms, scans: scans),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressIndicator extends StatelessWidget {
+  const _ProgressIndicator({required this.meals, required this.symptoms, required this.scans});
+  final int meals;
+  final int symptoms;
+  final int scans;
+
+  @override
+  Widget build(BuildContext context) {
+    final mealProgress = (meals / 3).clamp(0.0, 1.0);
+    final symptomProgress = (symptoms / 1).clamp(0.0, 1.0);
+    final scanProgress = (scans / 3).clamp(0.0, 1.0);
+
+    return Column(
+      children: [
+        _ProgressRow(label: 'Meals', progress: mealProgress, count: meals, total: 3),
+        Gap.h12,
+        _ProgressRow(label: 'Symptoms', progress: symptomProgress, count: symptoms, total: 1),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Text('OR', style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: context.appColorScheme.textSecondary)),
+        ),
+        _ProgressRow(label: 'AI Scans', progress: scanProgress, count: scans, total: 3),
+      ],
+    );
+  }
+}
+
+class _ProgressRow extends StatelessWidget {
+  const _ProgressRow({required this.label, required this.progress, required this.count, required this.total});
+  final String label;
+  final double progress;
+  final int count;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label.toUpperCase(), style: AppTextStyles.eyebrow.copyWith(color: context.appColorScheme.textMuted)),
+          Text('$count/$total', style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: context.appColorScheme.textSecondary)),
+        ],
+      ),
+      Gap.h6,
+      ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: LinearProgressIndicator(
+          value: progress,
+          minHeight: 6,
+          backgroundColor: context.appColorScheme.border.withValues(alpha: 0.3),
+          valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
+        ),
+      ),
+    ],
   );
 }
 

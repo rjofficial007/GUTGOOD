@@ -136,6 +136,12 @@ class AppStrings {
   static const String insightLabelSuffix = InsightStrings.insightLabelSuffix;
   static const String mostReactive = InsightStrings.mostReactive;
   static const String topPerformers = InsightStrings.topPerformers;
+  static const String aiScanHistory = InsightStrings.aiScanHistory;
+  static const String dailyMealJournal = InsightStrings.dailyMealJournal;
+  static const String bodySymptomTracker = InsightStrings.bodySymptomTracker;
+  static const String viewAllScans = InsightStrings.viewAllScans;
+  static const String noMealsLogged = InsightStrings.noMealsLogged;
+  static const String noSymptomsLogged = InsightStrings.noSymptomsLogged;
   static const String profileTab = CommonStrings.profileTab;
   static const String confirmAction = CommonStrings.confirmAction;
   static const String skipForNow = CommonStrings.skipForNow;

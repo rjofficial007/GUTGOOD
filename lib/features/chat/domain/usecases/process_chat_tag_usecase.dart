@@ -30,7 +30,6 @@ class ProcessChatTagUseCase {
   final NotificationService _notificationService;
   final AppStateService _appStateService;
 
-  /// Robustly extracts JSON from a string that might contain noise (e.g., "JSON object: { ... }")
   String? _extractJson(String? raw, {bool isArray = false}) {
     if (raw == null || raw.isEmpty) return null;
     final startChar = isArray ? '[' : '{';
@@ -45,184 +44,120 @@ class ProcessChatTagUseCase {
     return raw.replaceAll('```json', '').replaceAll('```', '').trim();
   }
 
-  /// Parses passive-logging tags ([MEAL]/[SYMPTOM]/[SCAN]/[SWAPS]) from an
-  /// AI response. When [persist] is false, tags are only STRIPPED/parsed for
-  /// display — nothing is written to Firestore. Used by regenerate, where the
-  /// original response already logged its tags.
-  ProcessChatTagResult call(String text, {String? imageUrl, String? source, Set<String>? persistedTagBlocks, bool persist = true}) {
-    var processedText = text;
+  ProcessChatTagResult call(String text, {String? imageUrl, String? source, Set<String>? persistedTagBlocks, bool persist = true, bool isFinal = false}) {
+    var displayOutput = text;
     ScanResult? scanData;
     List<ProductSwap>? swapData;
     var isSwap = false;
     final foodMentions = <String>[];
     final symptomMentions = <String>[];
 
-    if (!processedText.contains('[/')) {
-      return ProcessChatTagResult(text: processedText);
-    }
+    final tags = ['SYMPTOM', 'MEAL', 'SCAN', 'SWAPS'];
 
-    // 1. SYMPTOM
-    if (processedText.contains('[/SYMPTOM]')) {
-      final regex = RegExp(r'\[SYMPTOM\](.*?)\[/SYMPTOM\]', dotAll: true);
-      final matches = regex.allMatches(processedText);
+    // --- STEP 1: PARSING (Always use the full original text) ---
+    for (final tag in tags) {
+      final startTag = '[$tag]';
+      final endTag = '[/$tag]';
+      
+      int searchPos = 0;
+      while (true) {
+        int tagIndex = text.indexOf(startTag, searchPos);
+        if (tagIndex == -1) break;
+        
+        int endTagIndex = text.indexOf(endTag, tagIndex + startTag.length);
+        bool isClosed = endTagIndex != -1;
+        
+        String rawBlock = isClosed 
+            ? text.substring(tagIndex, endTagIndex + endTag.length)
+            : text.substring(tagIndex);
+            
+        String content = isClosed 
+            ? text.substring(tagIndex + startTag.length, endTagIndex)
+            : text.substring(tagIndex + startTag.length);
 
-      for (final match in matches) {
-        final rawBlock = match.group(0) ?? '';
-        final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
-
-        if (!alreadyPersisted) {
-          try {
-            final jsonStr = _extractJson(match.group(1));
-            if (jsonStr != null) {
-              final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
-              if (persist) {
-                final log = SymptomLog.fromMap(decoded).copyWith(source: source ?? 'chat');
-                unawaited(_firestoreService.logSymptom(log));
-                _appStateService.notifyChatUpdated();
-                AppLogger.info('ProcessChatTagUseCase: [SYMPTOM] logged successfully: ${log.symptom}');
-              }
-
-              if (decoded['symptom'] != null) {
-                symptomMentions.add(decoded['symptom'].toString());
-              }
-              persistedTagBlocks?.add(rawBlock);
-            }
-          } catch (e) {
-            AppLogger.error('ProcessChatTagUseCase: Symptom parse failed', error: e);
-          }
-        }
-      }
-      processedText = processedText.replaceAll(regex, '').trim();
-    }
-
-    // 2. MEAL
-    if (processedText.contains('[/MEAL]')) {
-      final regex = RegExp(r'\[MEAL\](.*?)\[/MEAL\]', dotAll: true);
-      final matches = regex.allMatches(processedText);
-
-      for (final match in matches) {
-        final rawBlock = match.group(0) ?? '';
-        final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
-
-        if (!alreadyPersisted) {
-          try {
-            final jsonStr = _extractJson(match.group(1));
-            if (jsonStr != null) {
-              final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
-
-              final items = ModelUtils.parseList<String>(decoded['items']);
-              final tags = ModelUtils.parseList<String>(decoded['tags']);
-
-              if (persist) {
-                final log = MealLog.fromMap({...decoded, 'photoUrl': imageUrl}).copyWith(source: source ?? 'chat', foodTags: tags);
-                unawaited(_firestoreService.logMeal(log));
-                unawaited(_notificationService.schedulePostMealCheckIn());
-                unawaited(_notificationService.scheduleNoMealLoggedReminder());
-                _appStateService.notifyChatUpdated();
-                AppLogger.info('ProcessChatTagUseCase: [MEAL] logged successfully: ${log.items.join(', ')}');
-
-                // 🟢 Mark that a meal was logged in this turn to avoid double-logging from [SCAN] tags
-                persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');
-              }
-              foodMentions.addAll(items);
-              persistedTagBlocks?.add(rawBlock);
-            }
-          } catch (e) {
-            AppLogger.error('ProcessChatTagUseCase: Meal parse failed', error: e);
-          }
-        }
-      }
-      processedText = processedText.replaceAll(regex, '').trim();
-    }
-
-    // 3. SCAN
-    if (processedText.contains('[/SCAN]')) {
-      final regex = RegExp(r'\[SCAN\](.*?)\[/SCAN\]', dotAll: true);
-      final matches = regex.allMatches(processedText);
-
-      for (final match in matches) {
-        final rawBlock = match.group(0) ?? '';
         final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
 
         try {
-          final jsonStr = _extractJson(match.group(1));
+          final jsonStr = _extractJson(content, isArray: tag == 'SWAPS');
           if (jsonStr != null) {
-            final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
-
-            final ingredientsList = ModelUtils.parseList<dynamic>(decoded['ingredients']);
-            final flagged = <String>[];
-            if (ingredientsList.isNotEmpty) {
-              for (var ing in ingredientsList) {
-                if (ing is Map && (ing['colorName'] == 'red' || ing['colorName'] == 'orange')) {
-                  flagged.add(ing['name']?.toString() ?? 'Unknown');
+            final decoded = jsonDecode(jsonStr);
+            
+            if (tag == 'SYMPTOM' && decoded is Map<String, dynamic>) {
+              if (!alreadyPersisted && (isClosed || isFinal)) {
+                if (persist) {
+                  final log = SymptomLog.fromMap(decoded).copyWith(source: source ?? 'chat');
+                  unawaited(_firestoreService.logSymptom(log));
+                  _appStateService.notifyChatUpdated();
                 }
+                persistedTagBlocks?.add(rawBlock);
               }
-            }
-
-            final currentScan = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl, flaggedIngredients: flagged);
-
-            // The last scan found in the message will be shown in the UI bubble.
-            scanData = currentScan;
-
-            if (!alreadyPersisted) {
-              AppLogger.info('ProcessChatTagUseCase: [SCAN] parsed successfully: ${currentScan.productName}. Image: ${imageUrl != null}');
-              if (persist) {
-                // 🚀 Professional Filter: Only persist scans and auto-log meals if it's an actual product.
-                if (currentScan.isLoggableProduct) {
+              if (decoded['symptom'] != null) symptomMentions.add(decoded['symptom'].toString());
+            } else if (tag == 'MEAL' && decoded is Map<String, dynamic>) {
+              if (!alreadyPersisted && (isClosed || isFinal)) {
+                if (persist) {
+                  final log = MealLog.fromMap({...decoded, 'photoUrl': imageUrl}).copyWith(source: source ?? 'chat');
+                  unawaited(_firestoreService.logMeal(log));
+                  _appStateService.notifyChatUpdated();
+                  persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');
+                }
+                persistedTagBlocks?.add(rawBlock);
+              }
+              final items = ModelUtils.parseList<String>(decoded['items']);
+              foodMentions.addAll(items);
+            } else if (tag == 'SCAN' && decoded is Map<String, dynamic>) {
+              final currentScan = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl);
+              scanData = currentScan;
+              
+              if (!alreadyPersisted && (isClosed || isFinal)) {
+                if (persist && currentScan.isLoggableProduct) {
                   unawaited(_firestoreService.saveToScanHistory(currentScan, userImageUrl: imageUrl));
 
-                  // 🟢 Automatically log as a meal if it's a food image source OR if an image is present in the turn
                   final isFoodImage = source == 'food' || source == 'meal' || source == 'gallery' || imageUrl != null;
                   final alreadyLogged = persistedTagBlocks?.contains('__MEAL_LOGGED_IN_TURN__') ?? false;
-
                   if (isFoodImage && !alreadyLogged) {
                     final mealLog = MealLog(items: [currentScan.productName], photoUrl: imageUrl ?? currentScan.imageUrl, time: DateTime.now(), source: source ?? 'chat');
                     unawaited(_firestoreService.logMeal(mealLog));
                     persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');
-                    AppLogger.info('ProcessChatTagUseCase: Food image automatically logged as a meal from [SCAN] tag (Image: ${imageUrl != null})');
                   }
-                } else {
-                  AppLogger.info('ProcessChatTagUseCase: Skipping history/meal log for non-product scan: ${currentScan.productName}');
+                  _appStateService.notifyChatUpdated();
                 }
-
-                unawaited(_notificationService.schedulePostMealCheckIn());
-                unawaited(_notificationService.scheduleNoMealLoggedReminder());
-                _appStateService.notifyChatUpdated();
+                persistedTagBlocks?.add(rawBlock);
               }
-              persistedTagBlocks?.add(rawBlock);
+            } else if (tag == 'SWAPS' && decoded is List) {
+              swapData = ModelUtils.parseModelList<ProductSwap>(jsonStr, ProductSwap.fromMap);
+              isSwap = true;
+              if (!alreadyPersisted && (isClosed || isFinal)) persistedTagBlocks?.add(rawBlock);
             }
           }
         } catch (e) {
-          AppLogger.error('ProcessChatTagUseCase: SCAN parse failed', error: e);
+          // Streaming noise
         }
-      }
-      processedText = processedText.replaceAll(regex, '').replaceAll('```json', '').replaceAll('```', '').trim();
-    }
-
-    // 4. SWAPS
-    if (processedText.contains('[/SWAPS]')) {
-      final regex = RegExp(r'\[SWAPS\](.*?)\[/SWAPS\]', dotAll: true);
-      final match = regex.firstMatch(processedText);
-      if (match != null) {
-        final rawBlock = match.group(0) ?? '';
-        final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
-
-        try {
-          final jsonStr = _extractJson(match.group(1), isArray: true);
-          if (jsonStr != null) {
-            swapData = ModelUtils.parseModelList<ProductSwap>(jsonStr, ProductSwap.fromMap);
-            isSwap = true;
-            if (!alreadyPersisted) {
-              persistedTagBlocks?.add(rawBlock);
-            }
-          }
-        } catch (e) {
-          AppLogger.error('ProcessChatTagUseCase: SWAPS parse failed', error: e);
-        }
-        processedText = processedText.replaceAll(regex, '').replaceAll('```json', '').replaceAll('```', '').trim();
+        
+        if (!isClosed) break;
+        searchPos = endTagIndex + endTag.length;
       }
     }
 
-    return ProcessChatTagResult(text: processedText, scanData: scanData, swapData: swapData, isSwap: isSwap, foodMentions: foodMentions, symptomMentions: symptomMentions);
+    // --- STEP 2: UI STRIPPING (Proactively hide EVERYTHING from the first tag onwards) ---
+    int firstTagPos = -1;
+    for (final tag in tags) {
+      int pos = text.indexOf('[$tag]');
+      if (pos != -1) {
+        if (firstTagPos == -1 || pos < firstTagPos) {
+          firstTagPos = pos;
+        }
+      }
+    }
+
+    if (firstTagPos != -1) {
+      // Find potential markdown headers immediately preceding the first tag
+      int startIndex = firstTagPos;
+      while (startIndex > 0 && (text[startIndex - 1] == '#' || text[startIndex - 1] == ' ' || text[startIndex - 1] == '\n' || text[startIndex - 1] == '\r')) {
+        startIndex--;
+      }
+      displayOutput = text.substring(0, startIndex).trim();
+    }
+
+    return ProcessChatTagResult(text: displayOutput, scanData: scanData, swapData: swapData, isSwap: isSwap, foodMentions: foodMentions, symptomMentions: symptomMentions);
   }
 }

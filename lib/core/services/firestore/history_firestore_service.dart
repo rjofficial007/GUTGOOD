@@ -23,6 +23,10 @@ abstract class HistoryFirestoreService {
   Future<int> getScansCountSince(DateTime since);
   Future<int> getMealLogsCountSince(DateTime since);
   Future<int> getSymptomsCountSince(DateTime since);
+
+  Future<int> getTotalScansCount();
+  Future<int> getTotalMealLogsCount();
+  Future<int> getTotalSymptomsCount();
 }
 
 class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
@@ -255,6 +259,30 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     final doc = _userDoc;
     if (doc == null) return 0;
     final snapshot = await doc.collection('symptom_logs').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
+    return snapshot.size;
+  }
+
+  @override
+  Future<int> getTotalScansCount() async {
+    final doc = _userDoc;
+    if (doc == null) return 0;
+    final snapshot = await doc.collection('scan_history').get();
+    return snapshot.size;
+  }
+
+  @override
+  Future<int> getTotalMealLogsCount() async {
+    final doc = _userDoc;
+    if (doc == null) return 0;
+    final snapshot = await doc.collection('meal_logs').get();
+    return snapshot.size;
+  }
+
+  @override
+  Future<int> getTotalSymptomsCount() async {
+    final doc = _userDoc;
+    if (doc == null) return 0;
+    final snapshot = await doc.collection('symptom_logs').get();
     return snapshot.size;
   }
 }

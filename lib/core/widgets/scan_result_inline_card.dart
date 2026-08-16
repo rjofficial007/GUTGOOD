@@ -122,7 +122,7 @@ class ScanResultInlineCard extends StatelessWidget {
           Gap.h16,
           Text(AppStrings.contains, style: context.overline),
           Gap.h6,
-          Wrap(spacing: 8.0.w, runSpacing: 8.0.h, children: ingredients.map((ing) => _ITag(ing.name, _getColor(context, ing.colorName))).toList()),
+          Wrap(spacing: 8.0.w, runSpacing: 8.0.h, children: ingredients.map((ing) => _ITag(ing.name, _getColor(context, ing.colorName), confidence: ing.confidence)).toList()),
           Gap.h16,
           Text(AppStrings.likelyImpact, style: context.overline),
           Gap.h6,
@@ -263,30 +263,44 @@ class _InlineBenefitRow extends StatelessWidget {
 }
 
 class _ITag extends StatelessWidget {
-  const _ITag(this.label, this.color);
+  const _ITag(this.label, this.color, {this.confidence});
   final String label;
   final Color color;
+  final num? confidence;
+
   @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(AppSizes.r8),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(AppIcons.x, color: color, size: 12.0.w),
-        Gap.w6,
-        Flexible(
-          child: Text(
-            label,
-            style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+  Widget build(BuildContext context) {
+    final confidenceText = confidence != null ? ' ${(confidence! * 100).toInt()}%' : '';
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppSizes.r8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(AppIcons.x, color: color, size: 12.0.w),
+          Gap.w6,
+          Flexible(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: label, style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600)),
+                  if (confidence != null)
+                    TextSpan(
+                      text: confidenceText,
+                      style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 8.0.sp, fontWeight: FontWeight.w400),
+                    ),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

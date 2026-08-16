@@ -8,7 +8,8 @@ import 'package:gutgood/core/utils/haptic_helper.dart';
 ///
 /// Supports both filled and outlined styles, loading states, and haptic feedback.
 /// Automatically expands to fill the available horizontal width.
-class GutButton extends StatelessWidget {
+/// Enhanced with TV/Desktop focus support.
+class GutButton extends StatefulWidget {
   const GutButton({
     super.key,
     required this.label,
@@ -20,95 +21,99 @@ class GutButton extends StatelessWidget {
     this.isOutlined = false,
   });
 
-  /// The text to display on the button.
   final String label;
-
-  /// Callback function when the button is tapped.
   final VoidCallback? onTap;
-
-  /// Background color (filled) or surface color (outlined).
   final Color? color;
-
-  /// Text and icon color.
   final Color? textColor;
-
-  /// Optional icon to display after the [label].
   final IconData? suffixIcon;
-
-  /// Whether to show a [CircularProgressIndicator] instead of text.
   final bool isLoading;
-
-  /// Whether to use the outlined border style.
   final bool isOutlined;
 
   @override
-  Widget build(BuildContext context) {
-    final effectiveColor = isOutlined
-        ? (color ?? context.appColorScheme.cardBackground)
-        : (color ?? Theme.of(context).colorScheme.primary);
+  State<GutButton> createState() => _GutButtonState();
+}
 
-    final effectiveTextColor = isOutlined
-        ? (textColor ?? context.appColorScheme.textPrimary)
-        : (textColor ?? Theme.of(context).colorScheme.onPrimary);
+class _GutButtonState extends State<GutButton> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = widget.isOutlined
+        ? (widget.color ?? context.appColorScheme.cardBackground)
+        : (widget.color ?? Theme.of(context).colorScheme.primary);
+
+    final effectiveTextColor = widget.isOutlined
+        ? (widget.textColor ?? context.appColorScheme.textPrimary)
+        : (widget.textColor ?? Theme.of(context).colorScheme.onPrimary);
 
     return Semantics(
-      label: label,
+      label: widget.label,
       button: true,
-      enabled: !isLoading && onTap != null,
-      child: GestureDetector(
-        onTap: isLoading
-            ? null
-            : () {
-                HapticHelper.light();
-                onTap?.call();
-              },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(
-            vertical: AppSizes.p18,
-            horizontal: AppSizes.p24,
-          ),
-          decoration: BoxDecoration(
-            color: isLoading
-                ? effectiveColor.withValues(alpha: 0.7)
-                : effectiveColor,
-            borderRadius: BorderRadius.circular(AppSizes.r18),
-            border: isOutlined
-                ? Border.all(color: context.appColorScheme.border, width: 1.5)
-                : null,
-          ),
-          child: Center(
-            child: isLoading
-                ? SizedBox(
-                    height: AppSizes.icon20,
-                    width: AppSizes.icon20,
-                    child: CircularProgressIndicator(
-                      color: effectiveTextColor,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        style: context.bodyBold.copyWith(
-                          color: effectiveTextColor,
-                          fontSize: AppSizes.s16,
-                        ),
+      enabled: !widget.isLoading && widget.onTap != null,
+      child: FocusableActionDetector(
+        onFocusChange: (focus) => setState(() => _isFocused = focus),
+        mouseCursor: SystemMouseCursors.click,
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) => widget.onTap?.call()),
+        },
+        child: GestureDetector(
+          onTap: widget.isLoading
+              ? null
+              : () {
+                  HapticHelper.light();
+                  widget.onTap?.call();
+                },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              vertical: AppSizes.p18,
+              horizontal: AppSizes.p24,
+            ),
+            decoration: BoxDecoration(
+              color: widget.isLoading
+                  ? effectiveColor.withValues(alpha: 0.7)
+                  : (_isFocused ? effectiveColor.withValues(alpha: 0.9) : effectiveColor),
+              borderRadius: BorderRadius.circular(AppSizes.r18),
+              border: widget.isOutlined
+                  ? Border.all(color: _isFocused ? context.appColorScheme.textPrimary : context.appColorScheme.border, width: 2.0)
+                  : (_isFocused ? Border.all(color: context.appColorScheme.textPrimary.withValues(alpha: 0.5), width: 3.0) : null),
+              boxShadow: _isFocused
+                  ? [BoxShadow(color: effectiveColor.withValues(alpha: 0.4), blurRadius: 12, spreadRadius: 2)]
+                  : null,
+            ),
+            child: Center(
+              child: widget.isLoading
+                  ? SizedBox(
+                      height: AppSizes.icon20,
+                      width: AppSizes.icon20,
+                      child: CircularProgressIndicator(
+                        color: effectiveTextColor,
+                        strokeWidth: 2,
                       ),
-                      if (suffixIcon != null) ...[
-                        Gap.w8,
-                        Icon(
-                          suffixIcon,
-                          color: effectiveTextColor,
-                          size: AppSizes.icon20,
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          widget.label,
+                          textAlign: TextAlign.center,
+                          style: context.bodyBold.copyWith(
+                            color: effectiveTextColor,
+                            fontSize: AppSizes.s16,
+                          ),
                         ),
+                        if (widget.suffixIcon != null) ...[
+                          Gap.w8,
+                          Icon(
+                            widget.suffixIcon,
+                            color: effectiveTextColor,
+                            size: AppSizes.icon20,
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
+            ),
           ),
         ),
       ),

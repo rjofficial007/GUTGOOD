@@ -24,16 +24,15 @@ class StrategicFocusBadge extends StatelessWidget {
     width: double.infinity,
     padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
     decoration: BoxDecoration(
-      color: context.appColorScheme.success.withValues(alpha: 0.05),
+      color: context.appColorScheme.aiResponseBackground,
       borderRadius: BorderRadius.circular(AppSizes.r20),
-      border: Border.all(color: context.appColorScheme.success.withValues(alpha: 0.15), width: 1.5),
     ),
     child: Row(
       children: [
         Container(
           padding: EdgeInsets.all(AppSizes.p8),
-          decoration: BoxDecoration(color: context.appColorScheme.success.withValues(alpha: 0.1), shape: BoxShape.circle),
-          child: Icon(AppIcons.target, color: context.appColorScheme.success, size: AppSizes.icon18),
+          decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+          child: Icon(AppIcons.target, color: context.appColorScheme.textPrimary, size: AppSizes.icon18),
         ),
         Gap.w16,
         Expanded(
@@ -42,7 +41,7 @@ class StrategicFocusBadge extends StatelessWidget {
             children: [
               Text(
                 AppStrings.currentFocusLabel,
-                style: context.caption.copyWith(color: context.appColorScheme.success, fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: AppSizes.s10),
+                style: context.caption.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: AppSizes.s10),
               ),
               Gap.h2,
               Text(
@@ -71,9 +70,9 @@ class GoalDashboardSection extends StatelessWidget {
       subtitle: AppStrings.primaryObjectives,
       visualization: const NutrientVisualization(),
       items: [
-        if (insight.healingGoal != null) DashboardDetailItem(title: insight.healingGoal!, subtitle: AppStrings.activeGoal, icon: AppIcons.target, color: context.appColorScheme.success),
+        if (insight.healingGoal != null) DashboardDetailItem(title: insight.healingGoal!, subtitle: AppStrings.activeGoal, icon: AppIcons.target, color: context.appColorScheme.textPrimary),
         if (insight.healingGoal != null && insight.triggerSymptom != null) Gap.h12,
-        if (insight.triggerSymptom != null) DashboardDetailItem(title: insight.triggerSymptom!, subtitle: AppStrings.symptomWatch, icon: AppIcons.activity, color: context.appColorScheme.warning),
+        if (insight.triggerSymptom != null) DashboardDetailItem(title: insight.triggerSymptom!, subtitle: AppStrings.symptomWatch, icon: AppIcons.activity, color: context.appColorScheme.textSecondary),
       ],
       footerLabel: AppStrings.viewGoalProgress,
       onFooterTap: () => _showFocusDetails(context),
@@ -111,7 +110,7 @@ class PowerSourcesDashboardSection extends StatelessWidget {
           .map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.success),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.textPrimary),
             ),
           ),
       ...insight.foodImpacts
@@ -120,7 +119,7 @@ class PowerSourcesDashboardSection extends StatelessWidget {
           .map(
             (i) => Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.success),
+              child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.textPrimary),
             ),
           ),
     ].take(3).toList();
@@ -188,7 +187,7 @@ class TriggersDashboardSection extends StatelessWidget {
           .map(
             (f) => Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.error),
+              child: DashboardDetailItem(title: f.name, subtitle: f.effect, icon: InsightUiUtils.getReactionIcon(f.emoji), color: context.appColorScheme.textPrimary),
             ),
           ),
       ...insight.foodImpacts
@@ -197,7 +196,7 @@ class TriggersDashboardSection extends StatelessWidget {
           .map(
             (i) => Padding(
               padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.error),
+              child: DashboardDetailItem(title: i.food, subtitle: i.effect, icon: InsightUiUtils.getReactionIcon(i.emoji), color: context.appColorScheme.textPrimary),
             ),
           ),
     ].take(3).toList();
@@ -316,7 +315,7 @@ class HighlightsDashboardSection extends StatelessWidget {
             title: insight.topHealing!.food,
             subtitle: AppStrings.bestForGut,
             icon: InsightUiUtils.getReactionIcon(insight.topHealing?.emoji ?? ''),
-            color: context.appColorScheme.success,
+            color: context.appColorScheme.textPrimary,
           ),
         if (insight.topHealing != null && insight.topTrigger != null) Gap.h12,
         if (insight.topTrigger != null)
@@ -324,7 +323,7 @@ class HighlightsDashboardSection extends StatelessWidget {
             title: insight.topTrigger!.food,
             subtitle: AppStrings.avoidNextTime,
             icon: InsightUiUtils.getReactionIcon(insight.topTrigger?.emoji ?? ''),
-            color: context.appColorScheme.error,
+            color: context.appColorScheme.textPrimary,
           ),
       ],
       footerLabel: AppStrings.viewPerformanceHighs,

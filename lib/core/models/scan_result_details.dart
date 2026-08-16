@@ -118,25 +118,29 @@ class Ingredient extends Equatable {
     required this.name,
     required this.impact,
     required this.colorName,
+    this.confidence,
   });
 
   factory Ingredient.fromMap(Map<String, dynamic> map) => Ingredient(
     name: map['name']?.toString() ?? 'Ingredient',
     impact: map['impact']?.toString() ?? '',
     colorName: map['colorName']?.toString() ?? 'low',
+    confidence: map['confidence'] as num?,
   );
   final String name;
   final String impact;
   final String colorName;
+  final num? confidence;
 
   Map<String, dynamic> toMap() => {
     'name': name,
     'impact': impact,
     'colorName': colorName,
+    if (confidence != null) 'confidence': confidence,
   };
 
   @override
-  List<Object?> get props => [name, impact, colorName];
+  List<Object?> get props => [name, impact, colorName, confidence];
 }
 
 class CycleInsight extends Equatable {

@@ -21,6 +21,7 @@ class AppRoutes {
 
   // History Sub-routes
   static const String savedFoods = '/saved-foods';
+  static const String allScans = '/all-scans';
   static const String scanResult = '/scan-result';
   static const String nutritionFacts = '/nutrition-facts';
 

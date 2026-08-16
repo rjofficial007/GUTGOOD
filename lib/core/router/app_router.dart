@@ -20,6 +20,7 @@ import 'package:gutgood/features/auth/presentation/pages/email_login_screen.dart
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
 import 'package:gutgood/features/chat/presentation/pages/notification_archive_screen.dart';
+import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
@@ -176,6 +177,7 @@ class AppRouter {
             navigatorKey: _shellNavigatorHistoryKey,
             routes: [
               GoRoute(path: AppRoutes.history, builder: (context, state) => const ScanHistoryScreen()),
+              GoRoute(path: AppRoutes.allScans, builder: (context, state) => const AllScansScreen()),
               GoRoute(path: AppRoutes.savedFoods, builder: (context, state) => const SavedFoodsScreen()),
               GoRoute(
                 path: AppRoutes.scanResult,

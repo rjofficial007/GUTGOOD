@@ -96,14 +96,15 @@ class InsightRepositoryImpl implements InsightRepository {
       return;
     }
 
-    final scanCount = await _historyFirestoreService.getScansCountSince(lastRun);
-    final mealCount = await _historyFirestoreService.getMealLogsCountSince(lastRun);
-    final symptomCount = await _historyFirestoreService.getSymptomsCountSince(lastRun);
+    final scanCount = await _historyFirestoreService.getTotalScansCount();
+    final mealCount = await _historyFirestoreService.getTotalMealLogsCount();
+    final symptomCount = await _historyFirestoreService.getTotalSymptomsCount();
 
-    // 🟢 PRD Alignment: Do not generate if there is not enough data for a meaningful analysis.
-    // We require a minimum threshold of new activity to trigger a new AI insight.
-    if (scanCount < 3 && mealCount < 1 && symptomCount < 1) {
-      AppLogger.debug('InsightRepo: Not enough new data for analysis since $lastRun. (Scans: $scanCount/3 OR Meals: $mealCount/1 OR Symptoms: $symptomCount/1). Skipping.');
+    // 🟢 Non-Negotiable: Do not generate insight until minimum data threshold is reached.
+    // Logic: Either 3 Scans OR (3 Meals AND 1 Symptom). 
+    // This matches the UI progress indicator requirement.
+    if (scanCount < 3 && (mealCount < 3 || symptomCount < 1)) {
+      AppLogger.debug('InsightRepo: Insufficient data for first analysis. (Scans: $scanCount/3, Meals: $mealCount/3, Symptoms: $symptomCount/1). Skipping.');
       return;
     }
 
