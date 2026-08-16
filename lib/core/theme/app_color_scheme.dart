@@ -14,7 +14,9 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     required this.error,
     required this.warning,
     required this.info,
+    required this.aiResponseBackground,
   });
+
   final Color cardBackground;
   final Color elevatedSurface;
   final Color border;
@@ -25,6 +27,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color error;
   final Color warning;
   final Color info;
+  final Color aiResponseBackground;
 
   @override
   ThemeExtension<AppColorScheme> copyWith({
@@ -38,18 +41,21 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? error,
     Color? warning,
     Color? info,
-  }) => AppColorScheme(
-    cardBackground: cardBackground ?? this.cardBackground,
-    elevatedSurface: elevatedSurface ?? this.elevatedSurface,
-    border: border ?? this.border,
-    textPrimary: textPrimary ?? this.textPrimary,
-    textSecondary: textSecondary ?? this.textSecondary,
-    textMuted: textMuted ?? this.textMuted,
-    success: success ?? this.success,
-    error: error ?? this.error,
-    warning: warning ?? this.warning,
-    info: info ?? this.info,
-  );
+    Color? aiResponseBackground,
+  }) =>
+      AppColorScheme(
+        cardBackground: cardBackground ?? this.cardBackground,
+        elevatedSurface: elevatedSurface ?? this.elevatedSurface,
+        border: border ?? this.border,
+        textPrimary: textPrimary ?? this.textPrimary,
+        textSecondary: textSecondary ?? this.textSecondary,
+        textMuted: textMuted ?? this.textMuted,
+        success: success ?? this.success,
+        error: error ?? this.error,
+        warning: warning ?? this.warning,
+        info: info ?? this.info,
+        aiResponseBackground: aiResponseBackground ?? this.aiResponseBackground,
+      );
 
   @override
   ThemeExtension<AppColorScheme> lerp(
@@ -68,6 +74,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       error: Color.lerp(error, other.error, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       info: Color.lerp(info, other.info, t)!,
+      aiResponseBackground: Color.lerp(aiResponseBackground, other.aiResponseBackground, t)!,
     );
   }
 
@@ -82,6 +89,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     error: AppPalette.red,
     warning: AppPalette.orange,
     info: AppPalette.blue,
+    aiResponseBackground: AppPalette.gray50,
   );
 
   static const dark = AppColorScheme(
@@ -95,6 +103,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     error: AppPalette.red,
     warning: AppPalette.orange,
     info: AppPalette.blue,
+    aiResponseBackground: AppPalette.darkElevated,
   );
 }
 
@@ -102,7 +111,7 @@ extension AppColorSchemeX on BuildContext {
   AppColorScheme get appColorScheme {
     final extension = Theme.of(this).extension<AppColorScheme>();
     if (extension != null) return extension;
-    
+
     // Fallback to light scheme if not found (prevents crash)
     return AppColorScheme.light;
   }

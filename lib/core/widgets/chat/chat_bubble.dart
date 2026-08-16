@@ -102,9 +102,8 @@ class ChatBubble extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: context.appColorScheme.cardBackground,
-              border: Border.all(color: context.appColorScheme.border),
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
+              color: context.appColorScheme.aiResponseBackground,
+              borderRadius:  BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(AppSizes.r24), bottomLeft: Radius.circular(AppSizes.r24), bottomRight: Radius.circular(AppSizes.r24)),
             ),
             child: const ThinkingIndicator(),
           ),
@@ -198,18 +197,17 @@ class ChatBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
-            Gap.w12,
+            Gap.w4,
             Expanded(
               child: GestureDetector(
                 onLongPress: () => _copyToClipboard(context),
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  // padding: const EdgeInsets.all(16),
-                  // decoration: BoxDecoration(
-                  //   color: context.appColorScheme.cardBackground,
-                  //   border: Border.all(color: context.appColorScheme.border),
-                  //   borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
-                  // ),
+                  margin: const EdgeInsets.only(bottom: 8,right: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: context.appColorScheme.aiResponseBackground,
+                    borderRadius:  BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(AppSizes.r24), bottomLeft: Radius.circular(AppSizes.r24), bottomRight: Radius.circular(AppSizes.r24)),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -224,11 +222,7 @@ class ChatBubble extends StatelessWidget {
             ),
           ],
         ),
-        if (showActions)
-          Padding(
-            padding: const EdgeInsets.only(left: 36, bottom: 8),
-            child: ChatActionIcon(icon: AppIcons.copy, tooltip: AppStrings.copyMessage, onTap: () => _copyToClipboard(context)),
-          ),
+
         if (showFeedback && onFeedback != null) _buildFeedbackRow(context),
       ],
     ),

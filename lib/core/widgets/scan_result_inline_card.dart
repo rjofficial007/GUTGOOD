@@ -78,13 +78,12 @@ class ScanResultInlineCard extends StatelessWidget {
         : AppIcons.alertCircle;
 
     return Container(
-      margin: EdgeInsets.only(bottom: AppSizes.p16),
-      // padding: EdgeInsets.all(AppSizes.p16),
-      // decoration: BoxDecoration(
-      //   color: context.appColorScheme.cardBackground,
-      //   borderRadius: BorderRadius.circular(AppSizes.r24),
-      //   border: Border.all(color: context.appColorScheme.border),
-      // ),
+      margin: EdgeInsets.only(bottom: AppSizes.p16,right:  AppSizes.p16,left: AppSizes.p28),
+      padding: EdgeInsets.all(AppSizes.p16),
+      decoration: BoxDecoration(
+        color: context.appColorScheme.aiResponseBackground,
+        borderRadius: BorderRadius.circular(AppSizes.r24),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -187,7 +186,8 @@ class ScanResultInlineCard extends StatelessWidget {
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: 12.0.h),
                 decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: context.appColorScheme.border)),
+                  color: context.appColorScheme.cardBackground.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(AppSizes.r16),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -271,7 +271,6 @@ class _ITag extends StatelessWidget {
     padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
     decoration: BoxDecoration(
       color: color.withValues(alpha: 0.08),
-      border: Border.all(color: color.withValues(alpha: 0.2)),
       borderRadius: BorderRadius.circular(AppSizes.r8),
     ),
     child: Row(

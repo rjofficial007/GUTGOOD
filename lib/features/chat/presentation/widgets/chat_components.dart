@@ -107,9 +107,9 @@ class ChatShimmerLoading extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppPalette.white,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(AppSizes.r24),
+                    topLeft: Radius.circular(AppSizes.r8),
                     topRight: Radius.circular(AppSizes.r24),
-                    bottomLeft: Radius.circular(AppSizes.r8),
+                    bottomLeft: Radius.circular(AppSizes.r24),
                     bottomRight: Radius.circular(AppSizes.r24),
                   ),
                 ),
@@ -171,9 +171,8 @@ class _EmptyStateCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p10),
     decoration: BoxDecoration(
-      color: context.appColorScheme.cardBackground,
+      color: context.appColorScheme.aiResponseBackground,
       borderRadius: BorderRadius.circular(AppSizes.r20),
-      border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
     ),
     child: Column(
       children: [

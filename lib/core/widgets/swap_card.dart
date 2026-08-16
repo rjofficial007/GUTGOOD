@@ -37,7 +37,6 @@ class SwapCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.appColorScheme.cardBackground,
         borderRadius: BorderRadius.circular(20.0.r),
-        border: Border.all(color: context.appColorScheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,8 +117,7 @@ class SwapCard extends StatelessWidget {
                     vertical: 6.0.h,
                   ),
                   decoration: BoxDecoration(
-                    color: context.appColorScheme.cardBackground,
-                    border: Border.all(color: context.appColorScheme.border),
+                    color: context.appColorScheme.elevatedSurface,
                     borderRadius: BorderRadius.circular(20.0.r),
                   ),
                   child: Row(

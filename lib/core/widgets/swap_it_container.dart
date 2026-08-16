@@ -18,12 +18,11 @@ class SwapItContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    margin: EdgeInsets.only(bottom: AppSizes.p16),
+    margin: EdgeInsets.only(bottom: AppSizes.p16,right:  AppSizes.p16,left: AppSizes.p28),
     padding: EdgeInsets.all(AppSizes.p18),
     decoration: BoxDecoration(
-      color: context.appColorScheme.cardBackground,
+      color: context.appColorScheme.aiResponseBackground,
       borderRadius: BorderRadius.circular(AppSizes.r24),
-      border: Border.all(color: context.appColorScheme.border),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,8 +104,7 @@ class SwapItContainer extends StatelessWidget {
               vertical: AppSizes.p12,
             ),
             decoration: BoxDecoration(
-              color: context.appColorScheme.cardBackground,
-              border: Border.all(color: context.appColorScheme.border),
+              color: context.appColorScheme.cardBackground.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(AppSizes.r24),
             ),
             child: Row(
