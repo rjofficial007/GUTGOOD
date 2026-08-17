@@ -247,15 +247,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> sendSignInLinkToEmail(String email) async {
-    final actionCodeSettings = firebase.ActionCodeSettings(
-      url: ApiConstants.magicLinkUrl,
-      handleCodeInApp: true,
-      androidPackageName: 'com.gutgood.app',
-      androidInstallApp: true,
-      androidMinimumVersion: '1',
-      iOSBundleId: 'com.gutgood.app',
-    );
-    await _firebaseAuth.sendSignInLinkToEmail(email: email, actionCodeSettings: actionCodeSettings);
+    final savedName = _prefs.getString('login_display_name');
+    try {
+      await _firebaseFunctions.httpsCallable('sendCustomMagicLink').call({
+        'email': email,
+        'name': savedName,
+      });
+      AppLogger.info('AuthRepo: Custom magic link requested for $email');
+    } catch (e) {
+      AppLogger.error('AuthRepo: Failed to send custom magic link', error: e);
+      rethrow;
+    }
   }
 
   @override

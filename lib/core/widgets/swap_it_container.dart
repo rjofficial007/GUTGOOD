@@ -8,22 +8,15 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/swap_card.dart';
 
 class SwapItContainer extends StatelessWidget {
-  const SwapItContainer({
-    super.key,
-    required this.swaps,
-    required this.onSeeMore,
-  });
+  const SwapItContainer({super.key, required this.swaps, required this.onSeeMore});
   final List<ProductSwap> swaps;
   final VoidCallback onSeeMore;
 
   @override
   Widget build(BuildContext context) => Container(
-    margin: EdgeInsets.only(bottom: AppSizes.p16,right:  AppSizes.p16,left: AppSizes.p28),
+    margin: EdgeInsets.only(bottom: AppSizes.p16, right: AppSizes.p16),
     padding: EdgeInsets.all(AppSizes.p18),
-    decoration: BoxDecoration(
-      color: context.appColorScheme.aiResponseBackground,
-      borderRadius: BorderRadius.circular(AppSizes.r24),
-    ),
+    decoration: BoxDecoration(color: context.appColorScheme.aiResponseBackground, borderRadius: BorderRadius.circular(AppSizes.r24)),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -32,32 +25,16 @@ class SwapItContainer extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Icon(
-                AppIcons.sparkles,
-                size: 22,
-                color: context.appColorScheme.textPrimary,
-              ),
+              child: Icon(AppIcons.sparkles, size: 22, color: context.appColorScheme.textPrimary),
             ),
             SizedBox(width: AppSizes.p12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    AppStrings.swapItFeelBetter,
-                    style: context.title.copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+                  Text(AppStrings.swapItFeelBetter, style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5)),
                   const SizedBox(height: 2),
-                  Text(
-                    AppStrings.easySwapsDesc,
-                    style: context.bodySm.copyWith(
-                      color: context.appColorScheme.textMuted,
-                    ),
-                  ),
+                  Text(AppStrings.easySwapsDesc, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
                 ],
               ),
             ),
@@ -79,17 +56,8 @@ class SwapItContainer extends StatelessWidget {
               }
 
               return Padding(
-                padding: EdgeInsets.only(
-                  right: idx == swaps.length - 1 ? 0 : AppSizes.p12,
-                ),
-                child: SwapCard(
-                  title: swap.title,
-                  subtitle: swap.subtitle,
-                  imageKeyword: swap.imageKeyword,
-                  imageUrl: swap.imageUrl,
-                  tag: calculatedTag,
-                  badge: idx == 0 ? '#1 PICK' : swap.badge,
-                ),
+                padding: EdgeInsets.only(right: idx == swaps.length - 1 ? 0 : AppSizes.p12),
+                child: SwapCard(title: swap.title, subtitle: swap.subtitle, imageKeyword: swap.imageKeyword, imageUrl: swap.imageUrl, tag: calculatedTag, badge: idx == 0 ? '#1 PICK' : swap.badge),
               );
             }).toList(),
           ),
@@ -99,29 +67,15 @@ class SwapItContainer extends StatelessWidget {
           onTap: onSeeMore,
           child: Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              horizontal: AppSizes.p16,
-              vertical: AppSizes.p12,
-            ),
-            decoration: BoxDecoration(
-              color: context.appColorScheme.cardBackground.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(AppSizes.r24),
-            ),
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p12),
+            decoration: BoxDecoration(color: context.appColorScheme.cardBackground.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(AppSizes.r24)),
             child: Row(
               children: [
                 SizedBox(width: AppSizes.p16),
                 Expanded(
-                  child: Text(
-                    AppStrings.seeMoreSwaps,
-                    textAlign: TextAlign.center,
-                    style: context.bodyBold.copyWith(fontSize: 14),
-                  ),
+                  child: Text(AppStrings.seeMoreSwaps, textAlign: TextAlign.center, style: context.bodyBold.copyWith(fontSize: 14)),
                 ),
-                Icon(
-                  AppIcons.chevronRight,
-                  size: AppSizes.icon16,
-                  color: context.appColorScheme.textPrimary,
-                ),
+                Icon(AppIcons.chevronRight, size: AppSizes.icon16, color: context.appColorScheme.textPrimary),
               ],
             ),
           ),

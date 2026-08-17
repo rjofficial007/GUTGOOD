@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
@@ -11,7 +10,6 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
-import 'package:gutgood/core/widgets/chat/chat_action_icon.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
 import 'package:gutgood/core/widgets/chat/thinking_indicator.dart';
 import 'package:gutgood/core/widgets/feedback_tag.dart';
@@ -97,13 +95,18 @@ class ChatBubble extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
-          Gap.w12,
+          // Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
+          // Gap.w12,
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
               color: context.appColorScheme.aiResponseBackground,
-              borderRadius:  BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(AppSizes.r24), bottomLeft: Radius.circular(AppSizes.r24), bottomRight: Radius.circular(AppSizes.r24)),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(6),
+                topRight: Radius.circular(AppSizes.r24),
+                bottomLeft: Radius.circular(AppSizes.r24),
+                bottomRight: Radius.circular(AppSizes.r24),
+              ),
             ),
             child: const ThinkingIndicator(),
           ),
@@ -196,17 +199,22 @@ class ChatBubble extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
-            Gap.w4,
+            // Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
+            // Gap.w4,
             Expanded(
               child: GestureDetector(
                 onLongPress: () => _copyToClipboard(context),
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 8,right: 16),
+                  margin: const EdgeInsets.only(bottom: 8, right: 16),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: context.appColorScheme.aiResponseBackground,
-                    borderRadius:  BorderRadius.only(topLeft: Radius.circular(6), topRight: Radius.circular(AppSizes.r24), bottomLeft: Radius.circular(AppSizes.r24), bottomRight: Radius.circular(AppSizes.r24)),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(AppSizes.r6),
+                      topRight: Radius.circular(AppSizes.r24),
+                      bottomLeft: Radius.circular(AppSizes.r24),
+                      bottomRight: Radius.circular(AppSizes.r24),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,6 +258,9 @@ class ChatBubble extends StatelessWidget {
       blockquote: context.body.copyWith(color: context.appColorScheme.textSecondary, fontStyle: FontStyle.italic),
       blockquoteDecoration: BoxDecoration(
         border: Border(left: BorderSide(color: context.appColorScheme.textMuted, width: 3)),
+      ),
+      horizontalRuleDecoration: BoxDecoration(
+        border: Border(top: BorderSide(color: context.appColorScheme.border.withValues(alpha: 0.5), width: 0.5)),
       ),
     ),
   );

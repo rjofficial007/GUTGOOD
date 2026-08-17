@@ -78,11 +78,16 @@ class ScanResultInlineCard extends StatelessWidget {
         : AppIcons.alertCircle;
 
     return Container(
-      margin: EdgeInsets.only(bottom: AppSizes.p16,right:  AppSizes.p16,left: AppSizes.p28),
+      margin: EdgeInsets.only(bottom: AppSizes.p16, right: AppSizes.p16),
       padding: EdgeInsets.all(AppSizes.p16),
       decoration: BoxDecoration(
         color: context.appColorScheme.aiResponseBackground,
-        borderRadius: BorderRadius.circular(AppSizes.r24),
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(6),
+          topRight: Radius.circular(AppSizes.r24),
+          bottomLeft: Radius.circular(AppSizes.r24),
+          bottomRight: Radius.circular(AppSizes.r24),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,7 +127,11 @@ class ScanResultInlineCard extends StatelessWidget {
           Gap.h16,
           Text(AppStrings.contains, style: context.overline),
           Gap.h6,
-          Wrap(spacing: 8.0.w, runSpacing: 8.0.h, children: ingredients.map((ing) => _ITag(ing.name, _getColor(context, ing.colorName), confidence: ing.confidence)).toList()),
+          Wrap(
+            spacing: 8.0.w,
+            runSpacing: 8.0.h,
+            children: ingredients.map((ing) => _ITag(ing.name, _getColor(context, ing.colorName), confidence: ing.confidence)).toList(),
+          ),
           Gap.h16,
           Text(AppStrings.likelyImpact, style: context.overline),
           Gap.h6,
@@ -185,10 +194,7 @@ class ScanResultInlineCard extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                decoration: BoxDecoration(
-                  color: context.appColorScheme.cardBackground.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(AppSizes.r16),
-                ),
+                decoration: BoxDecoration(color: context.appColorScheme.cardBackground.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(AppSizes.r16)),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -274,10 +280,7 @@ class _ITag extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppSizes.r8),
-      ),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(AppSizes.r8)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -287,7 +290,10 @@ class _ITag extends StatelessWidget {
             child: Text.rich(
               TextSpan(
                 children: [
-                  TextSpan(text: label, style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600)),
+                  TextSpan(
+                    text: label,
+                    style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600),
+                  ),
                   if (confidence != null)
                     TextSpan(
                       text: confidenceText,

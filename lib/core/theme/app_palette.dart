@@ -67,4 +67,5 @@ class AppPalette {
   // --- Material Colors (Static equivalents) ---
   static const white70 = Color(0xB3FFFFFF);
   static const black12 = Color(0x1F000000);
+  static const aiResponseBackground = Color(0xFFF5F5F5);
 }

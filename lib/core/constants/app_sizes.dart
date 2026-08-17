@@ -85,6 +85,7 @@ class AppSizes {
   static double get s28 => 28.0.sp;
   static double get s32 => 32.0.sp;
   static double get s40 => 40.0.sp;
+  static double get s50 => 50.0.sp;
   static double get s60 => 60.0.sp;
   static double get s120 => 120.0.sp;
 

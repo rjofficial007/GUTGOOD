@@ -129,7 +129,7 @@ class _WelcomeContent extends StatelessWidget {
         Text(
           AppStrings.foodIsInformation,
           textAlign: TextAlign.center,
-          style: AppTextStyles.displayLg.copyWith(fontSize: AppSizes.s60, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
+          style: AppTextStyles.displayLg.copyWith(fontSize: AppSizes.s50, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
         ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
         Gap.h24,
         Text(

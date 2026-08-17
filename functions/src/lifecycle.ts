@@ -13,7 +13,8 @@
 import * as functionsV1 from 'firebase-functions/v1';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
-import { REGION } from './config';
+import { REGION, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } from './config';
+import { sendWelcomeEmail } from './email';
 
 const ANONYMOUS_TTL_DAYS = 14;
 
@@ -37,6 +38,53 @@ export const onUserDeleted = functionsV1
   .onDelete(async (user) => {
     functionsV1.logger.info(`onUserDeleted: purging data for ${user.uid}`);
     await purgeUserData(user.uid);
+  });
+
+/**
+ * Triggered when a user profile is created or updated in Firestore.
+ * Ensures every new permanent user gets a welcome email exactly once.
+ * Covers: direct sign-in, account upgrade (link), and account merge.
+ */
+export const onProfileWritten = functionsV1
+  .region(REGION)
+  .runWith({
+    secrets: [SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM],
+  })
+  .firestore.document('user_profiles/{uid}')
+  .onWrite(async (change, context) => {
+    const { uid } = context.params;
+    const newData = change.after.exists ? change.after.data() : null;
+    const oldData = change.before.exists ? change.before.data() : null;
+
+    if (!newData) return; // Deleted profile
+
+    // 1. Only send if the user is now permanent (not anonymous)
+    if (newData.isAnonymous === true) return;
+
+    // 2. Only send if we have an email address
+    const email = newData.email;
+    if (!email || email === 'No email synced') return;
+
+    // 3. Throttle: only send if it's a new permanent status OR a brand new profile
+    const wasAnonymous = !oldData || oldData.isAnonymous === true;
+    if (!wasAnonymous) return;
+
+    // 4. Idempotency: don't send twice
+    if (newData.welcomeEmailSent === true) return;
+
+    functionsV1.logger.info(`onProfileWritten: sending welcome email to ${uid} (${email})`);
+
+    try {
+      await sendWelcomeEmail(email, newData.displayName || '');
+
+      // Mark as sent in Firestore
+      await change.after.ref.update({
+        welcomeEmailSent: true,
+        welcomeEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      functionsV1.logger.error(`onProfileWritten: failed for ${uid}`, e);
+    }
   });
 
 export const cleanupAnonymousUsers = onSchedule(

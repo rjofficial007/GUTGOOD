@@ -33,6 +33,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
+            <!-- App Links (Verified) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -46,6 +47,23 @@
 
                 <data android:pathPrefix="/auth-completed" />
                 <data android:pathPrefix="/__/auth/action" />
+            </intent-filter>
+
+            <!-- Deep Links (Fallback for older Android or unverified links) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="gutgood-app-9242d.firebaseapp.com" />
+                <data android:scheme="https" android:host="gutgood-app-9242d.web.app" />
+            </intent-filter>
+
+            <!-- Custom Scheme for forced app open -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="gutgood" />
             </intent-filter>
         </activity>
 

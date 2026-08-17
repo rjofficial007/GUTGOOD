@@ -17,5 +17,6 @@ admin.initializeApp();
 
 export { aiProxy } from './ai_proxy';
 export { mergeAnonymousAccount } from './merge';
-export { onUserDeleted, cleanupAnonymousUsers } from './lifecycle';
+export { onProfileWritten, onUserDeleted, cleanupAnonymousUsers } from './lifecycle';
+export { sendCustomMagicLink } from './auth';
 export { onScanCreated, onMealCreated, onSymptomCreated, onInsightCreated } from './triggers';

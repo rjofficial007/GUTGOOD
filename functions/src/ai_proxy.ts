@@ -41,7 +41,6 @@ import {
   REGION,
 } from './config';
 import { checkAndConsume, isPremiumUser } from './usage';
-import { BackendPrompts, UserContext } from './prompts';
 
 interface HistoryMessage {
   role: 'user' | 'assistant';
@@ -50,8 +49,7 @@ interface HistoryMessage {
 
 interface ProxyRequest {
   mode?: string;
-  systemInstruction?: string; // Still accepted for summarization/system calls
-  userContext?: UserContext;  // Preferred for Chat/Scan
+  systemInstruction?: string;
   messages?: HistoryMessage[];
   userText?: string;
   images?: string[];
@@ -79,16 +77,8 @@ type OpenAIMessage =
 function buildOpenAIMessages(body: ProxyRequest): OpenAIMessage[] {
   const messages: OpenAIMessage[] = [];
 
-  let system = body.systemInstruction ?? '';
-  const usageType = body.usageType ?? (body.images && body.images.length > 0 ? 'scan' : 'chat');
-
-  // Backend Prompt Management: If userContext is provided, overwrite or build system instruction here.
-  if (body.userContext && (usageType === 'chat' || usageType === 'scan')) {
-    system = BackendPrompts.getSystemInstruction(body.userContext, usageType);
-  }
-
-  const systemContent = system.slice(0, MAX_SYSTEM_CHARS);
-  if (systemContent) messages.push({ role: 'system', content: systemContent });
+  const system = (body.systemInstruction ?? '').slice(0, MAX_SYSTEM_CHARS);
+  if (system) messages.push({ role: 'system', content: system });
 
   const history = Array.isArray(body.messages) ? body.messages.slice(-MAX_HISTORY_MESSAGES) : [];
   for (const m of history) {
