@@ -22,7 +22,7 @@ import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart'
 import 'package:gutgood/features/chat/presentation/widgets/chat_components.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
-import 'package:gutgood/features/scanner/presentation/pages/super_scanner_screen.dart';
+import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,10 +31,10 @@ import 'package:upgrader/upgrader.dart';
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatScreen> createState() => ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class ChatScreenState extends State<ChatScreen> {
   static const String _draftKey = 'chat_draft';
 
   final TextEditingController _controller = TextEditingController();
@@ -128,7 +128,7 @@ class _ChatScreenState extends State<ChatScreen> {
     sl<SharedPreferences>().remove(_draftKey);
   }
 
-  Future<void> _handleCamera(ChatNotifier chatNotifier, GutAuthNotifier authNotifier, {ScannerMode mode = ScannerMode.label}) async {
+  Future<void> handleCamera(ChatNotifier chatNotifier, GutAuthNotifier authNotifier, {ScannerMode mode = ScannerMode.label}) async {
     if (chatNotifier.isLoading) return;
     if (!await QuotaGuard.check(context, type: QuotaType.scan, onAuthSuccess: chatNotifier.refreshHistory)) return;
 
@@ -237,7 +237,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: _MessageListView(scrollController: _scroll, onSend: _send),
             ),
             const _SuggestionChipsSection(),
-            _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: _handleCamera, onGallery: _pickImages, onSend: _send),
+            _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
           ],
         ),
       ),
@@ -482,15 +482,15 @@ class _SuggestionChipsSection extends StatelessWidget {
   Future<void> _sendQuick(BuildContext context, String text) async {
     final chatNotifier = context.read<ChatNotifier>();
     final authNotifier = context.read<GutAuthNotifier>();
-    final state = context.findAncestorStateOfType<_ChatScreenState>();
+    final state = context.findAncestorStateOfType<ChatScreenState>();
     await state?._send(chatNotifier, authNotifier, text);
   }
 
   void _handleCameraQuick(BuildContext context, ScannerMode mode) {
     final chatNotifier = context.read<ChatNotifier>();
     final authNotifier = context.read<GutAuthNotifier>();
-    final state = context.findAncestorStateOfType<_ChatScreenState>();
-    state?._handleCamera(chatNotifier, authNotifier, mode: mode);
+    final state = context.findAncestorStateOfType<ChatScreenState>();
+    state?.handleCamera(chatNotifier, authNotifier, mode: mode);
   }
 }
 

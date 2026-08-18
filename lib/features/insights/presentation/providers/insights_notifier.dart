@@ -13,14 +13,7 @@ import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
 
 class InsightsNotifier with ChangeNotifier {
-  InsightsNotifier(
-    this._repository,
-    this._firestoreService,
-    this._appStateService,
-    this._authRepository,
-    this._analyticsService,
-    this._historyService,
-  ) {
+  InsightsNotifier(this._repository, this._firestoreService, this._appStateService, this._authRepository, this._analyticsService, this._historyService) {
     _initInsightStream();
     _appStateService.chatUpdated.addListener(_onDataUpdated);
     _appStateService.profileUpdated.addListener(_onDataUpdated);
@@ -104,10 +97,7 @@ class InsightsNotifier with ChangeNotifier {
   Future<void> _fetchHistory() async {
     try {
       _insightHistory = await _repository.getInsightHistory();
-      await _analyticsService.logEvent(
-        name: 'insight_history_viewed',
-        parameters: {'count': _insightHistory.length},
-      );
+      await _analyticsService.logEvent(name: 'insight_history_viewed', parameters: {'count': _insightHistory.length});
       notifyListeners();
     } catch (e) {
       AppLogger.error('InsightsNotifier: Failed to fetch history', error: e);
@@ -128,6 +118,26 @@ class InsightsNotifier with ChangeNotifier {
   AIInsight? get latestInsight => _latestInsight;
   List<AIInsight> get insightHistory => _insightHistory;
   List<BodyPattern> get bodyPatterns => _bodyPatterns;
+
+  /// Returns 3-5 most meaningful insights prioritized by confidence and frequency.
+  List<BodyPattern> get prioritizedPatterns {
+    final list = _bodyPatterns.where((p) => p.confidence == BodyPattern.confidenceHigh || p.confidence == BodyPattern.confidenceMedium || p.confidence == BodyPattern.confidenceModerate).toList()
+      ..sort((a, b) {
+        // 1. High Confidence first
+        if (a.confidence != b.confidence) {
+          return a.confidence == BodyPattern.confidenceHigh ? -1 : 1;
+        }
+        // 2. Frequency (higher first)
+        if (a.frequency != b.frequency) {
+          return b.frequency.compareTo(a.frequency);
+        }
+        // 3. Recency
+        return b.updatedAt.compareTo(a.updatedAt);
+      });
+
+    return list.take(5).toList();
+  }
+
   List<HealthAlert> get healthAlerts => _healthAlerts;
 
   int get totalMeals => _totalMeals;
@@ -170,11 +180,7 @@ class InsightsNotifier with ChangeNotifier {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(seconds: 5), () {
       generateNewInsight().catchError((e, st) {
-        AppLogger.error(
-          'InsightsNotifier: background generation failed',
-          error: e,
-          stackTrace: st,
-        );
+        AppLogger.error('InsightsNotifier: background generation failed', error: e, stackTrace: st);
       });
     });
   }

@@ -18,6 +18,9 @@ class ProfileStrings {
   static const String saveChanges = 'Save Changes';
   static const String account = 'Account';
   static const String support = 'Support';
+  static const String limits = 'LIMITS';
+  static const String guestAccount = 'Guest Account';
+  static const String freePlan = 'Free Plan';
   static const String editProfile = 'Edit Profile';
   static const String changePassword = 'Change Password';
   static const String language = 'Language';

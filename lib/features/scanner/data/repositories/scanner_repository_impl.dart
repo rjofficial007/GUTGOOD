@@ -73,6 +73,22 @@ class ScannerRepositoryImpl implements ScannerRepository {
     aiData['barcode'] ??= product.barcode;
     aiData['nutrients'] ??= product.nutrients?.toMap();
 
+    // 🟢 CHANGED: the numeric score is no longer trusted from the AI
+    // response at all (previously the prompt asked the model to compute it
+    // via a multi-step arithmetic formula, which LLMs execute unreliably).
+    // It is now computed deterministically here from the same OFF-sourced
+    // Nutri-Score/NOVA/nutrient data the model was given, and OVERWRITES
+    // whatever placeholder score the model returned.
+    aiData['score'] = _computeDeterministicScore(
+      nutriscore: product.nutriscore,
+      novaGroup: int.tryParse(product.novaGroup?.toString() ?? ''),
+      fiberG: product.nutrients?.fiber,
+      proteinG: product.nutrients?.proteins,
+      sugarG: product.nutrients?.sugars,
+      saltG: product.nutrients?.salt,
+      saturatedFatG: product.nutrients?.saturatedFat,
+    );
+
     final result = ScanResult.fromMap(aiData);
     await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'barcode', 'product_name': result.productName, 'score': result.score});
     return result;
@@ -81,6 +97,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
   @override
   Future<ScanResult> analyzeImageWithAi({
     required Uint8List imageBytes,
+    required String mode,
     required List<String> goals,
     required List<String> sensitivities,
     required List<String> lifestyle,
@@ -88,8 +105,8 @@ class ScannerRepositoryImpl implements ScannerRepository {
   }) async {
     final aiResultStr = await _aiService.generateContent(
       imageBytes: imageBytes,
-      systemInstruction: Prompts.visionAnalysisSystemInstruction(userGoals: goals, userSensitivities: sensitivities, userLifestyle: lifestyle, cyclePhase: cyclePhase),
-      prompt: 'Analyze this ingredient label or meal photo and return a [SCAN] JSON object.',
+      systemInstruction: Prompts.visionAnalysisSystemInstruction(mode: mode, userGoals: goals, userSensitivities: sensitivities, userLifestyle: lifestyle, cyclePhase: cyclePhase),
+      prompt: 'Analyze the attached image and return a [SCAN] JSON object.',
       usageType: 'scan',
     );
 
@@ -99,6 +116,11 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     final jsonStr = ModelUtils.extractJson(rawJson);
     if (jsonStr != null) {
+      // Vision-mode scores are heuristic (no ground-truth OFF data to
+      // compute from), so unlike the barcode path we keep the AI's score —
+      // but ModelUtils.parseScore (used inside ScanResult.fromMap) still
+      // clamps it to a safe 0-100 range so a malformed value can't break
+      // the UI gauge.
       final result = ScanResult.fromMap(jsonDecode(jsonStr));
       await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'vision', 'product_name': result.productName, 'score': result.score});
       return result;
@@ -116,7 +138,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     AppLogger.info('ScannerRepository: Scan result message saved to Firestore');
 
     // 🚀 Professional Filter: Only persist scans and auto-log meals if it's an actual product.
-    // Restaurant menus and raw ingredient labels are analyzed for the chat context but 
+    // Restaurant menus and raw ingredient labels are analyzed for the chat context but
     // shouldn't clutter the history or impact the gut health trend.
     if (result.isLoggableProduct) {
       await _historyFirestoreService.saveToScanHistory(result, userImageUrl: userImageUrl);
@@ -141,5 +163,51 @@ class ScannerRepositoryImpl implements ScannerRepository {
     // 🚀 Professional Loop: Schedule a symptom check-in 2 hours after a scan.
     // This helps the Pattern Engine find correlations later.
     unawaited(_notificationService.schedulePostMealCheckIn());
+  }
+
+  /// Deterministic replacement for the "ask the LLM to do arithmetic" score
+  /// formula that used to live entirely inside the barcode system prompt.
+  ///
+  /// Mirrors the previous prompt's stated logic (start at 50, apply
+  /// Nutri-Score/NOVA deltas, nudge for fiber/protein/sugar/salt/sat-fat)
+  /// but runs as plain Dart so it is 100% reproducible and testable,
+  /// instead of depending on model instruction-following for exact math.
+  int _computeDeterministicScore({String? nutriscore, int? novaGroup, num? fiberG, num? proteinG, num? sugarG, num? saltG, num? saturatedFatG}) {
+    var score = 50;
+
+    switch (nutriscore?.toUpperCase()) {
+      case 'A':
+        score += 25;
+      case 'B':
+        score += 15;
+      case 'C':
+        break;
+      case 'D':
+        score -= 15;
+      case 'E':
+        score -= 25;
+    }
+
+    switch (novaGroup) {
+      case 1:
+        score += 10;
+      case 2:
+        score += 5;
+      case 3:
+        break;
+      case 4:
+        score -= 10;
+    }
+
+    // Small, capped nudges from raw nutrient values (per 100g) — kept
+    // conservative on purpose since this is a UI heuristic, not a clinical
+    // score.
+    if (fiberG != null && fiberG >= 5) score += 5;
+    if (proteinG != null && proteinG >= 10) score += 3;
+    if (sugarG != null && sugarG >= 20) score -= 5;
+    if (saltG != null && saltG >= 1.5) score -= 5;
+    if (saturatedFatG != null && saturatedFatG >= 5) score -= 3;
+
+    return score.clamp(0, 100);
   }
 }

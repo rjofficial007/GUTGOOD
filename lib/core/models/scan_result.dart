@@ -43,8 +43,14 @@ class ScanResult extends Equatable {
     if (it == 'positive' || it == 'healing') type = ImpactType.positive;
     if (it == 'negative' || it == 'trigger') type = ImpactType.negative;
 
+    // 🟢 FIXED: score is now clamped 0-100 via ModelUtils.parseScore instead
+    // of trusting the AI's raw integer verbatim. A malformed/out-of-range
+    // score used to flow straight into UI progress gauges
+    // (`CircularProgressIndicator(value: score / 100)`), which could
+    // render as overflowing or negative visuals.
+    final score = ModelUtils.parseScore(map['score']);
+
     if (map['impactType'] == null) {
-      final score = (map['score'] as num?)?.toInt() ?? 0;
       if (score > 70) {
         type = ImpactType.positive;
       } else if (score < 40) {
@@ -52,27 +58,48 @@ class ScanResult extends Equatable {
       }
     }
 
+    // 🟢 FIXED: nutriscore is normalized to uppercase A-E, or null if the
+    // model returns something outside that set (previously any string,
+    // including stray lowercase letters or "unknown", was accepted as-is
+    // and rendered directly as a grade badge).
+    String? normalizedNutriscore;
+    final rawNutriscore = map['nutriscore']?.toString().trim().toUpperCase();
+    if (rawNutriscore != null && {'A', 'B', 'C', 'D', 'E'}.contains(rawNutriscore)) {
+      normalizedNutriscore = rawNutriscore;
+    }
+
+    // 🟢 FIXED: novaGroup is normalized to a plain "1".."4" string (or
+    // null) even if the model returns an int, a "1-4" range string, or a
+    // stray "unknown" — previously that malformed value was passed
+    // straight to `int.tryParse`-adjacent UI code with no guardrail.
+    String? normalizedNova;
+    final rawNova = map['novaGroup'];
+    final novaInt = rawNova is num ? rawNova.toInt() : int.tryParse(rawNova?.toString() ?? '');
+    if (novaInt != null && novaInt >= 1 && novaInt <= 4) {
+      normalizedNova = novaInt.toString();
+    }
+
     return ScanResult(
-      productName: map['productName'] ?? 'Unknown',
-      brand: map['brand'] ?? 'Unknown',
-      imageUrl: map['imageUrl'],
-      score: (map['score'] as num?)?.toInt() ?? 0,
+      productName: map['productName']?.toString() ?? 'Unknown',
+      brand: map['brand']?.toString() ?? 'Unknown',
+      imageUrl: map['imageUrl']?.toString(),
+      score: score,
       impactType: type,
-      impact: map['impact'] ?? '',
-      badge: map['badge'],
-      nutriscore: map['nutriscore'],
-      novaGroup: map['novaGroup']?.toString(),
-      allergens: map['allergens'],
-      additives: map['additives'],
+      impact: map['impact']?.toString() ?? '',
+      badge: map['badge']?.toString(),
+      nutriscore: normalizedNutriscore,
+      novaGroup: normalizedNova,
+      allergens: ModelUtils.parseString(map['allergens']),
+      additives: ModelUtils.parseString(map['additives']),
       ingredients: ModelUtils.parseModelList<Ingredient>(map['ingredients'], Ingredient.fromMap),
       nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
       nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'], NutrientLevels.fromMap),
       impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
       swaps: ModelUtils.parseModelList<ProductSwap>(map['swaps'], ProductSwap.fromMap),
       cycleInsight: ModelUtils.parseNestedModel<CycleInsight>(map['cycleInsight'], CycleInsight.fromMap),
-      barcode: map['barcode'],
-      source: map['source'],
-      userImageUrl: map['userImageUrl'],
+      barcode: map['barcode']?.toString(),
+      source: map['source']?.toString(),
+      userImageUrl: map['userImageUrl']?.toString(),
       flaggedIngredients: ModelUtils.parseList<String>(map['flaggedIngredients']),
       time: map['time'] != null ? DateTime.tryParse(map['time']) : null,
       isSaved: ModelUtils.parseBool(map['isSaved']),
@@ -194,7 +221,7 @@ class ScanResult extends Equatable {
     productName: productName ?? this.productName,
     brand: brand ?? this.brand,
     imageUrl: imageUrl ?? this.imageUrl,
-    score: score ?? this.score,
+    score: score != null ? score.clamp(0, 100) : this.score,
     impactType: impactType ?? this.impactType,
     impact: impact ?? this.impact,
     badge: badge ?? this.badge,
@@ -242,8 +269,14 @@ class ScanResult extends Equatable {
     'isSaved': isSaved,
   };
 
-  /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
+  /// Optimized Map for AI context to prevent 502/payload-too-large errors.
   /// Excludes large fields like full ingredients, nutrients, and swaps.
+  ///
+  /// 🟢 NEW: now also includes `flaggedIngredients` short-circuit already
+  /// present, plus is actually WIRED UP into chat history round-trips —
+  /// see `AiServiceImpl._historyToPayload` in ai_service.dart. Previously
+  /// this method existed but was never called from the chat streaming
+  /// path, so scan context silently vanished from follow-up turns.
   Map<String, dynamic> toAiMap() => {
     'productName': productName,
     'brand': brand,

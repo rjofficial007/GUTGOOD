@@ -7,8 +7,6 @@ import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/notification_service.dart';
-import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class ProcessChatTagResult {
@@ -22,12 +20,8 @@ class ProcessChatTagResult {
 }
 
 class ProcessChatTagUseCase {
-  ProcessChatTagUseCase({required HistoryFirestoreService firestoreService, required NotificationService notificationService, required AppStateService appStateService})
-    : _firestoreService = firestoreService,
-      _notificationService = notificationService,
-      _appStateService = appStateService;
+  ProcessChatTagUseCase({required HistoryFirestoreService firestoreService, required AppStateService appStateService}) : _firestoreService = firestoreService, _appStateService = appStateService;
   final HistoryFirestoreService _firestoreService;
-  final NotificationService _notificationService;
   final AppStateService _appStateService;
 
   String? _extractJson(String? raw, {bool isArray = false}) {
@@ -58,22 +52,18 @@ class ProcessChatTagUseCase {
     for (final tag in tags) {
       final startTag = '[$tag]';
       final endTag = '[/$tag]';
-      
-      int searchPos = 0;
+
+      var searchPos = 0;
       while (true) {
-        int tagIndex = text.indexOf(startTag, searchPos);
+        final tagIndex = text.indexOf(startTag, searchPos);
         if (tagIndex == -1) break;
-        
-        int endTagIndex = text.indexOf(endTag, tagIndex + startTag.length);
-        bool isClosed = endTagIndex != -1;
-        
-        String rawBlock = isClosed 
-            ? text.substring(tagIndex, endTagIndex + endTag.length)
-            : text.substring(tagIndex);
-            
-        String content = isClosed 
-            ? text.substring(tagIndex + startTag.length, endTagIndex)
-            : text.substring(tagIndex + startTag.length);
+
+        final endTagIndex = text.indexOf(endTag, tagIndex + startTag.length);
+        final isClosed = endTagIndex != -1;
+
+        final rawBlock = isClosed ? text.substring(tagIndex, endTagIndex + endTag.length) : text.substring(tagIndex);
+
+        final content = isClosed ? text.substring(tagIndex + startTag.length, endTagIndex) : text.substring(tagIndex + startTag.length);
 
         final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
 
@@ -81,7 +71,7 @@ class ProcessChatTagUseCase {
           final jsonStr = _extractJson(content, isArray: tag == 'SWAPS');
           if (jsonStr != null) {
             final decoded = jsonDecode(jsonStr);
-            
+
             if (tag == 'SYMPTOM' && decoded is Map<String, dynamic>) {
               if (!alreadyPersisted && (isClosed || isFinal)) {
                 if (persist) {
@@ -107,7 +97,7 @@ class ProcessChatTagUseCase {
             } else if (tag == 'SCAN' && decoded is Map<String, dynamic>) {
               final currentScan = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl);
               scanData = currentScan;
-              
+
               if (!alreadyPersisted && (isClosed || isFinal)) {
                 if (persist && currentScan.isLoggableProduct) {
                   unawaited(_firestoreService.saveToScanHistory(currentScan, userImageUrl: imageUrl));
@@ -132,16 +122,16 @@ class ProcessChatTagUseCase {
         } catch (e) {
           // Streaming noise
         }
-        
+
         if (!isClosed) break;
         searchPos = endTagIndex + endTag.length;
       }
     }
 
     // --- STEP 2: UI STRIPPING (Proactively hide EVERYTHING from the first tag onwards) ---
-    int firstTagPos = -1;
+    var firstTagPos = -1;
     for (final tag in tags) {
-      int pos = text.indexOf('[$tag]');
+      final pos = text.indexOf('[$tag]');
       if (pos != -1) {
         if (firstTagPos == -1 || pos < firstTagPos) {
           firstTagPos = pos;
@@ -151,7 +141,7 @@ class ProcessChatTagUseCase {
 
     if (firstTagPos != -1) {
       // Find potential markdown headers immediately preceding the first tag
-      int startIndex = firstTagPos;
+      var startIndex = firstTagPos;
       while (startIndex > 0 && (text[startIndex - 1] == '#' || text[startIndex - 1] == ' ' || text[startIndex - 1] == '\n' || text[startIndex - 1] == '\r')) {
         startIndex--;
       }

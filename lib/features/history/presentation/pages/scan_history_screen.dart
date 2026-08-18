@@ -7,6 +7,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/historical_scan.dart';
 import 'package:gutgood/core/models/meal_log.dart';
+import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
@@ -15,7 +16,6 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 import 'package:gutgood/features/history/presentation/widgets/history_hub_sections.dart';
-import 'package:provider/provider.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
   const ScanHistoryScreen({super.key});
@@ -46,13 +46,9 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
   Future<void> _loadData() async {
     final repo = sl<HistoryRepository>();
-    final results = await Future.wait([
-      repo.getScanHistory(limit: 10),
-      repo.getRecentMealLogs(limit: 10),
-      repo.getRecentSymptomLogs(limit: 10),
-    ]);
+    final results = await Future.wait([repo.getScanHistory(limit: 10), repo.getRecentMealLogs(limit: 10), repo.getRecentSymptomLogs(limit: 10)]);
 
-    final scans = (results[0] as List).cast<dynamic>().map((s) => HistoricalScan(data: s, time: s.time ?? DateTime.now(), userImageUrl: s.userImageUrl)).toList();
+    final scans = (results[0] as List<ScanResult>).map((s) => HistoricalScan(data: s, time: s.time ?? DateTime.now(), userImageUrl: s.userImageUrl)).toList();
     final meals = results[1] as List<MealLog>;
     final symptoms = results[2] as List<SymptomLog>;
 
@@ -72,7 +68,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     body: CustomScrollView(
       slivers: [
         const GutSliverAppBar(title: AppStrings.history),
-        _isLoading ? const _HistoryHubLoading() : _HistoryHubBody(scans: _scans, meals: _meals, symptoms: _symptoms),
+        if (_isLoading) const _HistoryHubLoading() else _HistoryHubBody(scans: _scans, meals: _meals, symptoms: _symptoms),
       ],
     ),
   );
@@ -83,9 +79,7 @@ class _HistoryHubLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SliverFillRemaining(
-    child: Center(
-      child: CircularProgressIndicator(color: context.appColorScheme.textPrimary),
-    ),
+    child: Center(child: CircularProgressIndicator(color: context.appColorScheme.textPrimary)),
   );
 }
 

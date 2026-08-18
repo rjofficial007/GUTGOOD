@@ -133,54 +133,9 @@ class ProfileHeader extends StatelessWidget {
               Gap.w12,
             ],
           ),
-          Gap.h32,
-
-          // Action Row: Edit & Logout
-          Row(
-            children: [
-              Expanded(
-                child: _HeaderButton(label: AppStrings.editProfile, icon: AppIcons.user, onTap: onEditTap),
-              ),
-              Gap.w12,
-              Expanded(
-                child: _HeaderButton(label: AppStrings.logout, icon: AppIcons.logOut, onTap: onLogoutTap),
-              ),
-            ],
-          ),
-          Gap.h24,
+          Gap.h20,
         ],
       ),
     );
   }
-}
-
-class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({required this.label, required this.icon, required this.onTap});
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: AppPalette.white.withValues(alpha: 0.1),
-    borderRadius: BorderRadius.circular(AppSizes.r16),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSizes.r16),
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: AppSizes.icon14, color: AppPalette.white),
-            Gap.w8,
-            Text(
-              label,
-              style: context.caption.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold, fontSize: AppSizes.s11),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }

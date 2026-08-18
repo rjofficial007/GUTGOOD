@@ -249,10 +249,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> sendSignInLinkToEmail(String email) async {
     final savedName = _prefs.getString('login_display_name');
     try {
-      await _firebaseFunctions.httpsCallable('sendCustomMagicLink').call({
-        'email': email,
-        'name': savedName,
-      });
+      await _firebaseFunctions.httpsCallable('sendCustomMagicLink').call({'email': email, 'name': savedName});
       AppLogger.info('AuthRepo: Custom magic link requested for $email');
     } catch (e) {
       AppLogger.error('AuthRepo: Failed to send custom magic link', error: e);
@@ -517,18 +514,32 @@ class AuthRepositoryImpl implements AuthRepository {
 
     try {
       final isAnonymous = user.isAnonymous;
+      AppLogger.info('AuthRepo: Deleting account (isAnonymous: $isAnonymous)...');
+
+      // 1. Clear tokens and subscriptions first
       await _firestoreService.clearFcmToken();
       await _notificationService.cancelAll();
-      // 🟢 Fix: Authoritative cleanup is handled by the Cloud Function trigger
-      // (onUserDeleted). We only delete the Auth user from the client.
-      await user.delete();
 
-      // 🟢 Fix: RevenueCat throws if logOut() is called while the current user is anonymous.
+      // 🟢 Fix: Sign out from social providers BEFORE deleting the Firebase user.
+      await _googleSignIn.signOut();
+
+      // 2. Perform the authoritative deletion
+      await user.delete();
+      AppLogger.info('AuthRepo: Auth user deleted successfully.');
+
+      // 3. Dependency cleanup
       if (!isAnonymous) {
         await _purchaseService.logout();
       }
 
+      // 4. Final local cleanup
       await _clearUserSessionData();
+
+      // 5. Force auth state change
+      await _firebaseAuth.signOut();
+    } catch (e) {
+      AppLogger.error('AuthRepo: Delete account failed', error: e);
+      rethrow;
     } finally {
       _appStateService.setLoggingOut(false);
     }

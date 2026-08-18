@@ -52,123 +52,83 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = context.appColorScheme;
     final textColor = scheme.textPrimary;
     final borderColor = scheme.border.withValues(alpha: 0.5);
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
         color: scheme.elevatedSurface,
-        borderRadius: BorderRadius.circular(AppSizes.r32),
+        borderRadius: BorderRadius.circular(AppSizes.r28),
         border: Border.all(color: borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left Section: Streak Visual
-          Container(
-            width: 110.w,
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            decoration: BoxDecoration(
-              color: scheme.border.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: borderColor),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Lottie.asset(
-                  AppAssets.streakAnimation,
-                  height: 50.w,
-                  width: 50.w,
-                  controller: _lottieController,
-                  onLoaded: (composition) {
-                    _lottieController.duration = composition.duration;
-                  },
-                ),
-                Gap.h4,
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4.w),
-                    child: Text(
-                      '${widget.streak} Days',
-                      style: context.headingSm.copyWith(color: textColor, fontWeight: FontWeight.w900, letterSpacing: -0.5, fontFeatures: const [FontFeature.tabularFigures()]),
-                    ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Lottie.asset(
+                    AppAssets.streakAnimation,
+                    height: 52.w,
+                    width: 52.w,
+                    controller: _lottieController,
+                    onLoaded: (composition) {
+                      _lottieController.duration = composition.duration;
+                    },
                   ),
-                ),
-                Text(
-                  'STREAK',
-                  style: context.caption.copyWith(color: textColor.withValues(alpha: 0.5), fontWeight: FontWeight.w700, fontSize: 9.sp),
-                ),
-              ],
-            ),
-          ),
-          Gap.w12,
-          // Right Section: Progress & Weekly
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Gap.h2,
-                // Progress Info
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
+                  Gap.w12,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${widget.gutScore}',
-                        style: context.headingMd.copyWith(color: textColor, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
+                        '${widget.streak} DAYS',
+                        style: context.title.copyWith(color: textColor, height: 1.1, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
                       ),
                       Text(
-                        ' / 100',
-                        style: context.title.copyWith(color: textColor.withValues(alpha: 0.4), fontWeight: FontWeight.w800, fontFeatures: const [FontFeature.tabularFigures()]),
+                        'DAILY STREAK',
+                        style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
                       ),
-                      const Spacer(),
-                      Text('GUT SCORE', style: context.eyebrow.copyWith(color: textColor)),
                     ],
                   ),
-                ),
-                Gap.h10,
-                // Progress Bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: _GlowingProgressBar(progress: widget.gutScore / 100, color: scheme.textPrimary),
-                ),
-                Gap.h16,
-                // Weekly Bubbles
-                _WeeklyBubbles(lastActivityDate: widget.lastActivityDate, streak: widget.streak),
-              ],
-            ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${widget.gutScore}',
+                          style: context.title.copyWith(color: textColor, height: 1.1, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
+                        ),
+                        TextSpan(
+                          text: ' / 100',
+                          style: context.caption.copyWith(color: textColor.withValues(alpha: 0.4), fontWeight: FontWeight.w800, fontSize: 10.sp),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    'GUT SCORE',
+                    style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
+                  ),
+                ],
+              ),
+            ],
           ),
+          Gap.h20,
+          _WeeklyBubbles(lastActivityDate: widget.lastActivityDate, streak: widget.streak),
         ],
       ),
     );
   }
 }
 
-class _GlowingProgressBar extends StatelessWidget {
-  const _GlowingProgressBar({required this.progress, required this.color});
-  final double progress;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) =>
-      LinearProgressIndicator(value: progress.clamp(0.0, 1.0), minHeight: 5, backgroundColor: color.withValues(alpha: 0.1), color: color, borderRadius: BorderRadius.circular(10));
-}
 
 class _WeeklyBubbles extends StatelessWidget {
   const _WeeklyBubbles({this.lastActivityDate, required this.streak});
@@ -184,10 +144,10 @@ class _WeeklyBubbles extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-      decoration: BoxDecoration(color: scheme.border.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(20)),
+      padding: EdgeInsets.symmetric( vertical: AppSizes.p12),
+      decoration: BoxDecoration(color: scheme.border.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(24)),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(7, (index) {
           final day = firstDayOfWeek.add(Duration(days: index));
           final dayName = DateFormat('E').format(day)[0];
@@ -209,33 +169,31 @@ class _WeeklyBubbles extends StatelessWidget {
 
           final isMissed = !isStreakDay && day.isBefore(todayMidnight);
 
-          return Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: AppSizes.icon24,
-                  height: AppSizes.icon24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isStreakDay ? scheme.textPrimary : (isToday ? scheme.textPrimary.withValues(alpha: 0.1) : scheme.border.withValues(alpha: 0.1)),
-                    border: isToday && !isStreakDay ? Border.all(color: scheme.textPrimary.withValues(alpha: 0.4), width: 1.5) : null,
-                  ),
-                  child: isStreakDay
-                      ? Icon(AppIcons.flame, size: 10, color: scheme.cardBackground)
-                      : (isToday ? Icon(AppIcons.flame, size: 10, color: scheme.textPrimary) : (isMissed ? Icon(AppIcons.flame, size: 10, color: scheme.textPrimary.withValues(alpha: 0.5)) : null)),
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32.w,
+                height: 32.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isStreakDay ? scheme.textPrimary : (isToday ? scheme.textPrimary.withValues(alpha: 0.1) : scheme.border.withValues(alpha: 0.1)),
+                  border: isToday && !isStreakDay ? Border.all(color: scheme.textPrimary.withValues(alpha: 0.4), width: 1.5) : null,
                 ),
-                Gap.h6,
-                Text(
-                  dayName,
-                  style: context.caption.copyWith(
-                    fontSize: 8.5.sp,
-                    fontWeight: isToday ? FontWeight.w900 : FontWeight.w700,
-                    color: isToday ? scheme.textPrimary : scheme.textPrimary.withValues(alpha: isFuture ? 0.2 : 0.4),
-                  ),
+                child: isStreakDay
+                    ? Icon(AppIcons.flame, size: 14, color: scheme.cardBackground)
+                    : (isToday ? Icon(AppIcons.flame, size: 14, color: scheme.textPrimary) : (isMissed ? Icon(AppIcons.flame, size: 14, color: scheme.textPrimary.withValues(alpha: 0.5)) : null)),
+              ),
+              Gap.h8,
+              Text(
+                dayName,
+                style: context.caption.copyWith(
+                  fontSize: 10.sp,
+                  fontWeight: isToday ? FontWeight.w900 : FontWeight.w700,
+                  color: isToday ? scheme.textPrimary : scheme.textPrimary.withValues(alpha: isFuture ? 0.2 : 0.4),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         }),
       ),

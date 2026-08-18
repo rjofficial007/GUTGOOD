@@ -41,6 +41,7 @@ import 'package:gutgood/features/profile/presentation/pages/notifications_screen
 import 'package:gutgood/features/profile/presentation/pages/profile_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/sensitivities_screen.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 import 'package:gutgood/features/scanner/presentation/pages/manual_barcode_screen.dart';
 import 'package:gutgood/features/scanner/presentation/pages/scanning_animation_screen.dart';
 import 'package:gutgood/features/scanner/presentation/pages/super_scanner_screen.dart';
@@ -69,8 +70,8 @@ class AppRouter {
       final appState = sl<AppStateService>();
       final prefs = sl<SharedPreferences>();
 
-      // 🟢 Fix: Hold redirects while a merge is pending resolution.
-      if (appState.pendingMergeConflict.value != null || authNotifier.isMerging) {
+      // 🟢 Fix: Hold redirects while a merge is pending resolution OR logout is in progress.
+      if (appState.pendingMergeConflict.value != null || authNotifier.isMerging || appState.isLoggingOut.value) {
         return null;
       }
 

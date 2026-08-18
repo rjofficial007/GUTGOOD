@@ -8,7 +8,6 @@ import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:intl/intl.dart';
 
 class AIHubSection extends StatelessWidget {
@@ -34,24 +33,15 @@ class AIHubSection extends StatelessWidget {
                 children: [
                   Container(
                     padding: EdgeInsets.all(AppSizes.p8),
-                    decoration: BoxDecoration(
-                      color: context.appColorScheme.textPrimary.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
                     child: Icon(AppIcons.scan, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
                   ),
                   Gap.w12,
-                  Text(
-                    AppStrings.aiScanHistory.toUpperCase(),
-                    style: context.bodyBold.copyWith(letterSpacing: 1.0, fontSize: AppSizes.s13),
-                  ),
+                  Text(AppStrings.aiScanHistory.toUpperCase(), style: context.bodyBold.copyWith(letterSpacing: 1.0, fontSize: AppSizes.s13)),
                 ],
               ),
               Gap.h20,
-              if (displayScans.isEmpty)
-                Text(AppStrings.noScansYet, style: context.caption.copyWith(color: context.appColorScheme.textMuted))
-              else
-                ...displayScans.map((s) => _ScanMiniTile(scan: s)),
+              if (displayScans.isEmpty) Text(AppStrings.noScansYet, style: context.caption.copyWith(color: context.appColorScheme.textMuted)) else ...displayScans.map((s) => _ScanMiniTile(scan: s)),
             ],
           ),
         ),
@@ -73,21 +63,20 @@ class _ScanMiniTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(scan.data.productName, style: context.bodyBold.copyWith(fontSize: AppSizes.s14), maxLines: 1, overflow: TextOverflow.ellipsis),
               Text(
-                '${scan.data.brand} • ${DateFormat('MMM d, h:mm a').format(scan.time)}',
-                style: context.caption.copyWith(color: context.appColorScheme.textMuted),
+                scan.data.productName,
+                style: context.bodyBold.copyWith(fontSize: AppSizes.s14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+              Text('${scan.data.brand} • ${DateFormat('MMM d, h:mm a').format(scan.time)}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
             ],
           ),
         ),
         Gap.w12,
         Container(
           padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p4),
-          decoration: BoxDecoration(
-            color: context.appColorScheme.textPrimary.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(AppSizes.r8),
-          ),
+          decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(AppSizes.r8)),
           child: Text(
             '${scan.data.score}',
             style: context.bodyBold.copyWith(fontSize: AppSizes.s12, fontFeatures: const [FontFeature.tabularFigures()]),
@@ -103,43 +92,32 @@ class MealHubSection extends StatelessWidget {
   final List<MealLog> meals;
 
   @override
-  Widget build(BuildContext context) {
-    return DashboardEntrance(
-      delay: 200,
-      child: DashboardCard(
-        child: Padding(
-          padding: EdgeInsets.all(AppSizes.p20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(AppSizes.p8),
-                    decoration: BoxDecoration(
-                      color: context.appColorScheme.textPrimary.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(AppIcons.utensils, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
-                  ),
-                  Gap.w12,
-                  Text(
-                    AppStrings.dailyMealJournal.toUpperCase(),
-                    style: context.bodyBold.copyWith(letterSpacing: 1.0, fontSize: AppSizes.s13),
-                  ),
-                ],
-              ),
-              Gap.h20,
-              if (meals.isEmpty)
-                Text(AppStrings.noMealsLogged, style: context.caption.copyWith(color: context.appColorScheme.textMuted))
-              else
-                ...meals.take(5).map((m) => _MealMiniTile(meal: m)),
-            ],
-          ),
+  Widget build(BuildContext context) => DashboardEntrance(
+    delay: 200,
+    child: DashboardCard(
+      child: Padding(
+        padding: EdgeInsets.all(AppSizes.p20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(AppSizes.p8),
+                  decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+                  child: Icon(AppIcons.utensils, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+                ),
+                Gap.w12,
+                Text(AppStrings.dailyMealJournal.toUpperCase(), style: context.bodyBold.copyWith(letterSpacing: 1.0, fontSize: AppSizes.s13)),
+              ],
+            ),
+            Gap.h20,
+            if (meals.isEmpty) Text(AppStrings.noMealsLogged, style: context.caption.copyWith(color: context.appColorScheme.textMuted)) else ...meals.take(5).map((m) => _MealMiniTile(meal: m)),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _MealMiniTile extends StatelessWidget {
@@ -154,21 +132,20 @@ class _MealMiniTile extends StatelessWidget {
         Container(
           width: 4,
           height: 32,
-          decoration: BoxDecoration(
-            color: context.appColorScheme.textPrimary.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(2),
-          ),
+          decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
         ),
         Gap.w12,
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(meal.items.join(', '), style: context.bodyBold.copyWith(fontSize: AppSizes.s14), maxLines: 1, overflow: TextOverflow.ellipsis),
               Text(
-                '${DateFormat('h:mm a').format(meal.time)} • ${meal.source?.toUpperCase() ?? 'LOG'}',
-                style: context.caption.copyWith(color: context.appColorScheme.textMuted),
+                meal.items.join(', '),
+                style: context.bodyBold.copyWith(fontSize: AppSizes.s14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+              Text('${DateFormat('h:mm a').format(meal.time)} • ${meal.source?.toUpperCase() ?? 'LOG'}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
             ],
           ),
         ),
@@ -182,43 +159,35 @@ class SymptomHubSection extends StatelessWidget {
   final List<SymptomLog> symptoms;
 
   @override
-  Widget build(BuildContext context) {
-    return DashboardEntrance(
-      delay: 300,
-      child: DashboardCard(
-        child: Padding(
-          padding: EdgeInsets.all(AppSizes.p20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(AppSizes.p8),
-                    decoration: BoxDecoration(
-                      color: context.appColorScheme.textPrimary.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(AppIcons.activity, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
-                  ),
-                  Gap.w12,
-                  Text(
-                    AppStrings.bodySymptomTracker.toUpperCase(),
-                    style: context.bodyBold.copyWith(letterSpacing: 1.0, fontSize: AppSizes.s13),
-                  ),
-                ],
-              ),
-              Gap.h20,
-              if (symptoms.isEmpty)
-                Text(AppStrings.noSymptomsLogged, style: context.caption.copyWith(color: context.appColorScheme.textMuted))
-              else
-                ...symptoms.take(5).map((s) => _SymptomMiniTile(symptom: s)),
-            ],
-          ),
+  Widget build(BuildContext context) => DashboardEntrance(
+    delay: 300,
+    child: DashboardCard(
+      child: Padding(
+        padding: EdgeInsets.all(AppSizes.p20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(AppSizes.p8),
+                  decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+                  child: Icon(AppIcons.activity, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+                ),
+                Gap.w12,
+                Text(AppStrings.bodySymptomTracker.toUpperCase(), style: context.bodyBold.copyWith(letterSpacing: 1.0, fontSize: AppSizes.s13)),
+              ],
+            ),
+            Gap.h20,
+            if (symptoms.isEmpty)
+              Text(AppStrings.noSymptomsLogged, style: context.caption.copyWith(color: context.appColorScheme.textMuted))
+            else
+              ...symptoms.take(5).map((s) => _SymptomMiniTile(symptom: s)),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _SymptomMiniTile extends StatelessWidget {
@@ -232,10 +201,7 @@ class _SymptomMiniTile extends StatelessWidget {
       children: [
         Container(
           padding: EdgeInsets.all(AppSizes.p6),
-          decoration: BoxDecoration(
-            color: context.appColorScheme.textPrimary.withValues(alpha: 0.05),
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
           child: Icon(AppIcons.alertCircle, size: 14, color: context.appColorScheme.textSecondary),
         ),
         Gap.w12,
@@ -243,11 +209,13 @@ class _SymptomMiniTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(symptom.symptom, style: context.bodyBold.copyWith(fontSize: AppSizes.s14), maxLines: 1, overflow: TextOverflow.ellipsis),
               Text(
-                'Severity: ${symptom.severity}/10 • ${DateFormat('h:mm a').format(symptom.time)}',
-                style: context.caption.copyWith(color: context.appColorScheme.textMuted),
+                symptom.symptom,
+                style: context.bodyBold.copyWith(fontSize: AppSizes.s14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+              Text('Severity: ${symptom.severity}/10 • ${DateFormat('h:mm a').format(symptom.time)}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
             ],
           ),
         ),

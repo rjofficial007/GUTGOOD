@@ -204,6 +204,7 @@ class UserProfile extends Equatable {
   /// to prevent race-condition overwrites.
   Map<String, dynamic> toUpdateMap() => {
     'onboarded': onboarded,
+    'isAnonymous': isAnonymous,
     'displayName': displayName,
     'email': email,
     'photoUrl': photoUrl,

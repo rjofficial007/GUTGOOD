@@ -7,8 +7,12 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
+import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
+import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
+import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
 class AnimatedChatItem extends StatefulWidget {
@@ -148,10 +152,41 @@ class ChatEmptyState extends StatelessWidget {
             crossAxisSpacing: AppSizes.p4,
             mainAxisSpacing: AppSizes.p4,
             childAspectRatio: 0.7,
-            children: const [
-              _EmptyStateCard(icon: AppIcons.scan, title: AppStrings.emptyStateScanFood, subtitle: AppStrings.emptyStateScanFoodDesc),
-              _EmptyStateCard(icon: AppIcons.clipboardList, title: AppStrings.emptyStateCheckIngredients, subtitle: AppStrings.emptyStateCheckIngredientsDesc),
-              _EmptyStateCard(icon: AppIcons.messageCircle, title: AppStrings.emptyStateAskGutGood, subtitle: AppStrings.emptyStateAskGutGoodDesc),
+            children: [
+              _EmptyStateCard(
+                icon: AppIcons.scan,
+                title: AppStrings.emptyStateScanFood,
+                subtitle: AppStrings.emptyStateScanFoodDesc,
+                onTap: () {
+                  final state = context.findAncestorStateOfType<ChatScreenState>();
+                  if (state != null) {
+                    final chatNotifier = context.read<ChatNotifier>();
+                    final authNotifier = context.read<GutAuthNotifier>();
+                    state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.food);
+                  }
+                },
+              ),
+              _EmptyStateCard(
+                icon: AppIcons.clipboardList,
+                title: AppStrings.emptyStateCheckIngredients,
+                subtitle: AppStrings.emptyStateCheckIngredientsDesc,
+                onTap: () {
+                  final state = context.findAncestorStateOfType<ChatScreenState>();
+                  if (state != null) {
+                    final chatNotifier = context.read<ChatNotifier>();
+                    final authNotifier = context.read<GutAuthNotifier>();
+                    state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.label);
+                  }
+                },
+              ),
+              _EmptyStateCard(
+                icon: AppIcons.messageCircle,
+                title: AppStrings.emptyStateAskGutGood,
+                subtitle: AppStrings.emptyStateAskGutGoodDesc,
+                onTap: () {
+                  FocusScope.of(context).requestFocus();
+                },
+              ),
             ],
           ),
         ],
@@ -161,36 +196,37 @@ class ChatEmptyState extends StatelessWidget {
 }
 
 class _EmptyStateCard extends StatelessWidget {
-  const _EmptyStateCard({required this.icon, required this.title, required this.subtitle});
+  const _EmptyStateCard({required this.icon, required this.title, required this.subtitle, this.onTap});
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p10),
-    decoration: BoxDecoration(
-      color: context.appColorScheme.aiResponseBackground,
-      borderRadius: BorderRadius.circular(AppSizes.r20),
-    ),
-    child: Column(
-      children: [
-        Gap.h4,
-        Container(
-          padding: EdgeInsets.all(AppSizes.p14),
-          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.5), shape: BoxShape.circle),
-          child: Icon(icon, size: AppSizes.icon24, color: context.appColorScheme.textPrimary),
-        ),
-        Gap.h16,
-        Text(title, textAlign: TextAlign.center, style: context.bodyBold.copyWith(height: 1.1)),
-        Gap.h8,
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: context.caption.copyWith(color: context.appColorScheme.textSecondary, height: 1.2),
-        ),
-      ],
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p10),
+      decoration: BoxDecoration(color: context.appColorScheme.aiResponseBackground, borderRadius: BorderRadius.circular(AppSizes.r20)),
+      child: Column(
+        children: [
+          Gap.h4,
+          Container(
+            padding: EdgeInsets.all(AppSizes.p14),
+            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.5), shape: BoxShape.circle),
+            child: Icon(icon, size: AppSizes.icon24, color: context.appColorScheme.textPrimary),
+          ),
+          Gap.h16,
+          Text(title, textAlign: TextAlign.center, style: context.bodyBold.copyWith(height: 1.1)),
+          Gap.h8,
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: context.caption.copyWith(color: context.appColorScheme.textSecondary, height: 1.2),
+          ),
+        ],
+      ),
     ),
   );
 }

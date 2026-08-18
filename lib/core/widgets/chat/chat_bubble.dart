@@ -102,7 +102,7 @@ class ChatBubble extends StatelessWidget {
             decoration: BoxDecoration(
               color: context.appColorScheme.aiResponseBackground,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(6),
+                topLeft: Radius.circular(AppSizes.r6),
                 topRight: Radius.circular(AppSizes.r24),
                 bottomLeft: Radius.circular(AppSizes.r24),
                 bottomRight: Radius.circular(AppSizes.r24),

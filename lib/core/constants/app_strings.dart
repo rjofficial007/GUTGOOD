@@ -567,6 +567,9 @@ class AppStrings {
   static const String saveChanges = ProfileStrings.saveChanges;
   static const String account = ProfileStrings.account;
   static const String support = ProfileStrings.support;
+  static const String limits = ProfileStrings.limits;
+  static const String guestAccount = ProfileStrings.guestAccount;
+  static const String freePlan = ProfileStrings.freePlan;
   static const String editProfile = ProfileStrings.editProfile;
   static const String changePassword = ProfileStrings.changePassword;
   static const String language = ProfileStrings.language;

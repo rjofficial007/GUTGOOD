@@ -79,8 +79,26 @@ class AiServiceImpl implements AiService {
     return {'Authorization': 'Bearer $token', 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey};
   }
 
-  List<Map<String, String>> _historyToPayload(List<ChatMessage> history) =>
-      history.where((m) => m.text.isNotEmpty).map((m) => {'role': m.role == 'user' ? 'user' : 'assistant', 'content': m.text}).toList();
+  /// 🟢 FIXED (Finding #5): previously this only forwarded `m.text`, so once
+  /// a scan's `[SCAN]` JSON block was stripped out of the displayed bubble
+  /// text (by `_processChatTagUseCase`), the structured product details
+  /// (score, nutriscore, flagged ingredients, etc.) were PERMANENTLY
+  /// invisible to the model on every subsequent turn — directly hurting
+  /// the "why do I feel bloated after this?" / "what should I eat
+  /// instead?" quick-reply chips, which depend on the model still knowing
+  /// what "this" refers to. `scanData` is now serialized inline via the
+  /// existing (previously unused) `ChatMessage.toAiMap()`/`ScanResult.toAiMap()`
+  /// helpers.
+  List<Map<String, String>> _historyToPayload(List<ChatMessage> history) => history.where((m) => m.text.isNotEmpty || m.scanData != null).map((m) {
+    final role = m.role == 'user' ? 'user' : 'assistant';
+    if (m.scanData == null) {
+      return {'role': role, 'content': m.text};
+    }
+
+    final scanContext = jsonEncode(m.scanData!.toAiMap());
+    final content = m.text.isNotEmpty ? '${m.text}\n\n[SCAN_CONTEXT]$scanContext[/SCAN_CONTEXT]' : '[SCAN_CONTEXT]$scanContext[/SCAN_CONTEXT]';
+    return {'role': role, 'content': content};
+  }).toList();
 
   Never _throwForStatus(int status, String body) {
     var message = 'Unexpected AI proxy error ($status).';
@@ -121,17 +139,37 @@ class AiServiceImpl implements AiService {
     AppLogger.debug('AiService: streaming via proxy (history: ${history.length}, images: ${images?.length ?? 0})');
     final startTime = DateTime.now();
 
-    final Response<ResponseBody> response;
-    try {
-      response = await _dio.post<ResponseBody>(
-        _config.aiProxyUrl,
-        data: body,
-        options: Options(responseType: ResponseType.stream, headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(minutes: 4), validateStatus: (_) => true),
-      );
-    } on DioException catch (e, st) {
+    // 🟢 NEW: previously a single connection failure (timeout/reset) here
+    // threw immediately with zero retry, even though `generateContent`
+    // below already retries the exact same class of transient errors.
+    // Streaming can't safely retry mid-stream (partial tokens may already
+    // be yielded), but the initial connection attempt — before any bytes
+    // are read — safely can and now does, using the same backoff policy.
+    Response<ResponseBody>? response;
+    var attempts = 0;
+    DioException? lastError;
+    while (attempts < _maxRetries) {
+      attempts++;
+      try {
+        response = await _dio.post<ResponseBody>(
+          _config.aiProxyUrl,
+          data: body,
+          options: Options(responseType: ResponseType.stream, headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(minutes: 4), validateStatus: (_) => true),
+        );
+        lastError = null;
+        break;
+      } on DioException catch (e) {
+        lastError = e;
+        if (!_isRetryable(e) || attempts >= _maxRetries) break;
+        await Future.delayed(Duration(seconds: attempts * 2));
+      }
+    }
+
+    if (lastError != null || response == null) {
+      final e = lastError;
       await _analyticsService.logEvent(name: 'ai_stream_failed', parameters: {'error': e.toString(), 'type': images != null ? 'scan' : 'chat'});
-      await _crashlyticsService.recordError(e, st, reason: 'AI Stream connection failed');
-      throw AiServiceException(e.message ?? 'Connection failed.', statusCode: e.response?.statusCode);
+      if (e != null) await _crashlyticsService.recordError(e, e.stackTrace, reason: 'AI Stream connection failed');
+      throw AiServiceException(e?.message ?? 'Connection failed.', statusCode: e?.response?.statusCode);
     }
 
     final status = response.statusCode ?? 500;

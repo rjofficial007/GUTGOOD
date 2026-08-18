@@ -22,6 +22,7 @@ import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,14 +30,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-enum ScannerMode { barcode, food, menu, label }
-
-class _ScannerModeOption {
-  const _ScannerModeOption({required this.mode, required this.label});
-  final ScannerMode mode;
-  final String label;
-}
 
 class SuperScannerScreen extends StatefulWidget {
   const SuperScannerScreen({super.key, this.initialMode = ScannerMode.barcode});
@@ -59,12 +52,14 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   bool _showModeIntro = false;
   Timer? _introTimer;
 
-  final List<_ScannerModeOption> _modes = const [
-    _ScannerModeOption(mode: ScannerMode.menu, label: AppStrings.restaurantMenuLabel),
-    _ScannerModeOption(mode: ScannerMode.barcode, label: AppStrings.productBarcodeLabel),
-    _ScannerModeOption(mode: ScannerMode.label, label: AppStrings.ingredientsLabel),
-    _ScannerModeOption(mode: ScannerMode.food, label: AppStrings.mealSnapLabel),
+  final List<ScannerModeOption> _modes = const [
+    ScannerModeOption(mode: ScannerMode.menu, label: AppStrings.restaurantMenuLabel),
+    ScannerModeOption(mode: ScannerMode.barcode, label: AppStrings.productBarcodeLabel),
+    ScannerModeOption(mode: ScannerMode.label, label: AppStrings.ingredientsLabel),
+    ScannerModeOption(mode: ScannerMode.food, label: AppStrings.mealSnapLabel),
   ];
+
+  bool _isCheckingQuota = true;
 
   @override
   void initState() {
@@ -85,6 +80,12 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   Future<void> _checkQuota() async {
     if (!mounted) return;
     await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true);
+    if (mounted) {
+      setState(() {
+        _isCheckingQuota = false;
+        // If not allowed, QuotaGuard will pop the screen.
+      });
+    }
   }
 
   void _triggerModeIntro() {
@@ -292,6 +293,10 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingQuota) {
+      return const Scaffold(backgroundColor: AppPalette.black);
+    }
+
     if (!_hasPermission) {
       return const _PermissionOverlay();
     }
@@ -399,7 +404,7 @@ class _ScannerBottomControls extends StatelessWidget {
   final PageController modePageController;
   final ScannerMode currentMode;
   final bool isProcessing;
-  final List<_ScannerModeOption> modes;
+  final List<ScannerModeOption> modes;
   final VoidCallback onGalleryTap;
   final VoidCallback onShutterTap;
   final Function(int) onModeChanged;
@@ -482,7 +487,7 @@ class _ModeSelector extends StatelessWidget {
 
   final PageController controller;
   final ScannerMode currentMode;
-  final List<_ScannerModeOption> modes;
+  final List<ScannerModeOption> modes;
   final Function(int) onPageChanged;
 
   @override
@@ -581,7 +586,7 @@ class _PermissionOverlay extends StatelessWidget {
 class _ModeIntroOverlay extends StatelessWidget {
   const _ModeIntroOverlay({required this.currentMode, required this.modes});
   final ScannerMode currentMode;
-  final List<_ScannerModeOption> modes;
+  final List<ScannerModeOption> modes;
 
   @override
   Widget build(BuildContext context) {

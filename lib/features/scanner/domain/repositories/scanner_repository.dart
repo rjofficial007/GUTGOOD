@@ -14,6 +14,7 @@ abstract class ScannerRepository {
   });
   Future<ScanResult> analyzeImageWithAi({
     required Uint8List imageBytes,
+    required String mode,
     required List<String> goals,
     required List<String> sensitivities,
     required List<String> lifestyle,
@@ -27,6 +28,5 @@ class ScanAnalysisException implements Exception {
   final OffProduct product;
 
   @override
-  String toString() =>
-      'ScanAnalysisException: AI analysis failed for ${product.productName}';
+  String toString() => 'ScanAnalysisException: AI analysis failed for \${product.productName}';
 }

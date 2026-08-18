@@ -4,18 +4,54 @@ class ChatStrings {
   static const String chatInitialGreeting = 'What’s good? 👋 Scan • Snap • Ask';
   static const String chatAuthMessage = 'Create a free account to save your results and start tracking your GutGood Score.';
   static const String imageUploadAnalysis = 'Image Upload Analysis 📷';
-  static const String imageUploadInstruction = 'Analyze this image, product, barcode, QR code, or ingredient label for gut health.';
+
+  // ---------------------------------------------------------------------
+  // 🔴 DEPRECATED — DO NOT USE FOR PROMPT CONSTRUCTION.
+  //
+  // These five constants used to be sent to the AI as `hiddenContext`
+  // directly from `ChatNotifier.handleImageAttachment`/`send()`, running
+  // in PARALLEL with (and contradicting) the much more thorough,
+  // mode-specific prompts in `mode_prompts.dart` — e.g. this file's
+  // `restaurantMenuInstruction` said "[SCAN]/[SWAPS] MANDATORY" while
+  // `ModePrompts.restaurantMenuInstruction` said structured tags are
+  // "ABSOLUTELY STRICT...forbidden" for the same mode. That contradiction
+  // was the direct cause of inconsistent mode-specific output.
+  //
+  // `ChatNotifier` now calls `Prompts.visionAnalysisSystemInstruction`
+  // (which delegates to `ModePrompts`) as the actual SYSTEM INSTRUCTION for
+  // any turn carrying an image + known mode, instead of appending one of
+  // these strings as extra user-turn context on top of the generic chat
+  // system prompt. These constants are kept only so any other lingering
+  // call sites don't fail to compile; do not wire them into new code paths.
+  // Prefer `ModePrompts`/`Prompts.visionAnalysisSystemInstruction` instead.
+  // ---------------------------------------------------------------------
+  @Deprecated('Use Prompts.visionAnalysisSystemInstruction(mode: "gallery"/"unknown") instead — see mode_prompts.dart / prompts.dart')
+  static const String imageUploadInstruction = 'Look at the attached image (product, meal, or label) and analyze it for gut health. Provide structured [SCAN] and [MEAL] data as appropriate.';
+
   static const String restaurantMenuCheck = 'Restaurant Menu Check 🍽️';
-  static const String restaurantMenuInstruction = 'This is a restaurant menu. Recommend 3 gut-friendly options for me. Use [SWAPS] JSON for the picks.';
+
+  @Deprecated('Use Prompts.visionAnalysisSystemInstruction(mode: "menu") -> ModePrompts.restaurantMenuInstruction instead')
+  static const String restaurantMenuInstruction =
+      'Adopt the persona of a Restaurant Survival Guide. Analyze this menu. Suggest the top 3 gut-friendly picks and any helpful modifications (e.g. sauce on side). MANDATORY: Provide a [SCAN] block and a [SWAPS] block.';
+
   static const String mealPhotoAnalysis = 'Meal Photo Analysis 📸';
+
+  @Deprecated('Use Prompts.visionAnalysisSystemInstruction(mode: "food") -> ModePrompts.mealSnapInstruction instead')
   static const String mealPhotoInstruction =
-      'Analyze this meal photo for gut health. Estimate ingredients and health score. MANDATORY: You MUST provide BOTH a [MEAL] block AND a [SCAN] block. ALSO, if the user mentions how they feel (e.g. "energetic", "bloated"), you MUST include a [SYMPTOM] block.';
+      'Adopt the persona of a Nutrition Coach. Analyze this meal for metabolic balance (Protein + Fiber + Fat). Provide a supportive rating. MANDATORY: You MUST provide BOTH a [MEAL] block AND a [SCAN] block. ALSO, if the user mentions how they feel, include a [SYMPTOM] block.';
+
   static const String ingredientLabelScan = 'Ingredient Label Scan 🔍';
+
+  @Deprecated('Use Prompts.visionAnalysisSystemInstruction(mode: "label") -> ModePrompts.ingredientLabelInstruction instead')
   static const String ingredientLabelInstruction =
-      'Analyze this ingredient label for gut health. Extract the product name, ingredients, and gut score. MANDATORY: You MUST provide a [SCAN] block. ALSO, if the user mentions how they feel, you MUST include a [SYMPTOM] block.';
+      'Adopt the persona of a Clinical Food Scientist. Perform a deep audit of additives, gums, and emulsifiers on this label. Flag anything triggering user sensitivities. MANDATORY: You MUST provide a [SCAN] block.';
+
   static const String visionScanPlaceholder = 'I scanned an item with AI.';
+
+  @Deprecated('Use Prompts.visionAnalysisSystemInstruction(mode: "gallery") instead')
   static const String visionScanInstruction =
-      'Analyze this product image for gut health. Extract the product name, ingredients, and gut score. MANDATORY: You MUST provide a [SCAN] block. ALSO, if the user mentions how they feel, you MUST include a [SYMPTOM] block.';
+      'Look at the attached image and analyze it for gut health. Identify the product, meal, or label. Extract the product name, ingredients, and gut score. MANDATORY: You MUST provide a [SCAN] block. ALSO, if the user mentions how they feel, include a [SYMPTOM] block.';
+
   static const String restaurantSurvivalMode = '🍽️ Restaurant Survival Mode: Upload a menu photo to get gut-friendly picks.';
   static const String viewPremiumBenefits = 'View Premium Benefits';
   static const String findingSwaps = 'Finding more great swaps for you... ✨';
@@ -68,7 +104,7 @@ class ChatStrings {
   static const String gutImpact = 'GUT IMPACT';
   static const String labelHelpful = 'helpful';
   static const String labelNotHelpful = 'not_helpful';
-  static const String labelTellMeMore = 'tell_me_more';
+  static const String labelTellMeMore = 'tell_more_more';
   static const String manuallyEnteredBarcode = 'I manually entered barcode for ';
   static const String messageCopied = 'Message copied to clipboard';
   static const String uploadFromGallery = 'Upload from gallery';

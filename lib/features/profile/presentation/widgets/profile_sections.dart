@@ -418,7 +418,6 @@ class AIUsageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = context.appColorScheme;
     final textColor = scheme.textPrimary;
     final borderColor = scheme.border.withValues(alpha: 0.5);
@@ -434,86 +433,49 @@ class AIUsageCard extends StatelessWidget {
 
     return Container(
       margin: EdgeInsets.only(top: AppSizes.p16),
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
         color: scheme.elevatedSurface,
-        borderRadius: BorderRadius.circular(AppSizes.r32),
+        borderRadius: BorderRadius.circular(AppSizes.r28),
         border: Border.all(color: borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            // Left Section: AI Branding (Matching StreakCard Style)
-            Container(
-              width: 110.w,
-              padding: EdgeInsets.symmetric(vertical: 20.h),
-              decoration: BoxDecoration(
-                color: scheme.border.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(color: borderColor),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Image.asset(AppAssets.appIconBg, height: 34.w, width: 34.w, color: textColor),
-
-                  // Icon(AppIcons.salad, color: textColor, size: 40.w),
-                  Gap.h10,
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4.w),
-                      child: Text(
-                        'LIMITS',
-                        style: context.headingSm.copyWith(color: textColor, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-                      ),
-                    ),
+                  Text(
+                    AppStrings.limits.toUpperCase(),
+                    style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
                   ),
                   Text(
-                    isAnon ? 'GUEST' : 'DAILY',
-                    style: context.caption.copyWith(color: textColor.withValues(alpha: 0.5), fontWeight: FontWeight.w700, fontSize: 9.sp),
+                    isAnon ? AppStrings.guestAccount : AppStrings.freePlan,
+                    style: context.bodyBold.copyWith(color: textColor, height: 1.1),
                   ),
                 ],
               ),
-            ),
-            Gap.w16,
-            // Right Section: Usage Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  UsageRow(label: AppStrings.aiChats, current: chatCount, total: maxChats, color: textColor),
-                  Gap.h16,
-                  UsageRow(label: AppStrings.productScans, current: scanCount, total: maxScans, color: textColor),
-                  Gap.h20,
-                  GestureDetector(
-                    onTap: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          AppStrings.upgradeForUnlimited,
-                          style: context.bodyBold.copyWith(color: textColor, fontSize: AppSizes.s12, letterSpacing: 0.5),
-                        ),
-                        Gap.w4,
-                        Icon(AppIcons.chevronRight, size: 14, color: textColor),
-                      ],
-                    ),
+              GestureDetector(
+                onTap: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(color: textColor, borderRadius: BorderRadius.circular(100)),
+                  child: Text(
+                    AppStrings.upgrade.toUpperCase(),
+                    style: context.caption.copyWith(color: scheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 8.5.sp, letterSpacing: 1),
                   ),
-                ],
+                ),
               ),
-            ),
-            Gap.w10,
-          ],
-        ),
+            ],
+          ),
+          Gap.h24,
+          UsageRow(label: AppStrings.aiChats, current: chatCount, total: maxChats, color: textColor),
+          Gap.h16,
+          UsageRow(label: AppStrings.productScans, current: scanCount, total: maxScans, color: textColor),
+        ],
       ),
     );
   }
@@ -538,11 +500,11 @@ class UsageRow extends StatelessWidget {
           children: [
             Text(
               label.toUpperCase(),
-              style: context.eyebrow.copyWith(fontSize: 8.sp, color: context.appColorScheme.textSecondary),
+              style: context.eyebrow.copyWith(fontSize: 9.sp, color: context.appColorScheme.textSecondary, letterSpacing: 1.0),
             ),
             Text(
               '$current / $total',
-              style: context.caption.copyWith(fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
+              style: context.caption.copyWith(fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()], fontSize: 10.sp),
             ),
           ],
         ),

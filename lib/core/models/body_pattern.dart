@@ -24,6 +24,7 @@ class BodyPattern extends Equatable {
     recommendation: map['recommendation'] as String?,
     updatedAt: map['updatedAt'] ?? DateTime.now().toIso8601String(),
   );
+
   final String type;
   final String trigger;
   final String reaction;
@@ -33,6 +34,20 @@ class BodyPattern extends Equatable {
   final List<String> involvedFoods;
   final String? recommendation;
   final String updatedAt;
+
+  // Insight Categories
+  static const String typeBloating = 'bloating';
+  static const String typeEnergy = 'energy';
+  static const String typeHeadache = 'headache';
+  static const String typeDigestion = 'digestion';
+  static const String typeFullness = 'fullness';
+  static const String typeSleep = 'sleep';
+
+  // Confidence Levels
+  static const String confidenceLow = 'Low';
+  static const String confidenceModerate = 'Moderate';
+  static const String confidenceMedium = 'Medium';
+  static const String confidenceHigh = 'High';
 
   Map<String, dynamic> toMap() => {
     'type': type,
@@ -47,15 +62,5 @@ class BodyPattern extends Equatable {
   };
 
   @override
-  List<Object?> get props => [
-    type,
-    trigger,
-    reaction,
-    frequency,
-    confidence,
-    description,
-    involvedFoods,
-    recommendation,
-    updatedAt,
-  ];
+  List<Object?> get props => [type, trigger, reaction, frequency, confidence, description, involvedFoods, recommendation, updatedAt];
 }

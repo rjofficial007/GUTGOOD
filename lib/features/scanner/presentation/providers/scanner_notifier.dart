@@ -95,6 +95,7 @@ class ScannerNotifier with ChangeNotifier {
 
       final result = await _repository.analyzeImageWithAi(
         imageBytes: bytes,
+        mode: mode,
         goals: profile?.goals ?? [],
         sensitivities: profile?.sensitivities ?? [],
         lifestyle: profile?.lifestyle ?? [],

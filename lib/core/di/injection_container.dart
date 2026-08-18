@@ -227,5 +227,5 @@ void _initFeatures() {
 void _initUseCases() {
   sl
     ..registerLazySingleton(() => SendMessageStreamUseCase(sl()))
-    ..registerLazySingleton(() => ProcessChatTagUseCase(firestoreService: sl<HistoryFirestoreService>(), notificationService: sl(), appStateService: sl()));
+    ..registerLazySingleton(() => ProcessChatTagUseCase(firestoreService: sl<HistoryFirestoreService>(), appStateService: sl()));
 }

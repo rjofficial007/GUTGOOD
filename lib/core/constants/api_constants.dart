@@ -18,6 +18,5 @@ class ApiConstants {
   static const googleServerClientId = '1089693952703-om7gdrj1a46u6p9s6km0njq9g72ufjhn.apps.googleusercontent.com';
 
   // Magic Link URL (Authorized Domain for Continue URL)
-  // TODO: Update this once custom domain https://gutgoodapp.com is connected in Firebase Hosting
   static const magicLinkUrl = 'https://gutgood-app-9242d.firebaseapp.com/auth-completed';
 }

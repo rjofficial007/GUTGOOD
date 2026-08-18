@@ -79,17 +79,10 @@ class _MainDashboardSliver extends StatelessWidget {
       'Sleep': patterns.where((p) => p.trigger.toLowerCase().contains('sleep') || p.description.toLowerCase().contains('night')).toList(),
     };
 
-    final icons = {
-      'Bloating': AppIcons.alertTriangle,
-      'Energy': AppIcons.zap,
-      'Headache': AppIcons.activity,
-      'Digestion': AppIcons.leaf,
-      'Fullness': AppIcons.utensils,
-      'Sleep': AppIcons.moon,
-    };
+    final icons = {'Bloating': AppIcons.alertTriangle, 'Energy': AppIcons.zap, 'Headache': AppIcons.activity, 'Digestion': AppIcons.leaf, 'Fullness': AppIcons.utensils, 'Sleep': AppIcons.moon};
 
     // 1. Core 6 Patterns (Only show if data exists)
-    int delay = 100;
+    var delay = 100;
     for (final entry in corePatterns.entries) {
       if (entry.value.isNotEmpty) {
         sections.add(
@@ -110,7 +103,12 @@ class _MainDashboardSliver extends StatelessWidget {
 
     // 2. AI SMART ALERT (Top Insight)
     if (data.topInsight != null) {
-      sections.add(DashboardEntrance(delay: delay, child: ModernSmartAlert(insight: data.topInsight!)));
+      sections.add(
+        DashboardEntrance(
+          delay: delay,
+          child: ModernSmartAlert(insight: data.topInsight!),
+        ),
+      );
       delay += 50;
     }
 
