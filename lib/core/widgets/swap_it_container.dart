@@ -6,6 +6,7 @@ import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/swap_card.dart';
+import 'package:gutgood/core/widgets/widgets.dart';
 
 class SwapItContainer extends StatelessWidget {
   const SwapItContainer({super.key, required this.swaps, required this.onSeeMore});
@@ -13,74 +14,134 @@ class SwapItContainer extends StatelessWidget {
   final VoidCallback onSeeMore;
 
   @override
-  Widget build(BuildContext context) => Container(
-    margin: EdgeInsets.only(bottom: AppSizes.p16, right: AppSizes.p16),
-    padding: EdgeInsets.all(AppSizes.p18),
-    decoration: BoxDecoration(color: context.appColorScheme.aiResponseBackground, borderRadius: BorderRadius.circular(AppSizes.r24)),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Icon(AppIcons.sparkles, size: 22, color: context.appColorScheme.textPrimary),
-            ),
-            SizedBox(width: AppSizes.p12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppStrings.swapItFeelBetter, style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5)),
-                  const SizedBox(height: 2),
-                  Text(AppStrings.easySwapsDesc, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
-                ],
-              ),
-            ),
-          ],
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    
+    return Container(
+      margin: EdgeInsets.only(bottom: AppSizes.p24, right: AppSizes.p16),
+      decoration: BoxDecoration(
+        color: colorScheme.cardBackground,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(4),
+          topRight: Radius.circular(AppSizes.r32),
+          bottomLeft: Radius.circular(AppSizes.r32),
+          bottomRight: Radius.circular(AppSizes.r32),
         ),
-        SizedBox(height: AppSizes.p24),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: swaps.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final swap = entry.value;
-
-              var calculatedTag = 'GOOD OPTIONS';
-              if (idx == 0) {
-                calculatedTag = 'BETTER CHOICE';
-              } else if (idx == 1) {
-                calculatedTag = 'GOOD FOR YOU';
-              }
-
-              return Padding(
-                padding: EdgeInsets.only(right: idx == swaps.length - 1 ? 0 : AppSizes.p12),
-                child: SwapCard(title: swap.title, subtitle: swap.subtitle, imageKeyword: swap.imageKeyword, imageUrl: swap.imageUrl, tag: calculatedTag, badge: idx == 0 ? '#1 PICK' : swap.badge),
-              );
-            }).toList(),
+        border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.textPrimary.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
-        ),
-        SizedBox(height: AppSizes.p20),
-        GestureDetector(
-          onTap: onSeeMore,
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p12),
-            decoration: BoxDecoration(color: context.appColorScheme.cardBackground.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(AppSizes.r24)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: EdgeInsets.all(AppSizes.p20),
             child: Row(
               children: [
-                SizedBox(width: AppSizes.p16),
-                Expanded(
-                  child: Text(AppStrings.seeMoreSwaps, textAlign: TextAlign.center, style: context.bodyBold.copyWith(fontSize: 14)),
+                Container(
+                  padding: EdgeInsets.all(AppSizes.p10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.textPrimary,
+                    borderRadius: BorderRadius.circular(AppSizes.r12),
+                  ),
+                  child: Icon(AppIcons.salad, size: AppSizes.icon32, color: colorScheme.cardBackground),
                 ),
-                Icon(AppIcons.chevronRight, size: AppSizes.icon16, color: context.appColorScheme.textPrimary),
+                Gap.w16,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.swapItFeelBetter.toUpperCase(),
+                        style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontSize: 10),
+                      ),
+                      Text(
+                        AppStrings.easySwapsDesc,
+                        style: context.bodySm.copyWith(color: colorScheme.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        ),
-      ],
-    ),
-  );
+
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20),
+            child: Divider(color: colorScheme.border.withValues(alpha: 0.3), height: 1),
+          ),
+
+          // Swaps Scroll
+          Padding(
+            padding: EdgeInsets.all(AppSizes.p20),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              child: Row(
+                children: swaps.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final swap = entry.value;
+
+                  return Padding(
+                    padding: EdgeInsets.only(right: idx == swaps.length - 1 ? 0 : AppSizes.p12),
+                    child: SwapCard(
+                      title: swap.title,
+                      subtitle: swap.subtitle,
+                      imageKeyword: swap.imageKeyword,
+                      imageUrl: swap.imageUrl,
+                      tag: idx == 0 ? 'PRIME CHOICE' : 'VALID SWAP',
+                      badge: idx == 0 ? 'TOP PICK' : null,
+                      width: 140,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
+          // Actions
+          Padding(
+            padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onSeeMore,
+                borderRadius: BorderRadius.circular(AppSizes.r24),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSizes.r24),
+                    border: Border.all(color: colorScheme.border, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(AppIcons.refreshCcw, size: 12, color: colorScheme.textPrimary),
+                      Gap.w8,
+                      Text(
+                        AppStrings.seeMoreSwaps.toUpperCase(),
+                        style: context.eyebrow.copyWith(
+                          color: colorScheme.textPrimary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

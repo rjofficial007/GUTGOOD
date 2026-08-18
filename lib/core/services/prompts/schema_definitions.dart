@@ -30,6 +30,7 @@ class SchemaDefinitions {
 {
   "productName": "string|null",
   "brand": "string|null",
+  "category": "food|menu|label|packaging|non-food",
   "badge": "string|null",
   "score": 0,
   "impactType": "positive|neutral|negative",
@@ -115,6 +116,7 @@ $ingredientSchema
   /// drift from creeping back in as prompts get edited over time.
   static const String typeRules = '''
 SCHEMA TYPE RULES (apply to every JSON block in this prompt)
+- category is a string: "food", "menu", "label", "packaging", or "non-food".
 - novaGroup is an integer 1-4, or JSON null. Never a string, never a range like "1-4".
 - score is an integer 0-100. Never null. If truly unknown, output 0 and set impactType to "neutral".
 - nutriscore is exactly one of "A","B","C","D","E", or JSON null. Never lowercase, never omitted.

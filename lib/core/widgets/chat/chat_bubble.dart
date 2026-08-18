@@ -13,6 +13,7 @@ import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
 import 'package:gutgood/core/widgets/chat/thinking_indicator.dart';
 import 'package:gutgood/core/widgets/feedback_tag.dart';
+import 'package:gutgood/core/widgets/widgets.dart';
 
 class ChatBubble extends StatelessWidget {
   const ChatBubble({
@@ -62,7 +63,8 @@ class ChatBubble extends StatelessWidget {
     if (text.isEmpty) return;
     Clipboard.setData(ClipboardData(text: text));
     HapticHelper.medium();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.messageCopied), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(AppStrings.messageCopied), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
   }
 
   bool get _hasImages => (localImages != null && localImages!.isNotEmpty) || imageUrls.isNotEmpty;
@@ -88,195 +90,255 @@ class ChatBubble extends StatelessWidget {
     return '$hour:${time.minute.toString().padLeft(2, '0')} $amPm';
   }
 
-  Widget _buildLoadingState(BuildContext context) => Semantics(
-    label: 'AI is thinking',
-    child: Padding(
-      padding: EdgeInsets.only(bottom: AppSizes.p16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
-          // Gap.w12,
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: context.appColorScheme.aiResponseBackground,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(AppSizes.r6),
-                topRight: Radius.circular(AppSizes.r24),
-                bottomLeft: Radius.circular(AppSizes.r24),
-                bottomRight: Radius.circular(AppSizes.r24),
-              ),
+  Widget _buildLoadingState(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return Semantics(
+      label: 'AI is thinking',
+      child: Padding(
+        padding: EdgeInsets.only(bottom: AppSizes.p16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: colorScheme.cardBackground,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(4),
+              topRight: Radius.circular(AppSizes.r24),
+              bottomLeft: Radius.circular(AppSizes.r24),
+              bottomRight: Radius.circular(AppSizes.r24),
             ),
-            child: const ThinkingIndicator(),
+            border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
           ),
-        ],
+          child: const ThinkingIndicator(),
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   Widget _buildUserMessage(BuildContext context, String formattedTime) => Semantics(
-    label: 'User message: $text',
-    child: Align(
-      alignment: Alignment.centerRight,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          GestureDetector(
-            onLongPress: () => _copyToClipboard(context),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: screenWidth * 0.85),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 4),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: isSending ? 0.7 : 1.0),
-                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20), bottomLeft: Radius.circular(20), bottomRight: Radius.circular(6)),
-                  border: sendFailed ? Border.all(color: context.appColorScheme.error, width: 1.5) : null,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (_hasImages) _buildImageStrip(context, dark: true),
-                    if (_hasImages) Gap.h8,
-                    if (text.isNotEmpty) Text(text, style: context.body.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
-                    Gap.h4,
-                    _buildUserStatusRow(context, formattedTime),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          if (sendFailed && onRetry != null) _buildRetryButton(context),
-        ],
-      ),
-    ),
-  );
-
-  Widget _buildUserStatusRow(BuildContext context, String formattedTime) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      if (isSending)
-        Padding(
-          padding: const EdgeInsets.only(right: 4.0),
-          child: SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7))),
-        )
-      else if (sendFailed)
-        Padding(
-          padding: const EdgeInsets.only(right: 4.0),
-          child: Icon(AppIcons.alertCircle, size: 11, color: Theme.of(context).colorScheme.onPrimary),
-        ),
-      Text(
-        isSending ? AppStrings.labelSending : (sendFailed ? AppStrings.labelFailed : '$formattedTime ✓✓'),
-        style: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.54), fontSize: AppSizes.s10, fontWeight: FontWeight.bold),
-      ),
-    ],
-  );
-
-  Widget _buildRetryButton(BuildContext context) => Padding(
-    padding: EdgeInsets.only(bottom: AppSizes.p12),
-    child: GestureDetector(
-      onTap: onRetry,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(AppIcons.rotateCcw, size: 13, color: context.appColorScheme.error),
-          Gap.w4,
-          Text(
-            AppStrings.tapToRetry,
-            style: context.caption.copyWith(color: context.appColorScheme.error, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  Widget _buildAiMessage(BuildContext context, String formattedTime) => Semantics(
-    label: 'AI message: $text',
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image.asset(AppAssets.appIconBg, height: 24, width: 24, color: context.appColorScheme.textPrimary),
-            // Gap.w4,
-            Expanded(
-              child: GestureDetector(
+        label: 'User message: $text',
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              GestureDetector(
                 onLongPress: () => _copyToClipboard(context),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 8, right: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: context.appColorScheme.aiResponseBackground,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(AppSizes.r6),
-                      topRight: Radius.circular(AppSizes.r24),
-                      bottomLeft: Radius.circular(AppSizes.r24),
-                      bottomRight: Radius.circular(AppSizes.r24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: screenWidth * 0.85),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.appColorScheme.textPrimary.withValues(alpha: isSending ? 0.7 : 1.0),
+                      borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(24),
+                          topRight: Radius.circular(24),
+                          bottomLeft: Radius.circular(24),
+                          bottomRight: Radius.circular(6)),
+                      border: sendFailed ? Border.all(color: context.appColorScheme.error, width: 1.5) : null,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (_hasImages) _buildImageStrip(context, dark: true),
+                        if (_hasImages) Gap.h8,
+                        if (text.isNotEmpty)
+                          Text(text,
+                              style: context.body.copyWith(
+                                color: context.appColorScheme.cardBackground,
+                                fontWeight: FontWeight.w500,
+                              )),
+                        Gap.h4,
+                        _buildUserStatusRow(context, formattedTime),
+                      ],
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildMarkdownContent(context),
-                      Gap.h8,
-                      Text(formattedTime, style: context.caption.copyWith(fontSize: 10, color: context.appColorScheme.textMuted)),
-                      if (errorKind == ChatErrorKind.connection && !isStreaming) ...[Gap.h8, _buildInterruptedRow(context)],
-                    ],
+                ),
+              ),
+              if (sendFailed && onRetry != null) _buildRetryButton(context),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildUserStatusRow(BuildContext context, String formattedTime) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isSending)
+            Padding(
+              padding: const EdgeInsets.only(right: 4.0),
+              child: SizedBox(
+                  width: 10,
+                  height: 10,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 1.5, color: context.appColorScheme.cardBackground.withValues(alpha: 0.7))),
+            )
+          else if (sendFailed)
+            Padding(
+              padding: const EdgeInsets.only(right: 4.0),
+              child: Icon(AppIcons.alertCircle, size: 11, color: context.appColorScheme.cardBackground),
+            ),
+          Text(
+            isSending ? AppStrings.labelSending : (sendFailed ? AppStrings.labelFailed : '$formattedTime ✓✓'),
+            style: TextStyle(
+                color: context.appColorScheme.cardBackground.withValues(alpha: 0.54),
+                fontSize: AppSizes.s10,
+                fontWeight: FontWeight.bold),
+          ),
+        ],
+      );
+
+  Widget _buildRetryButton(BuildContext context) => Padding(
+        padding: EdgeInsets.only(bottom: AppSizes.p12),
+        child: GestureDetector(
+          onTap: onRetry,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(AppIcons.rotateCcw, size: 13, color: context.appColorScheme.error),
+              Gap.w4,
+              Text(
+                AppStrings.tapToRetry,
+                style: context.caption.copyWith(color: context.appColorScheme.error, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildAiMessage(BuildContext context, String formattedTime) {
+    final colorScheme = context.appColorScheme;
+    return Semantics(
+      label: 'AI message: $text',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onLongPress: () => _copyToClipboard(context),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8, right: 16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.cardBackground,
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(4),
+                        topRight: Radius.circular(AppSizes.r32),
+                        bottomLeft: Radius.circular(AppSizes.r32),
+                        bottomRight: Radius.circular(AppSizes.r32),
+                      ),
+                      border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.textPrimary.withValues(alpha: 0.03),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildMarkdownContent(context),
+                              Gap.h12,
+                              Row(
+                                children: [
+                                  Icon(AppIcons.clock, size: 10, color: colorScheme.textMuted),
+                                  Gap.w4,
+                                  Text(formattedTime,
+                                      style: context.caption.copyWith(fontSize: 9, color: colorScheme.textMuted)),
+                                  const Spacer(),
+                                  _IntelligenceStamp(),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (errorKind == ChatErrorKind.connection && !isStreaming)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: colorScheme.warning.withValues(alpha: 0.05),
+                              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                            ),
+                            child: _buildInterruptedRow(context),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-
-        if (showFeedback && onFeedback != null) _buildFeedbackRow(context),
-      ],
-    ),
-  );
+            ],
+          ),
+          if (showFeedback && onFeedback != null) _buildFeedbackRow(context),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMarkdownContent(BuildContext context) => MarkdownBody(
-    data: isStreaming ? '$text ▌' : text,
-    selectable: !isStreaming,
-    styleSheet: MarkdownStyleSheet(
-      p: context.body.copyWith(height: 1.5),
-      strong: context.bodyBold,
-      h1: context.headingSm,
-      h2: context.title,
-      listBullet: context.body,
-      code: context.bodySm.copyWith(fontFamily: 'monospace', backgroundColor: context.appColorScheme.elevatedSurface, color: context.appColorScheme.textPrimary),
-      codeblockPadding: const EdgeInsets.all(12),
-      codeblockDecoration: BoxDecoration(
-        color: context.appColorScheme.elevatedSurface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: context.appColorScheme.border),
-      ),
-      tableHead: context.bodyBold,
-      tableBody: context.body,
-      tableBorder: TableBorder.all(color: context.appColorScheme.border, width: 0.5),
-      blockquote: context.body.copyWith(color: context.appColorScheme.textSecondary, fontStyle: FontStyle.italic),
-      blockquoteDecoration: BoxDecoration(
-        border: Border(left: BorderSide(color: context.appColorScheme.textMuted, width: 3)),
-      ),
-      horizontalRuleDecoration: BoxDecoration(
-        border: Border(top: BorderSide(color: context.appColorScheme.border.withValues(alpha: 0.5), width: 0.5)),
-      ),
-    ),
-  );
+        data: isStreaming ? '$text ▌' : text,
+        selectable: !isStreaming,
+        styleSheet: MarkdownStyleSheet(
+          p: context.body.copyWith(height: 1.6, letterSpacing: -0.1),
+          strong: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary),
+          h1: context.headingSm.copyWith(fontWeight: FontWeight.w900),
+          h2: context.title.copyWith(fontWeight: FontWeight.w800),
+          listBullet: context.body,
+          code: context.bodySm.copyWith(
+              fontFamily: 'monospace',
+              backgroundColor: context.appColorScheme.elevatedSurface,
+              color: context.appColorScheme.textPrimary),
+          codeblockPadding: const EdgeInsets.all(12),
+          codeblockDecoration: BoxDecoration(
+            color: context.appColorScheme.elevatedSurface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+          ),
+          tableHead: context.bodyBold,
+          tableBody: context.body,
+          tableBorder: TableBorder.all(color: context.appColorScheme.border.withValues(alpha: 0.3), width: 0.5),
+          blockquote: context.body.copyWith(color: context.appColorScheme.textSecondary, fontStyle: FontStyle.italic),
+          blockquoteDecoration: BoxDecoration(
+            border: Border(left: BorderSide(color: context.appColorScheme.textPrimary, width: 2)),
+            color: context.appColorScheme.textPrimary.withValues(alpha: 0.02),
+          ),
+          horizontalRuleDecoration: BoxDecoration(
+            border: Border(top: BorderSide(color: context.appColorScheme.border.withValues(alpha: 0.3), width: 0.5)),
+          ),
+        ),
+      );
 
   Widget _buildFeedbackRow(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(left: 36, bottom: 16, right: 10),
-    child: Wrap(
-      spacing: 5,
-      runSpacing: 5,
-      children: [
-        FeedbackTag(icon: AppIcons.thumbsUp, label: AppStrings.helpful, onTap: () => onFeedback!(AppStrings.labelHelpful), isSelected: feedback == AppStrings.labelHelpful),
-        FeedbackTag(icon: AppIcons.thumbsDown, label: AppStrings.notHelpful, onTap: () => onFeedback!(AppStrings.labelNotHelpful), isSelected: feedback == AppStrings.labelNotHelpful),
-        FeedbackTag(icon: AppIcons.refreshCcw, label: AppStrings.tellMeMore, onTap: () => onFeedback!(AppStrings.labelTellMeMore)),
-      ],
-    ),
-  );
+        padding: const EdgeInsets.only(left: 4, bottom: 16, right: 10),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FeedbackTag(
+                icon: AppIcons.thumbsUp,
+                label: AppStrings.helpful,
+                onTap: () => onFeedback!(AppStrings.labelHelpful),
+                isSelected: feedback == AppStrings.labelHelpful),
+            FeedbackTag(
+                icon: AppIcons.thumbsDown,
+                label: AppStrings.notHelpful,
+                onTap: () => onFeedback!(AppStrings.labelNotHelpful),
+                isSelected: feedback == AppStrings.labelNotHelpful),
+            FeedbackTag(
+                icon: AppIcons.refreshCcw,
+                label: AppStrings.tellMeMore,
+                onTap: () => onFeedback!(AppStrings.labelTellMeMore)),
+          ],
+        ),
+      );
 
   Widget _buildImageStrip(BuildContext context, {required bool dark}) {
     final local = localImages;
@@ -287,7 +349,7 @@ class ChatBubble extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: List.generate(count, (i) {
-        final borderRadius = BorderRadius.circular(12);
+        final borderRadius = BorderRadius.circular(16);
         final heroTag = 'chat_image_${local != null ? "local" : "url"}_${i}_${time.millisecondsSinceEpoch}';
 
         final image = (local != null && local.isNotEmpty)
@@ -298,7 +360,12 @@ class ChatBubble extends StatelessWidget {
                 width: size,
                 fit: BoxFit.cover,
                 memCacheWidth: (size * 2).round(),
-                placeholder: (_, _) => Container(height: size, width: size, color: dark ? AppPalette.white.withValues(alpha: 0.24) : context.appColorScheme.elevatedSurface),
+                placeholder: (_, _) => Container(
+                    height: size,
+                    width: size,
+                    color: dark
+                        ? AppPalette.white.withValues(alpha: 0.24)
+                        : context.appColorScheme.elevatedSurface),
                 errorWidget: (_, _, _) => Container(
                   height: size,
                   width: size,
@@ -323,59 +390,93 @@ class ChatBubble extends StatelessWidget {
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.black.withValues(alpha: 0.1),
-        pageBuilder: (context, _, _) => ImagePreviewDialog(imageUrls: imageUrls, localImages: localImages, initialIndex: index, heroTag: heroTag),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
+        pageBuilder: (context, _, _) =>
+            ImagePreviewDialog(imageUrls: imageUrls, localImages: localImages, initialIndex: index, heroTag: heroTag),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
       ),
     );
   }
 
   Widget _buildInterruptedRow(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(AppIcons.alertTriangle, size: 13, color: context.appColorScheme.warning),
-      Gap.w8,
-      Text(
-        AppStrings.responseInterrupted,
-        style: context.caption.copyWith(color: context.appColorScheme.warning, fontWeight: FontWeight.w600),
-      ),
-    ],
-  );
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(AppIcons.alertTriangle, size: 13, color: context.appColorScheme.warning),
+          Gap.w8,
+          Text(
+            AppStrings.responseInterrupted,
+            style: context.caption.copyWith(color: context.appColorScheme.warning, fontWeight: FontWeight.w600),
+          ),
+        ],
+      );
 
   Widget _buildAssistantErrorCard(BuildContext context) {
     final isQuota = errorKind == ChatErrorKind.quota;
+    final colorScheme = context.appColorScheme;
     return Padding(
-      padding: EdgeInsets.only(left: 36, bottom: AppSizes.p16),
+      padding: EdgeInsets.only(bottom: AppSizes.p16),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: (isQuota ? context.appColorScheme.warning : context.appColorScheme.error).withValues(alpha: 0.06),
-          border: Border.all(color: (isQuota ? context.appColorScheme.warning : context.appColorScheme.error).withValues(alpha: 0.3)),
-          borderRadius: BorderRadius.circular(AppSizes.r16),
+          color: colorScheme.cardBackground,
+          border: Border.all(color: (isQuota ? colorScheme.warning : colorScheme.error).withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(AppSizes.r24),
+          boxShadow: [
+            BoxShadow(
+              color: (isQuota ? colorScheme.warning : colorScheme.error).withValues(alpha: 0.05),
+              blurRadius: 10,
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Icon(AppIcons.alertCircle, size: 18, color: isQuota ? context.appColorScheme.warning : context.appColorScheme.error),
+            Icon(AppIcons.alertCircle,
+                size: 20, color: isQuota ? colorScheme.warning : colorScheme.error),
             Gap.w12,
             Expanded(
-              child: Text(isQuota ? AppStrings.dailyLimitMessage : AppStrings.connectionError, style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4)),
+              child: Text(isQuota ? AppStrings.dailyLimitMessage : AppStrings.connectionError,
+                  style: context.bodySm.copyWith(color: colorScheme.textPrimary, height: 1.4)),
             ),
             if (isQuota && onQuotaPressed != null)
               TextButton(
                 onPressed: onQuotaPressed,
                 child: Text(
-                  AppStrings.upgrade,
-                  style: context.bodySm.copyWith(fontWeight: FontWeight.w800, color: context.appColorScheme.textPrimary),
+                  AppStrings.upgrade.toUpperCase(),
+                  style: context.bodyBold.copyWith(fontSize: 11, color: colorScheme.textPrimary),
                 ),
               )
             else if (onRetry != null)
               TextButton(
                 onPressed: onRetry,
                 child: Text(
-                  AppStrings.retry,
-                  style: context.bodySm.copyWith(fontWeight: FontWeight.w800, color: context.appColorScheme.textPrimary),
+                  AppStrings.retry.toUpperCase(),
+                  style: context.bodyBold.copyWith(fontSize: 11, color: colorScheme.textPrimary),
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IntelligenceStamp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.textPrimary,
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Text(
+        AppStrings.appName,
+        style: context.eyebrow.copyWith(
+          color: colorScheme.cardBackground,
+          fontSize: 7,
+          letterSpacing: 0.5,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );

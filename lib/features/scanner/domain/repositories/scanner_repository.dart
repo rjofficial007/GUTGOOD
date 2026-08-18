@@ -28,5 +28,5 @@ class ScanAnalysisException implements Exception {
   final OffProduct product;
 
   @override
-  String toString() => 'ScanAnalysisException: AI analysis failed for \${product.productName}';
+  String toString() => r'ScanAnalysisException: AI analysis failed for ${product.productName}';
 }

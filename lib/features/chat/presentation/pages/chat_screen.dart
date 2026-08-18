@@ -13,6 +13,7 @@ import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
@@ -510,53 +511,76 @@ class _ChatComposer extends StatelessWidget {
     final authNotifier = context.read<GutAuthNotifier>();
 
     return Container(
-      color: colorScheme.cardBackground,
-      padding: EdgeInsets.all(AppSizes.p12),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (chatNotifier.pendingAttachments.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: AttachmentPreview(
-                  bytes: chatNotifier.pendingAttachments.first.bytes,
-                  heroTag: 'attachment_${chatNotifier.pendingAttachments.first.id}',
-                  onRemove: () => chatNotifier.removeAttachment(chatNotifier.pendingAttachments.first.id),
-                ),
-              ),
-            Container(
-              decoration: BoxDecoration(
-                color: colorScheme.elevatedSurface,
-                borderRadius: BorderRadius.circular(AppSizes.r20),
-                border: Border.all(color: colorScheme.border),
-              ),
-              padding: const EdgeInsets.all(4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GutTextField(
-                      textCapitalization: TextCapitalization.sentences,
-                      controller: controller,
-                      maxLines: 5,
-                      minLines: 1,
-                      onChanged: (_) => onChanged(),
-                      hintText: chatNotifier.isStreaming ? AppStrings.thinking : AppStrings.askAnything,
-                      borderless: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    ),
-                  ),
-                  ComposerIconButton(icon: AppIcons.camera, label: AppStrings.scanIngredientsMeal, onTap: chatNotifier.isLoading ? null : () => onCamera(chatNotifier, authNotifier)),
-                  Gap.w4,
-                  ComposerIconButton(icon: AppIcons.image, label: AppStrings.attachPhotos, onTap: chatNotifier.isLoading ? null : () => onGallery(chatNotifier, authNotifier)),
-                  Gap.w4,
-                  SendStopButton(controller: controller, chatNotifier: chatNotifier, onSend: () => onSend(chatNotifier, authNotifier)),
-                ],
+      decoration: BoxDecoration(
+        color: colorScheme.cardBackground,
+        border: Border(top: BorderSide(color: colorScheme.border.withValues(alpha: 0.5))),
+      ),
+      padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, MediaQuery.paddingOf(context).bottom + AppSizes.p12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (chatNotifier.pendingAttachments.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: AttachmentPreview(
+                bytes: chatNotifier.pendingAttachments.first.bytes,
+                heroTag: 'attachment_${chatNotifier.pendingAttachments.first.id}',
+                onRemove: () => chatNotifier.removeAttachment(chatNotifier.pendingAttachments.first.id),
               ),
             ),
-          ],
-        ),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: colorScheme.elevatedSurface,
+                    borderRadius: BorderRadius.circular(AppSizes.r20),
+                    border: Border.all(color: colorScheme.border.withValues(alpha: 0.8)),
+                  ),
+                  child: Row(
+                    children: [
+                      Gap.w4,
+
+                      Expanded(
+                        child: GutTextField(
+                          textCapitalization: TextCapitalization.sentences,
+                          controller: controller,
+                          maxLines: 5,
+                          minLines: 1,
+                          onChanged: (_) => onChanged(),
+                          hintText: chatNotifier.isStreaming ? AppStrings.thinking : AppStrings.askAnything,
+                          borderless: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                        ),
+                      ),
+                      ComposerIconButton(
+                        icon: AppIcons.camera,
+                        label: AppStrings.scanIngredientsMeal,
+                        onTap: chatNotifier.isLoading ? null : () => onCamera(chatNotifier, authNotifier),
+                      ),
+                      Gap.w4,
+                      ComposerIconButton(
+                        icon: AppIcons.image,
+                        label: AppStrings.attachPhotos,
+                        onTap: chatNotifier.isLoading ? null : () => onGallery(chatNotifier, authNotifier),
+                      ),
+                     
+                      Gap.w4,
+                      SendStopButton(
+                        controller: controller,
+                        chatNotifier: chatNotifier,
+                        onSend: () => onSend(chatNotifier, authNotifier),
+                      ),
+                      Gap.w4,
+                    ],
+                  ),
+                ),
+              ),
+
+            ],
+          ),
+        ],
       ),
     );
   }

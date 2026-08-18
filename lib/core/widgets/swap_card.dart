@@ -30,117 +30,124 @@ class SwapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
     final cardWidth = width ?? 160.0.w;
 
     return Container(
       width: cardWidth,
       decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(20.0.r),
+        color: colorScheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppSizes.r20),
+        border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image Area
+          // Image Area with Technical Badge
           Stack(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(20.0.r),
+              Container(
+                height: 110.0.h,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: colorScheme.elevatedSurface,
+                  border: Border(bottom: BorderSide(color: colorScheme.border.withValues(alpha: 0.3))),
                 ),
                 child: CachedNetworkImage(
                   imageUrl: imageUrl ?? getDynamicImageUrl(imageKeyword),
-                  height: 120.0.h,
-                  width: double.infinity,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    height: 120.0.h,
-                    color: context.appColorScheme.elevatedSurface,
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 120.0.h,
-                    color: context.appColorScheme.elevatedSurface,
-                  ),
+                  placeholder: (context, url) => Center(child: Icon(AppIcons.image, color: colorScheme.textMuted, size: 20)),
+                  errorWidget: (context, url, error) => Center(child: Icon(AppIcons.image, color: colorScheme.textMuted, size: 20)),
                 ),
               ),
               if (badge != null)
                 Positioned(
-                  top: 10.0.h,
-                  left: 10.0.w,
+                  top: 8,
+                  left: 8,
                   child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8.0.w,
-                      vertical: 4.0.h,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: context.appColorScheme.textPrimary,
-                      borderRadius: BorderRadius.circular(6.0.r),
+                      color: colorScheme.textPrimary,
+                      borderRadius: BorderRadius.circular(50),
                     ),
                     child: Text(
-                      badge!,
-                      style: context.overline.copyWith(
-                        color: context.appColorScheme.cardBackground,
-                        fontSize: 9.0.sp,
-                        fontWeight: FontWeight.w800,
+                      badge!.toUpperCase(),
+                      style: context.eyebrow.copyWith(
+                        color: colorScheme.cardBackground,
+                        fontSize: 7.sp,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
                 ),
             ],
           ),
+          
           Padding(
-            padding: EdgeInsets.all(14.0.w),
+            padding: EdgeInsets.all(AppSizes.p14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: context.bodyBold.copyWith(fontSize: 14.0.sp),
+                  style: context.bodyBold.copyWith(fontSize: 13.sp, height: 1.1),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Gap.h4,
+                Gap.h6,
                 Text(
                   subtitle,
                   style: context.caption.copyWith(
-                    fontSize: 12.0.sp,
+                    fontSize: 11.sp,
+                    color: colorScheme.textSecondary,
                     height: 1.3,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Gap.h14,
+                Gap.h16,
+                // Technical Tag - Colored with Border
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.0.w,
-                    vertical: 6.0.h,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: context.appColorScheme.elevatedSurface,
-                    borderRadius: BorderRadius.circular(20.0.r),
+                    borderRadius: BorderRadius.circular(50),
+                    border: Border.all(
+                      color:colorScheme.border,
+                      width: 1,
+                    ),
                   ),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        AppIcons.checkCircle,
-                        size: 12.0.w,
-                        color: context.appColorScheme.textPrimary,
+                        AppIcons.checkCircle, 
+                        size: 10, 
+                        color:colorScheme.textPrimary,
                       ),
-                      Expanded(
+                      Gap.w8,
+                      Flexible(
                         child: Text(
                           tag.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: context.overline.copyWith(
-                            color: context.appColorScheme.textPrimary,
-                            fontSize: 9.0.sp,
-                            fontWeight: FontWeight.w800,
+                          style: context.eyebrow.copyWith(
+                            color:  colorScheme.textPrimary,
+                            fontSize: 8.sp,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      SizedBox(width: 12.0.w),
                     ],
                   ),
                 ),

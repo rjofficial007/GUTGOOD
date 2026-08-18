@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
@@ -52,7 +51,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       if (shouldMerge == true) {
         try {
           await authNotifier.confirmMerge(conflict['anonymousUid']!, conflict['permanentUid']!);
-          // 🟢 Fix: GoRouter's redirect handles navigation automatically.
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.authSyncDelayedMessage)));
@@ -78,79 +76,155 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: context.appColorScheme.cardBackground,
-    body: SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Column(
-                children: [
-                  const Spacer(),
-                  const _WelcomeLogo(),
-                  Gap.h40,
-                  const _WelcomeContent(),
-                  const Spacer(),
-                  const _WelcomeDisclaimer(),
-                  Gap.h20,
-                  _WelcomeActions(onGetStarted: (n) => _handleGetStarted(context, n)),
-                  Gap.h20,
-                ],
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+
+    return Scaffold(
+      backgroundColor: colorScheme.cardBackground,
+      body: Stack(
+        children: [
+          // Background Glow for depth (using success color from theme)
+          Positioned(
+            top: -AppSizes.h100,
+            right: -AppSizes.w100,
+            child: Container(
+              width: AppSizes.w300,
+              height: AppSizes.w300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colorScheme.success.withValues(alpha: 0.05),
               ),
+            ).animate().fadeIn(duration: 1200.ms).blur(begin: const Offset(40, 40), end: const Offset(80, 80)),
+          ),
+
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const _WelcomeLogo(),
+                      Gap.h48,
+                      const _WelcomeContent(),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _WelcomeDisclaimer(),
+                      Gap.h24,
+                      _WelcomeActions(onGetStarted: (n) => _handleGetStarted(context, n)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
+        ],
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _WelcomeLogo extends StatelessWidget {
   const _WelcomeLogo();
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(AppSizes.r20),
-    child: Image.asset(AppAssets.appIcon, height: AppSizes.w100, width: AppSizes.w100),
-  ).animate().fadeIn(duration: 600.ms).scale(delay: 0.ms, duration: 600.ms, curve: Curves.easeOutBack);
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppSizes.r32),
+          child: Image.asset(
+            AppAssets.appIcon,
+            height: AppSizes.w140,
+            width: AppSizes.w140,
+            fit: BoxFit.cover,
+          ),
+        ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(0.8, 0.8), curve: Curves.easeOutBack),
+        Gap.h16,
+        Text(
+          AppStrings.appName,
+          style: AppTextStyles.eyebrow.copyWith(
+            color: colorScheme.textPrimary,
+            letterSpacing: 2,
+            fontSize: AppSizes.s12,
+          ),
+        ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.5, end: 0),
+      ],
+    );
+  }
 }
 
 class _WelcomeContent extends StatelessWidget {
   const _WelcomeContent();
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: AppSizes.p8),
-    child: Column(
-      children: [
-        Text(
-          AppStrings.foodIsInformation,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.displayLg.copyWith(fontSize: AppSizes.s50, height: 0.95, letterSpacing: -2.0, fontWeight: FontWeight.w900),
-        ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
-        Gap.h24,
-        Text(
-          AppStrings.understandBodyNeeds2,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w400, color: context.appColorScheme.textSecondary),
-        ).animate().fadeIn(delay: 400.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p32),
+      child: Column(
+        children: [
+          Text(
+            AppStrings.foodIsInformation,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.displayLg.copyWith(
+              color: colorScheme.textPrimary,
+              fontSize: AppSizes.s48,
+              height: 1.0,
+              letterSpacing: -2.5,
+            ),
+          ).animate().fadeIn(delay: 400.ms, duration: 800.ms).slideY(begin: 0.1, end: 0),
+          Gap.h20,
+          Text(
+            AppStrings.understandBodyNeeds2,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyLg.copyWith(
+              color: colorScheme.textSecondary,
+              fontWeight: FontWeight.w400,
+              height: 1.4,
+            ),
+          ).animate().fadeIn(delay: 600.ms, duration: 800.ms).slideY(begin: 0.1, end: 0),
+        ],
+      ),
+    );
+  }
 }
 
 class _WelcomeDisclaimer extends StatelessWidget {
   const _WelcomeDisclaimer();
 
   @override
-  Widget build(BuildContext context) => Text(
-    AppStrings.healthDisclaimer,
-    textAlign: TextAlign.center,
-    style: AppTextStyles.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: AppSizes.s10),
-  ).animate().fadeIn(delay: 600.ms, duration: 800.ms);
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p12),
+      decoration: BoxDecoration(
+        color: colorScheme.elevatedSurface.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppSizes.r12),
+        border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        AppStrings.healthDisclaimer,
+        textAlign: TextAlign.center,
+        style: AppTextStyles.caption.copyWith(
+          color: colorScheme.textMuted,
+          fontSize: AppSizes.s10,
+          height: 1.5,
+        ),
+      ),
+    ).animate().fadeIn(delay: 800.ms, duration: 1000.ms);
+  }
 }
 
 class _WelcomeActions extends StatelessWidget {
@@ -158,30 +232,48 @@ class _WelcomeActions extends StatelessWidget {
   final Function(GutAuthNotifier) onGetStarted;
 
   @override
-  Widget build(BuildContext context) => Selector<GutAuthNotifier, (bool, bool)>(
-    selector: (_, n) => (n.isLoading, n.isAuthenticated),
-    builder: (context, data, _) {
-      final isLoading = data.$1;
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
 
-      return Column(
-        children: [
-          GutButton(label: AppStrings.getStarted, suffixIcon: AppIcons.arrowRight, isLoading: isLoading, onTap: isLoading ? null : () => onGetStarted(context.read<GutAuthNotifier>())),
-          Gap.h20,
-          RichText(
-            text: TextSpan(
-              style: context.body.copyWith(color: context.appColorScheme.textSecondary),
-              children: [
-                const TextSpan(text: '${AppStrings.alreadyHaveAccount} '),
-                TextSpan(
-                  text: AppStrings.signIn,
-                  style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary),
-                  recognizer: TapGestureRecognizer()..onTap = () => showAuthBottomSheet(context),
-                ),
-              ],
+    return Selector<GutAuthNotifier, (bool, bool)>(
+      selector: (_, n) => (n.isLoading, n.isAuthenticated),
+      builder: (context, data, _) {
+        final isLoading = data.$1;
+
+        return Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: GutButton(
+                label: AppStrings.getStarted,
+                suffixIcon: AppIcons.arrowRight,
+                isLoading: isLoading,
+                onTap: isLoading ? null : () => onGetStarted(context.read<GutAuthNotifier>()),
+              ),
             ),
-          ),
-        ],
-      ).animate().fadeIn(delay: 800.ms, duration: 600.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuad);
-    },
-  );
+            Gap.h24,
+            GestureDetector(
+              onTap: () => showAuthBottomSheet(context),
+              child: RichText(
+                text: TextSpan(
+                  style: AppTextStyles.body.copyWith(color: colorScheme.textSecondary),
+                  children: [
+                    const TextSpan(text: AppStrings.alreadyHaveAccount),
+                    const TextSpan(text: ' '),
+                    TextSpan(
+                      text: AppStrings.signIn,
+                      style: AppTextStyles.bodyBold.copyWith(
+                        color: colorScheme.textPrimary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ).animate().fadeIn(delay: 1000.ms, duration: 800.ms).slideY(begin: 0.1, end: 0);
+      },
+    );
+  }
 }

@@ -14,6 +14,7 @@ class ScanResult extends Equatable {
   const ScanResult({
     required this.productName,
     required this.brand,
+    this.category,
     this.imageUrl,
     required this.score,
     required this.impactType,
@@ -82,6 +83,7 @@ class ScanResult extends Equatable {
     return ScanResult(
       productName: map['productName']?.toString() ?? 'Unknown',
       brand: map['brand']?.toString() ?? 'Unknown',
+      category: map['category']?.toString(),
       imageUrl: map['imageUrl']?.toString(),
       score: score,
       impactType: type,
@@ -111,6 +113,9 @@ class ScanResult extends Equatable {
 
   /// The manufacturing brand.
   final String brand;
+
+  /// The category of the scan (e.g., 'food', 'menu', 'label').
+  final String? category;
 
   /// URL to the product's image (usually front-facing).
   final String? imageUrl;
@@ -180,12 +185,16 @@ class ScanResult extends Equatable {
   /// Filters out generic utility scans like "Restaurant Menus" or "Ingredient Labels"
   /// which are analyzed for immediate feedback but shouldn't clutter the Pattern Engine.
   bool get isLoggableProduct {
-    // Barcode scans are always legitimate products from the database.
+    // 1. Explicit AI Category Check (Primary)
+    if (category != null) {
+      return category == 'food';
+    }
+
+    // 2. Barcode scans are always legitimate products from the database.
     if (barcode != null && barcode!.isNotEmpty) return true;
 
+    // 3. Fallback Heuristics for older scans or missing category
     final name = productName.toLowerCase();
-
-    // Heuristics for identifying non-product scans (Menus, Ingredients lists, etc.)
     final isMenu = name.contains('menu') && !name.contains('meal') && !name.contains('combo');
     final isLabelOnly = name.contains('ingredients list') || name.contains('nutrition label') || name.contains('ingredients only');
     final isGeneric = const {'menu', 'ingredients', 'label', 'nutrition', 'facts'}.contains(name);
@@ -196,6 +205,7 @@ class ScanResult extends Equatable {
   ScanResult copyWith({
     String? productName,
     String? brand,
+    String? category,
     String? imageUrl,
     int? score,
     ImpactType? impactType,
@@ -220,6 +230,7 @@ class ScanResult extends Equatable {
   }) => ScanResult(
     productName: productName ?? this.productName,
     brand: brand ?? this.brand,
+    category: category ?? this.category,
     imageUrl: imageUrl ?? this.imageUrl,
     score: score != null ? score.clamp(0, 100) : this.score,
     impactType: impactType ?? this.impactType,
@@ -246,6 +257,7 @@ class ScanResult extends Equatable {
   Map<String, dynamic> toMap() => {
     'productName': productName,
     'brand': brand,
+    'category': category,
     'imageUrl': imageUrl,
     'score': score,
     'impactType': impactType.name,
@@ -288,5 +300,5 @@ class ScanResult extends Equatable {
   };
 
   @override
-  List<Object?> get props => [productName, brand, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved];
+  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved];
 }

@@ -85,6 +85,7 @@ class AppSizes {
   static double get s28 => 28.0.sp;
   static double get s32 => 32.0.sp;
   static double get s40 => 40.0.sp;
+  static double get s48 => 48.0.sp;
   static double get s50 => 50.0.sp;
   static double get s60 => 60.0.sp;
   static double get s120 => 120.0.sp;
@@ -92,8 +93,10 @@ class AppSizes {
   // Misc Heights/Widths
   static double get h54 => 54.0.h;
   static double get h74 => 74.0.h;
+  static double get h100 => 100.0.h;
   static double get w100 => 100.0.w;
   static double get w140 => 140.0.w;
+  static double get w300 => 300.0.w;
   static double get w52 => 52.0.w;
 
   static double get w80 => 80.0.w;

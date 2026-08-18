@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
@@ -36,94 +37,93 @@ class _AnimatedChatItemState extends State<AnimatedChatItem> {
 
   @override
   Widget build(BuildContext context) => AnimatedOpacity(
-    opacity: _visible ? 1.0 : 0.0,
-    duration: const Duration(milliseconds: 280),
-    curve: Curves.easeOutCubic,
-    child: AnimatedSlide(offset: _visible ? Offset.zero : const Offset(0, 0.02), duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic, child: widget.child),
-  );
+        opacity: _visible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        child: AnimatedSlide(
+            offset: _visible ? Offset.zero : const Offset(0, 0.02),
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            child: widget.child),
+      );
 }
 
 class ChatShimmerLoading extends StatelessWidget {
   const ChatShimmerLoading({super.key});
 
   @override
-  Widget build(BuildContext context) => ListView.builder(
-    padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
-    itemCount: 10,
-    reverse: false,
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    itemBuilder: (context, index) {
-      final isUser = index % 2 == 0;
-      final baseColor = context.appColorScheme.border.withValues(alpha: 0.2);
-      final highlightColor = context.appColorScheme.border.withValues(alpha: 0.5);
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
+      itemCount: 10,
+      reverse: false,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemBuilder: (context, index) {
+        final isUser = index % 2 == 0;
+        final baseColor = colorScheme.border.withValues(alpha: 0.2);
+        final highlightColor = colorScheme.border.withValues(alpha: 0.5);
 
-      if (isUser) {
-        return Align(
-          alignment: Alignment.centerRight,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.p12),
-            child: Shimmer.fromColors(
-              baseColor: baseColor,
-              highlightColor: highlightColor,
-              child: Container(
-                width: MediaQuery.sizeOf(context).width * (0.4 + (index % 3) * 0.1),
-                height: AppSizes.h54,
-                decoration: BoxDecoration(
-                  color: AppPalette.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(AppSizes.r24),
-                    topRight: Radius.circular(AppSizes.r24),
-                    bottomLeft: Radius.circular(AppSizes.r24),
-                    bottomRight: Radius.circular(AppSizes.r8),
+        if (isUser) {
+          return Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: AppSizes.p12),
+              child: Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+                child: Container(
+                  width: MediaQuery.sizeOf(context).width * (0.4 + (index % 3) * 0.1),
+                  height: AppSizes.h54,
+                  decoration: BoxDecoration(
+                    color: AppPalette.white,
+                    borderRadius: BorderRadius.circular(AppSizes.r20),
                   ),
                 ),
               ),
             ),
-          ),
-        );
-      }
+          );
+        }
 
-      return Padding(
-        padding: EdgeInsets.only(bottom: AppSizes.p12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Shimmer.fromColors(
-              baseColor: baseColor,
-              highlightColor: highlightColor,
-              child: Padding(
-                padding: const EdgeInsets.all(1),
+        return Padding(
+          padding: EdgeInsets.only(bottom: AppSizes.p12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
                 child: Container(
                   width: AppSizes.icon28,
                   height: AppSizes.icon28,
                   decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
                 ),
               ),
-            ),
-            Gap.w8,
-            Shimmer.fromColors(
-              baseColor: baseColor,
-              highlightColor: highlightColor,
-              child: Container(
-                width: MediaQuery.sizeOf(context).width * (0.5 + (index % 2) * 0.1),
-                height: AppSizes.p56 + (index * 4),
-                decoration: BoxDecoration(
-                  color: AppPalette.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(AppSizes.r8),
-                    topRight: Radius.circular(AppSizes.r24),
-                    bottomLeft: Radius.circular(AppSizes.r24),
-                    bottomRight: Radius.circular(AppSizes.r24),
+              Gap.w8,
+              Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+                child: Container(
+                  width: MediaQuery.sizeOf(context).width * (0.5 + (index % 2) * 0.1),
+                  height: AppSizes.p56 + (index * 4),
+                  decoration: BoxDecoration(
+                    color: AppPalette.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(4),
+                      topRight: Radius.circular(AppSizes.r24),
+                      bottomLeft: Radius.circular(AppSizes.r24),
+                      bottomRight: Radius.circular(AppSizes.r24),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class ChatEmptyState extends StatelessWidget {
@@ -131,68 +131,68 @@ class ChatEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(AppStrings.emptyStateTitle, style: context.displayMd, textAlign: .center),
-          Gap.h24,
-          Text(
-            AppStrings.emptyStateSubtitle,
-            style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary),
-            textAlign: .center,
-          ),
-          Gap.h24,
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: AppSizes.p4,
-            mainAxisSpacing: AppSizes.p4,
-            childAspectRatio: 0.7,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _EmptyStateCard(
-                icon: AppIcons.scan,
-                title: AppStrings.emptyStateScanFood,
-                subtitle: AppStrings.emptyStateScanFoodDesc,
-                onTap: () {
-                  final state = context.findAncestorStateOfType<ChatScreenState>();
-                  if (state != null) {
-                    final chatNotifier = context.read<ChatNotifier>();
-                    final authNotifier = context.read<GutAuthNotifier>();
-                    state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.food);
-                  }
-                },
+              Text(AppStrings.emptyStateTitle, style: context.displayMd, textAlign: TextAlign.center),
+              Gap.h24,
+              Text(
+                AppStrings.emptyStateSubtitle,
+                style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary),
+                textAlign: TextAlign.center,
               ),
-              _EmptyStateCard(
-                icon: AppIcons.clipboardList,
-                title: AppStrings.emptyStateCheckIngredients,
-                subtitle: AppStrings.emptyStateCheckIngredientsDesc,
-                onTap: () {
-                  final state = context.findAncestorStateOfType<ChatScreenState>();
-                  if (state != null) {
-                    final chatNotifier = context.read<ChatNotifier>();
-                    final authNotifier = context.read<GutAuthNotifier>();
-                    state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.label);
-                  }
-                },
-              ),
-              _EmptyStateCard(
-                icon: AppIcons.messageCircle,
-                title: AppStrings.emptyStateAskGutGood,
-                subtitle: AppStrings.emptyStateAskGutGoodDesc,
-                onTap: () {
-                  FocusScope.of(context).requestFocus();
-                },
+              Gap.h24,
+              GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: AppSizes.p8,
+                mainAxisSpacing: AppSizes.p8,
+                childAspectRatio: 0.75,
+                children: [
+                  _EmptyStateCard(
+                    icon: AppIcons.scan,
+                    title: AppStrings.emptyStateScanFood,
+                    subtitle: AppStrings.emptyStateScanFoodDesc,
+                    onTap: () {
+                      final state = context.findAncestorStateOfType<ChatScreenState>();
+                      if (state != null) {
+                        final chatNotifier = context.read<ChatNotifier>();
+                        final authNotifier = context.read<GutAuthNotifier>();
+                        state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.food);
+                      }
+                    },
+                  ),
+                  _EmptyStateCard(
+                    icon: AppIcons.clipboardList,
+                    title: AppStrings.emptyStateCheckIngredients,
+                    subtitle: AppStrings.emptyStateCheckIngredientsDesc,
+                    onTap: () {
+                      final state = context.findAncestorStateOfType<ChatScreenState>();
+                      if (state != null) {
+                        final chatNotifier = context.read<ChatNotifier>();
+                        final authNotifier = context.read<GutAuthNotifier>();
+                        state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.label);
+                      }
+                    },
+                  ),
+                  _EmptyStateCard(
+                    icon: AppIcons.messageCircle,
+                    title: AppStrings.emptyStateAskGutGood,
+                    subtitle: AppStrings.emptyStateAskGutGoodDesc,
+                    onTap: () {
+                      FocusScope.of(context).requestFocus();
+                    },
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }
 
 class _EmptyStateCard extends StatelessWidget {
@@ -204,31 +204,37 @@ class _EmptyStateCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p10),
-      decoration: BoxDecoration(color: context.appColorScheme.aiResponseBackground, borderRadius: BorderRadius.circular(AppSizes.r20)),
-      child: Column(
-        children: [
-          Gap.h4,
-          Container(
-            padding: EdgeInsets.all(AppSizes.p14),
-            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.5), shape: BoxShape.circle),
-            child: Icon(icon, size: AppSizes.icon24, color: context.appColorScheme.textPrimary),
-          ),
-          Gap.h16,
-          Text(title, textAlign: TextAlign.center, style: context.bodyBold.copyWith(height: 1.1)),
-          Gap.h8,
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: context.caption.copyWith(color: context.appColorScheme.textSecondary, height: 1.2),
-          ),
-        ],
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p12),
+        decoration: BoxDecoration(
+          color: colorScheme.cardBackground,
+          borderRadius: BorderRadius.circular(AppSizes.r24),
+          border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(AppSizes.p12),
+              decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
+              child: Icon(icon, size: AppSizes.icon20, color: colorScheme.cardBackground),
+            ),
+            Gap.h12,
+            Text(title, textAlign: TextAlign.center, style: context.bodyBold.copyWith(height: 1.1, fontSize: 12)),
+            Gap.h6,
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: context.caption.copyWith(color: colorScheme.textMuted, height: 1.2, fontSize: 10),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class DateHeader extends StatelessWidget {
@@ -251,19 +257,25 @@ class DateHeader extends StatelessWidget {
       label = DateFormat('MMMM d, yyyy').format(date);
     }
 
+    final colorScheme = context.appColorScheme;
     return Container(
-      margin: EdgeInsets.only(bottom: AppSizes.p24),
+      margin: EdgeInsets.only(bottom: AppSizes.p24, top: AppSizes.p12),
       child: Row(
         children: [
-          Expanded(child: Divider(color: context.appColorScheme.border)),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
+          Expanded(child: Divider(color: colorScheme.border.withValues(alpha: 0.3))),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: colorScheme.cardBackground,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+            ),
             child: Text(
               label.toUpperCase(),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold, letterSpacing: 1),
+              style: context.eyebrow.copyWith(color: colorScheme.textMuted, fontSize: 9, letterSpacing: 1),
             ),
           ),
-          Expanded(child: Divider(color: context.appColorScheme.border)),
+          Expanded(child: Divider(color: colorScheme.border.withValues(alpha: 0.3))),
         ],
       ),
     );
@@ -278,60 +290,62 @@ class AttachmentPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Align(
-    alignment: AlignmentGeometry.centerLeft,
-    child: Container(
-      height: 68,
-      margin: const EdgeInsets.only(bottom: 6),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                PageRouteBuilder(
-                  opaque: false,
-                  barrierColor: Colors.black.withValues(alpha: 0.1),
-                  pageBuilder: (context, _, _) => ImagePreviewDialog(localImages: [bytes], initialIndex: 0, heroTag: heroTag),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
-                ),
-              );
-            },
-            child: Hero(
-              tag: heroTag,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.memory(bytes, width: 60, height: 60, fit: BoxFit.cover, gaplessPlayback: true),
-              ),
-            ),
-          ),
-          Positioned(
-            top: -6,
-            right: -6,
-            child: Semantics(
-              label: AppStrings.removeAttachment,
-              button: true,
-              child: GestureDetector(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          height: 68,
+          margin: const EdgeInsets.only(bottom: 6),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              GestureDetector(
                 onTap: () {
-                  HapticHelper.light();
-                  onRemove();
+                  Navigator.of(context).push(
+                    PageRouteBuilder(
+                      opaque: false,
+                      barrierColor: Colors.black.withValues(alpha: 0.1),
+                      pageBuilder: (context, _, _) =>
+                          ImagePreviewDialog(localImages: [bytes], initialIndex: 0, heroTag: heroTag),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+                          FadeTransition(opacity: animation, child: child),
+                    ),
+                  );
                 },
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: context.appColorScheme.textPrimary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
+                child: Hero(
+                  tag: heroTag,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.memory(bytes, width: 60, height: 60, fit: BoxFit.cover, gaplessPlayback: true),
                   ),
-                  child: Icon(AppIcons.x, size: 12, color: context.appColorScheme.cardBackground),
                 ),
               ),
-            ),
+              Positioned(
+                top: -6,
+                right: -6,
+                child: Semantics(
+                  label: AppStrings.removeAttachment,
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticHelper.light();
+                      onRemove();
+                    },
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: context.appColorScheme.textPrimary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
+                      ),
+                      child: Icon(AppIcons.x, size: 12, color: context.appColorScheme.cardBackground),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }
 
 class ChatSuggestionChip extends StatelessWidget {
@@ -340,22 +354,32 @@ class ChatSuggestionChip extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      margin: EdgeInsets.only(right: AppSizes.p8),
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p14, vertical: AppSizes.p8),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppSizes.r20),
-        border: Border.all(color: context.appColorScheme.border),
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: EdgeInsets.only(right: AppSizes.p8),
+        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p10),
+        decoration: BoxDecoration(
+          color: colorScheme.cardBackground,
+          borderRadius: BorderRadius.circular(AppSizes.r24),
+          border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.textPrimary.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: context.bodyBold.copyWith(color: colorScheme.textPrimary, fontSize: 13, letterSpacing: -0.2),
+        ),
       ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w600),
-      ),
-    ),
-  );
+    );
+  }
 }
 
 class ComposerIconButton extends StatelessWidget {
@@ -366,29 +390,29 @@ class ComposerIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: label,
-    button: true,
-    enabled: onTap != null,
-    child: Tooltip(
-      message: label,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Opacity(
-          opacity: onTap == null ? 0.4 : 1.0,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: context.appColorScheme.cardBackground,
-              borderRadius: BorderRadius.circular(AppSizes.r14),
-              border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+        label: label,
+        button: true,
+        enabled: onTap != null,
+        child: Tooltip(
+          message: label,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Opacity(
+              opacity: onTap == null ? 0.4 : 1.0,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: context.appColorScheme.cardBackground,
+                  borderRadius: BorderRadius.circular(AppSizes.r14),
+                  border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+                ),
+                child: Icon(icon, color: context.appColorScheme.textPrimary, size: 20),
+              ),
             ),
-            child: Icon(icon, color: context.appColorScheme.textPrimary, size: 20),
           ),
         ),
-      ),
-    ),
-  );
+      );
 }
 
 class SendStopButton extends StatelessWidget {
@@ -400,37 +424,40 @@ class SendStopButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: controller,
-    builder: (context, _) {
-      final hasContent = controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
-      final colorScheme = context.appColorScheme;
+        listenable: controller,
+        builder: (context, _) {
+          final hasContent = controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
+          final colorScheme = context.appColorScheme;
 
-      if (chatNotifier.isStreaming) {
-        return ComposerActionCircle(
-          label: AppStrings.stopGenerating,
-          onTap: () {
-            HapticHelper.light();
-            chatNotifier.stopGeneration();
-          },
-          icon: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
-        );
-      }
+          if (chatNotifier.isStreaming) {
+            return ComposerActionCircle(
+              label: AppStrings.stopGenerating,
+              onTap: () {
+                HapticHelper.light();
+                chatNotifier.stopGeneration();
+              },
+              icon: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
+            );
+          }
 
-      if (chatNotifier.isLoading) {
-        return ComposerActionCircle(
-          label: 'Loading',
-          child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),
-        );
-      }
+          if (chatNotifier.isLoading) {
+            return ComposerActionCircle(
+              label: 'Loading',
+              child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),
+            );
+          }
 
-      return ComposerActionCircle(
-        label: AppStrings.sendMessage,
-        onTap: hasContent ? onSend : null,
-        enabled: hasContent,
-        icon: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 20),
+          return ComposerActionCircle(
+            label: AppStrings.sendMessage,
+            onTap: hasContent ? onSend : null,
+            enabled: hasContent,
+            icon: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 20),
+          );
+        },
       );
-    },
-  );
 }
 
 class ComposerActionCircle extends StatelessWidget {
@@ -457,7 +484,8 @@ class ComposerActionCircle extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+                color: enabled ? colorScheme.textPrimary : colorScheme.textMuted, shape: BoxShape.circle),
             child: Center(child: child ?? icon),
           ),
         ),

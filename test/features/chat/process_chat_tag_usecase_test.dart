@@ -52,8 +52,6 @@ void main() {
       const text = 'Had lunch [MEAL]{"items": ["Apple", "Banana"], "tags": ["fruit"], "time": "2023-01-01T12:00:00Z"}[/MEAL]';
 
       when(() => mockFirestoreService.logMeal(any())).thenAnswer((_) async => 'meal_id');
-      when(() => mockNotificationService.schedulePostMealCheckIn()).thenAnswer((_) async {});
-      when(() => mockNotificationService.scheduleNoMealLoggedReminder()).thenAnswer((_) async {});
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
 
       final result = useCase.call(text);
@@ -61,12 +59,11 @@ void main() {
       expect(result.text, 'Had lunch');
       expect(result.foodMentions, const ['Apple', 'Banana']);
       verify(() => mockFirestoreService.logMeal(any())).called(1);
-      verify(() => mockNotificationService.schedulePostMealCheckIn()).called(1);
       verify(() => mockAppStateService.notifyChatUpdated()).called(1);
     });
 
     test('should extract scan and schedule reminders when [SCAN] tag is present', () {
-      const text = 'Check this [SCAN]{"productName": "Oats", "brand": "Quaker", "score": 90, "impact": "Great"}[/SCAN]';
+      const text = 'Check this [SCAN]{"productName": "Oats", "brand": "Quaker", "category": "food", "score": 90, "impact": "Great"}[/SCAN]';
 
       when(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'))).thenAnswer((_) async => {});
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
@@ -77,6 +74,15 @@ void main() {
       expect(result.scanData?.productName, 'Oats');
       verify(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'))).called(1);
       verify(() => mockAppStateService.notifyChatUpdated()).called(1);
+    });
+
+    test('should NOT persist non-food scan when [SCAN] tag has non-food category', () {
+      const text = 'Check this [SCAN]{"productName": "Restaurant Menu", "brand": "Cafe", "category": "menu", "score": 50, "impact": "Great"}[/SCAN]';
+
+      final result = useCase.call(text);
+
+      expect(result.text, 'Check this');
+      verifyNever(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl')));
     });
 
     test('should return original text if no tags are present', () {

@@ -96,6 +96,7 @@ ${SchemaDefinitions.scanSchema}
 
 STRICT JSON RULES
 - JSON must be valid.
+- Set "category": "food".
 - Use null when information is unavailable.
 - Never replace null with a guessed value.
 - Do not add fields outside the schema.
@@ -184,6 +185,7 @@ ${SchemaDefinitions.scanSchema}
 
 STRICT JSON RULES
 - Return exactly one [SCAN] block.
+- Set "category": "label".
 - JSON must be valid.
 - Do not output Markdown outside the block.
 - Do not invent unreadable ingredients.
@@ -324,6 +326,9 @@ Good:
 
 Bad:
 "This product damages your gut."
+
+CATEGORY
+Set "category": "food" (since barcode data always represents a food product).
 
 SCORE
 Do NOT calculate the numeric "score" field yourself — the client computes

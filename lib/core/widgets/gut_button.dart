@@ -19,6 +19,7 @@ class GutButton extends StatefulWidget {
     this.suffixIcon,
     this.isLoading = false,
     this.isOutlined = false,
+    this.isSmall = false,
   });
 
   final String label;
@@ -28,6 +29,7 @@ class GutButton extends StatefulWidget {
   final IconData? suffixIcon;
   final bool isLoading;
   final bool isOutlined;
+  final bool isSmall;
 
   @override
   State<GutButton> createState() => _GutButtonState();
@@ -38,13 +40,15 @@ class _GutButtonState extends State<GutButton> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    
     final effectiveColor = widget.isOutlined
-        ? (widget.color ?? context.appColorScheme.cardBackground)
-        : (widget.color ?? Theme.of(context).colorScheme.primary);
+        ? (widget.color ?? colorScheme.cardBackground)
+        : (widget.color ?? colorScheme.textPrimary);
 
     final effectiveTextColor = widget.isOutlined
-        ? (widget.textColor ?? context.appColorScheme.textPrimary)
-        : (widget.textColor ?? Theme.of(context).colorScheme.onPrimary);
+        ? (widget.textColor ?? colorScheme.textPrimary)
+        : (widget.textColor ?? colorScheme.cardBackground);
 
     return Semantics(
       label: widget.label,
@@ -67,19 +71,19 @@ class _GutButtonState extends State<GutButton> {
             duration: const Duration(milliseconds: 200),
             width: double.infinity,
             padding: EdgeInsets.symmetric(
-              vertical: AppSizes.p18,
+              vertical: widget.isSmall ? AppSizes.p12 : AppSizes.p18,
               horizontal: AppSizes.p24,
             ),
             decoration: BoxDecoration(
               color: widget.isLoading
                   ? effectiveColor.withValues(alpha: 0.7)
                   : (_isFocused ? effectiveColor.withValues(alpha: 0.9) : effectiveColor),
-              borderRadius: BorderRadius.circular(AppSizes.r18),
+              borderRadius: BorderRadius.circular(AppSizes.r12),
               border: widget.isOutlined
-                  ? Border.all(color: _isFocused ? context.appColorScheme.textPrimary : context.appColorScheme.border, width: 2.0)
-                  : (_isFocused ? Border.all(color: context.appColorScheme.textPrimary.withValues(alpha: 0.5), width: 3.0) : null),
+                  ? Border.all(color: _isFocused ? colorScheme.textPrimary : colorScheme.border, width: 1.5)
+                  : (_isFocused ? Border.all(color: colorScheme.textPrimary.withValues(alpha: 0.5), width: 2.0) : null),
               boxShadow: _isFocused
-                  ? [BoxShadow(color: effectiveColor.withValues(alpha: 0.4), blurRadius: 12, spreadRadius: 2)]
+                  ? [BoxShadow(color: effectiveColor.withValues(alpha: 0.2), blurRadius: 12, spreadRadius: 2)]
                   : null,
             ),
             child: Center(
@@ -96,19 +100,21 @@ class _GutButtonState extends State<GutButton> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          widget.label,
+                          widget.label.toUpperCase(),
                           textAlign: TextAlign.center,
-                          style: context.bodyBold.copyWith(
+                          style: context.eyebrow.copyWith(
                             color: effectiveTextColor,
-                            fontSize: AppSizes.s16,
+                            fontSize: widget.isSmall ? 10 : 12,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
                           ),
                         ),
                         if (widget.suffixIcon != null) ...[
-                          Gap.w8,
+                          const SizedBox(width: 10),
                           Icon(
                             widget.suffixIcon,
                             color: effectiveTextColor,
-                            size: AppSizes.icon20,
+                            size: widget.isSmall ? 14 : 18,
                           ),
                         ],
                       ],
