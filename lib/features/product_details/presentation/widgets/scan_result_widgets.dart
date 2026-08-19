@@ -262,7 +262,6 @@ class _ProductHeroRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Icon(AppIcons.chevronRight, size: 20, color: textColor.withValues(alpha: 0.3)),
         ],
       ),
     );

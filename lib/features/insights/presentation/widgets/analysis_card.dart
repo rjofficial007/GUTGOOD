@@ -61,7 +61,7 @@ class AnalysisCard extends StatelessWidget {
                     children: [
                       Text(
                         metric,
-                        style: context.displaySm.copyWith(color: textColor, fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1, fontFeatures: const [FontFeature.tabularFigures()]),
+                        style: context.headingMd.copyWith(color: textColor, fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1, fontFeatures: const [FontFeature.tabularFigures()]),
                       ),
                       Gap.h8,
                       Text(

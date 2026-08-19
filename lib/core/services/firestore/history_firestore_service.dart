@@ -62,7 +62,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         'userImageUrl': bestImageUrl,
         'isSaved': isSaved,
         'timestamp': FieldValue.serverTimestamp(),
-        'time': DateTime.now().toIso8601String(),
+        'time': scanData.time?.toIso8601String() ?? DateTime.now().toIso8601String(),
       });
     } catch (e) {
       AppLogger.error('HistoryFirestoreService: Error saving to scan history', error: e);

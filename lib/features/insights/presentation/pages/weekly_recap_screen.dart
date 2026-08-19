@@ -40,17 +40,22 @@ class WeeklyRecapScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
-      appBar: const GutAppBar(title: AppStrings.weeklyRecap),
-      body: ListView.builder(
-        padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
-        itemCount: visibleSections.length,
-        itemBuilder: (context, index) {
-          final isLast = index == visibleSections.length - 1;
-          return Padding(
-            padding: EdgeInsets.only(bottom: isLast ? AppSizes.p20 : AppSizes.p20),
-            child: visibleSections[index],
-          );
-        },
+      body: CustomScrollView(
+        slivers: [
+          const GutSliverAppBar(title: AppStrings.weeklyRecap, showBrandingIcon: false),
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => Padding(
+                  padding: EdgeInsets.only(bottom: AppSizes.p20),
+                  child: visibleSections[index],
+                ),
+                childCount: visibleSections.length,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -62,8 +67,9 @@ class WeeklyRecapScreen extends StatelessWidget {
       const _RecapDateHeader(),
       GutSnapshotHeroCard(score: recap?.avgScore ?? 0, scoreDiff: recap?.scoreSub, streak: profile.profile?.streak ?? 0, isActive: true),
 
+      // 1. PERFORMANCE HIGHLIGHTS
       DashboardEntrance(
-        delay: 200,
+        delay: 100,
         child: AnalysisCard(
           metric: '${recap?.avgScore ?? 0}',
           label: AppStrings.performanceHighlights,
@@ -78,10 +84,11 @@ class WeeklyRecapScreen extends StatelessWidget {
       ),
     ];
 
+    // 2. YOUR PATTERNS
     if (highlights.isNotEmpty) {
       sections.add(
         DashboardEntrance(
-          delay: 300,
+          delay: 200,
           child: AnalysisCard(
             metric: '${highlights.length}',
             label: AppStrings.yourPatterns,
@@ -93,6 +100,7 @@ class WeeklyRecapScreen extends StatelessWidget {
       );
     }
 
+    // 3. WEEKLY PULSE (AI Smart Alert)
     sections.add(DashboardEntrance(delay: 300, child: _ModernSmartAlert(insight: insight!)));
 
     return sections;

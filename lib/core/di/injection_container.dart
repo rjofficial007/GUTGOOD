@@ -149,7 +149,14 @@ void _initCoreServices() {
     ..registerLazySingleton<PurchaseService>(PurchaseServiceImpl.new)
     ..registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), authFirestoreService: sl(), usageFirestoreService: sl(), purchaseService: sl(), prefs: sl()))
     ..registerLazySingleton<ExportService>(() => ExportServiceImpl(firestoreService: sl<HistoryFirestoreService>()))
-    ..registerLazySingleton<DebugMockDataService>(() => DebugMockDataService(historyFirestoreService: sl(), insightFirestoreService: sl()))
+    ..registerLazySingleton<DebugMockDataService>(
+      () => DebugMockDataService(
+        historyFirestoreService: sl<HistoryFirestoreService>(),
+        insightFirestoreService: sl<InsightFirestoreService>(),
+        chatFirestoreService: sl<ChatFirestoreService>(),
+        patternEngineService: sl<PatternEngineService>(),
+      ),
+    )
     ..registerLazySingleton(() => ThemeNotifier(sl()));
 }
 

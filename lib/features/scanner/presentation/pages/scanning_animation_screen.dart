@@ -116,7 +116,6 @@ class _ScanningAnimationScreenState extends State<ScanningAnimationScreen> with 
             loadingText: _loadingTexts[_loadingTextIndex],
           ),
           const Spacer(),
-          const _ScanningTip(),
         ],
       ),
     ),
@@ -245,48 +244,6 @@ class _StatusText extends StatelessWidget {
       text,
       key: ValueKey(text),
       style: context.body.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w600),
-    ),
-  );
-}
-
-class _ScanningTip extends StatelessWidget {
-  const _ScanningTip();
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p40),
-    child: Container(
-      padding: EdgeInsets.all(AppSizes.p20),
-      decoration: BoxDecoration(
-        color: context.appColorScheme.elevatedSurface,
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-        borderRadius: BorderRadius.circular(AppSizes.r24),
-        boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), shape: BoxShape.circle),
-            child: Icon(AppIcons.lightbulb, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
-          ),
-          Gap.w16,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppStrings.tip,
-                  style: context.title.copyWith(fontSize: AppSizes.s15, fontWeight: FontWeight.w800),
-                ),
-                Gap.h4,
-                Text(AppStrings.barcodeTip, style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary, height: 1.4)),
-              ],
-            ),
-          ),
-        ],
-      ),
     ),
   );
 }

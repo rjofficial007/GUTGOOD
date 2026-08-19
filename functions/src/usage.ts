@@ -23,11 +23,26 @@ export interface UsageCheckResult {
 function todayKey(timezoneOffsetMinutes: number = 0): string {
   try {
     const now = new Date();
-    const offset = isNaN(timezoneOffsetMinutes) ? 0 : timezoneOffsetMinutes;
+    // Default to 0 if NaN or undefined
+    const offset = (timezoneOffsetMinutes === undefined || isNaN(timezoneOffsetMinutes)) ? 0 : timezoneOffsetMinutes;
     const localTime = new Date(now.getTime() + (offset * 60000));
     return localTime.toISOString().slice(0, 10);
   } catch (e) {
     return new Date().toISOString().slice(0, 10);
+  }
+}
+
+/**
+ * Utility to calculate "today" from a specific timestamp and offset.
+ */
+export function getLocalDate(timestamp: string | Date, timezoneOffsetMinutes: number = 0): string {
+  try {
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    const offset = (timezoneOffsetMinutes === undefined || isNaN(timezoneOffsetMinutes)) ? 0 : timezoneOffsetMinutes;
+    const localTime = new Date(date.getTime() + (offset * 60000));
+    return localTime.toISOString().slice(0, 10);
+  } catch (e) {
+    return (typeof timestamp === 'string' ? timestamp : timestamp.toISOString()).slice(0, 10);
   }
 }
 
@@ -124,10 +139,16 @@ export async function checkAndConsume(
     const dailyUpdate = { [field]: admin.firestore.FieldValue.increment(1), ...(idempotencyKey ? { recentIds: nextIds } : {}) };
     tx.set(ref, dailyUpdate, { merge: true });
 
-    if (isAnonymous || streakUpdate) {
+    // 🟢 Persist timezoneOffset so background triggers can use it.
+    const timezoneChanged = timezoneOffsetMinutes !== undefined && userData.timezoneOffset !== timezoneOffsetMinutes;
+
+    if (isAnonymous || streakUpdate || timezoneChanged) {
       const userUpdate: any = streakUpdate ?? {};
       if (isAnonymous) {
         userUpdate[`${field}_lifetime`] = admin.firestore.FieldValue.increment(1);
+      }
+      if (timezoneChanged) {
+        userUpdate.timezoneOffset = timezoneOffsetMinutes;
       }
       tx.set(userRef, userUpdate, { merge: true });
     }

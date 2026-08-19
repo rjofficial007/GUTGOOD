@@ -11,6 +11,7 @@ abstract class InsightFirestoreService {
   Stream<AIInsight?> getLatestInsightsStream();
   Future<List<AIInsight>> getInsightsHistory();
   Future<void> savePatternData(List<BodyPattern> patterns);
+  Future<List<BodyPattern>> getLatestPatterns();
   Stream<List<BodyPattern>> getPatternDataStream();
   Future<void> saveHealthAlert(HealthAlert alert);
   Future<void> markAlertsAsRead(List<String> alertIds);
@@ -18,11 +19,7 @@ abstract class InsightFirestoreService {
 }
 
 class InsightFirestoreServiceImpl implements InsightFirestoreService {
-  InsightFirestoreServiceImpl({
-    required FirebaseAuth auth,
-    required FirebaseFirestore db,
-  }) : _auth = auth,
-       _db = db;
+  InsightFirestoreServiceImpl({required FirebaseAuth auth, required FirebaseFirestore db}) : _auth = auth, _db = db;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
@@ -40,18 +37,11 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       final doc = _userDoc;
       if (doc == null) return null;
       final docRef = doc.collection('insights').doc();
-      final data = {
-        ...insight.toMap(),
-        'firestoreId': docRef.id,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
+      final data = {...insight.toMap(), 'firestoreId': docRef.id, 'updatedAt': FieldValue.serverTimestamp()};
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
-      AppLogger.error(
-        'InsightFirestoreService: Error saving insights',
-        error: e,
-      );
+      AppLogger.error('InsightFirestoreService: Error saving insights', error: e);
       return null;
     }
   }
@@ -61,21 +51,11 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return null;
-      final snapshot = await doc
-          .collection('insights')
-          .orderBy('updatedAt', descending: true)
-          .limit(1)
-          .get();
+      final snapshot = await doc.collection('insights').orderBy('updatedAt', descending: true).limit(1).get();
       if (snapshot.docs.isEmpty) return null;
-      return AIInsight.fromMap({
-        ...snapshot.docs.first.data(),
-        'id': snapshot.docs.first.id,
-      });
+      return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
     } catch (e) {
-      AppLogger.error(
-        'InsightFirestoreService: Error getting latest insights',
-        error: e,
-      );
+      AppLogger.error('InsightFirestoreService: Error getting latest insights', error: e);
       return null;
     }
   }
@@ -91,19 +71,14 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug(
-              'InsightFirestoreService: Insights stream closed (permission-denied)',
-            );
+            AppLogger.debug('InsightFirestoreService: Insights stream closed (permission-denied)');
           } else {
             throw e;
           }
         })
         .map((snapshot) {
           if (snapshot.docs.isEmpty) return null;
-          return AIInsight.fromMap({
-            ...snapshot.docs.first.data(),
-            'id': snapshot.docs.first.id,
-          });
+          return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
         });
   }
 
@@ -112,20 +87,12 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
-      final snapshot = await doc
-          .collection('insights')
-          .orderBy('updatedAt', descending: true)
-          .get();
-      final results = snapshot.docs
-          .map((doc) => AIInsight.fromMap({...doc.data(), 'id': doc.id}))
-          .toList();
+      final snapshot = await doc.collection('insights').orderBy('updatedAt', descending: true).get();
+      final results = snapshot.docs.map((doc) => AIInsight.fromMap({...doc.data(), 'id': doc.id})).toList();
       // AppLogger.data('INSIGHTS_HISTORY_RAW', results.map((r) => r.toMap()).toList());
       return results;
     } catch (e) {
-      AppLogger.error(
-        'InsightFirestoreService: Error getting insights history',
-        error: e,
-      );
+      AppLogger.error('InsightFirestoreService: Error getting insights history', error: e);
       return [];
     }
   }
@@ -135,15 +102,27 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
-      await doc.collection('pattern_data').doc('latest').set({
-        'patterns': patterns.map((p) => p.toMap()).toList(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await doc.collection('pattern_data').doc('latest').set({'patterns': patterns.map((p) => p.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
     } catch (e) {
-      AppLogger.error(
-        'InsightFirestoreService: Error saving pattern data',
-        error: e,
-      );
+      AppLogger.error('InsightFirestoreService: Error saving pattern data', error: e);
+    }
+  }
+
+  @override
+  Future<List<BodyPattern>> getLatestPatterns() async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return [];
+      final snapshot = await doc.collection('pattern_data').doc('latest').get();
+      if (!snapshot.exists) return [];
+      final data = snapshot.data();
+      if (data == null || data['patterns'] == null) return [];
+      return (data['patterns'] as List)
+          .map((p) => BodyPattern.fromMap(p as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      AppLogger.error('InsightFirestoreService: Error getting latest patterns', error: e);
+      return [];
     }
   }
 
@@ -157,9 +136,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug(
-              'InsightFirestoreService: Patterns stream closed (permission-denied)',
-            );
+            AppLogger.debug('InsightFirestoreService: Patterns stream closed (permission-denied)');
           } else {
             throw e;
           }
@@ -168,9 +145,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
           if (!doc.exists) return [];
           final data = doc.data();
           if (data == null || data['patterns'] == null) return [];
-          final patterns = (data['patterns'] as List)
-              .map((p) => BodyPattern.fromMap(p as Map<String, dynamic>))
-              .toList();
+          final patterns = (data['patterns'] as List).map((p) => BodyPattern.fromMap(p as Map<String, dynamic>)).toList();
           return patterns;
         });
   }
@@ -180,15 +155,9 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
-      await doc.collection('health_alerts').add({
-        ...alert.toMap(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await doc.collection('health_alerts').add({...alert.toMap(), 'createdAt': FieldValue.serverTimestamp()});
     } catch (e) {
-      AppLogger.error(
-        'InsightFirestoreService: Error saving health alert',
-        error: e,
-      );
+      AppLogger.error('InsightFirestoreService: Error saving health alert', error: e);
     }
   }
 
@@ -207,10 +176,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
 
       await batch.commit();
     } catch (e) {
-      AppLogger.error(
-        'InsightFirestoreService: Error marking alerts as read',
-        error: e,
-      );
+      AppLogger.error('InsightFirestoreService: Error marking alerts as read', error: e);
     }
   }
 
@@ -225,17 +191,11 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug(
-              'InsightFirestoreService: Alerts stream closed (permission-denied)',
-            );
+            AppLogger.debug('InsightFirestoreService: Alerts stream closed (permission-denied)');
           } else {
             throw e;
           }
         })
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => HealthAlert.fromMap(doc.data(), id: doc.id))
-              .toList(),
-        );
+        .map((snapshot) => snapshot.docs.map((doc) => HealthAlert.fromMap(doc.data(), id: doc.id)).toList());
   }
 }

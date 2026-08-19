@@ -108,9 +108,12 @@ class ProfileStrings {
   static const String copyFcmToken = 'Copy FCM Token';
   static const String copyFcmTokenSubtitle = 'Tap to copy your push token for testing';
   static const String fcmTokenCopied = 'FCM Token copied to clipboard!';
-  static const String generateMockData = 'Generate 2 Weeks Mock Data';
-  static const String generateMockDataSubtitle = 'Adds meal logs, symptoms, and insights';
-  static const String mockDataGenerated = '2 weeks of mock data generated!';
+  static const String generatePatternData = 'Generate 45 Days Pattern Data';
+  static const String generatePatternDataSubtitle = 'Triggers Bloating, Energy, Sleep, etc.';
+  static const String triggerAnalysis = 'Trigger Pattern Analysis';
+  static const String triggerAnalysisSubtitle = 'Manually run the pattern discovery engine';
+  static const String analysisTriggered = 'Pattern analysis triggered!';
+  static const String mockDataGenerated = 'Mock data generated successfully!';
   static const String guestAiActivity = 'GUEST AI ACTIVITY';
   static const String dailyAiActivity = 'DAILY AI ACTIVITY';
   static const String aiChats = 'Chats';

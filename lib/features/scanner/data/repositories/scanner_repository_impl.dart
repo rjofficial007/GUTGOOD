@@ -132,9 +132,17 @@ class ScannerRepositoryImpl implements ScannerRepository {
   @override
   Future<void> saveScanResult(ScanResult result, {String? userImageUrl}) async {
     AppLogger.info('ScannerRepository: Creating ChatMessage for scan: ${result.productName}');
-    final userMsg = ChatMessage(localId: const Uuid().v4(), role: 'user', text: 'Scan: ${result.productName} ✨', scanData: result, imageUrl: userImageUrl, source: result.source, time: DateTime.now());
+    final aiMsg = ChatMessage(
+      localId: const Uuid().v4(),
+      role: 'ai',
+      text: 'I analyzed **${result.productName}** for you. ✨',
+      scanData: result,
+      imageUrl: userImageUrl,
+      source: result.source,
+      time: DateTime.now(),
+    );
 
-    await _chatFirestoreService.saveMessage(userMsg);
+    await _chatFirestoreService.saveMessage(aiMsg);
     AppLogger.info('ScannerRepository: Scan result message saved to Firestore');
 
     // 🚀 Professional Filter: Only persist scans and auto-log meals if it's an actual product.

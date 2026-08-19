@@ -7,7 +7,7 @@
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { REGION } from './config';
-import { calculateStreakUpdate } from './usage';
+import { calculateStreakUpdate, getLocalDate } from './usage';
 
 /**
  * Shared helper to update user streak based on activity time.
@@ -15,15 +15,21 @@ import { calculateStreakUpdate } from './usage';
 async function handleActivityStreak(uid: string, docTime: string) {
   const db = admin.firestore();
   const userRef = db.doc(`user_profiles/${uid}`);
-  const today = (docTime || '').slice(0, 10);
-  if (!today) return;
 
   try {
     await db.runTransaction(async (tx) => {
       const userSnap = await tx.get(userRef);
       if (!userSnap.exists) return;
 
-      const update = calculateStreakUpdate(userSnap.data(), today);
+      const userData = userSnap.data() || {};
+      const offset = (userData.timezoneOffset !== undefined) ? Number(userData.timezoneOffset) : 0;
+
+      // 🟢 Fix: Calculate "Today" based on the user's stored timezone offset.
+      // This ensures consistency between aiProxy (which uses server time + offset)
+      // and background triggers (which use document time + offset).
+      const today = getLocalDate(docTime || new Date().toISOString(), offset);
+
+      const update = calculateStreakUpdate(userData, today);
       if (update) {
         functions.logger.info(`Streak update for ${uid}: ${update.streak} (date: ${today})`);
         tx.set(userRef, update, { merge: true });

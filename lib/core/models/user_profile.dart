@@ -30,6 +30,7 @@ class UserProfile extends Equatable {
     this.streak = 0,
     this.longestStreak = 0,
     this.lastActivityDate,
+    this.timezoneOffset,
     this.subscriptionStatus = 'free',
     required this.updatedAt,
     required this.createdAt,
@@ -55,6 +56,7 @@ class UserProfile extends Equatable {
     streak: map['streak'] ?? 0,
     longestStreak: map['longestStreak'] ?? 0,
     lastActivityDate: map['lastActivityDate'],
+    timezoneOffset: map['timezoneOffset'] as int?,
     subscriptionStatus: map['subscriptionStatus'] ?? 'free',
     updatedAt: DateTimeUtils.parse(map['updatedAt']),
     createdAt: DateTimeUtils.parse(map['createdAt']),
@@ -117,6 +119,9 @@ class UserProfile extends Equatable {
   /// The last date (YYYY-MM-DD) the user was active.
   final String? lastActivityDate;
 
+  /// The user's local timezone offset in minutes.
+  final int? timezoneOffset;
+
   /// Subscription tier identifier.
   final String subscriptionStatus;
 
@@ -146,6 +151,7 @@ class UserProfile extends Equatable {
     int? streak,
     int? longestStreak,
     String? lastActivityDate,
+    int? timezoneOffset,
     String? subscriptionStatus,
     DateTime? updatedAt,
     DateTime? createdAt,
@@ -169,6 +175,7 @@ class UserProfile extends Equatable {
     streak: streak ?? this.streak,
     longestStreak: longestStreak ?? this.longestStreak,
     lastActivityDate: lastActivityDate ?? this.lastActivityDate,
+    timezoneOffset: timezoneOffset ?? this.timezoneOffset,
     subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
     updatedAt: updatedAt ?? this.updatedAt,
     createdAt: createdAt ?? this.createdAt,
@@ -194,6 +201,7 @@ class UserProfile extends Equatable {
     'streak': streak,
     'longestStreak': longestStreak,
     'lastActivityDate': lastActivityDate,
+    'timezoneOffset': timezoneOffset,
     'subscriptionStatus': subscriptionStatus,
     'updatedAt': updatedAt.toIso8601String(),
     'createdAt': createdAt.toIso8601String(),
@@ -216,9 +224,10 @@ class UserProfile extends Equatable {
     'cyclePhase': cyclePhase,
     'notificationPreferences': notificationPreferences,
     'chatSummary': chatSummary,
+    'timezoneOffset': timezoneOffset,
     'updatedAt': DateTime.now().toIso8601String(),
   };
 
   @override
-  List<Object?> get props => [uid, onboarded, isPremium, isAnonymous, goals, sensitivities, lifestyle, chatSummary, gutScore, streak, longestStreak, lastActivityDate];
+  List<Object?> get props => [uid, onboarded, isPremium, isAnonymous, goals, sensitivities, lifestyle, chatSummary, gutScore, streak, longestStreak, lastActivityDate, timezoneOffset];
 }

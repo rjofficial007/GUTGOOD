@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
@@ -37,15 +36,11 @@ class _AnimatedChatItemState extends State<AnimatedChatItem> {
 
   @override
   Widget build(BuildContext context) => AnimatedOpacity(
-        opacity: _visible ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-        child: AnimatedSlide(
-            offset: _visible ? Offset.zero : const Offset(0, 0.02),
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-            child: widget.child),
-      );
+    opacity: _visible ? 1.0 : 0.0,
+    duration: const Duration(milliseconds: 280),
+    curve: Curves.easeOutCubic,
+    child: AnimatedSlide(offset: _visible ? Offset.zero : const Offset(0, 0.02), duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic, child: widget.child),
+  );
 }
 
 class ChatShimmerLoading extends StatelessWidget {
@@ -76,10 +71,7 @@ class ChatShimmerLoading extends StatelessWidget {
                 child: Container(
                   width: MediaQuery.sizeOf(context).width * (0.4 + (index % 3) * 0.1),
                   height: AppSizes.h54,
-                  decoration: BoxDecoration(
-                    color: AppPalette.white,
-                    borderRadius: BorderRadius.circular(AppSizes.r20),
-                  ),
+                  decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r20)),
                 ),
               ),
             ),
@@ -131,68 +123,68 @@ class ChatEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
+    child: SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(AppStrings.emptyStateTitle, style: context.displayMd, textAlign: TextAlign.center),
+          Gap.h24,
+          Text(
+            AppStrings.emptyStateSubtitle,
+            style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+          Gap.h24,
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: AppSizes.p8,
+            mainAxisSpacing: AppSizes.p8,
+            childAspectRatio: 0.75,
             children: [
-              Text(AppStrings.emptyStateTitle, style: context.displayMd, textAlign: TextAlign.center),
-              Gap.h24,
-              Text(
-                AppStrings.emptyStateSubtitle,
-                style: context.bodyLg.copyWith(color: context.appColorScheme.textSecondary),
-                textAlign: TextAlign.center,
+              _EmptyStateCard(
+                icon: AppIcons.scan,
+                title: AppStrings.emptyStateScanFood,
+                subtitle: AppStrings.emptyStateScanFoodDesc,
+                onTap: () {
+                  final state = context.findAncestorStateOfType<ChatScreenState>();
+                  if (state != null) {
+                    final chatNotifier = context.read<ChatNotifier>();
+                    final authNotifier = context.read<GutAuthNotifier>();
+                    state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.food);
+                  }
+                },
               ),
-              Gap.h24,
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: AppSizes.p8,
-                mainAxisSpacing: AppSizes.p8,
-                childAspectRatio: 0.75,
-                children: [
-                  _EmptyStateCard(
-                    icon: AppIcons.scan,
-                    title: AppStrings.emptyStateScanFood,
-                    subtitle: AppStrings.emptyStateScanFoodDesc,
-                    onTap: () {
-                      final state = context.findAncestorStateOfType<ChatScreenState>();
-                      if (state != null) {
-                        final chatNotifier = context.read<ChatNotifier>();
-                        final authNotifier = context.read<GutAuthNotifier>();
-                        state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.food);
-                      }
-                    },
-                  ),
-                  _EmptyStateCard(
-                    icon: AppIcons.clipboardList,
-                    title: AppStrings.emptyStateCheckIngredients,
-                    subtitle: AppStrings.emptyStateCheckIngredientsDesc,
-                    onTap: () {
-                      final state = context.findAncestorStateOfType<ChatScreenState>();
-                      if (state != null) {
-                        final chatNotifier = context.read<ChatNotifier>();
-                        final authNotifier = context.read<GutAuthNotifier>();
-                        state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.label);
-                      }
-                    },
-                  ),
-                  _EmptyStateCard(
-                    icon: AppIcons.messageCircle,
-                    title: AppStrings.emptyStateAskGutGood,
-                    subtitle: AppStrings.emptyStateAskGutGoodDesc,
-                    onTap: () {
-                      FocusScope.of(context).requestFocus();
-                    },
-                  ),
-                ],
+              _EmptyStateCard(
+                icon: AppIcons.clipboardList,
+                title: AppStrings.emptyStateCheckIngredients,
+                subtitle: AppStrings.emptyStateCheckIngredientsDesc,
+                onTap: () {
+                  final state = context.findAncestorStateOfType<ChatScreenState>();
+                  if (state != null) {
+                    final chatNotifier = context.read<ChatNotifier>();
+                    final authNotifier = context.read<GutAuthNotifier>();
+                    state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.label);
+                  }
+                },
+              ),
+              _EmptyStateCard(
+                icon: AppIcons.messageCircle,
+                title: AppStrings.emptyStateAskGutGood,
+                subtitle: AppStrings.emptyStateAskGutGoodDesc,
+                onTap: () {
+                  FocusScope.of(context).requestFocus();
+                },
               ),
             ],
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class _EmptyStateCard extends StatelessWidget {
@@ -270,10 +262,7 @@ class DateHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
             ),
-            child: Text(
-              label.toUpperCase(),
-              style: context.eyebrow.copyWith(color: colorScheme.textMuted, fontSize: 9, letterSpacing: 1),
-            ),
+            child: Text(label.toUpperCase(), style: context.eyebrow.copyWith(color: colorScheme.textMuted, fontSize: 9, letterSpacing: 1)),
           ),
           Expanded(child: Divider(color: colorScheme.border.withValues(alpha: 0.3))),
         ],
@@ -290,62 +279,60 @@ class AttachmentPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          height: 68,
-          margin: const EdgeInsets.only(bottom: 6),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(context).push(
-                    PageRouteBuilder(
-                      opaque: false,
-                      barrierColor: Colors.black.withValues(alpha: 0.1),
-                      pageBuilder: (context, _, _) =>
-                          ImagePreviewDialog(localImages: [bytes], initialIndex: 0, heroTag: heroTag),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                          FadeTransition(opacity: animation, child: child),
-                    ),
-                  );
-                },
-                child: Hero(
-                  tag: heroTag,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.memory(bytes, width: 60, height: 60, fit: BoxFit.cover, gaplessPlayback: true),
-                  ),
+    alignment: Alignment.centerLeft,
+    child: Container(
+      height: 68,
+      margin: const EdgeInsets.only(bottom: 6),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  opaque: false,
+                  barrierColor: Colors.black.withValues(alpha: 0.1),
+                  pageBuilder: (context, _, _) => ImagePreviewDialog(localImages: [bytes], initialIndex: 0, heroTag: heroTag),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
                 ),
+              );
+            },
+            child: Hero(
+              tag: heroTag,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(bytes, width: 60, height: 60, fit: BoxFit.cover, gaplessPlayback: true),
               ),
-              Positioned(
-                top: -6,
-                right: -6,
-                child: Semantics(
-                  label: AppStrings.removeAttachment,
-                  button: true,
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticHelper.light();
-                      onRemove();
-                    },
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: context.appColorScheme.textPrimary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
-                      ),
-                      child: Icon(AppIcons.x, size: 12, color: context.appColorScheme.cardBackground),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      );
+          Positioned(
+            top: -6,
+            right: -6,
+            child: Semantics(
+              label: AppStrings.removeAttachment,
+              button: true,
+              child: GestureDetector(
+                onTap: () {
+                  HapticHelper.light();
+                  onRemove();
+                },
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: context.appColorScheme.textPrimary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
+                  ),
+                  child: Icon(AppIcons.x, size: 12, color: context.appColorScheme.cardBackground),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class ChatSuggestionChip extends StatelessWidget {
@@ -365,18 +352,9 @@ class ChatSuggestionChip extends StatelessWidget {
           color: colorScheme.cardBackground,
           borderRadius: BorderRadius.circular(AppSizes.r24),
           border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.textPrimary.withValues(alpha: 0.02),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: colorScheme.textPrimary.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
         ),
-        child: Text(
-          label,
-          style: context.bodyBold.copyWith(color: colorScheme.textPrimary, fontSize: 13, letterSpacing: -0.2),
-        ),
+        child: Text(label, style: context.bodyBold.copyWith(color: colorScheme.textPrimary, fontSize: 13, letterSpacing: -0.2)),
       ),
     );
   }
@@ -390,29 +368,29 @@ class ComposerIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: label,
-        button: true,
-        enabled: onTap != null,
-        child: Tooltip(
-          message: label,
-          child: GestureDetector(
-            onTap: onTap,
-            child: Opacity(
-              opacity: onTap == null ? 0.4 : 1.0,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: context.appColorScheme.cardBackground,
-                  borderRadius: BorderRadius.circular(AppSizes.r14),
-                  border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-                ),
-                child: Icon(icon, color: context.appColorScheme.textPrimary, size: 20),
-              ),
+    label: label,
+    button: true,
+    enabled: onTap != null,
+    child: Tooltip(
+      message: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Opacity(
+          opacity: onTap == null ? 0.4 : 1.0,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: context.appColorScheme.cardBackground,
+              borderRadius: BorderRadius.circular(AppSizes.r14),
+              border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
             ),
+            child: Icon(icon, color: context.appColorScheme.textPrimary, size: 20),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class SendStopButton extends StatelessWidget {
@@ -424,40 +402,37 @@ class SendStopButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) {
-          final hasContent = controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
-          final colorScheme = context.appColorScheme;
+    listenable: controller,
+    builder: (context, _) {
+      final hasContent = controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
+      final colorScheme = context.appColorScheme;
 
-          if (chatNotifier.isStreaming) {
-            return ComposerActionCircle(
-              label: AppStrings.stopGenerating,
-              onTap: () {
-                HapticHelper.light();
-                chatNotifier.stopGeneration();
-              },
-              icon: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
-            );
-          }
+      if (chatNotifier.isStreaming) {
+        return ComposerActionCircle(
+          label: AppStrings.stopGenerating,
+          onTap: () {
+            HapticHelper.light();
+            chatNotifier.stopGeneration();
+          },
+          icon: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
+        );
+      }
 
-          if (chatNotifier.isLoading) {
-            return ComposerActionCircle(
-              label: 'Loading',
-              child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),
-            );
-          }
+      if (chatNotifier.isLoading) {
+        return ComposerActionCircle(
+          label: 'Loading',
+          child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),
+        );
+      }
 
-          return ComposerActionCircle(
-            label: AppStrings.sendMessage,
-            onTap: hasContent ? onSend : null,
-            enabled: hasContent,
-            icon: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 20),
-          );
-        },
+      return ComposerActionCircle(
+        label: AppStrings.sendMessage,
+        onTap: hasContent ? onSend : null,
+        enabled: hasContent,
+        icon: Icon(AppIcons.send, color: colorScheme.cardBackground, size: 20),
       );
+    },
+  );
 }
 
 class ComposerActionCircle extends StatelessWidget {
@@ -484,8 +459,7 @@ class ComposerActionCircle extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             width: 44,
             height: 44,
-            decoration: BoxDecoration(
-                color: enabled ? colorScheme.textPrimary : colorScheme.textMuted, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: enabled ? colorScheme.textPrimary : colorScheme.textMuted, shape: BoxShape.circle),
             child: Center(child: child ?? icon),
           ),
         ),

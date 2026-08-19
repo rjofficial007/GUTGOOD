@@ -279,12 +279,9 @@ class ChatNotifier with ChangeNotifier {
   Future<bool> handleImageAttachment(Uint8List bytes, {required String type}) async {
     final added = await addAttachment(bytes, source: type);
     if (added) {
-      _pendingHiddenContext = switch (type) {
-        'menu' => AppStrings.restaurantMenuInstruction,
-        'label' => AppStrings.ingredientLabelInstruction,
-        'food' => AppStrings.mealPhotoInstruction,
-        _ => AppStrings.visionScanInstruction,
-      };
+      // 🟢 We no longer append deprecated, mandatory instructions here.
+      // We just set the mode so the prompt engine can adjust.
+      _pendingHiddenContext = type;
       notifyListeners();
     }
     return added;
@@ -597,6 +594,8 @@ class ChatNotifier with ChangeNotifier {
           cyclePhase: _cyclePhase,
           communicationStyle: _commStyle,
           historySummary: _cachedSummary,
+          currentTime: DateTime.now().toIso8601String(),
+          mode: source, // 🟢 Pass the mode/source to the prompt engine
         ),
         history: _buildHistory(),
         userText: userText,
@@ -874,6 +873,8 @@ class ChatNotifier with ChangeNotifier {
           cyclePhase: _cyclePhase,
           communicationStyle: _commStyle,
           historySummary: _cachedSummary,
+          currentTime: DateTime.now().toIso8601String(),
+          mode: 'swaps', // 🟢 Explicit mode for "see more swaps"
         ),
         history: _buildHistory(),
         userText: groundedSwaps != null ? '${userMsg.text}\n\n(REAL PRODUCT DATA FOR SUGGESTIONS: ${groundedSwaps.map((s) => s.title).join(', ')})' : userMsg.text,

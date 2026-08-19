@@ -13,7 +13,6 @@ import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
@@ -418,13 +417,11 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                           unawaited(widget.onSend(chatNotifier, authNotifier, AppStrings.tellMeMorePrompt));
                         }
                       },
+                      scanData: msg.scanData,
+                      swapData: msg.swapData,
+                      onSeeMoreSwaps: () => chatNotifier.handleSeeMoreSwaps(msg.text, i),
+                      onViewFullReport: msg.scanData != null ? () => unawaited(context.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: msg.scanData!))) : null,
                     ),
-                    if (msg.isSwap == true && msg.swapData != null) SwapItContainer(swaps: msg.swapData!, onSeeMore: () => chatNotifier.handleSeeMoreSwaps(msg.text, i)),
-                    if (msg.scanData != null)
-                      ScanResultInlineCard(
-                        scanData: msg.scanData!,
-                        onViewFullReport: () => unawaited(context.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: msg.scanData!))),
-                      ),
                   ],
                 ),
               ),
@@ -520,13 +517,10 @@ class _ChatComposer extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (chatNotifier.pendingAttachments.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: AttachmentPreview(
-                bytes: chatNotifier.pendingAttachments.first.bytes,
-                heroTag: 'attachment_${chatNotifier.pendingAttachments.first.id}',
-                onRemove: () => chatNotifier.removeAttachment(chatNotifier.pendingAttachments.first.id),
-              ),
+            AttachmentPreview(
+              bytes: chatNotifier.pendingAttachments.first.bytes,
+              heroTag: 'attachment_${chatNotifier.pendingAttachments.first.id}',
+              onRemove: () => chatNotifier.removeAttachment(chatNotifier.pendingAttachments.first.id),
             ),
           Row(
             children: [
@@ -554,30 +548,17 @@ class _ChatComposer extends StatelessWidget {
                           contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                         ),
                       ),
-                      ComposerIconButton(
-                        icon: AppIcons.camera,
-                        label: AppStrings.scanIngredientsMeal,
-                        onTap: chatNotifier.isLoading ? null : () => onCamera(chatNotifier, authNotifier),
-                      ),
+                      ComposerIconButton(icon: AppIcons.camera, label: AppStrings.scanIngredientsMeal, onTap: chatNotifier.isLoading ? null : () => onCamera(chatNotifier, authNotifier)),
                       Gap.w4,
-                      ComposerIconButton(
-                        icon: AppIcons.image,
-                        label: AppStrings.attachPhotos,
-                        onTap: chatNotifier.isLoading ? null : () => onGallery(chatNotifier, authNotifier),
-                      ),
-                     
+                      ComposerIconButton(icon: AppIcons.image, label: AppStrings.attachPhotos, onTap: chatNotifier.isLoading ? null : () => onGallery(chatNotifier, authNotifier)),
+
                       Gap.w4,
-                      SendStopButton(
-                        controller: controller,
-                        chatNotifier: chatNotifier,
-                        onSend: () => onSend(chatNotifier, authNotifier),
-                      ),
+                      SendStopButton(controller: controller, chatNotifier: chatNotifier, onSend: () => onSend(chatNotifier, authNotifier)),
                       Gap.w4,
                     ],
                   ),
                 ),
               ),
-
             ],
           ),
         ],

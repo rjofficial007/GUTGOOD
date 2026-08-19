@@ -25,7 +25,8 @@ class SchemaDefinitions {
       "confidence": 0.0
     }''';
 
-  static const String scanSchema = '''
+  static const String scanSchema =
+      '''
 [SCAN]
 {
   "productName": "string|null",
@@ -33,6 +34,7 @@ class SchemaDefinitions {
   "category": "food|menu|label|packaging|non-food",
   "badge": "string|null",
   "score": 0,
+  "time": "ISO8601 string",
   "impactType": "positive|neutral|negative",
   "nutriscore": "A|B|C|D|E|null",
   "novaGroup": 1,
@@ -75,6 +77,7 @@ $ingredientSchema
       "observation": "string"
     }
   ],
+  "time": "ISO8601 string",
   "balance": {
     "protein": "low|moderate|good|unknown",
     "fiber": "low|moderate|good|unknown",
@@ -93,6 +96,7 @@ $ingredientSchema
   "symptom": "string",
   "severity": 1,
   "energyLevel": 1,
+  "time": "ISO8601 string",
   "mood": "string",
   "notes": "string"
 }
@@ -114,12 +118,15 @@ $ingredientSchema
 
   /// Explicit type rules to stop the "1-4" vs `1`, "unknown" vs `null`
   /// drift from creeping back in as prompts get edited over time.
-  static const String typeRules = '''
+  static const String typeRules =
+      '''
 SCHEMA TYPE RULES (apply to every JSON block in this prompt)
 - category is a string: "food", "menu", "label", "packaging", or "non-food".
 - novaGroup is an integer 1-4, or JSON null. Never a string, never a range like "1-4".
 - score is an integer 0-100. Never null. If truly unknown, output 0 and set impactType to "neutral".
 - nutriscore is exactly one of "A","B","C","D","E", or JSON null. Never lowercase, never omitted.
+- time is ALWAYS a string in ISO 8601 format. If the user mentions "last night", "this morning", etc., calculate the exact estimated timestamp relative to the CURRENT TIME provided in your system instructions. Never use relative strings like "yesterday" inside the JSON time field.
+- items in [MEAL] MUST be a list of objects, each containing a "name" field (e.g. {"name": "Pizza", "confidence": 0.9}).
 - Every ingredient object uses this exact shape (colorName is REQUIRED, not optional):
 $ingredientSchema
 - Any value you cannot determine from the input uses JSON null (or [] for arrays/lists).

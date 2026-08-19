@@ -97,7 +97,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       final levels = widget.scanData.nutrientLevels!;
       sections.add(
         DashboardEntrance(
-          delay: 300,
+          delay: 100,
           child: AnalysisCard(
             metric: 'NUTRIENT',
             label: AppStrings.nutrientLevelsLabel,
@@ -119,7 +119,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     if (hasAllergens || hasAdditives) {
       sections.add(
         DashboardEntrance(
-          delay: 400,
+          delay: 200,
           child: AnalysisCard(
             metric: 'ALERT',
             label: AppStrings.safetyCautions,
@@ -137,7 +137,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     if (widget.scanData.ingredients.isNotEmpty) {
       sections.add(
         DashboardEntrance(
-          delay: 500,
+          delay: 300,
           child: AnalysisCard(
             metric: '${widget.scanData.ingredients.length}',
             label: AppStrings.ingredients,
@@ -161,7 +161,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     if (widget.scanData.swaps.isNotEmpty) {
       sections.add(
         DashboardEntrance(
-          delay: 600,
+          delay: 400,
           child: AnalysisCard(
             metric: '${widget.scanData.swaps.length}',
             label: AppStrings.betterSwapsLabel,
@@ -177,7 +177,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     final cycleEnabled = profile?.cycleSyncEnabled ?? false;
     final cycleInsight = widget.scanData.cycleInsight;
     if (cycleEnabled && cycleInsight != null && cycleInsight.description.isNotEmpty) {
-      sections.add(CycleImpactDashboardSection(insight: cycleInsight));
+      sections.add(DashboardEntrance(delay: 500, child: CycleImpactDashboardSection(insight: cycleInsight)));
     }
 
     sections.add(
@@ -191,5 +191,4 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
     return sections;
   }
-
 }

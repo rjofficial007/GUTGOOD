@@ -7,27 +7,31 @@ import 'package:gutgood/core/utils/model_utils.dart';
 /// Meal logs track what was eaten and when, optionally including photos
 /// and AI-generated nutrient analysis.
 class MealLog extends Equatable {
-  const MealLog({
-    this.id,
-    this.firestoreId,
-    this.uid,
-    required this.items,
-    this.notes,
-    this.mealType,
-    this.photoUrl,
-    this.analysisResult,
-    this.source,
-    this.foodTags = const [],
-    required this.time,
-  });
+  const MealLog({this.id, this.firestoreId, this.uid, required this.items, this.notes, this.mealType, this.photoUrl, this.analysisResult, this.source, this.foodTags = const [], required this.time});
 
   factory MealLog.fromMap(Map<String, dynamic> map) {
     final rawId = map['id'] ?? map['firestoreId'];
+
+    final rawItems = map['items'];
+    var items = <String>[];
+    if (rawItems is List) {
+      items = rawItems
+          .map((e) {
+            if (e is String) return e;
+            if (e is Map) return (e['name'] ?? e['title'] ?? '').toString();
+            return e.toString();
+          })
+          .where((s) => s.isNotEmpty)
+          .toList();
+    } else {
+      items = ModelUtils.parseList<String>(rawItems);
+    }
+
     return MealLog(
       id: rawId is int ? rawId : null,
       firestoreId: rawId is String ? rawId : null,
       uid: map['uid'] as String?,
-      items: ModelUtils.parseList<String>(map['items']),
+      items: items,
       notes: map['notes'],
       mealType: map['mealType'],
       photoUrl: map['photoUrl'],
@@ -106,6 +110,16 @@ class MealLog extends Equatable {
     'analysisResult': analysisResult,
     'source': source,
     'foodTags': foodTags,
+    'time': time.toIso8601String(),
+  };
+
+  /// Optimized Map for AI context to prevent 502/payload-too-large errors.
+  /// Excludes large fields like photoUrl and truncates analysis.
+  Map<String, dynamic> toAiMap() => {
+    'items': items,
+    'mealType': mealType,
+    'foodTags': foodTags,
+    'notes': notes != null && notes!.length > 100 ? '${notes!.substring(0, 100)}...' : notes,
     'time': time.toIso8601String(),
   };
 

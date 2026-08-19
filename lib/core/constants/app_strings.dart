@@ -653,8 +653,11 @@ class AppStrings {
   static const String copyFcmToken = ProfileStrings.copyFcmToken;
   static const String copyFcmTokenSubtitle = ProfileStrings.copyFcmTokenSubtitle;
   static const String fcmTokenCopied = ProfileStrings.fcmTokenCopied;
-  static const String generateMockData = ProfileStrings.generateMockData;
-  static const String generateMockDataSubtitle = ProfileStrings.generateMockDataSubtitle;
+  static const String generatePatternData = ProfileStrings.generatePatternData;
+  static const String generatePatternDataSubtitle = ProfileStrings.generatePatternDataSubtitle;
+  static const String triggerAnalysis = ProfileStrings.triggerAnalysis;
+  static const String triggerAnalysisSubtitle = ProfileStrings.triggerAnalysisSubtitle;
+  static const String analysisTriggered = ProfileStrings.analysisTriggered;
   static const String mockDataGenerated = ProfileStrings.mockDataGenerated;
   static const String guestAiActivity = ProfileStrings.guestAiActivity;
   static const String dailyAiActivity = ProfileStrings.dailyAiActivity;

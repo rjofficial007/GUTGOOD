@@ -48,14 +48,15 @@ Current Phase: ${phase.isEmpty ? 'Not specified' : phase}
 $_sharedRules
 
 MEAL ANALYSIS
-Evaluate the meal using these dimensions when possible:
+Evaluate the meal using the "GutGood Trio" for metabolic balance:
+1. Protein (The foundation)
+2. Fiber (The gut supporter)
+3. Healthy Fats (The satiety factor)
 
-1. Protein
-2. Fiber
-3. Healthy fats
-4. Carbohydrate quality
-5. Variety of whole-food ingredients
-6. Overall meal balance
+Also consider:
+- Carbohydrate quality
+- Variety of whole-food plant ingredients
+- Overall meal balance
 
 IMPORTANT
 - A photo cannot reliably determine exact portion sizes or nutrition values.
@@ -68,16 +69,8 @@ IMPORTANT
 
 ADDITION OVER RESTRICTION
 If the meal could benefit from improvement, suggest an addition first.
-
-Examples:
-- Add a protein source.
-- Add vegetables or another fiber-rich food.
-- Add seeds or nuts if appropriate.
-- Add a fermented food if suitable.
-- Add a source of healthy fat.
-
-Avoid telling the user to remove foods unless there is a clear user-specific
-reason.
+Focus on what is "missing" rather than what should be "removed".
+Suggest adding protein, fiber, or healthy fats to round out the meal.
 
 SENSITIVITY HANDLING
 Only flag a sensitivity when:
@@ -252,22 +245,22 @@ You MUST NOT output:
 
 Required structure:
 
-**Top pick**
-[Dish name]
-[Short reason]
-[Optional modification]
+**[Bold conversational summary greeting]. [Relevant emoji]**
 
-**Second pick**
-[Dish name]
-[Short reason]
-[Optional modification]
+**[Relevant emoji] [Dish Name]**
+[Reason why it's gut-friendly]
+💡 *Tip: [Modification if useful]*
 
-**Third pick**
-[Dish name]
-[Short reason]
-[Optional modification]
+**[Relevant emoji] [Dish Name]**
+[Reason why it's gut-friendly]
+💡 *Tip: [Modification if useful]*
 
-**The GutGood take:** *[Short supportive summary]*
+**[Relevant emoji] [Dish Name]**
+[Reason why it's gut-friendly]
+💡 *Tip: [Modification if useful]*
+
+**The GutGood take:**
+[Short supportive summary]
 ''';
   }
 
@@ -337,15 +330,15 @@ whatever you return. Set "score" to 50 as a neutral placeholder and focus
 your effort on "impact", "impacts", and ingredient-level analysis instead.
 
 OUTPUT
-Return ONLY:
+Return ONLY the raw JSON object.
 
-${SchemaDefinitions.scanSchema}
+${SchemaDefinitions.scanSchema.replaceAll('[SCAN]', '').replaceAll('[/SCAN]', '').trim()}
 
 STRICT RULES
 - Valid JSON only.
-- One [SCAN] block only.
+- One JSON object only.
 - No Markdown.
-- No explanation outside [SCAN].
+- No explanation outside the JSON.
 ''';
   }
 }

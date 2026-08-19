@@ -68,7 +68,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
 
     _currentMode = widget.initialMode;
     final defaultIndex = _modes.indexWhere((m) => m.mode == _currentMode);
-    _modePageController = PageController(viewportFraction: 0.35, initialPage: defaultIndex != -1 ? defaultIndex : 0);
+    _modePageController = PageController(viewportFraction: 0.4, initialPage: defaultIndex != -1 ? defaultIndex : 0);
 
     _scannerController = MobileScannerController(detectionSpeed: DetectionSpeed.noDuplicates, facing: CameraFacing.back, torchEnabled: false);
     unawaited(_checkPermission());
@@ -104,7 +104,11 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       final index = _modes.indexWhere((m) => m.mode == mode);
       if (index != -1 && mounted) {
         setState(() => _currentMode = mode);
-        _modePageController.jumpToPage(index);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_modePageController.hasClients) {
+            _modePageController.jumpToPage(index);
+          }
+        });
       }
     }
   }
@@ -497,14 +501,17 @@ class _ModeSelector extends StatelessWidget {
       controller: controller,
       itemCount: modes.length,
       onPageChanged: onPageChanged,
+      padEnds: true,
+      physics: const BouncingScrollPhysics(),
       itemBuilder: (context, index) {
         final modeItem = modes[index];
         return _ModeItem(
           label: modeItem.label,
           isActive: currentMode == modeItem.mode,
           onTap: () {
+            onPageChanged(index);
             unawaited(HapticFeedback.mediumImpact());
-            controller.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+            controller.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic);
           },
         );
       },
@@ -516,9 +523,13 @@ class _SelectionIndicator extends StatelessWidget {
   const _SelectionIndicator();
   @override
   Widget build(BuildContext context) => Container(
-    width: AppSizes.p4,
-    height: AppSizes.p4,
-    decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
+    width: AppSizes.p6,
+    height: AppSizes.p6,
+    decoration: BoxDecoration(
+      color: AppPalette.white,
+      shape: BoxShape.circle,
+      boxShadow: [BoxShadow(color: AppPalette.white.withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 1)],
+    ),
   );
 }
 
@@ -673,12 +684,19 @@ class _ModeItem extends StatelessWidget {
     selected: isActive,
     child: GestureDetector(
       onTap: onTap,
-      child: Container(
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         alignment: Alignment.center,
         child: Text(
           label.toUpperCase(),
           textAlign: TextAlign.center,
-          style: TextStyle(color: isActive ? AppPalette.white : AppPalette.white70, fontSize: AppSizes.s11, fontWeight: isActive ? FontWeight.w800 : FontWeight.w700, letterSpacing: 0.8),
+          style: TextStyle(
+            color: isActive ? AppPalette.white : AppPalette.white.withValues(alpha: 0.5),
+            fontSize: isActive ? AppSizes.s12 : AppSizes.s11,
+            fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
+            letterSpacing: isActive ? 1.0 : 0.8,
+          ),
         ),
       ),
     ),

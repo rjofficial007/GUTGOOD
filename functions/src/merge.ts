@@ -213,6 +213,9 @@ async function mergeProfileRoot(
   if (anon.notificationPreferences && !perm.notificationPreferences) {
     update.notificationPreferences = anon.notificationPreferences;
   }
+  if (anon.timezoneOffset !== undefined && perm.timezoneOffset === undefined) {
+    update.timezoneOffset = anon.timezoneOffset;
+  }
 
   // 🟢 Streak Merge Logic: Keep the best streak/date
   const anonStreak = Number(anon.streak ?? 0);

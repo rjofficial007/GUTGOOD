@@ -69,7 +69,7 @@ class AiServiceImpl implements AiService {
   final AnalyticsService _analyticsService;
   final CrashlyticsService _crashlyticsService;
 
-  static const int _maxRetries = 2;
+  static const int _maxRetries = 3;
 
   Future<Map<String, String>> _buildHeaders(String idempotencyKey) async {
     final user = _auth.currentUser;
@@ -117,7 +117,8 @@ class AiServiceImpl implements AiService {
     throw AiServiceException(message, statusCode: status);
   }
 
-  bool _isRetryable(DioException e) => e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError || e.type == DioExceptionType.sendTimeout;
+  bool _isRetryable(DioException e) =>
+      e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError || e.type == DioExceptionType.sendTimeout || e.type == DioExceptionType.receiveTimeout;
 
   @override
   Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream'}) async* {
@@ -281,6 +282,8 @@ class AiServiceImpl implements AiService {
       'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
     });
 
+    AppLogger.debug('AiService: payload size: ${body.length} bytes');
+
     var attempts = 0;
     while (true) {
       attempts++;
@@ -288,10 +291,16 @@ class AiServiceImpl implements AiService {
         final response = await _dio.post<String>(
           _config.aiProxyUrl,
           data: body,
-          options: Options(headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(seconds: 90), validateStatus: (_) => true),
+          options: Options(headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(minutes: 2), validateStatus: (_) => true),
         );
 
         final status = response.statusCode ?? 500;
+        if (status >= 500 && attempts < _maxRetries) {
+          AppLogger.warning('AiService: transient error $status, retrying (attempt $attempts/$_maxRetries)...');
+          await Future.delayed(Duration(seconds: attempts * 2));
+          continue;
+        }
+
         if (status != 200) _throwForStatus(status, response.data ?? '');
 
         final duration = DateTime.now().difference(startTime).inMilliseconds;

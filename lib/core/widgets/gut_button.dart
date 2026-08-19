@@ -20,6 +20,7 @@ class GutButton extends StatefulWidget {
     this.isLoading = false,
     this.isOutlined = false,
     this.isSmall = false,
+    this.borderRadius,
   });
 
   final String label;
@@ -30,6 +31,7 @@ class GutButton extends StatefulWidget {
   final bool isLoading;
   final bool isOutlined;
   final bool isSmall;
+  final double? borderRadius;
 
   @override
   State<GutButton> createState() => _GutButtonState();
@@ -78,7 +80,7 @@ class _GutButtonState extends State<GutButton> {
               color: widget.isLoading
                   ? effectiveColor.withValues(alpha: 0.7)
                   : (_isFocused ? effectiveColor.withValues(alpha: 0.9) : effectiveColor),
-              borderRadius: BorderRadius.circular(AppSizes.r12),
+              borderRadius: BorderRadius.circular(widget.borderRadius ?? AppSizes.r12),
               border: widget.isOutlined
                   ? Border.all(color: _isFocused ? colorScheme.textPrimary : colorScheme.border, width: 1.5)
                   : (_isFocused ? Border.all(color: colorScheme.textPrimary.withValues(alpha: 0.5), width: 2.0) : null),
