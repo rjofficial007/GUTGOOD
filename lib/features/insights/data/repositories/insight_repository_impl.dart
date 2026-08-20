@@ -118,7 +118,7 @@ class InsightRepositoryImpl implements InsightRepository {
 
     // 🟢 Fetch and Filter Chat History for Insight Engine
     final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
-    final chatHistory = await _chatFirestoreService.getMessages(limit: 20, since: sevenDaysAgo);
+    final chatHistory = await _chatFirestoreService.getMessages(limit: 50, since: sevenDaysAgo);
 
     // Only include messages that mention food or symptoms to keep tokens low
     final relevantChat = chatHistory.where((m) => m.foodMentions.isNotEmpty || m.symptomMentions.isNotEmpty).toList();
@@ -126,9 +126,9 @@ class InsightRepositoryImpl implements InsightRepository {
     final historyJson = jsonEncode(relevantChat.map((m) => m.toAiMap()).toList());
     final historySummary = profile?.chatSummary;
 
-    final recentMeals = await _historyFirestoreService.getRecentMealLogs(limit: 20);
-    final symptomLogs = await _historyFirestoreService.getRecentSymptomLogs(limit: 20);
-    final recentScans = await _historyFirestoreService.getRecentScans(limit: 10);
+    final recentMeals = await _historyFirestoreService.getRecentMealLogs(limit: 30);
+    final symptomLogs = await _historyFirestoreService.getRecentSymptomLogs(limit: 30);
+    final recentScans = await _historyFirestoreService.getRecentScans(limit: 20);
 
     // 🟢 Fix: Do not generate insight if the core data streams are insufficient for analysis.
     // A "Cause & Effect" analysis requires at least some meals or scans to analyze.
@@ -137,8 +137,8 @@ class InsightRepositoryImpl implements InsightRepository {
       return;
     }
 
-    final mealsJson = jsonEncode(recentMeals.map((m) => m.toAiMap()).toList());
-    final symptomsJson = jsonEncode(symptomLogs.map((m) => m.toAiMap()).toList());
+    final mealsJson = jsonEncode(recentMeals.map((m) => m.toMap()).toList());
+    final symptomsJson = jsonEncode(symptomLogs.map((m) => m.toMap()).toList());
     // 🟢 Fix: Use toAiMap() for scans to avoid 502/payload errors
     final scansJson = jsonEncode(recentScans.map((s) => s.toAiMap()).toList());
 

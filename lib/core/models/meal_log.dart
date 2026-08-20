@@ -113,16 +113,6 @@ class MealLog extends Equatable {
     'time': time.toIso8601String(),
   };
 
-  /// Optimized Map for AI context to prevent 502/payload-too-large errors.
-  /// Excludes large fields like photoUrl and truncates analysis.
-  Map<String, dynamic> toAiMap() => {
-    'items': items,
-    'mealType': mealType,
-    'foodTags': foodTags,
-    'notes': notes != null && notes!.length > 100 ? '${notes!.substring(0, 100)}...' : notes,
-    'time': time.toIso8601String(),
-  };
-
   @override
   List<Object?> get props => [id, firestoreId, items, time, source];
 }

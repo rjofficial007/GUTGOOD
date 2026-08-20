@@ -437,7 +437,7 @@ class ChatNotifier with ChangeNotifier {
     if (displayText.isNotEmpty) {
       return hiddenContext != null && hiddenContext.isNotEmpty ? '$displayText\n\n$hiddenContext' : displayText;
     }
-    return hiddenContext ?? AppStrings.imageUploadInstruction;
+    return hiddenContext ?? 'Analyze this image for gut health.';
   }
 
   /// Re-runs the last user turn with a fresh assistant response (ChatGPT's
@@ -548,10 +548,19 @@ class ChatNotifier with ChangeNotifier {
     }).toList();
 
     var chronological = filtered.map((m) {
-      if (m.text.isEmpty && m.scanData != null) {
+      // 🟢 OPTIMIZED: Strip large JSON tags from history to prevent 502/Payload-too-large errors.
+      // We keep the conversational text but remove the technical data blocks.
+      var cleanText = m.text
+          .replaceAll(RegExp(r'\[SCAN\].*?\[/SCAN\]', dotAll: true), '')
+          .replaceAll(RegExp(r'\[MEAL\].*?\[/MEAL\]', dotAll: true), '')
+          .replaceAll(RegExp(r'\[SYMPTOM\].*?\[/SYMPTOM\]', dotAll: true), '')
+          .replaceAll(RegExp(r'\[SWAPS\].*?\[/SWAPS\]', dotAll: true), '')
+          .trim();
+
+      if (cleanText.isEmpty && m.scanData != null) {
         return m.copyWith(text: 'I scanned ${m.scanData!.productName}.');
       }
-      return m;
+      return m.copyWith(text: cleanText);
     }).toList();
 
     // Drop the trailing user message if it is exactly the one being sent.
@@ -578,6 +587,13 @@ class ChatNotifier with ChangeNotifier {
     _persistedTags.clear();
     _persistTagsForActiveTurn = !isRegenerate;
 
+    // 🟢 DETECT INTENT
+    // We always run intent detection if there is user text, to capture nuances.
+    // However, we optimize the payload to prevent 502 errors and timeouts.
+    final intent = (userText.trim().isEmpty && source != null) ? source : (await _detectIntent(userText, source: source)).trim().toLowerCase();
+
+    AppLogger.debug('ChatNotifier: Final intent for prompt: "$intent" (source: "$source")');
+
     await _aiSubscription?.cancel();
 
     // Throttled UI flush: markdown re-parsing per TOKEN caused frame jank.
@@ -596,6 +612,7 @@ class ChatNotifier with ChangeNotifier {
           historySummary: _cachedSummary,
           currentTime: DateTime.now().toIso8601String(),
           mode: source, // 🟢 Pass the mode/source to the prompt engine
+          intent: intent, // 🟢 Pass the detected intent
         ),
         history: _buildHistory(),
         userText: userText,
@@ -630,6 +647,93 @@ class ChatNotifier with ChangeNotifier {
       AppLogger.error('ChatNotifier: Stream setup failed', error: e, stackTrace: st);
       _handleStreamError(e, aiLocalId);
     }
+  }
+
+  Future<String> _detectIntent(String userText, {String? source}) async {
+    final text = userText.toLowerCase();
+
+    // 1. Local Keyword Safeguard (Instant & Reliable for common phrases)
+    final quickIntent = _getQuickIntent(text);
+    if (quickIntent != null) {
+      AppLogger.debug('ChatNotifier: Quick intent detected locally: $quickIntent');
+      return quickIntent;
+    }
+
+    try {
+      // 2. AI Intent Detection (For nuanced natural language)
+      // 🟢 OPTIMIZED: History is already tag-free thanks to _buildHistory().
+      // This makes the intent engine much faster and more reliable.
+      final history = _buildHistory();
+      final minimalHistory = history.length > 5 ? history.sublist(history.length - 5) : history;
+
+      final historyContext = minimalHistory.map((m) => '${m.role.toUpperCase()}: ${m.text}').join('\n');
+
+      final prompt =
+          '''
+CONVERSATION HISTORY:
+$historyContext
+
+USER MESSAGE:
+$userText
+
+CLASSIFY INTENT:
+''';
+
+      AppLogger.debug('ChatNotifier: Sending intent detection prompt (payload-optimized) for: "$userText"');
+
+      final intent = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.intentDetectionInstruction, usageType: 'chat');
+
+      return intent.trim().toLowerCase();
+    } catch (e) {
+      AppLogger.error('ChatNotifier: AI intent detection failed, using fallback', error: e);
+      // Fallback: Use local keywords first, then default to the active source mode, then generic overview.
+      return _getQuickIntent(text) ?? source ?? 'meal_overview';
+    }
+  }
+
+  String? _getQuickIntent(String text) {
+    final lowerText = text.toLowerCase();
+
+    // 🟢 Direct mapping for default prompt strings to save AI tokens and prevent 502 errors.
+    if (lowerText.contains(AppStrings.menuPhotoPrompt.toLowerCase())) return 'menu';
+    if (lowerText.contains(AppStrings.labelPhotoPrompt.toLowerCase())) return 'label';
+    if (lowerText.contains(AppStrings.mealPhotoPrompt.toLowerCase())) return 'food';
+    if (lowerText.contains(AppStrings.galleryPhotoPrompt.toLowerCase())) return 'gallery';
+
+    if (lowerText.contains('rate') || lowerText.contains('score') || lowerText.contains('how\'d i do') || lowerText.contains('how did i do') || lowerText.contains('give me a grade')) {
+      return 'meal_rating';
+    }
+    if (lowerText.contains('healthy') || lowerText.contains('balanced') || lowerText.contains('good for me') || lowerText.contains('is this good')) {
+      return 'health_assessment';
+    }
+    if (lowerText.contains('swap') || lowerText.contains('change') || lowerText.contains('alternative') || lowerText.contains('replace') || lowerText.contains('better')) {
+      return 'meal_swaps';
+    }
+    if (lowerText.contains('everything') || lowerText.contains('full breakdown') || lowerText.contains('analyze this in detail') || lowerText.contains('tell me all')) {
+      return 'full_analysis';
+    }
+    if (lowerText.contains('bloat') || lowerText.contains('hurt') || lowerText.contains('pain') || lowerText.contains('headache') || lowerText.contains('tired')) {
+      return 'symptom_analysis';
+    }
+    if (lowerText.contains('compare') || lowerText.contains(' vs ') || lowerText.contains('versus') || lowerText.contains('which is better')) {
+      return 'product_comparison';
+    }
+    if (lowerText.contains('plan') || lowerText.contains('eat next') || lowerText.contains('for dinner') || lowerText.contains('snack idea')) {
+      return 'meal_planning';
+    }
+    // 🟢 Catching common meal logging phrases locally to save AI calls and prevent 502 errors.
+    if (lowerText.contains('i\'m having a') ||
+        lowerText.contains('i am having') ||
+        lowerText.contains('i had') ||
+        lowerText.contains('i ate') ||
+        lowerText.contains('eating some') ||
+        lowerText.contains('for dinner') ||
+        lowerText.contains('for lunch') ||
+        lowerText.contains('for breakfast') ||
+        lowerText.contains('my snack')) {
+      return 'meal_overview';
+    }
+    return null;
   }
 
   void _flushChunkBuffer({String? imageUrl, String? source}) {
@@ -875,6 +979,7 @@ class ChatNotifier with ChangeNotifier {
           historySummary: _cachedSummary,
           currentTime: DateTime.now().toIso8601String(),
           mode: 'swaps', // 🟢 Explicit mode for "see more swaps"
+          intent: 'meal_swaps', // 🟢 Use the dedicated swaps prompt
         ),
         history: _buildHistory(),
         userText: groundedSwaps != null ? '${userMsg.text}\n\n(REAL PRODUCT DATA FOR SUGGESTIONS: ${groundedSwaps.map((s) => s.title).join(', ')})' : userMsg.text,

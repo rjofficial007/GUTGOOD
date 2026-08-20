@@ -185,7 +185,7 @@ class ChatScreenState extends State<ChatScreen> {
 
     if (!await QuotaGuard.check(context, type: hasImages ? QuotaType.scan : QuotaType.chat, onAuthSuccess: chatNotifier.refreshHistory)) return;
 
-    final error = await chatNotifier.send(text: msg, hiddenContext: hasImages ? chatNotifier.pendingHiddenContext : null, source: 'chat');
+    final error = await chatNotifier.send(text: msg, hiddenContext: hasImages ? chatNotifier.pendingHiddenContext : null, source: hasImages ? chatNotifier.pendingHiddenContext : 'chat');
 
     if (!mounted) return;
 
@@ -236,7 +236,7 @@ class ChatScreenState extends State<ChatScreen> {
             Expanded(
               child: _MessageListView(scrollController: _scroll, onSend: _send),
             ),
-            const _SuggestionChipsSection(),
+            // const _SuggestionChipsSection(),
             _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
           ],
         ),

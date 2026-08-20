@@ -59,7 +59,13 @@ class ScannerRepositoryImpl implements ScannerRepository {
       alternativesText = '\n\nREAL PRODUCT ALTERNATIVES FROM DATABASE: ${alternatives.map((a) => '${a.productName} by ${a.brand} (Score: ${a.nutriscore})').join(', ')}';
     }
 
-    final prompt = '${Prompts.productAnalysisPrompt(productData: product.toMap(), userGoals: goals, userSensitivities: sensitivities, cyclePhase: cyclePhase)}$alternativesText';
+    final productMap = product.toMap();
+    // 🟢 OPTIMIZED: Limit the number of ingredients sent to the AI to prevent 502/Token errors.
+    if (product.ingredients != null && product.ingredients!.length > 15) {
+      productMap['ingredients'] = product.ingredients!.take(15).toList();
+    }
+
+    final prompt = '${Prompts.productAnalysisPrompt(productData: productMap, userGoals: goals, userSensitivities: sensitivities, cyclePhase: cyclePhase)}$alternativesText';
 
     final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan');
 

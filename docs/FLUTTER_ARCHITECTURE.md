@@ -42,7 +42,8 @@ Each feature (e.g., `chat`, `scanner`, `auth`) is self-contained with the follow
 
 ## 4. Business Logic Layer (Services)
 Core logic resides in the `lib/core/services/` directory, used across multiple features:
-- **`AiService`:** Manages the communication with the `aiProxy` Cloud Function.
+- **`AiService`:** Manages communication with the `aiProxy` Cloud Function, utilizing a modular prompt architecture (`mode_prompts/`).
+- **`IntentEngine`:** Orchestrates local keyword matching and AI-based intent classification within the `ChatNotifier`.
 - **`FirestoreService`:** Abstracted interface for all database operations.
 - **`PurchaseService`:** Wrapper for RevenueCat subscription logic.
 - **`UsageService`:** Client-side check for daily quotas (Scans/Messages).

@@ -211,8 +211,8 @@ class _EmptyStateCard extends StatelessWidget {
           children: [
             Container(
               padding: EdgeInsets.all(AppSizes.p12),
-              decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
-              child: Icon(icon, size: AppSizes.icon20, color: colorScheme.cardBackground),
+              decoration: BoxDecoration(color: colorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+              child: Icon(icon, size: AppSizes.icon20, color: colorScheme.textPrimary),
             ),
             Gap.h12,
             Text(title, textAlign: TextAlign.center, style: context.bodyBold.copyWith(height: 1.1, fontSize: 12)),
@@ -459,7 +459,7 @@ class ComposerActionCircle extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: enabled ? colorScheme.textPrimary : colorScheme.textMuted, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: colorScheme.textPrimary, shape: BoxShape.circle),
             child: Center(child: child ?? icon),
           ),
         ),

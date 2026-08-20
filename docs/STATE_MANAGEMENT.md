@@ -7,7 +7,7 @@ Each major feature is governed by a dedicated `ChangeNotifier` class.
 
 ### Key Notifiers:
 - **`GutAuthNotifier`:** Manages authentication state (`isAuthenticated`, `isAnonymous`, `isMerging`). Triggers global router redirects.
-- **`ChatNotifier`:** Manages the conversational state. Handles message history, attachment previews, and streaming token accumulation.
+- **`ChatNotifier`:** Manages the conversational state. Orchestrates the **Multi-layered Intent Engine** (Local Keywords + AI Classifier) to switch between specialized personas (Swaps, Planning, Rating, etc.) dynamically. Handles history optimization to prevent 502 errors.
 - **`ScannerNotifier`:** Tracks scanning progress (`isProcessing`) and the latest `ScanResult`.
 - **`ProfileNotifier`:** Manages user health settings (Goals, Sensitivities) and the onboarding process.
 - **`InsightsNotifier`:** Manages the loading and caching of AI-generated health recaps.

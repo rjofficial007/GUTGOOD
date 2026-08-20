@@ -12,8 +12,8 @@ GutGood communicates with external services primarily through secure Firebase Cl
 | `mode` | String | `stream` (default), `json`, or `plain`. |
 | `usageType` | String | `chat`, `scan`, or `system`. Used for quota tracking. |
 | `userText` | String | Current user prompt. |
-| `systemInstruction`| String | AI system behavior instructions. |
-| `messages` | List | Conversation history (role/content). |
+| `systemInstruction`| String | AI system behavior instructions (Persona-specific). |
+| `messages` | List | Optimized conversation history (Tags stripped to prevent 502s). |
 | `images` | List<String> | Base64 encoded JPEG images (max 4). |
 | `idempotencyKey` | String | Optional key to prevent double-charging quotas. |
 

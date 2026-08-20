@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
+import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:uuid/uuid.dart';
@@ -69,7 +70,7 @@ class AiServiceImpl implements AiService {
   final AnalyticsService _analyticsService;
   final CrashlyticsService _crashlyticsService;
 
-  static const int _maxRetries = 3;
+  static const int _maxRetries = 2;
 
   Future<Map<String, String>> _buildHeaders(String idempotencyKey) async {
     final user = _auth.currentUser;
@@ -117,8 +118,17 @@ class AiServiceImpl implements AiService {
     throw AiServiceException(message, statusCode: status);
   }
 
-  bool _isRetryable(DioException e) =>
-      e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError || e.type == DioExceptionType.sendTimeout || e.type == DioExceptionType.receiveTimeout;
+  bool _isRetryable(DioException e) {
+    if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError || e.type == DioExceptionType.sendTimeout) {
+      return true;
+    }
+    // 🟢 Also retry on transient server errors (502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout)
+    final status = e.response?.statusCode;
+    if (status == 502 || status == 503 || status == 504) {
+      return true;
+    }
+    return false;
+  }
 
   @override
   Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream'}) async* {
@@ -282,8 +292,6 @@ class AiServiceImpl implements AiService {
       'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
     });
 
-    AppLogger.debug('AiService: payload size: ${body.length} bytes');
-
     var attempts = 0;
     while (true) {
       attempts++;
@@ -291,16 +299,10 @@ class AiServiceImpl implements AiService {
         final response = await _dio.post<String>(
           _config.aiProxyUrl,
           data: body,
-          options: Options(headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(minutes: 2), validateStatus: (_) => true),
+          options: Options(headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(seconds: 90), validateStatus: (_) => true),
         );
 
         final status = response.statusCode ?? 500;
-        if (status >= 500 && attempts < _maxRetries) {
-          AppLogger.warning('AiService: transient error $status, retrying (attempt $attempts/$_maxRetries)...');
-          await Future.delayed(Duration(seconds: attempts * 2));
-          continue;
-        }
-
         if (status != 200) _throwForStatus(status, response.data ?? '');
 
         final duration = DateTime.now().difference(startTime).inMilliseconds;
@@ -332,9 +334,7 @@ class AiServiceImpl implements AiService {
     final historyMaps = history.map((m) => m.toAiMap()).toList();
     final historyJson = jsonEncode(historyMaps);
 
-    final priorContext = previousSummary != null && previousSummary.isNotEmpty ? 'PREVIOUS SUMMARY (fold new info into this, don\'t discard it): $previousSummary\n\n' : '';
-
-    final prompt = '${priorContext}Update the summary using this additional chat history. Keep it to 2-3 sentences total covering the user\'s food choices, symptoms, and goals:\n\n$historyJson';
+    final prompt = '${Prompts.summarizationInstruction(previousSummary: previousSummary)}\n\n$historyJson';
 
     final idempotencyKey = const Uuid().v4();
     try {

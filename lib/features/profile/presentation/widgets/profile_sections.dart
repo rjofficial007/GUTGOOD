@@ -360,17 +360,13 @@ class DebugToolsSection extends StatelessWidget {
             },
           ),
           AppTile(
-            icon: Icons.psychology,
-            title: AppStrings.generatePatternData,
-            subtitle: AppStrings.generatePatternDataSubtitle,
+            icon: Icons.data_array,
+            title: AppStrings.generateMockData,
+            subtitle: AppStrings.generateMockDataSubtitle,
             onTap: () async {
-              final auth = context.read<GutAuthNotifier>();
-              final uid = auth.user?.uid;
-              if (uid != null) {
-                await sl<DebugMockDataService>().generatePatternTriggeringData(uid);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.mockDataGenerated)));
-                }
+              await sl<DebugMockDataService>().generateTwoWeeksData();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.mockDataGenerated)));
               }
             },
             showBottomBorder: false,
@@ -456,7 +452,10 @@ class AIUsageCard extends StatelessWidget {
                     AppStrings.limits.toUpperCase(),
                     style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
                   ),
-                  Text(isAnon ? AppStrings.guestAccount : AppStrings.freePlan, style: context.bodyBold.copyWith(color: textColor, height: 1.1)),
+                  Text(
+                    isAnon ? AppStrings.guestAccount : AppStrings.freePlan,
+                    style: context.bodyBold.copyWith(color: textColor, height: 1.1),
+                  ),
                 ],
               ),
               GestureDetector(

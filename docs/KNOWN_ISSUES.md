@@ -2,9 +2,14 @@
 
 This document tracks identified bugs, technical debt, and planned improvements to the GutGood codebase.
 
-## 1. Technical Debt
+## 1. Resolved Issues
+- **AI Payload 502 Errors:** Previously, large history payloads containing structured tags caused Cloud Function timeouts. This is now resolved via payload optimization (tag stripping) and history summarization.
+- **AI Consistency:** Intent-specific personas are now isolated in `mode_prompts/`, significantly improving response relevance.
+- **Truncated JSON:** The `ModelUtils.extractJson` "auto-repair" logic now handles cases where the LLM cuts off mid-JSON.
+
+## 2. Technical Debt
 - **Message Deduplication:** The `ChatNotifier` uses `optimisticIds` but the `localId` field in Firestore is not yet strictly enforced as a unique key in security rules.
-- **AI Summary Strategy:** The `summarizeHistory` function currently runs after every 6 messages. A more efficient "window-based" approach or triggering only on significant context shifts could reduce API costs.
+- **AI Summary Strategy:** The `summarizeHistory` function currently runs after every 6 messages. We have optimized this with tag-stripping, but further windowing could be explored.
 - **Image Compression:** Current image compression in `StorageService` is synchronous. For very large images, this could cause a brief frame drop. Consider moving to an isolate.
 
 ## 2. Known Limitations

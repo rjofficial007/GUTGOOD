@@ -293,7 +293,7 @@ class ScanResult extends Equatable {
     'productName': productName,
     'brand': brand,
     'score': score,
-    'impact': impact.length > 200 ? '${impact.substring(0, 200)}...' : impact,
+    'impact': impact,
     'nutriscore': nutriscore,
     'novaGroup': novaGroup,
     'flaggedIngredients': flaggedIngredients,

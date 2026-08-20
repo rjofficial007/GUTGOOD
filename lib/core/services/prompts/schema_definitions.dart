@@ -25,7 +25,7 @@ class SchemaDefinitions {
       "confidence": 0.0
     }''';
 
-  static const String scanSchema =
+  static String get scanSchema =>
       '''
 [SCAN]
 {
@@ -54,13 +54,15 @@ class SchemaDefinitions {
     "proteins": null,
     "salt": null
   },
-  "allergens": [],
-  "additives": [],
-  "impacts": [],
+  "allergens": "A short summary string of detected allergens",
+  "additives": "A short summary string of detected additives (e.g. E407, E415)",
+  "impacts": [
+    "A concise gut-health impact label, e.g., 'Probiotic Rich' or 'Added Sugars'"
+  ],
   "ingredients": [
 $ingredientSchema
   ],
-  "impact": "string",
+  "impact": "A narrative summary of the overall gut health impact",
   "cycleInsight": null,
   "swaps": []
 }
@@ -132,5 +134,6 @@ $ingredientSchema
 - Any value you cannot determine from the input uses JSON null (or [] for arrays/lists).
   Never use the string "unknown" inside a field typed as a number, and never invent a
   placeholder value to avoid using null.
+- To prevent response truncation, limit the "ingredients" list to the top 10 most relevant items.
 ''';
 }

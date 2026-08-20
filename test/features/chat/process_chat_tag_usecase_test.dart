@@ -17,7 +17,6 @@ class MockAppStateService extends Mock implements AppStateService {}
 void main() {
   late ProcessChatTagUseCase useCase;
   late MockHistoryFirestoreService mockFirestoreService;
-  late MockNotificationService mockNotificationService;
   late MockAppStateService mockAppStateService;
 
   setUpAll(() {
@@ -28,7 +27,6 @@ void main() {
 
   setUp(() {
     mockFirestoreService = MockHistoryFirestoreService();
-    mockNotificationService = MockNotificationService();
     mockAppStateService = MockAppStateService();
     useCase = ProcessChatTagUseCase(firestoreService: mockFirestoreService, appStateService: mockAppStateService);
   });

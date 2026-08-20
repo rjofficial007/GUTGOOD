@@ -21,8 +21,12 @@ The GutGood database is structured around a single root collection, `user_profil
 | `lifestyle` | List<String> | Selected lifestyle factors. |
 | `cycleSyncEnabled` | Boolean | Opt-in status for hormonal tracking. |
 | `cyclePhase` | String | Current menstrual cycle phase. |
+| `chatSummary` | String | AI-generated rolling summary of recent history. |
 | `gutScore` | Number | Aggregated health score (0-100). |
-| `streak` | Number | Current login/check-in streak. |
+| `streak` | Number | Current daily check-in streak. |
+| `longestStreak`| Number | All-time highest streak achieved. |
+| `lastActivityDate`| String | ISO Date (YYYY-MM-DD) of last active session. |
+| `timezoneOffset`| Number | User's local timezone offset in minutes. |
 | `notificationPreferences` | Map | User's alert settings. |
 | `createdAt` | Timestamp | Account creation time. |
 | `updatedAt` | Timestamp | Last profile update time. |

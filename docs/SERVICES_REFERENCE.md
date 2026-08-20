@@ -4,11 +4,19 @@ GutGood uses a service-oriented architecture where core logic is encapsulated in
 
 ## 1. `AiService`
 **Implementation:** `AiServiceImpl`
-- **Responsibility:** All communication with the AI Proxy Cloud Function.
+- **Responsibility:** All communication with the `aiProxy` Cloud Function.
+- **Modular Prompts:** Uses a decentralized prompt architecture located in `lib/core/services/prompts/mode_prompts/`.
 - **Key Methods:**
     - `streamChat(...)`: SSE streaming for conversational AI.
     - `analyzeImage(...)`: Vision-based product analysis.
-    - `summarizeHistory(...)`: Long-term memory compression.
+    - `summarizeHistory(...)`: Long-term memory compression (optimized with tag stripping).
+
+## 2. `ModelUtils`
+**Implementation:** `lib/core/utils/model_utils.dart`
+- **Responsibility:** Reliability layer for data parsing.
+- **Key Features:**
+    - "Auto-repair" logic for truncated JSON strings from AI.
+    - Safe parsing for nested models and clamped scores.
 
 ## 2. `FirestoreService`
 **Implementation:** `FirestoreServiceImpl`

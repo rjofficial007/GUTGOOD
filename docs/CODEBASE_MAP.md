@@ -10,10 +10,13 @@ The heart of the Flutter application, following a Clean Architecture structure.
 - `di/`: The `injection_container.dart` which wires up all dependencies using `GetIt`.
 - `models/`: Domain models (Mappers) used across multiple features (e.g., `ScanResult`, `UserProfile`).
 - `router/`: The `app_router.dart` defining all screen paths and redirection logic.
-- `services/`: Concrete implementations of core system logic (AI, Firestore, Storage, Usage).
-- `theme/`: Material 3 theme definitions and the `ThemeNotifier`.
-- `utils/`: Reusable helpers for date-time, logging, responsiveness, and data parsing.
-- `widgets/`: Shared UI components like buttons, inputs, loaders, and the global `OfflineBanner`.
+- **`services/`**: Concrete implementations of core system logic (AI, Firestore, Storage, Usage).
+    - **`prompts/`**: The modular AI prompt engine.
+        - **`mode_prompts/`**: Dedicated files for every AI intent (Rating, Swaps, Planning, etc.).
+- **`theme/`**: Material 3 theme definitions and the `ThemeNotifier`.
+- **`utils/`**: Reusable helpers for date-time, logging, responsiveness, and data parsing.
+    - **`model_utils.dart`**: Robust JSON parsing with "auto-repair" logic for truncated LLM responses.
+- **`widgets/`**: Shared UI components like buttons, inputs, loaders, and the global `OfflineBanner`.
 
 ### `/lib/features` - Feature-Sliced Modules
 - `auth/`: Handles Login, Signup, Social Auth, and Account Merging.

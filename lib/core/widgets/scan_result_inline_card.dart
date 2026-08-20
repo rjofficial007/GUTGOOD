@@ -36,11 +36,6 @@ class ScanResultInlineCard extends StatelessWidget {
         : scanData.impactType == ImpactType.neutral
         ? colorScheme.warning
         : colorScheme.error;
-    final impactIcon = scanData.impactType == ImpactType.positive
-        ? AppIcons.checkCircle
-        : scanData.impactType == ImpactType.neutral
-        ? AppIcons.alertTriangle
-        : AppIcons.alertCircle;
 
     return Container(
       margin: isEmbedded ? EdgeInsets.zero : EdgeInsets.only(bottom: AppSizes.p24, right: AppSizes.p16),

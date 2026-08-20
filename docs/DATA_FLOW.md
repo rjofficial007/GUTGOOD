@@ -16,33 +16,37 @@ graph LR
 
 ---
 
-## 2. AI Chat Streaming Flow
-The most complex data flow in the app is the token-by-token streaming of AI responses.
+## 2. AI Chat Streaming & Intent Flow
+The tokens move from OpenAI through a secure proxy, with dynamic persona switching.
 
 ```mermaid
 sequenceDiagram
     participant UI as Chat View
     participant N as ChatNotifier
+    participant IE as Intent Engine
     participant Repo as ChatRepository
-    participant CF as Cloud Function (Proxy)
+    participant CF as Cloud Function (aiProxy)
     participant AI as OpenAI API
 
     UI->>N: Send Message
-    N->>N: Create Optimistic Message
+    N->>IE: Multi-Layered Intent Detection
+    IE->>IE: 1. Local Keyword Match
+    IE->>AI: 2. AI Intent Classifier
+    N->>N: Select Mode Prompt (lib/core/services/prompts/mode_prompts/)
+    N->>N: Optimize Payload (Strip Tags from History)
     N->>Repo: requestStream()
-    Repo->>CF: HTTP POST (Bearer Token)
-    CF->>AI: GPT-4o Stream Request
+    Repo->>CF: HTTP POST (Auth Token + Optimized Payload)
+    CF->>CF: Enforce Quotas & Security
+    CF->>AI: GPT-4o Request
     AI-->>CF: SSE Tokens
     CF-->>Repo: SSE Tokens
     Repo-->>N: Yield tokens to Stream
     
     loop Per Token
         N->>N: Append chunk to buffer
-        N->>N: Throttle UI update (60ms)
-        N->>UI: NotifyListeners (Update Markdown)
+        N->>N: Auto-Repair JSON (ModelUtils)
+        N->>UI: NotifyListeners
     end
-    
-    N->>Repo: persistMessage()
 ```
 
 ---

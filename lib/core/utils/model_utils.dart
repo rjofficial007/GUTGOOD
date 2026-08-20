@@ -79,12 +79,6 @@ class ModelUtils {
   }
 
   /// Clamps a raw AI-provided numeric score into a safe UI range.
-  ///
-  /// 🟢 NEW: previously `ScanResult.fromMap` trusted the AI's `score` field
-  /// verbatim and fed it straight into `value: score / 100` progress
-  /// indicators. A single malformed response (e.g. score: 140, or a
-  /// negative "penalty" score) would silently render a broken/overflowing
-  /// gauge. This is the single place all score parsing should go through.
   static int parseScore(dynamic value, {int fallback = 0, int min = 0, int max = 100}) {
     final n = (value is num) ? value.toInt() : int.tryParse(value?.toString() ?? '');
     if (n == null) return fallback;
@@ -113,32 +107,25 @@ class ModelUtils {
       return [];
     }
 
-    return list.map((e) {
-      if (e is Map) {
-        return fromMap(Map<String, dynamic>.from(e));
-      } else if (e != null) {
-        // Fallback for when AI returns [ "item1", "item2" ] instead of maps.
-        // We try to "map-ify" the string if possible, or use a dummy map.
-        // Most models expect a 'name' or 'title'.
-        return fromMap({'name': e.toString(), 'title': e.toString()});
-      }
-      return null;
-    }).whereType<T>().toList();
+    return list
+        .map((e) {
+          if (e is Map) {
+            return fromMap(Map<String, dynamic>.from(e));
+          } else if (e != null) {
+            return fromMap({'name': e.toString(), 'title': e.toString()});
+          }
+          return null;
+        })
+        .whereType<T>()
+        .toList();
   }
 
-  /// Robustly extracts JSON from a string that might contain noise
-  /// (Markdown fences, conversational preamble/postamble around a
-  /// [SCAN]/[MEAL] block, etc.).
+  /// Robustly extracts and optionally "fixes" truncated JSON from a string.
   ///
-  /// 🟢 FIXED: the previous implementation used
-  /// `raw.indexOf(startChar)` / `raw.lastIndexOf(endChar)`, which breaks
-  /// as soon as the surrounding prose (e.g. an `"impact"` sentence, or a
-  /// second unrelated JSON-looking fragment) contains its own `{`/`}` or
-  /// `[`/`]` characters — a very common occurrence in these prompts since
-  /// `impact`/`summary` text is free-form. This version does a proper
-  /// balanced-bracket scan that ignores brackets inside string literals
-  /// (including escaped quotes), so it finds the FIRST COMPLETE top-level
-  /// JSON value rather than an arbitrary first-to-last span.
+  /// LLMs occasionally truncate responses due to token limits. This method
+  /// performs a balanced-bracket scan and, if the input appears truncated
+  /// (unbalanced), it attempts to close open brackets/braces to produce a
+  /// parseable fragment.
   static String? extractJson(String? raw, {bool isArray = false}) {
     if (raw == null || raw.isEmpty) return null;
 
@@ -153,6 +140,7 @@ class ModelUtils {
     var depth = 0;
     var inString = false;
     var escapeNext = false;
+    final stack = <String>[];
 
     for (var i = startIndex; i < raw.length; i++) {
       final char = raw[i];
@@ -174,32 +162,49 @@ class ModelUtils {
 
       if (inString) continue;
 
-      if (char == startChar) {
+      if (char == '{' || char == '[') {
+        stack.add(char == '{' ? '}' : ']');
         depth++;
-      } else if (char == endChar) {
-        depth--;
-        if (depth == 0) {
-          final candidate = raw.substring(startIndex, i + 1);
-          // Sanity check: must actually parse. If not, fall back to the
-          // old permissive behavior rather than returning something we
-          // know is broken.
-          try {
-            jsonDecode(candidate);
-            return candidate;
-          } catch (_) {
-            break;
+      } else if (char == '}' || char == ']') {
+        if (stack.isNotEmpty && stack.last == char) {
+          stack.removeLast();
+          depth--;
+          if (depth == 0) {
+            final candidate = raw.substring(startIndex, i + 1);
+            try {
+              jsonDecode(candidate);
+              return candidate;
+            } catch (_) {
+              // Not valid yet, keep going
+            }
           }
         }
       }
     }
 
-    // Fallback: balanced scan failed (e.g. truncated stream mid-object).
-    // Try the last matching close bracket as a best-effort recovery,
-    // same as the legacy behavior, so partial/streaming calls don't
-    // regress to returning nothing.
-    final endIndex = raw.lastIndexOf(endChar);
-    if (endIndex > startIndex) {
-      return raw.substring(startIndex, endIndex + 1);
+    // If we reach here, the JSON is unbalanced (likely truncated).
+    var current = raw.substring(startIndex).trim();
+
+    // 1. Try force-closing the stack
+    if (stack.isNotEmpty) {
+      var fix = current;
+      if (inString) fix += '"';
+      for (final closing in stack.reversed) {
+        fix += closing;
+      }
+      try {
+        jsonDecode(fix);
+        return fix;
+      } catch (_) {}
+    }
+
+    // 2. Fallback to last closing char
+    final lastBrace = current.lastIndexOf('}');
+    final lastBracket = current.lastIndexOf(']');
+    final lastEnd = lastBrace > lastBracket ? lastBrace : lastBracket;
+
+    if (lastEnd != -1) {
+      return current.substring(0, lastEnd + 1);
     }
 
     return raw.replaceAll('```json', '').replaceAll('```', '').trim();

@@ -212,21 +212,7 @@ class ChatMessage extends Equatable {
   };
 
   /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
-  /// Truncates long text to keep the overall payload small.
-  Map<String, dynamic> toAiMap() {
-    String truncatedText = text;
-    if (truncatedText.length > 200) {
-      truncatedText = '${truncatedText.substring(0, 200)}...';
-    }
-    return {
-      'role': role,
-      'text': truncatedText,
-      if (scanData != null) 'scanData': scanData!.toAiMap(),
-      if (foodMentions.isNotEmpty) 'foodMentions': foodMentions,
-      if (symptomMentions.isNotEmpty) 'symptomMentions': symptomMentions,
-      if (isHidden) 'isHidden': isHidden,
-    };
-  }
+  Map<String, dynamic> toAiMap() => {'role': role, 'text': text, if (scanData != null) 'scanData': scanData!.toAiMap(), if (isHidden) 'isHidden': isHidden};
 
   @override
   List<Object?> get props => [id, firestoreId, localId, role, text, imageUrl, imageUrls, scanData, isSwap, feedback, isSending, sendFailed, errorKind, isHidden, time];

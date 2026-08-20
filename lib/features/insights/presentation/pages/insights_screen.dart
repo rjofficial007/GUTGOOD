@@ -69,7 +69,7 @@ class _NoInsightsState extends StatelessWidget {
 
     String title;
     String description;
-    IconData icon = AppIcons.barChart;
+    var icon = AppIcons.barChart;
 
     if (scans == 0 && meals == 0) {
       title = 'Keep logging meals.';

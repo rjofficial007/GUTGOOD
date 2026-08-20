@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/swap_card.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
@@ -37,17 +38,20 @@ class SwapItContainer extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(isEmbedded ? AppSizes.p8 : AppSizes.p10),
+                  padding: EdgeInsets.all(AppSizes.p10),
                   decoration: BoxDecoration(color: colorScheme.textPrimary, borderRadius: BorderRadius.circular(AppSizes.r12)),
-                  child: Icon(AppIcons.salad, size: isEmbedded ? AppSizes.icon24 : AppSizes.icon32, color: colorScheme.cardBackground),
+                  child: Icon(AppIcons.salad, size: AppSizes.icon32, color: colorScheme.cardBackground),
                 ),
-                Gap.w16,
+                Gap.w10,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(AppStrings.swapItFeelBetter.toUpperCase(), style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontSize: 10)),
-                      Text(AppStrings.easySwapsDesc, style: context.bodySm.copyWith(color: colorScheme.textMuted)),
+                      Text(
+                        AppStrings.easySwapsDesc,
+                        style: context.bodySm.copyWith(color: colorScheme.textMuted, fontSize: 12.sp),
+                      ),
                     ],
                   ),
                 ),

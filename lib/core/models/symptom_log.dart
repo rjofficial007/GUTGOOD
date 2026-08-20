@@ -6,7 +6,20 @@ import 'package:gutgood/core/utils/date_time_utils.dart';
 /// Symptom logs are the primary data source for the [PatternEngineService] to
 /// find correlations between food intake and body reactions.
 class SymptomLog extends Equatable {
-  const SymptomLog({this.id, this.firestoreId, this.uid, required this.symptom, this.severity, this.notes, this.energyLevel, this.mood, this.sleep, this.lastMealId, this.source, required this.time});
+  const SymptomLog({
+    this.id,
+    this.firestoreId,
+    this.uid,
+    required this.symptom,
+    this.severity,
+    this.notes,
+    this.energyLevel,
+    this.mood,
+    this.sleep,
+    this.lastMealId,
+    this.source,
+    required this.time,
+  });
 
   factory SymptomLog.fromMap(Map<String, dynamic> map) {
     final rawId = map['id'] ?? map['firestoreId'];
@@ -103,18 +116,13 @@ class SymptomLog extends Equatable {
     'time': time.toIso8601String(),
   };
 
-  /// Optimized Map for AI context to prevent 502/payload-too-large errors.
-  /// Excludes large fields like notes.
-  Map<String, dynamic> toAiMap() => {
-    'symptom': symptom,
-    'severity': severity,
-    'energyLevel': energyLevel,
-    'mood': mood,
-    'sleep': sleep,
-    'notes': notes != null && notes!.length > 100 ? '${notes!.substring(0, 100)}...' : notes,
-    'time': time.toIso8601String(),
-  };
-
   @override
-  List<Object?> get props => [id, firestoreId, symptom, severity, time, energyLevel];
+  List<Object?> get props => [
+    id,
+    firestoreId,
+    symptom,
+    severity,
+    time,
+    energyLevel,
+  ];
 }
