@@ -147,7 +147,7 @@ class AiServiceImpl implements AiService {
       'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
     });
 
-    AppLogger.debug('AiService: streaming via proxy (history: ${history.length}, images: ${images?.length ?? 0})');
+    AppLogger.ai('streaming via proxy (history: ${history.length}, images: ${images?.length ?? 0})');
     final startTime = DateTime.now();
 
     // 🟢 NEW: previously a single connection failure (timeout/reset) here
@@ -275,7 +275,7 @@ class AiServiceImpl implements AiService {
 
   @override
   Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType = 'system'}) async {
-    AppLogger.debug('AiService: generating content (mode: json, usageType: $usageType)');
+    AppLogger.ai('generating content (mode: json, usageType: $usageType)');
     final startTime = DateTime.now();
 
     final idempotencyKey = const Uuid().v4();
@@ -317,7 +317,7 @@ class AiServiceImpl implements AiService {
       } on DioException catch (e, st) {
         // Retry only when the request provably never reached / completed at the
         // server; the idempotency key guards the rare ambiguous case.
-        AppLogger.error('AiService: content generation failed (attempt $attempts/$_maxRetries)', error: e, stackTrace: st);
+        AppLogger.error('content generation failed (attempt $attempts/$_maxRetries)', error: e, stackTrace: st);
         if (attempts >= _maxRetries || !_isRetryable(e)) {
           throw AiServiceException(e.message ?? 'Connection failed.', statusCode: e.response?.statusCode);
         }
@@ -353,18 +353,18 @@ class AiServiceImpl implements AiService {
       );
 
       if (response.statusCode != 200) {
-        AppLogger.warning('AiService: summarize failed with status ${response.statusCode}');
+        AppLogger.warning('summarize failed with status ${response.statusCode}');
         return previousSummary ?? '';
       }
       final decoded = jsonDecode(response.data ?? '{}') as Map<String, dynamic>;
       final result = (decoded['text'] ?? previousSummary ?? '').toString();
 
       // 🟢 Log the summary result
-      AppLogger.debug('AiService: History summary generated: $result');
+      AppLogger.ai('History summary generated: $result');
 
       return result;
     } catch (e) {
-      AppLogger.error('AiService: History summarization failed', error: e);
+      AppLogger.error('History summarization failed', error: e);
       return previousSummary ?? '';
     }
   }

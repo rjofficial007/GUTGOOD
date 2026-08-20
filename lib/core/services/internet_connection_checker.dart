@@ -26,7 +26,7 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
   void startListening({VoidCallback? onConnectionRestored}) {
     if (_subscription != null) return;
 
-    AppLogger.debug('InternetConnectionChecker: Starting listener');
+    AppLogger.network('Starting connectivity listener');
     _subscription = _checker.onStatusChange.listen((status) {
       final connected = (status == InternetConnectionStatus.connected);
 
@@ -34,7 +34,7 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
         _failureCount = 0;
         if (!isInternetAvailable.value) {
           isInternetAvailable.value = true;
-          AppLogger.info('InternetConnectionChecker: Connected');
+          AppLogger.network('Connected');
           onConnectionRestored?.call();
         }
       } else {
@@ -42,7 +42,7 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
         if (_failureCount >= _maxFailuresBeforeOffline &&
             isInternetAvailable.value) {
           isInternetAvailable.value = false;
-          AppLogger.warning('InternetConnectionChecker: Disconnected');
+          AppLogger.network('Disconnected');
         }
       }
     });

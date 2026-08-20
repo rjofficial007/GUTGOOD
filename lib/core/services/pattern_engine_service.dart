@@ -21,13 +21,13 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
   @override
   Future<void> runAnalysis() async {
-    AppLogger.info('PatternEngine: Starting dynamic analysis...');
+    AppLogger.insights('Starting dynamic analysis...');
 
     final meals = await _historyFirestoreService.getRecentMealLogs(limit: 150);
     final symptoms = await _historyFirestoreService.getRecentSymptomLogs(limit: 150);
 
     if (meals.isEmpty || symptoms.isEmpty) {
-      AppLogger.debug('PatternEngine: Insufficient data for correlation.');
+      AppLogger.insights('Insufficient data for correlation.');
       return;
     }
 
@@ -49,10 +49,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
         return a.confidence == BodyPattern.confidenceHigh ? -1 : 1;
       });
 
-      AppLogger.info('PatternEngine: Found ${allPatterns.length} meaningful patterns.');
+      AppLogger.insights('Found ${allPatterns.length} meaningful patterns.');
       await _savePatterns(allPatterns);
     } else {
-      AppLogger.debug('PatternEngine: No patterns reached the threshold.');
+      AppLogger.insights('No patterns reached the threshold.');
       await _savePatterns([]); // Clear stale patterns if any
     }
   }
@@ -327,7 +327,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
   Future<void> _savePatterns(List<BodyPattern> patterns) async {
     try {
       await _insightFirestoreService.savePatternData(patterns);
-      AppLogger.info('PatternEngine: Synced ${patterns.length} patterns to Firestore');
+      AppLogger.insights('Synced ${patterns.length} patterns to Firestore');
     } catch (e) {
       AppLogger.error('PatternEngine: Sync failed', error: e);
     }

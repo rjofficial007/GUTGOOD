@@ -173,7 +173,7 @@ class NotificationServiceImpl implements NotificationService {
           ?.requestPermissions(alert: true, badge: true, sound: true);
     }
 
-    AppLogger.info('NotificationService: Initialized');
+    AppLogger.notifs('Initialized');
   }
 
   NotificationDetails get _defaultDetails => const NotificationDetails(
@@ -576,7 +576,7 @@ class NotificationServiceImpl implements NotificationService {
 
   void _handleNotificationTap(String? payload) {
     if (payload == null) return;
-    AppLogger.info('NotificationService: Handling tap for payload: $payload');
+    AppLogger.notifs('Handling tap for payload: $payload');
 
     if (payload == 'symptom_check' ||
         payload == 'daily_reminder' ||

@@ -9,7 +9,8 @@ import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
-import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
+import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
+import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -152,9 +153,10 @@ class ChatEmptyState extends StatelessWidget {
                 onTap: () {
                   final state = context.findAncestorStateOfType<ChatScreenState>();
                   if (state != null) {
-                    final chatNotifier = context.read<ChatNotifier>();
+                    final historyNotifier = context.read<ChatHistoryNotifier>();
+                    final composerNotifier = context.read<ChatComposerNotifier>();
                     final authNotifier = context.read<GutAuthNotifier>();
-                    state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.food);
+                    state.handleCamera(historyNotifier, composerNotifier, authNotifier, mode: ScannerMode.food);
                   }
                 },
               ),
@@ -165,9 +167,10 @@ class ChatEmptyState extends StatelessWidget {
                 onTap: () {
                   final state = context.findAncestorStateOfType<ChatScreenState>();
                   if (state != null) {
-                    final chatNotifier = context.read<ChatNotifier>();
+                    final historyNotifier = context.read<ChatHistoryNotifier>();
+                    final composerNotifier = context.read<ChatComposerNotifier>();
                     final authNotifier = context.read<GutAuthNotifier>();
-                    state.handleCamera(chatNotifier, authNotifier, mode: ScannerMode.label);
+                    state.handleCamera(historyNotifier, composerNotifier, authNotifier, mode: ScannerMode.label);
                   }
                 },
               ),
@@ -394,31 +397,31 @@ class ComposerIconButton extends StatelessWidget {
 }
 
 class SendStopButton extends StatelessWidget {
-  const SendStopButton({super.key, required this.controller, required this.chatNotifier, required this.onSend});
+  const SendStopButton({super.key, required this.controller, required this.composerNotifier, required this.onSend});
 
   final TextEditingController controller;
-  final ChatNotifier chatNotifier;
+  final ChatComposerNotifier composerNotifier;
   final VoidCallback onSend;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
     builder: (context, _) {
-      final hasContent = controller.text.trim().isNotEmpty || chatNotifier.pendingAttachments.isNotEmpty;
+      final hasContent = controller.text.trim().isNotEmpty || composerNotifier.pendingAttachments.isNotEmpty;
       final colorScheme = context.appColorScheme;
 
-      if (chatNotifier.isStreaming) {
+      if (composerNotifier.isStreaming) {
         return ComposerActionCircle(
           label: AppStrings.stopGenerating,
           onTap: () {
             HapticHelper.light();
-            chatNotifier.stopGeneration();
+            composerNotifier.stopGeneration();
           },
           icon: Icon(AppIcons.square, color: colorScheme.cardBackground, size: 14, fill: 1.0),
         );
       }
 
-      if (chatNotifier.isLoading) {
+      if (composerNotifier.isLoading) {
         return ComposerActionCircle(
           label: 'Loading',
           child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2)),

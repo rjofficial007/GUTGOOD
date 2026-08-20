@@ -84,7 +84,7 @@ class InsightRepositoryImpl implements InsightRepository {
       // 🟢 Fix: Fallback to Firestore to prevent duplicate generation on fresh login/new device.
       final latestCloud = await _insightFirestoreService.getLatestInsights();
       lastRun = latestCloud?.updatedAt.toUtc() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-      AppLogger.info('InsightRepo: No local lastRun found. Fallback to Firestore: $lastRun');
+      AppLogger.insights('No local lastRun found. Fallback to Firestore: $lastRun');
     }
 
     // 🟢 PRD Section 8.2 Alignment: At least 24 hours since last insight
@@ -147,7 +147,7 @@ class InsightRepositoryImpl implements InsightRepository {
     final scoreHistory = history.take(6).toList().reversed.map((i) => i.gutScore).join(', ');
 
     try {
-      AppLogger.info('InsightRepo: Generating insight. History: ${scoreHistory.isEmpty ? "None" : scoreHistory}');
+      AppLogger.insights('Generating insight. History: ${scoreHistory.isEmpty ? "None" : scoreHistory}');
       final startTime = DateTime.now();
 
       final cleanJson = await _aiService.generateContent(

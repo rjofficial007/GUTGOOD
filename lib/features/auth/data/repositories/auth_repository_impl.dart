@@ -74,7 +74,7 @@ class AuthRepositoryImpl implements AuthRepository {
   void _guardAgainstSilentAccountSwitch(String attemptedProvider) {
     final current = _firebaseAuth.currentUser;
     if (current != null && !current.isAnonymous) {
-      AppLogger.warning('AuthRepo: Blocked $attemptedProvider switch attempt for ${current.uid}.');
+      AppLogger.auth('Blocked $attemptedProvider switch attempt for ${current.uid}.');
       throw AuthAlreadySignedInException(currentUid: current.uid, currentEmail: current.email, attemptedProvider: attemptedProvider);
     }
   }
@@ -92,7 +92,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     try {
-      AppLogger.info('AuthRepo: Signing in anonymously...');
+      AppLogger.auth('Signing in anonymously...');
       final userCredential = await _firebaseAuth.signInAnonymously();
       final user = userCredential.user;
       if (user == null) return null;
@@ -118,7 +118,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _analyticsService.logEvent(name: 'sign_in_anonymous');
       return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
     } catch (e) {
-      AppLogger.error('AuthRepo: Anonymous sign-in failed', error: e);
+      AppLogger.auth('Anonymous sign-in failed', error: e);
       rethrow;
     }
   }
@@ -142,7 +142,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (e.code == GoogleSignInExceptionCode.canceled) return null;
       rethrow;
     } catch (e) {
-      AppLogger.error('AuthRepo: Google Sign-In failed', error: e);
+      AppLogger.auth('Google Sign-In failed', error: e);
       rethrow;
     }
   }
@@ -174,7 +174,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (e.code == AuthorizationErrorCode.canceled) return null;
       rethrow;
     } catch (e) {
-      AppLogger.error('AuthRepo: Apple Sign In failed', error: e);
+      AppLogger.auth('Apple Sign In failed', error: e);
       rethrow;
     }
   }
@@ -205,7 +205,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _analyticsService.logEvent(name: 'login', parameters: {'method': 'email'});
       return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
     } catch (e) {
-      AppLogger.error('AuthRepo: Email sign-in failed', error: e);
+      AppLogger.auth('Email sign-in failed', error: e);
       rethrow;
     }
   }
@@ -222,7 +222,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await _finalizeAuth(user, email: email);
         return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
       } catch (e) {
-        AppLogger.error('AuthRepo: Email upgrade failed', error: e);
+        AppLogger.auth('Email upgrade failed', error: e);
         rethrow;
       }
     }
@@ -235,7 +235,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _analyticsService.logEvent(name: 'sign_up', parameters: {'method': 'email'});
       return AuthUserModel.fromFirebase(_firebaseAuth.currentUser!);
     } catch (e) {
-      AppLogger.error('AuthRepo: Email sign-up failed', error: e);
+      AppLogger.auth('Email sign-up failed', error: e);
       rethrow;
     }
   }
@@ -250,9 +250,9 @@ class AuthRepositoryImpl implements AuthRepository {
     final savedName = _prefs.getString('login_display_name');
     try {
       await _firebaseFunctions.httpsCallable('sendCustomMagicLink').call({'email': email, 'name': savedName});
-      AppLogger.info('AuthRepo: Custom magic link requested for $email');
+      AppLogger.auth('Custom magic link requested for $email');
     } catch (e) {
-      AppLogger.error('AuthRepo: Failed to send custom magic link', error: e);
+      AppLogger.auth('Failed to send custom magic link', error: e);
       rethrow;
     }
   }
@@ -375,7 +375,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final data = result.data as Map<String, dynamic>;
       final bool alreadyMerged = data['alreadyMerged'] ?? false;
-      AppLogger.info('AuthRepo: Cloud merge call successful. alreadyMerged: $alreadyMerged');
+      AppLogger.auth('Cloud merge call successful. alreadyMerged: $alreadyMerged');
 
       // Local migration is now handled by Firestore's native merge and Cloud Functions.
       // Firestore's offline persistence will automatically reconcile the local cache.
@@ -392,7 +392,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _prefs.remove('pending_merge_anon_uid');
       await _prefs.remove('pending_merge_provider');
     } catch (e) {
-      AppLogger.error('AuthRepo: confirmMerge failed', error: e);
+      AppLogger.auth('confirmMerge failed', error: e);
       rethrow;
     } finally {
       _appStateService.setMigrating(false);
@@ -465,7 +465,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> abandonMerge() async {
-    AppLogger.info('AuthRepo: Abandoning merge. Clearing pending state.');
+    AppLogger.auth('Abandoned merge. Clearing pending state.');
     await _prefs.remove('pending_merge_anon_uid');
     await _prefs.remove('pending_merge_provider');
     _appStateService.setPendingMergeConflict(null);
@@ -495,7 +495,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       await _clearUserSessionData();
     } catch (e) {
-      AppLogger.warning('AuthRepo: Sign out warning: $e');
+      AppLogger.auth('Sign out warning: $e');
     } finally {
       _appStateService.setLoggingOut(false);
     }
@@ -514,7 +514,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
     try {
       final isAnonymous = user.isAnonymous;
-      AppLogger.info('AuthRepo: Deleting account (isAnonymous: $isAnonymous)...');
+      AppLogger.auth('Deleting account (isAnonymous: $isAnonymous)...');
 
       // 1. Clear tokens and subscriptions first
       await _firestoreService.clearFcmToken();
@@ -525,7 +525,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // 2. Perform the authoritative deletion
       await user.delete();
-      AppLogger.info('AuthRepo: Auth user deleted successfully.');
+      AppLogger.auth('Auth user deleted successfully.');
 
       // 3. Dependency cleanup
       if (!isAnonymous) {
@@ -538,7 +538,7 @@ class AuthRepositoryImpl implements AuthRepository {
       // 5. Force auth state change
       await _firebaseAuth.signOut();
     } catch (e) {
-      AppLogger.error('AuthRepo: Delete account failed', error: e);
+      AppLogger.auth('Delete account failed', error: e);
       rethrow;
     } finally {
       _appStateService.setLoggingOut(false);
@@ -575,7 +575,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     }
 
-    AppLogger.debug('AuthRepo: User session data cleared. Preserving device-level prefs.');
+    AppLogger.auth('User session data cleared. Preserving device-level prefs.');
   }
 
   @override

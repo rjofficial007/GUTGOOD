@@ -32,7 +32,7 @@ class RemoteConfigServiceImpl implements RemoteConfigService {
       });
 
       if (kDebugMode) {
-        AppLogger.firebaseRemoteConfig(
+        AppLogger.remoteConfig(
           'Remote Config: Skipping fetch in Debug Mode (defaults active).',
         );
         return;
@@ -46,7 +46,7 @@ class RemoteConfigServiceImpl implements RemoteConfigService {
       );
 
       await _remoteConfig.fetchAndActivate();
-      AppLogger.firebaseRemoteConfig('Remote Config: Initialized and fetched.');
+      AppLogger.remoteConfig('Remote Config: Initialized and fetched.');
     } catch (e) {
       AppLogger.error('RemoteConfigService: Initialization failed', error: e);
     }

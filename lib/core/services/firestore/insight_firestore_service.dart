@@ -41,7 +41,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
-      AppLogger.error('InsightFirestoreService: Error saving insights', error: e);
+      AppLogger.firestore('Error saving insights', error: e);
       return null;
     }
   }
@@ -55,7 +55,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       if (snapshot.docs.isEmpty) return null;
       return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
     } catch (e) {
-      AppLogger.error('InsightFirestoreService: Error getting latest insights', error: e);
+      AppLogger.firestore('Error getting latest insights', error: e);
       return null;
     }
   }
@@ -71,7 +71,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug('InsightFirestoreService: Insights stream closed (permission-denied)');
+            AppLogger.firestore('Insights stream closed (permission-denied)');
           } else {
             throw e;
           }
@@ -92,7 +92,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       // AppLogger.data('INSIGHTS_HISTORY_RAW', results.map((r) => r.toMap()).toList());
       return results;
     } catch (e) {
-      AppLogger.error('InsightFirestoreService: Error getting insights history', error: e);
+      AppLogger.firestore('Error getting insights history', error: e);
       return [];
     }
   }
@@ -104,7 +104,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       if (doc == null) return;
       await doc.collection('pattern_data').doc('latest').set({'patterns': patterns.map((p) => p.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
     } catch (e) {
-      AppLogger.error('InsightFirestoreService: Error saving pattern data', error: e);
+      AppLogger.firestore('Error saving pattern data', error: e);
     }
   }
 
@@ -121,7 +121,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
           .map((p) => BodyPattern.fromMap(p as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      AppLogger.error('InsightFirestoreService: Error getting latest patterns', error: e);
+      AppLogger.firestore('Error getting latest patterns', error: e);
       return [];
     }
   }
@@ -136,7 +136,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug('InsightFirestoreService: Patterns stream closed (permission-denied)');
+            AppLogger.firestore('Patterns stream closed (permission-denied)');
           } else {
             throw e;
           }
@@ -157,7 +157,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       if (doc == null) return;
       await doc.collection('health_alerts').add({...alert.toMap(), 'createdAt': FieldValue.serverTimestamp()});
     } catch (e) {
-      AppLogger.error('InsightFirestoreService: Error saving health alert', error: e);
+      AppLogger.firestore('Error saving health alert', error: e);
     }
   }
 
@@ -176,7 +176,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
 
       await batch.commit();
     } catch (e) {
-      AppLogger.error('InsightFirestoreService: Error marking alerts as read', error: e);
+      AppLogger.firestore('Error marking alerts as read', error: e);
     }
   }
 
@@ -191,7 +191,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug('InsightFirestoreService: Alerts stream closed (permission-denied)');
+            AppLogger.firestore('Alerts stream closed (permission-denied)');
           } else {
             throw e;
           }

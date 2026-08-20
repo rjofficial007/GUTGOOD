@@ -36,7 +36,7 @@ class LinkServiceImpl implements LinkService {
 
   @override
   Future<void> init() async {
-    AppLogger.info('LinkService: Initializing...');
+    AppLogger.deepLink('Initializing...');
 
     try {
       final initialUri = await _appLinks.getInitialLink();
@@ -80,7 +80,7 @@ class LinkServiceImpl implements LinkService {
 
   Future<void> _handleLink(Uri uri) async {
     final link = uri.toString();
-    AppLogger.info('LinkService: Incoming link received: $link');
+    AppLogger.deepLink('Incoming link received: $link');
     AppLogger.debug(
       'LinkService: URI Details - Host: ${uri.host}, Path: ${uri.path}, Query: ${uri.queryParameters}',
     );
@@ -95,7 +95,7 @@ class LinkServiceImpl implements LinkService {
       try {
         final nestedUri = Uri.parse(nestedLink);
         if (nestedUri.queryParameters.containsKey('oobCode')) {
-          AppLogger.info('LinkService: Successfully unwrapped nested Firebase link.');
+          AppLogger.deepLink('Successfully unwrapped nested Firebase link.');
           effectiveLink = nestedLink;
           effectiveUri = nestedUri;
         }
@@ -123,14 +123,14 @@ class LinkServiceImpl implements LinkService {
     final email = _prefs.getString('login_email');
 
     if (email != null) {
-      AppLogger.info('LinkService: Attempting sign-in for email: $email');
+      AppLogger.deepLink('Attempting sign-in for email: $email');
       try {
         final user = await _authRepository.signInWithEmailLink(
           email,
           link,
         );
         if (user != null) {
-          AppLogger.info('LinkService: Sign-in successful for ${user.email}');
+          AppLogger.deepLink('Sign-in successful for ${user.email}');
           await _prefs.remove('login_email');
         } else {
           AppLogger.warning(
@@ -164,13 +164,13 @@ class LinkServiceImpl implements LinkService {
     final oobCode = uri.queryParameters['oobCode']!;
     final mode = uri.queryParameters['mode'];
 
-    AppLogger.info('LinkService: Action Code Link detected. Mode: $mode');
+    AppLogger.deepLink('Action Code Link detected. Mode: $mode');
 
     if (mode == 'verifyEmail') {
       _appStateService.setVerifyingAuth(true);
       try {
         await _firebaseAuth.applyActionCode(oobCode);
-        AppLogger.info('LinkService: Email verification successful via app.');
+        AppLogger.deepLink('Email verification successful via app.');
         await _firebaseAuth.currentUser?.reload();
         _appStateService.notifyProfileUpdated();
       } catch (e) {
@@ -181,7 +181,7 @@ class LinkServiceImpl implements LinkService {
       }
     } else if (mode == 'resetPassword') {
       // Handle password reset if needed, for now just log
-      AppLogger.info('LinkService: Password reset link detected. OOB: $oobCode');
+      AppLogger.deepLink('Password reset link detected. OOB: $oobCode');
     }
   }
 

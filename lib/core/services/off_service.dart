@@ -279,7 +279,7 @@ class OffServiceImpl implements OffService {
           }).toList();
         }
       } catch (e2) {
-        AppLogger.error('OffService: V2 Fallback also failed: $e2');
+      AppLogger.scanner('V2 Fallback also failed: $e2');
       }
     }
     return [];

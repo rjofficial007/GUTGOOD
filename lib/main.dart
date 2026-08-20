@@ -22,7 +22,8 @@ import 'package:gutgood/core/widgets/offline_banner.dart';
 import 'package:gutgood/core/widgets/verification_overlay.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/providers/purchase_provider.dart';
-import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
+import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
+import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
@@ -68,7 +69,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => sl<GutAuthNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<ProfileNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<UsageNotifier>()),
-        ChangeNotifierProvider(create: (_) => sl<ChatNotifier>()),
+        ChangeNotifierProvider(create: (_) => sl<ChatHistoryNotifier>()),
+        ChangeNotifierProvider(create: (_) => sl<ChatComposerNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<InsightsNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<ScannerNotifier>()),
         ChangeNotifierProvider(create: (_) => sl<PurchaseProvider>()),

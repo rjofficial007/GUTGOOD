@@ -42,7 +42,7 @@ class PurchaseServiceImpl implements PurchaseService {
     try {
       await Purchases.setLogLevel(LogLevel.debug);
       final apiKey = Platform.isAndroid ? _googleApiKey : _appleApiKey;
-      AppLogger.premium('PurchaseService: Configuring with API Key: $apiKey');
+      AppLogger.payments('Configuring with API Key: $apiKey');
       final configuration = PurchasesConfiguration(apiKey);
       await Purchases.configure(configuration);
       _isConfigured = true;
@@ -50,7 +50,7 @@ class PurchaseServiceImpl implements PurchaseService {
       _listenForPurchaseUpdates();
       await checkProSubscriptionStatus();
 
-      AppLogger.premium('PurchaseService: Initialized');
+      AppLogger.payments('Initialized');
     } catch (e, s) {
       AppLogger.error('PurchaseService: Initialization failed', error: e, stackTrace: s);
     }
@@ -78,14 +78,14 @@ class PurchaseServiceImpl implements PurchaseService {
     if (_isPremium != isProUser) {
       _isPremium = isProUser;
       _premiumStatusController.add(isProUser);
-      AppLogger.premium('PurchaseService: Status updated -> $_isPremium');
+      AppLogger.payments('Status updated -> $_isPremium');
     }
   }
 
   @override
   Future<List<Package>> fetchOffers() async {
     try {
-      AppLogger.premium('PurchaseService: Fetching offerings...');
+      AppLogger.payments('Fetching offerings...');
       final offerings = await Purchases.getOfferings();
       await printAllOfferings(offerings);
 
@@ -209,7 +209,7 @@ class PurchaseServiceImpl implements PurchaseService {
   void setProStatusForDebug(bool isPro) {
     _isPremium = isPro;
     _premiumStatusController.add(isPro);
-    AppLogger.premium('PurchaseService: Debug status -> $_isPremium');
+    AppLogger.payments('Debug status -> $_isPremium');
   }
 
   @override

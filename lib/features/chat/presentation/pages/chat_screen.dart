@@ -18,7 +18,8 @@ import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
-import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
+import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
+import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:gutgood/features/chat/presentation/widgets/chat_components.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
@@ -42,7 +43,7 @@ class ChatScreenState extends State<ChatScreen> {
   final ImagePicker _picker = ImagePicker();
 
   bool _hasScrolledToBottomInitially = false;
-  ChatNotifier? _chatNotifier;
+  ChatHistoryNotifier? _historyNotifier;
   Timer? _draftDebounce;
 
   @override
@@ -53,15 +54,15 @@ class ChatScreenState extends State<ChatScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _chatNotifier = context.read<ChatNotifier>();
-      _chatNotifier?.addListener(_handleHistoryLoaded);
+      _historyNotifier = context.read<ChatHistoryNotifier>();
+      _historyNotifier?.addListener(_handleHistoryLoaded);
       _handleHistoryLoaded(); // Check if history is already loaded
     });
   }
 
   @override
   void dispose() {
-    _chatNotifier?.removeListener(_handleHistoryLoaded);
+    _historyNotifier?.removeListener(_handleHistoryLoaded);
     _draftDebounce?.cancel();
     _scroll.removeListener(_onScroll);
     _controller.dispose();
@@ -70,8 +71,8 @@ class ChatScreenState extends State<ChatScreen> {
   }
 
   void _handleHistoryLoaded() {
-    if (_chatNotifier == null) return;
-    if (!_chatNotifier!.historyLoading && !_hasScrolledToBottomInitially && _chatNotifier!.messages.isNotEmpty) {
+    if (_historyNotifier == null) return;
+    if (!_historyNotifier!.historyLoading && !_hasScrolledToBottomInitially && _historyNotifier!.messages.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _scroll.hasClients) {
           _scrollToBottom();
@@ -87,7 +88,7 @@ class ChatScreenState extends State<ChatScreen> {
 
     // Load more: at the top
     if (_scroll.position.pixels <= 50) {
-      context.read<ChatNotifier>().loadMore();
+      context.read<ChatHistoryNotifier>().loadMore();
     }
   }
 
@@ -128,9 +129,9 @@ class ChatScreenState extends State<ChatScreen> {
     sl<SharedPreferences>().remove(_draftKey);
   }
 
-  Future<void> handleCamera(ChatNotifier chatNotifier, GutAuthNotifier authNotifier, {ScannerMode mode = ScannerMode.label}) async {
-    if (chatNotifier.isLoading) return;
-    if (!await QuotaGuard.check(context, type: QuotaType.scan, onAuthSuccess: chatNotifier.refreshHistory)) return;
+  Future<void> handleCamera(ChatHistoryNotifier historyNotifier, ChatComposerNotifier composerNotifier, GutAuthNotifier authNotifier, {ScannerMode mode = ScannerMode.label}) async {
+    if (composerNotifier.isLoading) return;
+    if (!await QuotaGuard.check(context, type: QuotaType.scan, onAuthSuccess: historyNotifier.refreshHistory)) return;
 
     if (!mounted) return;
     final result = await context.push(AppRoutes.scannerPath(mode.name));
@@ -139,7 +140,7 @@ class ChatScreenState extends State<ChatScreen> {
     final bytes = result['bytes'] as Uint8List;
     final type = result['type'] as String? ?? mode.name;
 
-    final added = await chatNotifier.handleImageAttachment(bytes, type: type);
+    final added = await composerNotifier.handleImageAttachment(bytes, type: type);
     if (!added) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.maxAttachmentsMessage), behavior: SnackBarBehavior.floating));
@@ -148,24 +149,24 @@ class ChatScreenState extends State<ChatScreen> {
     }
 
     setState(() {
-      _controller.text = chatNotifier.getPromptForType(type);
+      _controller.text = composerNotifier.getPromptForType(type);
     });
   }
 
-  Future<void> _pickImages(ChatNotifier chatNotifier, GutAuthNotifier authNotifier) async {
-    if (chatNotifier.isLoading) return;
-    if (!await QuotaGuard.check(context, type: QuotaType.scan, onAuthSuccess: chatNotifier.refreshHistory)) return;
+  Future<void> _pickImages(ChatHistoryNotifier historyNotifier, ChatComposerNotifier composerNotifier, GutAuthNotifier authNotifier) async {
+    if (composerNotifier.isLoading) return;
+    if (!await QuotaGuard.check(context, type: QuotaType.scan, onAuthSuccess: historyNotifier.refreshHistory)) return;
 
     try {
       final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
       if (image == null) return;
 
       final bytes = await image.readAsBytes();
-      final added = await chatNotifier.handleImageAttachment(bytes, type: 'gallery');
+      final added = await composerNotifier.handleImageAttachment(bytes, type: 'gallery');
 
       if (added) {
         setState(() {
-          _controller.text = chatNotifier.getPromptForType('gallery');
+          _controller.text = composerNotifier.getPromptForType('gallery');
         });
       }
     } catch (e, st) {
@@ -173,29 +174,29 @@ class ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<void> _send(ChatNotifier chatNotifier, GutAuthNotifier authNotifier, [String? quickText]) async {
-    if (chatNotifier.isLoading) return;
+  Future<void> _send(ChatHistoryNotifier historyNotifier, ChatComposerNotifier composerNotifier, GutAuthNotifier authNotifier, [String? quickText]) async {
+    if (composerNotifier.isLoading) return;
 
-    final hasImages = chatNotifier.pendingAttachments.isNotEmpty;
+    final hasImages = composerNotifier.pendingAttachments.isNotEmpty;
     final msg = (quickText ?? _controller.text).trim();
     if (msg.isEmpty && !hasImages) return;
 
-    // Dismiss keyboard on send
     FocusManager.instance.primaryFocus?.unfocus();
 
-    if (!await QuotaGuard.check(context, type: hasImages ? QuotaType.scan : QuotaType.chat, onAuthSuccess: chatNotifier.refreshHistory)) return;
+    if (!await QuotaGuard.check(context, type: hasImages ? QuotaType.scan : QuotaType.chat, onAuthSuccess: historyNotifier.refreshHistory)) return;
 
-    final error = await chatNotifier.send(text: msg, hiddenContext: hasImages ? chatNotifier.pendingHiddenContext : null, source: hasImages ? chatNotifier.pendingHiddenContext : 'chat');
+    final error = await composerNotifier.send(
+      text: msg,
+      hiddenContext: hasImages ? composerNotifier.pendingHiddenContext : null,
+      source: hasImages ? composerNotifier.pendingHiddenContext : 'chat',
+    );
 
     if (!mounted) return;
 
     if (error == null) {
       _controller.clear();
       _clearDraft();
-      chatNotifier.clearPendingHiddenContext();
-      // 🟢 Fix: Removed automatic scroll to bottom.
-      // This allows the user to maintain their scroll position even after sending a message,
-      // preventing the screen from being yanked to the "end" as the AI starts responding.
+      composerNotifier.clearPendingHiddenContext();
       return;
     }
 
@@ -233,10 +234,10 @@ class ChatScreenState extends State<ChatScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Expanded(
-              child: _MessageListView(scrollController: _scroll, onSend: _send),
+            const Expanded(
+              child: _MessageListView(),
             ),
-            // const _SuggestionChipsSection(),
+            const _SuggestionChipsSection(),
             _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
           ],
         ),
@@ -297,40 +298,40 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _MessageListView extends StatelessWidget {
-  const _MessageListView({required this.scrollController, required this.onSend});
-  final ScrollController scrollController;
-  final Future<void> Function(ChatNotifier, GutAuthNotifier, [String?]) onSend;
+  const _MessageListView();
 
   @override
-  Widget build(BuildContext context) => Selector<ChatNotifier, (bool, int, bool)>(
-    selector: (_, n) => (n.historyLoading, n.messages.length, n.isLoading),
-    builder: (context, state, _) {
-      final historyLoading = state.$1;
-      final allMessages = context.read<ChatNotifier>().messages;
-      final messages = allMessages.where((m) => !m.isHidden).toList();
-      final messageCount = messages.length;
-      final isLoading = state.$3;
+  Widget build(BuildContext context) {
+    final scrollController = context.findAncestorStateOfType<ChatScreenState>()!._scroll;
+    return Selector<ChatHistoryNotifier, (bool, int)>(
+      selector: (_, n) => (n.historyLoading, n.messages.length),
+      builder: (context, state, _) {
+        final historyLoading = state.$1;
+        final allMessages = context.read<ChatHistoryNotifier>().messages;
+        final messages = allMessages.where((m) => !m.isHidden).toList();
+        final messageCount = messages.length;
+        final isLoading = context.select<ChatComposerNotifier, bool>((n) => n.isLoading);
 
-      if (historyLoading) return const ChatShimmerLoading();
-      if (messageCount <= 1 && !isLoading) return const ChatEmptyState();
-      return CustomScrollView(
-        controller: scrollController,
-        reverse: false,
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        slivers: [
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p10, AppSizes.p16, 0),
-            sliver: _MessageSliverList(onSend: onSend),
-          ),
-        ],
-      );
-    },
-  );
+        if (historyLoading) return const ChatShimmerLoading();
+        if (messageCount <= 1 && !isLoading) return const ChatEmptyState();
+        return CustomScrollView(
+          controller: scrollController,
+          reverse: false,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p10, AppSizes.p16, 0),
+              sliver: const _MessageSliverList(),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _MessageSliverList extends StatefulWidget {
-  const _MessageSliverList({required this.onSend});
-  final Future<void> Function(ChatNotifier, GutAuthNotifier, [String?]) onSend;
+  const _MessageSliverList();
 
   @override
   State<_MessageSliverList> createState() => _MessageSliverListState();
@@ -339,15 +340,16 @@ class _MessageSliverList extends StatefulWidget {
 class _MessageSliverListState extends State<_MessageSliverList> {
   @override
   Widget build(BuildContext context) {
-    final chatNotifier = context.read<ChatNotifier>();
+    final historyNotifier = context.read<ChatHistoryNotifier>();
+    final composerNotifier = context.read<ChatComposerNotifier>();
     final authNotifier = context.read<GutAuthNotifier>();
 
-    final allMessages = context.select<ChatNotifier, List<ChatMessage>>((n) => n.messages);
+    final allMessages = context.select<ChatHistoryNotifier, List<ChatMessage>>((n) => n.messages);
     // Oldest to newest
     final messages = allMessages.where((m) => !m.isHidden).toList().reversed.toList();
 
-    final isStreaming = context.select<ChatNotifier, bool>((n) => n.isStreaming);
-    final isLoading = context.select<ChatNotifier, bool>((n) => n.isLoading);
+    final isStreaming = context.select<ChatComposerNotifier, bool>((n) => n.isStreaming);
+    final isLoading = context.select<ChatComposerNotifier, bool>((n) => n.isLoading);
     final latestAiIndex = _latestAiIndex(messages);
 
     return SliverList(
@@ -391,15 +393,15 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                       screenWidth: MediaQuery.sizeOf(context).width,
                       showAvatar: showAvatar,
                       showActions: isLatestAi && msg.text.isNotEmpty && !isLoading,
-                      onRegenerate: chatNotifier.canRegenerate
+                      onRegenerate: composerNotifier.canRegenerate
                           ? () {
                               HapticHelper.light();
-                              unawaited(chatNotifier.regenerateLastResponse());
+                              unawaited(composerNotifier.regenerateLastResponse());
                             }
                           : null,
                       onRetry: msg.sendFailed
-                          ? () => unawaited(chatNotifier.retryMessage(msg))
-                          : (msg.errorKind == ChatErrorKind.connection ? () => unawaited(chatNotifier.regenerateLastResponse()) : null),
+                          ? () => unawaited(composerNotifier.retryMessage(msg))
+                          : (msg.errorKind == ChatErrorKind.connection ? () => unawaited(composerNotifier.regenerateLastResponse()) : null),
                       onQuotaPressed: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
                       showFeedback: isLatestAi && !isStreaming && msg.text.isNotEmpty && msg.scanData == null && msg.swapData == null && msg.errorKind == ChatErrorKind.none,
                       feedback: msg.feedback,
@@ -407,19 +409,20 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                         if (msg.feedback != null && type != AppStrings.labelTellMeMore) return;
 
                         if (type == AppStrings.labelHelpful || type == AppStrings.labelNotHelpful) {
-                          unawaited(chatNotifier.handleFeedback(msg, type));
+                          unawaited(historyNotifier.handleFeedback(msg, type));
                           HapticHelper.light();
                           if (ctx.mounted) {
                             ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text(AppStrings.thanksFeedback), behavior: SnackBarBehavior.floating));
                           }
                         } else if (type == AppStrings.labelTellMeMore) {
                           HapticHelper.light();
-                          unawaited(widget.onSend(chatNotifier, authNotifier, AppStrings.tellMeMorePrompt));
+                          final screenState = context.findAncestorStateOfType<ChatScreenState>();
+                          unawaited(screenState?._send(historyNotifier, composerNotifier, authNotifier, AppStrings.tellMeMorePrompt));
                         }
                       },
                       scanData: msg.scanData,
                       swapData: msg.swapData,
-                      onSeeMoreSwaps: () => chatNotifier.handleSeeMoreSwaps(msg.text, i),
+                      onSeeMoreSwaps: () => composerNotifier.handleSeeMoreSwaps(msg.text, i),
                       onViewFullReport: msg.scanData != null ? () => unawaited(context.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: msg.scanData!))) : null,
                     ),
                   ],
@@ -453,8 +456,8 @@ class _SuggestionChipsSection extends StatelessWidget {
   const _SuggestionChipsSection();
 
   @override
-  Widget build(BuildContext context) => Selector<ChatNotifier, (int, bool, bool)>(
-    selector: (_, n) => (n.messages.length, n.isLoading, n.historyLoading),
+  Widget build(BuildContext context) => Selector2<ChatHistoryNotifier, ChatComposerNotifier, (int, bool, bool)>(
+    selector: (_, h, c) => (h.messages.length, c.isLoading, h.historyLoading),
     builder: (context, data, _) {
       final count = data.$1;
       final isLoading = data.$2;
@@ -478,17 +481,19 @@ class _SuggestionChipsSection extends StatelessWidget {
   );
 
   Future<void> _sendQuick(BuildContext context, String text) async {
-    final chatNotifier = context.read<ChatNotifier>();
+    final historyNotifier = context.read<ChatHistoryNotifier>();
+    final composerNotifier = context.read<ChatComposerNotifier>();
     final authNotifier = context.read<GutAuthNotifier>();
     final state = context.findAncestorStateOfType<ChatScreenState>();
-    await state?._send(chatNotifier, authNotifier, text);
+    await state?._send(historyNotifier, composerNotifier, authNotifier, text);
   }
 
   void _handleCameraQuick(BuildContext context, ScannerMode mode) {
-    final chatNotifier = context.read<ChatNotifier>();
+    final historyNotifier = context.read<ChatHistoryNotifier>();
+    final composerNotifier = context.read<ChatComposerNotifier>();
     final authNotifier = context.read<GutAuthNotifier>();
     final state = context.findAncestorStateOfType<ChatScreenState>();
-    state?.handleCamera(chatNotifier, authNotifier, mode: mode);
+    state?.handleCamera(historyNotifier, composerNotifier, authNotifier, mode: mode);
   }
 }
 
@@ -497,14 +502,15 @@ class _ChatComposer extends StatelessWidget {
 
   final TextEditingController controller;
   final VoidCallback onChanged;
-  final Future<void> Function(ChatNotifier, GutAuthNotifier, {ScannerMode mode}) onCamera;
-  final Future<void> Function(ChatNotifier, GutAuthNotifier) onGallery;
-  final Future<void> Function(ChatNotifier, GutAuthNotifier, [String?]) onSend;
+  final Future<void> Function(ChatHistoryNotifier, ChatComposerNotifier, GutAuthNotifier, {ScannerMode mode}) onCamera;
+  final Future<void> Function(ChatHistoryNotifier, ChatComposerNotifier, GutAuthNotifier) onGallery;
+  final Future<void> Function(ChatHistoryNotifier, ChatComposerNotifier, GutAuthNotifier, [String?]) onSend;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.appColorScheme;
-    final chatNotifier = context.watch<ChatNotifier>();
+    final historyNotifier = context.watch<ChatHistoryNotifier>();
+    final composerNotifier = context.watch<ChatComposerNotifier>();
     final authNotifier = context.read<GutAuthNotifier>();
 
     return Container(
@@ -516,11 +522,11 @@ class _ChatComposer extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (chatNotifier.pendingAttachments.isNotEmpty)
+          if (composerNotifier.pendingAttachments.isNotEmpty)
             AttachmentPreview(
-              bytes: chatNotifier.pendingAttachments.first.bytes,
-              heroTag: 'attachment_${chatNotifier.pendingAttachments.first.id}',
-              onRemove: () => chatNotifier.removeAttachment(chatNotifier.pendingAttachments.first.id),
+              bytes: composerNotifier.pendingAttachments.first.bytes,
+              heroTag: 'attachment_${composerNotifier.pendingAttachments.first.id}',
+              onRemove: () => composerNotifier.removeAttachment(composerNotifier.pendingAttachments.first.id),
             ),
           Row(
             children: [
@@ -543,17 +549,25 @@ class _ChatComposer extends StatelessWidget {
                           maxLines: 5,
                           minLines: 1,
                           onChanged: (_) => onChanged(),
-                          hintText: chatNotifier.isStreaming ? AppStrings.thinking : AppStrings.askAnything,
+                          hintText: composerNotifier.isStreaming ? AppStrings.thinking : AppStrings.askAnything,
                           borderless: true,
                           contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                         ),
                       ),
-                      ComposerIconButton(icon: AppIcons.camera, label: AppStrings.scanIngredientsMeal, onTap: chatNotifier.isLoading ? null : () => onCamera(chatNotifier, authNotifier)),
+                      ComposerIconButton(
+                        icon: AppIcons.camera,
+                        label: AppStrings.scanIngredientsMeal,
+                        onTap: composerNotifier.isLoading ? null : () => onCamera(historyNotifier, composerNotifier, authNotifier),
+                      ),
                       Gap.w4,
-                      ComposerIconButton(icon: AppIcons.image, label: AppStrings.attachPhotos, onTap: chatNotifier.isLoading ? null : () => onGallery(chatNotifier, authNotifier)),
+                      ComposerIconButton(
+                        icon: AppIcons.image,
+                        label: AppStrings.attachPhotos,
+                        onTap: composerNotifier.isLoading ? null : () => onGallery(historyNotifier, composerNotifier, authNotifier),
+                      ),
 
                       Gap.w4,
-                      SendStopButton(controller: controller, chatNotifier: chatNotifier, onSend: () => onSend(chatNotifier, authNotifier)),
+                      SendStopButton(controller: controller, composerNotifier: composerNotifier, onSend: () => onSend(historyNotifier, composerNotifier, authNotifier)),
                       Gap.w4,
                     ],
                   ),

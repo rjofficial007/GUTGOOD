@@ -18,7 +18,7 @@ class DebugMockDataService {
   final InsightFirestoreService _insightFirestoreService;
 
   Future<void> generateTwoWeeksData() async {
-    AppLogger.info('MockData: Generating 2 weeks of data...');
+    AppLogger.mock('Generating 2 weeks of data...');
     final now = DateTime.now();
 
     // 1. Generate Meal Logs & Symptom Logs for 14 days
@@ -97,6 +97,6 @@ class DebugMockDataService {
       ),
     ]);
 
-    AppLogger.info('MockData: 2 weeks of data generated successfully.');
+    AppLogger.mock('2 weeks of data generated successfully.');
   }
 }

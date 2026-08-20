@@ -4,22 +4,23 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
-import 'package:gutgood/features/chat/presentation/providers/chat_provider.dart';
+import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
+import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:gutgood/features/chat/presentation/widgets/chat_components.dart';
 import 'package:provider/provider.dart';
 
 class MessageListView extends StatelessWidget {
   const MessageListView({super.key, required this.scrollController, required this.onSend});
   final ScrollController scrollController;
-  final Future<void> Function(ChatNotifier, GutAuthNotifier, [String?]) onSend;
+  final Future<void> Function(ChatHistoryNotifier, ChatComposerNotifier, GutAuthNotifier, [String?]) onSend;
 
   @override
-  Widget build(BuildContext context) => Consumer<ChatNotifier>(
-    builder: (context, chatNotifier, _) {
-      final allMessages = chatNotifier.messages;
+  Widget build(BuildContext context) => Consumer2<ChatHistoryNotifier, ChatComposerNotifier>(
+    builder: (context, historyNotifier, composerNotifier, _) {
+      final allMessages = historyNotifier.messages;
       final messages = allMessages.where((m) => !m.isHidden).toList();
-      final historyLoading = chatNotifier.historyLoading;
-      final isLoading = chatNotifier.isLoading;
+      final historyLoading = historyNotifier.historyLoading;
+      final isLoading = composerNotifier.isLoading;
       final messageCount = messages.length;
 
       if (historyLoading) return const ChatShimmerLoading();
@@ -53,7 +54,7 @@ class _MessageSliverList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isStreaming = context.select<ChatNotifier, bool>((n) => n.isStreaming);
+    final isStreaming = context.select<ChatComposerNotifier, bool>((n) => n.isStreaming);
     final latestAiIndex = _latestAiIndex(messages);
 
     return SliverList(

@@ -33,7 +33,7 @@ class AppVersionServiceImpl implements AppVersionService {
       _appVersion = packageInfo.version;
       _buildVersion = packageInfo.buildNumber;
     } catch (e) {
-      AppLogger.error('AppVersionService: Error fetching app info', error: e);
+      AppLogger.lifecycle('Error fetching app info: $e');
     }
   }
 }

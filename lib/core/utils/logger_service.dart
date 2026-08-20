@@ -4,7 +4,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 import 'package:gutgood/core/constants/logger_string.dart';
-import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
 
 /// Centralized logging utility for the GutGood app.
@@ -12,50 +12,95 @@ import 'package:gutgood/core/services/crashlytics_service.dart';
 class AppLogger {
   AppLogger._();
 
-  /// Logs a debug message.
+  // --- Standard Severity Logs ---
+
   static void debug(Object? message, {Object? error, StackTrace? stackTrace}) {
     _printLog(AppLoggerStrings.logDebug, message, error, stackTrace);
   }
 
-  /// Logs an informational message.
   static void info(Object? message) {
     _printLog(AppLoggerStrings.logInfo, message, null, null);
   }
 
-  /// Logs a success message.
   static void success(Object? message) {
     _printLog(AppLoggerStrings.logSuccess, message, null, null);
   }
 
-  /// Logs an error message.
   static void error(Object? message, {Object? error, StackTrace? stackTrace}) {
     _printLog(AppLoggerStrings.logError, message, error, stackTrace);
   }
 
-  /// Logs a warning message.
   static void warning(Object? message) {
-    _printLog(AppLoggerStrings.logError, message, null, null);
+    _printLog(AppLoggerStrings.logWarning, message, null, null);
   }
 
-  /// Logs a premium feature related message.
+  // --- Feature Categorized Logs ---
+
+  static void auth(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logAuth, message, error, stackTrace);
+  }
+
+  static void firestore(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logFirestore, message, error, stackTrace);
+  }
+
+  static void ai(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logAi, message, error, stackTrace);
+  }
+
+  static void scanner(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logScanner, message, error, stackTrace);
+  }
+
+  static void storage(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logStorage, message, error, stackTrace);
+  }
+
+  static void insights(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logInsights, message, error, stackTrace);
+  }
+
+  static void payments(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logPayments, message, error, stackTrace);
+  }
+
   static void premium(Object? message) {
     _printLog(AppLoggerStrings.logPremium, message, null, null);
   }
 
-  /// Logs an internet connectivity related message.
-  static void internet(Object? message) {
-    _printLog(AppLoggerStrings.logInternet, message, null, null);
+  static void notifs(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logNotifications, message, error, stackTrace);
   }
 
-  /// Logs an advertisement related message.
-  static void advertise(Object? message) {
-    _printLog(AppLoggerStrings.logAdvertise, message, null, null);
+  static void network(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logConnectivity, message, error, stackTrace);
   }
 
-  /// Logs a firebase remote config related message.
-  static void firebaseRemoteConfig(Object? message) {
-    _printLog(AppLoggerStrings.logFirebaseRemoteConfig, message, null, null);
+  static void router(Object? message) {
+    _printLog(AppLoggerStrings.logNavigation, message, null, null);
   }
+
+  static void remoteConfig(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logRemoteConfig, message, error, stackTrace);
+  }
+
+  static void theme(Object? message) {
+    _printLog(AppLoggerStrings.logTheme, message, null, null);
+  }
+
+  static void deepLink(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logDeepLink, message, error, stackTrace);
+  }
+
+  static void lifecycle(Object? message) {
+    _printLog(AppLoggerStrings.logLifecycle, message, null, null);
+  }
+
+  static void mock(Object? message) {
+    _printLog(AppLoggerStrings.logMock, message, null, null);
+  }
+
+  // --- Specialized Data & Action Logs ---
 
   /// Specialized method to dump raw backend data objects to the console.
   static void data(String screenName, dynamic rawData) {
@@ -91,7 +136,9 @@ class AppLogger {
     // 🟢 2. Local/Debug logging
     if (kReleaseMode) return;
 
-    final logMessage = StringBuffer('${AppLoggerStrings.logPrefix} $prefix $message');
+    final severitySuffix = error != null ? ' ${AppLoggerStrings.logError}' : '';
+    final logMessage = StringBuffer('${AppLoggerStrings.logPrefix} $prefix$severitySuffix $message');
+    
     if (error != null) {
       logMessage.write('\nError: $error');
     }

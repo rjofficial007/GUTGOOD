@@ -35,7 +35,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
-      AppLogger.error('ChatFirestoreService: Error saving message', error: e);
+      AppLogger.firestore('Error saving message', error: e);
       return null;
     }
   }
@@ -51,7 +51,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug('ChatFirestoreService: Chat stream closed (permission-denied)');
+            AppLogger.firestore('Chat stream closed (permission-denied)');
           } else {
             throw e;
           }
@@ -74,7 +74,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       final snapshot = await query.get();
       return snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList();
     } catch (e) {
-      AppLogger.error('ChatFirestoreService: Error getting messages', error: e);
+      AppLogger.firestore('Error getting messages', error: e);
       return [];
     }
   }
@@ -86,7 +86,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       if (doc == null) return;
       await doc.collection('chat_history').doc(messageId).delete();
     } catch (e) {
-      AppLogger.error('ChatFirestoreService: Error deleting message', error: e);
+      AppLogger.firestore('Error deleting message', error: e);
     }
   }
 
@@ -97,7 +97,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       if (doc == null) return;
       await doc.collection('chat_history').doc(messageId).update({'feedback': feedback});
     } catch (e) {
-      AppLogger.error('ChatFirestoreService: Error updating message feedback', error: e);
+      AppLogger.firestore('Error updating message feedback', error: e);
     }
   }
 }

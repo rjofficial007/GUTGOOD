@@ -50,7 +50,7 @@ class AppServiceImpl implements AppService {
 
   @override
   Future<void> sendingMails({required String mailContent, required bool isFromReview}) async {
-    AppLogger.debug('AppService: Preparing to send email...');
+    AppLogger.debug('Preparing to send email...');
 
     final email = Uri.encodeComponent(_configService.email);
     final subject = Uri.encodeComponent(
@@ -66,10 +66,10 @@ class AppServiceImpl implements AppService {
       try {
         await launchUrl(mail, mode: LaunchMode.platformDefault);
       } catch (e) {
-        AppLogger.error('AppService: Error launching mail client', error: e);
+        AppLogger.error('Error launching mail client', error: e);
       }
     } else {
-      AppLogger.error('AppService: Unable to launch mail client.');
+      AppLogger.error('Unable to launch mail client.');
     }
   }
 
@@ -83,7 +83,7 @@ class AppServiceImpl implements AppService {
 
       await SharePlus.instance.share(ShareParams(sharePositionOrigin: origin, text: shareWithFriendsText));
     } catch (e) {
-      AppLogger.error('AppService: Share failed', error: e);
+      AppLogger.error('Share failed', error: e);
     }
   }
 
@@ -103,26 +103,26 @@ class AppServiceImpl implements AppService {
 
         if (data is Map<String, dynamic> && data['status'] == 'success') {
           _countryCode = (data['countryCode'] as String?)?.toUpperCase() ?? 'US';
-          AppLogger.debug('AppService: Country code: $_countryCode');
+          AppLogger.network('Country code: $_countryCode');
           return;
         }
 
-        AppLogger.warning('AppService: Invalid geo lookup response: $data');
+        AppLogger.network('Invalid geo lookup response: $data');
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 429) {
-        AppLogger.warning('AppService: Geo lookup rate limited.');
+        AppLogger.network('Geo lookup rate limited.');
       } else {
-        AppLogger.error('AppService: Geo lookup failed', error: e);
+        AppLogger.network('Geo lookup failed', error: e);
       }
     } catch (e) {
-      AppLogger.error('AppService: Unexpected error', error: e);
+      AppLogger.error('Unexpected error', error: e);
     }
 
     // Fallback to device locale.
     final locale = WidgetsBinding.instance.platformDispatcher.locale;
     _countryCode = (locale.countryCode ?? 'US').toUpperCase();
-    AppLogger.debug('AppService: Fallback country code: $_countryCode');
+    AppLogger.network('Fallback country code: $_countryCode');
   }
 
   @override
@@ -135,7 +135,7 @@ class AppServiceImpl implements AppService {
         await inAppReview.openStoreListing(appStoreId: _configService.iosAppId);
       }
     } catch (e) {
-      AppLogger.error('AppService: Error requesting review', error: e);
+      AppLogger.error('Error requesting review', error: e);
     }
   }
 }

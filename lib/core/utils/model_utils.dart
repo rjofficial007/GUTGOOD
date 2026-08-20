@@ -130,7 +130,6 @@ class ModelUtils {
     if (raw == null || raw.isEmpty) return null;
 
     final startChar = isArray ? '[' : '{';
-    final endChar = isArray ? ']' : '}';
 
     final startIndex = raw.indexOf(startChar);
     if (startIndex == -1) {
@@ -183,15 +182,16 @@ class ModelUtils {
     }
 
     // If we reach here, the JSON is unbalanced (likely truncated).
-    var current = raw.substring(startIndex).trim();
+    final current = raw.substring(startIndex).trim();
 
     // 1. Try force-closing the stack
     if (stack.isNotEmpty) {
-      var fix = current;
-      if (inString) fix += '"';
+      final buffer = StringBuffer(current);
+      if (inString) buffer.write('"');
       for (final closing in stack.reversed) {
-        fix += closing;
+        buffer.write(closing);
       }
+      final fix = buffer.toString();
       try {
         jsonDecode(fix);
         return fix;

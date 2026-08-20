@@ -101,8 +101,8 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug(
-              'AuthFirestoreService: Metadata stream closed (permission-denied)',
+      AppLogger.firestore(
+              'Metadata stream closed (permission-denied)',
             );
           } else {
             throw e;
@@ -204,15 +204,15 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
 
   @override
   Future<void> mergeData(String fromUid, String toUid) async {
-    AppLogger.info(
-      'AuthFirestoreService: Data migration should be handled by Cloud Function',
+    AppLogger.firestore(
+      'Data migration should be handled by Cloud Function',
     );
   }
 
   @override
   Future<void> deleteAllUserData(String uid) async {
-    AppLogger.info(
-      'AuthFirestoreService: User data deletion triggered by Auth onDelete',
+    AppLogger.firestore(
+      'User data deletion triggered by Auth onDelete',
     );
   }
 

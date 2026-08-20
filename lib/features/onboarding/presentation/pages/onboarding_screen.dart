@@ -30,6 +30,7 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _pageController = PageController();
+  final _nameController = TextEditingController();
   int _page = 0;
   bool _isFinishing = false;
 
@@ -45,15 +46,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<SelectionOption> _lifestyleOptions = AppConfigData.lifestyleOptions;
   final List<String> _cyclePhases = AppConfigData.cyclePhases;
 
-  int get _totalPages => 5;
+  int get _totalPages => 6;
 
   bool get _canContinue {
     switch (_page) {
       case 0:
-        return _selectedGoals.isNotEmpty;
+        return _nameController.text.trim().isNotEmpty;
       case 1:
-        return _selectedSensitivities.isNotEmpty;
+        return _selectedGoals.isNotEmpty;
       case 2:
+        return _selectedSensitivities.isNotEmpty;
+      case 3:
         return _selectedLifestyle.isNotEmpty;
       default:
         return true;
@@ -63,12 +66,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
+    _nameController.addListener(() => setState(() {}));
     unawaited(sl<AnalyticsService>().logEvent(name: 'onboarding_started'));
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -108,7 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     await profileNotifier.completeOnboarding(
-      displayName: 'Guest',
+      displayName: _nameController.text.trim().isEmpty ? 'Guest' : _nameController.text.trim(),
       goals: _selectedGoals.toList(),
       sensitivities: _selectedSensitivities.toList(),
       lifestyle: _selectedLifestyle.toList(),
@@ -158,6 +163,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: (i) => setState(() => _page = i),
               children: [
+                _OnboardingNamePage(controller: _nameController),
                 _OnboardingSelectionPage(
                   title: AppStrings.onboardingGoalsTitle,
                   subtitle: AppStrings.onboardingGoalsSubtitle,
@@ -193,6 +199,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           _OnboardingFooter(page: _page, totalPages: _totalPages, onNext: _next, isFinishing: _isFinishing, canContinue: _canContinue),
         ],
       ),
+    ),
+  );
+}
+
+class _OnboardingNamePage extends StatelessWidget {
+  const _OnboardingNamePage({required this.controller});
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Gap.h16,
+        Text(AppStrings.whatShouldWeCallYou, style: AppTextStyles.displaySm).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
+        Gap.h10,
+        Text(AppStrings.enterNameContinuePrompt, style: AppTextStyles.bodyLg.copyWith(color: context.appColorScheme.textSecondary)).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.2, end: 0),
+        Gap.h32,
+        GutTextField(
+          controller: controller,
+          hintText: AppStrings.enterYourNameHint,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+        ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+      ],
     ),
   );
 }
@@ -238,7 +270,7 @@ class _OnboardingFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (page >= totalPages - 1 || page == 4) return const SizedBox.shrink();
+    if (page >= totalPages - 1) return const SizedBox.shrink();
 
     return Padding(
       padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p24),

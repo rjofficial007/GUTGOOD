@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -23,7 +22,6 @@ import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
-import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -43,7 +41,6 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   late MobileScannerController _scannerController;
   late PageController _modePageController;
   late ScannerMode _currentMode;
-  bool _isProcessing = false;
   final bool _isBatchMode = false;
   final List<ScanResult> _sessionScans = [];
   final ImagePicker _picker = ImagePicker();
@@ -159,18 +156,18 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   Future<void> _handleBarcode(String barcode, {Uint8List? capturedImage}) async {
     if (!await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true)) return;
     if (!mounted) return;
+
     final notifier = context.read<ScannerNotifier>();
-    setState(() => _isProcessing = true);
-    unawaited(HapticFeedback.lightImpact());
 
-    if (!_isBatchMode && mounted) {
-      unawaited(context.push(AppRoutes.scanningAnimation));
-    }
-
-    try {
-      final result = await notifier.processBarcode(barcode, capturedImage: capturedImage);
-
-      if (result != null) {
+    await notifier.handleBarcodeScan(
+      barcode,
+      capturedImage: capturedImage,
+      mode: _currentMode.name,
+      isBatchMode: _isBatchMode,
+      onScanStart: () {
+        if (mounted) context.push(AppRoutes.scanningAnimation);
+      },
+      onSuccess: (result) {
         if (mounted) {
           if (_isBatchMode) {
             setState(() => _sessionScans.insert(0, result));
@@ -179,53 +176,39 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
             context.go(AppRoutes.scanResult, extra: ScanResultArgs(scanData: result));
           }
         }
-      } else {
-        if (capturedImage != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.productNotFoundAnalyzing), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
-          final aiResult = await notifier.processImage(capturedImage, mode: _currentMode.name);
-          if (mounted) {
-            if (aiResult != null) {
-              context.go(AppRoutes.scanResult, extra: ScanResultArgs(scanData: aiResult));
-            } else {
-              context.pop(); // Pop ScanningAnimation
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.couldNotAnalyzeVision)));
-            }
-          }
-          return;
-        }
-
-        if (!_isBatchMode && mounted) {
-          context.pop();
+      },
+      onProductNotFound: () async {
+        if (!mounted) return;
+        if (!_isBatchMode) {
+          context.pop(); // Pop ScanningAnimation
           final choice = await context.push(AppRoutes.productNotFound);
-          if (choice == 'TRIGGER_CAMERA') {
+          if (choice == 'TRIGGER_CAMERA' && mounted) {
             setState(() => _currentMode = ScannerMode.label);
           }
-        } else if (mounted) {
+        } else {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${AppStrings.analyzingProductInfo}: $barcode')));
         }
-      }
-    } on ScanAnalysisException {
-      if (mounted) {
-        context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.productFoundAiFailed), behavior: SnackBarBehavior.floating));
-      }
-    } catch (e) {
-      AppLogger.error('Scanner: Error: $e');
-      if (!_isBatchMode && mounted) {
-        context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.failedToAnalyzeProduct)));
-      }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
-    }
+      },
+      onError: (message) {
+        if (mounted) {
+          if (!_isBatchMode) context.pop(); // Pop ScanningAnimation
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
+        }
+      },
+      onInfo: (message) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)));
+        }
+      },
+      onHaptic: () => unawaited(HapticFeedback.lightImpact()),
+    );
   }
 
   Future<void> _capturePhoto() async {
-    if (_isProcessing) return;
+    final notifier = context.read<ScannerNotifier>();
+    if (notifier.isProcessing) return;
     if (!await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true)) return;
-
-    setState(() => _isProcessing = true);
-    unawaited(HapticFeedback.mediumImpact());
+    if (!mounted) return;
 
     try {
       final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
@@ -235,64 +218,62 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       if (byteData == null) return;
       final bytes = byteData.buffer.asUint8List();
 
-      if (_currentMode == ScannerMode.barcode) {
-        final tempFile = File('${Directory.systemTemp.path}/temp_barcode.png');
-        await tempFile.writeAsBytes(bytes);
-        final result = await _scannerController.analyzeImage(tempFile.path);
-        if (result != null && result.barcodes.isNotEmpty) {
-          final code = result.barcodes.first.displayValue;
-          if (code != null) {
-            await _handleBarcode(code, capturedImage: bytes);
-            _cleanupTempFile(tempFile);
-            return;
+      await notifier.handlePhotoCapture(
+        bytes: bytes,
+        mode: _currentMode.name,
+        isBatchMode: _isBatchMode,
+        analyzeBarcodeInImage: (path) async {
+          final result = await _scannerController.analyzeImage(path);
+          return result?.barcodes.firstOrNull?.displayValue;
+        },
+        onBarcodeFound: (code, img) => _handleBarcode(code, capturedImage: img),
+        onImageCaptured: (img, mode) {
+          if (mounted) context.pop({'type': mode, 'bytes': img});
+        },
+        onError: (message) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
           }
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.noBarcodeDetected), behavior: SnackBarBehavior.floating));
-        }
-        _cleanupTempFile(tempFile);
-        setState(() => _isProcessing = false);
-      } else {
-        if (mounted) {
-          context.pop({'type': _currentMode.name, 'bytes': bytes});
-        }
-      }
+        },
+        onHaptic: () => unawaited(HapticFeedback.mediumImpact()),
+      );
     } catch (e) {
-      AppLogger.error('Capture error: $e');
-      if (mounted) setState(() => _isProcessing = false);
+      AppLogger.error('Scanner: Capture error: $e');
     }
   }
 
   Future<void> _pickFromGallery() async {
     if (!await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true)) return;
+    if (!mounted) return;
+
+    final notifier = context.read<ScannerNotifier>();
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
 
     final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (image != null && mounted) {
-      final bytes = await image.readAsBytes();
-      if (_currentMode == ScannerMode.barcode) {
-        final result = await _scannerController.analyzeImage(image.path);
-        if (result != null && result.barcodes.isNotEmpty) {
-          final code = result.barcodes.first.displayValue;
-          if (code != null) {
-            await _handleBarcode(code, capturedImage: bytes);
-            return;
-          }
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.noBarcodeInGallery)));
-        }
-      } else {
-        if (mounted) context.pop({'type': 'gallery', 'bytes': bytes});
-      }
-    }
-  }
+    if (image == null) return;
 
-  void _cleanupTempFile(File file) {
-    try {
-      if (file.existsSync()) file.deleteSync();
-    } catch (e) {
-      AppLogger.warning('Scanner: Temp file cleanup failed: $e');
-    }
+    final bytes = await image.readAsBytes();
+
+    await notifier.handlePhotoCapture(
+      bytes: bytes,
+      mode: _currentMode.name,
+      isBatchMode: _isBatchMode,
+      analyzeBarcodeInImage: (path) async {
+        final result = await _scannerController.analyzeImage(path);
+        return result?.barcodes.firstOrNull?.displayValue;
+      },
+      onBarcodeFound: (code, img) => _handleBarcode(code, capturedImage: img),
+      onImageCaptured: (img, mode) {
+        if (mounted) router.pop({'type': 'gallery', 'bytes': img});
+      },
+      onError: (message) {
+        if (mounted) {
+          messenger.showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
+        }
+      },
+      onHaptic: () => unawaited(HapticFeedback.lightImpact()),
+    );
   }
 
   @override
@@ -305,32 +286,34 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       return const _PermissionOverlay();
     }
 
-    return Scaffold(
-      backgroundColor: AppPalette.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          _CameraPreview(repaintKey: _repaintKey, scannerController: _scannerController, onDetect: _onDetect),
-          _ScannerTopControls(scannerController: _scannerController),
-          _ScannerBottomControls(
-            modePageController: _modePageController,
-            currentMode: _currentMode,
-            isProcessing: _isProcessing,
-            modes: _modes,
-            onGalleryTap: _pickFromGallery,
-            onShutterTap: _capturePhoto,
-            onModeChanged: (index) {
-              setState(() {
-                _currentMode = _modes[index].mode;
-              });
-              unawaited(HapticFeedback.selectionClick());
-              unawaited(_saveMode(_currentMode));
-              _triggerModeIntro();
-            },
-          ),
-          if (_showModeIntro) _ModeIntroOverlay(currentMode: _currentMode, modes: _modes),
-          if (_isBatchMode && _sessionScans.isNotEmpty) _BatchScanList(scans: _sessionScans),
-        ],
+    return Consumer<ScannerNotifier>(
+      builder: (context, notifier, _) => Scaffold(
+        backgroundColor: AppPalette.black,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            _CameraPreview(repaintKey: _repaintKey, scannerController: _scannerController, onDetect: _onDetect),
+            _ScannerTopControls(scannerController: _scannerController),
+            _ScannerBottomControls(
+              modePageController: _modePageController,
+              currentMode: _currentMode,
+              isProcessing: notifier.isProcessing,
+              modes: _modes,
+              onGalleryTap: _pickFromGallery,
+              onShutterTap: _capturePhoto,
+              onModeChanged: (index) {
+                setState(() {
+                  _currentMode = _modes[index].mode;
+                });
+                unawaited(HapticFeedback.selectionClick());
+                unawaited(_saveMode(_currentMode));
+                _triggerModeIntro();
+              },
+            ),
+            if (_showModeIntro) _ModeIntroOverlay(currentMode: _currentMode, modes: _modes),
+            if (_isBatchMode && _sessionScans.isNotEmpty) _BatchScanList(scans: _sessionScans),
+          ],
+        ),
       ),
     );
   }

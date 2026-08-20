@@ -33,7 +33,7 @@ class UsageFirestoreServiceImpl implements UsageFirestoreService {
       if (!snap.exists) return null;
       return DailyUsage.fromMap({...snap.data() as Map<String, dynamic>, 'uid': _uid, 'date': today});
     } catch (e) {
-      AppLogger.error('UsageFirestoreService: Error getting daily usage', error: e);
+      AppLogger.firestore('Error getting daily usage', error: e);
       return null;
     }
   }
@@ -55,7 +55,7 @@ class UsageFirestoreServiceImpl implements UsageFirestoreService {
 
       return DailyUsage(uid: uid, date: 'lifetime', chatCount: chats, scanCount: scans);
     } catch (e) {
-      AppLogger.error('UsageFirestoreService: Error getting lifetime usage from profile', error: e);
+      AppLogger.firestore('Error getting lifetime usage from profile', error: e);
       return DailyUsage(uid: uid, date: 'lifetime');
     }
   }
@@ -71,7 +71,7 @@ class UsageFirestoreServiceImpl implements UsageFirestoreService {
         .snapshots()
         .handleError((e) {
           if (e.toString().contains('permission-denied')) {
-            AppLogger.debug('UsageFirestoreService: Usage stream closed (permission-denied)');
+            AppLogger.firestore('Usage stream closed (permission-denied)');
           } else {
             throw e;
           }

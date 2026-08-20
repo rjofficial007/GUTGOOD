@@ -117,7 +117,7 @@ class _LoginSheetState extends State<_LoginSheet> {
 
   void _onAuthChanged() {
     if (_authNotifier.isAuthenticated && !_authNotifier.isAnonymous && mounted) {
-      AppLogger.info('AuthSheet: Authentication detected in background. Dismissing sheet.');
+      AppLogger.auth('Authentication detected in background. Dismissing sheet.');
       // 🟢 Fix: If auth becomes permanent while the sheet is open (e.g. Magic Link resolve),
       // automatically close the sheet.
       _onAuthSuccess(context);
@@ -170,7 +170,7 @@ class _LoginSheetState extends State<_LoginSheet> {
   Future<void> _onAuthSuccess(BuildContext context) async {
     // Trigger verification overlay for consistent premium experience
     final appStateService = sl<AppStateService>()..setVerifyingAuth(true);
-    AppLogger.info('Auth: Authentication success. Showing verification overlay.');
+    AppLogger.auth('Authentication success. Showing verification overlay.');
 
     HapticHelper.success();
 

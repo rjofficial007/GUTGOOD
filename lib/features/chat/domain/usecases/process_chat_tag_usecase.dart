@@ -68,7 +68,7 @@ class ProcessChatTagUseCase {
               if (!alreadyPersisted && (isClosed || isFinal)) {
                 if (persist) {
                   final log = SymptomLog.fromMap(decoded).copyWith(source: source ?? 'chat');
-                  AppLogger.info('ProcessChatTag: Logging symptom: ${log.symptom}');
+                  AppLogger.ai('Logging symptom: ${log.symptom}');
                   unawaited(_firestoreService.logSymptom(log));
                   _appStateService.notifyChatUpdated();
                 }
@@ -80,7 +80,7 @@ class ProcessChatTagUseCase {
               if (!alreadyPersisted && (isClosed || isFinal)) {
                 if (persist) {
                   final log = MealLog.fromMap({...decoded, 'photoUrl': imageUrl}).copyWith(source: source ?? 'chat');
-                  AppLogger.info('ProcessChatTag: Logging meal with ${log.items.length} items');
+                  AppLogger.ai('Logging meal with ${log.items.length} items');
                   unawaited(_firestoreService.logMeal(log));
                   _appStateService.notifyChatUpdated();
                   persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');

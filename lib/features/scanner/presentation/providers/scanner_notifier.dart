@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/scan_result.dart';
@@ -115,6 +117,102 @@ class ScannerNotifier with ChangeNotifier {
     } catch (e) {
       AppLogger.error('ScannerNotifier: Image processing failed', error: e);
       return null;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Orchestrates barcode scan handling including fallback to vision if allowed.
+  Future<void> handleBarcodeScan(
+    String barcode, {
+    Uint8List? capturedImage,
+    required String mode,
+    required bool isBatchMode,
+    required VoidCallback onScanStart,
+    required Function(ScanResult result) onSuccess,
+    required VoidCallback onProductNotFound,
+    required Function(String message) onError,
+    required Function(String message) onInfo,
+    required VoidCallback onHaptic,
+  }) async {
+    _isProcessing = true;
+    notifyListeners();
+    onHaptic();
+
+    if (!isBatchMode) {
+      onScanStart();
+    }
+
+    try {
+      final result = await processBarcode(barcode, capturedImage: capturedImage);
+
+      if (result != null) {
+        onSuccess(result);
+      } else {
+        // Fallback to image processing if product not in DB but image is available
+        if (capturedImage != null) {
+          onInfo(AppStrings.productNotFoundAnalyzing);
+          final aiResult = await processImage(capturedImage, mode: mode);
+          if (aiResult != null) {
+            onSuccess(aiResult);
+          } else {
+            onError(AppStrings.couldNotAnalyzeVision);
+          }
+        } else {
+          onProductNotFound();
+        }
+      }
+    } on ScanAnalysisException {
+      onError(AppStrings.productFoundAiFailed);
+    } catch (e) {
+      AppLogger.error('ScannerNotifier: handleBarcodeScan error', error: e);
+      onError(AppStrings.failedToAnalyzeProduct);
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Handles photo capture logic, detecting barcodes if in barcode mode or proceeding with vision.
+  Future<void> handlePhotoCapture({
+    required Uint8List bytes,
+    required String mode,
+    required bool isBatchMode,
+    required Future<String?> Function(String path) analyzeBarcodeInImage,
+    required Function(String barcode, Uint8List image) onBarcodeFound,
+    required Function(Uint8List image, String mode) onImageCaptured,
+    required Function(String message) onError,
+    required VoidCallback onHaptic,
+  }) async {
+    _isProcessing = true;
+    notifyListeners();
+    onHaptic();
+
+    try {
+      if (mode == 'barcode') {
+        final tempFile = File('${Directory.systemTemp.path}/temp_barcode.png');
+        await tempFile.writeAsBytes(bytes);
+
+        final code = await analyzeBarcodeInImage(tempFile.path);
+
+        try {
+          if (tempFile.existsSync()) tempFile.deleteSync();
+        } catch (e) {
+          AppLogger.warning('ScannerNotifier: Temp file cleanup failed: $e');
+        }
+
+        if (code != null) {
+          await onBarcodeFound(code, bytes);
+        } else {
+          onError(AppStrings.noBarcodeDetected);
+        }
+      } else {
+        onImageCaptured(bytes, mode);
+      }
+    } catch (e) {
+      AppLogger.error('ScannerNotifier: Photo capture error', error: e);
+      onError(AppStrings.failedToAnalyzeProduct);
     } finally {
       _isProcessing = false;
       notifyListeners();
