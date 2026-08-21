@@ -13,7 +13,7 @@ class OnboardingStrings {
   static const String cycleSyncSubtitle = 'Get food insights based on your cycle phase';
   static const String cycleSyncHormonalPatterns = 'When enabled, GutGood will factor hormonal patterns into food recommendations.';
   static const String selectCyclePhase = 'Which phase are you in?';
-  static const String aiPersonalization = 'AI Personalization';
+  static const String aiPersonalization = 'Health Personalization';
   static const String builtAroundYou = 'Built around you';
   static const String aiPersonalizationDesc = 'GUTGOOD builds your personalized story with every scan, chat, and body signal you log.';
   static const String analysisComplete = 'Analysis Complete';

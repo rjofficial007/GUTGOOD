@@ -1,11 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
@@ -117,8 +114,6 @@ class _ActionsSection extends StatelessWidget {
       _OptionTile(icon: AppIcons.sparkles, title: AppStrings.analyzeWithAi, subtitle: AppStrings.analyzeWithAiSubtitle, onTap: () => context.pop('TRIGGER_CAMERA')),
       Gap.h12,
       _OptionTile(icon: AppIcons.refreshCw, title: AppStrings.tryAgain, subtitle: AppStrings.rescanBarcode, onTap: () => context.pop()),
-      Gap.h12,
-      _OptionTile(icon: AppIcons.keyboard, title: AppStrings.enterManually, subtitle: AppStrings.enterManuallySubtitle, onTap: () => unawaited(context.push(AppRoutes.manualBarcode))),
     ],
   );
 }

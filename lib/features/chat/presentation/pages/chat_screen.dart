@@ -44,6 +44,7 @@ class ChatScreenState extends State<ChatScreen> {
 
   bool _hasScrolledToBottomInitially = false;
   ChatHistoryNotifier? _historyNotifier;
+  ChatComposerNotifier? _composerNotifier;
   Timer? _draftDebounce;
 
   @override
@@ -55,6 +56,7 @@ class ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _historyNotifier = context.read<ChatHistoryNotifier>();
+      _composerNotifier = context.read<ChatComposerNotifier>();
       _historyNotifier?.addListener(_handleHistoryLoaded);
       _handleHistoryLoaded(); // Check if history is already loaded
     });
@@ -63,6 +65,8 @@ class ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _historyNotifier?.removeListener(_handleHistoryLoaded);
+    _historyNotifier?.removeListener(_onHistoryUpdated);
+    _composerNotifier?.removeListener(_onComposerUpdated);
     _draftDebounce?.cancel();
     _scroll.removeListener(_onScroll);
     _controller.dispose();
@@ -75,13 +79,16 @@ class ChatScreenState extends State<ChatScreen> {
     if (!_historyNotifier!.historyLoading && !_hasScrolledToBottomInitially && _historyNotifier!.messages.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _scroll.hasClients) {
-          _scrollToBottom();
+          _scrollToBottom(animated: false);
           _hasScrolledToBottomInitially = true;
           setState(() {});
         }
       });
     }
   }
+
+  void _onComposerUpdated() {}
+  void _onHistoryUpdated() {}
 
   void _onScroll() {
     if (!_scroll.hasClients) return;
@@ -92,16 +99,27 @@ class ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _scrollToBottom() {
-    if (_scroll.hasClients) {
-      _scroll.jumpTo(_scroll.position.maxScrollExtent);
-      // Double-check after next frame to handle sliver expansion
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients) {
-          _scroll.jumpTo(_scroll.position.maxScrollExtent);
-        }
-      });
+  void _scrollToBottom({bool animated = true}) {
+    if (!_scroll.hasClients) return;
+    final maxScroll = _scroll.position.maxScrollExtent;
+    if (animated) {
+      _scroll.animateTo(maxScroll, duration: const Duration(milliseconds: 250), curve: Curves.easeOutQuad);
+    } else {
+      _scroll.jumpTo(maxScroll);
     }
+    // Repeat on post-frame to ensure the new user message layout expansion is scrolled into view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scroll.hasClients) {
+        final newMax = _scroll.position.maxScrollExtent;
+        if ((newMax - _scroll.position.pixels).abs() > 4) {
+          if (animated) {
+            _scroll.animateTo(newMax, duration: const Duration(milliseconds: 200), curve: Curves.easeOutQuad);
+          } else {
+            _scroll.jumpTo(newMax);
+          }
+        }
+      }
+    });
   }
 
   void _restoreDraft() {
@@ -129,16 +147,17 @@ class ChatScreenState extends State<ChatScreen> {
     sl<SharedPreferences>().remove(_draftKey);
   }
 
-  Future<void> handleCamera(ChatHistoryNotifier historyNotifier, ChatComposerNotifier composerNotifier, GutAuthNotifier authNotifier, {ScannerMode mode = ScannerMode.label}) async {
+  Future<void> handleCamera(ChatHistoryNotifier historyNotifier, ChatComposerNotifier composerNotifier, GutAuthNotifier authNotifier, {ScannerMode? mode}) async {
     if (composerNotifier.isLoading) return;
     if (!await QuotaGuard.check(context, type: QuotaType.scan, onAuthSuccess: historyNotifier.refreshHistory)) return;
 
     if (!mounted) return;
-    final result = await context.push(AppRoutes.scannerPath(mode.name));
+    final path = mode != null ? AppRoutes.scannerPath(mode.name) : '/scanner';
+    final result = await context.push(path);
     if (result == null || result is! Map<String, dynamic> || !result.containsKey('bytes')) return;
 
     final bytes = result['bytes'] as Uint8List;
-    final type = result['type'] as String? ?? mode.name;
+    final type = result['type'] as String? ?? (mode?.name ?? 'food');
 
     final added = await composerNotifier.handleImageAttachment(bytes, type: type);
     if (!added) {
@@ -181,15 +200,13 @@ class ChatScreenState extends State<ChatScreen> {
     final msg = (quickText ?? _controller.text).trim();
     if (msg.isEmpty && !hasImages) return;
 
+    _scrollToBottom(animated: true);
+
     FocusManager.instance.primaryFocus?.unfocus();
 
     if (!await QuotaGuard.check(context, type: hasImages ? QuotaType.scan : QuotaType.chat, onAuthSuccess: historyNotifier.refreshHistory)) return;
 
-    final error = await composerNotifier.send(
-      text: msg,
-      hiddenContext: hasImages ? composerNotifier.pendingHiddenContext : null,
-      source: hasImages ? composerNotifier.pendingHiddenContext : 'chat',
-    );
+    final error = await composerNotifier.send(text: msg, hiddenContext: hasImages ? composerNotifier.pendingHiddenContext : null, source: hasImages ? composerNotifier.pendingHiddenContext : 'chat');
 
     if (!mounted) return;
 
@@ -197,6 +214,7 @@ class ChatScreenState extends State<ChatScreen> {
       _controller.clear();
       _clearDraft();
       composerNotifier.clearPendingHiddenContext();
+      _scrollToBottom(animated: true);
       return;
     }
 
@@ -234,10 +252,7 @@ class ChatScreenState extends State<ChatScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const Expanded(
-              child: _MessageListView(),
-            ),
-            const _SuggestionChipsSection(),
+            const Expanded(child: _MessageListView()),
             _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
           ],
         ),
@@ -318,12 +333,7 @@ class _MessageListView extends StatelessWidget {
           controller: scrollController,
           reverse: false,
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p10, AppSizes.p16, 0),
-              sliver: const _MessageSliverList(),
-            ),
-          ],
+          slivers: [SliverPadding(padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p10, AppSizes.p16, 0), sliver: const _MessageSliverList())],
         );
       },
     );
@@ -452,57 +462,13 @@ class _MessageSliverListState extends State<_MessageSliverList> {
   }
 }
 
-class _SuggestionChipsSection extends StatelessWidget {
-  const _SuggestionChipsSection();
-
-  @override
-  Widget build(BuildContext context) => Selector2<ChatHistoryNotifier, ChatComposerNotifier, (int, bool, bool)>(
-    selector: (_, h, c) => (h.messages.length, c.isLoading, h.historyLoading),
-    builder: (context, data, _) {
-      final count = data.$1;
-      final isLoading = data.$2;
-      final historyLoading = data.$3;
-
-      if (count > 1 || isLoading || historyLoading) return const SizedBox.shrink();
-
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p8),
-        child: Row(
-          children: [
-            ChatSuggestionChip(label: AppStrings.chipBloated, onTap: () => unawaited(_sendQuick(context, AppStrings.chipBloatedPrompt))),
-            ChatSuggestionChip(label: AppStrings.chipHealthy, onTap: () => unawaited(_sendQuick(context, AppStrings.chipHealthyPrompt))),
-            ChatSuggestionChip(label: AppStrings.chipSwap, onTap: () => unawaited(_sendQuick(context, AppStrings.chipSwapPrompt))),
-            ChatSuggestionChip(label: AppStrings.chipRestaurant, onTap: () => _handleCameraQuick(context, ScannerMode.menu)),
-          ],
-        ),
-      );
-    },
-  );
-
-  Future<void> _sendQuick(BuildContext context, String text) async {
-    final historyNotifier = context.read<ChatHistoryNotifier>();
-    final composerNotifier = context.read<ChatComposerNotifier>();
-    final authNotifier = context.read<GutAuthNotifier>();
-    final state = context.findAncestorStateOfType<ChatScreenState>();
-    await state?._send(historyNotifier, composerNotifier, authNotifier, text);
-  }
-
-  void _handleCameraQuick(BuildContext context, ScannerMode mode) {
-    final historyNotifier = context.read<ChatHistoryNotifier>();
-    final composerNotifier = context.read<ChatComposerNotifier>();
-    final authNotifier = context.read<GutAuthNotifier>();
-    final state = context.findAncestorStateOfType<ChatScreenState>();
-    state?.handleCamera(historyNotifier, composerNotifier, authNotifier, mode: mode);
-  }
-}
 
 class _ChatComposer extends StatelessWidget {
   const _ChatComposer({required this.controller, required this.onChanged, required this.onCamera, required this.onGallery, required this.onSend});
 
   final TextEditingController controller;
   final VoidCallback onChanged;
-  final Future<void> Function(ChatHistoryNotifier, ChatComposerNotifier, GutAuthNotifier, {ScannerMode mode}) onCamera;
+  final Future<void> Function(ChatHistoryNotifier, ChatComposerNotifier, GutAuthNotifier, {ScannerMode? mode}) onCamera;
   final Future<void> Function(ChatHistoryNotifier, ChatComposerNotifier, GutAuthNotifier) onGallery;
   final Future<void> Function(ChatHistoryNotifier, ChatComposerNotifier, GutAuthNotifier, [String?]) onSend;
 

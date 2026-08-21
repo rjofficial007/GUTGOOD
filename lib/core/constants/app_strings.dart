@@ -821,7 +821,7 @@ class AppStrings {
   static const String contributorSubtitle = 'Help us build the world\'s largest gut health database.';
   static const String takePhotosAndAdd = 'Take photos of the product and add it.';
   static const String contributionComingSoon = 'Coming Soon';
-  static const String analyzeWithAiSubtitle = 'Let AI analyze the ingredients list for you.';
+  static const String analyzeWithAiSubtitle = 'Let GutGood analyze the ingredients list for you.';
   static const String enterManuallySubtitle = 'Enter the details manually.';
   static const String bloodSugar = 'Blood Sugar';
   static const String inflammation = 'Inflammation';

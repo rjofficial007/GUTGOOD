@@ -112,7 +112,8 @@ class ModelUtils {
           if (e is Map) {
             return fromMap(Map<String, dynamic>.from(e));
           } else if (e != null) {
-            return fromMap({'name': e.toString(), 'title': e.toString()});
+            final s = e.toString();
+            return fromMap({'name': s, 'title': s, 'food': s, 'text': s});
           }
           return null;
         })

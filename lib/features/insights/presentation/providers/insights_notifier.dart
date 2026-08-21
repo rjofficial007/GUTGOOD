@@ -78,7 +78,8 @@ class InsightsNotifier with ChangeNotifier {
         _latestInsight = insight;
         _appStateService.setInsightsData(_latestInsight);
 
-        if (_latestInsight == null && !_isGenerating) {
+        // 🟢 Fix: Only auto-generate if we have enough data to actually succeed
+        if (_latestInsight == null && !_isGenerating && isSufficient) {
           generateNewInsight();
         }
 
@@ -121,7 +122,7 @@ class InsightsNotifier with ChangeNotifier {
 
   /// Returns 3-5 most meaningful insights prioritized by confidence and frequency.
   List<BodyPattern> get prioritizedPatterns {
-    final list = _bodyPatterns.where((p) => p.confidence == BodyPattern.confidenceHigh || p.confidence == BodyPattern.confidenceMedium || p.confidence == BodyPattern.confidenceModerate).toList()
+    final list = [..._bodyPatterns]
       ..sort((a, b) {
         // 1. High Confidence first
         if (a.confidence != b.confidence) {

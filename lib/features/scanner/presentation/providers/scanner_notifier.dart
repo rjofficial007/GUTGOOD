@@ -48,6 +48,7 @@ class ScannerNotifier with ChangeNotifier {
       final profile = await _authFirestoreService.getUserMetadata();
       final goals = profile?.goals ?? [];
       final sensitivities = profile?.sensitivities ?? [];
+      final lifestyle = profile?.lifestyle ?? [];
       final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
 
       List<OffProduct>? alternatives;
@@ -58,7 +59,14 @@ class ScannerNotifier with ChangeNotifier {
       }
 
       try {
-        final result = await _repository.analyzeProductWithAi(product: product, goals: goals, sensitivities: sensitivities, cyclePhase: cyclePhase, alternatives: alternatives);
+        final result = await _repository.analyzeProductWithAi(
+          product: product,
+          goals: goals,
+          sensitivities: sensitivities,
+          lifestyle: lifestyle,
+          cyclePhase: cyclePhase,
+          alternatives: alternatives,
+        );
 
         final finalResult = result.copyWith(source: 'barcode', userImageUrl: userImageUrl);
         AppLogger.info('ScannerNotifier: Saving barcode scan result for ${finalResult.productName}');

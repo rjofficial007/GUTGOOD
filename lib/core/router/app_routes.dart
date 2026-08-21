@@ -35,9 +35,7 @@ class AppRoutes {
   // Overlays
   static const String scanner = '/scanner/:mode';
   static const String scanningAnimation = '/scanning-animation';
-  static const String manualBarcode = '/manual-barcode';
   static const String productNotFound = '/product-not-found';
-  static const String symptomCheckIn = '/symptom-check-in';
 
   // Helper to build scanner path with mode
   static String scannerPath(String mode) => '/scanner/$mode';

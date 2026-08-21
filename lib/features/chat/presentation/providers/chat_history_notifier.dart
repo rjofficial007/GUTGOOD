@@ -30,6 +30,7 @@ class ChatHistoryNotifier with ChangeNotifier {
        _prefs = prefs,
        _auth = auth {
     _initChatStream();
+    _appStateService.chatUpdated.addListener(refreshHistory);
     _appStateService.profileUpdated.addListener(_onProfileUpdated);
     _appStateService.sessionReset.addListener(clearHistory);
 
@@ -72,7 +73,7 @@ class ChatHistoryNotifier with ChangeNotifier {
 
   StreamSubscription<List<ChatMessage>>? _chatStreamSub;
 
-  List<ChatMessage> get messages => _messages;
+  List<ChatMessage> get messages => List.unmodifiable(_messages);
   bool get historyLoading => _historyLoading;
   bool get isPaginationLoading => _isPaginationLoading;
   String? get cachedSummary => _cachedSummary;
@@ -94,39 +95,41 @@ class ChatHistoryNotifier with ChangeNotifier {
 
   void _initChatStream() {
     _chatStreamSub?.cancel();
-    if (!_isPaginationLoading) {
+    if (!_isPaginationLoading && _messages.isEmpty) {
       _historyLoading = true;
     }
     notifyListeners();
 
-    _chatStreamSub = _chatFirestoreService.getMessagesStream(limit: _currentLimit).listen(
-      (serverMessages) {
-        final serverLocalIds = serverMessages.map((m) => m.localId).toSet();
+    _chatStreamSub = _chatFirestoreService
+        .getMessagesStream(limit: _currentLimit)
+        .listen(
+          (serverMessages) {
+            final serverLocalIds = serverMessages.map((m) => m.localId).toSet();
 
-        // Keep optimistic messages the server hasn't confirmed yet.
-        final pending = _messages.where((m) => _optimisticIds.contains(m.localId) && !serverLocalIds.contains(m.localId)).toList();
+            // Keep optimistic messages the server hasn't confirmed yet.
+            final pending = _messages.where((m) => _optimisticIds.contains(m.localId) && !serverLocalIds.contains(m.localId)).toList();
 
-        _messages
-          ..clear()
-          ..addAll(pending)
-          ..addAll(serverMessages);
+            _messages
+              ..clear()
+              ..addAll(pending)
+              ..addAll(serverMessages);
 
-        _optimisticIds.removeAll(serverLocalIds);
+            _optimisticIds.removeAll(serverLocalIds);
 
-        if (_messages.isEmpty && !_historyLoading) {
-          unawaited(_createInitialGreeting());
-        }
+            if (_messages.isEmpty && !_historyLoading) {
+              unawaited(_createInitialGreeting());
+            }
 
-        _historyLoading = false;
-        notifyListeners();
-        unawaited(_loadProfileData());
-      },
-      onError: (e) {
-        AppLogger.ai('Message stream error', error: e);
-        _historyLoading = false;
-        notifyListeners();
-      },
-    );
+            _historyLoading = false;
+            notifyListeners();
+            unawaited(_loadProfileData());
+          },
+          onError: (e) {
+            AppLogger.ai('Message stream error', error: e);
+            _historyLoading = false;
+            notifyListeners();
+          },
+        );
   }
 
   void refreshHistory() => _initChatStream();

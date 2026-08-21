@@ -54,7 +54,8 @@ class InsightSummary extends Equatable {
 class HealingFood extends Equatable {
   const HealingFood({required this.name, required this.effect, required this.emoji});
 
-  factory HealingFood.fromMap(Map<String, dynamic> map) => HealingFood(name: map['name']?.toString() ?? '', effect: map['effect']?.toString() ?? '', emoji: map['emoji']?.toString() ?? '🥗');
+  factory HealingFood.fromMap(Map<String, dynamic> map) =>
+      HealingFood(name: (map['name'] ?? map['food'] ?? map['title'] ?? '').toString(), effect: (map['effect'] ?? map['effects'] ?? '').toString(), emoji: map['emoji']?.toString() ?? '🥗');
   final String name;
   final String effect;
   final String emoji;
@@ -68,7 +69,8 @@ class HealingFood extends Equatable {
 class TriggerFood extends Equatable {
   const TriggerFood({required this.name, required this.effect, required this.emoji});
 
-  factory TriggerFood.fromMap(Map<String, dynamic> map) => TriggerFood(name: map['name']?.toString() ?? '', effect: map['effect']?.toString() ?? '', emoji: map['emoji']?.toString() ?? '🍕');
+  factory TriggerFood.fromMap(Map<String, dynamic> map) =>
+      TriggerFood(name: (map['name'] ?? map['food'] ?? map['title'] ?? '').toString(), effect: (map['effect'] ?? map['effects'] ?? '').toString(), emoji: map['emoji']?.toString() ?? '🍕');
   final String name;
   final String effect;
   final String emoji;
@@ -83,7 +85,7 @@ class DetectedPattern extends Equatable {
   const DetectedPattern({required this.title, required this.description, required this.icon});
 
   factory DetectedPattern.fromMap(Map<String, dynamic> map) =>
-      DetectedPattern(title: map['title']?.toString() ?? '', description: map['description']?.toString() ?? '', icon: map['icon']?.toString() ?? 'brain');
+      DetectedPattern(title: (map['title'] ?? map['name'] ?? map['text'] ?? '').toString(), description: (map['description'] ?? '').toString(), icon: map['icon']?.toString() ?? 'brain');
   final String title;
   final String description;
   final String icon;

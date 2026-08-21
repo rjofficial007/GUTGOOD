@@ -10,7 +10,7 @@ Always follow the **Feature-Sliced Clean Architecture**:
 3. **Interface Repository:** Define an abstract class in `domain/repositories`.
 4. **Implement Repository:** Create the concrete implementation in `data/repositories` using `FirestoreService` or `AiService`.
 5. **Create Notifier:** Implement a `ChangeNotifier` in `presentation/providers` to manage the feature's state.
-6. **Register in DI:** Add your repository and notifier to `lib/core/di/injection_container.dart`.
+6. **Register in DI:** Add your repository and notifier to the appropriate module in `lib/core/di/` (e.g., `feature_di.dart`).
 7. **Add UI:** Create screens in `presentation/pages` and register them in `app_router.dart`.
 
 ## 2. Working with AI
@@ -21,8 +21,8 @@ All AI logic should go through the `AiService`.
 
 ## 3. Database Operations
 - **NEVER** call `FirebaseFirestore.instance` directly in a Widget or Notifier.
-- **ALWAYS** use the `FirestoreService` interface. This ensures consistency and makes testing easier.
-- If you need a new collection, update the `FirestoreService` interface and its implementation.
+- **ALWAYS** use the domain-specific Firestore service (e.g., `ChatFirestoreService`). This ensures consistency and makes testing easier.
+- If you need a new collection, create/update the relevant service in `lib/core/services/firestore/`.
 
 ## 4. Authentication & User Context
 - Access the current user via `GutAuthNotifier`.
@@ -35,6 +35,6 @@ All AI logic should go through the `AiService`.
 - Use `Responsive.init(context)` in your `build` method to ensure layout scales correctly on different devices.
 
 ## 6. Testing & Quality
-- **Logging:** Use the `Log` utility (e.g., `Log.info()`, `Log.error()`) instead of `print()`.
+- **Logging:** Use the `AppLogger` utility (e.g., `AppLogger.info()`, `AppLogger.error()`) instead of `print()`.
 - **Error Handling:** Wrap all external service calls (Firebase, API) in `try-catch` blocks and handle failures gracefully in the UI.
 - **Linting:** Run `flutter lints` and ensure all warnings are resolved before submitting a PR.

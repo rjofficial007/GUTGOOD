@@ -13,15 +13,7 @@ import 'package:gutgood/core/widgets/modern_insight_card.dart';
 /// Includes a circular [GutScoreGauge] to visualize the user's overall health.
 /// Used at the top of the [InsightsScreen] and [WeeklyRecapScreen].
 class GutSnapshotHeroCard extends StatelessWidget {
-  const GutSnapshotHeroCard({
-    super.key,
-    required this.score,
-    this.scoreDiff,
-    required this.streak,
-    this.isActive = true,
-    this.onTap,
-    this.borderRadius,
-  });
+  const GutSnapshotHeroCard({super.key, required this.score, this.scoreDiff, required this.streak, this.isActive = true, this.onTap, this.borderRadius});
 
   /// The numerical gut health score (0-100).
   final int score;
@@ -55,17 +47,18 @@ class GutSnapshotHeroCard extends StatelessWidget {
     footer: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          AppIcons.flame,
-          size: 14,
-          color: context.appColorScheme.cardBackground,
-        ),
+        Icon(AppIcons.flame, size: 12, color: context.appColorScheme.cardBackground),
         Gap.w8,
-        Text(
-          '$streak${AppStrings.dayStreakLabel}'.toUpperCase(),
-          style: context.eyebrow.copyWith(
-            color: context.appColorScheme.cardBackground,
-            letterSpacing: 1.0,
+        RichText(
+          text: TextSpan(
+            style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.7), letterSpacing: 1.0, fontSize: 9.sp),
+            children: [
+              TextSpan(
+                text: streak.toString(),
+                style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+              ),
+              TextSpan(text: AppStrings.dayStreakLabel.toUpperCase()),
+            ],
           ),
         ),
       ],
@@ -79,17 +72,10 @@ class GutSnapshotHeroCard extends StatelessWidget {
           Gap.h12,
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
-            decoration: BoxDecoration(
-              color: context.appColorScheme.border.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(100),
-            ),
+            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(100)),
             child: Text(
               scoreDiff!,
-              style: context.caption.copyWith(
-                color: context.appColorScheme.textPrimary,
-                fontWeight: FontWeight.w900,
-                fontSize: 10.0.sp,
-              ),
+              style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 10.0.sp),
             ),
           ),
         ],

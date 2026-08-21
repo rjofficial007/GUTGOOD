@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
+import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -23,10 +24,7 @@ class StrategicFocusBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: double.infinity,
     padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
-    decoration: BoxDecoration(
-      color: context.appColorScheme.aiResponseBackground,
-      borderRadius: BorderRadius.circular(AppSizes.r20),
-    ),
+    decoration: BoxDecoration(color: context.appColorScheme.aiResponseBackground, borderRadius: BorderRadius.circular(AppSizes.r20)),
     child: Row(
       children: [
         Container(
@@ -72,7 +70,8 @@ class GoalDashboardSection extends StatelessWidget {
       items: [
         if (insight.healingGoal != null) DashboardDetailItem(title: insight.healingGoal!, subtitle: AppStrings.activeGoal, icon: AppIcons.target, color: context.appColorScheme.textPrimary),
         if (insight.healingGoal != null && insight.triggerSymptom != null) Gap.h12,
-        if (insight.triggerSymptom != null) DashboardDetailItem(title: insight.triggerSymptom!, subtitle: AppStrings.symptomWatch, icon: AppIcons.activity, color: context.appColorScheme.textSecondary),
+        if (insight.triggerSymptom != null)
+          DashboardDetailItem(title: insight.triggerSymptom!, subtitle: AppStrings.symptomWatch, icon: AppIcons.activity, color: context.appColorScheme.textSecondary),
       ],
       footerLabel: AppStrings.viewGoalProgress,
       onFooterTap: () => _showFocusDetails(context),
@@ -264,11 +263,17 @@ class PatternsDashboardSection extends StatelessWidget {
       title: AppStrings.yourPatterns,
       subtitle: AppStrings.detectedPatterns,
       visualization: const DashboardIconVisualization(icon: AppIcons.brain),
-      items: insight.detectedPatterns.take(2).map((p) {
-        final color = InsightUiUtils.getPatternColor(p.icon);
+      items: insight.detectedPatterns.take(2).map<Widget>((BodyPattern p) {
+        final color = InsightUiUtils.getPatternColor(p.type);
         return Padding(
           padding: EdgeInsets.only(bottom: AppSizes.p12),
-          child: DashboardDetailItem(title: p.title, subtitle: AppStrings.observation, icon: InsightUiUtils.getReactionIcon(p.icon), color: color),
+          child: DashboardDetailItem(
+            title: p.trigger.toUpperCase(),
+            subtitle: AppStrings.observation,
+            icon: InsightUiUtils.getPatternTypeIcon(p.type),
+            color: color,
+            onTap: () => context.push(AppRoutes.patternDetail, extra: p),
+          ),
         );
       }).toList(),
       footerLabel: AppStrings.viewDetailedPatterns,
@@ -284,9 +289,15 @@ class PatternsDashboardSection extends StatelessWidget {
         SheetHeroSection(title: AppStrings.trends, subtitle: AppStrings.behavioralAnalysis, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...insight.detectedPatterns.map(
-          (p) => Padding(
+          (BodyPattern p) => Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(title: p.title, subtitle: p.description, icon: InsightUiUtils.getReactionIcon(p.icon), color: InsightUiUtils.getPatternColor(p.icon)),
+            child: DashboardDetailItem(
+              title: p.trigger.toUpperCase(),
+              subtitle: p.description,
+              icon: InsightUiUtils.getPatternTypeIcon(p.type),
+              color: InsightUiUtils.getPatternColor(p.type),
+              onTap: () => context.push(AppRoutes.patternDetail, extra: p),
+            ),
           ),
         ),
         Gap.h32,

@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/models/pattern_occurrence.dart';
+import 'package:gutgood/core/utils/model_utils.dart';
 
 class BodyPattern extends Equatable {
   const BodyPattern({
@@ -11,18 +13,26 @@ class BodyPattern extends Equatable {
     this.involvedFoods = const [],
     this.recommendation,
     required this.updatedAt,
+    this.occurrences = const [],
+    this.commonFactors = const [],
+    this.totalSimilarMeals = 0,
+    this.timeframeDays = 30,
   });
 
   factory BodyPattern.fromMap(Map<String, dynamic> map) => BodyPattern(
-    type: map['type'] ?? '',
-    trigger: map['trigger'] ?? '',
-    reaction: map['reaction'] ?? '',
-    frequency: (map['frequency'] as num?)?.toInt() ?? 0,
-    confidence: map['confidence'] ?? 'Moderate',
-    description: map['description'] ?? '',
+    type: (map['type'] ?? map['category'] ?? '').toString(),
+    trigger: (map['trigger'] ?? map['title'] ?? map['name'] ?? '').toString(),
+    reaction: (map['reaction'] ?? map['effect'] ?? '').toString(),
+    frequency: (map['frequency'] as num?)?.toInt() ?? 1,
+    confidence: (map['confidence'] ?? map['strength'] ?? 'Moderate').toString(),
+    description: (map['description'] ?? map['observation'] ?? '').toString(),
     involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
-    recommendation: map['recommendation'] as String?,
+    recommendation: (map['recommendation'] ?? (map['nextSteps'] is List ? (map['nextSteps'] as List).firstOrNull : null))?.toString(),
     updatedAt: map['updatedAt'] ?? DateTime.now().toIso8601String(),
+    occurrences: ModelUtils.parseModelList<PatternOccurrence>(map['occurrences'], PatternOccurrence.fromMap),
+    commonFactors: ModelUtils.parseModelList<CommonFactor>(map['commonFactors'], CommonFactor.fromMap),
+    totalSimilarMeals: (map['totalSimilarMeals'] as num?)?.toInt() ?? 0,
+    timeframeDays: (map['timeframeDays'] as num?)?.toInt() ?? 30,
   );
 
   final String type;
@@ -34,6 +44,12 @@ class BodyPattern extends Equatable {
   final List<String> involvedFoods;
   final String? recommendation;
   final String updatedAt;
+
+  // New fields for detailed view
+  final List<PatternOccurrence> occurrences;
+  final List<CommonFactor> commonFactors;
+  final int totalSimilarMeals;
+  final int timeframeDays;
 
   // Insight Categories
   static const String typeBloating = 'bloating';
@@ -59,8 +75,12 @@ class BodyPattern extends Equatable {
     'involvedFoods': involvedFoods,
     'recommendation': recommendation,
     'updatedAt': updatedAt,
+    'occurrences': occurrences.map((e) => e.toMap()).toList(),
+    'commonFactors': commonFactors.map((e) => e.toMap()).toList(),
+    'totalSimilarMeals': totalSimilarMeals,
+    'timeframeDays': timeframeDays,
   };
 
   @override
-  List<Object?> get props => [type, trigger, reaction, frequency, confidence, description, involvedFoods, recommendation, updatedAt];
+  List<Object?> get props => [type, trigger, reaction, frequency, confidence, description, involvedFoods, recommendation, updatedAt, occurrences, commonFactors, totalSimilarMeals, timeframeDays];
 }

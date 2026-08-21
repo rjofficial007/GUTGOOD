@@ -7,7 +7,8 @@ Each major feature is governed by a dedicated `ChangeNotifier` class.
 
 ### Key Notifiers:
 - **`GutAuthNotifier`:** Manages authentication state (`isAuthenticated`, `isAnonymous`, `isMerging`). Triggers global router redirects.
-- **`ChatNotifier`:** Manages the conversational state. Orchestrates the **Multi-layered Intent Engine** (Local Keywords + AI Classifier) to switch between specialized personas (Swaps, Planning, Rating, etc.) dynamically. Handles history optimization to prevent 502 errors.
+- **`ChatComposerNotifier`:** Manages the input and streaming state of the chat. Orchestrates the **Multi-layered Intent Engine** (Local Keywords + AI Classifier) to switch between specialized personas (Swaps, Planning, Rating, etc.) dynamically.
+- **`ChatHistoryNotifier`:** Manages message history, loading state, and Firestore synchronization. Handles history optimization to prevent 502 errors.
 - **`ScannerNotifier`:** Tracks scanning progress (`isProcessing`) and the latest `ScanResult`.
 - **`ProfileNotifier`:** Manages user health settings (Goals, Sensitivities) and the onboarding process.
 - **`InsightsNotifier`:** Manages the loading and caching of AI-generated health recaps.
@@ -24,7 +25,8 @@ runApp(
     providers: [
       ChangeNotifierProvider(create: (_) => sl<GutAuthNotifier>()),
       ChangeNotifierProvider(create: (_) => sl<ProfileNotifier>()),
-      ChangeNotifierProvider(create: (_) => sl<ChatNotifier>()),
+      ChangeNotifierProvider(create: (_) => sl<ChatHistoryNotifier>()),
+      ChangeNotifierProvider(create: (_) => sl<ChatComposerNotifier>()),
       // ...
     ],
     child: const GutGoodApp(),
@@ -36,9 +38,9 @@ runApp(
 
 ## 3. Event Flow & UI Updates
 1. **User Action:** The user taps a button (e.g., "Send Message").
-2. **Method Call:** The UI calls a method on the Notifier (`chatNotifier.send(...)`).
-3. **Internal Logic:** The Notifier performs logic, updates private fields (e.g., `_isLoading = true`), and calls `notifyListeners()`.
-4. **Reactive UI:** Widgets using `context.watch<ChatNotifier>()` or `Consumer<ChatNotifier>` automatically rebuild with the new state.
+2. **Method Call:** The UI calls a method on the Composer Notifier (`chatComposerNotifier.sendMessage(...)`).
+3. **Internal Logic:** The Notifier performs logic, updates private fields (e.g., `_isStreaming = true`), and calls `notifyListeners()`.
+4. **Reactive UI:** Widgets using `context.watch<ChatComposerNotifier>()` or `Consumer<ChatHistoryNotifier>` automatically rebuild with the new state.
 
 ---
 
@@ -54,4 +56,4 @@ To provide a "snappy" feel despite network latency, features like Chat use an op
 Notifiers depend on Repository interfaces, which are injected via `GetIt`. This allows the Notifier to remain agnostic of the underlying data source (e.g., whether data comes from a local cache or a remote API).
 
 **Example:**
-`ChatNotifier` -> `ChatRepository` -> `FirestoreService` & `AiService`.
+`ChatComposerNotifier` -> `ChatHistoryNotifier` -> `ChatRepository` -> `FirestoreService` & `AiService`.

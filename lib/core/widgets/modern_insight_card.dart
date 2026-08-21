@@ -111,12 +111,16 @@ class ModernInsightCard extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              if (leading != null) leading! else if (icon != null) Icon(icon, color: iconColor ?? context.appColorScheme.textPrimary, size: 20.0.w),
-                              if (leading != null || icon != null) Gap.w12,
-                              Text(title.toUpperCase(), style: context.eyebrow.copyWith(color: titleColor ?? context.appColorScheme.textPrimary, letterSpacing: 1.2)),
-                            ],
+                          Expanded(
+                            child: Row(
+                              children: [
+                                if (leading != null) leading! else if (icon != null) Icon(icon, color: iconColor ?? context.appColorScheme.textPrimary, size: 20.0.w),
+                                if (leading != null || icon != null) Gap.w12,
+                                Expanded(
+                                  child: Text(title.toUpperCase(), style: context.eyebrow.copyWith(color: titleColor ?? context.appColorScheme.textPrimary, letterSpacing: 1.2)),
+                                ),
+                              ],
+                            ),
                           ),
                           ?actionWidget,
                         ],

@@ -2,7 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/health_alert.dart';
+import 'package:gutgood/core/models/meal_log.dart';
+import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
@@ -96,9 +100,11 @@ class InsightRepositoryImpl implements InsightRepository {
       return;
     }
 
-    final scanCount = await _historyFirestoreService.getTotalScansCount();
-    final mealCount = await _historyFirestoreService.getTotalMealLogsCount();
-    final symptomCount = await _historyFirestoreService.getTotalSymptomsCount();
+    final counts = await Future.wait([_historyFirestoreService.getTotalScansCount(), _historyFirestoreService.getTotalMealLogsCount(), _historyFirestoreService.getTotalSymptomsCount()]);
+
+    final scanCount = counts[0];
+    final mealCount = counts[1];
+    final symptomCount = counts[2];
 
     // 🟢 Non-Negotiable: Do not generate insight until minimum data threshold is reached.
     // Logic: Either 3 Scans OR (3 Meals AND 1 Symptom).
@@ -126,9 +132,25 @@ class InsightRepositoryImpl implements InsightRepository {
     final historyJson = jsonEncode(relevantChat.map((m) => m.toAiMap()).toList());
     final historySummary = profile?.chatSummary;
 
-    final recentMeals = await _historyFirestoreService.getRecentMealLogs(limit: 30);
-    final symptomLogs = await _historyFirestoreService.getRecentSymptomLogs(limit: 30);
-    final recentScans = await _historyFirestoreService.getRecentScans(limit: 20);
+    final dataStreams = await Future.wait([
+      _historyFirestoreService.getRecentMealLogs(limit: 30),
+      _historyFirestoreService.getRecentSymptomLogs(limit: 30),
+      _historyFirestoreService.getRecentScans(limit: 20),
+      _insightFirestoreService.getInsightsHistory(),
+      _insightFirestoreService.getLatestPatterns(),
+    ]);
+
+    final recentMeals = dataStreams[0] as List<MealLog>;
+    final symptomLogs = dataStreams[1] as List<SymptomLog>;
+    final recentScans = dataStreams[2] as List<ScanResult>;
+    final history = dataStreams[3] as List<AIInsight>;
+    final latestPatterns = dataStreams[4] as List<BodyPattern>;
+    // Take the last 6 scores, ensure they are in ASCENDING chronological order (Oldest -> Newest)
+    final scoreList = history.take(6).toList().reversed.toList();
+    final scoreHistoryString = scoreList.map((i) => i.gutScore).join(', ');
+    final lastScore = scoreList.isNotEmpty ? scoreList.last.gutScore : null;
+
+    final preComputedPatternCandidates = latestPatterns.isNotEmpty ? jsonEncode(latestPatterns.map((p) => p.toMap()).toList()) : null;
 
     // 🟢 Fix: Do not generate insight if the core data streams are insufficient for analysis.
     // A "Cause & Effect" analysis requires at least some meals or scans to analyze.
@@ -139,15 +161,10 @@ class InsightRepositoryImpl implements InsightRepository {
 
     final mealsJson = jsonEncode(recentMeals.map((m) => m.toMap()).toList());
     final symptomsJson = jsonEncode(symptomLogs.map((m) => m.toMap()).toList());
-    // 🟢 Fix: Use toAiMap() for scans to avoid 502/payload errors
     final scansJson = jsonEncode(recentScans.map((s) => s.toAiMap()).toList());
 
-    final history = await _insightFirestoreService.getInsightsHistory();
-    // Take the last 6 scores, ensure they are in ASCENDING chronological order (Oldest -> Newest)
-    final scoreHistory = history.take(6).toList().reversed.map((i) => i.gutScore).join(', ');
-
     try {
-      AppLogger.insights('Generating insight. History: ${scoreHistory.isEmpty ? "None" : scoreHistory}');
+      AppLogger.insights('Generating insight. Last Score: $lastScore, History: $scoreHistoryString');
       final startTime = DateTime.now();
 
       final cleanJson = await _aiService.generateContent(
@@ -161,7 +178,8 @@ class InsightRepositoryImpl implements InsightRepository {
           mealsJson: mealsJson,
           symptomsJson: symptomsJson,
           scansJson: scansJson,
-          scoreHistory: scoreHistory.isEmpty ? null : scoreHistory,
+          scoreHistory: scoreHistoryString.isEmpty ? null : 'Score history (oldest to newest): $scoreHistoryString. Most recent score is $lastScore.',
+          preComputedPatternCandidates: preComputedPatternCandidates,
         ),
       );
 

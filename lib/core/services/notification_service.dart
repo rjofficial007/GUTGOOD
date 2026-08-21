@@ -31,22 +31,11 @@ class NotificationIds {
 
 abstract class NotificationService {
   Future<void> init();
-  Future<void> showNotification({
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-  });
+  Future<void> showNotification({required int id, required String title, required String body, String? payload});
   static Future<void> showBackgroundNotification(RemoteMessage message) async {
     // This will be implemented in the child class or as a standalone logic
   }
-  Future<void> scheduleNotification({
-    required int id,
-    required String title,
-    required String body,
-    required DateTime scheduledDate,
-    String? payload,
-  });
+  Future<void> scheduleNotification({required int id, required String title, required String body, required DateTime scheduledDate, String? payload});
   Future<void> schedulePostMealCheckIn();
   Future<void> scheduleBreakfastReminder(int hour, int minute);
   Future<void> scheduleLunchReminder(int hour, int minute);
@@ -90,52 +79,29 @@ class NotificationServiceImpl implements NotificationService {
     tz.setLocalLocation(tz.getLocation(timeZoneName));
 
     const androidSettings = AndroidInitializationSettings('ic_notification');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    const iosSettings = DarwinInitializationSettings(requestAlertPermission: true, requestBadgePermission: true, requestSoundPermission: true);
 
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+    const initSettings = InitializationSettings(android: androidSettings, iOS: iosSettings);
 
     await _notifications.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (details) {
-        AppLogger.info(
-          'NotificationService: Tapped payload: ${details.payload}',
-        );
+        AppLogger.info('NotificationService: Tapped payload: ${details.payload}');
         _handleNotificationTap(details.payload);
       },
     );
 
     // Create high importance channel for Android
     if (defaultTargetPlatform == TargetPlatform.android) {
-      const channel = AndroidNotificationChannel(
-        'gutgood_reminders',
-        'GutGood Reminders',
-        description:
-            'This channel is used for important health alerts and reminders.',
-        importance: Importance.max,
-      );
+      const channel = AndroidNotificationChannel('gutgood_reminders', 'GutGood Reminders', description: 'This channel is used for important health alerts and reminders.', importance: Importance.max);
 
-      await _notifications
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.createNotificationChannel(channel);
+      await _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
     }
 
     // Initialize FCM
     try {
       final messaging = FirebaseMessaging.instance;
-      final settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         final token = await messaging.getToken();
@@ -148,9 +114,7 @@ class NotificationServiceImpl implements NotificationService {
 
       // 🟢 Fix: Listen for messages while the app is in the FOREGROUND
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        AppLogger.debug(
-          'NotificationService: Foreground message received: ${message.messageId}',
-        );
+        AppLogger.debug('NotificationService: Foreground message received: ${message.messageId}');
         // Manually show the notification since iOS/Android suppress them in foreground
         showBackgroundNotification(message);
       });
@@ -166,51 +130,23 @@ class NotificationServiceImpl implements NotificationService {
         await Permission.scheduleExactAlarm.request();
       }
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-      await _notifications
-          .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin
-          >()
-          ?.requestPermissions(alert: true, badge: true, sound: true);
+      await _notifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(alert: true, badge: true, sound: true);
     }
 
     AppLogger.notifs('Initialized');
   }
 
   NotificationDetails get _defaultDetails => const NotificationDetails(
-    iOS: DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    ),
-    android: AndroidNotificationDetails(
-      'gutgood_reminders',
-      'GutGood Reminders',
-      importance: Importance.max,
-      priority: Priority.high,
-      color: AppPalette.black,
-    ),
+    iOS: DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true),
+    android: AndroidNotificationDetails('gutgood_reminders', 'GutGood Reminders', importance: Importance.max, priority: Priority.high, color: AppPalette.black),
   );
 
   @override
-  Future<void> showNotification({
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-  }) async {
+  Future<void> showNotification({required int id, required String title, required String body, String? payload}) async {
     try {
-      await _notifications.show(
-        id: id,
-        title: title,
-        body: body,
-        notificationDetails: _defaultDetails,
-        payload: payload,
-      );
+      await _notifications.show(id: id, title: title, body: body, notificationDetails: _defaultDetails, payload: payload);
     } catch (e) {
-      AppLogger.error(
-        'NotificationService: Error showing immediately',
-        error: e,
-      );
+      AppLogger.error('NotificationService: Error showing immediately', error: e);
     }
   }
 
@@ -220,49 +156,20 @@ class NotificationServiceImpl implements NotificationService {
 
     final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
-    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'gutgood_reminders',
-      'GutGood Reminders',
-      importance: Importance.max,
-      priority: Priority.high,
-      color: AppPalette.black,
-    );
+    const androidPlatformChannelSpecifics = AndroidNotificationDetails('gutgood_reminders', 'GutGood Reminders', importance: Importance.max, priority: Priority.high, color: AppPalette.black);
 
-    const platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-      iOS: DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      ),
-    );
+    const platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics, iOS: DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true));
 
     // 🟢 Fix: Use a dynamic ID for background notifications to prevent overwriting
     // when multiple push messages arrive in a short window.
-    final id =
-        NotificationIds.firebaseBackground +
-        (message.messageId?.hashCode ?? 0) % 1000;
+    final id = NotificationIds.firebaseBackground + (message.messageId?.hashCode ?? 0) % 1000;
 
-    await flutterLocalNotificationsPlugin.show(
-      id: id,
-      title: notification.title,
-      body: notification.body,
-      notificationDetails: platformChannelSpecifics,
-      payload: message.data['type'],
-    );
+    await flutterLocalNotificationsPlugin.show(id: id, title: notification.title, body: notification.body, notificationDetails: platformChannelSpecifics, payload: message.data['type']);
   }
 
   @override
-  Future<void> scheduleNotification({
-    required int id,
-    required String title,
-    required String body,
-    required DateTime scheduledDate,
-    String? payload,
-  }) async {
-    AppLogger.info(
-      'NotificationService: Scheduling notification "$title" (ID: $id) for $scheduledDate',
-    );
+  Future<void> scheduleNotification({required int id, required String title, required String body, required DateTime scheduledDate, String? payload}) async {
+    AppLogger.info('NotificationService: Scheduling notification "$title" (ID: $id) for $scheduledDate');
     try {
       await _notifications.zonedSchedule(
         id: id,
@@ -273,14 +180,9 @@ class NotificationServiceImpl implements NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: payload,
       );
-      AppLogger.info(
-        'NotificationService: Notification $id scheduled successfully (Exact).',
-      );
+      AppLogger.info('NotificationService: Notification $id scheduled successfully (Exact).');
     } catch (e) {
-      AppLogger.error(
-        'NotificationService: Failed to schedule exact notification $id, trying inexact.',
-        error: e,
-      );
+      AppLogger.error('NotificationService: Failed to schedule exact notification $id, trying inexact.', error: e);
       if (e.toString().contains('exact_alarms_not_permitted')) {
         await _notifications.zonedSchedule(
           id: id,
@@ -291,44 +193,23 @@ class NotificationServiceImpl implements NotificationService {
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           payload: payload,
         );
-        AppLogger.info(
-          'NotificationService: Notification $id scheduled successfully (Inexact).',
-        );
+        AppLogger.info('NotificationService: Notification $id scheduled successfully (Inexact).');
       } else {
-        AppLogger.error(
-          'NotificationService: Critical failure scheduling notification $id',
-          error: e,
-        );
+        AppLogger.error('NotificationService: Critical failure scheduling notification $id', error: e);
         rethrow;
       }
     }
   }
 
-  Future<void> _scheduleDaily({
-    required int id,
-    required String title,
-    required String body,
-    required int hour,
-    required int minute,
-    String? payload,
-  }) async {
+  Future<void> _scheduleDaily({required int id, required String title, required String body, required int hour, required int minute, String? payload}) async {
     final now = tz.TZDateTime.now(tz.local);
-    var scheduled = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
-    );
+    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
 
     try {
-      AppLogger.info(
-        'NotificationService: Scheduling daily "$title" (ID: $id) for ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
-      );
+      AppLogger.info('NotificationService: Scheduling daily "$title" (ID: $id) for ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
       await _notifications.zonedSchedule(
         id: id,
         title: title,
@@ -341,9 +222,7 @@ class NotificationServiceImpl implements NotificationService {
       );
     } catch (e) {
       if (e.toString().contains('exact_alarms_not_permitted')) {
-        AppLogger.warning(
-          'NotificationService: Using inexact scheduling for daily $id',
-        );
+        AppLogger.warning('NotificationService: Using inexact scheduling for daily $id');
         await _notifications.zonedSchedule(
           id: id,
           title: title,
@@ -355,10 +234,7 @@ class NotificationServiceImpl implements NotificationService {
           payload: payload,
         );
       } else {
-        AppLogger.error(
-          'NotificationService: Failed to schedule daily $id',
-          error: e,
-        );
+        AppLogger.error('NotificationService: Failed to schedule daily $id', error: e);
         rethrow;
       }
     }
@@ -367,38 +243,23 @@ class NotificationServiceImpl implements NotificationService {
   @override
   Future<void> schedulePostMealCheckIn() async {
     final scheduledTime = DateTime.now().add(const Duration(hours: 2));
-    AppLogger.info(
-      'NotificationService: Triggering schedulePostMealCheckIn for $scheduledTime',
-    );
-    await scheduleNotification(
-      id: NotificationIds.postMealCheckIn,
-      title: AppStrings.notifMealCheckTitle,
-      body: AppStrings.notifMealCheckBody,
-      scheduledDate: scheduledTime,
-      payload: 'symptom_check',
-    );
+    AppLogger.info('NotificationService: Triggering schedulePostMealCheckIn for $scheduledTime');
+    await scheduleNotification(id: NotificationIds.postMealCheckIn, title: AppStrings.notifMealCheckTitle, body: AppStrings.notifMealCheckBody, scheduledDate: scheduledTime, payload: 'symptom_check');
   }
 
   @override
-  Future<void> scheduleBreakfastReminder(int hour, int minute) =>
-      _scheduleDaily(
-        id: NotificationIds.breakfastReminder,
-        title: AppStrings.notifMealReminderTitle,
-        body: AppStrings.notifMealReminderBody,
-        hour: hour,
-        minute: minute,
-        payload: 'meal_reminder_breakfast',
-      );
-
-  @override
-  Future<void> scheduleLunchReminder(int hour, int minute) => _scheduleDaily(
-    id: NotificationIds.lunchReminder,
-    title: AppStrings.notifLunchReminderTitle,
-    body: AppStrings.notifLunchReminderBody,
+  Future<void> scheduleBreakfastReminder(int hour, int minute) => _scheduleDaily(
+    id: NotificationIds.breakfastReminder,
+    title: AppStrings.notifMealReminderTitle,
+    body: AppStrings.notifMealReminderBody,
     hour: hour,
     minute: minute,
-    payload: 'meal_reminder_lunch',
+    payload: 'meal_reminder_breakfast',
   );
+
+  @override
+  Future<void> scheduleLunchReminder(int hour, int minute) =>
+      _scheduleDaily(id: NotificationIds.lunchReminder, title: AppStrings.notifLunchReminderTitle, body: AppStrings.notifLunchReminderBody, hour: hour, minute: minute, payload: 'meal_reminder_lunch');
 
   @override
   Future<void> scheduleDinnerReminder(int hour, int minute) => _scheduleDaily(
@@ -411,47 +272,28 @@ class NotificationServiceImpl implements NotificationService {
   );
 
   @override
-  Future<void> scheduleScanReminder(int hour, int minute) => _scheduleDaily(
-    id: NotificationIds.scanReminder,
-    title: AppStrings.notifFoodScanReminderTitle,
-    body: AppStrings.notifFoodScanReminderBody,
+  Future<void> scheduleScanReminder(int hour, int minute) =>
+      _scheduleDaily(id: NotificationIds.scanReminder, title: AppStrings.notifFoodScanReminderTitle, body: AppStrings.notifFoodScanReminderBody, hour: hour, minute: minute, payload: 'scan_reminder');
+
+  @override
+  Future<void> scheduleRestaurantReminder(int hour, int minute) => _scheduleDaily(
+    id: NotificationIds.restaurantReminder,
+    title: AppStrings.notifRestaurantReminderTitle,
+    body: AppStrings.notifRestaurantReminderBody,
     hour: hour,
     minute: minute,
-    payload: 'scan_reminder',
+    payload: 'restaurant_reminder',
   );
 
   @override
-  Future<void> scheduleRestaurantReminder(int hour, int minute) =>
-      _scheduleDaily(
-        id: NotificationIds.restaurantReminder,
-        title: AppStrings.notifRestaurantReminderTitle,
-        body: AppStrings.notifRestaurantReminderBody,
-        hour: hour,
-        minute: minute,
-        payload: 'restaurant_reminder',
-      );
-
-  @override
-  Future<void> scheduleNoMealLoggedReminder({
-    int hour = 19,
-    int minute = 0,
-  }) async {
+  Future<void> scheduleNoMealLoggedReminder({int hour = 19, int minute = 0}) async {
     // 🟡 Fix: Use local start of day to match the user's local day experience.
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
-    final count = await _historyFirestoreService.getMealLogsCountSince(
-      startOfToday,
-    );
+    final count = await _historyFirestoreService.getMealLogsCountSince(startOfToday);
 
     if (count == 0) {
-      await _scheduleDaily(
-        id: NotificationIds.noMealLogged,
-        title: AppStrings.notifNoMealLoggedTitle,
-        body: AppStrings.notifNoMealLoggedBody,
-        hour: hour,
-        minute: minute,
-        payload: 'no_meal_logged',
-      );
+      await _scheduleDaily(id: NotificationIds.noMealLogged, title: AppStrings.notifNoMealLoggedTitle, body: AppStrings.notifNoMealLoggedBody, hour: hour, minute: minute, payload: 'no_meal_logged');
     } else {
       await cancel(NotificationIds.noMealLogged);
     }
@@ -459,14 +301,7 @@ class NotificationServiceImpl implements NotificationService {
 
   @override
   Future<void> scheduleDailyReminder({int hour = 9, int minute = 0}) =>
-      _scheduleDaily(
-        id: NotificationIds.dailyReminder,
-        title: AppStrings.notifDailyCheckInTitle,
-        body: AppStrings.notifDailyCheckInBody,
-        hour: hour,
-        minute: minute,
-        payload: 'daily_reminder',
-      );
+      _scheduleDaily(id: NotificationIds.dailyReminder, title: AppStrings.notifDailyCheckInTitle, body: AppStrings.notifDailyCheckInBody, hour: hour, minute: minute, payload: 'daily_reminder');
 
   @override
   Future<void> markAppOpened() async {
@@ -481,15 +316,8 @@ class NotificationServiceImpl implements NotificationService {
 
   @override
   Future<void> showInsightGeneratedNotification() async {
-    AppLogger.info(
-      'NotificationService: Showing local insight generated notification.',
-    );
-    await showNotification(
-      id: NotificationIds.insightGenerated,
-      title: AppStrings.notifInsightGeneratedTitle,
-      body: AppStrings.notifInsightGeneratedBody,
-      payload: 'insight_generated',
-    );
+    AppLogger.info('NotificationService: Showing local insight generated notification.');
+    await showNotification(id: NotificationIds.insightGenerated, title: AppStrings.notifInsightGeneratedTitle, body: AppStrings.notifInsightGeneratedBody, payload: 'insight_generated');
   }
 
   @override
@@ -497,14 +325,7 @@ class NotificationServiceImpl implements NotificationService {
     if (currentStreak == 0) return;
 
     final now = tz.TZDateTime.now(tz.local);
-    var scheduledTime = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      20,
-      0,
-    );
+    var scheduledTime = tz.TZDateTime(tz.local, now.year, now.month, now.day, 20, 0);
 
     // 🟢 Fix: If it's already past 8:00 PM today, schedule for tomorrow evening.
     if (scheduledTime.isBefore(now)) {
@@ -512,22 +333,11 @@ class NotificationServiceImpl implements NotificationService {
     }
 
     const title = AppStrings.notifStreakSaverTitle;
-    final body = AppStrings.notifStreakSaverBody.replaceFirst(
-      '{streak}',
-      currentStreak.toString(),
-    );
+    final body = AppStrings.notifStreakSaverBody.replaceFirst('{streak}', currentStreak.toString());
 
-    await scheduleNotification(
-      id: NotificationIds.streakSaver,
-      title: title,
-      body: body,
-      scheduledDate: scheduledTime,
-      payload: 'streak_saver',
-    );
+    await scheduleNotification(id: NotificationIds.streakSaver, title: title, body: body, scheduledDate: scheduledTime, payload: 'streak_saver');
 
-    AppLogger.info(
-      'NotificationService: Streak saver scheduled for $scheduledTime',
-    );
+    AppLogger.info('NotificationService: Streak saver scheduled for $scheduledTime');
   }
 
   @override
@@ -541,8 +351,7 @@ class NotificationServiceImpl implements NotificationService {
   }
 
   @override
-  Future<void> cancelNoMealLoggedReminder() =>
-      cancel(NotificationIds.noMealLogged);
+  Future<void> cancelNoMealLoggedReminder() => cancel(NotificationIds.noMealLogged);
 
   @override
   Future<void> cancelDailyReminder() => cancel(NotificationIds.dailyReminder);
@@ -565,25 +374,16 @@ class NotificationServiceImpl implements NotificationService {
 
   @override
   Future<void> testNotification() async {
-    await showNotification(
-      id: 999,
-      title: 'GutGood Test',
-      body:
-          'This is a test notification to verify FCM and local channels are working! 🚀',
-      payload: 'test_notification',
-    );
+    await showNotification(id: 999, title: 'GutGood Test', body: 'This is a test notification to verify FCM and local channels are working! 🚀', payload: 'test_notification');
   }
 
   void _handleNotificationTap(String? payload) {
     if (payload == null) return;
     AppLogger.notifs('Handling tap for payload: $payload');
 
-    if (payload == 'symptom_check' ||
-        payload == 'daily_reminder' ||
-        payload == 'streak_saver') {
-      AppNavigator.push(AppRoutes.symptomCheckIn);
-    } else if (payload.startsWith('meal_reminder_') ||
-        payload == 'no_meal_logged') {
+    if (payload == 'symptom_check' || payload == 'daily_reminder' || payload == 'streak_saver') {
+      AppNavigator.push(AppRoutes.chat);
+    } else if (payload.startsWith('meal_reminder_') || payload == 'no_meal_logged') {
       AppNavigator.push(AppRoutes.chat);
     } else if (payload == 'insight_generated') {
       AppNavigator.push(AppRoutes.insights);
@@ -592,9 +392,7 @@ class NotificationServiceImpl implements NotificationService {
     } else if (payload == 'health_alert' || payload == 'processed_food') {
       AppNavigator.push(AppRoutes.notificationArchive);
     } else {
-      AppLogger.warning(
-        'NotificationService: Unknown payload type tapped: $payload',
-      );
+      AppLogger.warning('NotificationService: Unknown payload type tapped: $payload');
       AppNavigator.push(AppRoutes.chat);
     }
   }

@@ -110,7 +110,7 @@ void main() {
           return mockCredential;
         });
         when(
-          () => mockFirestoreService.updateUserProfile(any()),
+          () => mockFirestoreService.saveUserProfile(any()),
         ).thenAnswer((_) async {});
         when(
           () => mockSharedPreferences.setBool(any(), any()),
@@ -131,7 +131,7 @@ void main() {
         await repository.signInAnonymously();
 
         verify(() => mockFirebaseAuth.signInAnonymously()).called(1);
-        verify(() => mockFirestoreService.updateUserProfile(any())).called(1);
+        verify(() => mockFirestoreService.saveUserProfile(any())).called(1);
         verify(
           () => mockSharedPreferences.setBool('onboarded', false),
         ).called(1);

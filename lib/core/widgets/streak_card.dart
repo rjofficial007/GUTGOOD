@@ -86,7 +86,7 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
                     children: [
                       Text(
                         '${widget.streak} DAYS',
-                        style: context.title.copyWith(color: textColor, height: 1.1, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
+                        style: context.headingMd.copyWith(color: textColor, height: 1.1, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
                       ),
                       Text(
                         'DAILY STREAK',
@@ -104,7 +104,7 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
                       children: [
                         TextSpan(
                           text: '${widget.gutScore}',
-                          style: context.title.copyWith(color: textColor, height: 1.1, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
+                          style: context.headingMd.copyWith(color: textColor, height: 1.1, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
                         ),
                         TextSpan(
                           text: ' / 100',
@@ -121,14 +121,13 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
               ),
             ],
           ),
-          Gap.h20,
+          Gap.h10,
           _WeeklyBubbles(lastActivityDate: widget.lastActivityDate, streak: widget.streak),
         ],
       ),
     );
   }
 }
-
 
 class _WeeklyBubbles extends StatelessWidget {
   const _WeeklyBubbles({this.lastActivityDate, required this.streak});
@@ -144,7 +143,7 @@ class _WeeklyBubbles extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric( vertical: AppSizes.p12),
+      padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
       decoration: BoxDecoration(color: scheme.border.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(24)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -167,8 +166,6 @@ class _WeeklyBubbles extends StatelessWidget {
             }
           }
 
-          final isMissed = !isStreakDay && day.isBefore(todayMidnight);
-
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -182,7 +179,7 @@ class _WeeklyBubbles extends StatelessWidget {
                 ),
                 child: isStreakDay
                     ? Icon(AppIcons.flame, size: 14, color: scheme.cardBackground)
-                    : (isToday ? Icon(AppIcons.flame, size: 14, color: scheme.textPrimary) : (isMissed ? Icon(AppIcons.flame, size: 14, color: scheme.textPrimary.withValues(alpha: 0.5)) : null)),
+                    : (isToday ? Icon(AppIcons.flame, size: 14, color: scheme.textPrimary) : Icon(AppIcons.flame, size: 14, color: scheme.textPrimary.withValues(alpha: 0.5))),
               ),
               Gap.h8,
               Text(

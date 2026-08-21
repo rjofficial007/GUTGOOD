@@ -9,6 +9,7 @@ abstract class ScannerRepository {
     required OffProduct product,
     required List<String> goals,
     required List<String> sensitivities,
+    required List<String> lifestyle,
     required String cyclePhase,
     List<OffProduct>? alternatives,
   });

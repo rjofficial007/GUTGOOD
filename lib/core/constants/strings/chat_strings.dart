@@ -5,7 +5,7 @@ class ChatStrings {
   static const String chatAuthMessage = 'Create a free account to save your results and start tracking your GutGood Score.';
   static const String imageUploadAnalysis = 'Image Upload Analysis 📷';
 
-  static const String visionScanPlaceholder = 'I scanned an item with AI.';
+  static const String visionScanPlaceholder = 'I scanned an item for insights.';
 
   static const String restaurantSurvivalMode = '🍽️ Restaurant Survival Mode: Upload a menu photo to get gut-friendly picks.';
   static const String viewPremiumBenefits = 'View Premium Benefits';

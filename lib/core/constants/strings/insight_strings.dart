@@ -75,7 +75,7 @@ class InsightStrings {
   static const String peakPerformance = 'Peak Performance';
   static const String activityBreakdown = 'Activity Breakdown';
   static const String foodsLogged = 'Foods Logged';
-  static const String aiDrivenFindings = 'AI-DRIVEN FINDINGS';
+  static const String aiDrivenFindings = 'INTELLIGENCE-DRIVEN FINDINGS';
   static const String detectedThisWeek = 'Detected this week';
   static const String overallGutHealthRating = 'OVERALL GUT HEALTH RATING';
   static const String positiveMarkers = 'Positive Markers';
@@ -100,7 +100,7 @@ class InsightStrings {
   static const String avoidNextTime = 'Avoid next time';
   static const String bodyResponses = 'Body Responses';
   static const String responseSensitivity = 'Response sensitivity';
-  static const String aiSummary = 'AI SUMMARY';
+  static const String aiSummary = 'INTELLIGENCE SUMMARY';
   static const String recap = 'RECAP';
   static const String sevenDayAverage = '7-Day Average';
   static const String findings = 'FINDINGS';
@@ -197,16 +197,16 @@ class InsightStrings {
   static const String currentFocusLabel = 'CURRENT FOCUS';
   static const String powerSources = 'POWER SOURCES';
   static const String powerSourcesTitle = 'Power Sources';
-  static const String aiRecommendations = 'AI RECOMMENDATIONS';
+  static const String aiRecommendations = 'RECOMMENDATIONS';
   static const String yourSuccesses = 'YOUR SUCCESSES';
   static const String systemTriggers = 'SYSTEM TRIGGERS';
   static const String systemTriggersTitle = 'System Triggers';
-  static const String aiWarnings = 'AI WARNINGS';
+  static const String aiWarnings = 'SYSTEM WARNINGS';
   static const String yourReactions = 'YOUR REACTIONS';
   static const String insightLabelSuffix = ' INSIGHT';
   static const String topPerformers = 'TOP PERFORMERS';
 
-  static const String aiScanHistory = 'AI SCAN HUB';
+  static const String aiScanHistory = 'SCAN HUB';
   static const String dailyMealJournal = 'DAILY MEAL JOURNAL';
   static const String bodySymptomTracker = 'BODY & SYMPTOM TRACKER';
   static const String viewAllScans = 'View All Scans';

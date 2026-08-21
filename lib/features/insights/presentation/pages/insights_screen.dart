@@ -143,7 +143,7 @@ class _ProgressIndicator extends StatelessWidget {
             style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: context.appColorScheme.textSecondary),
           ),
         ),
-        _ProgressRow(label: 'AI Scans', progress: scanProgress, count: scans, total: 3),
+        _ProgressRow(label: 'Scans', progress: scanProgress, count: scans, total: 3),
       ],
     );
   }
@@ -275,17 +275,40 @@ class _MainDashboardSliver extends StatelessWidget {
       );
     }
 
-    // 4. SYSTEM DISCOVERIES (PatternEngine Data)
-    if (patterns.isNotEmpty) {
+    // 4. SYSTEM DISCOVERIES (PatternEngine Data or AI detectedPatterns fallback)
+    final prioritizedPatterns = patterns;
+    final fallbackPatterns = data.detectedPatterns;
+
+    if (prioritizedPatterns.isNotEmpty || fallbackPatterns.isNotEmpty) {
       sections.add(
         DashboardEntrance(
           delay: 300,
           child: AnalysisCard(
-            metric: '${patterns.length}',
+            metric: '${prioritizedPatterns.isNotEmpty ? prioritizedPatterns.length : fallbackPatterns.length}',
             label: 'SYSTEM DISCOVERIES',
             icon: AppIcons.brain,
             glowColor: AppPalette.purple,
-            items: patterns.map((p) => AnalysisItem(title: p.trigger.toUpperCase(), subtitle: p.description, icon: AppIcons.lightbulb)).toList(),
+            items: prioritizedPatterns.isNotEmpty
+                ? prioritizedPatterns
+                      .map<AnalysisItem>(
+                        (BodyPattern p) => AnalysisItem(
+                          title: p.trigger.toUpperCase(),
+                          subtitle: p.description,
+                          icon: AppIcons.lightbulb,
+                          onTap: () => context.push(AppRoutes.patternDetail, extra: p),
+                        ),
+                      )
+                      .toList()
+                : fallbackPatterns
+                      .map<AnalysisItem>(
+                        (BodyPattern p) => AnalysisItem(
+                          title: p.trigger.toUpperCase(),
+                          subtitle: p.description,
+                          icon: AppIcons.lightbulb,
+                          onTap: () => context.push(AppRoutes.patternDetail, extra: p),
+                        ),
+                      )
+                      .toList(),
           ),
         ),
       );
@@ -334,17 +357,22 @@ class _MainDashboardSliver extends StatelessWidget {
     }
 
     sections.add(
-      GutActionBanner(
-        title: AppStrings.weeklyGutRecap,
-        subtitle: AppStrings.last7DaysReady,
-        icon: AppIcons.salad,
-        onTap: () async {
-          if (await QuotaGuard.check(context, type: QuotaType.premium)) {
-            if (context.mounted) {
-              unawaited(context.push(AppRoutes.weeklyRecap, extra: data));
+      Padding(
+        padding: EdgeInsets.only(top: AppSizes.p10),
+        child: GutActionBanner(
+          title: AppStrings.weeklyGutRecap.toUpperCase(),
+          subtitle: AppStrings.last7DaysReady,
+          icon: AppIcons.salad,
+          backgroundColor: context.appColorScheme.textPrimary,
+          iconColor: context.appColorScheme.cardBackground,
+          onTap: () async {
+            if (await QuotaGuard.check(context, type: QuotaType.premium)) {
+              if (context.mounted) {
+                unawaited(context.push(AppRoutes.weeklyRecap, extra: data));
+              }
             }
-          }
-        },
+          },
+        ),
       ),
     );
 

@@ -193,8 +193,9 @@ class ChatComposerNotifier with ChangeNotifier {
 
     final aiPlaceholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: '', isSwap: false, source: userMsg.source, time: DateTime.now().add(const Duration(milliseconds: 1)));
 
-    _historyNotifier..addOptimisticMessage(userMsg)
-    ..addOptimisticMessage(aiPlaceholder);
+    _historyNotifier
+      ..addOptimisticMessage(userMsg)
+      ..addOptimisticMessage(aiPlaceholder);
     _activeAiLocalId = aiPlaceholder.localId;
 
     _isLoading = true;
@@ -206,8 +207,9 @@ class ChatComposerNotifier with ChangeNotifier {
     var imageUrls = const <String>[];
     if (sending.isNotEmpty) {
       if (_auth.currentUser == null) {
-        _historyNotifier..replaceMessage(userMsg.localId, userMsg.copyWith(isSending: false, sendFailed: true))
-        ..removeMessage(aiPlaceholder.localId);
+        _historyNotifier
+          ..replaceMessage(userMsg.localId, userMsg.copyWith(isSending: false, sendFailed: true))
+          ..removeMessage(aiPlaceholder.localId);
         _finishTurn();
         return ChatSendError.uploadFailed;
       }
@@ -221,8 +223,9 @@ class ChatComposerNotifier with ChangeNotifier {
         );
       } catch (e) {
         AppLogger.ai('Image upload failed', error: e);
-        _historyNotifier..replaceMessage(userMsg.localId, userMsg.copyWith(isSending: false, sendFailed: true))
-        ..removeMessage(aiPlaceholder.localId);
+        _historyNotifier
+          ..replaceMessage(userMsg.localId, userMsg.copyWith(isSending: false, sendFailed: true))
+          ..removeMessage(aiPlaceholder.localId);
         _finishTurn();
         return ChatSendError.uploadFailed;
       }
@@ -422,7 +425,8 @@ class ChatComposerNotifier with ChangeNotifier {
       final minimalHistory = history.length > 5 ? history.sublist(history.length - 5) : history;
       final historyContext = minimalHistory.map((m) => '${m.role.toUpperCase()}: ${m.text}').join('\n');
 
-      final prompt = '''
+      final prompt =
+          '''
 CONVERSATION HISTORY:
 $historyContext
 
@@ -496,7 +500,10 @@ CLASSIFY INTENT:
   void _handleStreamError(Object error, String aiLocalId) {
     _flushTimer?.cancel();
 
-    final currentMsg = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId, orElse: () => ChatMessage(localId: '', role: '', text: '', time: DateTime.now()));
+    final currentMsg = _historyNotifier.messages.firstWhere(
+      (m) => m.localId == aiLocalId,
+      orElse: () => ChatMessage(localId: '', role: '', text: '', time: DateTime.now()),
+    );
     if (currentMsg.localId.isEmpty) {
       _finishTurn();
       return;
@@ -538,7 +545,10 @@ CLASSIFY INTENT:
       return;
     }
 
-    final currentMsg = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId, orElse: () => ChatMessage(localId: '', role: '', text: '', time: DateTime.now()));
+    final currentMsg = _historyNotifier.messages.firstWhere(
+      (m) => m.localId == aiLocalId,
+      orElse: () => ChatMessage(localId: '', role: '', text: '', time: DateTime.now()),
+    );
     if (currentMsg.localId.isEmpty) {
       _finishTurn();
       return;
@@ -546,14 +556,7 @@ CLASSIFY INTENT:
 
     _fullAiText += _chunkBuffer;
     _chunkBuffer = '';
-    final result = _processChatTagUseCase(
-      _fullAiText,
-      imageUrl: currentMsg.imageUrl,
-      source: currentMsg.source,
-      persistedTagBlocks: _persistedTags,
-      persist: _persistTagsForActiveTurn,
-      isFinal: true,
-    );
+    final result = _processChatTagUseCase(_fullAiText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: true);
 
     final finalMsg = currentMsg.copyWith(text: _applySafetyGuardrails(result.text), scanData: result.scanData, swapData: result.swapData);
     _historyNotifier.replaceMessage(aiLocalId, finalMsg);
@@ -605,8 +608,9 @@ CLASSIFY INTENT:
     final userMsg = ChatMessage(localId: const Uuid().v4(), role: 'user', text: '${AppStrings.moreSwapsPrompt}$prompt', isSwap: false, isHidden: true, source: 'chat', time: DateTime.now());
     final aiPlaceholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: AppStrings.findingSwaps, isSwap: false, source: 'chat', time: DateTime.now().add(const Duration(milliseconds: 1)));
 
-    _historyNotifier..addOptimisticMessage(userMsg)
-    ..addOptimisticMessage(aiPlaceholder);
+    _historyNotifier
+      ..addOptimisticMessage(userMsg)
+      ..addOptimisticMessage(aiPlaceholder);
     _isLoading = true;
     notifyListeners();
 

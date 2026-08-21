@@ -8,7 +8,7 @@ This document tracks identified bugs, technical debt, and planned improvements t
 - **Truncated JSON:** The `ModelUtils.extractJson` "auto-repair" logic now handles cases where the LLM cuts off mid-JSON.
 
 ## 2. Technical Debt
-- **Message Deduplication:** The `ChatNotifier` uses `optimisticIds` but the `localId` field in Firestore is not yet strictly enforced as a unique key in security rules.
+- **Message Deduplication:** The `ChatComposerNotifier` uses `optimisticIds` but the `localId` field in Firestore is not yet strictly enforced as a unique key in security rules.
 - **AI Summary Strategy:** The `summarizeHistory` function currently runs after every 6 messages. We have optimized this with tag-stripping, but further windowing could be explored.
 - **Image Compression:** Current image compression in `StorageService` is synchronous. For very large images, this could cause a brief frame drop. Consider moving to an isolate.
 
@@ -24,5 +24,5 @@ This document tracks identified bugs, technical debt, and planned improvements t
 
 ## 4. TODOs in Code
 - [ ] `AuthRepositoryImpl`: Further refine re-authentication logic for sensitive actions (account deletion).
-- [ ] `FirestoreService`: Add batching support for `savePatternData` to reduce write operations.
+- [ ] `InsightFirestoreService`: Add batching support for `savePatternData` to reduce write operations.
 - [ ] `AppRouter`: Refactor the `redirect` logic into a separate `Guard` class to reduce complexity.

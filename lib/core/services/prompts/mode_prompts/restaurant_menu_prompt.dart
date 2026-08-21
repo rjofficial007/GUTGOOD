@@ -17,17 +17,17 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 3. Content: 
 [Relevant Emoji] **[Dish Name 1]**
 [Reason why it's a great choice for gut health].
-💡 *Tip: [A practical modification, e.g., "Ask for sauce on the side"].*
+💡 Tip: [A practical modification, e.g., "Ask for sauce on the side"].
 
 4. Content: 
 [Relevant Emoji] **[Dish Name 2]**
 [Reason why it's a great choice for gut health].
-💡 *Tip: [A practical modification].*
+💡 Tip: [A practical modification].
 
 5. Content: 
 [Relevant Emoji] **[Dish Name 3]**
 [Reason why it's a great choice for gut health].
-💡 *Tip: [A practical modification].*
+💡 Tip: [A practical modification].
 
 6. Header: **The GutGood take:**
 
@@ -40,6 +40,6 @@ FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.
 - STRICT RULE: Never use more than ONE emoji per line.
 - The emoji MUST represent the dish (e.g. 🥗 for Salad, 🥩 for Steak).
-- Ensure the "💡 *Tip:*" is italicized and starts with the lightbulb emoji.
+- Ensure the "💡 Tip:" starts with the lightbulb emoji.
 ''';
 }

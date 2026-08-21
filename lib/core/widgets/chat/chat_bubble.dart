@@ -101,7 +101,7 @@ class ChatBubble extends StatelessWidget {
   Widget _buildLoadingState(BuildContext context) {
     final colorScheme = context.appColorScheme;
     return Semantics(
-      label: 'AI is thinking',
+      label: 'Thinking',
       child: Align(
         alignment: Alignment.centerLeft,
         child: Padding(
@@ -140,7 +140,7 @@ class ChatBubble extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 4),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: context.appColorScheme.textPrimary.withValues(alpha: isSending ? 0.7 : 1.0),
+                  color: context.appColorScheme.textPrimary,
                   borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24), bottomLeft: Radius.circular(24), bottomRight: Radius.circular(6)),
                   border: sendFailed ? Border.all(color: context.appColorScheme.error, width: 1.5) : null,
                 ),
@@ -208,7 +208,7 @@ class ChatBubble extends StatelessWidget {
   Widget _buildAiMessage(BuildContext context, String formattedTime) {
     final colorScheme = context.appColorScheme;
     return Semantics(
-      label: 'AI message: $text',
+      label: 'Message: $text',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

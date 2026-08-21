@@ -23,18 +23,16 @@ class _DashboardEntranceState extends State<DashboardEntrance> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
 
     _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
     );
 
-    _offset = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _offset = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     Future.delayed(Duration(milliseconds: widget.delay), () {
       if (mounted) _controller.forward();
@@ -50,10 +48,7 @@ class _DashboardEntranceState extends State<DashboardEntrance> with SingleTicker
   @override
   Widget build(BuildContext context) => FadeTransition(
     opacity: _opacity,
-    child: SlideTransition(
-      position: _offset,
-      child: widget.child,
-    ),
+    child: SlideTransition(position: _offset, child: widget.child),
   );
 }
 
@@ -104,43 +99,48 @@ class DashboardCard extends StatelessWidget {
 }
 
 class DashboardDetailItem extends StatelessWidget {
-  const DashboardDetailItem({super.key, required this.title, required this.subtitle, required this.icon, required this.color});
+  const DashboardDetailItem({super.key, required this.title, required this.subtitle, required this.icon, required this.color, this.onTap});
   final String title;
   final String subtitle;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Container(
-        padding: EdgeInsets.all(6.0.w),
-        decoration: BoxDecoration(
-          color: context.appColorScheme.elevatedSurface,
-          borderRadius: BorderRadius.circular(8.0.r),
-          border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    behavior: HitTestBehavior.opaque,
+    child: Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(6.0.w),
+          decoration: BoxDecoration(
+            color: context.appColorScheme.elevatedSurface,
+            borderRadius: BorderRadius.circular(8.0.r),
+            border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+          ),
+          child: Icon(icon, color: color, size: 14.0.w),
         ),
-        child: Icon(icon, color: color, size: 14.0.w),
-      ),
-      Gap.w10,
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title.toUpperCase(),
-              style: context.bodyBold.copyWith(fontSize: 12.0.sp, height: 1.1),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              subtitle,
-              style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted, height: 1.1),
-            ),
-          ],
+        Gap.w10,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title.toUpperCase(),
+                style: context.bodyBold.copyWith(fontSize: 12.0.sp, height: 1.1),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                subtitle,
+                style: context.caption.copyWith(fontSize: 10.0.sp, color: context.appColorScheme.textMuted, height: 1.1),
+              ),
+            ],
+          ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 }
 

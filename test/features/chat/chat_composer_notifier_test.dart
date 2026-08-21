@@ -45,6 +45,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(ChatMessage(localId: '', role: '', text: '', time: DateTime.now()));
+    registerFallbackValue(Uint8List(0));
   });
 
   setUp(() {

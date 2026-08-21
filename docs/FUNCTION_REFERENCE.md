@@ -2,15 +2,15 @@
 
 This document details the most critical functions within the GutGood codebase that handle the core features.
 
-## 1. `ChatNotifier.send()`
-**Location:** `lib/features/chat/presentation/providers/chat_provider.dart`
+## 1. `ChatComposerNotifier.sendMessage()`
+**Location:** `lib/features/chat/presentation/providers/chat_composer_notifier.dart`
 
 | Aspect | Detail |
 | --- | --- |
 | **Purpose** | Orchestrates a multi-modal (text + image) AI chat turn. |
 | **Parameters** | `text` (String), `hiddenContext` (String?), `source` (String?). |
-| **Data Flow** | Saves local message -> Uploads images to Storage -> Starts SSE stream via `aiProxy`. |
-| **Side Effects** | Updates `optimisticIds` for race-free UI; triggers `_precomputeSummary`. |
+| **Data Flow** | Saves local message via `ChatHistoryNotifier` -> Uploads images to Storage -> Starts SSE stream via `aiProxy`. |
+| **Side Effects** | Updates `isStreaming` state; triggers automated tagging analysis. |
 | **Error Handling** | Checks `ChatSendError` (Offline, Busy, Quota). |
 
 ---
@@ -61,8 +61,8 @@ This document details the most critical functions within the GutGood codebase th
 
 ---
 
-## 6. `FirestoreServiceImpl.saveToScanHistory()`
-**Location:** `lib/core/services/firestore_service.dart`
+## 6. `HistoryFirestoreService.saveToScanHistory()`
+**Location:** `lib/core/services/firestore/history_firestore_service.dart`
 
 | Aspect | Detail |
 | --- | --- |

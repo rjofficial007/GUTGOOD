@@ -46,7 +46,12 @@ void main() {
     // Default stubs
     when(() => appStateService.profileUpdated).thenReturn(ValueNotifier<bool>(false));
     when(() => appStateService.sessionReset).thenReturn(ValueNotifier<bool>(false));
-    when(() => auth.authStateChanges()).thenAnswer((_) => Stream.value(null));
+    when(() => appStateService.chatUpdated).thenReturn(ValueNotifier<bool>(false));
+    when(() => auth.authStateChanges()).thenAnswer((_) => Stream.value(MockUser()));
+    when(() => authFirestoreService.getUserMetadata()).thenAnswer((_) async => null);
+    when(() => prefs.getStringList(any())).thenReturn(null);
+    when(() => prefs.getBool(any())).thenReturn(null);
+    when(() => prefs.getString(any())).thenReturn(null);
     when(() => chatFirestoreService.getMessagesStream(limit: any(named: 'limit')))
         .thenAnswer((_) => controller.stream);
 
@@ -123,12 +128,10 @@ void main() {
 
       // Simulate Firestore stream emitting the confirmed message
       final serverMsg = msg.copyWith(firestoreId: 'cloud_123');
-      
-      notifier.addOptimisticMessage(msg);
       controller.add([serverMsg]);
 
-      // Give stream some time
-      await Future.delayed(Duration.zero);
+      // Give stream time to process
+      await Future.delayed(const Duration(milliseconds: 50));
 
       expect(notifier.messages.length, 1);
       expect(notifier.messages.first.firestoreId, 'cloud_123');

@@ -51,6 +51,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     required OffProduct product,
     required List<String> goals,
     required List<String> sensitivities,
+    required List<String> lifestyle,
     required String cyclePhase,
     List<OffProduct>? alternatives,
   }) async {
@@ -65,7 +66,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
       productMap['ingredients'] = product.ingredients!.take(15).toList();
     }
 
-    final prompt = '${Prompts.productAnalysisPrompt(productData: productMap, userGoals: goals, userSensitivities: sensitivities, cyclePhase: cyclePhase)}$alternativesText';
+    final prompt = '${Prompts.productAnalysisPrompt(productData: productMap, userGoals: goals, userSensitivities: sensitivities, userLifestyle: lifestyle, cyclePhase: cyclePhase)}$alternativesText';
 
     final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan');
 
@@ -75,6 +76,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     }
 
     final Map<String, dynamic> aiData = jsonDecode(jsonStr);
+    aiData['time'] = DateTime.now().toIso8601String();
     aiData['imageUrl'] ??= product.imageUrl;
     aiData['barcode'] ??= product.barcode;
     aiData['nutrients'] ??= product.nutrients?.toMap();
@@ -122,12 +124,15 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     final jsonStr = ModelUtils.extractJson(rawJson);
     if (jsonStr != null) {
+      final aiData = jsonDecode(jsonStr) as Map<String, dynamic>;
+      aiData['time'] = DateTime.now().toIso8601String();
+
       // Vision-mode scores are heuristic (no ground-truth OFF data to
       // compute from), so unlike the barcode path we keep the AI's score —
       // but ModelUtils.parseScore (used inside ScanResult.fromMap) still
       // clamps it to a safe 0-100 range so a malformed value can't break
       // the UI gauge.
-      final result = ScanResult.fromMap(jsonDecode(jsonStr));
+      final result = ScanResult.fromMap(aiData);
       await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'vision', 'product_name': result.productName, 'score': result.score});
       return result;
     } else {

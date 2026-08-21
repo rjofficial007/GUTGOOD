@@ -44,7 +44,7 @@ Verify that GutGood understands *what* you are asking for while remaining fast a
 *   **Test Case A (Local Keywords)**: Ask "Give me a grade for this."
     *   *Expected Result*: Instant response starting with "**Your plate looks...**". Verify in logs that AI intent detection was **bypassed** for this common phrase.
 *   **Test Case B (Payload Stripping)**: Mention a food/symptom to generate a large `[TAG]` block, then ask a follow-up question.
-    *   *Expected Result*: Response should be fast. Verify in logs (`ChatNotifier: Sending intent detection prompt`) that the history context **does not** contain raw JSON blocks, preventing `502 Bad Gateway` errors.
+    *   *Expected Result*: Response should be fast. Verify in logs (`ChatComposerNotifier: Sending intent detection prompt`) that the history context **does not** contain raw JSON blocks, preventing `502 Bad Gateway` errors.
 *   **Test Case C (Vision Priority)**: Upload a restaurant menu photo.
     *   *Expected Result*: AI should immediately adopt the **Strategic Survival Guide** persona. Verify no `[MEAL]` tag is emitted.
 

@@ -239,9 +239,10 @@ ${ModePrompts.barcodeAnalysisInstruction()}
   // ---------------------------------------------------------------------------
 
   /// User prompt for analyzing product data.
-  static String productAnalysisPrompt({required dynamic productData, required List<String> userGoals, required List<String> userSensitivities, required String cyclePhase}) {
+  static String productAnalysisPrompt({required dynamic productData, required List<String> userGoals, required List<String> userSensitivities, required List<String> userLifestyle, required String cyclePhase}) {
     final goals = _formatList(userGoals, fallback: 'General health');
     final sensitivities = _formatList(userSensitivities, fallback: 'None specified');
+    final lifestyle = _formatList(userLifestyle, fallback: 'None specified');
 
     return '''
 ${ProductAnalysisPrompt.instruction}
@@ -252,6 +253,7 @@ $productData
 USER CONTEXT
 Health Goals: $goals
 Sensitivities & Allergies: $sensitivities
+Lifestyle: $lifestyle
 Current Cycle Phase: $cyclePhase
 ''';
   }

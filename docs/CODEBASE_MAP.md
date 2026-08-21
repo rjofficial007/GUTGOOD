@@ -7,7 +7,9 @@ The heart of the Flutter application, following a Clean Architecture structure.
 
 ### `/lib/core` - The Shared Foundation
 - `constants/`: App-wide strings, icons, sizes, and API endpoint definitions.
-- `di/`: The `injection_container.dart` which wires up all dependencies using `GetIt`.
+- `di/`: Modular dependency injection setup using `GetIt`.
+    - `injection_container.dart`: The main entry point.
+    - `core_di.dart`, `feature_di.dart`, `service_di.dart`, `usecase_di.dart`: Specialized modules for better organization.
 - `models/`: Domain models (Mappers) used across multiple features (e.g., `ScanResult`, `UserProfile`).
 - `router/`: The `app_router.dart` defining all screen paths and redirection logic.
 - **`services/`**: Concrete implementations of core system logic (AI, Firestore, Storage, Usage).

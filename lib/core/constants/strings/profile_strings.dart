@@ -6,7 +6,7 @@ class ProfileStrings {
   static const String sectionPersonalization = 'Personalization';
   static const String sectionAccountSupport = 'Account & Support';
   static const String sectionDebugTools = 'Debug Tools';
-  static const String aiPreferences = 'AI Preferences';
+  static const String aiPreferences = 'Intelligence Preferences';
   static const String notificationPreferences = 'Notification Preferences';
   static const String goals = 'Goals';
   static const String sensitivities = 'Sensitivities & Allergies';
@@ -27,8 +27,8 @@ class ProfileStrings {
   static const String appearance = 'Appearance';
   static const String backupAndSync = 'Backup & Sync';
   static const String helpAndSupport = 'Help & Support';
-  static const String personalizeAiExperience = 'Personalize your AI experience';
-  static const String personalizeAiDesc = 'Customize how AI helps you on your gut health journey.';
+  static const String personalizeAiExperience = 'Personalize your experience';
+  static const String personalizeAiDesc = 'Customize how GutGood helps you on your gut health journey.';
   static const String communicationStyle = 'Communication Style';
   static const String enableNotifications = 'Enable Notifications';
   static const String receiveUpdates = 'Receive updates and reminders';
@@ -41,7 +41,7 @@ class ProfileStrings {
   static const String dataAndPrivacy = 'Data & Privacy';
   static const String privacyPolicyNote = 'Your privacy matters. We never sell your data. Your health data is private and secure.';
   static const String selectVisualStyle = 'Select your preferred visual style for the app.';
-  static const String updatePreferencesSubtitle = 'Update your preferences to help AI personalize your experience.';
+  static const String updatePreferencesSubtitle = 'Update your preferences to help personalize your experience.';
   static const String cycleSyncDesc = 'Syncing your gut health with your hormonal rhythm helps provide more accurate insights.';
   static const String cyclePhase = 'Cycle Phase';
   static const String selectTime = 'Select Time';
@@ -85,11 +85,11 @@ class ProfileStrings {
   static const String semanticsAppearancePrefix = 'Select ';
   static const String semanticsAppearanceSuffix = ' appearance';
   static const String personalizedTipsLabel = 'Personalized Tips';
-  static const String personalizedTipsDesc = 'Get AI tips based on your data';
+  static const String personalizedTipsDesc = 'Get personalized tips based on your data';
   static const String mealSuggestionsLabel = 'Meal Suggestions';
-  static const String mealSuggestionsDesc = 'AI-powered meal ideas';
+  static const String mealSuggestionsDesc = 'Personalized meal ideas';
   static const String symptomAnalysisLabel = 'Symptom Analysis';
-  static const String symptomAnalysisDesc = 'AI insights from symptoms';
+  static const String symptomAnalysisDesc = 'Health insights from symptoms';
   static const String friendlySupportive = 'Friendly & Supportive';
   static const String friendlySupportiveDesc = 'Encouraging and positive';
   static const String clinicalDirect = 'Clinical & Direct';
@@ -111,8 +111,8 @@ class ProfileStrings {
   static const String generateMockData = 'Generate 2 Weeks Mock Data';
   static const String generateMockDataSubtitle = 'Adds meal logs, symptoms, and insights';
   static const String mockDataGenerated = '2 weeks of mock data generated!';
-  static const String guestAiActivity = 'GUEST AI ACTIVITY';
-  static const String dailyAiActivity = 'DAILY AI ACTIVITY';
+  static const String guestAiActivity = 'GUEST ACTIVITY';
+  static const String dailyAiActivity = 'DAILY ACTIVITY';
   static const String aiChats = 'Chats';
   static const String productScans = 'Product Scans';
   static const String upgradeForUnlimited = 'Upgrade for Unlimited Access';

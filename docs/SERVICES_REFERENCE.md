@@ -18,13 +18,15 @@ GutGood uses a service-oriented architecture where core logic is encapsulated in
     - "Auto-repair" logic for truncated JSON strings from AI.
     - Safe parsing for nested models and clamped scores.
 
-## 2. `FirestoreService`
-**Implementation:** `FirestoreServiceImpl`
-- **Responsibility:** Abstracted CRUD operations for Cloud Firestore.
-- **Key Features:**
-    - Handles hierarchical user collections.
-    - Implements data merging/deletion wrappers.
-    - Provides real-time `Stream` access for Chat and User Metadata.
+## 2. `FirestoreServices` (Modularized)
+**Implementation:** `lib/core/services/firestore/`
+- **Responsibility:** Domain-specific CRUD operations for Cloud Firestore.
+- **Modules:**
+    - `AuthFirestoreService`: User profiles and account metadata.
+    - `ChatFirestoreService`: Real-time conversation streaming and history.
+    - `HistoryFirestoreService`: Scan history and saved products.
+    - `InsightFirestoreService`: AI-generated recaps and pattern data.
+    - `UsageFirestoreService`: Quota tracking and daily limit enforcement.
 
 ## 3. `StorageService`
 **Implementation:** `StorageServiceImpl`

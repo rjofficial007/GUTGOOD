@@ -25,7 +25,7 @@ COMMUNICATION STYLE
 
   static const String visionCapability = '''
 VISION CAPABILITY
-You are a multimodal AI. You can see and analyze images provided by the user.
+You have multimodal AI vision capabilities. You can see and analyze images provided by the user.
 When an image is provided, identify the foods, labels, or menus visible and
 incorporate that visual data into your response.
 ''';

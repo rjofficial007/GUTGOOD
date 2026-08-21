@@ -30,8 +30,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SuperScannerScreen extends StatefulWidget {
-  const SuperScannerScreen({super.key, this.initialMode = ScannerMode.barcode});
-  final ScannerMode initialMode;
+  const SuperScannerScreen({super.key, this.initialMode});
+  final ScannerMode? initialMode;
 
   @override
   State<SuperScannerScreen> createState() => _SuperScannerScreenState();
@@ -63,24 +63,44 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    _currentMode = widget.initialMode;
+    _currentMode = widget.initialMode ?? ScannerMode.barcode;
     final defaultIndex = _modes.indexWhere((m) => m.mode == _currentMode);
     _modePageController = PageController(viewportFraction: 0.4, initialPage: defaultIndex != -1 ? defaultIndex : 0);
 
-    _scannerController = MobileScannerController(detectionSpeed: DetectionSpeed.noDuplicates, facing: CameraFacing.back, torchEnabled: false);
+    _scannerController = MobileScannerController(detectionSpeed: DetectionSpeed.noDuplicates, facing: CameraFacing.back, torchEnabled: false, autoStart: true);
+
     unawaited(_checkPermission());
-    unawaited(_loadSavedMode());
-    unawaited(_checkQuota());
+    unawaited(_initAndCheckQuota());
     _triggerModeIntro();
   }
 
-  Future<void> _checkQuota() async {
+  Future<void> _initAndCheckQuota() async {
+    if (!mounted) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (widget.initialMode == null) {
+        final savedModeName = prefs.getString('last_scanner_mode');
+        if (savedModeName != null) {
+          final mode = ScannerMode.values.firstWhere((m) => m.name == savedModeName, orElse: () => ScannerMode.barcode);
+          final savedIndex = _modes.indexWhere((m) => m.mode == mode);
+          if (savedIndex != -1) {
+            _currentMode = mode;
+            _modePageController.dispose();
+            _modePageController = PageController(viewportFraction: 0.4, initialPage: savedIndex);
+          }
+        }
+      } else {
+        await prefs.setString('last_scanner_mode', widget.initialMode!.name);
+      }
+    } catch (e) {
+      AppLogger.warning('Scanner: Failed to load saved mode: $e');
+    }
+
     if (!mounted) return;
     await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true);
     if (mounted) {
       setState(() {
         _isCheckingQuota = false;
-        // If not allowed, QuotaGuard will pop the screen.
       });
     }
   }
@@ -93,32 +113,30 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     });
   }
 
-  Future<void> _loadSavedMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedModeName = prefs.getString('last_scanner_mode');
-    if (savedModeName != null) {
-      final mode = ScannerMode.values.firstWhere((m) => m.name == savedModeName, orElse: () => ScannerMode.food);
-      final index = _modes.indexWhere((m) => m.mode == mode);
-      if (index != -1 && mounted) {
-        setState(() => _currentMode = mode);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_modePageController.hasClients) {
-            _modePageController.jumpToPage(index);
-          }
-        });
-      }
-    }
-  }
-
   Future<void> _saveMode(ScannerMode mode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('last_scanner_mode', mode.name);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_scanner_mode', mode.name);
+    } catch (e) {
+      AppLogger.warning('Scanner: Failed to save mode preference: $e');
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkPermission();
+    if (!_scannerController.value.isInitialized) return;
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        unawaited(_checkPermission());
+        unawaited(_scannerController.start());
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        unawaited(_scannerController.stop());
+        break;
     }
   }
 
@@ -140,6 +158,9 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       setState(() {
         _hasPermission = status.isGranted;
       });
+      if (status.isGranted) {
+        unawaited(_scannerController.start());
+      }
     }
   }
 
@@ -147,14 +168,15 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   void dispose() {
     _introTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    _modePageController.dispose();
     _scannerController.dispose();
     super.dispose();
   }
 
+  /// Manual shutter capture only — no automatic live streaming barcode detection
   void _onDetect(BarcodeCapture capture) {}
 
   Future<void> _handleBarcode(String barcode, {Uint8List? capturedImage}) async {
-    if (!await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true)) return;
     if (!mounted) return;
 
     final notifier = context.read<ScannerNotifier>();
@@ -183,6 +205,10 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
           context.pop(); // Pop ScanningAnimation
           final choice = await context.push(AppRoutes.productNotFound);
           if (choice == 'TRIGGER_CAMERA' && mounted) {
+            final labelIndex = _modes.indexWhere((m) => m.mode == ScannerMode.label);
+            if (labelIndex != -1 && _modePageController.hasClients) {
+              unawaited(_modePageController.animateToPage(labelIndex, duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic));
+            }
             setState(() => _currentMode = ScannerMode.label);
           }
         } else {
@@ -204,19 +230,45 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     );
   }
 
+  /// Optimized instantaneous frame capture
+  Future<Uint8List?> _captureFrameBytes() async {
+    try {
+      final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary != null) {
+        final image = await boundary.toImage(pixelRatio: 1.0);
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (byteData != null && byteData.lengthInBytes > 0) {
+          return byteData.buffer.asUint8List();
+        }
+      }
+    } catch (e) {
+      AppLogger.warning('Scanner: RepaintBoundary capture error, falling back to camera picker: $e');
+    }
+
+    try {
+      final fallbackImage = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+      if (fallbackImage != null) {
+        return await fallbackImage.readAsBytes();
+      }
+    } catch (e) {
+      AppLogger.error('Scanner: Camera picker fallback failed: $e');
+    }
+    return null;
+  }
+
   Future<void> _capturePhoto() async {
     final notifier = context.read<ScannerNotifier>();
     if (notifier.isProcessing) return;
-    if (!await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true)) return;
     if (!mounted) return;
 
     try {
-      final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) return;
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) return;
-      final bytes = byteData.buffer.asUint8List();
+      final bytes = await _captureFrameBytes();
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.couldNotAnalyzeVision), behavior: SnackBarBehavior.floating));
+        }
+        return;
+      }
 
       await notifier.handlePhotoCapture(
         bytes: bytes,
@@ -224,56 +276,74 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
         isBatchMode: _isBatchMode,
         analyzeBarcodeInImage: (path) async {
           final result = await _scannerController.analyzeImage(path);
-          return result?.barcodes.firstOrNull?.displayValue;
+          return result?.barcodes.firstOrNull?.displayValue ?? result?.barcodes.firstOrNull?.rawValue;
         },
         onBarcodeFound: (code, img) => _handleBarcode(code, capturedImage: img),
         onImageCaptured: (img, mode) {
-          if (mounted) context.pop({'type': mode, 'bytes': img});
+          if (!mounted) return;
+          if (context.canPop()) {
+            context.pop({'type': mode, 'bytes': img});
+          } else {
+            unawaited(notifier.processImage(img, mode: mode));
+          }
         },
         onError: (message) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
           }
         },
-        onHaptic: () => unawaited(HapticFeedback.mediumImpact()),
+        onHaptic: () => unawaited(HapticFeedback.lightImpact()),
       );
     } catch (e) {
       AppLogger.error('Scanner: Capture error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.failedToAnalyzeProduct), behavior: SnackBarBehavior.floating));
+      }
     }
   }
 
   Future<void> _pickFromGallery() async {
-    if (!await QuotaGuard.check(context, type: QuotaType.scan, popOnBlock: true)) return;
     if (!mounted) return;
 
     final notifier = context.read<ScannerNotifier>();
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
 
-    final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (image == null) return;
+    try {
+      final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      if (image == null) return;
 
-    final bytes = await image.readAsBytes();
+      final bytes = await image.readAsBytes();
 
-    await notifier.handlePhotoCapture(
-      bytes: bytes,
-      mode: _currentMode.name,
-      isBatchMode: _isBatchMode,
-      analyzeBarcodeInImage: (path) async {
-        final result = await _scannerController.analyzeImage(path);
-        return result?.barcodes.firstOrNull?.displayValue;
-      },
-      onBarcodeFound: (code, img) => _handleBarcode(code, capturedImage: img),
-      onImageCaptured: (img, mode) {
-        if (mounted) router.pop({'type': 'gallery', 'bytes': img});
-      },
-      onError: (message) {
-        if (mounted) {
-          messenger.showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
-        }
-      },
-      onHaptic: () => unawaited(HapticFeedback.lightImpact()),
-    );
+      await notifier.handlePhotoCapture(
+        bytes: bytes,
+        mode: _currentMode.name,
+        isBatchMode: _isBatchMode,
+        analyzeBarcodeInImage: (path) async {
+          final result = await _scannerController.analyzeImage(path);
+          return result?.barcodes.firstOrNull?.displayValue ?? result?.barcodes.firstOrNull?.rawValue;
+        },
+        onBarcodeFound: (code, img) => _handleBarcode(code, capturedImage: img),
+        onImageCaptured: (img, mode) {
+          if (mounted) {
+            if (router.canPop()) {
+              router.pop({'type': 'gallery', 'bytes': img});
+            } else {
+              unawaited(notifier.processImage(img, mode: mode));
+            }
+          }
+        },
+        onError: (message) {
+          if (mounted) {
+            messenger.showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
+          }
+        },
+        onHaptic: () => unawaited(HapticFeedback.lightImpact()),
+      );
+    } catch (e) {
+      AppLogger.error('Scanner: Gallery pick error: $e');
+      messenger.showSnackBar(const SnackBar(content: Text(AppStrings.failedToAnalyzeProduct), behavior: SnackBarBehavior.floating));
+    }
   }
 
   @override
@@ -305,7 +375,6 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
                 setState(() {
                   _currentMode = _modes[index].mode;
                 });
-                unawaited(HapticFeedback.selectionClick());
                 unawaited(_saveMode(_currentMode));
                 _triggerModeIntro();
               },
@@ -349,25 +418,27 @@ class _ScannerTopControls extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            tooltip: AppStrings.closeScanner,
-            icon: Icon(AppIcons.x, color: AppPalette.white, size: AppSizes.icon28),
-            onPressed: () {
-              unawaited(HapticFeedback.lightImpact());
-              context.pop();
-            },
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (_) => unawaited(HapticFeedback.lightImpact()),
+            onTap: () => context.pop(),
+            child: Padding(
+              padding: EdgeInsets.all(AppSizes.p8),
+              child: Icon(AppIcons.x, color: AppPalette.white, size: AppSizes.icon28),
+            ),
           ),
           ValueListenableBuilder(
             valueListenable: scannerController,
             builder: (context, state, child) {
               final isTorchOn = state.torchState == TorchState.on;
-              return IconButton(
-                tooltip: isTorchOn ? AppStrings.turnTorchOff : AppStrings.turnTorchOn,
-                icon: Icon(isTorchOn ? AppIcons.zap : AppIcons.zapOff, color: AppPalette.white, size: AppSizes.icon28),
-                onPressed: () {
-                  unawaited(HapticFeedback.lightImpact());
-                  scannerController.toggleTorch();
-                },
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (_) => unawaited(HapticFeedback.lightImpact()),
+                onTap: scannerController.toggleTorch,
+                child: Padding(
+                  padding: EdgeInsets.all(AppSizes.p8),
+                  child: Icon(isTorchOn ? AppIcons.zap : AppIcons.zapOff, color: isTorchOn ? AppPalette.lime : AppPalette.white, size: AppSizes.icon28),
+                ),
               );
             },
           ),
@@ -444,13 +515,14 @@ class _GalleryButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: AppStrings.pickFromGallery,
-    icon: Icon(AppIcons.image, color: AppPalette.white, size: AppSizes.icon32),
-    onPressed: () {
-      unawaited(HapticFeedback.lightImpact());
-      onTap();
-    },
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTapDown: (_) => unawaited(HapticFeedback.lightImpact()),
+    onTap: onTap,
+    child: Padding(
+      padding: EdgeInsets.all(AppSizes.p8),
+      child: Icon(AppIcons.image, color: AppPalette.white, size: AppSizes.icon32),
+    ),
   );
 }
 
@@ -458,14 +530,17 @@ class _CameraSwitchButton extends StatelessWidget {
   const _CameraSwitchButton();
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: AppStrings.switchCamera,
-    icon: Icon(AppIcons.refreshCw, color: AppPalette.white, size: AppSizes.icon32),
-    onPressed: () {
-      unawaited(HapticFeedback.lightImpact());
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTapDown: (_) => unawaited(HapticFeedback.lightImpact()),
+    onTap: () {
       final state = context.findAncestorStateOfType<_SuperScannerScreenState>();
       state?._scannerController.switchCamera();
     },
+    child: Padding(
+      padding: EdgeInsets.all(AppSizes.p8),
+      child: Icon(AppIcons.refreshCw, color: AppPalette.white, size: AppSizes.icon32),
+    ),
   );
 }
 
@@ -492,9 +567,9 @@ class _ModeSelector extends StatelessWidget {
           label: modeItem.label,
           isActive: currentMode == modeItem.mode,
           onTap: () {
-            onPageChanged(index);
-            unawaited(HapticFeedback.mediumImpact());
-            controller.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic);
+            if (controller.hasClients) {
+              unawaited(controller.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic));
+            }
           },
         );
       },
@@ -521,12 +596,12 @@ class _PermissionOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppPalette.black,
+    backgroundColor: context.appColorScheme.cardBackground,
     appBar: AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(AppIcons.x, color: AppPalette.white),
+        icon: Icon(AppIcons.x, color: context.appColorScheme.textPrimary),
         onPressed: () => context.pop(),
       ),
     ),
@@ -538,19 +613,19 @@ class _PermissionOverlay extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(AppSizes.r20),
-              child: Image.asset(AppAssets.appIcon, height: AppSizes.p180, width: AppSizes.p180),
+              child: Image.asset(AppAssets.appIcon, height: AppSizes.p100, width: AppSizes.p100),
             ),
             Gap.h32,
             Text(
               AppStrings.allowCameraAccess,
               textAlign: TextAlign.center,
-              style: AppTextStyles.headingMd.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold),
+              style: AppTextStyles.headingMd.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.bold),
             ),
             Gap.h16,
             Text(
               AppStrings.cameraAccessSubtitle,
               textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(color: AppPalette.white70, height: 1.4),
+              style: AppTextStyles.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.4),
             ),
             Gap.h32,
             GutButton(
@@ -560,15 +635,13 @@ class _PermissionOverlay extends StatelessWidget {
                 await state?._requestPermission();
               },
             ),
-            Gap.h24,
-            GestureDetector(
+            Gap.h10,
+            GutButton(
+              isOutlined: true,
+              label: AppStrings.openSettings,
               onTap: () async {
                 unawaited(openAppSettings());
               },
-              child: Text(
-                AppStrings.openSettings,
-                style: context.bodyBold.copyWith(color: AppPalette.blueLink, fontSize: AppSizes.s14),
-              ),
             ),
           ],
         ),
@@ -666,6 +739,7 @@ class _ModeItem extends StatelessWidget {
     label: label,
     selected: isActive,
     child: GestureDetector(
+      onTapDown: (_) => unawaited(HapticFeedback.selectionClick()),
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
@@ -675,9 +749,9 @@ class _ModeItem extends StatelessWidget {
           label.toUpperCase(),
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: isActive ? AppPalette.white : AppPalette.white.withValues(alpha: 0.5),
+            color: isActive ? AppPalette.white : AppPalette.white.withValues(alpha: 0.45),
             fontSize: isActive ? AppSizes.s12 : AppSizes.s11,
-            fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
+            fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
             letterSpacing: isActive ? 1.0 : 0.8,
           ),
         ),
@@ -698,6 +772,12 @@ class _ShutterButton extends StatelessWidget {
     button: true,
     enabled: isActive && !isProcessing,
     child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) {
+        if (isActive && !isProcessing) {
+          unawaited(HapticFeedback.mediumImpact());
+        }
+      },
       onTap: onTap,
       child: Container(
         width: AppSizes.w80,

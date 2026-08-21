@@ -74,7 +74,7 @@ class CommonStrings {
   static const String gutgoodHealthIntelligence = 'GUTGOOD HEALTH INTELLIGENCE';
   static const String medicalDisclaimer = 'Medical Disclaimer';
   static const String medicalDisclaimerContent =
-      'GutGood is an AI health intelligence assistant. All insights, patterns, and recommendations provided by the app are for informational and educational purposes only. GutGood does not provide medical diagnoses, treatment, or cures. Always consult with a qualified healthcare professional before making changes to your diet or health regimen. Never disregard professional medical advice or delay seeking it because of something you have read in this app.';
+      'GutGood is a health intelligence assistant. All insights, patterns, and recommendations provided by the app are for informational and educational purposes only. GutGood does not provide medical diagnoses, treatment, or cures. Always consult with a qualified healthcare professional before making changes to your diet or health regimen. Never disregard professional medical advice or delay seeking it because of something you have read in this app.';
 
   // OFF Service
   static const String minimallyProcessed = 'Minimally Processed';

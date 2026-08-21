@@ -1,5 +1,6 @@
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/meal_log.dart';
+import 'package:gutgood/core/models/pattern_occurrence.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
@@ -10,11 +11,9 @@ abstract class PatternEngineService {
 }
 
 class PatternEngineServiceImpl implements PatternEngineService {
-  PatternEngineServiceImpl({
-    required HistoryFirestoreService historyFirestoreService,
-    required InsightFirestoreService insightFirestoreService,
-  }) : _historyFirestoreService = historyFirestoreService,
-       _insightFirestoreService = insightFirestoreService;
+  PatternEngineServiceImpl({required HistoryFirestoreService historyFirestoreService, required InsightFirestoreService insightFirestoreService})
+    : _historyFirestoreService = historyFirestoreService,
+      _insightFirestoreService = insightFirestoreService;
 
   final HistoryFirestoreService _historyFirestoreService;
   final InsightFirestoreService _insightFirestoreService;
@@ -31,22 +30,25 @@ class PatternEngineServiceImpl implements PatternEngineService {
       return;
     }
 
+    final earliest = meals.map((m) => m.time).reduce((a, b) => a.isBefore(b) ? a : b);
+    final timeframeDays = DateTime.now().difference(earliest).inDays.clamp(7, 90);
+
     final allPatterns = [
-      ..._detectBloatingPatterns(meals, symptoms),
-      ..._detectEnergyPatterns(meals, symptoms),
-      ..._detectHeadachePatterns(meals, symptoms),
-      ..._detectDigestionPatterns(meals, symptoms),
-      ..._detectFullnessPatterns(meals, symptoms),
-      ..._detectSleepPatterns(meals, symptoms),
+      ..._detectBloatingPatterns(meals, symptoms, timeframeDays: timeframeDays),
+      ..._detectEnergyPatterns(meals, symptoms, timeframeDays: timeframeDays),
+      ..._detectHeadachePatterns(meals, symptoms, timeframeDays: timeframeDays),
+      ..._detectDigestionPatterns(meals, symptoms, timeframeDays: timeframeDays),
+      ..._detectFullnessPatterns(meals, symptoms, timeframeDays: timeframeDays),
+      ..._detectSleepPatterns(meals, symptoms, timeframeDays: timeframeDays),
     ];
 
     if (allPatterns.isNotEmpty) {
       // Sort by confidence (High first) and frequency
       allPatterns.sort((a, b) {
-        if (a.confidence == b.confidence) {
-          return b.frequency.compareTo(a.frequency);
+        if (a.confidence != b.confidence) {
+          return a.confidence == BodyPattern.confidenceHigh ? -1 : 1;
         }
-        return a.confidence == BodyPattern.confidenceHigh ? -1 : 1;
+        return b.frequency.compareTo(a.frequency);
       });
 
       AppLogger.insights('Found ${allPatterns.length} meaningful patterns.');
@@ -59,266 +61,416 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
   String _getConfidence(int frequency) => frequency >= 5 ? BodyPattern.confidenceHigh : BodyPattern.confidenceMedium;
 
-  /// 1. Bloating Pattern (Min 3 symptom-linked meals)
-  List<BodyPattern> _detectBloatingPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
-    final triggerCounts = <String, int>{};
-    final bloatingLogs = symptoms.where((s) => s.symptom.toLowerCase().contains('bloat'));
+  String _formatDate(DateTime date) {
+    final m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${m[date.month - 1]} ${date.day}';
+  }
 
-    for (final log in bloatingLogs) {
-      final windowStart = log.time.subtract(const Duration(hours: 4));
-      final relevantMeals = meals.where((m) => m.time.isAfter(windowStart) && m.time.isBefore(log.time));
+  String _formatTimeAfter(DateTime mealTime, DateTime symptomTime) {
+    final diff = symptomTime.difference(mealTime);
+    if (diff.inHours > 0) {
+      final mins = diff.inMinutes % 60;
+      if (mins >= 45) return 'About ${diff.inHours + 1} hour${diff.inHours + 1 > 1 ? 's' : ''} later';
+      if (mins >= 15) return 'About ${diff.inHours}.5 hours later';
+      return 'About ${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} later';
+    }
+    return '${diff.inMinutes} mins later';
+  }
 
-      for (final meal in relevantMeals) {
-        for (final item in meal.items) {
-          final key = item.toLowerCase().trim();
-          triggerCounts[key] = (triggerCounts[key] ?? 0) + 1;
+  String _capitalize(String s) => s.isEmpty ? '' : '${s[0].toUpperCase()}${s.substring(1)}';
+
+  List<CommonFactor> _extractCommonFactors(List<MealLog> symptomaticMeals) {
+    final factors = <String, int>{};
+    for (final meal in symptomaticMeals) {
+      for (final tag in meal.foodTags) {
+        final clean = tag.replaceAll('#', '').toLowerCase().trim();
+        factors[clean] = (factors[clean] ?? 0) + 1;
+      }
+      for (final item in meal.items) {
+        final lower = item.toLowerCase();
+        if (lower.contains('milk') || lower.contains('cheese') || lower.contains('cream') || lower.contains('dairy')) {
+          factors['dairy products'] = (factors['dairy products'] ?? 0) + 1;
+        }
+        if (lower.contains('fried') || lower.contains('fries') || lower.contains('burger') || lower.contains('pizza') || lower.contains('chicken')) {
+          factors['fried foods'] = (factors['fried foods'] ?? 0) + 1;
+        }
+        if (lower.contains('pasta') || lower.contains('bread') || lower.contains('flour') || lower.contains('dough') || lower.contains('carb')) {
+          factors['refined carbs'] = (factors['refined carbs'] ?? 0) + 1;
+        }
+        if (lower.contains('salt') || lower.contains('sodium') || lower.contains('soy sauce')) {
+          factors['higher sodium'] = (factors['higher sodium'] ?? 0) + 1;
         }
       }
     }
 
-    return triggerCounts.entries
-        .where((e) => e.value >= 3)
-        .map((e) => BodyPattern(
-              type: BodyPattern.typeBloating,
-              trigger: e.key,
-              reaction: 'Bloating',
-              frequency: e.value,
-              confidence: _getConfidence(e.value),
-              description: 'You reported bloating after ${e.value} of your recent meals containing ${e.key}.',
-              involvedFoods: [e.key],
-              updatedAt: DateTime.now().toIso8601String(),
-            ))
+    return factors.entries
+        .where((e) => e.value >= (symptomaticMeals.length / 2))
+        .map((e) {
+          var icon = 'leaf';
+          if (e.key.contains('dairy')) icon = 'milk';
+          if (e.key.contains('fried')) icon = 'utensils';
+          if (e.key.contains('carb')) icon = 'wheat';
+          if (e.key.contains('sodium')) icon = 'droplet';
+          return CommonFactor(label: _capitalize(e.key), icon: icon);
+        })
+        .take(5)
         .toList();
   }
 
-  /// 2. Energy Pattern (Min 3 energy logs)
-  List<BodyPattern> _detectEnergyPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
+  /// 1. Bloating Pattern
+  List<BodyPattern> _detectBloatingPatterns(List<MealLog> meals, List<SymptomLog> symptoms, {required int timeframeDays}) {
+    final foodToSymptomaticMeals = <String, List<MealLog>>{};
+    final bloatingLogs = symptoms.where((s) => s.symptom.toLowerCase().contains('bloat')).toList();
+
+    for (final meal in meals) {
+      final symptomFollowed = bloatingLogs.where((s) => s.time.isAfter(meal.time) && s.time.difference(meal.time).inHours <= 4).toList();
+
+      if (symptomFollowed.isNotEmpty) {
+        for (final item in meal.items) {
+          final key = item.toLowerCase().trim();
+          if (!foodToSymptomaticMeals.containsKey(key)) foodToSymptomaticMeals[key] = [];
+          if (!foodToSymptomaticMeals[key]!.contains(meal)) foodToSymptomaticMeals[key]!.add(meal);
+        }
+      }
+    }
+
+    return foodToSymptomaticMeals.entries.where((e) => e.value.length >= 3).map((e) {
+      final food = e.key;
+      final symptomaticMeals = e.value;
+      final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+
+      return BodyPattern(
+        type: BodyPattern.typeBloating,
+        trigger: _capitalize(food),
+        reaction: 'Bloating',
+        frequency: symptomaticMeals.length,
+        confidence: _getConfidence(symptomaticMeals.length),
+        description: 'You reported bloating after ${symptomaticMeals.length} of your recent meals containing $food.',
+        involvedFoods: [food],
+        updatedAt: DateTime.now().toIso8601String(),
+        totalSimilarMeals: totalSimilar,
+        timeframeDays: timeframeDays,
+        occurrences: symptomaticMeals.map((m) {
+          final s = bloatingLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 4);
+          return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Bloating', timeAfter: _formatTimeAfter(m.time, s.time));
+        }).toList(),
+        commonFactors: _extractCommonFactors(symptomaticMeals),
+      );
+    }).toList();
+  }
+
+  /// 2. Energy Pattern
+  List<BodyPattern> _detectEnergyPatterns(List<MealLog> meals, List<SymptomLog> symptoms, {required int timeframeDays}) {
     final patterns = <BodyPattern>[];
-    final energyLogs = symptoms.where((s) => s.energyLevel != null);
+    final energyLogs = symptoms.where((s) => s.energyLevel != null).toList();
 
-    final highEnergyTriggers = <String, int>{};
-    final lowEnergyTriggers = <String, int>{};
+    final highEnergyTriggers = <String, List<MealLog>>{};
+    final lowEnergyTriggers = <String, List<MealLog>>{};
 
-    for (final log in energyLogs) {
-      final windowStart = log.time.subtract(const Duration(hours: 4));
-      final relevantMeals = meals.where((m) => m.time.isAfter(windowStart) && m.time.isBefore(log.time));
+    for (final meal in meals) {
+      final nextSymptom = energyLogs.where((s) => s.time.isAfter(meal.time) && s.time.difference(meal.time).inHours <= 4).toList();
 
-      for (final meal in relevantMeals) {
+      if (nextSymptom.isNotEmpty) {
+        final log = nextSymptom.first;
         for (final item in meal.items) {
           final key = item.toLowerCase().trim();
           if (log.energyLevel! >= 7) {
-            highEnergyTriggers[key] = (highEnergyTriggers[key] ?? 0) + 1;
+            if (!highEnergyTriggers.containsKey(key)) highEnergyTriggers[key] = [];
+            if (!highEnergyTriggers[key]!.contains(meal)) highEnergyTriggers[key]!.add(meal);
           } else if (log.energyLevel! <= 3) {
-            lowEnergyTriggers[key] = (lowEnergyTriggers[key] ?? 0) + 1;
+            if (!lowEnergyTriggers.containsKey(key)) lowEnergyTriggers[key] = [];
+            if (!lowEnergyTriggers[key]!.contains(meal)) lowEnergyTriggers[key]!.add(meal);
           }
         }
       }
     }
 
-    highEnergyTriggers.forEach((food, count) {
-      if (count >= 3) {
-        patterns.add(BodyPattern(
-          type: BodyPattern.typeEnergy,
-          trigger: food,
-          reaction: 'High Energy',
-          frequency: count,
-          confidence: _getConfidence(count),
-          description: 'Meals containing $food were followed by higher energy levels in $count logs.',
-          involvedFoods: [food],
-          updatedAt: DateTime.now().toIso8601String(),
-        ));
+    highEnergyTriggers.forEach((food, symptomaticMeals) {
+      if (symptomaticMeals.length >= 3) {
+        final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+        patterns.add(
+          BodyPattern(
+            type: BodyPattern.typeEnergy,
+            trigger: _capitalize(food),
+            reaction: 'High Energy',
+            frequency: symptomaticMeals.length,
+            confidence: _getConfidence(symptomaticMeals.length),
+            description: 'Meals containing $food were followed by higher energy levels in ${symptomaticMeals.length} logs.',
+            involvedFoods: [food],
+            updatedAt: DateTime.now().toIso8601String(),
+            totalSimilarMeals: totalSimilar,
+            timeframeDays: timeframeDays,
+            occurrences: symptomaticMeals.map((m) {
+              final s = energyLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 4);
+              return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Energized', timeAfter: _formatTimeAfter(m.time, s.time));
+            }).toList(),
+            commonFactors: _extractCommonFactors(symptomaticMeals),
+          ),
+        );
       }
     });
 
-    lowEnergyTriggers.forEach((food, count) {
-      if (count >= 3) {
-        patterns.add(BodyPattern(
-          type: BodyPattern.typeEnergy,
-          trigger: food,
-          reaction: 'Energy Drop',
-          frequency: count,
-          confidence: _getConfidence(count),
-          description: 'You noticed energy drops after $count meals containing $food.',
-          involvedFoods: [food],
-          updatedAt: DateTime.now().toIso8601String(),
-        ));
+    lowEnergyTriggers.forEach((food, symptomaticMeals) {
+      if (symptomaticMeals.length >= 3) {
+        final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+        patterns.add(
+          BodyPattern(
+            type: BodyPattern.typeEnergy,
+            trigger: _capitalize(food),
+            reaction: 'Energy Drop',
+            frequency: symptomaticMeals.length,
+            confidence: _getConfidence(symptomaticMeals.length),
+            description: 'You noticed energy drops after ${symptomaticMeals.length} meals containing $food.',
+            involvedFoods: [food],
+            updatedAt: DateTime.now().toIso8601String(),
+            totalSimilarMeals: totalSimilar,
+            timeframeDays: timeframeDays,
+            occurrences: symptomaticMeals.map((m) {
+              final s = energyLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 4);
+              return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Sluggish', timeAfter: _formatTimeAfter(m.time, s.time));
+            }).toList(),
+            commonFactors: _extractCommonFactors(symptomaticMeals),
+          ),
+        );
       }
     });
 
     return patterns;
   }
 
-  /// 3. Headache Pattern (Min 3 headache-linked meals)
-  List<BodyPattern> _detectHeadachePatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
-    final triggerCounts = <String, int>{};
-    final headacheLogs = symptoms.where((s) => s.symptom.toLowerCase().contains('headache'));
+  /// 3. Headache Pattern
+  List<BodyPattern> _detectHeadachePatterns(List<MealLog> meals, List<SymptomLog> symptoms, {required int timeframeDays}) {
+    final foodToSymptomaticMeals = <String, List<MealLog>>{};
+    final headacheLogs = symptoms.where((s) => s.symptom.toLowerCase().contains('headache')).toList();
 
-    for (final log in headacheLogs) {
-      final windowStart = log.time.subtract(const Duration(hours: 6));
-      final relevantMeals = meals.where((m) => m.time.isAfter(windowStart) && m.time.isBefore(log.time));
+    for (final meal in meals) {
+      final symptomFollowed = headacheLogs.where((s) => s.time.isAfter(meal.time) && s.time.difference(meal.time).inHours <= 6).toList();
 
-      for (final meal in relevantMeals) {
+      if (symptomFollowed.isNotEmpty) {
         for (final item in meal.items) {
           final key = item.toLowerCase().trim();
-          triggerCounts[key] = (triggerCounts[key] ?? 0) + 1;
+          if (!foodToSymptomaticMeals.containsKey(key)) foodToSymptomaticMeals[key] = [];
+          if (!foodToSymptomaticMeals[key]!.contains(meal)) foodToSymptomaticMeals[key]!.add(meal);
         }
       }
     }
 
-    return triggerCounts.entries
-        .where((e) => e.value >= 3)
-        .map((e) => BodyPattern(
-              type: BodyPattern.typeHeadache,
-              trigger: e.key,
-              reaction: 'Headache',
-              frequency: e.value,
-              confidence: _getConfidence(e.value),
-              description: 'You reported headaches after ${e.value} recent meals containing ${e.key}.',
-              involvedFoods: [e.key],
-              updatedAt: DateTime.now().toIso8601String(),
-            ))
-        .toList();
+    return foodToSymptomaticMeals.entries.where((e) => e.value.length >= 3).map((e) {
+      final food = e.key;
+      final symptomaticMeals = e.value;
+      final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+
+      return BodyPattern(
+        type: BodyPattern.typeHeadache,
+        trigger: _capitalize(food),
+        reaction: 'Headache',
+        frequency: symptomaticMeals.length,
+        confidence: _getConfidence(symptomaticMeals.length),
+        description: 'You reported headaches after ${symptomaticMeals.length} recent meals containing $food.',
+        involvedFoods: [food],
+        updatedAt: DateTime.now().toIso8601String(),
+        totalSimilarMeals: totalSimilar,
+        timeframeDays: timeframeDays,
+        occurrences: symptomaticMeals.map((m) {
+          final s = headacheLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 6);
+          return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Headache', timeAfter: _formatTimeAfter(m.time, s.time));
+        }).toList(),
+        commonFactors: _extractCommonFactors(symptomaticMeals),
+      );
+    }).toList();
   }
 
-  /// 4. Digestion Pattern (Min 3 digestion-related logs)
-  List<BodyPattern> _detectDigestionPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
-    final triggerCounts = <String, int>{};
+  /// 4. Digestion Pattern
+  List<BodyPattern> _detectDigestionPatterns(List<MealLog> meals, List<SymptomLog> symptoms, {required int timeframeDays}) {
+    final foodToSymptomaticMeals = <String, List<MealLog>>{};
     final digestiveKeywords = ['gas', 'stomach', 'digestion', 'constipation', 'diarrhea', 'discomfort'];
-    final digestionLogs = symptoms.where((s) => digestiveKeywords.any((k) => s.symptom.toLowerCase().contains(k)));
+    final digestionLogs = symptoms.where((s) => digestiveKeywords.any((k) => s.symptom.toLowerCase().contains(k))).toList();
 
-    for (final log in digestionLogs) {
-      final windowStart = log.time.subtract(const Duration(hours: 6));
-      final relevantMeals = meals.where((m) => m.time.isAfter(windowStart) && m.time.isBefore(log.time));
+    for (final meal in meals) {
+      final symptomFollowed = digestionLogs.where((s) => s.time.isAfter(meal.time) && s.time.difference(meal.time).inHours <= 6).toList();
 
-      for (final meal in relevantMeals) {
+      if (symptomFollowed.isNotEmpty) {
         for (final item in meal.items) {
           final key = item.toLowerCase().trim();
-          triggerCounts[key] = (triggerCounts[key] ?? 0) + 1;
+          if (!foodToSymptomaticMeals.containsKey(key)) foodToSymptomaticMeals[key] = [];
+          if (!foodToSymptomaticMeals[key]!.contains(meal)) foodToSymptomaticMeals[key]!.add(meal);
         }
       }
     }
 
-    return triggerCounts.entries
-        .where((e) => e.value >= 3)
-        .map((e) => BodyPattern(
-              type: BodyPattern.typeDigestion,
-              trigger: e.key,
-              reaction: 'Digestive Discomfort',
-              frequency: e.value,
-              confidence: _getConfidence(e.value),
-              description: 'Meals containing ${e.key} were frequently followed by digestive discomfort (${e.value} times).',
-              involvedFoods: [e.key],
-              updatedAt: DateTime.now().toIso8601String(),
-            ))
-        .toList();
+    return foodToSymptomaticMeals.entries.where((e) => e.value.length >= 3).map((e) {
+      final food = e.key;
+      final symptomaticMeals = e.value;
+      final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+
+      return BodyPattern(
+        type: BodyPattern.typeDigestion,
+        trigger: _capitalize(food),
+        reaction: 'Digestive Discomfort',
+        frequency: symptomaticMeals.length,
+        confidence: _getConfidence(symptomaticMeals.length),
+        description: 'Meals containing $food were frequently followed by digestive discomfort (${symptomaticMeals.length} times).',
+        involvedFoods: [food],
+        updatedAt: DateTime.now().toIso8601String(),
+        totalSimilarMeals: totalSimilar,
+        timeframeDays: timeframeDays,
+        occurrences: symptomaticMeals.map((m) {
+          final s = digestionLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 6);
+          return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Discomfort', timeAfter: _formatTimeAfter(m.time, s.time));
+        }).toList(),
+        commonFactors: _extractCommonFactors(symptomaticMeals),
+      );
+    }).toList();
   }
 
-  /// 5. Fullness Pattern (Min 3 fullness logs)
-  List<BodyPattern> _detectFullnessPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
-    final satedTriggers = <String, int>{};
-    final hungryTriggers = <String, int>{};
+  /// 5. Fullness Pattern
+  List<BodyPattern> _detectFullnessPatterns(List<MealLog> meals, List<SymptomLog> symptoms, {required int timeframeDays}) {
+    final satedTriggers = <String, List<MealLog>>{};
+    final hungryTriggers = <String, List<MealLog>>{};
 
     final fullnessLogs = symptoms.where((s) {
       final text = (s.symptom + (s.notes ?? '')).toLowerCase();
       return text.contains('full') || text.contains('sati') || text.contains('hungry');
-    });
+    }).toList();
 
-    for (final log in fullnessLogs) {
-      final text = (log.symptom + (log.notes ?? '')).toLowerCase();
-      final isFull = text.contains('full') || text.contains('sati');
-      final isHungry = text.contains('hungry');
+    for (final meal in meals) {
+      final nextSymptom = fullnessLogs.where((s) => s.time.isAfter(meal.time) && s.time.difference(meal.time).inHours <= 3).toList();
 
-      final windowStart = log.time.subtract(const Duration(hours: 3));
-      final relevantMeals = meals.where((m) => m.time.isAfter(windowStart) && m.time.isBefore(log.time));
+      if (nextSymptom.isNotEmpty) {
+        final log = nextSymptom.first;
+        final text = (log.symptom + (log.notes ?? '')).toLowerCase();
+        final isFull = text.contains('full') || text.contains('sati');
+        final isHungry = text.contains('hungry');
 
-      for (final meal in relevantMeals) {
         for (final item in meal.items) {
           final key = item.toLowerCase().trim();
-          if (isFull) satedTriggers[key] = (satedTriggers[key] ?? 0) + 1;
-          if (isHungry) hungryTriggers[key] = (hungryTriggers[key] ?? 0) + 1;
+          if (isFull) {
+            if (!satedTriggers.containsKey(key)) satedTriggers[key] = [];
+            if (!satedTriggers[key]!.contains(meal)) satedTriggers[key]!.add(meal);
+          }
+          if (isHungry) {
+            if (!hungryTriggers.containsKey(key)) hungryTriggers[key] = [];
+            if (!hungryTriggers[key]!.contains(meal)) hungryTriggers[key]!.add(meal);
+          }
         }
       }
     }
 
     final patterns = <BodyPattern>[];
-    satedTriggers.forEach((food, count) {
-      if (count >= 3) {
-        patterns.add(BodyPattern(
-          type: BodyPattern.typeFullness,
-          trigger: food,
-          reaction: 'Satiety',
-          frequency: count,
-          confidence: _getConfidence(count),
-          description: 'Meals with $food kept you satisfied for significantly longer in $count recent logs.',
-          involvedFoods: [food],
-          updatedAt: DateTime.now().toIso8601String(),
-        ));
+    satedTriggers.forEach((food, symptomaticMeals) {
+      if (symptomaticMeals.length >= 3) {
+        final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+        patterns.add(
+          BodyPattern(
+            type: BodyPattern.typeFullness,
+            trigger: _capitalize(food),
+            reaction: 'Satiety',
+            frequency: symptomaticMeals.length,
+            confidence: _getConfidence(symptomaticMeals.length),
+            description: 'Meals with $food kept you satisfied for significantly longer in ${symptomaticMeals.length} recent logs.',
+            involvedFoods: [food],
+            updatedAt: DateTime.now().toIso8601String(),
+            totalSimilarMeals: totalSimilar,
+            timeframeDays: timeframeDays,
+            occurrences: symptomaticMeals.map((m) {
+              final s = fullnessLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 3);
+              return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Satisfied', timeAfter: _formatTimeAfter(m.time, s.time));
+            }).toList(),
+            commonFactors: _extractCommonFactors(symptomaticMeals),
+          ),
+        );
       }
     });
 
-    hungryTriggers.forEach((food, count) {
-      if (count >= 3) {
-        patterns.add(BodyPattern(
-          type: BodyPattern.typeFullness,
-          trigger: food,
-          reaction: 'Hunger',
-          frequency: count,
-          confidence: _getConfidence(count),
-          description: 'You reported feeling hungry shortly after $count meals containing $food.',
-          involvedFoods: [food],
-          updatedAt: DateTime.now().toIso8601String(),
-        ));
+    hungryTriggers.forEach((food, symptomaticMeals) {
+      if (symptomaticMeals.length >= 3) {
+        final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+        patterns.add(
+          BodyPattern(
+            type: BodyPattern.typeFullness,
+            trigger: _capitalize(food),
+            reaction: 'Hunger',
+            frequency: symptomaticMeals.length,
+            confidence: _getConfidence(symptomaticMeals.length),
+            description: 'You reported feeling hungry shortly after ${symptomaticMeals.length} meals containing $food.',
+            involvedFoods: [food],
+            updatedAt: DateTime.now().toIso8601String(),
+            totalSimilarMeals: totalSimilar,
+            timeframeDays: timeframeDays,
+            occurrences: symptomaticMeals.map((m) {
+              final s = fullnessLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 3);
+              return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Hungry', timeAfter: _formatTimeAfter(m.time, s.time));
+            }).toList(),
+            commonFactors: _extractCommonFactors(symptomaticMeals),
+          ),
+        );
       }
     });
 
     return patterns;
   }
 
-  /// 6. Sleep Pattern (Min 3 evening meals with sleep data)
-  List<BodyPattern> _detectSleepPatterns(List<MealLog> meals, List<SymptomLog> symptoms) {
+  /// 6. Sleep Pattern
+  List<BodyPattern> _detectSleepPatterns(List<MealLog> meals, List<SymptomLog> symptoms, {required int timeframeDays}) {
     final patterns = <BodyPattern>[];
-    final sleepLogs = symptoms.where((s) => s.sleep != null);
+    final sleepLogs = symptoms.where((s) => s.sleep != null).toList();
 
-    var earlyDinnerBetterSleepCount = 0;
-    var lateDinnerPoorSleepCount = 0;
+    final earlyDinnerMeals = <MealLog>[];
+    final lateDinnerMeals = <MealLog>[];
 
     for (final log in sleepLogs) {
       final isGoodSleep = log.sleep!.toLowerCase().contains('good') || log.sleep!.toLowerCase().contains('great');
       final isPoorSleep = log.sleep!.toLowerCase().contains('poor') || log.sleep!.toLowerCase().contains('interrupted');
 
-      // Look at the evening before the sleep log
       final eveningBefore = DateTime(log.time.year, log.time.month, log.time.day).subtract(const Duration(hours: 6));
-      final eveningMeals = meals.where((m) => m.time.isAfter(eveningBefore) && m.time.isBefore(log.time) && m.time.hour >= 18);
+      final eveningMeals = meals.where((m) => m.time.isAfter(eveningBefore) && m.time.isBefore(log.time) && m.time.hour >= 18).toList();
 
       if (eveningMeals.isNotEmpty) {
         final latestMeal = eveningMeals.last;
-        if (latestMeal.time.hour < 20 && isGoodSleep) earlyDinnerBetterSleepCount++;
-        if (latestMeal.time.hour >= 21 && isPoorSleep) lateDinnerPoorSleepCount++;
+        if (latestMeal.time.hour < 20 && isGoodSleep) {
+          if (!earlyDinnerMeals.contains(latestMeal)) earlyDinnerMeals.add(latestMeal);
+        } else if (latestMeal.time.hour >= 21 && isPoorSleep) {
+          if (!lateDinnerMeals.contains(latestMeal)) lateDinnerMeals.add(latestMeal);
+        }
       }
     }
 
-    if (earlyDinnerBetterSleepCount >= 3) {
-      patterns.add(BodyPattern(
-        type: BodyPattern.typeSleep,
-        trigger: 'Earlier dinners',
-        reaction: 'Better Sleep',
-        frequency: earlyDinnerBetterSleepCount,
-        confidence: _getConfidence(earlyDinnerBetterSleepCount),
-        description: 'Earlier dinners were associated with better sleep quality in $earlyDinnerBetterSleepCount of your recent logs.',
-        updatedAt: DateTime.now().toIso8601String(),
-      ));
+    if (earlyDinnerMeals.length >= 3) {
+      patterns.add(
+        BodyPattern(
+          type: BodyPattern.typeSleep,
+          trigger: 'Earlier dinners',
+          reaction: 'Better Sleep',
+          frequency: earlyDinnerMeals.length,
+          confidence: _getConfidence(earlyDinnerMeals.length),
+          description: 'Earlier dinners were associated with better sleep quality in ${earlyDinnerMeals.length} of your recent logs.',
+          updatedAt: DateTime.now().toIso8601String(),
+          totalSimilarMeals: meals.where((m) => m.time.hour >= 18 && m.time.hour < 20).length,
+          timeframeDays: timeframeDays,
+          occurrences: earlyDinnerMeals
+              .map((m) => PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Good Sleep', timeAfter: 'Next morning'))
+              .toList(),
+        ),
+      );
     }
 
-    if (lateDinnerPoorSleepCount >= 3) {
-      patterns.add(BodyPattern(
-        type: BodyPattern.typeSleep,
-        trigger: 'Late night eating',
-        reaction: 'Interrupted Sleep',
-        frequency: lateDinnerPoorSleepCount,
-        confidence: _getConfidence(lateDinnerPoorSleepCount),
-        description: 'Late night meals (after 9:00 PM) correlated with poorer sleep quality $lateDinnerPoorSleepCount times.',
-        updatedAt: DateTime.now().toIso8601String(),
-      ));
+    if (lateDinnerMeals.length >= 3) {
+      patterns.add(
+        BodyPattern(
+          type: BodyPattern.typeSleep,
+          trigger: 'Late night eating',
+          reaction: 'Interrupted Sleep',
+          frequency: lateDinnerMeals.length,
+          confidence: _getConfidence(lateDinnerMeals.length),
+          description: 'Late night meals (after 9:00 PM) correlated with poorer sleep quality ${lateDinnerMeals.length} times.',
+          updatedAt: DateTime.now().toIso8601String(),
+          totalSimilarMeals: meals.where((m) => m.time.hour >= 21).length,
+          timeframeDays: timeframeDays,
+          occurrences: lateDinnerMeals
+              .map((m) => PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Poor Sleep', timeAfter: 'Next morning'))
+              .toList(),
+        ),
+      );
     }
 
     return patterns;

@@ -18,7 +18,7 @@ Insights are not generated on every message. To ensure high accuracy and profess
 
 ## 📥 Data Streams
 
-The engine aggregates data from five primary sources:
+The engine aggregates data from six primary sources:
 
 | Stream | Description |
 | :--- | :--- |
@@ -27,18 +27,21 @@ The engine aggregates data from five primary sources:
 | **Symptom Logs** | Records of bloating, energy, pain, etc., with severity ratings. |
 | **Structured Scans** | Detailed ingredient and processing data from barcodes and labels. |
 | **Score History** | The last 6 calculated Gut Scores to ensure continuity. |
+| **Pattern Candidates** | High-confidence patterns pre-detected by the local deterministic engine. |
 
 ---
 
 ## 🧠 The Pattern Engine
 
-GutGood currently analyzes **6 Core Patterns**:
-1.  **Bloating** (Requires at least 2 relevant repeated events)
+The app runs a local deterministic engine before calling the AI. This engine analyzes **6 Core Patterns**:
+1.  **Bloating** (Requires at least 3 relevant repeated events)
 2.  **Energy** (Requires at least 3 relevant logs)
 3.  **Headache** (Requires at least 3 relevant logs)
 4.  **Digestion** (Requires at least 3 relevant logs)
 5.  **Fullness** (Requires at least 3 relevant logs)
 6.  **Sleep** (Requires at least 3 relevant logs)
+
+These pre-detected patterns are passed to the AI as "ground truth" to ground the generated insights in verified data.
 
 ### Confidence Levels:
 *   **< 60%**: No insight generated.

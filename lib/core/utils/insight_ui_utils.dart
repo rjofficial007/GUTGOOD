@@ -41,8 +41,15 @@ class InsightUiUtils {
   };
 
   /// Returns a branding-consistent color for a specific pattern category.
-  /// Minimalist approach: use a unified dark/neutral color.
-  static Color getPatternColor(String type) => AppPalette.black;
+  static Color getPatternColor(String type) => switch (type) {
+    BodyPattern.typeBloating => AppPalette.green,
+    BodyPattern.typeEnergy => AppPalette.yellow,
+    BodyPattern.typeHeadache => AppPalette.red,
+    BodyPattern.typeDigestion => AppPalette.orange,
+    BodyPattern.typeFullness => AppPalette.blue,
+    BodyPattern.typeSleep => AppPalette.purple,
+    _ => AppPalette.black,
+  };
 
   /// Maps ingredient risk levels (red, orange, green) to theme colors.
   static Color getIngredientColor(String colorName, {required Color error, required Color warning, required Color success}) => switch (colorName.toLowerCase()) {

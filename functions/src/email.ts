@@ -67,7 +67,7 @@ Understand what you eat. Understand your body.
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px;">
           <!-- Brand -->
           <tr>
-            <td style="padding:52px 32px 70px;">
+            <td style="padding:52px 32px 32px;">
               <div style="font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:24px; line-height:30px; font-weight:700; letter-spacing:-0.7px; color:#17231e;">
                 GutGood
               </div>
@@ -185,7 +185,7 @@ If you didn’t create a GutGood account, you can ignore this email.
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px;">
           <!-- Brand -->
           <tr>
-            <td style="padding:52px 32px 70px;">
+            <td style="padding:52px 32px 32px;">
               <div style="font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:24px; line-height:30px; font-weight:700; letter-spacing:-0.7px; color:#17231e;">
                 GutGood
               </div>
