@@ -51,16 +51,14 @@ class ProfileHeaderSection extends StatelessWidget {
         email: p?.email ?? (authNotifier.isAnonymous ? AppStrings.signInToSyncData : authNotifier.user?.email ?? ''),
         isPremium: p?.isPremium ?? false,
         photoUrl: p?.photoUrl,
-        memberSince: p?.createdAt,
-        goalsCount: p?.goals.length ?? 0,
-        sensitivitiesCount: p?.sensitivities.length ?? 0,
-        lifestyleCount: p?.lifestyle.length ?? 0,
+        streak: p?.streak ?? 0,
+        lastActivityDate: p?.lastActivityDate,
+        gutScore: p?.gutScore ?? 0,
+        avgFoodScore: profileNotifier.avgFoodScore,
         onImageTap: () {
           SemanticsService.sendAnnouncement(View.of(context), AppStrings.uploadingProfilePicture, TextDirection.ltr);
           onImageTap(profileNotifier);
         },
-        onEditTap: () => onEditTap(profileNotifier),
-        onLogoutTap: () => onLogoutTap(authNotifier, profileNotifier),
       ),
     );
   }
@@ -72,13 +70,6 @@ class StreakAndUsageSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
         children: [
-          Selector<ProfileNotifier, (int, String?, int, int)>(
-            selector: (_, n) => (n.profile?.streak ?? 0, n.profile?.lastActivityDate, n.profile?.gutScore ?? 0, n.avgFoodScore),
-            builder: (context, data, _) => Padding(
-              padding: EdgeInsets.only(top: AppSizes.p16),
-              child: StreakCard(streak: data.$1, lastActivityDate: data.$2, gutScore: data.$3, avgFoodScore: data.$4),
-            ),
-          ),
           Selector<ProfileNotifier, bool>(
             selector: (_, n) => n.profile?.isPremium ?? false,
             builder: (context, isPremium, _) {
