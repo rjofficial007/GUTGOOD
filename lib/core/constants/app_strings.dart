@@ -150,6 +150,9 @@ class AppStrings {
   static const String routeNotFoundPrefix = CommonStrings.routeNotFoundPrefix;
   static const String backToSafety = CommonStrings.backToSafety;
   static const String keepItUp = CommonStrings.keepItUp;
+  static const String averageFoodScore = CommonStrings.averageFoodScore;
+  static const String allTimeScans = CommonStrings.allTimeScans;
+  static const String avgScore = CommonStrings.avgScore;
   static const String notification = CommonStrings.notification;
   static const String noAlertsYet = CommonStrings.noAlertsYet;
   static const String alertsEmptyDescription = CommonStrings.alertsEmptyDescription;
@@ -278,6 +281,12 @@ class AppStrings {
   static const String emptyStateCheckIngredientsDesc = ChatStrings.emptyStateCheckIngredientsDesc;
   static const String emptyStateAskGutGood = ChatStrings.emptyStateAskGutGood;
   static const String emptyStateAskGutGoodDesc = ChatStrings.emptyStateAskGutGoodDesc;
+  static const String suggestRateMeal = ChatStrings.suggestRateMeal;
+  static const String suggestBetterSwap = ChatStrings.suggestBetterSwap;
+  static const String suggestBloatCheck = ChatStrings.suggestBloatCheck;
+  static const String suggestIsThisHealthy = ChatStrings.suggestIsThisHealthy;
+  static const String suggestMealPlan = ChatStrings.suggestMealPlan;
+  static const String suggestExplainIngredients = ChatStrings.suggestExplainIngredients;
   static const String helpful = ChatStrings.helpful;
   static const String notHelpful = ChatStrings.notHelpful;
   static const String tellMeMore = ChatStrings.tellMeMore;
@@ -640,7 +649,6 @@ class AppStrings {
   static const String streakQuote = ProfileStrings.streakQuote;
 
   // --- Profile Activity & Debug ---
-  static const String exportHealthData = ProfileStrings.exportHealthData;
   static const String testPushNotification = ProfileStrings.testPushNotification;
   static const String copyFcmToken = ProfileStrings.copyFcmToken;
   static const String copyFcmTokenSubtitle = ProfileStrings.copyFcmTokenSubtitle;

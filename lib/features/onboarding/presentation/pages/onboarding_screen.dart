@@ -156,6 +156,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             onBack: _back,
             onSkip: _page < _totalPages - 1 ? _next : null,
             showSkip: _page < _totalPages - 1, // Show skip for all except AI Personalization
+            showBack: _page > 0, // 🟢 Do not show back button on the first page
           ),
           Expanded(
             child: PageView(

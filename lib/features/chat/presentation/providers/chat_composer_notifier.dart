@@ -159,7 +159,7 @@ class ChatComposerNotifier with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<ChatSendError?> send({String text = '', String? hiddenContext, String? source}) async {
+  Future<ChatSendError?> send({String text = '', String? hiddenContext, String? source, String? providedUserMsgId}) async {
     if (_isLoading) return ChatSendError.busy;
 
     final displayText = text.trim();
@@ -181,7 +181,7 @@ class ChatComposerNotifier with ChangeNotifier {
     _generationCancelled = false;
 
     final userMsg = ChatMessage(
-      localId: const Uuid().v4(),
+      localId: providedUserMsgId ?? const Uuid().v4(),
       role: 'user',
       text: displayText,
       localImages: sending.isEmpty ? null : _lastSentImages,
@@ -446,6 +446,15 @@ CLASSIFY INTENT:
 
   String? _getQuickIntent(String text) {
     final lowerText = text.toLowerCase();
+
+    // 🟢 Exact Suggestion Chip Matches (Zero Latency Fast-Path)
+    if (lowerText == AppStrings.suggestRateMeal.toLowerCase()) return 'meal_rating';
+    if (lowerText == AppStrings.suggestBetterSwap.toLowerCase()) return 'meal_swaps';
+    if (lowerText == AppStrings.suggestBloatCheck.toLowerCase()) return 'symptom_analysis';
+    if (lowerText == AppStrings.suggestIsThisHealthy.toLowerCase()) return 'health_assessment';
+    if (lowerText == AppStrings.suggestMealPlan.toLowerCase()) return 'meal_planning';
+    if (lowerText == AppStrings.suggestExplainIngredients.toLowerCase()) return 'label';
+
     if (lowerText.contains(AppStrings.menuPhotoPrompt.toLowerCase())) return 'menu';
     if (lowerText.contains(AppStrings.labelPhotoPrompt.toLowerCase())) return 'label';
     if (lowerText.contains(AppStrings.mealPhotoPrompt.toLowerCase())) return 'food';

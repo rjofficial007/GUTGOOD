@@ -103,7 +103,6 @@ class ProfileStrings {
   static const String streakUp = 'STREAK UP!';
   static const String daysInARow = 'DAYS IN A ROW';
   static const String streakQuote = 'Small steps, big changes. Your gut will thank you!';
-  static const String exportHealthData = 'Export Health Data (CSV)';
   static const String testPushNotification = 'Test Push Notification';
   static const String copyFcmToken = 'Copy FCM Token';
   static const String copyFcmTokenSubtitle = 'Tap to copy your push token for testing';

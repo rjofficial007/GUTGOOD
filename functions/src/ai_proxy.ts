@@ -121,9 +121,9 @@ async function authenticate(req: functions.Request): Promise<{ uid: string; isAn
 
 export const aiProxy = functions
   .region(REGION)
-  // Cold-start sensitivity: this endpoint is on the chat latency path. If
-  // production analytics show cold starts, add `minInstances: 1` here.
-  .runWith({ timeoutSeconds: 300, memory: '512MB', secrets: [OPENAI_API_KEY] })
+  // Cold-start sensitivity: this endpoint is on the chat latency path.
+  // minInstances: 1 ensures the first AI interaction is always fast.
+  .runWith({ timeoutSeconds: 300, memory: '512MB', secrets: [OPENAI_API_KEY], minInstances: 1 })
   .https.onRequest(async (req, res) => {
     setCors(res);
     if (req.method === 'OPTIONS') {

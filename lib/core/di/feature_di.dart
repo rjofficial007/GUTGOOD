@@ -44,7 +44,7 @@ void initFeatureDI() {
     ..registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), authFirestoreService: sl(), analyticsService: sl()))
     // --- Profile ---
     ..registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(auth: sl(), firestoreService: sl()))
-    ..registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl()))
+    ..registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl(), sl()))
     ..registerLazySingleton(() => UsageNotifier(sl(), sl()))
     // --- Chat ---
     ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl()))

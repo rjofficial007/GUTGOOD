@@ -97,6 +97,9 @@ class CommonStrings {
   static const String routeNotFoundPrefix = 'We couldn\'t find the route: ';
   static const String backToSafety = 'BACK TO SAFETY';
   static const String keepItUp = 'Keep it up!';
+  static const String averageFoodScore = 'Average Food Score';
+  static const String allTimeScans = 'Across all scanned products';
+  static const String avgScore = 'AVG SCORE';
 
   static const String notification = 'Notification';
   static const String noAlertsYet = 'No Alerts Yet';

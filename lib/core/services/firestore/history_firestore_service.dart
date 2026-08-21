@@ -27,6 +27,10 @@ abstract class HistoryFirestoreService {
   Future<int> getTotalScansCount();
   Future<int> getTotalMealLogsCount();
   Future<int> getTotalSymptomsCount();
+
+  /// Calculates the average score of all food product scans in history.
+  /// Ignores generic utility scans (menus, labels) via [ScanResult.isLoggableProduct].
+  Future<int> getAverageFoodScore();
 }
 
 class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
@@ -284,5 +288,32 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     if (doc == null) return 0;
     final snapshot = await doc.collection('symptom_logs').get();
     return snapshot.size;
+  }
+
+  @override
+  Future<int> getAverageFoodScore() async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return 0;
+
+      // Note: In production, this should ideally be an aggregated counter updated via triggers.
+      // For now, we fetch all scans to calculate a true average.
+      final snapshot = await doc.collection('scan_history').get();
+      if (snapshot.docs.isEmpty) return 0;
+
+      final scores = snapshot.docs
+          .map((doc) => ScanResult.fromMap(doc.data()))
+          .where((s) => s.isLoggableProduct)
+          .map((s) => s.score)
+          .toList();
+
+      if (scores.isEmpty) return 0;
+
+      final sum = scores.reduce((a, b) => a + b);
+      return (sum / scores.length).round();
+    } catch (e) {
+      AppLogger.firestore('Error calculating average food score', error: e);
+      return 0;
+    }
   }
 }

@@ -191,7 +191,9 @@ export function calculateStreakUpdate(userData: any, today: string): any {
   let currentStreak = Number(userData.streak ?? 0);
   let longestStreak = Number(userData.longestStreak ?? 0);
 
-  if (lastDate === today) return null;
+  // 🟢 Fix: Don't allow "time-travel" resets. If the activity date is before
+  // or equal to the last recorded activity, ignore it for streak purposes.
+  if (lastDate && today <= lastDate) return null;
 
   // Calculate "Yesterday" relative to our Local "Today" string
   const yesterday = new Date(today);

@@ -8,13 +8,14 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class OnboardingHeader extends StatelessWidget {
-  const OnboardingHeader({super.key, required this.currentStep, required this.totalSteps, required this.onBack, this.onSkip, this.showSkip = true});
+  const OnboardingHeader({super.key, required this.currentStep, required this.totalSteps, required this.onBack, this.onSkip, this.showSkip = true, this.showBack = true});
 
   final int currentStep;
   final int totalSteps;
   final VoidCallback onBack;
   final VoidCallback? onSkip;
   final bool showSkip;
+  final bool showBack;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -24,11 +25,14 @@ class OnboardingHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            onPressed: onBack,
-            icon: const Icon(AppIcons.arrowLeft),
-            style: IconButton.styleFrom(backgroundColor: AppPalette.transparent, foregroundColor: context.appColorScheme.textPrimary),
-          ),
+          if (showBack)
+            IconButton(
+              onPressed: onBack,
+              icon: const Icon(AppIcons.arrowLeft),
+              style: IconButton.styleFrom(backgroundColor: AppPalette.transparent, foregroundColor: context.appColorScheme.textPrimary),
+            )
+          else
+            const SizedBox(width: 48),
           Row(
             children: List.generate(totalSteps, (index) {
               final isActive = index == currentStep;

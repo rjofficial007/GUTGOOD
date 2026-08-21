@@ -6,6 +6,7 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
@@ -349,15 +350,23 @@ class ChatSuggestionChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.only(right: AppSizes.p8),
-        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p10),
+        margin: EdgeInsets.only(right: AppSizes.p10),
+        padding: EdgeInsets.symmetric(horizontal: AppSizes.p18, vertical: AppSizes.p8),
         decoration: BoxDecoration(
-          color: colorScheme.cardBackground,
-          borderRadius: BorderRadius.circular(AppSizes.r24),
-          border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
-          boxShadow: [BoxShadow(color: colorScheme.textPrimary.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
+          color: colorScheme.elevatedSurface,
+          borderRadius: BorderRadius.circular(AppSizes.r20),
+          border: Border.all(color: colorScheme.border.withValues(alpha: 0.4)),
         ),
-        child: Text(label, style: context.bodyBold.copyWith(color: colorScheme.textPrimary, fontSize: 13, letterSpacing: -0.2)),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: context.body.copyWith(
+            color: colorScheme.textPrimary.withValues(alpha: 0.8),
+            fontSize: 12.5.sp,
+            letterSpacing: -0.1,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

@@ -84,4 +84,11 @@ class ChatStrings {
   static const String emptyStateCheckIngredientsDesc = "See what's really in your food";
   static const String emptyStateAskGutGood = 'Ask\nGutGood';
   static const String emptyStateAskGutGoodDesc = 'Ask anything about your food';
+
+  static const String suggestRateMeal = 'Rate my meal';
+  static const String suggestBetterSwap = 'Show me a swap';
+  static const String suggestBloatCheck = 'Why am I bloating?';
+  static const String suggestIsThisHealthy = 'Is this healthy?';
+  static const String suggestMealPlan = 'What should I eat next?';
+  static const String suggestExplainIngredients = 'Explain these ingredients';
 }

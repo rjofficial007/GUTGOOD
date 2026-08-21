@@ -8,7 +8,6 @@ import 'package:gutgood/core/services/config_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/debug_mock_data_service.dart';
 import 'package:gutgood/core/services/device_info_services.dart';
-import 'package:gutgood/core/services/export_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
@@ -49,7 +48,6 @@ void initServiceDI() {
     ..registerLazySingleton<LinkService>(() => LinkServiceImpl(authRepository: sl(), prefs: sl(), firebaseAuth: sl(), appStateService: sl()))
     ..registerLazySingleton<PurchaseService>(PurchaseServiceImpl.new)
     ..registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), authFirestoreService: sl(), usageFirestoreService: sl(), purchaseService: sl(), prefs: sl()))
-    ..registerLazySingleton<ExportService>(() => ExportServiceImpl(firestoreService: sl<HistoryFirestoreService>()))
     ..registerLazySingleton<DebugMockDataService>(() => DebugMockDataService(historyFirestoreService: sl(), insightFirestoreService: sl()))
     ..registerLazySingleton(() => ThemeNotifier(sl()));
 }

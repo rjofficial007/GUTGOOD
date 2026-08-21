@@ -12,12 +12,10 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/user_profile.dart';
 import 'package:gutgood/core/router/app_routes.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_services.dart';
 import 'package:gutgood/core/services/app_version_services.dart';
 import 'package:gutgood/core/services/config_service.dart';
 import 'package:gutgood/core/services/debug_mock_data_service.dart';
-import 'package:gutgood/core/services/export_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -73,23 +71,23 @@ class StreakAndUsageSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-    children: [
-      Selector<ProfileNotifier, (int, String?, int)>(
-        selector: (_, n) => (n.profile?.streak ?? 0, n.profile?.lastActivityDate, n.profile?.gutScore ?? 0),
-        builder: (context, data, _) => Padding(
-          padding: EdgeInsets.only(top: AppSizes.p16),
-          child: StreakCard(streak: data.$1, lastActivityDate: data.$2, gutScore: data.$3),
-        ),
-      ),
-      Selector<ProfileNotifier, bool>(
-        selector: (_, n) => n.profile?.isPremium ?? false,
-        builder: (context, isPremium, _) {
-          if (isPremium) return const SizedBox.shrink();
-          return const AIUsageCard();
-        },
-      ),
-    ],
-  );
+        children: [
+          Selector<ProfileNotifier, (int, String?, int, int)>(
+            selector: (_, n) => (n.profile?.streak ?? 0, n.profile?.lastActivityDate, n.profile?.gutScore ?? 0, n.avgFoodScore),
+            builder: (context, data, _) => Padding(
+              padding: EdgeInsets.only(top: AppSizes.p16),
+              child: StreakCard(streak: data.$1, lastActivityDate: data.$2, gutScore: data.$3, avgFoodScore: data.$4),
+            ),
+          ),
+          Selector<ProfileNotifier, bool>(
+            selector: (_, n) => n.profile?.isPremium ?? false,
+            builder: (context, isPremium, _) {
+              if (isPremium) return const SizedBox.shrink();
+              return const AIUsageCard();
+            },
+          ),
+        ],
+      );
 }
 
 class PersonalizationSection extends StatelessWidget {
@@ -289,14 +287,10 @@ class SupportSection extends StatelessWidget {
       AppTile(icon: AppIcons.helpCircle, title: AppStrings.aboutUs, onTap: () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().aboutUsUrl))),
       AppTile(icon: AppIcons.clipboardList, title: AppStrings.termsAndConditions, onTap: () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl))),
       AppTile(icon: AppIcons.shieldCheck, title: AppStrings.privacy, onTap: () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl))),
-      AppTile(icon: AppIcons.shield, title: AppStrings.medicalDisclaimer, onTap: () => unawaited(BottomSheetHelper.showMedicalDisclaimer(context))),
       AppTile(
-        icon: AppIcons.download,
-        title: AppStrings.exportHealthData,
-        onTap: () async {
-          unawaited(sl<AnalyticsService>().logEvent(name: 'export_data_requested'));
-          unawaited(sl<ExportService>().exportHealthData());
-        },
+        icon: AppIcons.shield,
+        title: AppStrings.medicalDisclaimer,
+        onTap: () => unawaited(BottomSheetHelper.showMedicalDisclaimer(context)),
         showBottomBorder: false,
       ),
     ],

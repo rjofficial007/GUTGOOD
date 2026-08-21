@@ -11,10 +11,11 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 
 class StreakCard extends StatefulWidget {
-  const StreakCard({super.key, required this.streak, this.lastActivityDate, this.gutScore = 0, this.logsToday = 0, this.logsGoal = 3});
+  const StreakCard({super.key, required this.streak, this.lastActivityDate, this.gutScore = 0, this.avgFoodScore = 0, this.logsToday = 0, this.logsGoal = 3});
   final int streak;
   final String? lastActivityDate;
   final int gutScore;
+  final int avgFoodScore;
   final int logsToday;
   final int logsGoal;
 
@@ -103,7 +104,7 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
                     text: TextSpan(
                       children: [
                         TextSpan(
-                          text: '${widget.gutScore}',
+                          text: '${widget.avgFoodScore}',
                           style: context.headingMd.copyWith(color: textColor, height: 1.1, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
                         ),
                         TextSpan(
@@ -151,7 +152,6 @@ class _WeeklyBubbles extends StatelessWidget {
           final day = firstDayOfWeek.add(Duration(days: index));
           final dayName = DateFormat('E').format(day)[0];
           final isToday = DateUtils.isSameDay(day, todayMidnight);
-          final isFuture = day.isAfter(todayMidnight);
 
           var isStreakDay = false;
           if (lastActivityDate != null && streak > 0) {
@@ -185,9 +185,9 @@ class _WeeklyBubbles extends StatelessWidget {
               Text(
                 dayName,
                 style: context.caption.copyWith(
-                  fontSize: 10.sp,
-                  fontWeight: isToday ? FontWeight.w900 : FontWeight.w700,
-                  color: isToday ? scheme.textPrimary : scheme.textPrimary.withValues(alpha: isFuture ? 0.2 : 0.4),
+                  fontSize: 12.sp,
+                  fontWeight:  FontWeight.w900 ,
+                  color: isToday ? scheme.textPrimary : scheme.textPrimary.withValues(alpha: 0.4),
                 ),
               ),
             ],

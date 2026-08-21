@@ -9,13 +9,22 @@ import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier with ChangeNotifier {
-  ProfileNotifier(this._authRepository, this._firestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService) {
+  ProfileNotifier(
+    this._authRepository,
+    this._firestoreService,
+    this._historyFirestoreService,
+    this._appStateService,
+    this._notificationService,
+    this._analyticsService,
+    this._crashlyticsService,
+  ) {
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -32,6 +41,7 @@ class ProfileNotifier with ChangeNotifier {
 
   final AuthRepository _authRepository;
   final AuthFirestoreService _firestoreService;
+  final HistoryFirestoreService _historyFirestoreService;
   final AppStateService _appStateService;
   final NotificationService _notificationService;
   final AnalyticsService _analyticsService;
@@ -39,6 +49,7 @@ class ProfileNotifier with ChangeNotifier {
 
   UserProfile? _profile;
   int? _previousStreak;
+  int _avgFoodScore = 0;
   bool _isLoading = false;
   bool _isInitialized = false;
   bool _showStreakCelebration = false;
@@ -74,15 +85,26 @@ class ProfileNotifier with ChangeNotifier {
 
       _profile = profile;
       _updateInsights();
+      unawaited(_fetchAverageFoodScore());
       notifyListeners();
     }, onError: (e) => AppLogger.error('ProfileNotifier: Stream error', error: e));
   }
 
   UserProfile? get profile => _profile;
+  int get avgFoodScore => _avgFoodScore;
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   bool get showStreakCelebration => _showStreakCelebration;
   String get quickInsight => _quickInsight;
+
+  Future<void> _fetchAverageFoodScore() async {
+    try {
+      _avgFoodScore = await _historyFirestoreService.getAverageFoodScore();
+      notifyListeners();
+    } catch (e) {
+      AppLogger.error('Error fetching average food score: $e');
+    }
+  }
 
   void dismissStreakCelebration() {
     _showStreakCelebration = false;
