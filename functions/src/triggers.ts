@@ -12,7 +12,7 @@ import { calculateStreakUpdate, getLocalDate } from './usage';
 /**
  * Shared helper to update user streak based on activity time.
  */
-async function handleActivityStreak(uid: string, docTime: string) {
+async function handleActivityStreak(uid: string, docTime: string, docOffset?: number) {
   const db = admin.firestore();
   const userRef = db.doc(`user_profiles/${uid}`);
 
@@ -22,16 +22,22 @@ async function handleActivityStreak(uid: string, docTime: string) {
       if (!userSnap.exists) return;
 
       const userData = userSnap.data() || {};
-      const offset = (userData.timezoneOffset !== undefined) ? Number(userData.timezoneOffset) : 0;
 
-      // 🟢 Fix: Calculate "Today" based on the user's stored timezone offset.
-      // This ensures consistency between aiProxy (which uses server time + offset)
-      // and background triggers (which use document time + offset).
+      // 🟢 Fix: Prioritize timezoneOffset from the document, fallback to User Profile.
+      // If neither exists (brand new user), skip the update to prevent UTC-based
+      // double-counting races with aiProxy.
+      const offset = docOffset ?? (userData.timezoneOffset !== undefined ? Number(userData.timezoneOffset) : null);
+
+      if (offset === null) {
+        functions.logger.warn(`Skipping streak update for ${uid}: No timezoneOffset available yet.`);
+        return;
+      }
+
       const today = getLocalDate(docTime || new Date().toISOString(), offset);
 
       const update = calculateStreakUpdate(userData, today);
       if (update) {
-        functions.logger.info(`Streak update for ${uid}: ${update.streak} (date: ${today})`);
+        functions.logger.info(`Streak update for ${uid}: ${update.streak} (date: ${today}, offset: ${offset})`);
         tx.set(userRef, update, { merge: true });
       }
     });
@@ -49,7 +55,7 @@ export const onScanCreated = functions
     if (!scanData) return;
 
     // 1. Update Streak
-    await handleActivityStreak(uid, scanData.time);
+    await handleActivityStreak(uid, scanData.time, scanData.timezoneOffset);
 
     // 2. Process warnings (existing logic)
     const novaGroup = (scanData.novaGroup || '').toString();
@@ -158,7 +164,7 @@ export const onMealCreated = functions
     const { uid } = context.params;
     const data = snapshot.data();
     if (data) {
-      await handleActivityStreak(uid, data.time);
+      await handleActivityStreak(uid, data.time, data.timezoneOffset);
     }
   });
 
@@ -200,7 +206,7 @@ export const onSymptomCreated = functions
     const { uid } = context.params;
     const data = snapshot.data();
     if (data) {
-      await handleActivityStreak(uid, data.time);
+      await handleActivityStreak(uid, data.time, data.timezoneOffset);
     }
   });
 

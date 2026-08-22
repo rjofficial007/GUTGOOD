@@ -7,6 +7,7 @@ abstract class ChatFirestoreService {
   Future<String?> saveMessage(ChatMessage message);
   Stream<List<ChatMessage>> getMessagesStream({int limit = 50});
   Future<List<ChatMessage>> getMessages({int? limit, DateTime? since});
+  Future<List<ChatMessage>> getOlderMessages({required int limit, required DateTime before});
   Future<void> updateMessageFeedback(String messageId, String feedback);
   Future<void> deleteMessage(String messageId);
 }
@@ -79,6 +80,26 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       return snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList();
     } catch (e) {
       AppLogger.firestore('Error getting messages', error: e);
+      return [];
+    }
+  }
+
+  @override
+  Future<List<ChatMessage>> getOlderMessages({required int limit, required DateTime before}) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return [];
+
+      final query = doc
+          .collection('chat_history')
+          .orderBy('time', descending: true)
+          .where('time', isLessThan: before.toIso8601String())
+          .limit(limit);
+
+      final snapshot = await query.get();
+      return snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList();
+    } catch (e) {
+      AppLogger.firestore('Error getting older messages', error: e);
       return [];
     }
   }

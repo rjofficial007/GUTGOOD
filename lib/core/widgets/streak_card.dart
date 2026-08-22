@@ -11,8 +11,18 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 
 class StreakCard extends StatefulWidget {
-  const StreakCard({super.key, required this.streak, this.lastActivityDate, this.gutScore = 0, this.avgFoodScore = 0, this.logsToday = 0, this.logsGoal = 3});
+  const StreakCard({
+    super.key,
+    required this.streak,
+    this.longestStreak = 0,
+    this.lastActivityDate,
+    this.gutScore = 0,
+    this.avgFoodScore = 0,
+    this.logsToday = 0,
+    this.logsGoal = 3,
+  });
   final int streak;
+  final int longestStreak;
   final String? lastActivityDate;
   final int gutScore;
   final int avgFoodScore;
@@ -90,9 +100,22 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
                         '${widget.streak} DAYS',
                         style: context.headingMd.copyWith(color: textColor, height: 1.1, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
                       ),
-                      Text(
-                        'DAILY STREAK',
-                        style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
+                      Row(
+                        children: [
+                          Text(
+                            'DAILY STREAK',
+                            style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
+                          ),
+                          if (widget.longestStreak > 0) ...[
+                            Gap.w8,
+                            Container(width: 1, height: 8, color: textColor.withValues(alpha: 0.2)),
+                            Gap.w8,
+                            Text(
+                              'BEST: ${widget.longestStreak}',
+                              style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.4), letterSpacing: 1.0, fontSize: 8.sp, fontWeight: FontWeight.w900),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),

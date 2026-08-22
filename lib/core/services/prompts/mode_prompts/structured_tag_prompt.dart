@@ -5,35 +5,29 @@ class StructuredTagPrompt {
 
   static String get instruction =>
       '''
-TAG ENFORCEMENT
+STRUCTURED DATA ENFORCEMENT
 
-For structured food/product responses:
+Your response MUST conclude with the appropriate structured data blocks if relevant to the turn. 
+Do not emit a block if the category was not discussed.
+
+1. [SCAN]: Use for ingredient labels, barcodes, or single-product analysis.
 ${SchemaDefinitions.scanSchema}
 
+2. [MEAL]: Use for complete plates, restaurant meals, or home-cooked food.
 ${SchemaDefinitions.mealSchema}
 
-For symptom logging:
-If the user reports a physical feeling, symptom, or mood (e.g., "I'm bloated", "my stomach hurts", "I'm tired"), you MUST output the [SYMPTOM] tag.
+3. [SYMPTOM]: Use if the user reports a feeling, mood, or physical symptom.
 ${SchemaDefinitions.symptomSchema}
 
-For swap responses:
+4. [SWAPS]: Use if you have recommended alternatives.
 ${SchemaDefinitions.swapsSchema}
 
-For restaurant menus:
-DO NOT output any structured tags.
-
+STRICT JSON RULES:
+- VALIDITY: JSON must be syntactically perfect.
+- POSITION: Tags MUST be the very last thing in your response.
+- ALIGNMENT: The data in the JSON must match your conversational claims.
+- DATES: Use ISO 8601 for all `time` fields.
+- CATEGORIES: Follow the schema types exactly as defined.
 ${SchemaDefinitions.typeRules}
-
-JSON RULES
-
-Whenever JSON is required:
-- JSON must be valid.
-- Use double quotes.
-- Do not add comments.
-- Do not add trailing commas.
-- Do not output Markdown inside the JSON.
-- Always close the corresponding [TAG].
-- Never put explanatory text inside a structured block unless the schema
-  explicitly provides a field for it.
 ''';
 }

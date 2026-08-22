@@ -57,6 +57,7 @@ class GutSnapshotHeroCard extends StatelessWidget {
                 text: streak.toString(),
                 style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
               ),
+              const TextSpan(text: ' '),
               TextSpan(text: AppStrings.dayStreakLabel.toUpperCase()),
             ],
           ),

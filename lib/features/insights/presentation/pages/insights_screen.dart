@@ -193,8 +193,9 @@ class _MainDashboardSliver extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileNotifier>();
+    final effectiveStreak = profile.profile?.effectiveStreak ?? 0;
 
-    final sections = _buildSections(context: context, streak: profile.profile?.streak ?? 0);
+    final sections = _buildSections(context: context, streak: effectiveStreak);
 
     return SliverPadding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),

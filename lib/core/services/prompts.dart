@@ -277,9 +277,8 @@ Current Cycle Phase: $cyclePhase
     required String cyclePhase,
     required String historyJson,
     String? historySummary,
-    String? mealsJson,
-    String? symptomsJson,
-    String? scansJson,
+    String? recentJournalText,
+    String? historicalJournalSummary,
     String? scoreHistory,
     String? preComputedPatternCandidates,
   }) {
@@ -302,14 +301,14 @@ Current Cycle Phase: $cyclePhase
 
 DATA STREAMS
 1. CHAT HISTORY
-${historySummary != null ? 'LONG-TERM SUMMARY:\n$historySummary\n' : ''}
+${historySummary != null ? 'LONG-TERM CHAT SUMMARY:\n$historySummary\n' : ''}
 RECENT CHAT LOGS:
 $historyJson
 
-2. UNIFIED BODY JOURNAL (Last 30 Days)
-This is a single chronological timeline of everything the user ate, scanned, and felt.
-Use this to find immediate correlations (e.g., ATE Pizza -> 2 hours later FEELING Bloated).
-${mealsJson ?? 'No journal data yet.'}
+2. BODY JOURNAL (Tiered Context)
+${historicalJournalSummary != null ? 'HISTORICAL TRENDS (Days 8-30):\n$historicalJournalSummary\n' : ''}
+HIGH-FIDELITY RECENT EVENTS (Last 7 Days):
+${recentJournalText ?? 'No recent journal data yet.'}
 
 5. PREVIOUS GUT SCORES
 ${scoreHistory ?? 'No historical scores yet.'}

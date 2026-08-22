@@ -49,10 +49,12 @@ class ProfileNotifier with ChangeNotifier {
   String _quickInsight = 'Log more meals to see patterns.';
   StreamSubscription<UserProfile?>? _profileSub;
   StreamSubscription<int>? _avgScoreSub;
+  Timer? _dayRolloverTimer;
 
   void _initProfileStream() {
     _profileSub?.cancel();
     _avgScoreSub?.cancel();
+    _startDayRolloverTimer();
     _isInitialized = false; // Reset initialization state during user switch
     _profile = null; // Clear stale profile data
     notifyListeners(); // 🟢 Notify immediately so UI can show fallback auth data
@@ -125,10 +127,24 @@ class ProfileNotifier with ChangeNotifier {
     }
   }
 
+  void _startDayRolloverTimer() {
+    _dayRolloverTimer?.cancel();
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final timeUntilMidnight = tomorrow.difference(now);
+
+    _dayRolloverTimer = Timer(timeUntilMidnight.add(const Duration(seconds: 5)), () {
+      AppLogger.info('ProfileNotifier: Midnight rollover detected. Refreshing effective streak.');
+      notifyListeners();
+      _startDayRolloverTimer();
+    });
+  }
+
   @override
   void dispose() {
     _profileSub?.cancel();
     _avgScoreSub?.cancel();
+    _dayRolloverTimer?.cancel();
     _appStateService.insightsData.removeListener(_updateInsights);
     _appStateService.sessionReset.removeListener(_onSessionReset);
     super.dispose();

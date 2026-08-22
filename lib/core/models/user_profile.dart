@@ -131,6 +131,29 @@ class UserProfile extends Equatable {
   /// Account creation timestamp.
   final DateTime createdAt;
 
+  /// 🟢 Effective Streak: Derived value that accounts for time passing.
+  /// If the user hasn't been active for more than 1 day, the streak is effectively 0
+  /// even if the database hasn't been updated yet (Lazy Reset).
+  int get effectiveStreak {
+    if (lastActivityDate == null || streak == 0) return 0;
+    try {
+      final last = DateTime.parse(lastActivityDate!);
+      final lastMidnight = DateTime(last.year, last.month, last.day);
+      final now = DateTime.now();
+      final todayMidnight = DateTime(now.year, now.month, now.day);
+      final diff = todayMidnight.difference(lastMidnight).inDays;
+
+      // If more than 1 day has passed since last activity, the streak is broken.
+      if (diff > 1) return 0;
+      return streak;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Whether the streak is currently active (active today or yesterday).
+  bool get isStreakActive => effectiveStreak > 0;
+
   UserProfile copyWith({
     String? uid,
     bool? onboarded,

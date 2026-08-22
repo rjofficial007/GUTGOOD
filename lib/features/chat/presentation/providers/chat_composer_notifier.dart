@@ -462,16 +462,15 @@ CLASSIFY INTENT:
     if (lowerText.contains(AppStrings.galleryPhotoPrompt.toLowerCase())) return 'gallery';
 
     // 🔍 Robust Regex Detection (Non-AI Fast-Path)
-    // We use word boundaries (\b) to prevent accidental matches like 'comparison' triggering 'vs'
-    if (RegExp(r'\b(rate|score|grade|how did I do|feedback)\b').hasMatch(lowerText)) return 'meal_rating';
-    if (RegExp(r'\b(swap|instead|better|alternative|healthier|replace)\b').hasMatch(lowerText)) return 'meal_swaps';
-    if (RegExp(r'\b(bloat|bloating|bloated|pain|hurt|headache|tired|gas|cramp|nausea)\b').hasMatch(lowerText)) return 'symptom_analysis';
-    if (RegExp(r'\b(healthy|balanced|good for me|gut-friendly|gut friendly)\b').hasMatch(lowerText)) return 'health_assessment';
-    if (RegExp(r'\b(full analysis|breakdown|everything|details|all info|complete)\b').hasMatch(lowerText)) return 'full_analysis';
-    if (RegExp(r'\b(vs|versus|compare|difference between)\b').hasMatch(lowerText)) return 'product_comparison';
-    if (RegExp(r'\b(plan|eat next|tomorrow|dinner idea|lunch idea|snack idea)\b').hasMatch(lowerText)) return 'meal_planning';
-    if (RegExp(r'\b(menu|order|restaurant)\b').hasMatch(lowerText)) return 'menu';
-    if (RegExp(r'\b(label|ingredient|gums|emulsifier|additive)\b').hasMatch(lowerText)) return 'label';
+    if (RegExp(r'\b(rate|score|grade|how did I do|feedback|how is my)\b').hasMatch(lowerText)) return 'meal_rating';
+    if (RegExp(r'\b(swap|instead|better|alternative|healthier|replace|substitution)\b').hasMatch(lowerText)) return 'meal_swaps';
+    if (RegExp(r'\b(bloat|bloating|bloated|pain|hurt|headache|tired|gas|cramp|nausea|stomachache)\b').hasMatch(lowerText)) return 'symptom_analysis';
+    if (RegExp(r'\b(healthy|balanced|good for me|gut-friendly|gut friendly|is this okay)\b').hasMatch(lowerText)) return 'health_assessment';
+    if (RegExp(r'\b(full analysis|breakdown|everything|details|all info|complete|tell me more|details please)\b').hasMatch(lowerText)) return 'full_analysis';
+    if (RegExp(r'\b(vs|versus|compare|difference between|which one is better)\b').hasMatch(lowerText)) return 'product_comparison';
+    if (RegExp(r'\b(plan|eat next|tomorrow|dinner idea|lunch idea|snack idea|what should i eat)\b').hasMatch(lowerText)) return 'meal_planning';
+    if (RegExp(r'\b(menu|order|restaurant|eat here)\b').hasMatch(lowerText)) return 'menu';
+    if (RegExp(r'\b(label|ingredient|gums|emulsifier|additive|e-number)\b').hasMatch(lowerText)) return 'label';
 
     // Casual meal mentions
     if (lowerText.contains("i'm having a") || lowerText.contains('i ate') || lowerText.contains('for dinner')) return 'meal_overview';
@@ -600,7 +599,9 @@ CLASSIFY INTENT:
   }
 
   String _applySafetyGuardrails(String text) {
-    const forbiddenWords = ['diagnose', 'cure', 'treat', 'medical condition', 'disease', 'prescription'];
+    if (text.contains('Disclaimer:') || text.contains('**Disclaimer:**')) return text;
+
+    const forbiddenWords = ['diagnose', 'cure', 'treat', 'prescription', 'medical condition', 'disease'];
     final lowerText = text.toLowerCase();
 
     var foundForbidden = false;
@@ -611,8 +612,8 @@ CLASSIFY INTENT:
       }
     }
 
-    if (foundForbidden && !text.contains('Disclaimer:')) {
-      return '$text\n\n**Disclaimer:** I am an AI, not a doctor. This analysis identifies patterns in your reports and is for educational purposes only. Always consult a healthcare professional for medical advice.';
+    if (foundForbidden) {
+      return '$text\n\n**Disclaimer:** I am an AI, not a doctor. This analysis identifies patterns in your reports for educational purposes and is not a medical diagnosis. Always consult a healthcare professional for medical advice.';
     }
     return text;
   }

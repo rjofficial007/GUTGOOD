@@ -19,6 +19,7 @@ class ProfileHeader extends StatefulWidget {
     this.photoUrl,
     required this.onImageTap,
     required this.streak,
+    this.longestStreak = 0,
     this.lastActivityDate,
     required this.gutScore,
     required this.avgFoodScore,
@@ -30,6 +31,7 @@ class ProfileHeader extends StatefulWidget {
   final String? photoUrl;
   final VoidCallback onImageTap;
   final int streak;
+  final int longestStreak;
   final String? lastActivityDate;
   final int gutScore;
   final int avgFoodScore;
@@ -223,9 +225,24 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          '${widget.streak}',
-                          style: context.headingMd.copyWith(color: AppPalette.white, fontWeight: FontWeight.w900),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${widget.streak}',
+                              style: context.headingMd.copyWith(color: AppPalette.white, fontWeight: FontWeight.w900),
+                            ),
+                            if (widget.longestStreak > 0) ...[
+                              Gap.w6,
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Text(
+                                  'BEST: ${widget.longestStreak}',
+                                  style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.3), letterSpacing: 1.0, fontSize: 7.sp, fontWeight: FontWeight.w900),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         Text(
                           'DAY STREAK',

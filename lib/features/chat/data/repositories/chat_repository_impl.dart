@@ -17,6 +17,10 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
+  Future<List<ChatMessage>> getOlderMessages({required int limit, required DateTime before}) =>
+      _firestoreService.getOlderMessages(limit: limit, before: before);
+
+  @override
   Future<void> deleteMessage(ChatMessage message) async {
     final id = message.firestoreId;
     if (id != null) {

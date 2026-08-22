@@ -133,7 +133,11 @@ export async function checkAndConsume(
       : recentIds;
 
     // 4. Streak Logic
-    const streakUpdate = calculateStreakUpdate(userData, today);
+    // 🟢 PRD §10: Only 'chat' and 'scan' activities count toward a streak.
+    // 'system' usage (summaries, background tasks) is excluded.
+    const streakUpdate = (type === 'chat' || type === 'scan')
+      ? calculateStreakUpdate(userData, today)
+      : null;
 
     // 5. Execute Writes
     const dailyUpdate = { [field]: admin.firestore.FieldValue.increment(1), ...(idempotencyKey ? { recentIds: nextIds } : {}) };
@@ -190,6 +194,10 @@ export function calculateStreakUpdate(userData: any, today: string): any {
   const lastDate = (userData.lastActivityDate ?? '').toString();
   let currentStreak = Number(userData.streak ?? 0);
   let longestStreak = Number(userData.longestStreak ?? 0);
+
+  // 🟢 Safety Guard: Prevent corrupted negative values
+  if (currentStreak < 0) currentStreak = 0;
+  if (longestStreak < 0) longestStreak = 0;
 
   // 🟢 Fix: Don't allow "time-travel" resets. If the activity date is before
   // or equal to the last recorded activity, ignore it for streak purposes.

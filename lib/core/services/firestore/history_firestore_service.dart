@@ -28,6 +28,10 @@ abstract class HistoryFirestoreService {
   Future<int> getTotalMealLogsCount();
   Future<int> getTotalSymptomsCount();
 
+  Stream<int> getTotalScansCountStream();
+  Stream<int> getTotalMealLogsCountStream();
+  Stream<int> getTotalSymptomsCountStream();
+
   /// Calculates the average score of all food product scans in history.
   /// Ignores generic utility scans (menus, labels) via [ScanResult.isLoggableProduct].
   Future<int> getAverageFoodScore();
@@ -68,6 +72,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         ...scanData.toMap(),
         'userImageUrl': bestImageUrl,
         'isSaved': isSaved,
+        'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
         'timestamp': FieldValue.serverTimestamp(),
         'time': scanData.time?.toIso8601String() ?? DateTime.now().toIso8601String(),
       });
@@ -189,7 +194,13 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return null;
       final docRef = doc.collection('meal_logs').doc();
-      final data = {...log.toMap(), 'firestoreId': docRef.id, 'source': log.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
+      final data = {
+        ...log.toMap(),
+        'firestoreId': docRef.id,
+        'source': log.source ?? 'chat',
+        'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
@@ -229,7 +240,13 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return null;
       final docRef = doc.collection('symptom_logs').doc();
-      final data = {...log.toMap(), 'firestoreId': docRef.id, 'source': log.source ?? 'manual', 'createdAt': FieldValue.serverTimestamp()};
+      final data = {
+        ...log.toMap(),
+        'firestoreId': docRef.id,
+        'source': log.source ?? 'manual',
+        'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
@@ -322,6 +339,27 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     if (doc == null) return 0;
     final snapshot = await doc.collection('symptom_logs').get();
     return snapshot.size;
+  }
+
+  @override
+  Stream<int> getTotalScansCountStream() {
+    final doc = _userDoc;
+    if (doc == null) return Stream.value(0);
+    return doc.collection('scan_history').snapshots().map((s) => s.size);
+  }
+
+  @override
+  Stream<int> getTotalMealLogsCountStream() {
+    final doc = _userDoc;
+    if (doc == null) return Stream.value(0);
+    return doc.collection('meal_logs').snapshots().map((s) => s.size);
+  }
+
+  @override
+  Stream<int> getTotalSymptomsCountStream() {
+    final doc = _userDoc;
+    if (doc == null) return Stream.value(0);
+    return doc.collection('symptom_logs').snapshots().map((s) => s.size);
   }
 
   @override

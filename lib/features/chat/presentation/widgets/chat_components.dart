@@ -51,63 +51,32 @@ class ChatShimmerLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.appColorScheme;
+    final baseColor = colorScheme.elevatedSurface;
+    final highlightColor = colorScheme.cardBackground;
+
     return ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
-      itemCount: 10,
-      reverse: false,
-      shrinkWrap: true,
+      itemCount: 8,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final isUser = index % 2 == 0;
-        final baseColor = colorScheme.border.withValues(alpha: 0.2);
-        final highlightColor = colorScheme.border.withValues(alpha: 0.5);
-
-        if (isUser) {
-          return Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: AppSizes.p12),
-              child: Shimmer.fromColors(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                child: Container(
-                  width: MediaQuery.sizeOf(context).width * (0.4 + (index % 3) * 0.1),
-                  height: AppSizes.h54,
-                  decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r20)),
-                ),
-              ),
-            ),
-          );
-        }
 
         return Padding(
-          padding: EdgeInsets.only(bottom: AppSizes.p12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: EdgeInsets.only(bottom: AppSizes.p16),
+          child: Column(
+            crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               Shimmer.fromColors(
                 baseColor: baseColor,
                 highlightColor: highlightColor,
                 child: Container(
-                  width: AppSizes.icon28,
-                  height: AppSizes.icon28,
-                  decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
-                ),
-              ),
-              Gap.w8,
-              Shimmer.fromColors(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                child: Container(
-                  width: MediaQuery.sizeOf(context).width * (0.5 + (index % 2) * 0.1),
-                  height: AppSizes.p56 + (index * 4),
+                  width: MediaQuery.sizeOf(context).width * (isUser ? 0.6 : 0.75),
+                  height: isUser ? 50 : 80,
                   decoration: BoxDecoration(
                     color: AppPalette.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(4),
-                      topRight: Radius.circular(AppSizes.r24),
-                      bottomLeft: Radius.circular(AppSizes.r24),
-                      bottomRight: Radius.circular(AppSizes.r24),
+                    borderRadius: BorderRadius.circular(AppSizes.r20).copyWith(
+                      bottomRight: isUser ? const Radius.circular(4) : null,
+                      bottomLeft: !isUser ? const Radius.circular(4) : null,
                     ),
                   ),
                 ),
@@ -116,6 +85,31 @@ class ChatShimmerLoading extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class ChatPaginationLoader extends StatelessWidget {
+  const ChatPaginationLoader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      alignment: Alignment.center,
+      child: Shimmer.fromColors(
+        baseColor: colorScheme.elevatedSurface,
+        highlightColor: colorScheme.cardBackground,
+        child: Container(
+          width: 120,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppPalette.white,
+            borderRadius: BorderRadius.circular(AppSizes.r16),
+          ),
+        ),
+      ),
     );
   }
 }
