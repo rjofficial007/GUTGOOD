@@ -428,6 +428,14 @@ class AppStrings {
   static const String viewAllDiscoveries = InsightStrings.viewAllDiscoveries;
   static const String gutHealthStoryDesc = InsightStrings.gutHealthStoryDesc;
 
+  static const String bloatingPattern = InsightStrings.bloatingPattern;
+  static const String energyPattern = InsightStrings.energyPattern;
+  static const String headachePattern = InsightStrings.headachePattern;
+  static const String digestionPattern = InsightStrings.digestionPattern;
+  static const String fullnessPattern = InsightStrings.fullnessPattern;
+  static const String sleepPattern = InsightStrings.sleepPattern;
+  static const String discoveryPattern = InsightStrings.discoveryPattern;
+
   static const String activeGoal = InsightStrings.activeGoal;
   static const String symptomWatch = InsightStrings.symptomWatch;
   static const String target = InsightStrings.target;

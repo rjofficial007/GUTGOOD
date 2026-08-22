@@ -212,4 +212,13 @@ class InsightStrings {
   static const String viewAllScans = 'View All Scans';
   static const String noMealsLogged = 'No meals logged today.';
   static const String noSymptomsLogged = 'No feelings logged today.';
+
+  // --- Pattern Types ---
+  static const String bloatingPattern = 'Bloating Pattern';
+  static const String energyPattern = 'Energy Pattern';
+  static const String headachePattern = 'Headache Pattern';
+  static const String digestionPattern = 'Digestion Pattern';
+  static const String fullnessPattern = 'Fullness Pattern';
+  static const String sleepPattern = 'Sleep Pattern';
+  static const String discoveryPattern = 'Discovery Pattern';
 }

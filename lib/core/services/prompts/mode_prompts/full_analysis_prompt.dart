@@ -43,7 +43,7 @@ STRUCTURE (MANDATORY ORDER):
 
 11. Content: [Detailed analysis summary].
 
-12. REQUIRED LOGGING: You MUST include the [MEAL] and [SWAPS] blocks now. Each block MUST start with its opening tag (e.g. [MEAL]) and end with its closing tag (e.g. [/MEAL]). (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the blocks. Start directly with the [MEAL] opening tag).
+12. REQUIRED LOGGING: You MUST include the [MEAL] and [SWAPS] blocks now. If the user is reporting a symptom or physical feeling (e.g., bloating), you MUST also output the [SYMPTOM] block. Each block MUST start with its opening tag (e.g. [MEAL]) and end with its closing tag (e.g. [/MEAL]). (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the blocks. Start directly with the [MEAL] opening tag).
 
 FORMATTING RULES:
 - Use double newlines (\n\n) between EVERY numbered step above for a spacious layout.

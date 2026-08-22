@@ -116,17 +116,24 @@ class ChatHistoryNotifier with ChangeNotifier {
 
             _optimisticIds.removeAll(serverLocalIds);
 
-            if (_messages.isEmpty && !_historyLoading) {
+            final wasLoading = _historyLoading;
+            _historyLoading = false;
+
+            if (_messages.isEmpty && wasLoading && !_isPaginationLoading) {
               unawaited(_createInitialGreeting());
             }
 
-            _historyLoading = false;
             notifyListeners();
             unawaited(_loadProfileData());
           },
           onError: (e) {
             AppLogger.ai('Message stream error', error: e);
+            final wasLoading = _historyLoading;
             _historyLoading = false;
+
+            if (_messages.isEmpty && wasLoading && !_isPaginationLoading) {
+              unawaited(_createInitialGreeting());
+            }
             notifyListeners();
           },
         );
@@ -148,7 +155,13 @@ class ChatHistoryNotifier with ChangeNotifier {
   }
 
   Future<void> _createInitialGreeting() async {
+    AppLogger.ai('Creating initial chat greeting.');
     final initialMsg = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: AppStrings.chatInitialGreeting, isSwap: false, time: DateTime.now());
+
+    _messages.add(initialMsg);
+    _optimisticIds.add(initialMsg.localId);
+    notifyListeners();
+
     await _chatFirestoreService.saveMessage(initialMsg);
   }
 

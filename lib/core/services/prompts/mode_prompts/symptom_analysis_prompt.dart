@@ -32,5 +32,17 @@ FORMATTING RULES:
 - Use evidence-aware language: "appears associated with", "may be relevant", "your history suggests".
 - NEVER provide a medical diagnosis or guarantee a cause.
 - NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
+
+SYMPTOM TAG FORMAT:
+[SYMPTOM]
+{
+  "symptom": "Name of the symptom",
+  "severity": 1-10,
+  "energyLevel": 1-10,
+  "time": "ISO8601 string (calculate based on CURRENT TIME)",
+  "mood": "Short mood description",
+  "notes": "Contextual notes about the trigger"
+}
+[/SYMPTOM]
 ''';
 }

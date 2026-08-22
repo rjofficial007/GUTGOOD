@@ -6,41 +6,24 @@ import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 class DebugMockDataService {
-  DebugMockDataService({required HistoryFirestoreService historyFirestoreService, required InsightFirestoreService insightFirestoreService})
-    : _historyFirestoreService = historyFirestoreService;
+  DebugMockDataService({required HistoryFirestoreService historyFirestoreService, required InsightFirestoreService insightFirestoreService}) : _historyFirestoreService = historyFirestoreService;
 
   final HistoryFirestoreService _historyFirestoreService;
 
-  Future<void> generateTwoWeeksData() async {
-    AppLogger.mock('Generating 14 days of structured pattern-rich data...');
+  Future<void> generateThirtyDaysData() async {
+    AppLogger.mock('Generating 30 days of structured pattern-rich data...');
     final now = DateTime.now();
 
-    for (var i = 0; i < 14; i++) {
+    for (var i = 0; i < 30; i++) {
       final date = now.subtract(Duration(days: i));
 
-      // --- 1. BLOATING PATTERN (Pepperoni Pizza -> Bloating) ---
-      // Occurs on days 1, 5, 8, 12
-      final isPizzaDay = i == 1 || i == 5 || i == 8 || i == 12;
-
-      // --- 2. ENERGY PATTERN (Whey Protein Shake -> High Energy) ---
-      // Occurs on days 0, 3, 6, 9, 13
-      final isEnergyDay = i % 3 == 0;
-
-      // --- 3. HEADACHE PATTERN (Double Espresso -> Headache) ---
-      // Occurs on days 2, 4, 10
-      final isHeadacheDay = i == 2 || i == 4 || i == 10;
-
-      // --- 4. DIGESTION PATTERN (Spicy Tacos -> Heartburn/Indigestion) ---
-      // Occurs on days 1, 7, 11
-      final isDigestionDay = i == 1 || i == 7 || i == 11;
-
-      // --- 5. FULLNESS PATTERN (Steel Cut Oats -> Sustained Fullness) ---
-      // Occurs on days 0, 2, 4, 6, 8, 10, 12
-      final isFullnessDay = i % 2 == 0;
-
-      // --- 6. SLEEP PATTERN (Late Night Red Wine -> Poor Sleep) ---
-      // Occurs on days 3, 6, 9, 12
-      final isSleepDay = i % 3 == 0 && i > 0;
+      // Patterns spread across 30 days for higher confidence
+      final isPizzaDay = i % 4 == 0; // Bloating every 4 days
+      final isEnergyDay = i % 3 == 0; // High Energy every 3 days
+      final isHeadacheDay = i % 5 == 0; // Headache every 5 days
+      final isDigestionDay = i % 7 == 0; // Digestion every 7 days
+      final isFullnessDay = i % 2 == 0; // Fullness every 2 days
+      final isSleepDay = i % 3 == 0 && i > 0; // Poor sleep linked to late eating
 
       // --- LOG MEALS ---
       // Breakfast
@@ -55,14 +38,10 @@ class DebugMockDataService {
 
       // Mid-Morning (Pattern triggers)
       if (isEnergyDay) {
-        await _historyFirestoreService.logMeal(
-          MealLog(items: const ['Whey Protein Shake', 'Banana'], mealType: 'snack', time: DateTime(date.year, date.month, date.day, 10, 30), source: 'debug'),
-        );
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Whey Protein Shake', 'Banana'], mealType: 'snack', time: DateTime(date.year, date.month, date.day, 10, 30), source: 'debug'));
       }
       if (isHeadacheDay) {
-        await _historyFirestoreService.logMeal(
-          MealLog(items: const ['Double Espresso', 'Sugar Packet'], mealType: 'snack', time: DateTime(date.year, date.month, date.day, 9, 0), source: 'debug'),
-        );
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Double Espresso', 'Sugar Packet'], mealType: 'snack', time: DateTime(date.year, date.month, date.day, 9, 0), source: 'debug'));
       }
 
       // Lunch
@@ -87,9 +66,7 @@ class DebugMockDataService {
 
       // Late Night
       if (isSleepDay) {
-        await _historyFirestoreService.logMeal(
-          MealLog(items: const ['Red Wine', 'Dark Chocolate'], mealType: 'snack', time: DateTime(date.year, date.month, date.day, 22, 0), source: 'debug'),
-        );
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Red Wine', 'Dark Chocolate'], mealType: 'snack', time: DateTime(date.year, date.month, date.day, 22, 0), source: 'debug'));
       }
 
       // --- LOG SYMPTOMS (REACTIONS) ---
@@ -166,6 +143,6 @@ class DebugMockDataService {
       );
     }
 
-    AppLogger.mock('Complete 14-day history generated. Ready for all 6 pattern category discovery.');
+    AppLogger.mock('Complete 30-day history generated. Ready for all 6 pattern category discovery.');
   }
 }

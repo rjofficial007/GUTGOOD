@@ -10,10 +10,12 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/core/widgets/gut_action_banner.dart';
+import 'package:gutgood/core/widgets/gut_app_bar.dart';
+import 'package:gutgood/core/widgets/gut_snapshot_hero_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
@@ -46,11 +48,12 @@ class _MainDashboardSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final notifier = context.watch<InsightsNotifier>();
     final profile = context.watch<ProfileNotifier>();
-    final prioritizedPatterns = notifier.prioritizedPatterns;
 
-    final sections = _buildSections(context: context, streak: profile.profile?.streak ?? 0, patterns: prioritizedPatterns);
+    // For historical insights, we use the patterns recorded at that time.
+    final patterns = data.detectedPatterns;
+
+    final sections = _buildSections(context: context, streak: profile.profile?.streak ?? 0, patterns: patterns);
 
     return SliverPadding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
@@ -132,20 +135,35 @@ class _MainDashboardSliver extends StatelessWidget {
       );
     }
 
-    // 4. SYSTEM DISCOVERIES (PatternEngine Data)
+    // 4. INDIVIDUAL PATTERN CARDS
     if (patterns.isNotEmpty) {
-      sections.add(
-        DashboardEntrance(
-          delay: 300,
-          child: AnalysisCard(
-            metric: '${patterns.length}',
-            label: 'SYSTEM DISCOVERIES',
-            icon: AppIcons.brain,
-            glowColor: AppPalette.purple,
-            items: patterns.map((p) => AnalysisItem(title: p.trigger.toUpperCase(), subtitle: p.description, icon: AppIcons.lightbulb)).toList(),
+      // 🟢 Deduplicate patterns by trigger and type
+      final seenPatterns = <String>{};
+      final uniquePatterns = <BodyPattern>[];
+      for (final p in patterns) {
+        final key = '${p.type}_${p.trigger.toLowerCase().trim()}';
+        if (!seenPatterns.contains(key)) {
+          seenPatterns.add(key);
+          uniquePatterns.add(p);
+        }
+      }
+
+      for (var i = 0; i < uniquePatterns.length; i++) {
+        final p = uniquePatterns[i];
+        sections.add(
+          DashboardEntrance(
+            delay: 300 + (i * 100),
+            child: AnalysisCard(
+              metric: p.frequency.toString(),
+              label: InsightUiUtils.getPatternName(p.type),
+              icon: InsightUiUtils.getPatternTypeIcon(p.type),
+              glowColor: context.appColorScheme.textPrimary,
+              onTap: () => context.push(AppRoutes.patternDetail, extra: p),
+              items: [AnalysisItem(title: p.trigger.toUpperCase(), subtitle: p.description, icon: AppIcons.lightbulb, color: context.appColorScheme.textPrimary)],
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
 
     // 5. RECENT LOGS (foodImpacts)

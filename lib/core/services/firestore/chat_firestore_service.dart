@@ -6,7 +6,7 @@ import 'package:gutgood/core/utils/logger_service.dart';
 abstract class ChatFirestoreService {
   Future<String?> saveMessage(ChatMessage message);
   Stream<List<ChatMessage>> getMessagesStream({int limit = 50});
-  Future<List<ChatMessage>> getMessages({int limit = 50, DateTime? since});
+  Future<List<ChatMessage>> getMessages({int? limit, DateTime? since});
   Future<void> updateMessageFeedback(String messageId, String feedback);
   Future<void> deleteMessage(String messageId);
 }
@@ -60,15 +60,19 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
   }
 
   @override
-  Future<List<ChatMessage>> getMessages({int limit = 50, DateTime? since}) async {
+  Future<List<ChatMessage>> getMessages({int? limit, DateTime? since}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
 
-      var query = doc.collection('chat_history').orderBy('time', descending: true).limit(limit);
+      var query = doc.collection('chat_history').orderBy('time', descending: true);
 
       if (since != null) {
         query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+      }
+
+      if (limit != null) {
+        query = query.limit(limit);
       }
 
       final snapshot = await query.get();

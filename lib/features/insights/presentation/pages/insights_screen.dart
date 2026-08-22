@@ -11,6 +11,7 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
@@ -275,43 +276,37 @@ class _MainDashboardSliver extends StatelessWidget {
       );
     }
 
-    // 4. SYSTEM DISCOVERIES (PatternEngine Data or AI detectedPatterns fallback)
-    final prioritizedPatterns = patterns;
-    final fallbackPatterns = data.detectedPatterns;
+    // 4. INDIVIDUAL PATTERN CARDS
+    final displayPatterns = patterns.isNotEmpty ? patterns : data.detectedPatterns;
 
-    if (prioritizedPatterns.isNotEmpty || fallbackPatterns.isNotEmpty) {
-      sections.add(
-        DashboardEntrance(
-          delay: 300,
-          child: AnalysisCard(
-            metric: '${prioritizedPatterns.isNotEmpty ? prioritizedPatterns.length : fallbackPatterns.length}',
-            label: 'SYSTEM DISCOVERIES',
-            icon: AppIcons.brain,
-            glowColor: AppPalette.purple,
-            items: prioritizedPatterns.isNotEmpty
-                ? prioritizedPatterns
-                      .map<AnalysisItem>(
-                        (BodyPattern p) => AnalysisItem(
-                          title: p.trigger.toUpperCase(),
-                          subtitle: p.description,
-                          icon: AppIcons.lightbulb,
-                          onTap: () => context.push(AppRoutes.patternDetail, extra: p),
-                        ),
-                      )
-                      .toList()
-                : fallbackPatterns
-                      .map<AnalysisItem>(
-                        (BodyPattern p) => AnalysisItem(
-                          title: p.trigger.toUpperCase(),
-                          subtitle: p.description,
-                          icon: AppIcons.lightbulb,
-                          onTap: () => context.push(AppRoutes.patternDetail, extra: p),
-                        ),
-                      )
-                      .toList(),
+    if (displayPatterns.isNotEmpty) {
+      // 🟢 Deduplicate patterns by trigger and type to prevent redundant cards
+      final seenPatterns = <String>{};
+      final uniquePatterns = <BodyPattern>[];
+      for (final p in displayPatterns) {
+        final key = '${p.type}_${p.trigger.toLowerCase().trim()}';
+        if (!seenPatterns.contains(key)) {
+          seenPatterns.add(key);
+          uniquePatterns.add(p);
+        }
+      }
+
+      for (var i = 0; i < uniquePatterns.length; i++) {
+        final p = uniquePatterns[i];
+        sections.add(
+          DashboardEntrance(
+            delay: 300 + (i * 100),
+            child: AnalysisCard(
+              metric: p.frequency.toString(),
+              label: InsightUiUtils.getPatternName(p.type),
+              icon: InsightUiUtils.getPatternTypeIcon(p.type),
+              glowColor: context.appColorScheme.textPrimary,
+              onTap: () => context.push(AppRoutes.patternDetail, extra: p),
+              items: [AnalysisItem(title: p.trigger.toUpperCase(), subtitle: p.description, icon: AppIcons.lightbulb, color: context.appColorScheme.textPrimary)],
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
 
     // 5. RECENT PATTERNS (foodImpacts)

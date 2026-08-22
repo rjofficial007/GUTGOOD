@@ -70,6 +70,7 @@ class _StreakCelebrationOverlayState extends State<StreakCelebrationOverlay> wit
                 controller: _lottieController,
                 onLoaded: (composition) {
                   _lottieController.duration = composition.duration;
+                  _lottieController.forward(from: 50 / composition.endFrame);
                 },
               ),
 

@@ -123,7 +123,7 @@ export const aiProxy = functions
   .region(REGION)
   // Cold-start sensitivity: this endpoint is on the chat latency path.
   // minInstances: 1 ensures the first AI interaction is always fast.
-  .runWith({ timeoutSeconds: 300, memory: '512MB', secrets: [OPENAI_API_KEY], minInstances: 1 })
+  .runWith({ timeoutSeconds: 300, memory: '512MB', secrets: [OPENAI_API_KEY]})
   .https.onRequest(async (req, res) => {
     setCors(res);
     if (req.method === 'OPTIONS') {

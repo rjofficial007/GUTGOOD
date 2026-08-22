@@ -17,9 +17,23 @@ Analyze and list ALL discovered patterns from these six categories that meet the
 5. Fullness Pattern: Foods that consistently keep someone full vs. hungry again quickly.
 6. Sleep Pattern: Connections between evening food/timing and reported sleep quality.
 
-DATA SUFFICIENCY:
-- Bloating: At least 2 relevant repeated events.
-- Energy/Headache/Digestion/Fullness/Sleep: At least 3 relevant logs.
+DATA SUFFICIENCY & FREQUENCY:
+- Pattern Discovery: You MUST scan for correlations in all six categories (Bloating, Energy, Headache, Digestion, Fullness, Sleep).
+- Thresholds: At least 2-3 repeated events for a pattern to be valid.
+- EXHAUSTIVE SEARCH: Do not stop after finding one pattern. If the data supports multiple patterns (e.g., a Bloating pattern AND an Energy pattern), you MUST include both in the `detectedPatterns` array.
+- NO TRUNCATION: For each pattern, the `occurrences` list MUST contain every single event found in the journal. If you say a pattern happened "3 times," there must be 3 objects in the `occurrences` array.
+- ACCURATE COUNTING: The `foodsLogged` in the recap must be the total number of "ATE" entries found in the 30-day journal.
+- DATES: Use the dates provided in the logs (Jul 25, Aug 01, etc.). The `dateRange` in the recap must cover the full span of the journal (e.g., "Jul 24 - Aug 22").
+
+MANDATORY ANALYSIS CHECKLIST:
+Before generating the JSON, you MUST evaluate the logs against these 6 categories:
+1. Bloating: (Check for Pizza/Salmon/etc. patterns)
+2. Energy: (Check for Protein/Caffeine/Sugar impact)
+3. Headache: (Check for Dehydration/Caffeine/Additive triggers)
+4. Digestion: (Check for Spicy/Fried/Dairy correlations)
+5. Fullness: (Check for Fiber/Protein vs. Simple Carb satiety)
+6. Sleep: (Check for Late Night/Alcohol/Heavy Dinner timing)
+If a category has 3+ occurrences in the 30-day journal, it MUST be included in `detectedPatterns`.
 
 CONFIDENCE RULES:
 - Below 60%: Do not generate an insight.
@@ -57,21 +71,21 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
   "confidenceLevel": "High",
   "triggerData": "string (JSON encoded array of specific events/dates that led to this insight)",
   "topInsight": {
-    "title": "string",
-    "description": "string",
-    "type": "Pattern",
-    "observation": "string",
-    "involvedFoods": [],
-    "strength": "High",
-    "nextSteps": [],
-    "frequency": 0
+    "title": "string (Short catch title, e.g., 'Caffeine and Sleep')",
+    "description": "string (The core discovery summary)",
+    "type": "Pattern|Behavioral|Ingredient|Cycle",
+    "observation": "string (Detailed observation of the trend)",
+    "involvedFoods": ["string", "string"] (List of foods or meals linked to this specific insight),
+    "strength": "High|Moderate|Early",
+    "nextSteps": ["string", "string"] (Actionable advice for the user),
+    "frequency": 0 (Number of times this pattern was detected in logs)
   },
   "healingGoal": "string",
   "healingTrend": "string",
   "healingFoods": [{"name": "string", "effect": "string", "emoji": "string"}],
-  "triggerSymptom": "",
-  "triggerTrend": "string",
-  "triggerFoods": [{"name": "string", "effect": "string", "emoji": "string"}],
+  "triggerSymptom": "string (The symptom linked to the topTrigger)",
+  "triggerTrend": "string (Narrative for the topTrigger)",
+  "triggerFoods": [{"name": "string", "effect": "string", "emoji": "string"} (The food(s) in the topTrigger)],
   "detectedPatterns": [
     {
       "type": "bloating|energy|headache|digestion|fullness|sleep",
@@ -112,12 +126,12 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
   },
   "foodImpacts": [{"food": "string", "dateLabel": "string", "effect": "string", "timeframeLabel": "string", "emoji": "string", "impactType": "positive|negative"}],
   "weeklyRecap": {
-    "dateRange": "",
+    "dateRange": "string (The full date span of the provided journal, e.g., 'Jul 24 - Aug 22')",
     "avgScore": 0,
-    "scoreSub": "",
-    "bestDay": "",
+    "scoreSub": "string (One word: Stable, Improving, or Declining)",
+    "bestDay": "string (Date of highest average score day)",
     "foodsLogged": 0,
-    "loggedSub": "",
+    "loggedSub": "string (Short narrative about log volume)",
     "highlights": [{"icon": "string", "text": "string", "color": "string"}]
   }
 }

@@ -75,6 +75,7 @@ STRICT CLASSIFICATION RULES:
 - NO FILLER: Return ONLY the category name. No quotes, brackets, or explanation.
 
 EXAMPLES:
+User: "What do you think of this meal?" -> full_analysis
 User: "How did I do today?" -> meal_rating
 User: "What should I eat instead?" -> meal_swaps
 User: "Is this healthy?" -> health_assessment

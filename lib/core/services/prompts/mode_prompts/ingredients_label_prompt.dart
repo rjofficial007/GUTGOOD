@@ -28,7 +28,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 
 9. Content: [Short summary of whether this product aligns with the user's current goals].
 
-10. REQUIRED LOGGING: You MUST output the [SCAN] block. The block MUST start with the [SCAN] opening tag and end with the [/SCAN] closing tag. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block. Start directly with the [SCAN] opening tag).
+10. REQUIRED LOGGING: You MUST output the [SCAN] block. If the user is reporting a symptom or physical feeling (e.g., bloating), you MUST also output the [SYMPTOM] block. Each block MUST start with its opening tag (e.g. [SCAN]) and end with its closing tag (e.g. [/SCAN]). (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block. Start directly with the [SCAN] opening tag).
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.

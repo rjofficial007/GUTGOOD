@@ -269,7 +269,7 @@ class PatternsDashboardSection extends StatelessWidget {
           padding: EdgeInsets.only(bottom: AppSizes.p12),
           child: DashboardDetailItem(
             title: p.trigger.toUpperCase(),
-            subtitle: AppStrings.observation,
+            subtitle: InsightUiUtils.getPatternName(p.type),
             icon: InsightUiUtils.getPatternTypeIcon(p.type),
             color: color,
             onTap: () => context.push(AppRoutes.patternDetail, extra: p),
@@ -293,7 +293,7 @@ class PatternsDashboardSection extends StatelessWidget {
             padding: EdgeInsets.only(bottom: AppSizes.p16),
             child: DashboardDetailItem(
               title: p.trigger.toUpperCase(),
-              subtitle: p.description,
+              subtitle: '${InsightUiUtils.getPatternName(p.type)} • ${p.frequency} Occurrences',
               icon: InsightUiUtils.getPatternTypeIcon(p.type),
               color: InsightUiUtils.getPatternColor(p.type),
               onTap: () => context.push(AppRoutes.patternDetail, extra: p),
@@ -384,7 +384,7 @@ class ModernSmartAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: () => context.push(AppRoutes.patternDetail, extra: insight.toBodyPattern()),
+    onTap: () => context.push(AppRoutes.smartInsightDetail, extra: insight),
     child: ModernInsightCard(
       title: insight.title,
       icon: AppIcons.salad,

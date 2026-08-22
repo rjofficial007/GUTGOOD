@@ -16,15 +16,7 @@ import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier with ChangeNotifier {
-  ProfileNotifier(
-    this._authRepository,
-    this._firestoreService,
-    this._historyFirestoreService,
-    this._appStateService,
-    this._notificationService,
-    this._analyticsService,
-    this._crashlyticsService,
-  ) {
+  ProfileNotifier(this._authRepository, this._firestoreService, this._historyFirestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService) {
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -56,9 +48,11 @@ class ProfileNotifier with ChangeNotifier {
   bool _pendingStreakCelebration = false; // 🟢 Track if a celebration is queued
   String _quickInsight = 'Log more meals to see patterns.';
   StreamSubscription<UserProfile?>? _profileSub;
+  StreamSubscription<int>? _avgScoreSub;
 
   void _initProfileStream() {
     _profileSub?.cancel();
+    _avgScoreSub?.cancel();
     _isInitialized = false; // Reset initialization state during user switch
     _profile = null; // Clear stale profile data
     notifyListeners(); // 🟢 Notify immediately so UI can show fallback auth data
@@ -85,9 +79,16 @@ class ProfileNotifier with ChangeNotifier {
 
       _profile = profile;
       _updateInsights();
-      unawaited(_fetchAverageFoodScore());
       notifyListeners();
     }, onError: (e) => AppLogger.error('ProfileNotifier: Stream error', error: e));
+
+    _avgScoreSub = _historyFirestoreService.getAverageFoodScoreStream().listen((avg) {
+      if (_avgFoodScore != avg) {
+        _avgFoodScore = avg;
+        _syncScoreToProfile(avg);
+        notifyListeners();
+      }
+    }, onError: (e) => AppLogger.error('ProfileNotifier: Avg score stream error', error: e));
   }
 
   UserProfile? get profile => _profile;
@@ -97,12 +98,15 @@ class ProfileNotifier with ChangeNotifier {
   bool get showStreakCelebration => _showStreakCelebration;
   String get quickInsight => _quickInsight;
 
-  Future<void> _fetchAverageFoodScore() async {
+  Future<void> _syncScoreToProfile(int score) async {
+    if (_profile == null || _profile!.gutScore == score) return;
+
     try {
-      _avgFoodScore = await _historyFirestoreService.getAverageFoodScore();
-      notifyListeners();
+      final updatedProfile = _profile!.copyWith(gutScore: score, updatedAt: DateTime.now());
+      await _firestoreService.updateUserProfile(updatedProfile);
+      AppLogger.insights('ProfileNotifier: Synced scan average $score to profile gutScore');
     } catch (e) {
-      AppLogger.error('Error fetching average food score: $e');
+      AppLogger.error('ProfileNotifier: Failed to sync score to profile', error: e);
     }
   }
 
@@ -124,6 +128,7 @@ class ProfileNotifier with ChangeNotifier {
   @override
   void dispose() {
     _profileSub?.cancel();
+    _avgScoreSub?.cancel();
     _appStateService.insightsData.removeListener(_updateInsights);
     _appStateService.sessionReset.removeListener(_onSessionReset);
     super.dispose();
@@ -136,6 +141,7 @@ class ProfileNotifier with ChangeNotifier {
     _isInitialized = false;
     _quickInsight = 'Log more meals to see patterns.';
     _profileSub?.cancel();
+    _avgScoreSub?.cancel();
     notifyListeners();
   }
 

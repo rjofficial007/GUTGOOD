@@ -79,6 +79,7 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
                     controller: _lottieController,
                     onLoaded: (composition) {
                       _lottieController.duration = composition.duration;
+                      _lottieController.forward(from: 50 / composition.endFrame);
                     },
                   ),
                   Gap.w12,
@@ -184,11 +185,7 @@ class _WeeklyBubbles extends StatelessWidget {
               Gap.h8,
               Text(
                 dayName,
-                style: context.caption.copyWith(
-                  fontSize: 12.sp,
-                  fontWeight:  FontWeight.w900 ,
-                  color: isToday ? scheme.textPrimary : scheme.textPrimary.withValues(alpha: 0.4),
-                ),
+                style: context.caption.copyWith(fontSize: 12.sp, fontWeight: FontWeight.w900, color: isToday ? scheme.textPrimary : scheme.textPrimary.withValues(alpha: 0.4)),
               ),
             ],
           );

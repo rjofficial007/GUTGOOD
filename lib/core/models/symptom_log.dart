@@ -6,20 +6,7 @@ import 'package:gutgood/core/utils/date_time_utils.dart';
 /// Symptom logs are the primary data source for the [PatternEngineService] to
 /// find correlations between food intake and body reactions.
 class SymptomLog extends Equatable {
-  const SymptomLog({
-    this.id,
-    this.firestoreId,
-    this.uid,
-    required this.symptom,
-    this.severity,
-    this.notes,
-    this.energyLevel,
-    this.mood,
-    this.sleep,
-    this.lastMealId,
-    this.source,
-    required this.time,
-  });
+  const SymptomLog({this.id, this.firestoreId, this.uid, required this.symptom, this.severity, this.notes, this.energyLevel, this.mood, this.sleep, this.lastMealId, this.source, required this.time});
 
   factory SymptomLog.fromMap(Map<String, dynamic> map) {
     final rawId = map['id'] ?? map['firestoreId'];
@@ -28,12 +15,12 @@ class SymptomLog extends Equatable {
       firestoreId: rawId is String ? rawId : null,
       uid: map['uid'] as String?,
       symptom: map['symptom'] ?? 'Unknown',
-      severity: (map['severity'] as num?)?.toInt(),
+      severity: int.tryParse(map['severity']?.toString() ?? ''),
       notes: map['notes'],
-      energyLevel: (map['energyLevel'] as num?)?.toInt(),
+      energyLevel: int.tryParse(map['energyLevel']?.toString() ?? ''),
       mood: map['mood'],
       sleep: map['sleep'],
-      lastMealId: (map['lastMealId'] as num?)?.toInt(),
+      lastMealId: int.tryParse(map['lastMealId']?.toString() ?? ''),
       source: map['source'],
       time: DateTimeUtils.parse(map['time']),
     );
@@ -117,12 +104,5 @@ class SymptomLog extends Equatable {
   };
 
   @override
-  List<Object?> get props => [
-    id,
-    firestoreId,
-    symptom,
-    severity,
-    time,
-    energyLevel,
-  ];
+  List<Object?> get props => [id, firestoreId, symptom, severity, time, energyLevel];
 }

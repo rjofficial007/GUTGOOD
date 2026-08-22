@@ -13,6 +13,7 @@ ${SchemaDefinitions.scanSchema}
 ${SchemaDefinitions.mealSchema}
 
 For symptom logging:
+If the user reports a physical feeling, symptom, or mood (e.g., "I'm bloated", "my stomach hurts", "I'm tired"), you MUST output the [SYMPTOM] tag.
 ${SchemaDefinitions.symptomSchema}
 
 For swap responses:

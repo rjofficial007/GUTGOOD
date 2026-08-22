@@ -107,7 +107,7 @@ class ProfileStrings {
   static const String copyFcmToken = 'Copy FCM Token';
   static const String copyFcmTokenSubtitle = 'Tap to copy your push token for testing';
   static const String fcmTokenCopied = 'FCM Token copied to clipboard!';
-  static const String generateMockData = 'Generate 2 Weeks Mock Data';
+  static const String generateMockData = 'Generate 30 Days Mock Data';
   static const String generateMockDataSubtitle = 'Adds meal logs, symptoms, and insights';
   static const String mockDataGenerated = '2 weeks of mock data generated!';
   static const String guestAiActivity = 'GUEST ACTIVITY';

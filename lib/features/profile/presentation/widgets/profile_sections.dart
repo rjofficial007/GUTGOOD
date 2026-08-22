@@ -44,22 +44,27 @@ class ProfileHeaderSection extends StatelessWidget {
     final authNotifier = context.watch<GutAuthNotifier>();
     final profileNotifier = context.read<ProfileNotifier>();
 
-    return Selector<ProfileNotifier, UserProfile?>(
-      selector: (_, n) => n.profile,
-      builder: (context, p, _) => ProfileHeader(
-        name: p?.displayName ?? (authNotifier.isAnonymous ? AppStrings.guestUser : authNotifier.user?.displayName ?? ''),
-        email: p?.email ?? (authNotifier.isAnonymous ? AppStrings.signInToSyncData : authNotifier.user?.email ?? ''),
-        isPremium: p?.isPremium ?? false,
-        photoUrl: p?.photoUrl,
-        streak: p?.streak ?? 0,
-        lastActivityDate: p?.lastActivityDate,
-        gutScore: p?.gutScore ?? 0,
-        avgFoodScore: profileNotifier.avgFoodScore,
-        onImageTap: () {
-          SemanticsService.sendAnnouncement(View.of(context), AppStrings.uploadingProfilePicture, TextDirection.ltr);
-          onImageTap(profileNotifier);
-        },
-      ),
+    return Selector<ProfileNotifier, (UserProfile?, int)>(
+      selector: (_, n) => (n.profile, n.avgFoodScore),
+      builder: (context, data, _) {
+        final p = data.$1;
+        final avgFoodScore = data.$2;
+
+        return ProfileHeader(
+          name: p?.displayName ?? (authNotifier.isAnonymous ? AppStrings.guestUser : authNotifier.user?.displayName ?? ''),
+          email: p?.email ?? (authNotifier.isAnonymous ? AppStrings.signInToSyncData : authNotifier.user?.email ?? ''),
+          isPremium: p?.isPremium ?? false,
+          photoUrl: p?.photoUrl,
+          streak: p?.streak ?? 0,
+          lastActivityDate: p?.lastActivityDate,
+          gutScore: p?.gutScore ?? 0,
+          avgFoodScore: avgFoodScore,
+          onImageTap: () {
+            SemanticsService.sendAnnouncement(View.of(context), AppStrings.uploadingProfilePicture, TextDirection.ltr);
+            onImageTap(profileNotifier);
+          },
+        );
+      },
     );
   }
 }
@@ -69,16 +74,16 @@ class StreakAndUsageSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        children: [
-          Selector<ProfileNotifier, bool>(
-            selector: (_, n) => n.profile?.isPremium ?? false,
-            builder: (context, isPremium, _) {
-              if (isPremium) return const SizedBox.shrink();
-              return const AIUsageCard();
-            },
-          ),
-        ],
-      );
+    children: [
+      Selector<ProfileNotifier, bool>(
+        selector: (_, n) => n.profile?.isPremium ?? false,
+        builder: (context, isPremium, _) {
+          if (isPremium) return const SizedBox.shrink();
+          return const AIUsageCard();
+        },
+      ),
+    ],
+  );
 }
 
 class PersonalizationSection extends StatelessWidget {
@@ -278,12 +283,7 @@ class SupportSection extends StatelessWidget {
       AppTile(icon: AppIcons.helpCircle, title: AppStrings.aboutUs, onTap: () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().aboutUsUrl))),
       AppTile(icon: AppIcons.clipboardList, title: AppStrings.termsAndConditions, onTap: () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl))),
       AppTile(icon: AppIcons.shieldCheck, title: AppStrings.privacy, onTap: () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl))),
-      AppTile(
-        icon: AppIcons.shield,
-        title: AppStrings.medicalDisclaimer,
-        onTap: () => unawaited(BottomSheetHelper.showMedicalDisclaimer(context)),
-        showBottomBorder: false,
-      ),
+      AppTile(icon: AppIcons.shield, title: AppStrings.medicalDisclaimer, onTap: () => unawaited(BottomSheetHelper.showMedicalDisclaimer(context)), showBottomBorder: false),
     ],
   );
 }
@@ -349,7 +349,7 @@ class DebugToolsSection extends StatelessWidget {
             title: AppStrings.generateMockData,
             subtitle: AppStrings.generateMockDataSubtitle,
             onTap: () async {
-              await sl<DebugMockDataService>().generateTwoWeeksData();
+              await sl<DebugMockDataService>().generateThirtyDaysData();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.mockDataGenerated)));
               }
@@ -437,10 +437,7 @@ class AIUsageCard extends StatelessWidget {
                     AppStrings.limits.toUpperCase(),
                     style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
                   ),
-                  Text(
-                    isAnon ? AppStrings.guestAccount : AppStrings.freePlan,
-                    style: context.bodyBold.copyWith(color: textColor, height: 1.1),
-                  ),
+                  Text(isAnon ? AppStrings.guestAccount : AppStrings.freePlan, style: context.bodyBold.copyWith(color: textColor, height: 1.1)),
                 ],
               ),
               GestureDetector(

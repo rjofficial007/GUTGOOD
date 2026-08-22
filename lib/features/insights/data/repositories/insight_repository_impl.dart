@@ -122,9 +122,10 @@ class InsightRepositoryImpl implements InsightRepository {
     final cycleSyncEnabled = profile?.cycleSyncEnabled ?? _prefs.getBool('cycle_sync_enabled') ?? false;
     final cyclePhase = cycleSyncEnabled ? (profile?.cyclePhase ?? _prefs.getString('cycle_phase') ?? 'Luteal Phase') : 'Not specified';
 
-    // 🟢 Fetch and Filter Chat History for Insight Engine
-    final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
-    final chatHistory = await _chatFirestoreService.getMessages(limit: 50, since: sevenDaysAgo);
+    // 🟢 Fetch 30 days of data for comprehensive pattern analysis
+    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+    // No limit on messages, fetch all from the last 30 days
+    final chatHistory = await _chatFirestoreService.getMessages(since: thirtyDaysAgo);
 
     // Only include messages that mention food or symptoms to keep tokens low
     final relevantChat = chatHistory.where((m) => m.foodMentions.isNotEmpty || m.symptomMentions.isNotEmpty).toList();
@@ -133,9 +134,9 @@ class InsightRepositoryImpl implements InsightRepository {
     final historySummary = profile?.chatSummary;
 
     final dataStreams = await Future.wait([
-      _historyFirestoreService.getRecentMealLogs(limit: 30),
-      _historyFirestoreService.getRecentSymptomLogs(limit: 30),
-      _historyFirestoreService.getRecentScans(limit: 20),
+      _historyFirestoreService.getRecentMealLogs(since: thirtyDaysAgo),
+      _historyFirestoreService.getRecentSymptomLogs(since: thirtyDaysAgo),
+      _historyFirestoreService.getRecentScans(since: thirtyDaysAgo),
       _insightFirestoreService.getInsightsHistory(),
       _insightFirestoreService.getLatestPatterns(),
     ]);
@@ -159,9 +160,32 @@ class InsightRepositoryImpl implements InsightRepository {
       return;
     }
 
-    final mealsJson = jsonEncode(recentMeals.map((m) => m.toMap()).toList());
-    final symptomsJson = jsonEncode(symptomLogs.map((m) => m.toMap()).toList());
-    final scansJson = jsonEncode(recentScans.map((s) => s.toAiMap()).toList());
+    // 🟢 Create a Unified Body Journal (Causes & Effects interleaved chronologically)
+    final allEvents = <Map<String, dynamic>>[];
+    for (final m in recentMeals) {
+      allEvents.add({'time': m.time, 'text': 'ATE: ${m.mealType ?? 'Meal'} (${m.items.join(', ')})'});
+    }
+    for (final s in symptomLogs) {
+      allEvents.add({
+        'time': s.time,
+        'text': 'FEELING: ${s.symptom} (Severity: ${s.severity}${s.energyLevel != null ? ', Energy: ${s.energyLevel}' : ''}${s.sleep != null ? ', Sleep: ${s.sleep}' : ''})',
+      });
+    }
+    for (final s in recentScans) {
+      if (s.time != null) {
+        allEvents.add({'time': s.time!, 'text': 'SCANNED: ${s.productName} (${s.brand}) - Score: ${s.score}'});
+      }
+    }
+
+    // Sort everything by time (Oldest -> Newest)
+    allEvents.sort((a, b) => (a['time'] as DateTime).compareTo(b['time'] as DateTime));
+
+    final journalText = allEvents
+        .map((e) {
+          final timeStr = (e['time'] as DateTime).toIso8601String().substring(0, 16).replaceAll('T', ' ');
+          return '- $timeStr: ${e['text']}';
+        })
+        .join('\n');
 
     try {
       AppLogger.insights('Generating insight. Last Score: $lastScore, History: $scoreHistoryString');
@@ -175,9 +199,9 @@ class InsightRepositoryImpl implements InsightRepository {
           cyclePhase: cyclePhase,
           historyJson: historyJson,
           historySummary: historySummary,
-          mealsJson: mealsJson,
-          symptomsJson: symptomsJson,
-          scansJson: scansJson,
+          mealsJson: journalText, // Passing the unified journal here
+          symptomsJson: null,
+          scansJson: null,
           scoreHistory: scoreHistoryString.isEmpty ? null : 'Score history (oldest to newest): $scoreHistoryString. Most recent score is $lastScore.',
           preComputedPatternCandidates: preComputedPatternCandidates,
         ),

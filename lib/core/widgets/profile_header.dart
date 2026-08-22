@@ -70,8 +70,8 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     final hasPhoto = widget.photoUrl != null && widget.photoUrl!.isNotEmpty;
-    final bannerHeight = 140.0.h;
-    final avatarSize = 90.0.w;
+    final bannerHeight = 80.0.h;
+    final avatarSize = 80.0.w;
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -94,77 +94,7 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                   height: bannerHeight,
                   width: double.infinity,
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [AppPalette.gray800, AppPalette.black],
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      // Streak Animation Integrated into Banner
-                      Positioned(
-                        top: AppSizes.p12,
-                        left: AppSizes.p16,
-                        child: Row(
-                          children: [
-                            Lottie.asset(
-                              AppAssets.streakAnimation,
-                              height: 40.w,
-                              width: 40.w,
-                              controller: _lottieController,
-                              onLoaded: (composition) {
-                                _lottieController.duration = composition.duration;
-                                _lottieController.forward();
-                              },
-                            ),
-                            Gap.w8,
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '${widget.streak}',
-                                  style: context.headingSm.copyWith(color: AppPalette.white, fontWeight: FontWeight.w900),
-                                ),
-                                Text(
-                                  'DAY STREAK',
-                                  style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.4), fontSize: 7.sp, letterSpacing: 1.0),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Gut Score Integrated into Banner
-                      Positioned(
-                        top: AppSizes.p20,
-                        right: AppSizes.p20,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  TextSpan(
-                                    text: '${widget.gutScore}',
-                                    style: context.headingSm.copyWith(color: AppPalette.white, fontWeight: FontWeight.w900),
-                                  ),
-                                  TextSpan(
-                                    text: '/100',
-                                    style: context.caption.copyWith(color: AppPalette.white.withValues(alpha: 0.3), fontSize: 8.sp),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              'GUT SCORE',
-                              style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.4), fontSize: 7.sp, letterSpacing: 1.0),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppPalette.gray800, AppPalette.black]),
                   ),
                 ),
                 // Dual-Ring Avatar (Fully inside the SizedBox for hit-testing)
@@ -192,9 +122,7 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                               color: AppPalette.gray800,
                               border: Border.all(color: AppPalette.black, width: 3),
                               image: hasPhoto ? DecorationImage(image: CachedNetworkImageProvider(widget.photoUrl!), fit: BoxFit.cover) : null,
-                              boxShadow: [
-                                BoxShadow(color: AppPalette.black.withValues(alpha: 0.8), blurRadius: 20, offset: const Offset(0, 10)),
-                              ],
+                              boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.8), blurRadius: 20, offset: const Offset(0, 10))],
                             ),
                             child: !hasPhoto
                                 ? Center(
@@ -253,7 +181,7 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                 Text(
                   widget.name,
                   textAlign: TextAlign.center,
-                  style: context.headingSm.copyWith(color: AppPalette.white, letterSpacing: 0.5, fontWeight: FontWeight.bold),
+                  style: context.headingLg.copyWith(color: AppPalette.white, letterSpacing: 0.5, fontWeight: FontWeight.bold),
                 ),
                 Gap.h4,
                 Text(
@@ -267,8 +195,72 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
           Gap.h24,
           // Weekly Rhythm Bubbles Integrated
           Padding(
-            padding: EdgeInsets.only(left: AppSizes.p20, right: AppSizes.p20, bottom: AppSizes.p24),
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20),
             child: _MinimalWeeklyBubbles(lastActivityDate: widget.lastActivityDate, streak: widget.streak),
+          ),
+          Gap.h32,
+          // Relocated Stats Section
+          Padding(
+            padding: EdgeInsets.only(left: AppSizes.p10, right: AppSizes.p20, bottom: AppSizes.p32),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Streak Row
+                Row(
+                  children: [
+                    Lottie.asset(
+                      AppAssets.streakAnimation,
+                      height: 50.w,
+                      width: 50.w,
+                      controller: _lottieController,
+                      onLoaded: (composition) {
+                        _lottieController.duration = composition.duration;
+                        _lottieController.forward(from: 50 / composition.endFrame);
+                      },
+                    ),
+                    Gap.w8,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${widget.streak}',
+                          style: context.headingMd.copyWith(color: AppPalette.white, fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          'DAY STREAK',
+                          style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.4), letterSpacing: 1.0, fontSize: 8.sp),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                // Gut Score Column
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${widget.avgFoodScore}',
+                            style: context.headingMd.copyWith(color: AppPalette.white, fontWeight: FontWeight.w900),
+                          ),
+                          TextSpan(
+                            text: '/100',
+                            style: context.caption.copyWith(color: AppPalette.white.withValues(alpha: 0.3), fontSize: 10.sp),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      'GUT SCORE',
+                      style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.4), letterSpacing: 1.0, fontSize: 8.sp),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -311,25 +303,19 @@ class _MinimalWeeklyBubbles extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 24.w,
-              height: 24.w,
+              width: 28.w,
+              height: 28.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isStreakDay ? AppPalette.white : (isToday ? AppPalette.white.withValues(alpha: 0.1) : AppPalette.transparent),
                 border: Border.all(color: isStreakDay ? AppPalette.white : AppPalette.white.withValues(alpha: 0.1), width: 1),
               ),
-              child: isStreakDay
-                  ? Icon(AppIcons.flame, size: 10, color: AppPalette.black)
-                  : (isToday ? Icon(AppIcons.flame, size: 10, color: AppPalette.white) : null),
+              child: isStreakDay ? const Icon(AppIcons.flame, size: 10, color: AppPalette.black) : (isToday ? const Icon(AppIcons.flame, size: 10, color: AppPalette.white) : null),
             ),
             Gap.h8,
             Text(
               dayName,
-              style: context.caption.copyWith(
-                fontSize: 10.sp,
-                fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                color: isToday ? AppPalette.white : AppPalette.white.withValues(alpha: 0.3),
-              ),
+              style: context.caption.copyWith(fontSize: 12.sp, fontWeight: isToday ? FontWeight.bold : FontWeight.normal, color: isToday ? AppPalette.white : AppPalette.white.withValues(alpha: 0.3)),
             ),
           ],
         );

@@ -7,17 +7,17 @@ import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class HistoryFirestoreService {
   Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl});
-  Future<List<ScanResult>> getScanHistory({int limit = 50});
-  Future<List<ScanResult>> getRecentScans({int limit = 20});
+  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since});
+  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since});
   Future<List<ScanResult>> getSavedFoods();
   Future<void> toggleSaveFood(ScanResult scanData);
   Future<bool> isFoodSaved(String? productName, {String? barcode});
 
   Future<String?> logMeal(MealLog log);
-  Future<List<MealLog>> getRecentMealLogs({int limit = 30});
+  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since});
 
   Future<String?> logSymptom(SymptomLog log);
-  Future<List<SymptomLog>> getRecentSymptomLogs({int limit = 30});
+  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since});
   Future<List<SymptomLog>> getSymptomLogs();
 
   Future<int> getScansCountSince(DateTime since);
@@ -31,6 +31,9 @@ abstract class HistoryFirestoreService {
   /// Calculates the average score of all food product scans in history.
   /// Ignores generic utility scans (menus, labels) via [ScanResult.isLoggableProduct].
   Future<int> getAverageFoodScore();
+
+  /// Returns a stream of the average food score, updating in real-time.
+  Stream<int> getAverageFoodScoreStream();
 }
 
 class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
@@ -74,11 +77,22 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<ScanResult>> getScanHistory({int limit = 50}) async {
+  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
-      final snapshot = await doc.collection('scan_history').orderBy('time', descending: true).limit(limit).get();
+
+      var query = doc.collection('scan_history').orderBy('time', descending: true);
+
+      if (since != null) {
+        query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+      }
+
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+
+      final snapshot = await query.get();
       final results = snapshot.docs.map((doc) => ScanResult.fromMap({...doc.data(), 'id': doc.id})).toList();
       return results;
     } catch (e) {
@@ -88,7 +102,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<ScanResult>> getRecentScans({int limit = 20}) async => getScanHistory(limit: limit);
+  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since}) async => getScanHistory(limit: limit, since: since);
 
   @override
   Future<void> toggleSaveFood(ScanResult scanData) async {
@@ -185,13 +199,23 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<MealLog>> getRecentMealLogs({int limit = 30}) async {
+  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
-      final snapshot = await doc.collection('meal_logs').orderBy('time', descending: true).limit(limit).get();
+
+      var query = doc.collection('meal_logs').orderBy('time', descending: true);
+
+      if (since != null) {
+        query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+      }
+
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+
+      final snapshot = await query.get();
       final results = snapshot.docs.map((doc) => MealLog.fromMap(doc.data())).toList();
-      // AppLogger.data('MEAL_LOGS', results.map((r) => r.toMap()).toList());
       return results;
     } catch (e) {
       AppLogger.firestore('Error getting recent meal logs', error: e);
@@ -215,13 +239,23 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<SymptomLog>> getRecentSymptomLogs({int limit = 30}) async {
+  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
-      final snapshot = await doc.collection('symptom_logs').orderBy('time', descending: true).limit(limit).get();
+
+      var query = doc.collection('symptom_logs').orderBy('time', descending: true);
+
+      if (since != null) {
+        query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+      }
+
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+
+      final snapshot = await query.get();
       final results = snapshot.docs.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
-      // AppLogger.data('SYMPTOM_LOGS', results.map((r) => r.toMap()).toList());
       return results;
     } catch (e) {
       AppLogger.firestore('Error getting recent symptom logs', error: e);
@@ -299,21 +333,29 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       // Note: In production, this should ideally be an aggregated counter updated via triggers.
       // For now, we fetch all scans to calculate a true average.
       final snapshot = await doc.collection('scan_history').get();
-      if (snapshot.docs.isEmpty) return 0;
-
-      final scores = snapshot.docs
-          .map((doc) => ScanResult.fromMap(doc.data()))
-          .where((s) => s.isLoggableProduct)
-          .map((s) => s.score)
-          .toList();
-
-      if (scores.isEmpty) return 0;
-
-      final sum = scores.reduce((a, b) => a + b);
-      return (sum / scores.length).round();
+      return _calculateAverage(snapshot.docs);
     } catch (e) {
       AppLogger.firestore('Error calculating average food score', error: e);
       return 0;
     }
+  }
+
+  @override
+  Stream<int> getAverageFoodScoreStream() {
+    final doc = _userDoc;
+    if (doc == null) return Stream.value(0);
+
+    return doc.collection('scan_history').snapshots().map((snapshot) => _calculateAverage(snapshot.docs));
+  }
+
+  int _calculateAverage(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    if (docs.isEmpty) return 0;
+
+    final scores = docs.map((doc) => ScanResult.fromMap(doc.data())).where((s) => s.isLoggableProduct).map((s) => s.score).toList();
+
+    if (scores.isEmpty) return 0;
+
+    final sum = scores.reduce((a, b) => a + b);
+    return (sum / scores.length).round();
   }
 }

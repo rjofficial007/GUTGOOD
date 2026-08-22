@@ -6,6 +6,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_result.dart';
@@ -27,7 +28,8 @@ import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
-import 'package:gutgood/features/insights/presentation/pages/pattern_discovery_screen.dart';
+import 'package:gutgood/features/insights/presentation/pages/pattern_detail_screen.dart';
+import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/nutrition_facts_screen.dart';
@@ -167,7 +169,11 @@ class AppRouter {
               GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
               GoRoute(
                 path: AppRoutes.patternDetail,
-                builder: (context, state) => PatternDiscoveryScreen(pattern: state.extra as BodyPattern),
+                builder: (context, state) => PatternDetailScreen(pattern: state.extra as BodyPattern),
+              ),
+              GoRoute(
+                path: AppRoutes.smartInsightDetail,
+                builder: (context, state) => SmartInsightDetailScreen(insight: state.extra as InsightSummary),
               ),
               GoRoute(path: AppRoutes.notificationArchive, builder: (context, state) => const NotificationArchiveScreen()),
             ],
@@ -218,11 +224,7 @@ class AppRouter {
       ),
 
       // Global Full-Screen Overlays
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/scanner',
-        builder: (context, state) => const SuperScannerScreen(),
-      ),
+      GoRoute(parentNavigatorKey: rootNavigatorKey, path: '/scanner', builder: (context, state) => const SuperScannerScreen()),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: AppRoutes.scanner,

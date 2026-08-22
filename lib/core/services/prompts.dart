@@ -102,6 +102,7 @@ ${mode != null ? 'ACTIVE MODE: $mode' : 'ACTIVE MODE: General Chat'}
 ${isMenu ? '' : '''
 CRITICAL: Your response is NOT COMPLETE until you have emitted the required [TAG] blocks at the very end. 
 - If a meal is discussed, you MUST output a [MEAL]...[/MEAL] block.
+- If the user is reporting a symptom or feeling, you MUST output a [SYMPTOM]...[/SYMPTOM] block.
 - If you recommended swaps, you MUST output a [SWAPS]...[/SWAPS] block.
 The structured block MUST start with the opening tag (e.g., [MEAL]) and end with the closing tag (e.g., [/MEAL]).
 '''}
@@ -239,7 +240,13 @@ ${ModePrompts.barcodeAnalysisInstruction()}
   // ---------------------------------------------------------------------------
 
   /// User prompt for analyzing product data.
-  static String productAnalysisPrompt({required dynamic productData, required List<String> userGoals, required List<String> userSensitivities, required List<String> userLifestyle, required String cyclePhase}) {
+  static String productAnalysisPrompt({
+    required dynamic productData,
+    required List<String> userGoals,
+    required List<String> userSensitivities,
+    required List<String> userLifestyle,
+    required String cyclePhase,
+  }) {
     final goals = _formatList(userGoals, fallback: 'General health');
     final sensitivities = _formatList(userSensitivities, fallback: 'None specified');
     final lifestyle = _formatList(userLifestyle, fallback: 'None specified');
@@ -299,14 +306,10 @@ ${historySummary != null ? 'LONG-TERM SUMMARY:\n$historySummary\n' : ''}
 RECENT CHAT LOGS:
 $historyJson
 
-2. STRUCTURED MEAL LOGS
-${mealsJson ?? 'No structured meal data yet.'}
-
-3. STRUCTURED SYMPTOM LOGS
-${symptomsJson ?? 'No structured symptom data yet.'}
-
-4. STRUCTURED SCAN LOGS
-${scansJson ?? 'No structured scan data yet.'}
+2. UNIFIED BODY JOURNAL (Last 30 Days)
+This is a single chronological timeline of everything the user ate, scanned, and felt.
+Use this to find immediate correlations (e.g., ATE Pizza -> 2 hours later FEELING Bloated).
+${mealsJson ?? 'No journal data yet.'}
 
 5. PREVIOUS GUT SCORES
 ${scoreHistory ?? 'No historical scores yet.'}

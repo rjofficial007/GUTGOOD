@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 
@@ -49,6 +50,17 @@ class InsightUiUtils {
     BodyPattern.typeFullness => AppPalette.blue,
     BodyPattern.typeSleep => AppPalette.purple,
     _ => AppPalette.black,
+  };
+
+  /// Returns the proper display name for a pattern category.
+  static String getPatternName(String type) => switch (type) {
+    BodyPattern.typeBloating => AppStrings.bloatingPattern,
+    BodyPattern.typeEnergy => AppStrings.energyPattern,
+    BodyPattern.typeHeadache => AppStrings.headachePattern,
+    BodyPattern.typeDigestion => AppStrings.digestionPattern,
+    BodyPattern.typeFullness => AppStrings.fullnessPattern,
+    BodyPattern.typeSleep => AppStrings.sleepPattern,
+    _ => AppStrings.discoveryPattern,
   };
 
   /// Maps ingredient risk levels (red, orange, green) to theme colors.

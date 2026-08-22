@@ -455,19 +455,26 @@ CLASSIFY INTENT:
     if (lowerText == AppStrings.suggestMealPlan.toLowerCase()) return 'meal_planning';
     if (lowerText == AppStrings.suggestExplainIngredients.toLowerCase()) return 'label';
 
+    // 📸 Photo Prompt Matches (High Priority)
     if (lowerText.contains(AppStrings.menuPhotoPrompt.toLowerCase())) return 'menu';
     if (lowerText.contains(AppStrings.labelPhotoPrompt.toLowerCase())) return 'label';
-    if (lowerText.contains(AppStrings.mealPhotoPrompt.toLowerCase())) return 'food';
+    if (lowerText.contains(AppStrings.mealPhotoPrompt.toLowerCase())) return 'full_analysis';
     if (lowerText.contains(AppStrings.galleryPhotoPrompt.toLowerCase())) return 'gallery';
 
-    if (lowerText.contains('rate') || lowerText.contains('score') || lowerText.contains('how\'d i do')) return 'meal_rating';
-    if (lowerText.contains('healthy') || lowerText.contains('balanced') || lowerText.contains('is this good')) return 'health_assessment';
-    if (lowerText.contains('swap') || lowerText.contains('change') || lowerText.contains('better')) return 'meal_swaps';
-    if (lowerText.contains('everything') || lowerText.contains('full breakdown')) return 'full_analysis';
-    if (lowerText.contains('bloat') || lowerText.contains('hurt') || lowerText.contains('pain')) return 'symptom_analysis';
-    if (lowerText.contains('compare') || lowerText.contains(' vs ')) return 'product_comparison';
-    if (lowerText.contains('plan') || lowerText.contains('eat next')) return 'meal_planning';
-    if (lowerText.contains('i\'m having a') || lowerText.contains('i ate') || lowerText.contains('for dinner')) return 'meal_overview';
+    // 🔍 Robust Regex Detection (Non-AI Fast-Path)
+    // We use word boundaries (\b) to prevent accidental matches like 'comparison' triggering 'vs'
+    if (RegExp(r'\b(rate|score|grade|how did I do|feedback)\b').hasMatch(lowerText)) return 'meal_rating';
+    if (RegExp(r'\b(swap|instead|better|alternative|healthier|replace)\b').hasMatch(lowerText)) return 'meal_swaps';
+    if (RegExp(r'\b(bloat|bloating|bloated|pain|hurt|headache|tired|gas|cramp|nausea)\b').hasMatch(lowerText)) return 'symptom_analysis';
+    if (RegExp(r'\b(healthy|balanced|good for me|gut-friendly|gut friendly)\b').hasMatch(lowerText)) return 'health_assessment';
+    if (RegExp(r'\b(full analysis|breakdown|everything|details|all info|complete)\b').hasMatch(lowerText)) return 'full_analysis';
+    if (RegExp(r'\b(vs|versus|compare|difference between)\b').hasMatch(lowerText)) return 'product_comparison';
+    if (RegExp(r'\b(plan|eat next|tomorrow|dinner idea|lunch idea|snack idea)\b').hasMatch(lowerText)) return 'meal_planning';
+    if (RegExp(r'\b(menu|order|restaurant)\b').hasMatch(lowerText)) return 'menu';
+    if (RegExp(r'\b(label|ingredient|gums|emulsifier|additive)\b').hasMatch(lowerText)) return 'label';
+
+    // Casual meal mentions
+    if (lowerText.contains("i'm having a") || lowerText.contains('i ate') || lowerText.contains('for dinner')) return 'meal_overview';
     return null;
   }
 

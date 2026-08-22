@@ -119,12 +119,12 @@ class _WelcomeLogo extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(AppSizes.r20),
           child: Image.asset(AppAssets.appIcon, height: AppSizes.w100, width: AppSizes.w100, fit: BoxFit.cover),
-        ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(0.8, 0.8), curve: Curves.easeOutBack),
+        ).animate().fadeIn(duration: 400.ms, curve: Curves.easeOutCubic).scale(begin: const Offset(0.8, 0.8), curve: Curves.easeOutCubic, duration: 500.ms),
         Gap.h16,
         Text(
           AppStrings.appName,
           style: AppTextStyles.eyebrow.copyWith(color: colorScheme.textPrimary, letterSpacing: 2, fontSize: AppSizes.s12),
-        ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.5, end: 0),
+        ).animate().fadeIn(delay: 150.ms, duration: 400.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic),
       ],
     );
   }
@@ -148,13 +148,13 @@ class _WelcomeContent extends StatelessWidget {
               textAlign: TextAlign.center,
               style: AppTextStyles.displayLg.copyWith(color: colorScheme.textPrimary, fontSize: AppSizes.s120, height: 1.0, letterSpacing: -2.5),
             ),
-          ).animate().fadeIn(delay: 400.ms, duration: 800.ms).slideY(begin: 0.1, end: 0),
+          ).animate().fadeIn(delay: 250.ms, duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
           Gap.h20,
           Text(
             AppStrings.understandBodyNeeds2,
             textAlign: TextAlign.center,
             style: AppTextStyles.bodyLg.copyWith(color: colorScheme.textSecondary, fontSize: AppSizes.s18, fontWeight: FontWeight.w400, height: 1.4),
-          ).animate().fadeIn(delay: 600.ms, duration: 800.ms).slideY(begin: 0.1, end: 0),
+          ).animate().fadeIn(delay: 350.ms, duration: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
         ],
       ),
     );
@@ -172,7 +172,7 @@ class _WelcomeDisclaimer extends StatelessWidget {
       AppStrings.healthDisclaimer,
       textAlign: TextAlign.center,
       style: AppTextStyles.caption.copyWith(color: colorScheme.textMuted, fontSize: AppSizes.s10, height: 1.5),
-    ).animate().fadeIn(delay: 800.ms, duration: 1000.ms);
+    ).animate().fadeIn(delay: 450.ms, duration: 400.ms);
   }
 }
 
@@ -213,7 +213,7 @@ class _WelcomeActions extends StatelessWidget {
               ),
             ),
           ],
-        ).animate().fadeIn(delay: 1000.ms, duration: 800.ms).slideY(begin: 0.1, end: 0);
+        ).animate().fadeIn(delay: 550.ms, duration: 400.ms).slideY(begin: 0.05, end: 0, curve: Curves.easeOutCubic);
       },
     );
   }
