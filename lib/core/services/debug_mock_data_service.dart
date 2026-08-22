@@ -2,11 +2,10 @@ import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 class DebugMockDataService {
-  DebugMockDataService({required HistoryFirestoreService historyFirestoreService, required InsightFirestoreService insightFirestoreService}) : _historyFirestoreService = historyFirestoreService;
+  DebugMockDataService({required HistoryFirestoreService historyFirestoreService}) : _historyFirestoreService = historyFirestoreService;
 
   final HistoryFirestoreService _historyFirestoreService;
 

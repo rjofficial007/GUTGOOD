@@ -133,7 +133,7 @@ class ProfileNotifier with ChangeNotifier {
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
     final timeUntilMidnight = tomorrow.difference(now);
 
-    _dayRolloverTimer = Timer(timeUntilMidnight.add(const Duration(seconds: 5)), () {
+    _dayRolloverTimer = Timer(timeUntilMidnight + const Duration(seconds: 5), () {
       AppLogger.info('ProfileNotifier: Midnight rollover detected. Refreshing effective streak.');
       notifyListeners();
       _startDayRolloverTimer();

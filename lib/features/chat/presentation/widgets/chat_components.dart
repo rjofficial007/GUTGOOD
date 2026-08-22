@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
@@ -13,7 +14,6 @@ import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -227,7 +227,6 @@ class _EmptyStateCard extends StatelessWidget {
   }
 }
 
-import 'package:gutgood/core/utils/date_formatter.dart';
 
 class DateHeader extends StatelessWidget {
   const DateHeader({super.key, required this.date});
