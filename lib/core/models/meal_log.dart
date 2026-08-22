@@ -7,7 +7,7 @@ import 'package:gutgood/core/utils/model_utils.dart';
 /// Meal logs track what was eaten and when, optionally including photos
 /// and AI-generated nutrient analysis.
 class MealLog extends Equatable {
-  const MealLog({this.id, this.firestoreId, this.uid, required this.items, this.notes, this.mealType, this.photoUrl, this.analysisResult, this.source, this.foodTags = const [], required this.time});
+  const MealLog({this.id, this.firestoreId, this.uid, this.chatMessageId, required this.items, this.notes, this.mealType, this.photoUrl, this.analysisResult, this.source, this.foodTags = const [], required this.time});
 
   factory MealLog.fromMap(Map<String, dynamic> map) {
     final rawId = map['id'] ?? map['firestoreId'];
@@ -31,6 +31,7 @@ class MealLog extends Equatable {
       id: rawId is int ? rawId : null,
       firestoreId: rawId is String ? rawId : null,
       uid: map['uid'] as String?,
+      chatMessageId: map['chatMessageId'] as String?,
       items: items,
       notes: map['notes'],
       mealType: map['mealType'],
@@ -50,6 +51,9 @@ class MealLog extends Equatable {
 
   /// Identifier of the user who owns this log.
   final String? uid;
+
+  /// The localId of the ChatMessage that triggered this log via passive logging.
+  final String? chatMessageId;
 
   /// List of specific items or dishes consumed.
   final List<String> items;
@@ -79,6 +83,7 @@ class MealLog extends Equatable {
     int? id,
     String? firestoreId,
     String? uid,
+    String? chatMessageId,
     List<String>? items,
     String? notes,
     String? mealType,
@@ -91,6 +96,7 @@ class MealLog extends Equatable {
     id: id ?? this.id,
     firestoreId: firestoreId ?? this.firestoreId,
     uid: uid ?? this.uid,
+    chatMessageId: chatMessageId ?? this.chatMessageId,
     items: items ?? this.items,
     notes: notes ?? this.notes,
     mealType: mealType ?? this.mealType,
@@ -103,6 +109,7 @@ class MealLog extends Equatable {
 
   Map<String, dynamic> toMap() => {
     'firestoreId': firestoreId,
+    'chatMessageId': chatMessageId,
     'items': items,
     'notes': notes,
     'mealType': mealType,
@@ -114,5 +121,5 @@ class MealLog extends Equatable {
   };
 
   @override
-  List<Object?> get props => [id, firestoreId, items, time, source];
+  List<Object?> get props => [id, firestoreId, chatMessageId, items, time, source];
 }

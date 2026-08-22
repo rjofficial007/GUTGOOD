@@ -88,18 +88,13 @@ class AiServiceImpl implements AiService {
   /// the "why do I feel bloated after this?" / "what should I eat
   /// instead?" quick-reply chips, which depend on the model still knowing
   /// what "this" refers to. `scanData` is now serialized inline via the
-  /// existing (previously unused) `ChatMessage.toAiMap()`/`ScanResult.toAiMap()`
-  /// helpers.
-  List<Map<String, String>> _historyToPayload(List<ChatMessage> history) => history.where((m) => m.text.isNotEmpty || m.scanData != null).map((m) {
-    final role = m.role == 'user' ? 'user' : 'assistant';
-    if (m.scanData == null) {
-      return {'role': role, 'content': m.text};
-    }
-
-    final scanContext = jsonEncode(m.scanData!.toAiMap());
-    final content = m.text.isNotEmpty ? '${m.text}\n\n[SCAN_CONTEXT]$scanContext[/SCAN_CONTEXT]' : '[SCAN_CONTEXT]$scanContext[/SCAN_CONTEXT]';
-    return {'role': role, 'content': content};
-  }).toList();
+  /// existing (previously unused) `ChatMessage.toAiMap()` helper.
+  ///
+  /// 🟢 NEW (Production Audit Update): Now includes `mealLogs` and
+  /// `symptomLogs` context via the enhanced `toAiMap()` to ensure follow-up
+  /// questions about specific nutritional values or symptom severities are
+  /// grounded in the structured truth, not just the natural language summary.
+  List<Map<String, dynamic>> _historyToPayload(List<ChatMessage> history) => history.where((m) => m.text.isNotEmpty || m.scanData != null || m.mealLogs.isNotEmpty || m.symptomLogs.isNotEmpty).map((m) => m.toAiMap()).toList();
 
   Never _throwForStatus(int status, String body) {
     var message = 'Unexpected AI proxy error ($status).';

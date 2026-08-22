@@ -30,10 +30,24 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return null;
-      final docRef = doc.collection('chat_history').doc();
+
+      // 🟢 IDEMPOTENCY: Use localId as the Firestore document ID.
+      // This ensures that if a message is retried (e.g. after a network
+      // timeout where the server actually saved it), we don't create a
+      // duplicate document.
+      final docRef = doc.collection('chat_history').doc(message.localId);
+
       final cloudSafeData = message.toMap()..remove('id');
-      final data = {...cloudSafeData, 'firestoreId': docRef.id, 'source': message.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
-      await docRef.set(data);
+      final data = {
+        ...cloudSafeData,
+        'firestoreId': docRef.id,
+        'source': message.source ?? 'chat',
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      // Use set with merge: true to allow partial updates (e.g. feedback)
+      // while preserving the original document if it already exists.
+      await docRef.set(data, SetOptions(merge: true));
       return docRef.id;
     } catch (e) {
       AppLogger.firestore('Error saving message', error: e);

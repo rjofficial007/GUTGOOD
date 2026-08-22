@@ -18,8 +18,8 @@ class HistoryRepositoryImpl implements HistoryRepository {
   }) async => []; // Re-routing history logic to use the getScanHistory instead of scanning all chat messages
 
   @override
-  Future<List<ScanResult>> getScanHistory({int limit = 50}) async =>
-      _firestoreService.getScanHistory(limit: limit);
+  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since, DateTime? before}) async =>
+      _firestoreService.getScanHistory(limit: limit, since: since, before: before);
 
   @override
   Future<List<ScanResult>> getSavedFoods() async =>
@@ -34,10 +34,10 @@ class HistoryRepositoryImpl implements HistoryRepository {
       _firestoreService.isFoodSaved(productName, barcode: barcode);
 
   @override
-  Future<List<MealLog>> getRecentMealLogs({int limit = 30}) async =>
-      _firestoreService.getRecentMealLogs(limit: limit);
+  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before}) async =>
+      _firestoreService.getRecentMealLogs(limit: limit, since: since, before: before);
 
   @override
-  Future<List<SymptomLog>> getRecentSymptomLogs({int limit = 30}) async =>
-      _firestoreService.getRecentSymptomLogs(limit: limit);
+  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before}) async =>
+      _firestoreService.getRecentSymptomLogs(limit: limit, since: since, before: before);
 }

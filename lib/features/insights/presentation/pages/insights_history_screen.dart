@@ -10,7 +10,6 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_history_section.dart';
 import 'package:intl/intl.dart';

@@ -12,12 +12,9 @@ import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
-import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
-import 'package:gutgood/core/services/notification_service.dart';
-import 'package:gutgood/core/services/pattern_engine_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
@@ -27,35 +24,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class InsightRepositoryImpl implements InsightRepository {
   InsightRepositoryImpl({
-    required AuthFirestoreService authFirestoreService,
     required HistoryFirestoreService historyFirestoreService,
     required InsightFirestoreService insightFirestoreService,
     required ChatFirestoreService chatFirestoreService,
     required AiService aiService,
     required SharedPreferences prefs,
-    required NotificationService notificationService,
-    required PatternEngineService patternEngineService,
     required AnalyticsService analyticsService,
     required CrashlyticsService crashlyticsService,
-  }) : _authFirestoreService = authFirestoreService,
-       _historyFirestoreService = historyFirestoreService,
+  }) : _historyFirestoreService = historyFirestoreService,
        _insightFirestoreService = insightFirestoreService,
        _chatFirestoreService = chatFirestoreService,
        _aiService = aiService,
        _prefs = prefs,
-       _notificationService = notificationService,
-       _patternEngineService = patternEngineService,
        _analyticsService = analyticsService,
        _crashlyticsService = crashlyticsService;
 
-  final AuthFirestoreService _authFirestoreService;
   final HistoryFirestoreService _historyFirestoreService;
   final InsightFirestoreService _insightFirestoreService;
   final ChatFirestoreService _chatFirestoreService;
   final AiService _aiService;
   final SharedPreferences _prefs;
-  final NotificationService _notificationService;
-  final PatternEngineService _patternEngineService;
   final AnalyticsService _analyticsService;
   final CrashlyticsService _crashlyticsService;
 
@@ -92,8 +80,7 @@ class InsightRepositoryImpl implements InsightRepository {
   }
 
   @override
-  Stream<InsightsDashboardState> getDashboardStateStream() {
-    return Rx.combineLatest6(
+  Stream<InsightsDashboardState> getDashboardStateStream() => Rx.combineLatest6(
       _insightFirestoreService.getLatestInsightsStream(),
       _insightFirestoreService.getPatternDataStream(),
       _insightFirestoreService.getHealthAlertsStream(),
@@ -107,18 +94,16 @@ class InsightRepositoryImpl implements InsightRepository {
         int meals,
         int symptoms,
         int scans,
-      ) {
-        return InsightsDashboardState(
-          latestInsight: latestInsight,
-          patterns: patterns,
-          alerts: alerts,
-          totalMeals: meals,
-          totalSymptoms: symptoms,
-          totalScans: scans,
-        );
-      },
+      ) =>
+          InsightsDashboardState(
+        latestInsight: latestInsight,
+        patterns: patterns,
+        alerts: alerts,
+        totalMeals: meals,
+        totalSymptoms: symptoms,
+        totalScans: scans,
+      ),
     ).distinct();
-  }
 
   @override
   Future<List<MealLog>> getRecentMeals(DateTime since) async =>

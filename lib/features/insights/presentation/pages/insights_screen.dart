@@ -14,7 +14,6 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';
@@ -73,14 +72,14 @@ class _NoInsightsState extends StatelessWidget {
     var icon = AppIcons.barChart;
 
     if (scans == 0 && meals == 0) {
-      title = 'Keep logging meals.';
-      description = 'GutGood needs a little more information before it can identify patterns.';
+      title = AppStrings.keepLoggingForPatterns;
+      description = AppStrings.understandBodyImpact;
     } else if (scans < 3 && meals < 3) {
-      title = "You're getting closer.";
-      description = 'Log a few more meals and symptoms so GutGood can start identifying meaningful trends.';
+      title = AppStrings.loggingMoreMeals;
+      description = AppStrings.keepLoggingForHighlights;
     } else if (symptoms == 0) {
-      title = 'Meals recorded ✔';
-      description = "Add a few symptom check-ins so GutGood can connect food with how you're feeling.";
+      title = AppStrings.greatConsistency;
+      description = AppStrings.understandBodyImpact;
       icon = AppIcons.activity;
     } else {
       title = AppStrings.noInsightsYet;
@@ -134,17 +133,17 @@ class _ProgressIndicator extends StatelessWidget {
 
     return Column(
       children: [
-        _ProgressRow(label: 'Meals', progress: mealProgress, count: meals, total: 3),
+        _ProgressRow(label: AppStrings.logs, progress: mealProgress, count: meals, total: 3),
         Gap.h12,
-        _ProgressRow(label: 'Symptoms', progress: symptomProgress, count: symptoms, total: 1),
+        _ProgressRow(label: AppStrings.symptoms, progress: symptomProgress, count: symptoms, total: 1),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Text(
-            'OR',
+            AppStrings.orContinueWith,
             style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: context.appColorScheme.textSecondary),
           ),
         ),
-        _ProgressRow(label: 'Scans', progress: scanProgress, count: scans, total: 3),
+        _ProgressRow(label: AppStrings.aiScanHistory, progress: scanProgress, count: scans, total: 3),
       ],
     );
   }
@@ -220,13 +219,13 @@ class _MainDashboardSliver extends StatelessWidget {
         DashboardEntrance(
           delay: 50,
           child: AnalysisCard(
-            metric: 'FOCUS',
-            label: 'CURRENT STRATEGY',
+            metric: AppStrings.target,
+            label: AppStrings.currentFocus,
             icon: AppIcons.target,
             glowColor: AppPalette.blue,
             items: [
-              if (data.healingGoal != null) AnalysisItem(title: 'GOAL: ${data.healingGoal!.toUpperCase()}', subtitle: 'Primary healing objective', icon: AppIcons.leaf, isDone: true),
-              if (data.triggerSymptom != null) AnalysisItem(title: 'WATCHING: ${data.triggerSymptom!.toUpperCase()}', subtitle: 'Tracking for patterns', icon: AppIcons.activity),
+              if (data.healingGoal != null) AnalysisItem(title: '${AppStrings.heal}: ${data.healingGoal!.toUpperCase()}', subtitle: AppStrings.primaryHealingObjective, icon: AppIcons.leaf, isDone: true),
+              if (data.triggerSymptom != null) AnalysisItem(title: '${AppStrings.symptomWatch}: ${data.triggerSymptom!.toUpperCase()}', subtitle: AppStrings.symptomTrackedForPatterns, icon: AppIcons.activity),
             ],
           ),
         ),
@@ -236,7 +235,7 @@ class _MainDashboardSliver extends StatelessWidget {
     // 2. BETTER ENERGY (healingFoods)
     if (data.healingFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'positive')) {
       final healingCount = data.healingFoods.length + data.foodImpacts.where((i) => i.impactType == 'positive').length;
-      final label = data.healingTrend != null ? 'BETTER ENERGY • ${data.healingTrend}' : 'BETTER ENERGY';
+      final label = data.healingTrend != null ? '${AppStrings.betterEnergy} • ${data.healingTrend}' : AppStrings.betterEnergy;
 
       sections.add(
         DashboardEntrance(
@@ -258,7 +257,7 @@ class _MainDashboardSliver extends StatelessWidget {
     // 3. BLOATING (triggerFoods)
     if (data.triggerFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'negative')) {
       final triggerCount = data.triggerFoods.length + data.foodImpacts.where((i) => i.impactType == 'negative').length;
-      final label = data.triggerTrend != null ? 'BLOATING TRIGGERS • ${data.triggerTrend}' : 'BLOATING TRIGGERS';
+      final label = data.triggerTrend != null ? '${AppStrings.bloating} • ${data.triggerTrend}' : AppStrings.bloating;
 
       sections.add(
         DashboardEntrance(
@@ -281,19 +280,8 @@ class _MainDashboardSliver extends StatelessWidget {
     final displayPatterns = patterns.isNotEmpty ? patterns : data.detectedPatterns;
 
     if (displayPatterns.isNotEmpty) {
-      // 🟢 Deduplicate patterns by trigger and type to prevent redundant cards
-      final seenPatterns = <String>{};
-      final uniquePatterns = <BodyPattern>[];
-      for (final p in displayPatterns) {
-        final key = '${p.type}_${p.trigger.toLowerCase().trim()}';
-        if (!seenPatterns.contains(key)) {
-          seenPatterns.add(key);
-          uniquePatterns.add(p);
-        }
-      }
-
-      for (var i = 0; i < uniquePatterns.length; i++) {
-        final p = uniquePatterns[i];
+      for (var i = 0; i < displayPatterns.length; i++) {
+        final p = displayPatterns[i];
         sections.add(
           DashboardEntrance(
             delay: 300 + (i * 100),
@@ -317,7 +305,7 @@ class _MainDashboardSliver extends StatelessWidget {
           delay: 400,
           child: AnalysisCard(
             metric: '${data.foodImpacts.length}',
-            label: 'RECENT LOGS',
+            label: AppStrings.recentActivityTitle,
             icon: AppIcons.history,
             glowColor: AppPalette.blue,
             items: data.foodImpacts
@@ -334,13 +322,13 @@ class _MainDashboardSliver extends StatelessWidget {
         DashboardEntrance(
           delay: 500,
           child: AnalysisCard(
-            metric: data.topHealing?.frequency ?? 'MVP',
-            label: 'TOP PERFORMANCE',
+            metric: data.topHealing?.frequency ?? AppStrings.champion,
+            label: AppStrings.performanceAnalysis,
             icon: AppIcons.trophy,
             glowColor: AppPalette.green,
             items: [
-              if (data.topHealing != null) AnalysisItem(title: 'BEST: ${data.topHealing!.food}', subtitle: data.topHealing!.effects, icon: AppIcons.star),
-              if (data.topTrigger != null) AnalysisItem(title: 'MOST REACTIVE: ${data.topTrigger!.food}', subtitle: data.topTrigger!.effects, icon: AppIcons.alertTriangle),
+              if (data.topHealing != null) AnalysisItem(title: '${AppStrings.topPerformer}: ${data.topHealing!.food}', subtitle: data.topHealing!.effects, icon: AppIcons.star),
+              if (data.topTrigger != null) AnalysisItem(title: '${AppStrings.mostReactive}: ${data.topTrigger!.food}', subtitle: data.topTrigger!.effects, icon: AppIcons.alertTriangle),
             ],
           ),
         ),

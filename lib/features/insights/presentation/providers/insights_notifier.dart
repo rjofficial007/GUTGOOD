@@ -105,22 +105,30 @@ class InsightsNotifier with ChangeNotifier {
   List<BodyPattern> get bodyPatterns => _state.patterns;
 
   /// Returns 3-5 most meaningful insights prioritized by confidence and frequency.
+  /// 🟢 NEW: Deduplicates patterns by trigger and type before returning.
   List<BodyPattern> get prioritizedPatterns {
-    final list = [..._state.patterns]
+    final seenKeys = <String>{};
+    final uniquePatterns = <BodyPattern>[];
+    
+    final sorted = [..._state.patterns]
       ..sort((a, b) {
-        // 1. High Confidence first
         if (a.confidence != b.confidence) {
           return a.confidence == BodyPattern.confidenceHigh ? -1 : 1;
         }
-        // 2. Frequency (higher first)
         if (a.frequency != b.frequency) {
           return b.frequency.compareTo(a.frequency);
         }
-        // 3. Recency
         return b.updatedAt.compareTo(a.updatedAt);
       });
 
-    return list.take(5).toList();
+    for (final p in sorted) {
+      final key = '${p.type}_${p.trigger.toLowerCase().trim()}';
+      if (seenKeys.add(key)) {
+        uniquePatterns.add(p);
+      }
+    }
+
+    return uniquePatterns.take(5).toList();
   }
 
   List<HealthAlert> get healthAlerts => _state.alerts;

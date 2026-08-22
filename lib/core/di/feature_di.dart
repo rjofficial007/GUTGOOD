@@ -9,6 +9,7 @@ import 'package:gutgood/features/chat/presentation/providers/chat_composer_notif
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:gutgood/features/history/data/repositories/history_repository_impl.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
+import 'package:gutgood/features/history/presentation/providers/history_notifier.dart';
 import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
 import 'package:gutgood/features/insights/data/repositories/insight_repository_impl.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
@@ -53,6 +54,7 @@ void initFeatureDI() {
         repository: sl(),
         chatFirestoreService: sl(),
         authFirestoreService: sl(),
+        historyFirestoreService: sl(),
         aiService: sl(),
         appStateService: sl(),
         prefs: sl(),
@@ -77,14 +79,11 @@ void initFeatureDI() {
     // --- Insights ---
     ..registerLazySingleton<InsightRepository>(
       () => InsightRepositoryImpl(
-        authFirestoreService: sl(),
         historyFirestoreService: sl(),
         insightFirestoreService: sl(),
         chatFirestoreService: sl(),
         aiService: sl(),
         prefs: sl(),
-        notificationService: sl(),
-        patternEngineService: sl(),
         analyticsService: sl(),
         crashlyticsService: sl(),
       ),
@@ -102,5 +101,6 @@ void initFeatureDI() {
     ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl()))
     // --- History ---
     ..registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl()))
+    ..registerLazySingleton(() => HistoryNotifier(repository: sl(), appStateService: sl(), auth: sl()))
     ..registerLazySingleton(() => SavedFoodsProvider(repository: sl(), appStateService: sl()));
 }

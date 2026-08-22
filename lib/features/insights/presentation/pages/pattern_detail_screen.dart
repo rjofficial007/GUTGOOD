@@ -188,13 +188,12 @@ class _OccurrenceTimeline extends StatelessWidget {
 }
 
 class _HistoryListTile extends StatelessWidget {
-  const _HistoryListTile({required this.title, required this.subtitle, this.imageUrl, required this.iconColor, this.trailing, required this.onTap, this.margin});
+  const _HistoryListTile({required this.title, required this.subtitle, this.imageUrl, required this.iconColor, required this.onTap, this.margin});
 
   final String title;
   final String subtitle;
   final String? imageUrl;
   final Color iconColor;
-  final Widget? trailing;
   final VoidCallback onTap;
   final EdgeInsetsGeometry? margin;
 
@@ -255,7 +254,6 @@ class _HistoryListTile extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailing != null) ...[Gap.w12, trailing!],
           ],
         ),
       ),

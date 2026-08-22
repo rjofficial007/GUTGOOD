@@ -8,6 +8,7 @@ import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:mocktail/mocktail.dart';
@@ -16,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class MockChatRepository extends Mock implements ChatRepository {}
 class MockChatFirestoreService extends Mock implements ChatFirestoreService {}
 class MockAuthFirestoreService extends Mock implements AuthFirestoreService {}
+class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}
 class MockAiService extends Mock implements AiService {}
 class MockAppStateService extends Mock implements AppStateService {}
 class MockSharedPreferences extends Mock implements SharedPreferences {}
@@ -27,6 +29,7 @@ void main() {
   late MockChatRepository repository;
   late MockChatFirestoreService chatFirestoreService;
   late MockAuthFirestoreService authFirestoreService;
+  late MockHistoryFirestoreService historyFirestoreService;
   late MockAiService aiService;
   late MockAppStateService appStateService;
   late MockSharedPreferences prefs;
@@ -37,6 +40,7 @@ void main() {
     repository = MockChatRepository();
     chatFirestoreService = MockChatFirestoreService();
     authFirestoreService = MockAuthFirestoreService();
+    historyFirestoreService = MockHistoryFirestoreService();
     aiService = MockAiService();
     appStateService = MockAppStateService();
     prefs = MockSharedPreferences();
@@ -59,6 +63,7 @@ void main() {
       repository: repository,
       chatFirestoreService: chatFirestoreService,
       authFirestoreService: authFirestoreService,
+      historyFirestoreService: historyFirestoreService,
       aiService: aiService,
       appStateService: appStateService,
       prefs: prefs,

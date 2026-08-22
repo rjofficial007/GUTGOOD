@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
@@ -25,6 +28,8 @@ class ChatMessage extends Equatable {
     this.imageUrls = const [],
     this.localImages,
     this.scanData,
+    this.mealLogs = const [],
+    this.symptomLogs = const [],
     this.swapData,
     this.isSwap = false,
     this.feedback,
@@ -57,6 +62,8 @@ class ChatMessage extends Equatable {
       imageUrl: resolvedImageUrls.isNotEmpty ? resolvedImageUrls.first : legacyImageUrl,
       imageUrls: resolvedImageUrls,
       scanData: ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap),
+      mealLogs: ModelUtils.parseModelList<MealLog>(map['mealLogs'], MealLog.fromMap),
+      symptomLogs: ModelUtils.parseModelList<SymptomLog>(map['symptomLogs'], SymptomLog.fromMap),
       swapData: ModelUtils.parseModelList<ProductSwap>(map['swapData'], ProductSwap.fromMap),
       isSwap: ModelUtils.parseBool(map['isSwap']),
       feedback: map['feedback'],
@@ -103,6 +110,12 @@ class ChatMessage extends Equatable {
 
   /// Rich scan result data if this message represents a product analysis.
   final ScanResult? scanData;
+
+  /// Structured meal logs extracted from this message.
+  final List<MealLog> mealLogs;
+
+  /// Structured symptom logs extracted from this message.
+  final List<SymptomLog> symptomLogs;
 
   /// List of healthier alternatives if suggested by the AI.
   final List<ProductSwap>? swapData;
@@ -152,6 +165,8 @@ class ChatMessage extends Equatable {
     List<String>? imageUrls,
     List<Uint8List>? localImages,
     ScanResult? scanData,
+    List<MealLog>? mealLogs,
+    List<SymptomLog>? symptomLogs,
     List<ProductSwap>? swapData,
     bool? isSwap,
     String? feedback,
@@ -177,6 +192,8 @@ class ChatMessage extends Equatable {
       imageUrls: nextImageUrls,
       localImages: clearLocalImages ? null : (localImages ?? this.localImages),
       scanData: scanData ?? this.scanData,
+      mealLogs: mealLogs ?? this.mealLogs,
+      symptomLogs: symptomLogs ?? this.symptomLogs,
       swapData: swapData ?? this.swapData,
       isSwap: isSwap ?? this.isSwap,
       feedback: feedback ?? this.feedback,
@@ -201,6 +218,8 @@ class ChatMessage extends Equatable {
     'imageUrl': imageUrl,
     'imageUrls': imageUrls,
     'scanData': scanData?.toMap(),
+    'mealLogs': mealLogs.map((e) => e.toMap()).toList(),
+    'symptomLogs': symptomLogs.map((e) => e.toMap()).toList(),
     'swapData': swapData?.map((e) => e.toMap()).toList(),
     'isSwap': isSwap,
     'feedback': feedback,
@@ -212,8 +231,26 @@ class ChatMessage extends Equatable {
   };
 
   /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
-  Map<String, dynamic> toAiMap() => {'role': role, 'text': text, if (scanData != null) 'scanData': scanData!.toAiMap(), if (isHidden) 'isHidden': isHidden};
+  /// Serializes structured context into the 'content' string for the aiProxy.
+  Map<String, String> toAiMap() {
+    final role = this.role == 'user' ? 'user' : 'assistant';
+    final buffer = StringBuffer(text);
+
+    if (scanData != null) {
+      buffer.write('\n\n[SCAN_CONTEXT]${jsonEncode(scanData!.toAiMap())}[/SCAN_CONTEXT]');
+    }
+
+    if (mealLogs.isNotEmpty) {
+      buffer.write('\n\n[MEAL_CONTEXT]${jsonEncode(mealLogs.map((e) => e.toMap()).toList())}[/MEAL_CONTEXT]');
+    }
+
+    if (symptomLogs.isNotEmpty) {
+      buffer.write('\n\n[SYMPTOM_CONTEXT]${jsonEncode(symptomLogs.map((e) => e.toMap()).toList())}[/SYMPTOM_CONTEXT]');
+    }
+
+    return {'role': role, 'content': buffer.toString().trim()};
+  }
 
   @override
-  List<Object?> get props => [id, firestoreId, localId, role, text, imageUrl, imageUrls, scanData, isSwap, feedback, isSending, sendFailed, errorKind, isHidden, time];
+  List<Object?> get props => [id, firestoreId, localId, role, text, imageUrl, imageUrls, scanData, mealLogs, symptomLogs, isSwap, feedback, isSending, sendFailed, errorKind, isHidden, time];
 }

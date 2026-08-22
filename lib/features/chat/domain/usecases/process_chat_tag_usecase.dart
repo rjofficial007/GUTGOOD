@@ -11,13 +11,15 @@ import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class ProcessChatTagResult {
-  ProcessChatTagResult({required this.text, this.scanData, this.swapData, this.isSwap = false, this.foodMentions = const [], this.symptomMentions = const []});
+  ProcessChatTagResult({required this.text, this.scanData, this.swapData, this.isSwap = false, this.foodMentions = const [], this.symptomMentions = const [], this.mealLogs = const [], this.symptomLogs = const []});
   final String text;
   final ScanResult? scanData;
   final List<ProductSwap>? swapData;
   final bool isSwap;
   final List<String> foodMentions;
   final List<String> symptomMentions;
+  final List<MealLog> mealLogs;
+  final List<SymptomLog> symptomLogs;
 }
 
 class ProcessChatTagUseCase {
@@ -25,13 +27,15 @@ class ProcessChatTagUseCase {
   final HistoryFirestoreService _firestoreService;
   final AppStateService _appStateService;
 
-  ProcessChatTagResult call(String text, {String? imageUrl, String? source, Set<String>? persistedTagBlocks, bool persist = true, bool isFinal = false}) {
+  ProcessChatTagResult call(String text, {String? imageUrl, String? source, Set<String>? persistedTagBlocks, bool persist = true, bool isFinal = false, String? chatMessageId}) {
     var displayOutput = text;
     ScanResult? scanData;
     List<ProductSwap>? swapData;
     var isSwap = false;
     final foodMentions = <String>[];
     final symptomMentions = <String>[];
+    final mealLogs = <MealLog>[];
+    final symptomLogs = <SymptomLog>[];
 
     final tags = ['SYMPTOM', 'MEAL', 'SCAN', 'SWAPS'];
 
@@ -53,7 +57,11 @@ class ProcessChatTagUseCase {
 
         final content = isClosed ? text.substring(tagIndex + startTag.length, endTagIndex) : text.substring(tagIndex + startTag.length);
 
-        final alreadyPersisted = persistedTagBlocks?.contains(rawBlock) ?? false;
+        // 🟢 DATA INTEGRITY: Normalize the block for the persistence check to
+        // prevent duplicates caused by streaming noise (extra spaces/newlines).
+        final normalizedContent = content.trim();
+        final persistenceKey = '${tag}_$normalizedContent';
+        final alreadyPersisted = persistedTagBlocks?.contains(persistenceKey) ?? false;
 
         try {
           // Use balanced bracket extraction for robust JSON isolation
@@ -65,27 +73,33 @@ class ProcessChatTagUseCase {
 
             if (tag == 'SYMPTOM' && decoded is Map<String, dynamic>) {
               AppLogger.debug('ProcessChatTag: Detected SYMPTOM tag');
+              final log = SymptomLog.fromMap({...decoded, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
+              symptomLogs.add(log);
+
               if (!alreadyPersisted && (isClosed || isFinal)) {
                 if (persist) {
-                  final log = SymptomLog.fromMap(decoded).copyWith(source: source ?? 'chat');
+                  final log = SymptomLog.fromMap({...decoded, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
                   AppLogger.ai('Logging symptom: ${log.symptom}');
                   unawaited(_firestoreService.logSymptom(log));
                   _appStateService.notifyChatUpdated();
                 }
-                persistedTagBlocks?.add(rawBlock);
+                persistedTagBlocks?.add(persistenceKey);
               }
               if (decoded['symptom'] != null) symptomMentions.add(decoded['symptom'].toString());
             } else if (tag == 'MEAL' && decoded is Map<String, dynamic>) {
               AppLogger.debug('ProcessChatTag: Detected MEAL tag');
+              final log = MealLog.fromMap({...decoded, 'photoUrl': imageUrl, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
+              mealLogs.add(log);
+
               if (!alreadyPersisted && (isClosed || isFinal)) {
                 if (persist) {
-                  final log = MealLog.fromMap({...decoded, 'photoUrl': imageUrl}).copyWith(source: source ?? 'chat');
+                  final log = MealLog.fromMap({...decoded, 'photoUrl': imageUrl, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
                   AppLogger.ai('Logging meal with ${log.items.length} items');
                   unawaited(_firestoreService.logMeal(log));
                   _appStateService.notifyChatUpdated();
                   persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');
                 }
-                persistedTagBlocks?.add(rawBlock);
+                persistedTagBlocks?.add(persistenceKey);
               }
               final items = ModelUtils.parseList<String>(decoded['items']);
               foodMentions.addAll(items);
@@ -106,7 +120,7 @@ class ProcessChatTagUseCase {
                   }
                   _appStateService.notifyChatUpdated();
                 }
-                persistedTagBlocks?.add(rawBlock);
+                persistedTagBlocks?.add(persistenceKey);
               }
             } else if (tag == 'SWAPS') {
               // For SWAPS, we accept either a direct List or a Map containing a list
@@ -115,7 +129,7 @@ class ProcessChatTagUseCase {
               if (swapsList.isNotEmpty) {
                 swapData = ModelUtils.parseModelList<ProductSwap>(swapsList, ProductSwap.fromMap);
                 isSwap = true;
-                if (!alreadyPersisted && (isClosed || isFinal)) persistedTagBlocks?.add(rawBlock);
+                if (!alreadyPersisted && (isClosed || isFinal)) persistedTagBlocks?.add(persistenceKey);
               }
             }
           } else if (tag == 'SWAPS' && content.trim().startsWith('[') && content.trim().length > 1) {
@@ -147,6 +161,6 @@ class ProcessChatTagUseCase {
       displayOutput = text.substring(0, startIndex).trim();
     }
 
-    return ProcessChatTagResult(text: displayOutput, scanData: scanData, swapData: swapData, isSwap: isSwap, foodMentions: foodMentions, symptomMentions: symptomMentions);
+    return ProcessChatTagResult(text: displayOutput, scanData: scanData, swapData: swapData, isSwap: isSwap, foodMentions: foodMentions, symptomMentions: symptomMentions, mealLogs: mealLogs, symptomLogs: symptomLogs);
   }
 }

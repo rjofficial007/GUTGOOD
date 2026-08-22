@@ -12,7 +12,6 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';

@@ -227,25 +227,15 @@ class _EmptyStateCard extends StatelessWidget {
   }
 }
 
+import 'package:gutgood/core/utils/date_formatter.dart';
+
 class DateHeader extends StatelessWidget {
   const DateHeader({super.key, required this.date});
   final DateTime date;
 
   @override
   Widget build(BuildContext context) {
-    String label;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final d = DateTime(date.year, date.month, date.day);
-
-    if (d == today) {
-      label = AppStrings.today;
-    } else if (d == yesterday) {
-      label = AppStrings.yesterday;
-    } else {
-      label = DateFormat('MMMM d, yyyy').format(date);
-    }
+    final label = DateFormatter.formatDate(date);
 
     final colorScheme = context.appColorScheme;
     return Container(

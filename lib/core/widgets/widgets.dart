@@ -24,6 +24,7 @@ export 'paywall_bottom_sheet.dart';
 export 'premium_badge.dart';
 export 'scan_result_inline_card.dart';
 export 'selection_wrap.dart';
+export 'shimmer_grid_loader.dart';
 export 'streak_card.dart';
 export 'streak_celebration_overlay.dart';
 export 'swap_card.dart';

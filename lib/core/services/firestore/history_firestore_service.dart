@@ -7,17 +7,17 @@ import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class HistoryFirestoreService {
   Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl});
-  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since});
-  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since});
+  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since, DateTime? before});
+  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since, DateTime? before});
   Future<List<ScanResult>> getSavedFoods();
   Future<void> toggleSaveFood(ScanResult scanData);
   Future<bool> isFoodSaved(String? productName, {String? barcode});
 
   Future<String?> logMeal(MealLog log);
-  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since});
+  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before});
 
   Future<String?> logSymptom(SymptomLog log);
-  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since});
+  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before});
   Future<List<SymptomLog>> getSymptomLogs();
 
   Future<int> getScansCountSince(DateTime since);
@@ -38,6 +38,9 @@ abstract class HistoryFirestoreService {
 
   /// Returns a stream of the average food score, updating in real-time.
   Stream<int> getAverageFoodScoreStream();
+
+  /// Deletes all meal and symptom logs associated with a specific chat message.
+  Future<void> deleteLogsForMessage(String chatMessageId);
 }
 
 class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
@@ -58,6 +61,14 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
+
+      // 🟢 DATA INTEGRITY: Only save actual food products to history.
+      // This prevents utility scans (menus, raw labels) from cluttering
+      // the history and corrupting the Pattern Engine's correlation data.
+      if (!scanData.isLoggableProduct) {
+        AppLogger.insights('Skipping history for non-loggable product: ${scanData.productName}');
+        return;
+      }
 
       var bestImageUrl = userImageUrl;
       if (bestImageUrl == null || bestImageUrl.isEmpty) {
@@ -82,7 +93,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since}) async {
+  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since, DateTime? before}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
@@ -91,6 +102,10 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
 
       if (since != null) {
         query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+      }
+      
+      if (before != null) {
+        query = query.where('time', isLessThan: before.toIso8601String());
       }
 
       if (limit != null) {
@@ -107,7 +122,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since}) async => getScanHistory(limit: limit, since: since);
+  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since, DateTime? before}) async => getScanHistory(limit: limit, since: since, before: before);
 
   @override
   Future<void> toggleSaveFood(ScanResult scanData) async {
@@ -210,7 +225,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since}) async {
+  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
@@ -219,6 +234,10 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
 
       if (since != null) {
         query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+      }
+
+      if (before != null) {
+        query = query.where('time', isLessThan: before.toIso8601String());
       }
 
       if (limit != null) {
@@ -256,7 +275,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since}) async {
+  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
@@ -265,6 +284,10 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
 
       if (since != null) {
         query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+      }
+
+      if (before != null) {
+        query = query.where('time', isLessThan: before.toIso8601String());
       }
 
       if (limit != null) {
@@ -395,5 +418,32 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
 
     final sum = scores.reduce((a, b) => a + b);
     return (sum / scores.length).round();
+  }
+
+  @override
+  Future<void> deleteLogsForMessage(String chatMessageId) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return;
+
+      final batch = _db.batch();
+
+      // Find and delete associated meal logs
+      final mealSnaps = await doc.collection('meal_logs').where('chatMessageId', isEqualTo: chatMessageId).get();
+      for (final d in mealSnaps.docs) {
+        batch.delete(d.reference);
+      }
+
+      // Find and delete associated symptom logs
+      final symptomSnaps = await doc.collection('symptom_logs').where('chatMessageId', isEqualTo: chatMessageId).get();
+      for (final d in symptomSnaps.docs) {
+        batch.delete(d.reference);
+      }
+
+      await batch.commit();
+      AppLogger.firestore('Deleted logs associated with chatMessageId: $chatMessageId');
+    } catch (e) {
+      AppLogger.firestore('Error deleting logs for message', error: e);
+    }
   }
 }

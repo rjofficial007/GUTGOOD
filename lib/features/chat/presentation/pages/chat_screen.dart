@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -48,12 +47,10 @@ class ChatScreenState extends State<ChatScreen> {
   final ImagePicker _picker = ImagePicker();
 
   ChatHistoryNotifier? _historyNotifier;
-  ChatComposerNotifier? _composerNotifier;
 
   Timer? _draftDebounce;
 
   bool _showJumpToLatest = false;
-  bool _userHasScrolledManually = false;
 
   @override
   void initState() {
@@ -67,8 +64,6 @@ class ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
 
       _historyNotifier = context.read<ChatHistoryNotifier>();
-
-      _composerNotifier = context.read<ChatComposerNotifier>();
 
       _historyNotifier?.addListener(_handleHistoryLoaded);
 
@@ -106,14 +101,6 @@ class ChatScreenState extends State<ChatScreen> {
     if (!_scroll.hasClients) return;
 
     final position = _scroll.position;
-
-    if (position.userScrollDirection != ScrollDirection.idle) {
-      _userHasScrolledManually = true;
-    }
-
-    if (position.pixels <= 10) {
-      _userHasScrolledManually = false;
-    }
 
     // Show jump to bottom button if we are scrolled up significantly
     final isScrolledUp = position.pixels > 300;
@@ -318,52 +305,50 @@ class ChatScreenState extends State<ChatScreen> {
   // ===========================================================================
 
   @override
-  Widget build(BuildContext context) {
-    return UpgradeAlert(
-      dialogStyle: Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
-      barrierDismissible: !RemoteConfigService.instance.isForceUpdateApp,
-      showReleaseNotes: !kReleaseMode,
-      showIgnore: !RemoteConfigService.instance.isForceUpdateApp,
-      showLater: !RemoteConfigService.instance.isForceUpdateApp,
-      shouldPopScope: () => !RemoteConfigService.instance.isForceUpdateApp,
-      onIgnore: () => true,
-      onLater: () => true,
-      onUpdate: () => true,
-      upgrader: Upgrader(
-        durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp ? Duration.zero : const Duration(days: 3),
-        debugLogging: !kReleaseMode,
-        debugDisplayAlways: false,
-        messages: UpgraderMessages(),
-      ),
-      child: Scaffold(
-        backgroundColor: context.appColorScheme.cardBackground,
-        appBar: const _ChatAppBar(),
-        body: SafeArea(
-          child: Stack(
-            children: [
-              Column(
-                children: [
-                  const Expanded(child: _MessageListView()),
-                  _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
-                ],
-              ),
-              if (_showJumpToLatest)
-                Positioned(
-                  bottom: 100,
-                  right: 16,
-                  child: FloatingActionButton.small(
-                    onPressed: _jumpToLatest,
-                    backgroundColor: context.appColorScheme.textPrimary,
-                    foregroundColor: context.appColorScheme.cardBackground,
-                    child: const Icon(AppIcons.chevronDown),
-                  ),
+  Widget build(BuildContext context) => UpgradeAlert(
+        dialogStyle: Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
+        barrierDismissible: !RemoteConfigService.instance.isForceUpdateApp,
+        showReleaseNotes: !kReleaseMode,
+        showIgnore: !RemoteConfigService.instance.isForceUpdateApp,
+        showLater: !RemoteConfigService.instance.isForceUpdateApp,
+        shouldPopScope: () => !RemoteConfigService.instance.isForceUpdateApp,
+        onIgnore: () => true,
+        onLater: () => true,
+        onUpdate: () => true,
+        upgrader: Upgrader(
+          durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp ? Duration.zero : const Duration(days: 3),
+          debugLogging: !kReleaseMode,
+          debugDisplayAlways: false,
+          messages: UpgraderMessages(),
+        ),
+        child: Scaffold(
+          backgroundColor: context.appColorScheme.cardBackground,
+          appBar: const _ChatAppBar(),
+          body: SafeArea(
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    const Expanded(child: _MessageListView()),
+                    _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
+                  ],
                 ),
-            ],
+                if (_showJumpToLatest)
+                  Positioned(
+                    bottom: 100,
+                    right: 16,
+                    child: FloatingActionButton.small(
+                      onPressed: _jumpToLatest,
+                      backgroundColor: context.appColorScheme.textPrimary,
+                      foregroundColor: context.appColorScheme.cardBackground,
+                      child: const Icon(AppIcons.chevronDown),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 // =============================================================================
@@ -376,44 +361,40 @@ class _SuggestionChipsSection extends StatelessWidget {
   final TextEditingController controller;
 
   @override
-  Widget build(BuildContext context) {
-    return Selector<ChatHistoryNotifier, int>(
-      selector: (_, n) => n.messages.length,
-      builder: (context, count, _) {
-        final suggestions = [
-          AppStrings.suggestRateMeal,
-          AppStrings.suggestBetterSwap,
-          AppStrings.suggestBloatCheck,
-          AppStrings.suggestIsThisHealthy,
-          AppStrings.suggestMealPlan,
-          AppStrings.suggestExplainIngredients,
-          AppStrings.menuPhotoPrompt,
-        ];
+  Widget build(BuildContext context) => Selector<ChatHistoryNotifier, int>(
+        selector: (_, n) => n.messages.length,
+        builder: (context, count, _) {
+          final suggestions = [
+            AppStrings.suggestRateMeal,
+            AppStrings.suggestBetterSwap,
+            AppStrings.suggestBloatCheck,
+            AppStrings.suggestIsThisHealthy,
+            AppStrings.suggestMealPlan,
+            AppStrings.suggestExplainIngredients,
+            AppStrings.menuPhotoPrompt,
+          ];
 
-        return Container(
-          height: 38,
-          margin: EdgeInsets.only(bottom: AppSizes.p12),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
-            itemCount: suggestions.length,
-            itemBuilder: (context, i) {
-              return ChatSuggestionChip(
-                label: suggestions[i],
-                onTap: () {
-                  HapticHelper.light();
+          return Container(
+            height: 38,
+            margin: EdgeInsets.only(bottom: AppSizes.p12),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
+              itemCount: suggestions.length,
+              itemBuilder: (context, i) => ChatSuggestionChip(
+                  label: suggestions[i],
+                  onTap: () {
+                    HapticHelper.light();
 
-                  controller.text = suggestions[i];
+                    controller.text = suggestions[i];
 
-                  controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
-                },
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
+                    controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+                  },
+                ),
+            ),
+          );
+        },
+      );
 }
 
 // =============================================================================
@@ -424,8 +405,7 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _ChatAppBar();
 
   @override
-  Widget build(BuildContext context) {
-    return Selector2<ProfileNotifier, InsightsNotifier, (int?, bool)>(
+  Widget build(BuildContext context) => Selector2<ProfileNotifier, InsightsNotifier, (int?, bool)>(
       selector: (_, p, i) => (p.profile?.streak, i.healthAlerts.any((a) => !a.isRead)),
       builder: (context, data, _) {
         final streak = data.$1;
@@ -467,7 +447,6 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         );
       },
     );
-  }
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -494,8 +473,6 @@ class _MessageListView extends StatelessWidget {
         final allMessages = context.read<ChatHistoryNotifier>().messages;
 
         final messages = allMessages.where((m) => !m.isHidden).toList();
-
-        final messageCount = messages.length;
 
         final isLoading = context.select<ChatComposerNotifier, bool>((n) => n.isLoading);
 
@@ -528,7 +505,7 @@ class _MessageListView extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 sliver: _MessageSliverList(),
               ),
-              if (historyNotifier.isPaginationLoading)
+              if (context.select<ChatHistoryNotifier, bool>((n) => n.isPaginationLoading))
                 const SliverToBoxAdapter(
                   child: ChatPaginationLoader(),
                 ),
@@ -559,8 +536,6 @@ class _MessageSliverListState extends State<_MessageSliverList> {
     final composerNotifier = context.read<ChatComposerNotifier>();
 
     final authNotifier = context.read<GutAuthNotifier>();
-
-    final screenState = context.findAncestorStateOfType<ChatScreenState>()!;
 
     final allMessages = context.select<ChatHistoryNotifier, List<ChatMessage>>((n) => n.messages);
 

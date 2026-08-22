@@ -1,19 +1,15 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/historical_scan.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
-import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/widgets/shimmer_grid_loader.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
+import 'package:gutgood/features/history/presentation/providers/history_notifier.dart';
 import 'package:gutgood/features/history/presentation/widgets/history_section.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class AllScansScreen extends StatefulWidget {
   const AllScansScreen({super.key});
@@ -23,38 +19,30 @@ class AllScansScreen extends StatefulWidget {
 }
 
 class _AllScansScreenState extends State<AllScansScreen> {
-  List<HistoricalScan> _history = [];
-  bool _isLoading = true;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _loadHistory();
-    sl<AppStateService>().chatUpdated.addListener(_loadHistory);
-    unawaited(sl<AnalyticsService>().logEvent(name: 'view_all_scans'));
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    sl<AppStateService>().chatUpdated.removeListener(_loadHistory);
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadHistory() async {
-    final scans = await sl<HistoryRepository>().getScanHistory();
-    final historicalScans = scans.map((s) => HistoricalScan(data: s, time: s.time ?? DateTime.now(), userImageUrl: s.userImageUrl)).toList();
-
-    if (mounted) {
-      setState(() {
-        _history = historicalScans;
-        _isLoading = false;
-      });
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      context.read<HistoryNotifier>().loadMoreScans();
     }
   }
 
-  Map<String, List<HistoricalScan>> _groupHistoryByDate() {
+  Map<String, List<HistoricalScan>> _groupHistoryByDate(List<ScanResult> scans) {
     final grouped = <String, List<HistoricalScan>>{};
-    for (var item in _history) {
+    for (var scan in scans) {
+      final item = HistoricalScan(data: scan, time: scan.time ?? DateTime.now(), userImageUrl: scan.userImageUrl);
       final date = item.time;
       String key;
       if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(DateTime.now())) {
@@ -71,17 +59,36 @@ class _AllScansScreenState extends State<AllScansScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: context.appColorScheme.cardBackground,
-    body: CustomScrollView(
-      slivers: [
-        const GutSliverAppBar(title: AppStrings.aiScanHistory, showBrandingIcon: false),
-        _buildBody(),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final notifier = context.watch<HistoryNotifier>();
 
-  Widget _buildBody() => _isLoading ? const _Loading() : (_history.isEmpty ? const _Empty() : _List(groupedHistory: _groupHistoryByDate()));
+    return Scaffold(
+      backgroundColor: context.appColorScheme.cardBackground,
+      body: RefreshIndicator(
+        onRefresh: notifier.refreshScans,
+        color: context.appColorScheme.textPrimary,
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            const GutSliverAppBar(title: AppStrings.aiScanHistory, showBrandingIcon: false),
+            if (notifier.scansLoading)
+              const _Loading()
+            else if (notifier.scans.isEmpty)
+              const _Empty()
+            else
+              _List(groupedHistory: _groupHistoryByDate(notifier.scans)),
+            if (notifier.scansLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _Loading extends StatelessWidget {

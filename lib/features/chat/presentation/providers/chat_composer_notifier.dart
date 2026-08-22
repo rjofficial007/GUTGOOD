@@ -477,6 +477,8 @@ CLASSIFY INTENT:
     return null;
   }
 
+  DateTime? _lastPersistTime;
+
   void _flushChunkBuffer({String? imageUrl, String? source}) {
     if (_chunkBuffer.isEmpty) return;
     final aiLocalId = _activeAiLocalId;
@@ -488,7 +490,7 @@ CLASSIFY INTENT:
     _fullAiText += _chunkBuffer;
     _chunkBuffer = '';
 
-    final result = _processChatTagUseCase(_fullAiText, imageUrl: imageUrl, source: source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: false);
+    final result = _processChatTagUseCase(_fullAiText, imageUrl: imageUrl, source: source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: false, chatMessageId: aiLocalId);
 
     var finalToDisplay = _applySafetyGuardrails(result.text);
     if (finalToDisplay.isEmpty && (result.scanData != null || (result.swapData != null && result.swapData!.isNotEmpty))) {
@@ -496,19 +498,30 @@ CLASSIFY INTENT:
     }
 
     final currentMsg = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);
-    _historyNotifier.replaceMessage(
-      aiLocalId,
-      currentMsg.copyWith(
-        text: finalToDisplay,
-        scanData: result.scanData,
-        imageUrl: imageUrl,
-        imageUrls: imageUrl != null ? [imageUrl] : null,
-        swapData: result.swapData,
-        isSwap: result.isSwap,
-        foodMentions: result.foodMentions,
-        symptomMentions: result.symptomMentions,
-      ),
+    final updatedMsg = currentMsg.copyWith(
+      text: finalToDisplay,
+      scanData: result.scanData,
+      imageUrl: imageUrl,
+      imageUrls: imageUrl != null ? [imageUrl] : null,
+      mealLogs: result.mealLogs,
+      symptomLogs: result.symptomLogs,
+      swapData: result.swapData,
+      isSwap: result.isSwap,
+      foodMentions: result.foodMentions,
+      symptomMentions: result.symptomMentions,
     );
+
+    _historyNotifier.replaceMessage(aiLocalId, updatedMsg);
+
+    // 🟢 DATA INTEGRITY: Periodically persist the AI response during streaming.
+    // This prevents total data loss if the app crashes or is killed during
+    // a long generation (which can take 15-30s).
+    final now = DateTime.now();
+    if (_lastPersistTime == null || now.difference(_lastPersistTime!).inSeconds >= 3) {
+      _lastPersistTime = now;
+      unawaited(_persistAiMessage(aiLocalId));
+    }
+
     notifyListeners();
   }
 
@@ -534,8 +547,9 @@ CLASSIFY INTENT:
         persistedTagBlocks: _persistedTags,
         persist: _persistTagsForActiveTurn,
         isFinal: true,
+        chatMessageId: aiLocalId,
       );
-      _historyNotifier.replaceMessage(aiLocalId, currentMsg.copyWith(text: _applySafetyGuardrails(result.text), scanData: result.scanData, swapData: result.swapData));
+      _historyNotifier.replaceMessage(aiLocalId, currentMsg.copyWith(text: _applySafetyGuardrails(result.text), scanData: result.scanData, mealLogs: result.mealLogs, symptomLogs: result.symptomLogs, swapData: result.swapData));
     }
 
     final kind = error is AiQuotaExceededException ? ChatErrorKind.quota : ChatErrorKind.connection;
@@ -571,9 +585,9 @@ CLASSIFY INTENT:
 
     _fullAiText += _chunkBuffer;
     _chunkBuffer = '';
-    final result = _processChatTagUseCase(_fullAiText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: true);
+    final result = _processChatTagUseCase(_fullAiText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: true, chatMessageId: aiLocalId);
 
-    final finalMsg = currentMsg.copyWith(text: _applySafetyGuardrails(result.text), scanData: result.scanData, swapData: result.swapData);
+    final finalMsg = currentMsg.copyWith(text: _applySafetyGuardrails(result.text), scanData: result.scanData, mealLogs: result.mealLogs, symptomLogs: result.symptomLogs, swapData: result.swapData);
     _historyNotifier.replaceMessage(aiLocalId, finalMsg);
 
     if (finalMsg.text.isEmpty && finalMsg.scanData == null) {
@@ -672,7 +686,7 @@ CLASSIFY INTENT:
 
       await for (final chunk in stream) {
         fullTextBuffer.write(chunk);
-        final result = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', persistedTagBlocks: persistedTags);
+        final result = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', persistedTagBlocks: persistedTags, chatMessageId: aiLocalId);
 
         var finalToDisplay = result.text;
         if (finalToDisplay.isEmpty && result.swapData != null && result.swapData!.isNotEmpty) {
@@ -680,7 +694,7 @@ CLASSIFY INTENT:
         }
 
         final currentAi = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);
-        _historyNotifier.replaceMessage(aiLocalId, currentAi.copyWith(text: finalToDisplay, swapData: result.swapData, isSwap: result.isSwap));
+        _historyNotifier.replaceMessage(aiLocalId, currentAi.copyWith(text: finalToDisplay, scanData: result.scanData, mealLogs: result.mealLogs, symptomLogs: result.symptomLogs, swapData: result.swapData, isSwap: result.isSwap));
         notifyListeners();
       }
 

@@ -8,6 +8,7 @@ import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +19,7 @@ class ChatHistoryNotifier with ChangeNotifier {
     required ChatRepository repository,
     required ChatFirestoreService chatFirestoreService,
     required AuthFirestoreService authFirestoreService,
+    required HistoryFirestoreService historyFirestoreService,
     required AiService aiService,
     required AppStateService appStateService,
     required SharedPreferences prefs,
@@ -25,6 +27,7 @@ class ChatHistoryNotifier with ChangeNotifier {
   }) : _repository = repository,
        _chatFirestoreService = chatFirestoreService,
        _authFirestoreService = authFirestoreService,
+       _historyFirestoreService = historyFirestoreService,
        _aiService = aiService,
        _appStateService = appStateService,
        _prefs = prefs,
@@ -46,6 +49,7 @@ class ChatHistoryNotifier with ChangeNotifier {
   final ChatRepository _repository;
   final ChatFirestoreService _chatFirestoreService;
   final AuthFirestoreService _authFirestoreService;
+  final HistoryFirestoreService _historyFirestoreService;
   final AiService _aiService;
   final AppStateService _appStateService;
   final SharedPreferences _prefs;
@@ -256,6 +260,7 @@ class ChatHistoryNotifier with ChangeNotifier {
 
   Future<void> deleteMessage(ChatMessage msg) async {
     removeMessage(msg.localId);
+    unawaited(_historyFirestoreService.deleteLogsForMessage(msg.localId));
     if (msg.firestoreId != null) {
       await _repository.deleteMessage(msg);
     }
@@ -277,12 +282,12 @@ class ChatHistoryNotifier with ChangeNotifier {
   }
 
   Future<void> precomputeSummary() async {
-    if (_isSummarizing || _messages.length <= 6) return;
+    if (_isSummarizing || messages.length <= 6) return;
     _isSummarizing = true;
 
     try {
       const maxContextMessages = 6;
-      final chronological = _messages.reversed.where((m) => m.text.isNotEmpty).toList();
+      final chronological = messages.reversed.where((m) => m.text.isNotEmpty).toList();
       if (chronological.length <= maxContextMessages) return;
 
       final agedOut = chronological.sublist(0, chronological.length - maxContextMessages);
