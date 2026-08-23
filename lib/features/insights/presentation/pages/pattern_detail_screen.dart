@@ -71,7 +71,7 @@ class _PatternHeroCard extends StatelessWidget {
       iconColor: scheme.textPrimary,
       backgroundColor: scheme.cardBackground,
       footer: Text(
-        '${pattern.confidence.toUpperCase()} CONFIDENCE • ${pattern.frequency} OCCURRENCES',
+        '${(pattern.evidenceRatio * 100).toInt()}% PROBABILITY • ${pattern.frequency}/${pattern.totalSimilarMeals} OCCURRENCES',
         style: context.caption.copyWith(color: scheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 10.sp, letterSpacing: 1.2),
       ),
       footerColor: scheme.textPrimary,
@@ -118,7 +118,11 @@ class _ObservationsCard extends StatelessWidget {
         glowColor: context.appColorScheme.textPrimary,
         items: [
           AnalysisItem(title: 'DESCRIPTION', subtitle: pattern.description, icon: AppIcons.info),
-          AnalysisItem(title: 'CONSISTENCY', subtitle: 'Found in ${pattern.frequency} out of ${pattern.totalSimilarMeals} meals containing ${pattern.trigger}.', icon: AppIcons.activity),
+          AnalysisItem(
+            title: 'STATISTICAL EVIDENCE',
+            subtitle: '${(pattern.evidenceRatio * 100).toInt()}% Impact Probability: Symptomatic in ${pattern.positiveCount} logs, asymptomatic in ${pattern.negativeCount}.',
+            icon: AppIcons.activity,
+          ),
         ],
       ),
     ],

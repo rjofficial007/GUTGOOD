@@ -265,11 +265,12 @@ class PatternsDashboardSection extends StatelessWidget {
       visualization: const DashboardIconVisualization(icon: AppIcons.brain),
       items: insight.detectedPatterns.take(2).map<Widget>((BodyPattern p) {
         final color = InsightUiUtils.getPatternColor(p.type);
+        final probability = (p.evidenceRatio * 100).toInt();
         return Padding(
           padding: EdgeInsets.only(bottom: AppSizes.p12),
           child: DashboardDetailItem(
             title: p.trigger.toUpperCase(),
-            subtitle: InsightUiUtils.getPatternName(p.type),
+            subtitle: '${InsightUiUtils.getPatternName(p.type)} • $probability% Probability',
             icon: InsightUiUtils.getPatternTypeIcon(p.type),
             color: color,
             onTap: () => context.push(AppRoutes.patternDetail, extra: p),
@@ -289,16 +290,19 @@ class PatternsDashboardSection extends StatelessWidget {
         SheetHeroSection(title: AppStrings.trends, subtitle: AppStrings.behavioralAnalysis, color: context.appColorScheme.textPrimary, icon: AppIcons.activity),
         Gap.h32,
         ...insight.detectedPatterns.map(
-          (BodyPattern p) => Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.p16),
-            child: DashboardDetailItem(
-              title: p.trigger.toUpperCase(),
-              subtitle: '${InsightUiUtils.getPatternName(p.type)} • ${p.frequency} Occurrences',
-              icon: InsightUiUtils.getPatternTypeIcon(p.type),
-              color: InsightUiUtils.getPatternColor(p.type),
-              onTap: () => context.push(AppRoutes.patternDetail, extra: p),
-            ),
-          ),
+          (BodyPattern p) {
+            final probability = (p.evidenceRatio * 100).toInt();
+            return Padding(
+              padding: EdgeInsets.only(bottom: AppSizes.p16),
+              child: DashboardDetailItem(
+                title: p.trigger.toUpperCase(),
+                subtitle: '${InsightUiUtils.getPatternName(p.type)} • $probability% Probability (${p.frequency}/${p.totalSimilarMeals} logs)',
+                icon: InsightUiUtils.getPatternTypeIcon(p.type),
+                color: InsightUiUtils.getPatternColor(p.type),
+                onTap: () => context.push(AppRoutes.patternDetail, extra: p),
+              ),
+            );
+          },
         ),
         Gap.h32,
         GutButton(label: AppStrings.gotItThanks, onTap: () => context.pop()),

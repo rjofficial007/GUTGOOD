@@ -42,13 +42,17 @@ STRUCTURE (MANDATORY ORDER):
 
 9. REQUIRED LOGGING (ABSOLUTELY MANDATORY):
    You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
-   - If an image was attached: Populate BOTH the "scan" and "meal" fields.
-   - scan.productName: The name of the overall dish (e.g., "Salmon & Quinoa Bowl").
-   - scan.brand: Use "GutGood" for home/restaurant meals.
+   
+   Within this block, you MUST populate the "scan" object FULLY using the schema provided.
+   - Even for home-cooked meals, ESTIMATE all fields including nutrients, nutrientLevels, ingredients (break down the dish), impactType, impact, and novaGroup.
+   - scan.productName: The name of the overall dish.
+   - scan.brand: Use "GutGood".
    - scan.category: Use "meal".
    - scan.score: Calculate the GutGood 0-100 score.
    
-The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. Do not include any prefix text like "JSON:" or "Tags:".
+   Also populate the "meal" object for the daily journal.
+   
+The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA].
 
 FORMATTING RULES:
 - Use double newlines (\n\n) between EVERY numbered step above for a spacious layout.

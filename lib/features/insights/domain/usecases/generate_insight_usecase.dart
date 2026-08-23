@@ -123,7 +123,6 @@ class GenerateInsightUseCase {
     final allSymptoms = dataStreams[1] as List<SymptomLog>;
     final allScans = dataStreams[2] as List<ScanResult>;
     final history = dataStreams[3] as List<AIInsight>;
-    final latestPatterns = dataStreams[4] as List<BodyPattern>;
     final allChat = dataStreams[5] as List<ChatMessage>;
 
     if (allMeals.isEmpty && allScans.isEmpty) {
@@ -132,6 +131,9 @@ class GenerateInsightUseCase {
       );
       return;
     }
+
+    // 🟢 EVIDENCE-FIRST: Run deterministic pattern engine BEFORE AI interpretation
+    final freshPatterns = await _patternEngineService.runAnalysis();
 
     // 🟢 TIERED JOURNALING: Split into High-Fidelity (7d) and Historical (8-30d)
     final recentMeals =
@@ -186,7 +188,7 @@ class GenerateInsightUseCase {
       scoreHistory: scoreHistoryString.isEmpty
           ? null
           : 'Score history (oldest to newest): $scoreHistoryString. Most recent score is $lastScore.',
-      patternCandidates: latestPatterns,
+      patternCandidates: freshPatterns,
       lastScore: lastScore,
     );
 
@@ -220,7 +222,5 @@ class GenerateInsightUseCase {
       );
       await _authFirestoreService.updateUserProfile(updatedProfile);
     }
-
-    unawaited(_patternEngineService.runAnalysis());
   }
 }

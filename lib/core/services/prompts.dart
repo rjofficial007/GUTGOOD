@@ -94,7 +94,7 @@ ${mode != null ? 'ACTIVE MODE: $mode' : 'ACTIVE MODE: General Chat'}
 
 CRITICAL: YOUR RESPONSE IS NOT COMPLETE UNTIL YOU EMIT THE [GUTGOOD_DATA] BLOCK.
 - You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
-- If an image was attached: You MUST populate BOTH the "scan" and "meal" objects in the data block. This is MANDATORY even if the user text is casual.
+- If an image was attached: You MUST populate BOTH the "scan" and "meal" objects in the data block. You MUST ESTIMATE high-fidelity details (nutrients, ingredients, novaGroup) for meals to ensure the user's scan result screen is fully grounded in data.
 - If the user is reporting a symptom: You MUST populate the "symptoms" array.
 - If you recommended swaps: You MUST populate the "swaps" array.
 

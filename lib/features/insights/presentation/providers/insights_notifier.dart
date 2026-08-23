@@ -112,9 +112,15 @@ class InsightsNotifier with ChangeNotifier {
     
     final sorted = [..._state.patterns]
       ..sort((a, b) {
+        // 1. Evidence Ratio (Impact Probability)
+        if (a.evidenceRatio != b.evidenceRatio) {
+          return b.evidenceRatio.compareTo(a.evidenceRatio);
+        }
+        // 2. Statistical Confidence
         if (a.confidence != b.confidence) {
           return a.confidence == BodyPattern.confidenceHigh ? -1 : 1;
         }
+        // 3. Frequency
         if (a.frequency != b.frequency) {
           return b.frequency.compareTo(a.frequency);
         }

@@ -7,7 +7,7 @@ import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class PatternEngineService {
-  Future<void> runAnalysis();
+  Future<List<BodyPattern>> runAnalysis();
 }
 
 class PatternEngineServiceImpl implements PatternEngineService {
@@ -19,7 +19,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
   final InsightFirestoreService _insightFirestoreService;
 
   @override
-  Future<void> runAnalysis() async {
+  Future<List<BodyPattern>> runAnalysis() async {
     AppLogger.insights('Starting dynamic analysis...');
 
     final meals = await _historyFirestoreService.getRecentMealLogs(limit: 150);
@@ -27,7 +27,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
     if (meals.isEmpty || symptoms.isEmpty) {
       AppLogger.insights('Insufficient data for correlation.');
-      return;
+      return [];
     }
 
     final earliest = meals.map((m) => m.time).reduce((a, b) => a.isBefore(b) ? a : b);
@@ -57,6 +57,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
       AppLogger.insights('No patterns reached the threshold.');
       await _savePatterns([]); // Clear stale patterns if any
     }
+
+    return allPatterns;
   }
 
   String _getConfidence(int frequency) => frequency >= 5 ? BodyPattern.confidenceHigh : BodyPattern.confidenceMedium;
@@ -138,6 +140,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
       final food = e.key;
       final symptomaticMeals = e.value;
       final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+      final asymptomatic = totalSimilar - symptomaticMeals.length;
 
       return BodyPattern(
         type: BodyPattern.typeBloating,
@@ -150,6 +153,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
         updatedAt: DateTime.now().toIso8601String(),
         totalSimilarMeals: totalSimilar,
         timeframeDays: timeframeDays,
+        evidenceRatio: totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0,
+        positiveCount: symptomaticMeals.length,
+        negativeCount: asymptomatic,
         occurrences: symptomaticMeals.map((m) {
           final s = bloatingLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 4);
           return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Bloating', timeAfter: _formatTimeAfter(m.time, s.time));
@@ -188,6 +194,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     highEnergyTriggers.forEach((food, symptomaticMeals) {
       if (symptomaticMeals.length >= 3) {
         final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+        final asymptomatic = totalSimilar - symptomaticMeals.length;
         patterns.add(
           BodyPattern(
             type: BodyPattern.typeEnergy,
@@ -200,6 +207,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
             updatedAt: DateTime.now().toIso8601String(),
             totalSimilarMeals: totalSimilar,
             timeframeDays: timeframeDays,
+            evidenceRatio: totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0,
+            positiveCount: symptomaticMeals.length,
+            negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
               final s = energyLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 4);
               return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Energized', timeAfter: _formatTimeAfter(m.time, s.time));
@@ -213,6 +223,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     lowEnergyTriggers.forEach((food, symptomaticMeals) {
       if (symptomaticMeals.length >= 3) {
         final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+        final asymptomatic = totalSimilar - symptomaticMeals.length;
         patterns.add(
           BodyPattern(
             type: BodyPattern.typeEnergy,
@@ -225,6 +236,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
             updatedAt: DateTime.now().toIso8601String(),
             totalSimilarMeals: totalSimilar,
             timeframeDays: timeframeDays,
+            evidenceRatio: totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0,
+            positiveCount: symptomaticMeals.length,
+            negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
               final s = energyLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 4);
               return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Sluggish', timeAfter: _formatTimeAfter(m.time, s.time));
@@ -259,6 +273,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
       final food = e.key;
       final symptomaticMeals = e.value;
       final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+      final asymptomatic = totalSimilar - symptomaticMeals.length;
 
       return BodyPattern(
         type: BodyPattern.typeHeadache,
@@ -271,6 +286,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
         updatedAt: DateTime.now().toIso8601String(),
         totalSimilarMeals: totalSimilar,
         timeframeDays: timeframeDays,
+        evidenceRatio: totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0,
+        positiveCount: symptomaticMeals.length,
+        negativeCount: asymptomatic,
         occurrences: symptomaticMeals.map((m) {
           final s = headacheLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 6);
           return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Headache', timeAfter: _formatTimeAfter(m.time, s.time));
@@ -302,6 +320,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
       final food = e.key;
       final symptomaticMeals = e.value;
       final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+      final asymptomatic = totalSimilar - symptomaticMeals.length;
 
       return BodyPattern(
         type: BodyPattern.typeDigestion,
@@ -314,6 +333,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
         updatedAt: DateTime.now().toIso8601String(),
         totalSimilarMeals: totalSimilar,
         timeframeDays: timeframeDays,
+        evidenceRatio: totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0,
+        positiveCount: symptomaticMeals.length,
+        negativeCount: asymptomatic,
         occurrences: symptomaticMeals.map((m) {
           final s = digestionLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 6);
           return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Discomfort', timeAfter: _formatTimeAfter(m.time, s.time));
@@ -360,6 +382,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     satedTriggers.forEach((food, symptomaticMeals) {
       if (symptomaticMeals.length >= 3) {
         final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+        final asymptomatic = totalSimilar - symptomaticMeals.length;
         patterns.add(
           BodyPattern(
             type: BodyPattern.typeFullness,
@@ -372,6 +395,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
             updatedAt: DateTime.now().toIso8601String(),
             totalSimilarMeals: totalSimilar,
             timeframeDays: timeframeDays,
+            evidenceRatio: totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0,
+            positiveCount: symptomaticMeals.length,
+            negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
               final s = fullnessLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 3);
               return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Satisfied', timeAfter: _formatTimeAfter(m.time, s.time));
@@ -385,6 +411,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     hungryTriggers.forEach((food, symptomaticMeals) {
       if (symptomaticMeals.length >= 3) {
         final totalSimilar = meals.where((m) => m.items.any((i) => i.toLowerCase().trim() == food)).length;
+        final asymptomatic = totalSimilar - symptomaticMeals.length;
         patterns.add(
           BodyPattern(
             type: BodyPattern.typeFullness,
@@ -397,6 +424,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
             updatedAt: DateTime.now().toIso8601String(),
             totalSimilarMeals: totalSimilar,
             timeframeDays: timeframeDays,
+            evidenceRatio: totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0,
+            positiveCount: symptomaticMeals.length,
+            negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
               final s = fullnessLogs.firstWhere((s) => s.time.isAfter(m.time) && s.time.difference(m.time).inHours <= 3);
               return PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Hungry', timeAfter: _formatTimeAfter(m.time, s.time));
@@ -436,6 +466,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
     }
 
     if (earlyDinnerMeals.length >= 3) {
+      final totalSimilar = meals.where((m) => m.time.hour >= 18 && m.time.hour < 20).length;
+      final asymptomatic = totalSimilar - earlyDinnerMeals.length;
       patterns.add(
         BodyPattern(
           type: BodyPattern.typeSleep,
@@ -445,8 +477,11 @@ class PatternEngineServiceImpl implements PatternEngineService {
           confidence: _getConfidence(earlyDinnerMeals.length),
           description: 'Earlier dinners were associated with better sleep quality in ${earlyDinnerMeals.length} of your recent logs.',
           updatedAt: DateTime.now().toIso8601String(),
-          totalSimilarMeals: meals.where((m) => m.time.hour >= 18 && m.time.hour < 20).length,
+          totalSimilarMeals: totalSimilar,
           timeframeDays: timeframeDays,
+          evidenceRatio: totalSimilar > 0 ? earlyDinnerMeals.length / totalSimilar : 0.0,
+          positiveCount: earlyDinnerMeals.length,
+          negativeCount: asymptomatic,
           occurrences: earlyDinnerMeals
               .map((m) => PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Good Sleep', timeAfter: 'Next morning'))
               .toList(),
@@ -455,6 +490,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
     }
 
     if (lateDinnerMeals.length >= 3) {
+      final totalSimilar = meals.where((m) => m.time.hour >= 21).length;
+      final asymptomatic = totalSimilar - lateDinnerMeals.length;
       patterns.add(
         BodyPattern(
           type: BodyPattern.typeSleep,
@@ -464,8 +501,11 @@ class PatternEngineServiceImpl implements PatternEngineService {
           confidence: _getConfidence(lateDinnerMeals.length),
           description: 'Late night meals (after 9:00 PM) correlated with poorer sleep quality ${lateDinnerMeals.length} times.',
           updatedAt: DateTime.now().toIso8601String(),
-          totalSimilarMeals: meals.where((m) => m.time.hour >= 21).length,
+          totalSimilarMeals: totalSimilar,
           timeframeDays: timeframeDays,
+          evidenceRatio: totalSimilar > 0 ? lateDinnerMeals.length / totalSimilar : 0.0,
+          positiveCount: lateDinnerMeals.length,
+          negativeCount: asymptomatic,
           occurrences: lateDinnerMeals
               .map((m) => PatternOccurrence(date: _formatDate(m.time), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Poor Sleep', timeAfter: 'Next morning'))
               .toList(),

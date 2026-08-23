@@ -3,7 +3,19 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class InsightSummary extends Equatable {
-  const InsightSummary({required this.title, required this.description, required this.type, this.observation, this.involvedFoods = const [], this.strength, this.nextSteps = const [], this.frequency});
+  const InsightSummary({
+    required this.title,
+    required this.description,
+    required this.type,
+    this.observation,
+    this.involvedFoods = const [],
+    this.strength,
+    this.nextSteps = const [],
+    this.frequency,
+    this.evidenceRatio,
+    this.positiveCount,
+    this.negativeCount,
+  });
 
   factory InsightSummary.fromMap(Map<String, dynamic> map) => InsightSummary(
     title: map['title']?.toString() ?? 'Insight',
@@ -14,6 +26,9 @@ class InsightSummary extends Equatable {
     strength: map['strength']?.toString(),
     nextSteps: (map['nextSteps'] as List?)?.cast<String>() ?? const [],
     frequency: (map['frequency'] as num?)?.toInt(),
+    evidenceRatio: (map['evidenceRatio'] as num?)?.toDouble(),
+    positiveCount: (map['positiveCount'] as num?)?.toInt(),
+    negativeCount: (map['negativeCount'] as num?)?.toInt(),
   );
   final String title;
   final String description;
@@ -23,6 +38,9 @@ class InsightSummary extends Equatable {
   final String? strength;
   final List<String> nextSteps;
   final int? frequency;
+  final double? evidenceRatio;
+  final int? positiveCount;
+  final int? negativeCount;
 
   Map<String, dynamic> toMap() => {
     'title': title,
@@ -33,6 +51,9 @@ class InsightSummary extends Equatable {
     'strength': strength,
     'nextSteps': nextSteps,
     'frequency': frequency,
+    'evidenceRatio': evidenceRatio,
+    'positiveCount': positiveCount,
+    'negativeCount': negativeCount,
   };
 
   BodyPattern toBodyPattern() => BodyPattern(

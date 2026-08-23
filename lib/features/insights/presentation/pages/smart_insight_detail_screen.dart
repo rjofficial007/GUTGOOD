@@ -52,13 +52,17 @@ class _InsightHeroCard extends StatelessWidget {
     final scheme = context.appColorScheme;
     final color = scheme.textPrimary;
 
+    final footerText = insight.evidenceRatio != null 
+        ? '${(insight.evidenceRatio! * 100).toInt()}% PROBABILITY • ${insight.frequency ?? 1} OCCURRENCES'
+        : '${insight.strength?.toUpperCase() ?? 'MODERATE'} STRENGTH • ${insight.frequency ?? 1} OCCURRENCES';
+
     return ModernInsightCard(
       title: 'SMART ALERT',
       icon: AppIcons.salad,
       iconColor: color,
       backgroundColor: scheme.cardBackground,
       footer: Text(
-        '${insight.strength?.toUpperCase() ?? 'MODERATE'} STRENGTH • ${insight.frequency ?? 1} OCCURRENCES',
+        footerText,
         style: context.caption.copyWith(color: scheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2),
       ),
       footerColor: color,
@@ -98,7 +102,12 @@ class _ObservationCard extends StatelessWidget {
       glowColor: scheme.textPrimary,
       items: [
         AnalysisItem(title: 'DETAILED OBSERVATION', subtitle: insight.observation ?? insight.description, icon: AppIcons.info),
-        AnalysisItem(title: 'PATTERN TYPE', subtitle: '${insight.type} behavior identified from logs.', icon: AppIcons.activity, color: scheme.textPrimary),
+        if (insight.evidenceRatio != null)
+          AnalysisItem(
+            title: 'STATISTICAL EVIDENCE',
+            subtitle: '${(insight.evidenceRatio! * 100).toInt()}% Impact Probability: Symptomatic in ${insight.positiveCount} logs, asymptomatic in ${insight.negativeCount}.',
+            icon: AppIcons.activity,
+          ),
       ],
     );
   }

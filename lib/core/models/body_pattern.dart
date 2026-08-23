@@ -17,6 +17,9 @@ class BodyPattern extends Equatable {
     this.commonFactors = const [],
     this.totalSimilarMeals = 0,
     this.timeframeDays = 30,
+    this.evidenceRatio = 0.0,
+    this.positiveCount = 0,
+    this.negativeCount = 0,
   });
 
   factory BodyPattern.fromMap(Map<String, dynamic> map) => BodyPattern(
@@ -33,6 +36,9 @@ class BodyPattern extends Equatable {
     commonFactors: ModelUtils.parseModelList<CommonFactor>(map['commonFactors'], CommonFactor.fromMap),
     totalSimilarMeals: (map['totalSimilarMeals'] as num?)?.toInt() ?? 0,
     timeframeDays: (map['timeframeDays'] as num?)?.toInt() ?? 30,
+    evidenceRatio: (map['evidenceRatio'] as num?)?.toDouble() ?? 0.0,
+    positiveCount: (map['positiveCount'] as num?)?.toInt() ?? 0,
+    negativeCount: (map['negativeCount'] as num?)?.toInt() ?? 0,
   );
 
   final String type;
@@ -50,6 +56,11 @@ class BodyPattern extends Equatable {
   final List<CommonFactor> commonFactors;
   final int totalSimilarMeals;
   final int timeframeDays;
+
+  // Statistical Evidence
+  final double evidenceRatio; // e.g. 0.8 means 80% of meals with this food were symptomatic
+  final int positiveCount;    // symptomatic occurrences
+  final int negativeCount;    // asymptomatic occurrences
 
   // Insight Categories
   static const String typeBloating = 'bloating';
@@ -79,8 +90,11 @@ class BodyPattern extends Equatable {
     'commonFactors': commonFactors.map((e) => e.toMap()).toList(),
     'totalSimilarMeals': totalSimilarMeals,
     'timeframeDays': timeframeDays,
+    'evidenceRatio': evidenceRatio,
+    'positiveCount': positiveCount,
+    'negativeCount': negativeCount,
   };
 
   @override
-  List<Object?> get props => [type, trigger, reaction, frequency, confidence, description, involvedFoods, recommendation, updatedAt, occurrences, commonFactors, totalSimilarMeals, timeframeDays];
+  List<Object?> get props => [type, trigger, reaction, frequency, confidence, description, involvedFoods, recommendation, updatedAt, occurrences, commonFactors, totalSimilarMeals, timeframeDays, evidenceRatio, positiveCount, negativeCount];
 }
