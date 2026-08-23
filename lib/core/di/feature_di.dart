@@ -65,7 +65,6 @@ void initFeatureDI() {
       () => ChatComposerNotifier(
         repository: sl(),
         historyNotifier: sl(),
-        aiService: sl(),
         storageService: sl(),
         offService: sl(),
         auth: sl(),

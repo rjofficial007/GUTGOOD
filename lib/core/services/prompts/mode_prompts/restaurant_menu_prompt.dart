@@ -34,7 +34,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 7. Content: [Short supportive summary of how to navigate this specific menu].
 
 8. OUTPUT FORMAT — ABSOLUTELY STRICT:
-This is the ONLY mode where structured tags are FORBIDDEN. Do NOT output [SCAN], [MEAL], [SWAPS], or any other [TAG] blocks. Return ONLY the conversational text described above.
+This is the ONLY mode where structured tags are FORBIDDEN. Do NOT output [GUTGOOD_DATA], [SCAN], [MEAL], [SWAPS], or any other [TAG] blocks. Return ONLY the conversational text described above.
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.

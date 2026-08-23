@@ -35,7 +35,6 @@ void main() {
   late ChatComposerNotifier notifier;
   late MockChatRepository repository;
   late MockChatHistoryNotifier historyNotifier;
-  late MockAiService aiService;
   late MockStorageService storageService;
   late MockOffService offService;
   late MockFirebaseAuth auth;
@@ -54,7 +53,6 @@ void main() {
   setUp(() {
     repository = MockChatRepository();
     historyNotifier = MockChatHistoryNotifier();
-    aiService = MockAiService();
     storageService = MockStorageService();
     offService = MockOffService();
     auth = MockFirebaseAuth();
@@ -71,7 +69,6 @@ void main() {
     notifier = ChatComposerNotifier(
       repository: repository,
       historyNotifier: historyNotifier,
-      aiService: aiService,
       storageService: storageService,
       offService: offService,
       auth: auth,

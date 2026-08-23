@@ -41,18 +41,14 @@ STRUCTURE (MANDATORY ORDER):
 8. Content: [Short supportive summary].
 
 9. REQUIRED LOGGING (ABSOLUTELY MANDATORY):
-   If an image was attached to this message, you MUST output BOTH a [SCAN] block AND a [MEAL] block.
+   You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
+   - If an image was attached: Populate BOTH the "scan" and "meal" fields.
+   - scan.productName: The name of the overall dish (e.g., "Salmon & Quinoa Bowl").
+   - scan.brand: Use "GutGood" for home/restaurant meals.
+   - scan.category: Use "meal".
+   - scan.score: Calculate the GutGood 0-100 score.
    
-   Order of blocks:
-   1. [SCAN]: Use this to record every individual food item detected in the image for the user's permanent Scan History.
-      - productName: The name of the dish (e.g., "Salmon & Quinoa Bowl").
-      - brand: Use "GutGood" for home/restaurant meals.
-      - category: Use "meal".
-      - score: Calculate the GutGood 0-100 score.
-      
-   2. [MEAL]: Use this to record the nutritional balance for the daily journal.
-   
-Each block MUST start with its opening tag and end with its closing tag. Do not include any prefix text like "JSON:" or "Tags:".
+The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. Do not include any prefix text like "JSON:" or "Tags:".
 
 FORMATTING RULES:
 - Use double newlines (\n\n) between EVERY numbered step above for a spacious layout.
@@ -60,7 +56,6 @@ FORMATTING RULES:
 - The emoji MUST exactly represent the food item being discussed (e.g. 🍗 for Chicken, 🥦 for Broccoli).
 - Identification MUST use the " + " separator between bolded items.
 - NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
-- "productName" in the [SCAN] block should be the name of the overall dish (e.g., "Grilled Chicken Bowl").
 - NEVER provide a numeric GutGood Rating in this mode.
 ''';
 }

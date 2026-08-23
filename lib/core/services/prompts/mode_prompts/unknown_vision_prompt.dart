@@ -14,8 +14,8 @@ ANALYSIS:
 - Provide a helpful conversational analysis.
 
 STRICT JSON RULES:
-- If a specific food product or meal is identified, you MUST include a [SCAN] block at the end.
-- Set "category" to "food", "menu", "label", "packaging", or "non-food" based on the content.
+- If a specific food product or meal is identified, you MUST include exactly ONE [GUTGOOD_DATA] block at the very end of your response.
+- Populate the "scan" object and set "category" to "food", "menu", "label", "packaging", or "non-food" based on the content.
 - Use valid JSON only.
 - No Markdown inside the JSON.
 ''';

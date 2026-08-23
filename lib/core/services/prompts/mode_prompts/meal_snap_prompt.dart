@@ -29,7 +29,11 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 
 8. Content: [Short supportive summary of why this meal works for the user's body].
 
-9. REQUIRED LOGGING: You MUST output BOTH the [MEAL] block AND the [SCAN] block. If the user is reporting a symptom or physical feeling (e.g., bloating), you MUST also output the [SYMPTOM] block. Each block MUST start with its opening tag (e.g. [MEAL]) and end with its closing tag (e.g. [/MEAL]). (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the blocks. Start directly with the [MEAL] opening tag).
+9. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
+   - Populate BOTH the "meal" and "scan" objects.
+   - If the user is reporting a symptom or physical feeling (e.g., bloating), you MUST also populate the "symptoms" array.
+   
+The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.
@@ -37,6 +41,5 @@ FORMATTING RULES:
 - The emoji MUST exactly represent the food item being discussed (e.g. 🥦 for Broccoli).
 - Identification MUST use the " + " separator between bolded items.
 - NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
-- "productName" in the [SCAN] block should be the name of the overall dish (e.g., "Chicken Avocado Salad").
 ''';
 }

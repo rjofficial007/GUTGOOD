@@ -31,7 +31,6 @@ class ChatComposerNotifier with ChangeNotifier {
   ChatComposerNotifier({
     required ChatRepository repository,
     required ChatHistoryNotifier historyNotifier,
-    required AiService aiService,
     required StorageService storageService,
     required OffService offService,
     required FirebaseAuth auth,
@@ -43,7 +42,6 @@ class ChatComposerNotifier with ChangeNotifier {
     required AppStateService appStateService,
   }) : _repository = repository,
        _historyNotifier = historyNotifier,
-       _aiService = aiService,
        _storageService = storageService,
        _offService = offService,
        _auth = auth,
@@ -58,7 +56,6 @@ class ChatComposerNotifier with ChangeNotifier {
 
   final ChatRepository _repository;
   final ChatHistoryNotifier _historyNotifier;
-  final AiService _aiService;
   final StorageService _storageService;
   final OffService _offService;
   final FirebaseAuth _auth;
@@ -361,7 +358,7 @@ class ChatComposerNotifier with ChangeNotifier {
     _persistedTags.clear();
     _persistTagsForActiveTurn = !isRegenerate;
 
-    final intent = (userText.trim().isEmpty && source != null) ? source : (await _detectIntent(userText, source: source)).trim().toLowerCase();
+    final intent = source ?? _getQuickIntent(userText.toLowerCase()) ?? 'full_analysis';
 
     AppLogger.ai('Final intent for prompt: "$intent" (source: "$source")');
 
@@ -415,36 +412,6 @@ class ChatComposerNotifier with ChangeNotifier {
     } catch (e, st) {
       AppLogger.ai('Stream setup failed', error: e, stackTrace: st);
       _handleStreamError(e, aiLocalId);
-    }
-  }
-
-  Future<String> _detectIntent(String userText, {String? source}) async {
-    final lowerText = userText.toLowerCase();
-
-    final quickIntent = _getQuickIntent(lowerText);
-    if (quickIntent != null) return quickIntent;
-
-    try {
-      final history = _buildHistory();
-      final minimalHistory = history.length > 5 ? history.sublist(history.length - 5) : history;
-      final historyContext = minimalHistory.map((m) => '${m.role.toUpperCase()}: ${m.text}').join('\n');
-
-      final prompt =
-          '''
-CONVERSATION HISTORY:
-$historyContext
-
-USER MESSAGE:
-$userText
-
-CLASSIFY INTENT:
-''';
-
-      final intent = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.intentDetectionInstruction, usageType: 'chat');
-      return intent.trim().toLowerCase();
-    } catch (e) {
-      AppLogger.ai('AI intent detection failed', error: e);
-      return _getQuickIntent(lowerText) ?? source ?? 'full_analysis';
     }
   }
 

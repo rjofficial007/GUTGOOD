@@ -23,7 +23,8 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 8. Header: **The GutGood take:**
 9. Content: [Short summary of the final verdict and any suggested modifications to make the chosen option even better].
 
-10. REQUIRED LOGGING: You MUST output the [SCAN] block for the WINNING product. If both are acceptable, choose the most goal-aligned one for the scan block.
+10. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
+    - Populate the "scan" object for the WINNING product. If both are acceptable, choose the most goal-aligned one.
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.

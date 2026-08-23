@@ -44,20 +44,18 @@ STRUCTURE (MANDATORY ORDER):
 11. Content: [Detailed analysis summary].
 
 12. REQUIRED LOGGING (ABSOLUTELY MANDATORY):
-   If an image was attached to this message, you MUST output BOTH a [SCAN] block AND a [MEAL] block.
+   You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
    
-   Order of blocks:
-   1. [SCAN]: Use this to record every individual food item detected in the image for the user's permanent Scan History.
-      - productName: The name of the dish (e.g., "Chicken Curry with Rice").
-      - brand: Use "GutGood" for home/restaurant meals.
-      - category: Use "meal".
-      - score: Calculate the GutGood 0-100 score.
-      
-   2. [MEAL]: Use this to record the nutritional balance for the daily journal.
+   Within this block, populate the following fields:
+   - "scan": Populate if an image was attached.
+     - scan.productName: The name of the dish (e.g., "Chicken Curry with Rice").
+     - scan.brand: Use "GutGood" for home/restaurant meals.
+     - scan.category: Use "meal".
+     - scan.score: Calculate the GutGood 0-100 score.
+   - "meal": Populate to record nutritional balance.
+   - "swaps": Populate only if you recommended alternatives.
    
-   3. [SWAPS]: Use only if you recommended alternatives.
-   
-Each block MUST start with its opening tag and end with its closing tag. Do not include any prefix text like "JSON:" or "Tags:".
+The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. Do not include any legacy tags like [SCAN] or [MEAL] outside of this block.
 
 FORMATTING RULES:
 - Use double newlines (\n\n) between EVERY numbered step above for a spacious layout.

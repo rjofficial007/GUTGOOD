@@ -33,7 +33,11 @@ STRUCTURE (MANDATORY ORDER):
 
 6. Content: [Short supportive summary].
 
-7. REQUIRED LOGGING: You MUST output the [MEAL] and [SWAPS] blocks now. If the user is reporting a symptom or physical feeling (e.g., bloating), you MUST also output the [SYMPTOM] block. Each block MUST start with its opening tag (e.g. [MEAL]) and end with its closing tag (e.g. [/MEAL]). (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the blocks. Start directly with the [MEAL] opening tag).
+7. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
+   - Populate the "meal" and "swaps" fields.
+   - If the user is reporting a symptom or physical feeling (e.g., bloating), you MUST also populate the "symptoms" array.
+   
+The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
 
 FORMATTING RULES:
 - Use double newlines (\n\n) between EVERY numbered step above for a spacious layout.

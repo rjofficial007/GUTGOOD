@@ -34,6 +34,7 @@ class PersistAiResponseUseCase {
     var hasPersistedAnything = false;
 
     // 1. Persist Scan Result
+    // 🟢 Strict Validation: only log if the AI returned a valid scan object.
     if (result.scan != null) {
       final scan = result.scan!;
       final persistenceKey = 'SCAN_${scan.productName}_${scan.score}';
@@ -49,37 +50,22 @@ class PersistAiResponseUseCase {
             scanId: stableScanId,
           );
           hasPersistedAnything = true;
-          
-          // Auto-log meal if it's a food image
-          final isFoodImage = source == 'food' || source == 'meal' || source == 'gallery' || imageUrl != null;
-          if (isFoodImage && !persistedTagBlocks.contains('__MEAL_LOGGED_IN_TURN__')) {
-             final mealLog = MealLog(
-              items: [scan.productName],
-              photoUrl: imageUrl ?? scan.imageUrl,
-              time: scan.time ?? DateTime.now(),
-              source: source ?? 'chat',
-              chatMessageId: chatMessageId,
-            );
-            await _logRepository.logMeal(mealLog);
-            persistedTagBlocks.add('__MEAL_LOGGED_IN_TURN__');
-            hasPersistedAnything = true;
-          }
         }
         persistedTagBlocks.add(persistenceKey);
       }
     }
 
     // 2. Persist Meal Log
-    if (result.meal != null && !persistedTagBlocks.contains('__MEAL_LOGGED_IN_TURN__')) {
+    // 🟢 Strict Validation: No longer auto-logs a meal based on image presence.
+    // The AI prompt now MANDATES a [MEAL] block for food images.
+    if (result.meal != null) {
       final meal = result.meal!;
-      // Use items and time as a unique key for the turn
       final persistenceKey = 'MEAL_${meal.items.join('_')}_${meal.time.millisecondsSinceEpoch}';
 
       if (!persistedTagBlocks.contains(persistenceKey)) {
         AppLogger.ai('PersistAiResponse: Saving Meal Log');
         await _logRepository.logMeal(meal.copyWith(chatMessageId: chatMessageId));
         persistedTagBlocks.add(persistenceKey);
-        persistedTagBlocks.add('__MEAL_LOGGED_IN_TURN__');
         hasPersistedAnything = true;
       }
     }

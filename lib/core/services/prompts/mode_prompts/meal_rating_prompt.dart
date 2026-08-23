@@ -37,20 +37,15 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 9. Content: [Short supportive summary].
 
 10. REQUIRED LOGGING (ABSOLUTELY MANDATORY): 
-   If an image was attached to this message, you MUST output BOTH a [SCAN] block AND a [MEAL] block.
+   You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
+   - If an image was attached: Populate BOTH the "scan" and "meal" fields.
+   - scan.productName: The name of the dish (e.g., "Chicken Curry with Rice").
+   - scan.brand: Use "GutGood" for home/restaurant meals.
+   - scan.category: Use "meal".
+   - scan.score: Calculate the GutGood 0-100 score.
+   - swaps: Populate only if you recommended alternatives.
    
-   Order of blocks:
-   1. [SCAN]: Use this to record every individual food item detected in the image for the user's permanent Scan History.
-      - productName: The name of the dish (e.g., "Chicken Curry with Rice").
-      - brand: Use "GutGood" for home/restaurant meals.
-      - category: Use "meal".
-      - score: Calculate the GutGood 0-100 score.
-      
-   2. [MEAL]: Use this to record the nutritional balance for the daily journal.
-   
-   3. [SWAPS]: Use only if you recommended alternatives.
-   
-Each block MUST start with its opening tag (e.g. [SCAN]) and end with its closing tag (e.g. [/SCAN]). Do not include any prefix text like "JSON:" or "Tags:".
+The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. Do not include any prefix text like "JSON:" or "Tags:".
 
 FORMATTING RULES:
 - Use double newlines (\n\n) between EVERY numbered step above for a spacious layout.
@@ -58,7 +53,6 @@ FORMATTING RULES:
 - The emoji MUST exactly represent the food item being discussed (e.g. 🥩 for Steak).
 - Identification MUST use the " + " separator between bolded items.
 - NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
-- "productName" in the [SCAN] block should be the name of the overall dish (e.g., "Grilled Chicken Bowl").
 - NEVER use horizontal rules (---) between greeting and rating.
 ''';
 }

@@ -13,7 +13,6 @@ import 'package:gutgood/core/services/prompts/mode_prompts/meal_swaps_prompt.dar
 import 'package:gutgood/core/services/prompts/mode_prompts/product_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/product_comparison_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/restaurant_menu_prompt.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/structured_tag_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/summarization_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/symptom_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/unknown_vision_prompt.dart';
@@ -32,7 +31,6 @@ class Prompts {
   static String get _safetyRules => GeneralRulesPrompt.safetyRules;
   static String get _patternEngineRules => GeneralRulesPrompt.patternEngineRules;
   static String get _strictFormattingRules => GeneralRulesPrompt.strictFormattingRules;
-  static String get _structuredSchemaRules => StructuredTagPrompt.instruction;
 
   // ---------------------------------------------------------------------------
   // INTENT DETECTION
@@ -73,10 +71,6 @@ $historySummary
         : 'No recent history summary is available.';
 
     final intentPrompt = _getPromptForIntent(intent);
-    final isMenu = mode == 'menu' || intent == 'menu';
-
-    // 🟢 Menu mode must NEVER include structured schemas/tags to avoid AI confusion.
-    final effectiveIncludeStructuredSchemas = isMenu ? false : includeStructuredSchemas;
 
     return '''
 $_identity
@@ -98,16 +92,25 @@ $intentPrompt
 Turn Context:
 ${mode != null ? 'ACTIVE MODE: $mode' : 'ACTIVE MODE: General Chat'}
 
-${isMenu ? '' : '''
-CRITICAL: YOUR RESPONSE IS NOT COMPLETE UNTIL THE FOLLOWING TAGS ARE EMITTED.
-- Mandatory Turn Intent: You MUST output an [INTENT] block.
-- If an image was attached: You MUST output BOTH a [SCAN] block (first) AND a [MEAL] block (second). This is MANDATORY even if the user just said "Hello" or asked a question unrelated to scanning.
-- If the user is reporting a symptom: You MUST output a [SYMPTOM] block.
-- If you recommended swaps: You MUST output a [SWAPS] block.
+CRITICAL: YOUR RESPONSE IS NOT COMPLETE UNTIL YOU EMIT THE [GUTGOOD_DATA] BLOCK.
+- You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
+- If an image was attached: You MUST populate BOTH the "scan" and "meal" objects in the data block. This is MANDATORY even if the user text is casual.
+- If the user is reporting a symptom: You MUST populate the "symptoms" array.
+- If you recommended swaps: You MUST populate the "swaps" array.
 
-STRICT ORDER: [INTENT] -> [SCAN] -> [MEAL] -> [SYMPTOM] -> [SWAPS].
-The structured block MUST start with the opening tag and end with the closing tag.
-'''}
+STRICT FORMAT: 
+[Conversational Response in Markdown]
+
+[GUTGOOD_DATA]
+{
+  "intent": "...",
+  "scan": { ... },
+  "meal": { ... },
+  "symptoms": [ ... ],
+  "swaps": [ ... ],
+  "metadata": { ... }
+}
+[/GUTGOOD_DATA]
 
 USER PROFILE
 
@@ -125,10 +128,10 @@ $cyclePhase
 
 $summaryText
 
+${SchemaDefinitions.unifiedDataSchema}
 ${SchemaDefinitions.typeRules}
 
 ${includePatternEngine ? '\n$_patternEngineRules' : ''}
-${effectiveIncludeStructuredSchemas ? '\n$_structuredSchemaRules' : '\nDo not output [SCAN], [MEAL], [SYMPTOM], or [SWAPS] blocks in this response — plain conversational text only.'}
 ''';
   }
 
@@ -217,7 +220,7 @@ Phase: $phase
 SENSITIVITY CHECK
 Explicitly check for: ${_formatList(sensitivities, fallback: 'None specified')}.
 
-${SchemaDefinitions.scanSchema}
+${SchemaDefinitions.unifiedDataSchema}
 ${SchemaDefinitions.typeRules}
 ''';
 

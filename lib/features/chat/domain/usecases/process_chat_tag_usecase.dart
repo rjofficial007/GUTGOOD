@@ -20,64 +20,100 @@ class ProcessChatTagUseCase {
     var swapsList = <ProductSwap>[];
     final metadata = <String, dynamic>{};
 
-    final tags = ['INTENT', 'SYMPTOM', 'MEAL', 'SCAN', 'SWAPS'];
-
-    // --- STEP 1: PARSING ---
+    // --- STEP 1: PARSING NEW UNIFIED DATA BLOCK ---
     final lowerText = text.toLowerCase();
-    for (final tag in tags) {
-      final startTag = '[${tag.toLowerCase()}]';
-      final endTag = '[/${tag.toLowerCase()}]';
+    const unifiedTag = 'gutgood_data';
+    const startTag = '[$unifiedTag]';
+    const endTag = '[/$unifiedTag]';
 
-      var searchPos = 0;
-      while (true) {
-        final tagIndex = lowerText.indexOf(startTag, searchPos);
-        if (tagIndex == -1) break;
+    final tagIndex = lowerText.indexOf(startTag);
+    if (tagIndex != -1) {
+      final endTagIndex = lowerText.indexOf(endTag, tagIndex + startTag.length);
+      final isClosed = endTagIndex != -1;
+      final content = isClosed 
+          ? text.substring(tagIndex + startTag.length, endTagIndex) 
+          : text.substring(tagIndex + startTag.length);
 
-        final endTagIndex = lowerText.indexOf(endTag, tagIndex + startTag.length);
-        final isClosed = endTagIndex != -1;
-
-        final content = isClosed ? text.substring(tagIndex + startTag.length, endTagIndex) : text.substring(tagIndex + startTag.length);
-
-        try {
-          final isArray = tag == 'SWAPS';
-          final jsonStr = ModelUtils.extractJson(content, isArray: isArray);
-
-          if (jsonStr != null) {
-            final decoded = jsonDecode(jsonStr);
-
-            if (tag == 'INTENT' && decoded is Map<String, dynamic>) {
-              intent = decoded['category']?.toString();
-              metadata['intentConfidence'] = decoded['confidence'];
-            } else if (tag == 'SYMPTOM' && decoded is Map<String, dynamic>) {
-              final log = SymptomLog.fromMap({...decoded, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
-              symptomLogs.add(log);
-            } else if (tag == 'MEAL' && decoded is Map<String, dynamic>) {
-              mealLog = MealLog.fromMap({...decoded, 'photoUrl': imageUrl, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
-            } else if (tag == 'SCAN' && decoded is Map<String, dynamic>) {
-              scanData = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl, chatMessageId: chatMessageId);
-            } else if (tag == 'SWAPS') {
-              final List<dynamic> list = decoded is List ? decoded : (decoded is Map && decoded['swaps'] is List ? decoded['swaps'] : []);
-              if (list.isNotEmpty) {
-                swapsList = ModelUtils.parseModelList<ProductSwap>(list, ProductSwap.fromMap);
+      try {
+        final jsonStr = ModelUtils.extractJson(content);
+        if (jsonStr != null) {
+          final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
+          
+          intent = decoded['intent']?.toString();
+          
+          if (decoded['scan'] != null && decoded['scan'] is Map<String, dynamic>) {
+            scanData = ScanResult.fromMap(decoded['scan']).copyWith(
+              source: source,
+              userImageUrl: imageUrl,
+              chatMessageId: chatMessageId,
+            );
+          }
+          
+          if (decoded['meal'] != null && decoded['meal'] is Map<String, dynamic>) {
+            mealLog = MealLog.fromMap({
+              ...decoded['meal'],
+              'photoUrl': imageUrl,
+              'chatMessageId': chatMessageId,
+            }).copyWith(source: source ?? 'chat');
+          }
+          
+          if (decoded['symptoms'] != null && decoded['symptoms'] is List) {
+            for (final s in decoded['symptoms']) {
+              if (s is Map<String, dynamic>) {
+                symptomLogs.add(SymptomLog.fromMap({
+                  ...s,
+                  'chatMessageId': chatMessageId,
+                }).copyWith(source: source ?? 'chat'));
               }
             }
           }
-        } catch (e) {
-          // 🟢 SILENCE STREAMING NOISE: Only log parsing failures as warnings
-          // if this is the final turn result. Partial tokens are EXPECTED
-          // to fail occasionally during streaming as tags are being built.
-          if (isFinal) {
-            AppLogger.warning('ProcessChatTagUseCase: Failed to parse $tag block', error: e);
+          
+          if (decoded['swaps'] != null && decoded['swaps'] is List) {
+            swapsList = ModelUtils.parseModelList<ProductSwap>(decoded['swaps'], ProductSwap.fromMap);
+          }
+          
+          if (decoded['metadata'] != null && decoded['metadata'] is Map<String, dynamic>) {
+            metadata.addAll(decoded['metadata']);
           }
         }
-
-        if (!isClosed) break;
-        searchPos = endTagIndex + endTag.length;
+      } catch (e) {
+        if (isFinal) AppLogger.warning('ProcessChatTagUseCase: Failed to parse unified data', error: e);
       }
     }
 
-    // --- STEP 2: UI STRIPPING ---
-    final firstTagRegex = RegExp(r'\[(INTENT|SYMPTOM|MEAL|SCAN|SWAPS)\]', caseSensitive: false);
+    // --- STEP 2: LEGACY FALLBACK FOR HISTORICAL MESSAGES ---
+    if (intent == null && scanData == null && mealLog == null && symptomLogs.isEmpty && swapsList.isEmpty) {
+      final legacyTags = ['INTENT', 'SYMPTOM', 'MEAL', 'SCAN', 'SWAPS'];
+      for (final tag in legacyTags) {
+        final lStart = '[${tag.toLowerCase()}]';
+        final lEnd = '[/${tag.toLowerCase()}]';
+        final lIndex = lowerText.indexOf(lStart);
+        if (lIndex != -1) {
+          final lEndIndex = lowerText.indexOf(lEnd, lIndex + lStart.length);
+          final lContent = lEndIndex != -1 ? text.substring(lIndex + lStart.length, lEndIndex) : text.substring(lIndex + lStart.length);
+          try {
+            final jsonStr = ModelUtils.extractJson(lContent, isArray: tag == 'SWAPS');
+            if (jsonStr != null) {
+              final decoded = jsonDecode(jsonStr);
+              if (tag == 'INTENT' && decoded is Map) {
+                intent = decoded['category']?.toString();
+              } else if (tag == 'SCAN' && decoded is Map) {
+                scanData = ScanResult.fromMap(Map<String, dynamic>.from(decoded)).copyWith(source: source, userImageUrl: imageUrl, chatMessageId: chatMessageId);
+              } else if (tag == 'MEAL' && decoded is Map) {
+                mealLog = MealLog.fromMap(Map<String, dynamic>.from(decoded)).copyWith(source: source ?? 'chat');
+              } else if (tag == 'SYMPTOM' && decoded is Map) {
+                symptomLogs.add(SymptomLog.fromMap(Map<String, dynamic>.from(decoded)).copyWith(source: source ?? 'chat'));
+              } else if (tag == 'SWAPS') {
+                swapsList = ModelUtils.parseModelList<ProductSwap>(decoded, ProductSwap.fromMap);
+              }
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    // --- STEP 3: UI STRIPPING ---
+    final firstTagRegex = RegExp(r'\[(GUTGOOD_DATA|INTENT|SYMPTOM|MEAL|SCAN|SWAPS)\]', caseSensitive: false);
     final match = firstTagRegex.firstMatch(text);
 
     if (match != null) {

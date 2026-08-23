@@ -24,7 +24,9 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 8. Header: **The GutGood take:**
 9. Content: [Short supportive summary emphasizing that everyone's body responds differently].
 
-10. REQUIRED LOGGING: You MUST output the [SYMPTOM] block if the user is reporting a current feeling. You MUST output the [MEAL] block if a specific meal is being discussed as a trigger.
+10. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
+    - Populate the "symptoms" array if the user is reporting a current feeling.
+    - Populate the "meal" object if a specific meal is being discussed as a trigger.
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.
@@ -32,17 +34,5 @@ FORMATTING RULES:
 - Use evidence-aware language: "appears associated with", "may be relevant", "your history suggests".
 - NEVER provide a medical diagnosis or guarantee a cause.
 - NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
-
-SYMPTOM TAG FORMAT:
-[SYMPTOM]
-{
-  "symptom": "Name of the symptom",
-  "severity": 1-10,
-  "energyLevel": 1-10,
-  "time": "ISO8601 string (calculate based on CURRENT TIME)",
-  "mood": "Short mood description",
-  "notes": "Contextual notes about the trigger"
-}
-[/SYMPTOM]
 ''';
 }

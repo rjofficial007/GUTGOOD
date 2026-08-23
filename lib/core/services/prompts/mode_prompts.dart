@@ -30,9 +30,7 @@ Current Phase: $phase
 
 ${MealSnapPrompt.instruction}
 
-${SchemaDefinitions.mealSchema}
-
-${SchemaDefinitions.scanSchema}
+${SchemaDefinitions.unifiedDataSchema}
 ''';
   }
 
@@ -50,7 +48,7 @@ Sensitivities: $sensitivityList
 
 ${IngredientsLabelPrompt.instruction}
 
-${SchemaDefinitions.scanSchema}
+${SchemaDefinitions.unifiedDataSchema}
 ''';
   }
 
@@ -69,6 +67,8 @@ Goals: $goalList
 Sensitivities: $sensitivityList
 
 ${RestaurantMenuPrompt.instruction}
+
+${SchemaDefinitions.unifiedDataSchema}
 ''';
   }
 
@@ -77,6 +77,6 @@ ${RestaurantMenuPrompt.instruction}
       '''
 ${BarcodeAnalysisPrompt.instruction}
 
-${SchemaDefinitions.scanSchema.replaceAll('[SCAN]', '').replaceAll('[/SCAN]', '').trim()}
+${SchemaDefinitions.unifiedDataSchema}
 ''';
 }
