@@ -105,8 +105,9 @@ void main() {
         () => mockHistoryFirestoreService.saveToScanHistory(
           any(),
           userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
         ),
-      ).thenAnswer((_) async => 'history_id');
+      ).thenAnswer((_) async {});
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
       when(
         () => mockNotificationService.scheduleNoMealLoggedReminder(),
@@ -120,8 +121,9 @@ void main() {
       verify(() => mockChatFirestoreService.saveMessage(any())).called(1);
       verify(
         () => mockHistoryFirestoreService.saveToScanHistory(
-          result,
+          any(),
           userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
         ),
       ).called(1);
       verify(() => mockAppStateService.notifyChatUpdated()).called(1);

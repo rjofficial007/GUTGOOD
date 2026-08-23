@@ -12,6 +12,7 @@ import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
+import 'package:uuid/uuid.dart';
 
 class ScannerNotifier with ChangeNotifier {
   ScannerNotifier({required ScannerRepository repository, required AuthFirestoreService authFirestoreService, required OffService offService, required StorageService storageService})
@@ -35,6 +36,8 @@ class ScannerNotifier with ChangeNotifier {
   Future<ScanResult?> processBarcode(String barcode, {Uint8List? capturedImage}) async {
     _isProcessing = true;
     notifyListeners();
+
+    final scanId = const Uuid().v4();
 
     try {
       final product = await _repository.getProductByBarcode(barcode);
@@ -68,9 +71,9 @@ class ScannerNotifier with ChangeNotifier {
           alternatives: alternatives,
         );
 
-        final finalResult = result.copyWith(source: 'barcode', userImageUrl: userImageUrl);
-        AppLogger.info('ScannerNotifier: Saving barcode scan result for ${finalResult.productName}');
-        await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl);
+        final finalResult = result.copyWith(source: 'barcode', userImageUrl: userImageUrl, scanId: scanId);
+        AppLogger.info('ScannerNotifier: Saving barcode scan result for ${finalResult.productName} (ID: $scanId)');
+        await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
 
         _lastResult = finalResult;
 
@@ -97,6 +100,8 @@ class ScannerNotifier with ChangeNotifier {
     _isProcessing = true;
     notifyListeners();
 
+    final scanId = const Uuid().v4();
+
     try {
       final userImageUrl = await _storageService.uploadFoodImage(bytes);
 
@@ -112,9 +117,9 @@ class ScannerNotifier with ChangeNotifier {
         cyclePhase: cyclePhase,
       );
 
-      final finalResult = result.copyWith(source: mode, userImageUrl: userImageUrl);
-      AppLogger.info('ScannerNotifier: Saving image scan result for ${finalResult.productName} (mode: $mode)');
-      await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl);
+      final finalResult = result.copyWith(source: mode, userImageUrl: userImageUrl, scanId: scanId);
+      AppLogger.info('ScannerNotifier: Saving image scan result for ${finalResult.productName} (mode: $mode, ID: $scanId)');
+      await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
 
       _lastResult = finalResult;
 

@@ -10,7 +10,7 @@ STRUCTURED DATA ENFORCEMENT
 Your response MUST conclude with the appropriate structured data blocks if relevant to the turn. 
 Do not emit a block if the category was not discussed.
 
-1. [SCAN]: Use for ingredient labels, barcodes, or single-product analysis.
+1. [SCAN]: Use for ingredient labels, barcodes, single-product analysis, or food items identified from photos.
 ${SchemaDefinitions.scanSchema}
 
 2. [MEAL]: Use for complete plates, restaurant meals, or home-cooked food.

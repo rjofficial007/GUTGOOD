@@ -78,6 +78,14 @@ class ModelUtils {
     return defaultValue;
   }
 
+  /// Safely parses a value into a num, handling String inputs from AI/Firestore.
+  static num? parseNum(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value;
+    if (value is String) return num.tryParse(value);
+    return null;
+  }
+
   /// Clamps a raw AI-provided numeric score into a safe UI range.
   static int parseScore(dynamic value, {int fallback = 0, int min = 0, int max = 100}) {
     final n = (value is num) ? value.toInt() : int.tryParse(value?.toString() ?? '');

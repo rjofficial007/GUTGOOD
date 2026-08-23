@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uuid/uuid.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class HistoryFirestoreService {
-  Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl});
+  Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId});
   Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since, DateTime? before});
   Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since, DateTime? before});
   Future<List<ScanResult>> getSavedFoods();
@@ -57,17 +58,21 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl}) async {
+  Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId}) async {
     try {
       final doc = _userDoc;
-      if (doc == null) return;
+      final uid = _uid;
+      if (doc == null || uid == null) return;
 
-      // 🟢 DATA INTEGRITY: Only save actual food products to history.
-      // This prevents utility scans (menus, raw labels) from cluttering
-      // the history and corrupting the Pattern Engine's correlation data.
-      if (!scanData.isLoggableProduct) {
-        AppLogger.insights('Skipping history for non-loggable product: ${scanData.productName}');
-        return;
+      final finalScanId = scanId ?? scanData.scanId ?? const Uuid().v4();
+
+      // 🟢 Optimization: Start the isSaved check and the write together, or 
+      // handle isSaved defensively.
+      bool isSaved = scanData.isSaved;
+      try {
+        isSaved = await isFoodSaved(scanData.productName, barcode: scanData.barcode);
+      } catch (e) {
+        AppLogger.firestore('isFoodSaved check failed during scan save (likely missing index)');
       }
 
       var bestImageUrl = userImageUrl;
@@ -76,19 +81,22 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       }
       if (bestImageUrl != null && bestImageUrl.isEmpty) bestImageUrl = null;
 
-      // 🟢 Check if this product is already saved in history to persist the 'isSaved' state
-      final isSaved = await isFoodSaved(scanData.productName, barcode: scanData.barcode);
-
-      await doc.collection('scan_history').add({
+      final data = {
         ...scanData.toMap(),
+        'scanId': finalScanId,
+        'userId': uid,
         'userImageUrl': bestImageUrl,
         'isSaved': isSaved,
         'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
         'timestamp': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
         'time': scanData.time?.toIso8601String() ?? DateTime.now().toIso8601String(),
-      });
+      };
+
+      await doc.collection('scan_history').doc(finalScanId).set(data, SetOptions(merge: true));
+      AppLogger.firestore('Saved scan history doc: $finalScanId');
     } catch (e) {
-      AppLogger.firestore('Error saving to scan history', error: e);
+      AppLogger.firestore('Critical error saving to scan history', error: e);
     }
   }
 
@@ -113,7 +121,19 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       }
 
       final snapshot = await query.get();
-      final results = snapshot.docs.map((doc) => ScanResult.fromMap({...doc.data(), 'id': doc.id})).toList();
+      
+      // 🟢 DEFENSIVE: Map one by one and catch individual parsing errors
+      // so one corrupt document doesn't hide the entire history.
+      final results = <ScanResult>[];
+      for (final doc in snapshot.docs) {
+        try {
+          final data = doc.data();
+          results.add(ScanResult.fromMap({...data, 'id': doc.id}));
+        } catch (e) {
+          AppLogger.error('Failed to parse scan history document ${doc.id}', error: e);
+        }
+      }
+      
       return results;
     } catch (e) {
       AppLogger.firestore('Error getting scan history', error: e);

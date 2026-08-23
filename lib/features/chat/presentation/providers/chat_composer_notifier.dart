@@ -440,7 +440,7 @@ CLASSIFY INTENT:
       return intent.trim().toLowerCase();
     } catch (e) {
       AppLogger.ai('AI intent detection failed', error: e);
-      return _getQuickIntent(lowerText) ?? source ?? 'meal_overview';
+      return _getQuickIntent(lowerText) ?? source ?? 'full_analysis';
     }
   }
 

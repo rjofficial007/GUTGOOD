@@ -21,7 +21,7 @@ abstract class ScannerRepository {
     required List<String> lifestyle,
     required String cyclePhase,
   });
-  Future<void> saveScanResult(ScanResult result, {String? userImageUrl});
+  Future<void> saveScanResult(ScanResult result, {String? userImageUrl, String? scanId});
 }
 
 class ScanAnalysisException implements Exception {

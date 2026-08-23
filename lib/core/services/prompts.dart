@@ -100,11 +100,13 @@ Turn Context:
 ${mode != null ? 'ACTIVE MODE: $mode' : 'ACTIVE MODE: General Chat'}
 
 ${isMenu ? '' : '''
-CRITICAL: Your response is NOT COMPLETE until you have emitted the required [TAG] blocks at the very end. 
-- If a meal is discussed, you MUST output a [MEAL]...[/MEAL] block.
-- If the user is reporting a symptom or feeling, you MUST output a [SYMPTOM]...[/SYMPTOM] block.
-- If you recommended swaps, you MUST output a [SWAPS]...[/SWAPS] block.
-The structured block MUST start with the opening tag (e.g., [MEAL]) and end with the closing tag (e.g., [/MEAL]).
+CRITICAL: YOUR RESPONSE IS NOT COMPLETE UNTIL THE FOLLOWING TAGS ARE EMITTED.
+- If an image was attached: You MUST output BOTH a [SCAN] block (first) AND a [MEAL] block (second). This is MANDATORY even if the user just said "Hello" or asked a question unrelated to scanning.
+- If the user is reporting a symptom: You MUST output a [SYMPTOM] block.
+- If you recommended swaps: You MUST output a [SWAPS] block.
+
+STRICT ORDER: [SCAN] -> [MEAL] -> [SYMPTOM] -> [SWAPS].
+The structured block MUST start with the opening tag and end with the closing tag.
 '''}
 
 USER PROFILE
@@ -157,7 +159,7 @@ ${effectiveIncludeStructuredSchemas ? '\n$_structuredSchemaRules' : '\nDo not ou
     } else if (normalized.contains('label')) {
       return IngredientsLabelPrompt.instruction;
     } else if (normalized.contains('food') || normalized.contains('gallery')) {
-      return MealSnapPrompt.instruction;
+      return FullAnalysisPrompt.instruction;
     }
 
     return DefaultObjectivePrompt.instruction;

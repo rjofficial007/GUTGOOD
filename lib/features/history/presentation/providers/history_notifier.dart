@@ -6,6 +6,7 @@ import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 
 class HistoryNotifier with ChangeNotifier {
@@ -107,6 +108,8 @@ class HistoryNotifier with ChangeNotifier {
       _scans.clear();
       _scans.addAll(results);
       if (results.length < _pageSize) _scansHasMore = false;
+    } catch (e) {
+      AppLogger.error('HistoryNotifier: Failed to refresh scans', error: e);
     } finally {
       _scansLoading = false;
       notifyListeners();
@@ -149,6 +152,8 @@ class HistoryNotifier with ChangeNotifier {
       _meals.clear();
       _meals.addAll(results);
       if (results.length < _pageSize) _mealsHasMore = false;
+    } catch (e) {
+      AppLogger.error('HistoryNotifier: Failed to refresh meals', error: e);
     } finally {
       _mealsLoading = false;
       notifyListeners();
@@ -185,6 +190,8 @@ class HistoryNotifier with ChangeNotifier {
       _symptoms.clear();
       _symptoms.addAll(results);
       if (results.length < _pageSize) _symptomsHasMore = false;
+    } catch (e) {
+      AppLogger.error('HistoryNotifier: Failed to refresh symptoms', error: e);
     } finally {
       _symptomsLoading = false;
       notifyListeners();

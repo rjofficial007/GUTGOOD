@@ -104,23 +104,39 @@ class ProcessChatTagUseCase {
               final items = ModelUtils.parseList<String>(decoded['items']);
               foodMentions.addAll(items);
             } else if (tag == 'SCAN' && decoded is Map<String, dynamic>) {
-              final currentScan = ScanResult.fromMap(decoded).copyWith(source: source, userImageUrl: imageUrl);
+              final scanIdx = persistedTagBlocks?.where((e) => e.startsWith('SCAN_INDEX_')).length ?? 0;
+              final stableScanId = chatMessageId != null ? '${chatMessageId}_scan_$scanIdx' : null;
+
+              final currentScan = ScanResult.fromMap(decoded).copyWith(
+                source: source,
+                userImageUrl: imageUrl,
+                scanId: stableScanId,
+                chatMessageId: chatMessageId,
+              );
               scanData = currentScan;
 
               if (!alreadyPersisted && (isClosed || isFinal)) {
                 if (persist && currentScan.isLoggableProduct) {
-                  unawaited(_firestoreService.saveToScanHistory(currentScan, userImageUrl: imageUrl));
+                  AppLogger.ai('Logging scan from chat: ${currentScan.productName} (ID: $stableScanId)');
+                  unawaited(_firestoreService.saveToScanHistory(currentScan, userImageUrl: imageUrl, scanId: stableScanId));
 
                   final isFoodImage = source == 'food' || source == 'meal' || source == 'gallery' || imageUrl != null;
                   final alreadyLogged = persistedTagBlocks?.contains('__MEAL_LOGGED_IN_TURN__') ?? false;
                   if (isFoodImage && !alreadyLogged) {
-                    final mealLog = MealLog(items: [currentScan.productName], photoUrl: imageUrl ?? currentScan.imageUrl, time: currentScan.time ?? DateTime.now(), source: source ?? 'chat');
+                    final mealLog = MealLog(
+                      items: [currentScan.productName],
+                      photoUrl: imageUrl ?? currentScan.imageUrl,
+                      time: currentScan.time ?? DateTime.now(),
+                      source: source ?? 'chat',
+                      chatMessageId: chatMessageId,
+                    );
                     unawaited(_firestoreService.logMeal(mealLog));
                     persistedTagBlocks?.add('__MEAL_LOGGED_IN_TURN__');
                   }
                   _appStateService.notifyChatUpdated();
                 }
                 persistedTagBlocks?.add(persistenceKey);
+                if (chatMessageId != null) persistedTagBlocks?.add('SCAN_INDEX_$scanIdx');
               }
             } else if (tag == 'SWAPS') {
               // For SWAPS, we accept either a direct List or a Map containing a list

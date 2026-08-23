@@ -141,13 +141,15 @@ class ScannerRepositoryImpl implements ScannerRepository {
   }
 
   @override
-  Future<void> saveScanResult(ScanResult result, {String? userImageUrl}) async {
+  Future<void> saveScanResult(ScanResult result, {String? userImageUrl, String? scanId}) async {
     AppLogger.info('ScannerRepository: Creating ChatMessage for scan: ${result.productName}');
+    final finalScanId = scanId ?? result.scanId ?? const Uuid().v4();
+
     final aiMsg = ChatMessage(
-      localId: const Uuid().v4(),
+      localId: finalScanId,
       role: 'ai',
       text: 'I analyzed **${result.productName}** for you. ✨',
-      scanData: result,
+      scanData: result.copyWith(scanId: finalScanId),
       imageUrl: userImageUrl,
       source: result.source,
       time: DateTime.now(),
@@ -160,12 +162,19 @@ class ScannerRepositoryImpl implements ScannerRepository {
     // Restaurant menus and raw ingredient labels are analyzed for the chat context but
     // shouldn't clutter the history or impact the gut health trend.
     if (result.isLoggableProduct) {
-      await _historyFirestoreService.saveToScanHistory(result, userImageUrl: userImageUrl);
+      final updatedResult = result.copyWith(scanId: finalScanId, chatMessageId: finalScanId);
+      await _historyFirestoreService.saveToScanHistory(updatedResult, userImageUrl: userImageUrl, scanId: finalScanId);
       AppLogger.info('ScannerRepository: Scan result saved to scan_history. Image: ${userImageUrl != null}');
 
       // 🟢 Automatically add to Meal Log if it's a food image/snap or gallery upload
       if (result.source == 'food' || result.source == 'meal' || result.source == 'gallery') {
-        final mealLog = MealLog(items: [result.productName], photoUrl: userImageUrl ?? result.imageUrl, time: DateTime.now(), source: result.source);
+        final mealLog = MealLog(
+          items: [result.productName],
+          photoUrl: userImageUrl ?? result.imageUrl,
+          time: DateTime.now(),
+          source: result.source,
+          chatMessageId: finalScanId,
+        );
         await _historyFirestoreService.logMeal(mealLog);
         AppLogger.info('ScannerRepository: Food image (${result.source}) automatically logged as a meal');
       }

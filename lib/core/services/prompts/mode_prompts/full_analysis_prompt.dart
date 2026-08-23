@@ -43,7 +43,21 @@ STRUCTURE (MANDATORY ORDER):
 
 11. Content: [Detailed analysis summary].
 
-12. REQUIRED LOGGING: You MUST include the [MEAL] and [SWAPS] blocks now. If the user is reporting a symptom or physical feeling (e.g., bloating), you MUST also output the [SYMPTOM] block. Each block MUST start with its opening tag (e.g. [MEAL]) and end with its closing tag (e.g. [/MEAL]). (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the blocks. Start directly with the [MEAL] opening tag).
+12. REQUIRED LOGGING (ABSOLUTELY MANDATORY):
+   If an image was attached to this message, you MUST output BOTH a [SCAN] block AND a [MEAL] block.
+   
+   Order of blocks:
+   1. [SCAN]: Use this to record every individual food item detected in the image for the user's permanent Scan History.
+      - productName: The name of the dish (e.g., "Chicken Curry with Rice").
+      - brand: Use "GutGood" for home/restaurant meals.
+      - category: Use "meal".
+      - score: Calculate the GutGood 0-100 score.
+      
+   2. [MEAL]: Use this to record the nutritional balance for the daily journal.
+   
+   3. [SWAPS]: Use only if you recommended alternatives.
+   
+Each block MUST start with its opening tag and end with its closing tag. Do not include any prefix text like "JSON:" or "Tags:".
 
 FORMATTING RULES:
 - Use double newlines (\n\n) between EVERY numbered step above for a spacious layout.

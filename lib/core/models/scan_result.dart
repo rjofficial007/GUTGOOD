@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Categorizes the directional impact of a product on gut health.
@@ -36,6 +37,9 @@ class ScanResult extends Equatable {
     this.flaggedIngredients = const [],
     this.time,
     this.isSaved = false,
+    this.scanId,
+    this.chatMessageId,
+    this.servingSize,
   });
 
   factory ScanResult.fromMap(Map<String, dynamic> map) {
@@ -80,10 +84,13 @@ class ScanResult extends Equatable {
       normalizedNova = novaInt.toString();
     }
 
+    // 🟢 FIXED: category is normalized to lowercase
+    final category = map['category']?.toString().toLowerCase();
+
     return ScanResult(
       productName: map['productName']?.toString() ?? 'Unknown',
       brand: map['brand']?.toString() ?? 'Unknown',
-      category: map['category']?.toString(),
+      category: category,
       imageUrl: map['imageUrl']?.toString(),
       score: score,
       impactType: type,
@@ -103,8 +110,11 @@ class ScanResult extends Equatable {
       source: map['source']?.toString(),
       userImageUrl: map['userImageUrl']?.toString(),
       flaggedIngredients: ModelUtils.parseList<String>(map['flaggedIngredients']),
-      time: map['time'] != null ? DateTime.tryParse(map['time']) : null,
+      time: map['time'] != null ? DateTimeUtils.parse(map['time']) : null,
       isSaved: ModelUtils.parseBool(map['isSaved']),
+      scanId: map['scanId']?.toString(),
+      chatMessageId: map['chatMessageId']?.toString(),
+      servingSize: map['servingSize']?.toString(),
     );
   }
 
@@ -180,26 +190,55 @@ class ScanResult extends Equatable {
   /// Whether this product is saved as a favorite.
   final bool isSaved;
 
+  /// Unique identifier for this specific scan event.
+  final String? scanId;
+
+  /// The localId of the ChatMessage that triggered this log.
+  final String? chatMessageId;
+
+  /// Serving size information (e.g., "100g", "1 pack").
+  final String? servingSize;
+
   /// Returns true if this result represents a specific food product suitable for history.
   ///
   /// Filters out generic utility scans like "Restaurant Menus" or "Ingredient Labels"
   /// which are analyzed for immediate feedback but shouldn't clutter the Pattern Engine.
   bool get isLoggableProduct {
-    // 1. Explicit AI Category Check (Primary)
-    if (category != null) {
-      return category == 'food';
-    }
-
-    // 2. Barcode scans are always legitimate products from the database.
+    // 1. Barcode scans are always legitimate products from the database.
     if (barcode != null && barcode!.isNotEmpty) return true;
 
-    // 3. Fallback Heuristics for older scans or missing category
-    final name = productName.toLowerCase();
-    final isMenu = name.contains('menu') && !name.contains('meal') && !name.contains('combo');
-    final isLabelOnly = name.contains('ingredients list') || name.contains('nutrition label') || name.contains('ingredients only');
-    final isGeneric = const {'menu', 'ingredients', 'label', 'nutrition', 'facts'}.contains(name);
+    // 2. Explicit AI Category Check
+    if (category != null) {
+      final cat = category!.toLowerCase();
+      // 'food' and 'meal' are always loggable.
+      if (cat == 'food' || cat == 'meal' || cat == 'product') return true;
 
-    return !(isMenu || isLabelOnly || isGeneric);
+      // If it's categorized as 'packaging' or 'label', only log if a specific
+      // product was successfully identified (not just generic "Label").
+      if ((cat == 'packaging' || cat == 'label') && !_isGenericName(productName)) {
+        return true;
+      }
+
+      // Explicitly non-loggable categories.
+      if (cat == 'menu' || cat == 'non-food') return false;
+    }
+
+    // 3. Source-based check: photo scans (food/meal source) are often products even with generic names
+    if (source == 'food' || source == 'meal') return true;
+
+    // 4. Fallback Heuristics for older scans or missing category
+    return !_isGenericName(productName);
+  }
+
+  bool _isGenericName(String name) {
+    final n = name.toLowerCase().trim();
+    if (n.isEmpty || n == 'unknown' || n == 'food' || n == 'product' || n == 'item' || n == 'meal') return true;
+
+    final isMenu = n.contains('menu') && !n.contains('meal') && !n.contains('combo');
+    final isLabelOnly = n.contains('ingredients list') || n.contains('nutrition label') || n.contains('ingredients only');
+    final isGeneric = const {'menu', 'ingredients', 'label', 'nutrition', 'facts'}.contains(n);
+
+    return isMenu || isLabelOnly || isGeneric;
   }
 
   ScanResult copyWith({
@@ -227,6 +266,9 @@ class ScanResult extends Equatable {
     List<String>? flaggedIngredients,
     DateTime? time,
     bool? isSaved,
+    String? scanId,
+    String? chatMessageId,
+    String? servingSize,
   }) => ScanResult(
     productName: productName ?? this.productName,
     brand: brand ?? this.brand,
@@ -252,6 +294,9 @@ class ScanResult extends Equatable {
     flaggedIngredients: flaggedIngredients ?? this.flaggedIngredients,
     time: time ?? this.time,
     isSaved: isSaved ?? this.isSaved,
+    scanId: scanId ?? this.scanId,
+    chatMessageId: chatMessageId ?? this.chatMessageId,
+    servingSize: servingSize ?? this.servingSize,
   );
 
   Map<String, dynamic> toMap() => {
@@ -279,6 +324,9 @@ class ScanResult extends Equatable {
     'flaggedIngredients': flaggedIngredients,
     'time': time?.toIso8601String(),
     'isSaved': isSaved,
+    'scanId': scanId,
+    'chatMessageId': chatMessageId,
+    'servingSize': servingSize,
   };
 
   /// Optimized Map for AI context to prevent 502/payload-too-large errors.
@@ -300,5 +348,5 @@ class ScanResult extends Equatable {
   };
 
   @override
-  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved];
+  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved, scanId, chatMessageId, servingSize, time];
 }

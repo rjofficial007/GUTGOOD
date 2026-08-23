@@ -261,22 +261,8 @@ class ChatScreenState extends State<ChatScreen> {
       providedUserMsgId: userMsgId,
     );
 
-    // One-time positioning: Move the viewport so the user message is 
-    // in the upper portion of the screen.
-    // In reverse: true, the new message is at index 0 (bottom).
-    // We animate to an offset that pushes it up.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scroll.hasClients) return;
-      
-      final viewportHeight = _scroll.position.viewportDimension;
-      final targetOffset = viewportHeight * 0.3; // Position message ~30% from top
-      
-      _scroll.animateTo(
-        targetOffset,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
-      );
-    });
+    // No auto-scroll when user sends or AI responds.
+    // The viewport remains naturally anchored at the bottom in reverse: true mode.
 
     final error = await sendFuture;
 
@@ -496,11 +482,6 @@ class _MessageListView extends StatelessWidget {
             reverse: true,
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             slivers: [
-              // Bottom padding to allow the latest message to be positioned 
-              // higher up the screen.
-              SliverToBoxAdapter(
-                child: SizedBox(height: MediaQuery.sizeOf(context).height * 0.4),
-              ),
               const SliverPadding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 sliver: _MessageSliverList(),
@@ -710,7 +691,7 @@ class _ChatComposer extends StatelessWidget {
         color: colorScheme.cardBackground,
         border: Border(top: BorderSide(color: colorScheme.border.withValues(alpha: 0.5))),
       ),
-      padding: EdgeInsets.fromLTRB(0, AppSizes.p12, 0, MediaQuery.paddingOf(context).bottom + AppSizes.p12),
+      padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

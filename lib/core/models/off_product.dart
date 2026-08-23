@@ -23,6 +23,7 @@ class OffProduct extends Equatable {
     this.labels,
     this.category,
     this.categoryTag,
+    this.servingSize,
     this.nutrientLevels,
     this.nutrients,
     this.impacts,
@@ -48,6 +49,7 @@ class OffProduct extends Equatable {
     labels: ModelUtils.parseList<String>(map['labels']),
     category: map['category'],
     categoryTag: map['categoryTag'],
+    servingSize: map['servingSize']?.toString() ?? map['serving_size']?.toString(),
     nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(
       map['nutrientLevels'],
       NutrientLevels.fromMap,
@@ -80,6 +82,7 @@ class OffProduct extends Equatable {
   final List<String>? labels;
   final String? category;
   final String? categoryTag;
+  final String? servingSize;
   final NutrientLevels? nutrientLevels;
   final NutrientData? nutrients;
   final List<ImpactDetail>? impacts;
@@ -104,6 +107,7 @@ class OffProduct extends Equatable {
     'labels': labels,
     'category': category,
     'categoryTag': categoryTag,
+    'servingSize': servingSize,
     'nutrientLevels': nutrientLevels?.toMap(),
     'nutrients': nutrients?.toMap(),
     'impacts': impacts?.map((e) => e.toMap()).toList(),

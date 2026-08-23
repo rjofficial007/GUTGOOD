@@ -45,14 +45,14 @@ class NutrientData extends Equatable {
   });
 
   factory NutrientData.fromMap(Map<String, dynamic> map) => NutrientData(
-    calories: map['calories'] as num?,
-    fat: map['fat'] as num?,
-    saturatedFat: map['saturatedFat'] as num?,
-    carbs: map['carbs'] as num?,
-    sugars: map['sugars'] as num?,
-    fiber: map['fiber'] as num?,
-    proteins: map['proteins'] as num?,
-    salt: map['salt'] as num?,
+    calories: ModelUtils.parseNum(map['calories']),
+    fat: ModelUtils.parseNum(map['fat']),
+    saturatedFat: ModelUtils.parseNum(map['saturatedFat']),
+    carbs: ModelUtils.parseNum(map['carbs']),
+    sugars: ModelUtils.parseNum(map['sugars']),
+    fiber: ModelUtils.parseNum(map['fiber']),
+    proteins: ModelUtils.parseNum(map['proteins']),
+    salt: ModelUtils.parseNum(map['salt']),
   );
   final num? calories;
   final num? fat;
@@ -125,7 +125,7 @@ class Ingredient extends Equatable {
     name: map['name']?.toString() ?? 'Ingredient',
     impact: map['impact']?.toString() ?? '',
     colorName: map['colorName']?.toString() ?? 'low',
-    confidence: map['confidence'] as num?,
+    confidence: ModelUtils.parseNum(map['confidence']),
   );
   final String name;
   final String impact;
