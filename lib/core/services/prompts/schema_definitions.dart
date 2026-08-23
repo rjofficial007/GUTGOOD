@@ -124,6 +124,7 @@ $ingredientSchema
   static const String typeRules =
       '''
 SCHEMA TYPE RULES (apply to every JSON block in this prompt)
+- intent is a string: "meal_analysis", "food_identification", "symptom_question", "swap_request", "general_chat", "product_comparison", "meal_planning", "menu_analysis", "label_analysis".
 - category is a string: "food", "meal", "menu", "label", "packaging", or "non-food".
 - novaGroup is an integer 1-4, or JSON null. Never a string, never a range like "1-4".
 - score is an integer 0-100. Never null. If truly unknown, output 0 and set impactType to "neutral".
@@ -137,4 +138,13 @@ $ingredientSchema
   placeholder value to avoid using null.
 - To prevent response truncation, limit the "ingredients" list to the top 10 most relevant items.
 ''';
+
+  static const String intentSchema = '''
+[INTENT]
+{
+  "category": "string",
+  "confidence": 0.0,
+  "requiresStructuredPersistence": true
+}
+[/INTENT]''';
 }

@@ -10,6 +10,9 @@ STRUCTURED DATA ENFORCEMENT
 Your response MUST conclude with the appropriate structured data blocks if relevant to the turn. 
 Do not emit a block if the category was not discussed.
 
+0. [INTENT]: MANDATORY for every turn. Identify what the user is trying to achieve.
+${SchemaDefinitions.intentSchema}
+
 1. [SCAN]: Use for ingredient labels, barcodes, single-product analysis, or food items identified from photos.
 ${SchemaDefinitions.scanSchema}
 

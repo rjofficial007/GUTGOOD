@@ -72,6 +72,7 @@ void initFeatureDI() {
         connectionChecker: sl(),
         sendMessageStreamUseCase: sl(),
         processChatTagUseCase: sl(),
+        persistAiResponseUseCase: sl(),
         analyticsService: sl(),
         appStateService: sl(),
       ),

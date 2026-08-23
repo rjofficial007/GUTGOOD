@@ -100,11 +100,12 @@ ${mode != null ? 'ACTIVE MODE: $mode' : 'ACTIVE MODE: General Chat'}
 
 ${isMenu ? '' : '''
 CRITICAL: YOUR RESPONSE IS NOT COMPLETE UNTIL THE FOLLOWING TAGS ARE EMITTED.
+- Mandatory Turn Intent: You MUST output an [INTENT] block.
 - If an image was attached: You MUST output BOTH a [SCAN] block (first) AND a [MEAL] block (second). This is MANDATORY even if the user just said "Hello" or asked a question unrelated to scanning.
 - If the user is reporting a symptom: You MUST output a [SYMPTOM] block.
 - If you recommended swaps: You MUST output a [SWAPS] block.
 
-STRICT ORDER: [SCAN] -> [MEAL] -> [SYMPTOM] -> [SWAPS].
+STRICT ORDER: [INTENT] -> [SCAN] -> [MEAL] -> [SYMPTOM] -> [SWAPS].
 The structured block MUST start with the opening tag and end with the closing tag.
 '''}
 

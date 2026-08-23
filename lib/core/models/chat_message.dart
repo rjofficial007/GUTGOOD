@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
@@ -31,6 +32,7 @@ class ChatMessage extends Equatable {
     this.mealLogs = const [],
     this.symptomLogs = const [],
     this.swapData,
+    this.analysisResult,
     this.isSwap = false,
     this.feedback,
     this.isSending = false,
@@ -52,6 +54,8 @@ class ChatMessage extends Equatable {
     final legacyImageUrl = map['imageUrl'] as String?;
     final resolvedImageUrls = imageUrls.isNotEmpty ? imageUrls : (legacyImageUrl != null && legacyImageUrl.isNotEmpty ? [legacyImageUrl] : const <String>[]);
 
+    final analysisResult = ModelUtils.parseNestedModel<AiAnalysisResult>(map['analysisResult'], AiAnalysisResult.fromMap);
+
     return ChatMessage(
       id: rawLocalId is int ? rawLocalId : null,
       firestoreId: rawCloudId is String ? rawCloudId : null,
@@ -61,10 +65,11 @@ class ChatMessage extends Equatable {
       text: map['text'] ?? '',
       imageUrl: resolvedImageUrls.isNotEmpty ? resolvedImageUrls.first : legacyImageUrl,
       imageUrls: resolvedImageUrls,
-      scanData: ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap),
-      mealLogs: ModelUtils.parseModelList<MealLog>(map['mealLogs'], MealLog.fromMap),
-      symptomLogs: ModelUtils.parseModelList<SymptomLog>(map['symptomLogs'], SymptomLog.fromMap),
-      swapData: ModelUtils.parseModelList<ProductSwap>(map['swapData'], ProductSwap.fromMap),
+      scanData: analysisResult?.scan ?? ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap),
+      mealLogs: analysisResult?.meal != null ? [analysisResult!.meal!] : ModelUtils.parseModelList<MealLog>(map['mealLogs'], MealLog.fromMap),
+      symptomLogs: analysisResult != null && analysisResult.symptoms.isNotEmpty ? analysisResult.symptoms : ModelUtils.parseModelList<SymptomLog>(map['symptomLogs'], SymptomLog.fromMap),
+      swapData: analysisResult != null && analysisResult.swaps.isNotEmpty ? analysisResult.swaps : ModelUtils.parseModelList<ProductSwap>(map['swapData'], ProductSwap.fromMap),
+      analysisResult: analysisResult,
       isSwap: ModelUtils.parseBool(map['isSwap']),
       feedback: map['feedback'],
       source: map['source'],
@@ -120,6 +125,9 @@ class ChatMessage extends Equatable {
   /// List of healthier alternatives if suggested by the AI.
   final List<ProductSwap>? swapData;
 
+  /// Unified structured AI analysis result.
+  final AiAnalysisResult? analysisResult;
+
   /// Whether this message includes gut-friendly product swaps.
   final bool isSwap;
 
@@ -168,6 +176,7 @@ class ChatMessage extends Equatable {
     List<MealLog>? mealLogs,
     List<SymptomLog>? symptomLogs,
     List<ProductSwap>? swapData,
+    AiAnalysisResult? analysisResult,
     bool? isSwap,
     String? feedback,
     bool? isSending,
@@ -195,6 +204,7 @@ class ChatMessage extends Equatable {
       mealLogs: mealLogs ?? this.mealLogs,
       symptomLogs: symptomLogs ?? this.symptomLogs,
       swapData: swapData ?? this.swapData,
+      analysisResult: analysisResult ?? this.analysisResult,
       isSwap: isSwap ?? this.isSwap,
       feedback: feedback ?? this.feedback,
       isSending: isSending ?? this.isSending,
@@ -221,6 +231,7 @@ class ChatMessage extends Equatable {
     'mealLogs': mealLogs.map((e) => e.toMap()).toList(),
     'symptomLogs': symptomLogs.map((e) => e.toMap()).toList(),
     'swapData': swapData?.map((e) => e.toMap()).toList(),
+    'analysisResult': analysisResult?.toMap(),
     'isSwap': isSwap,
     'feedback': feedback,
     'source': source,
@@ -252,5 +263,5 @@ class ChatMessage extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, firestoreId, localId, role, text, imageUrl, imageUrls, scanData, mealLogs, symptomLogs, isSwap, feedback, isSending, sendFailed, errorKind, isHidden, time];
+  List<Object?> get props => [id, firestoreId, localId, role, text, imageUrl, imageUrls, scanData, mealLogs, symptomLogs, swapData, analysisResult, isSwap, feedback, isSending, sendFailed, errorKind, isHidden, time];
 }

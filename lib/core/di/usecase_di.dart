@@ -1,4 +1,5 @@
 import 'package:gutgood/core/di/di_instance.dart';
+import 'package:gutgood/features/chat/domain/usecases/persist_ai_response_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/send_message_stream_usecase.dart';
 import 'package:gutgood/features/insights/domain/usecases/build_unified_journal_usecase.dart';
@@ -9,8 +10,14 @@ import 'package:gutgood/features/insights/domain/usecases/summarize_journal_usec
 void initUseCaseDI() {
   sl
     ..registerLazySingleton(() => SendMessageStreamUseCase(sl()))
+    ..registerLazySingleton(ProcessChatTagUseCase.new)
     ..registerLazySingleton(
-      () => ProcessChatTagUseCase(firestoreService: sl(), appStateService: sl()),
+      () => PersistAiResponseUseCase(
+        firestoreService: sl(),
+        logRepository: sl(),
+        appStateService: sl(),
+        streakService: sl(),
+      ),
     )
     ..registerLazySingleton(() => const CheckInsightThresholdUseCase())
     ..registerLazySingleton(() => const BuildUnifiedJournalUseCase())

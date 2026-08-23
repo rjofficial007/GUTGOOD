@@ -11,6 +11,7 @@ import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
+import 'package:gutgood/features/chat/domain/usecases/persist_ai_response_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/send_message_stream_usecase.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
@@ -26,6 +27,7 @@ class MockFirebaseAuth extends Mock implements FirebaseAuth {}
 class MockInternetConnectionChecker extends Mock implements InternetConnectionChecker {}
 class MockSendMessageStreamUseCase extends Mock implements SendMessageStreamUseCase {}
 class MockProcessChatTagUseCase extends Mock implements ProcessChatTagUseCase {}
+class MockPersistAiResponseUseCase extends Mock implements PersistAiResponseUseCase {}
 class MockAnalyticsService extends Mock implements AnalyticsService {}
 class MockAppStateService extends Mock implements AppStateService {}
 
@@ -40,6 +42,7 @@ void main() {
   late MockInternetConnectionChecker connectionChecker;
   late MockSendMessageStreamUseCase sendMessageStreamUseCase;
   late MockProcessChatTagUseCase processChatTagUseCase;
+  late MockPersistAiResponseUseCase persistAiResponseUseCase;
   late MockAnalyticsService analyticsService;
   late MockAppStateService appStateService;
 
@@ -58,6 +61,7 @@ void main() {
     connectionChecker = MockInternetConnectionChecker();
     sendMessageStreamUseCase = MockSendMessageStreamUseCase();
     processChatTagUseCase = MockProcessChatTagUseCase();
+    persistAiResponseUseCase = MockPersistAiResponseUseCase();
     analyticsService = MockAnalyticsService();
     appStateService = MockAppStateService();
 
@@ -74,6 +78,7 @@ void main() {
       connectionChecker: connectionChecker,
       sendMessageStreamUseCase: sendMessageStreamUseCase,
       processChatTagUseCase: processChatTagUseCase,
+      persistAiResponseUseCase: persistAiResponseUseCase,
       analyticsService: analyticsService,
       appStateService: appStateService,
     );

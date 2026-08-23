@@ -18,6 +18,7 @@ import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
+import 'package:gutgood/features/chat/domain/usecases/persist_ai_response_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/send_message_stream_usecase.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
@@ -37,6 +38,7 @@ class ChatComposerNotifier with ChangeNotifier {
     required InternetConnectionChecker connectionChecker,
     required SendMessageStreamUseCase sendMessageStreamUseCase,
     required ProcessChatTagUseCase processChatTagUseCase,
+    required PersistAiResponseUseCase persistAiResponseUseCase,
     required AnalyticsService analyticsService,
     required AppStateService appStateService,
   }) : _repository = repository,
@@ -48,6 +50,7 @@ class ChatComposerNotifier with ChangeNotifier {
        _connectionChecker = connectionChecker,
        _sendMessageStreamUseCase = sendMessageStreamUseCase,
        _processChatTagUseCase = processChatTagUseCase,
+       _persistAiResponseUseCase = persistAiResponseUseCase,
        _analyticsService = analyticsService,
        _appStateService = appStateService {
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -62,6 +65,7 @@ class ChatComposerNotifier with ChangeNotifier {
   final InternetConnectionChecker _connectionChecker;
   final SendMessageStreamUseCase _sendMessageStreamUseCase;
   final ProcessChatTagUseCase _processChatTagUseCase;
+  final PersistAiResponseUseCase _persistAiResponseUseCase;
   final AnalyticsService _analyticsService;
   final AppStateService _appStateService;
 
@@ -490,32 +494,36 @@ CLASSIFY INTENT:
     _fullAiText += _chunkBuffer;
     _chunkBuffer = '';
 
-    final result = _processChatTagUseCase(_fullAiText, imageUrl: imageUrl, source: source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: false, chatMessageId: aiLocalId);
+    final result = _processChatTagUseCase(_fullAiText, imageUrl: imageUrl, source: source, chatMessageId: aiLocalId, isFinal: false);
 
     var finalToDisplay = _applySafetyGuardrails(result.text);
-    if (finalToDisplay.isEmpty && (result.scanData != null || (result.swapData != null && result.swapData!.isNotEmpty))) {
+    if (finalToDisplay.isEmpty && (result.scan != null || result.swaps.isNotEmpty)) {
       finalToDisplay = AppStrings.resultsFound;
     }
 
     final currentMsg = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);
     final updatedMsg = currentMsg.copyWith(
       text: finalToDisplay,
-      scanData: result.scanData,
+      scanData: result.scan,
       imageUrl: imageUrl,
       imageUrls: imageUrl != null ? [imageUrl] : null,
-      mealLogs: result.mealLogs,
-      symptomLogs: result.symptomLogs,
-      swapData: result.swapData,
-      isSwap: result.isSwap,
-      foodMentions: result.foodMentions,
-      symptomMentions: result.symptomMentions,
+      mealLogs: result.meal != null ? [result.meal!] : const [],
+      symptomLogs: result.symptoms,
+      swapData: result.swaps,
+      isSwap: result.swaps.isNotEmpty,
+      analysisResult: result,
+      foodMentions: [
+        if (result.meal != null) ...result.meal!.items,
+        if (result.scan != null) result.scan!.productName,
+      ].whereType<String>().toList(),
+      symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
     );
 
     _historyNotifier.replaceMessage(aiLocalId, updatedMsg);
 
-    // 🟢 DATA INTEGRITY: Periodically persist the AI response during streaming.
-    // This prevents total data loss if the app crashes or is killed during
-    // a long generation (which can take 15-30s).
+    // 🟢 UI PERSISTENCE: Periodically persist the MESSAGE during streaming.
+    // Domain events (meals/symptoms) are now ATOMIC and only persist once
+    // at the end in _finalizeStream to prevent partial/corrupt data.
     final now = DateTime.now();
     if (_lastPersistTime == null || now.difference(_lastPersistTime!).inSeconds >= 3) {
       _lastPersistTime = now;
@@ -544,12 +552,35 @@ CLASSIFY INTENT:
         _fullAiText,
         imageUrl: currentMsg.imageUrl,
         source: currentMsg.source,
-        persistedTagBlocks: _persistedTags,
-        persist: _persistTagsForActiveTurn,
-        isFinal: true,
         chatMessageId: aiLocalId,
+        isFinal: true,
       );
-      _historyNotifier.replaceMessage(aiLocalId, currentMsg.copyWith(text: _applySafetyGuardrails(result.text), scanData: result.scanData, mealLogs: result.mealLogs, symptomLogs: result.symptomLogs, swapData: result.swapData));
+      final finalMsg = currentMsg.copyWith(
+        text: _applySafetyGuardrails(result.text),
+        scanData: result.scan,
+        mealLogs: result.meal != null ? [result.meal!] : const [],
+        symptomLogs: result.symptoms,
+        swapData: result.swaps,
+        isSwap: result.swaps.isNotEmpty,
+        analysisResult: result,
+        foodMentions: [
+          if (result.meal != null) ...result.meal!.items,
+          if (result.scan != null) result.scan!.productName,
+        ].whereType<String>().toList(),
+        symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
+      );
+      _historyNotifier.replaceMessage(aiLocalId, finalMsg);
+
+      // Persist any partial but valid results if we at least got the tags
+      if (_persistTagsForActiveTurn) {
+        unawaited(_persistAiResponseUseCase(
+          result,
+          chatMessageId: aiLocalId,
+          imageUrl: currentMsg.imageUrl,
+          source: currentMsg.source,
+          persistedTagBlocks: _persistedTags,
+        ));
+      }
     }
 
     final kind = error is AiQuotaExceededException ? ChatErrorKind.quota : ChatErrorKind.connection;
@@ -585,9 +616,22 @@ CLASSIFY INTENT:
 
     _fullAiText += _chunkBuffer;
     _chunkBuffer = '';
-    final result = _processChatTagUseCase(_fullAiText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags, persist: _persistTagsForActiveTurn, isFinal: true, chatMessageId: aiLocalId);
+    final result = _processChatTagUseCase(_fullAiText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, chatMessageId: aiLocalId, isFinal: true);
 
-    final finalMsg = currentMsg.copyWith(text: _applySafetyGuardrails(result.text), scanData: result.scanData, mealLogs: result.mealLogs, symptomLogs: result.symptomLogs, swapData: result.swapData);
+    final finalMsg = currentMsg.copyWith(
+      text: _applySafetyGuardrails(result.text),
+      scanData: result.scan,
+      mealLogs: result.meal != null ? [result.meal!] : const [],
+      symptomLogs: result.symptoms,
+      swapData: result.swaps,
+      isSwap: result.swaps.isNotEmpty,
+      analysisResult: result,
+      foodMentions: [
+        if (result.meal != null) ...result.meal!.items,
+        if (result.scan != null) result.scan!.productName,
+      ].whereType<String>().toList(),
+      symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
+    );
     _historyNotifier.replaceMessage(aiLocalId, finalMsg);
 
     if (finalMsg.text.isEmpty && finalMsg.scanData == null) {
@@ -595,6 +639,18 @@ CLASSIFY INTENT:
       if (_generationCancelled) _historyNotifier.removeMessage(aiLocalId);
       _finishTurn();
       return;
+    }
+
+    // 🟢 ATOMIC PERSISTENCE: Now that the AI turn is finished and validated,
+    // persist all domain logs (meals, symptoms, scans) to history.
+    if (_persistTagsForActiveTurn && !_generationCancelled) {
+      unawaited(_persistAiResponseUseCase(
+        result,
+        chatMessageId: aiLocalId,
+        imageUrl: currentMsg.imageUrl,
+        source: currentMsg.source,
+        persistedTagBlocks: _persistedTags,
+      ));
     }
 
     _persistAiMessage(aiLocalId);
@@ -686,17 +742,37 @@ CLASSIFY INTENT:
 
       await for (final chunk in stream) {
         fullTextBuffer.write(chunk);
-        final result = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', persistedTagBlocks: persistedTags, chatMessageId: aiLocalId);
+        final result = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', chatMessageId: aiLocalId, isFinal: false);
 
         var finalToDisplay = result.text;
-        if (finalToDisplay.isEmpty && result.swapData != null && result.swapData!.isNotEmpty) {
+        if (finalToDisplay.isEmpty && result.swaps.isNotEmpty) {
           finalToDisplay = AppStrings.hereAreSomeBetterSwaps;
         }
 
         final currentAi = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);
-        _historyNotifier.replaceMessage(aiLocalId, currentAi.copyWith(text: finalToDisplay, scanData: result.scanData, mealLogs: result.mealLogs, symptomLogs: result.symptomLogs, swapData: result.swapData, isSwap: result.isSwap));
+        _historyNotifier.replaceMessage(
+          aiLocalId,
+          currentAi.copyWith(
+            text: finalToDisplay,
+            scanData: result.scan,
+            mealLogs: result.meal != null ? [result.meal!] : const [],
+            symptomLogs: result.symptoms,
+            swapData: result.swaps,
+            isSwap: result.swaps.isNotEmpty,
+            analysisResult: result,
+            foodMentions: [
+              if (result.meal != null) ...result.meal!.items,
+              if (result.scan != null) result.scan!.productName,
+            ].whereType<String>().toList(),
+            symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
+          ),
+        );
         notifyListeners();
       }
+
+      // Atomic persistence for See More Swaps
+      final finalResult = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', chatMessageId: aiLocalId, isFinal: true);
+      unawaited(_persistAiResponseUseCase(finalResult, chatMessageId: aiLocalId, source: 'chat', persistedTagBlocks: persistedTags));
 
       final finalAi = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);
       final savedAi = await _repository.saveMessage(finalAi);

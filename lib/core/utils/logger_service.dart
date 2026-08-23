@@ -30,8 +30,8 @@ class AppLogger {
     _printLog(AppLoggerStrings.logError, message, error, stackTrace);
   }
 
-  static void warning(Object? message) {
-    _printLog(AppLoggerStrings.logWarning, message, null, null);
+  static void warning(Object? message, {Object? error, StackTrace? stackTrace}) {
+    _printLog(AppLoggerStrings.logWarning, message, error, stackTrace);
   }
 
   // --- Feature Categorized Logs ---

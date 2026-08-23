@@ -191,7 +191,13 @@ class ModelUtils {
     }
 
     // If we reach here, the JSON is unbalanced (likely truncated).
-    final current = raw.substring(startIndex).trim();
+    var current = raw.substring(startIndex).trim();
+
+    // 🟢 DATA INTEGRITY: If the JSON was truncated immediately after a comma, 
+    // remove the trailing comma before force-closing to ensure validity.
+    if (current.endsWith(',')) {
+      current = current.substring(0, current.length - 1).trim();
+    }
 
     // 1. Try force-closing the stack
     if (stack.isNotEmpty) {
@@ -213,9 +219,21 @@ class ModelUtils {
     final lastEnd = lastBrace > lastBracket ? lastBrace : lastBracket;
 
     if (lastEnd != -1) {
-      return current.substring(0, lastEnd + 1);
+      final candidate = current.substring(0, lastEnd + 1);
+      try {
+        jsonDecode(candidate);
+        return candidate;
+      } catch (_) {}
     }
 
-    return raw.replaceAll('```json', '').replaceAll('```', '').trim();
+    // 🟢 PRODUCTION SAFETY: Never return raw partial text if it fails decoding.
+    // Returning null allows the caller to gracefully ignore the turn.
+    try {
+      final fallback = raw.replaceAll('```json', '').replaceAll('```', '').trim();
+      jsonDecode(fallback);
+      return fallback;
+    } catch (_) {
+      return null;
+    }
   }
 }

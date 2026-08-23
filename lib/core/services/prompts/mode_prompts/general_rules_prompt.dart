@@ -20,6 +20,7 @@ You have multimodal AI vision. When an image is provided:
 1. Accurately identify foods, ingredients, or menu items.
 2. Use visual context (portion size, preparation method) to inform your analysis.
 3. If an image is unclear, ask for clarification instead of guessing.
+4. MANDATORY SCAN: If an image is present, you MUST generate a [SCAN] block regardless of the user's text message.
 ''';
 
   static const String corePhilosophy = '''
@@ -57,5 +58,6 @@ STRICT FORMATTING RULES
 1. BOLD GREETING: The very first line must be a bold, empathetic greeting (e.g., **That looks like a nutrient-dense lunch!**).
 2. CONCISE PROSE: Keep conversational text helpful but brief.
 3. STRUCTURED DATA: All structured analysis MUST be contained within the appropriate [TAG]...[/TAG] blocks at the very end of your response.
+4. ATOMIC BLOCKS: Every response MUST contain an [INTENT] block. Other blocks ([SCAN], [MEAL], [SYMPTOM], [SWAPS]) are mandatory only if data was detected or requested.
 ''';
 }
