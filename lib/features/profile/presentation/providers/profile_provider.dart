@@ -11,12 +11,13 @@ import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
+import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier with ChangeNotifier {
-  ProfileNotifier(this._authRepository, this._firestoreService, this._historyFirestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService) {
+  ProfileNotifier(this._authRepository, this._firestoreService, this._historyFirestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService, this._streakService) {
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -38,6 +39,7 @@ class ProfileNotifier with ChangeNotifier {
   final NotificationService _notificationService;
   final AnalyticsService _analyticsService;
   final CrashlyticsService _crashlyticsService;
+  final StreakService _streakService;
 
   UserProfile? _profile;
   int? _previousStreak;
@@ -62,20 +64,35 @@ class ProfileNotifier with ChangeNotifier {
     _profileSub = _firestoreService.getUserMetadataStream().listen((profile) {
       _isInitialized = true;
       if (profile != null) {
-        // Detect streak increment
-        if (_previousStreak != null && profile.streak > _previousStreak!) {
-          _pendingStreakCelebration = true; // 🟢 Queue it, don't show yet
-          unawaited(_analyticsService.logEvent(name: 'streak_incremented', parameters: {'streak': profile.streak}));
-          AppLogger.info('ProfileNotifier: Streak incremented! ${profile.streak}');
-        }
-        _previousStreak = profile.streak;
+        // 1. Sync local streak with remote data
+        _streakService.syncWithRemote(
+          remoteStreak: profile.streak,
+          remoteLongest: profile.longestStreak,
+          remoteLastDate: profile.lastActivityDate,
+        );
 
-        // Manage Streak Saver Notification
+        // 2. Detect streak increment for celebration
+        final currentStreak = _streakService.currentStreak;
+        if (_previousStreak != null && currentStreak > _previousStreak!) {
+          _pendingStreakCelebration = true;
+          unawaited(_analyticsService.logEvent(name: 'streak_incremented', parameters: {'streak': currentStreak}));
+          AppLogger.info('ProfileNotifier: Streak incremented! $currentStreak');
+        }
+        _previousStreak = currentStreak;
+
+        // 3. Update the profile object with localized streak data for consistent UI
+        profile = profile.copyWith(
+          streak: currentStreak,
+          longestStreak: _streakService.longestStreak,
+          lastActivityDate: _streakService.lastActiveDate,
+        );
+
+        // 4. Manage Streak Saver Notification
         final today = DateTime.now().toIso8601String().split('T')[0];
-        if (profile.lastActivityDate == today) {
+        if (_streakService.lastActiveDate == today) {
           _notificationService.cancel(NotificationIds.streakSaver);
         } else {
-          _notificationService.scheduleStreakSaverReminder(profile.streak);
+          _notificationService.scheduleStreakSaverReminder(currentStreak);
         }
       }
 
@@ -99,6 +116,11 @@ class ProfileNotifier with ChangeNotifier {
   bool get isInitialized => _isInitialized;
   bool get showStreakCelebration => _showStreakCelebration;
   String get quickInsight => _quickInsight;
+
+  // Streak getters from localized service (offline-first)
+  int get streak => _streakService.currentStreak;
+  int get longestStreak => _streakService.longestStreak;
+  String? get lastActivityDate => _streakService.lastActiveDate;
 
   Future<void> _syncScoreToProfile(int score) async {
     if (_profile == null || _profile!.gutScore == score) return;

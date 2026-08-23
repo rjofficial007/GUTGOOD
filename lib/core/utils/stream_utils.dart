@@ -17,7 +17,7 @@ class StreamUtils {
       }
     }
 
-    int i = 0;
+    var i = 0;
     for (final stream in streams) {
       final index = i++;
       controllers.add(stream.listen(

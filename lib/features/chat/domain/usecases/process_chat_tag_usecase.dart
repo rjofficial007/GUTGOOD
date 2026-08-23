@@ -53,8 +53,6 @@ class ProcessChatTagUseCase {
         final endTagIndex = lowerText.indexOf(endTag, tagIndex + startTag.length);
         final isClosed = endTagIndex != -1;
 
-        final rawBlock = isClosed ? text.substring(tagIndex, endTagIndex + endTag.length) : text.substring(tagIndex);
-
         final content = isClosed ? text.substring(tagIndex + startTag.length, endTagIndex) : text.substring(tagIndex + startTag.length);
 
         // 🟢 DATA INTEGRITY: Normalize the block for the persistence check to

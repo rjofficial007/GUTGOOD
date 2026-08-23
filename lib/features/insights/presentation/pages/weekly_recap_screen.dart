@@ -61,11 +61,11 @@ class WeeklyRecapScreen extends StatelessWidget {
 
   List<Widget> _buildSections(BuildContext context, WeeklyRecap? recap, List<RecapHighlight> highlights) {
     final profile = context.watch<ProfileNotifier>();
-    final effectiveStreak = profile.profile?.effectiveStreak ?? 0;
+    final streak = profile.streak;
 
     final sections = <Widget>[
       const _RecapDateHeader(),
-      GutSnapshotHeroCard(score: recap?.avgScore ?? 0, scoreDiff: recap?.scoreSub, streak: effectiveStreak, isActive: true),
+      GutSnapshotHeroCard(score: recap?.avgScore ?? 0, scoreDiff: recap?.scoreSub, streak: streak, isActive: true),
 
       // 1. PERFORMANCE HIGHLIGHTS
       DashboardEntrance(
@@ -150,8 +150,8 @@ class _ModernSmartAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profile = context.watch<ProfileNotifier>().profile;
-    final streak = profile?.effectiveStreak ?? 0;
+    final profile = context.watch<ProfileNotifier>();
+    final streak = profile.streak;
     final healingTrend = insight.healingTrend ?? AppStrings.optimizing;
     final description = '${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}';
 

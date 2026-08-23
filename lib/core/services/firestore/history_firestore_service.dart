@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:uuid/uuid.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:uuid/uuid.dart';
 
 abstract class HistoryFirestoreService {
   Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId});
@@ -68,7 +68,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
 
       // 🟢 Optimization: Start the isSaved check and the write together, or 
       // handle isSaved defensively.
-      bool isSaved = scanData.isSaved;
+      var isSaved = scanData.isSaved;
       try {
         isSaved = await isFoodSaved(scanData.productName, barcode: scanData.barcode);
       } catch (e) {

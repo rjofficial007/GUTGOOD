@@ -14,6 +14,7 @@ import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
+import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
@@ -28,13 +29,15 @@ class ScannerRepositoryImpl implements ScannerRepository {
     required NotificationService notificationService,
     required AppStateService appStateService,
     required AnalyticsService analyticsService,
+    required StreakService streakService,
   }) : _offService = offService,
        _aiService = aiService,
        _chatFirestoreService = chatFirestoreService,
        _historyFirestoreService = historyFirestoreService,
        _notificationService = notificationService,
        _appStateService = appStateService,
-       _analyticsService = analyticsService;
+       _analyticsService = analyticsService,
+       _streakService = streakService;
   final OffService _offService;
   final AiService _aiService;
   final ChatFirestoreService _chatFirestoreService;
@@ -42,6 +45,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
   final NotificationService _notificationService;
   final AppStateService _appStateService;
   final AnalyticsService _analyticsService;
+  final StreakService _streakService;
 
   @override
   Future<OffProduct?> getProductByBarcode(String barcode) async => _offService.getProduct(barcode);
@@ -156,7 +160,8 @@ class ScannerRepositoryImpl implements ScannerRepository {
     );
 
     await _chatFirestoreService.saveMessage(aiMsg);
-    AppLogger.info('ScannerRepository: Scan result message saved to Firestore');
+    await _streakService.markActivityToday();
+    AppLogger.info('ScannerRepository: Scan result message saved and streak updated');
 
     // 🚀 Professional Filter: Only persist scans and auto-log meals if it's an actual product.
     // Restaurant menus and raw ingredient labels are analyzed for the chat context but

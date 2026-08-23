@@ -21,6 +21,7 @@ import 'package:gutgood/core/services/pattern_engine_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/services/storage_service.dart';
+import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
 
@@ -37,6 +38,7 @@ void initServiceDI() {
     ..registerLazySingleton<AiService>(() => AiServiceImpl(dio: sl(), auth: sl(), config: sl(), analyticsService: sl(), crashlyticsService: sl()))
     ..registerLazySingleton<OffService>(() => OffServiceImpl(dio: sl()))
     ..registerLazySingleton<StorageService>(() => StorageServiceImpl(auth: sl(), storage: sl()))
+    ..registerLazySingleton<StreakService>(() => StreakServiceImpl(prefs: sl()))
     ..registerLazySingleton<AuthFirestoreService>(() => AuthFirestoreServiceImpl(auth: sl(), db: sl(), storageService: sl()))
     ..registerLazySingleton<ChatFirestoreService>(() => ChatFirestoreServiceImpl(auth: sl(), db: sl()))
     ..registerLazySingleton<HistoryFirestoreService>(() => HistoryFirestoreServiceImpl(auth: sl(), db: sl()))

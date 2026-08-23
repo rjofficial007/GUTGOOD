@@ -105,8 +105,8 @@ class HistoryNotifier with ChangeNotifier {
 
     try {
       final results = await _repository.getScanHistory(limit: _pageSize);
-      _scans.clear();
-      _scans.addAll(results);
+      _scans..clear()
+      ..addAll(results);
       if (results.length < _pageSize) _scansHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh scans', error: e);
@@ -149,8 +149,8 @@ class HistoryNotifier with ChangeNotifier {
 
     try {
       final results = await _repository.getRecentMealLogs(limit: _pageSize);
-      _meals.clear();
-      _meals.addAll(results);
+      _meals..clear()
+      ..addAll(results);
       if (results.length < _pageSize) _mealsHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh meals', error: e);
@@ -187,8 +187,8 @@ class HistoryNotifier with ChangeNotifier {
 
     try {
       final results = await _repository.getRecentSymptomLogs(limit: _pageSize);
-      _symptoms.clear();
-      _symptoms.addAll(results);
+      _symptoms..clear()
+      ..addAll(results);
       if (results.length < _pageSize) _symptomsHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh symptoms', error: e);

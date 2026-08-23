@@ -9,6 +9,7 @@ import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
+import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/features/scanner/data/repositories/scanner_repository_impl.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -27,6 +28,8 @@ class MockAppStateService extends Mock implements AppStateService {}
 
 class MockAnalyticsService extends Mock implements AnalyticsService {}
 
+class MockStreakService extends Mock implements StreakService {}
+
 void main() {
   late ScannerRepositoryImpl repository;
   late MockOffService mockOffService;
@@ -36,6 +39,7 @@ void main() {
   late MockNotificationService mockNotificationService;
   late MockAppStateService mockAppStateService;
   late MockAnalyticsService mockAnalyticsService;
+  late MockStreakService mockStreakService;
 
   setUpAll(() {
     registerFallbackValue(
@@ -60,6 +64,7 @@ void main() {
     mockNotificationService = MockNotificationService();
     mockAppStateService = MockAppStateService();
     mockAnalyticsService = MockAnalyticsService();
+    mockStreakService = MockStreakService();
 
     repository = ScannerRepositoryImpl(
       offService: mockOffService,
@@ -69,6 +74,7 @@ void main() {
       notificationService: mockNotificationService,
       appStateService: mockAppStateService,
       analyticsService: mockAnalyticsService,
+      streakService: mockStreakService,
     );
   });
 
@@ -115,6 +121,7 @@ void main() {
       when(
         () => mockNotificationService.schedulePostMealCheckIn(),
       ).thenAnswer((_) async {});
+      when(() => mockStreakService.markActivityToday()).thenAnswer((_) async {});
 
       await repository.saveScanResult(result);
 

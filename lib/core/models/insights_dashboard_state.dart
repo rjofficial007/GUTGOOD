@@ -29,8 +29,7 @@ class InsightsDashboardState extends Equatable {
     int? totalMeals,
     int? totalSymptoms,
     int? totalScans,
-  }) {
-    return InsightsDashboardState(
+  }) => InsightsDashboardState(
       latestInsight: latestInsight ?? this.latestInsight,
       patterns: patterns ?? this.patterns,
       alerts: alerts ?? this.alerts,
@@ -38,7 +37,6 @@ class InsightsDashboardState extends Equatable {
       totalSymptoms: totalSymptoms ?? this.totalSymptoms,
       totalScans: totalScans ?? this.totalScans,
     );
-  }
 
   @override
   List<Object?> get props => [

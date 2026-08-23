@@ -55,9 +55,9 @@ class ProfileHeaderSection extends StatelessWidget {
           email: p?.email ?? (authNotifier.isAnonymous ? AppStrings.signInToSyncData : authNotifier.user?.email ?? ''),
           isPremium: p?.isPremium ?? false,
           photoUrl: p?.photoUrl,
-          streak: p?.effectiveStreak ?? 0,
-          longestStreak: p?.longestStreak ?? 0,
-          lastActivityDate: p?.lastActivityDate,
+          streak: profileNotifier.streak,
+          longestStreak: profileNotifier.longestStreak,
+          lastActivityDate: profileNotifier.lastActivityDate,
           gutScore: p?.gutScore ?? 0,
           avgFoodScore: avgFoodScore,
           onImageTap: () {

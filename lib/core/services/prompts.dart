@@ -9,7 +9,6 @@ import 'package:gutgood/core/services/prompts/mode_prompts/intent_detection_prom
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_overview_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_planning_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_rating_prompt.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/meal_snap_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_swaps_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/product_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/product_comparison_prompt.dart';

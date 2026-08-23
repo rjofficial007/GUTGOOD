@@ -45,10 +45,10 @@ void initFeatureDI() {
     ..registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), authFirestoreService: sl(), analyticsService: sl()))
     // --- Profile ---
     ..registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(auth: sl(), firestoreService: sl()))
-    ..registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl(), sl()))
+    ..registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()))
     ..registerLazySingleton(() => UsageNotifier(sl(), sl()))
     // --- Chat ---
-    ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl()))
+    ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl(), streakService: sl()))
     ..registerLazySingleton(
       () => ChatHistoryNotifier(
         repository: sl(),
@@ -94,11 +94,11 @@ void initFeatureDI() {
     // --- Scanner ---
     ..registerLazySingleton<ScannerRepository>(
       () =>
-          ScannerRepositoryImpl(offService: sl(), aiService: sl(), chatFirestoreService: sl(), historyFirestoreService: sl(), notificationService: sl(), appStateService: sl(), analyticsService: sl()),
+          ScannerRepositoryImpl(offService: sl(), aiService: sl(), chatFirestoreService: sl(), historyFirestoreService: sl(), notificationService: sl(), appStateService: sl(), analyticsService: sl(), streakService: sl()),
     )
     ..registerLazySingleton(() => ScannerNotifier(repository: sl(), authFirestoreService: sl(), offService: sl(), storageService: sl()))
     // --- Logs ---
-    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl()))
+    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl(), streakService: sl()))
     // --- History ---
     ..registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl()))
     ..registerLazySingleton(() => HistoryNotifier(repository: sl(), appStateService: sl(), auth: sl()))

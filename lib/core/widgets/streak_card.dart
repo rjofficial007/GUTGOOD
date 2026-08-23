@@ -181,12 +181,10 @@ class _WeeklyBubbles extends StatelessWidget {
           if (lastActivityDate != null && streak > 0) {
             final lastActive = DateTime.parse(lastActivityDate!);
             final lastActiveMidnight = DateTime(lastActive.year, lastActive.month, lastActive.day);
-            final diff = todayMidnight.difference(lastActiveMidnight).inDays;
-            if (diff <= 1) {
-              final daysSinceThisDay = lastActiveMidnight.difference(day).inDays;
-              if (daysSinceThisDay >= 0 && daysSinceThisDay < streak) {
-                isStreakDay = true;
-              }
+            
+            final daysSinceThisDay = lastActiveMidnight.difference(day).inDays;
+            if (daysSinceThisDay >= 0 && daysSinceThisDay < streak) {
+              isStreakDay = true;
             }
           }
 
