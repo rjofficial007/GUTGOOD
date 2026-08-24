@@ -25,7 +25,8 @@ class SchemaDefinitions {
       "confidence": 0.0
     }''';
 
-  static String get unifiedDataSchema => '''
+  static String get unifiedDataSchema =>
+      '''
 [GUTGOOD_DATA]
 {
   "intent": "meal_analysis|food_identification|symptom_question|swap_request|general_chat|product_comparison|meal_planning|menu_analysis|label_analysis",
@@ -102,8 +103,7 @@ $ingredientSchema
 }
 [/GUTGOOD_DATA]''';
 
-  static const String typeRules =
-      '''
+  static const String typeRules = '''
 SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - intent: exactly one of "meal_analysis", "food_identification", "symptom_question", "swap_request", "general_chat", "product_comparison", "meal_planning", "menu_analysis", "label_analysis".
 - category: "food", "meal", "menu", "label", "packaging", or "non-food".

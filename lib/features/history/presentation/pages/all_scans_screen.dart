@@ -42,8 +42,8 @@ class _AllScansScreenState extends State<AllScansScreen> {
   Map<String, List<HistoricalScan>> _groupHistoryByDate(List<ScanResult> scans) {
     final grouped = <String, List<HistoricalScan>>{};
     for (var scan in scans) {
-      final item = HistoricalScan(data: scan, time: scan.time ?? DateTime.now(), userImageUrl: scan.userImageUrl);
-      final date = item.time;
+      final item = HistoricalScan(data: scan, createdAt: scan.createdAt, userImageUrl: scan.userImageUrl);
+      final date = item.createdAt;
       String key;
       if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(DateTime.now())) {
         key = AppStrings.today;
@@ -71,12 +71,7 @@ class _AllScansScreenState extends State<AllScansScreen> {
           controller: _scrollController,
           slivers: [
             const GutSliverAppBar(title: AppStrings.aiScanHistory, showBrandingIcon: false),
-            if (notifier.scansLoading)
-              const _Loading()
-            else if (notifier.scans.isEmpty)
-              const _Empty()
-            else
-              _List(groupedHistory: _groupHistoryByDate(notifier.scans)),
+            if (notifier.scansLoading) const _Loading() else if (notifier.scans.isEmpty) const _Empty() else _List(groupedHistory: _groupHistoryByDate(notifier.scans)),
             if (notifier.scansLoadingMore)
               const SliverToBoxAdapter(
                 child: Padding(

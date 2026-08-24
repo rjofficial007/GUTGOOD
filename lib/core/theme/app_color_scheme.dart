@@ -10,9 +10,15 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     required this.textSecondary,
     required this.textMuted,
     required this.success,
+    required this.softSuccess,
     required this.error,
+    required this.softError,
     required this.warning,
+    required this.softWarning,
     required this.info,
+    required this.softInfo,
+    required this.lavender,
+    required this.lavenderDark,
     required this.aiResponseBackground,
   });
 
@@ -23,9 +29,15 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color textSecondary;
   final Color textMuted;
   final Color success;
+  final Color softSuccess;
   final Color error;
+  final Color softError;
   final Color warning;
+  final Color softWarning;
   final Color info;
+  final Color softInfo;
+  final Color lavender;
+  final Color lavenderDark;
   final Color aiResponseBackground;
 
   @override
@@ -37,9 +49,15 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? textSecondary,
     Color? textMuted,
     Color? success,
+    Color? softSuccess,
     Color? error,
+    Color? softError,
     Color? warning,
+    Color? softWarning,
     Color? info,
+    Color? softInfo,
+    Color? lavender,
+    Color? lavenderDark,
     Color? aiResponseBackground,
   }) => AppColorScheme(
     cardBackground: cardBackground ?? this.cardBackground,
@@ -49,9 +67,15 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     textSecondary: textSecondary ?? this.textSecondary,
     textMuted: textMuted ?? this.textMuted,
     success: success ?? this.success,
+    softSuccess: softSuccess ?? this.softSuccess,
     error: error ?? this.error,
+    softError: softError ?? this.softError,
     warning: warning ?? this.warning,
+    softWarning: softWarning ?? this.softWarning,
     info: info ?? this.info,
+    softInfo: softInfo ?? this.softInfo,
+    lavender: lavender ?? this.lavender,
+    lavenderDark: lavenderDark ?? this.lavenderDark,
     aiResponseBackground: aiResponseBackground ?? this.aiResponseBackground,
   );
 
@@ -66,9 +90,15 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       textMuted: Color.lerp(textMuted, other.textMuted, t)!,
       success: Color.lerp(success, other.success, t)!,
+      softSuccess: Color.lerp(softSuccess, other.softSuccess, t)!,
       error: Color.lerp(error, other.error, t)!,
+      softError: Color.lerp(softError, other.softError, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
+      softWarning: Color.lerp(softWarning, other.softWarning, t)!,
       info: Color.lerp(info, other.info, t)!,
+      softInfo: Color.lerp(softInfo, other.softInfo, t)!,
+      lavender: Color.lerp(lavender, other.lavender, t)!,
+      lavenderDark: Color.lerp(lavenderDark, other.lavenderDark, t)!,
       aiResponseBackground: Color.lerp(aiResponseBackground, other.aiResponseBackground, t)!,
     );
   }
@@ -81,9 +111,15 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     textSecondary: AppPalette.gray600,
     textMuted: AppPalette.gray500,
     success: AppPalette.green,
+    softSuccess: AppPalette.greenSoft,
     error: AppPalette.red,
+    softError: AppPalette.redSoft,
     warning: AppPalette.orange,
+    softWarning: AppPalette.orangeSoft,
     info: AppPalette.blue,
+    softInfo: AppPalette.blueLight,
+    lavender: AppPalette.lavender,
+    lavenderDark: AppPalette.lavenderDark,
     aiResponseBackground: AppPalette.aiResponseBackground,
   );
 
@@ -95,9 +131,15 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     textSecondary: AppPalette.darkTextSecondary,
     textMuted: AppPalette.darkTextMuted,
     success: AppPalette.green500,
+    softSuccess: Color(0xFF1E3A1E),
     error: AppPalette.red,
+    softError: Color(0xFF3A1E1E),
     warning: AppPalette.orange,
+    softWarning: Color(0xFF3A2A1E),
     info: AppPalette.blue,
+    softInfo: Color(0xFF1E2A3A),
+    lavender: Color(0xFF2A2E3A),
+    lavenderDark: AppPalette.purpleLight,
     aiResponseBackground: AppPalette.darkElevated,
   );
 }

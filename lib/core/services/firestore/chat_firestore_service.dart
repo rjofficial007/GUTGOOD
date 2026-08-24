@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class ChatFirestoreService {
@@ -38,12 +39,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       final docRef = doc.collection('chat_history').doc(message.localId);
 
       final cloudSafeData = message.toMap()..remove('id');
-      final data = {
-        ...cloudSafeData,
-        'firestoreId': docRef.id,
-        'source': message.source ?? 'chat',
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+      final data = {...cloudSafeData, 'firestoreId': docRef.id, 'source': message.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
 
       // Use set with merge: true to allow partial updates (e.g. feedback)
       // while preserving the original document if it already exists.
@@ -61,7 +57,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
     if (doc == null) return const Stream.empty();
     return doc
         .collection('chat_history')
-        .orderBy('time', descending: true)
+        .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots()
         .handleError((e) {
@@ -80,10 +76,10 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
 
-      var query = doc.collection('chat_history').orderBy('time', descending: true);
+      var query = doc.collection('chat_history').orderBy('createdAt', descending: true);
 
       if (since != null) {
-        query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+        query = query.where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since));
       }
 
       if (limit != null) {
@@ -104,11 +100,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
 
-      final query = doc
-          .collection('chat_history')
-          .orderBy('time', descending: true)
-          .where('time', isLessThan: before.toIso8601String())
-          .limit(limit);
+      final query = doc.collection('chat_history').orderBy('createdAt', descending: true).where('createdAt', isLessThan: DateTimeUtils.toTimestamp(before)).limit(limit);
 
       final snapshot = await query.get();
       return snapshot.docs.map((doc) => ChatMessage.fromMap({...doc.data(), 'firestoreId': doc.id})).toList();

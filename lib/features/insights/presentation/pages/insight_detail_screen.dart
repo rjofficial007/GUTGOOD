@@ -10,6 +10,7 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
@@ -19,7 +20,6 @@ import 'package:gutgood/core/widgets/gut_snapshot_hero_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class InsightDetailScreen extends StatelessWidget {
@@ -28,7 +28,7 @@ class InsightDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('MMM dd, yyyy').format(insight.updatedAt);
+    final dateStr = DateFormatter.formatDate(insight.updatedAt);
 
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,

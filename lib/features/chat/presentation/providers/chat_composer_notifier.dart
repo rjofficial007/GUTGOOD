@@ -189,10 +189,10 @@ class ChatComposerNotifier with ChangeNotifier {
       isSending: sending.isNotEmpty,
       isSwap: false,
       source: source ?? (sending.isNotEmpty ? sending.first.source : 'chat'),
-      time: DateTime.now(),
+      createdAt: DateTime.now(),
     );
 
-    final aiPlaceholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: '', isSwap: false, source: userMsg.source, time: DateTime.now().add(const Duration(milliseconds: 1)));
+    final aiPlaceholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: '', isSwap: false, source: userMsg.source, createdAt: DateTime.now().add(const Duration(milliseconds: 1)));
 
     _historyNotifier
       ..addOptimisticMessage(userMsg)
@@ -264,7 +264,7 @@ class ChatComposerNotifier with ChangeNotifier {
       await _historyNotifier.deleteMessage(old);
     }
 
-    final placeholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: '', isSwap: false, source: _lastSource, time: DateTime.now());
+    final placeholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: '', isSwap: false, source: _lastSource, createdAt: DateTime.now());
     _historyNotifier.addOptimisticMessage(placeholder);
     _activeAiLocalId = placeholder.localId;
 
@@ -479,10 +479,7 @@ class ChatComposerNotifier with ChangeNotifier {
       swapData: result.swaps,
       isSwap: result.swaps.isNotEmpty,
       analysisResult: result,
-      foodMentions: [
-        if (result.meal != null) ...result.meal!.items,
-        if (result.scan != null) result.scan!.productName,
-      ].whereType<String>().toList(),
+      foodMentions: [if (result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
       symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
     );
 
@@ -505,7 +502,7 @@ class ChatComposerNotifier with ChangeNotifier {
 
     final currentMsg = _historyNotifier.messages.firstWhere(
       (m) => m.localId == aiLocalId,
-      orElse: () => ChatMessage(localId: '', role: '', text: '', time: DateTime.now()),
+      orElse: () => ChatMessage(localId: '', role: '', text: '', createdAt: DateTime.now()),
     );
     if (currentMsg.localId.isEmpty) {
       _finishTurn();
@@ -515,13 +512,7 @@ class ChatComposerNotifier with ChangeNotifier {
     if (_chunkBuffer.isNotEmpty || _fullAiText.isNotEmpty) {
       _fullAiText += _chunkBuffer;
       _chunkBuffer = '';
-      final result = _processChatTagUseCase(
-        _fullAiText,
-        imageUrl: currentMsg.imageUrl,
-        source: currentMsg.source,
-        chatMessageId: aiLocalId,
-        isFinal: true,
-      );
+      final result = _processChatTagUseCase(_fullAiText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, chatMessageId: aiLocalId, isFinal: true);
       final finalMsg = currentMsg.copyWith(
         text: _applySafetyGuardrails(result.text),
         scanData: result.scan,
@@ -530,23 +521,14 @@ class ChatComposerNotifier with ChangeNotifier {
         swapData: result.swaps,
         isSwap: result.swaps.isNotEmpty,
         analysisResult: result,
-        foodMentions: [
-          if (result.meal != null) ...result.meal!.items,
-          if (result.scan != null) result.scan!.productName,
-        ].whereType<String>().toList(),
+        foodMentions: [if (result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
         symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
       );
       _historyNotifier.replaceMessage(aiLocalId, finalMsg);
 
       // Persist any partial but valid results if we at least got the tags
       if (_persistTagsForActiveTurn) {
-        unawaited(_persistAiResponseUseCase(
-          result,
-          chatMessageId: aiLocalId,
-          imageUrl: currentMsg.imageUrl,
-          source: currentMsg.source,
-          persistedTagBlocks: _persistedTags,
-        ));
+        unawaited(_persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags));
       }
     }
 
@@ -574,7 +556,7 @@ class ChatComposerNotifier with ChangeNotifier {
 
     final currentMsg = _historyNotifier.messages.firstWhere(
       (m) => m.localId == aiLocalId,
-      orElse: () => ChatMessage(localId: '', role: '', text: '', time: DateTime.now()),
+      orElse: () => ChatMessage(localId: '', role: '', text: '', createdAt: DateTime.now()),
     );
     if (currentMsg.localId.isEmpty) {
       _finishTurn();
@@ -593,10 +575,7 @@ class ChatComposerNotifier with ChangeNotifier {
       swapData: result.swaps,
       isSwap: result.swaps.isNotEmpty,
       analysisResult: result,
-      foodMentions: [
-        if (result.meal != null) ...result.meal!.items,
-        if (result.scan != null) result.scan!.productName,
-      ].whereType<String>().toList(),
+      foodMentions: [if (result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
       symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
     );
     _historyNotifier.replaceMessage(aiLocalId, finalMsg);
@@ -611,13 +590,7 @@ class ChatComposerNotifier with ChangeNotifier {
     // 🟢 ATOMIC PERSISTENCE: Now that the AI turn is finished and validated,
     // persist all domain logs (meals, symptoms, scans) to history.
     if (_persistTagsForActiveTurn && !_generationCancelled) {
-      unawaited(_persistAiResponseUseCase(
-        result,
-        chatMessageId: aiLocalId,
-        imageUrl: currentMsg.imageUrl,
-        source: currentMsg.source,
-        persistedTagBlocks: _persistedTags,
-      ));
+      unawaited(_persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags));
     }
 
     _persistAiMessage(aiLocalId);
@@ -659,8 +632,15 @@ class ChatComposerNotifier with ChangeNotifier {
     if (_isLoading) return;
     if (!_connectionChecker.isInternetAvailable.value) return;
 
-    final userMsg = ChatMessage(localId: const Uuid().v4(), role: 'user', text: '${AppStrings.moreSwapsPrompt}$prompt', isSwap: false, isHidden: true, source: 'chat', time: DateTime.now());
-    final aiPlaceholder = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: AppStrings.findingSwaps, isSwap: false, source: 'chat', time: DateTime.now().add(const Duration(milliseconds: 1)));
+    final userMsg = ChatMessage(localId: const Uuid().v4(), role: 'user', text: '${AppStrings.moreSwapsPrompt}$prompt', isSwap: false, isHidden: true, source: 'chat', createdAt: DateTime.now());
+    final aiPlaceholder = ChatMessage(
+      localId: const Uuid().v4(),
+      role: 'ai',
+      text: AppStrings.findingSwaps,
+      isSwap: false,
+      source: 'chat',
+      createdAt: DateTime.now().add(const Duration(milliseconds: 1)),
+    );
 
     _historyNotifier
       ..addOptimisticMessage(userMsg)
@@ -727,10 +707,7 @@ class ChatComposerNotifier with ChangeNotifier {
             swapData: result.swaps,
             isSwap: result.swaps.isNotEmpty,
             analysisResult: result,
-            foodMentions: [
-              if (result.meal != null) ...result.meal!.items,
-              if (result.scan != null) result.scan!.productName,
-            ].whereType<String>().toList(),
+            foodMentions: [if (result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
             symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
           ),
         );

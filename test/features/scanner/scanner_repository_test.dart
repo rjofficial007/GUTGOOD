@@ -19,8 +19,7 @@ class MockAiService extends Mock implements AiService {}
 
 class MockChatFirestoreService extends Mock implements ChatFirestoreService {}
 
-class MockHistoryFirestoreService extends Mock
-    implements HistoryFirestoreService {}
+class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}
 
 class MockNotificationService extends Mock implements NotificationService {}
 
@@ -42,18 +41,8 @@ void main() {
   late MockStreakService mockStreakService;
 
   setUpAll(() {
-    registerFallbackValue(
-      const ScanResult(
-        productName: '',
-        brand: '',
-        score: 0,
-        impactType: ImpactType.neutral,
-        impact: '',
-      ),
-    );
-    registerFallbackValue(
-      ChatMessage(localId: '', role: '', text: '', time: DateTime.now()),
-    );
+    registerFallbackValue(ScanResult(productName: '', brand: '', score: 0, impactType: ImpactType.neutral, impact: '', createdAt: DateTime.now()));
+    registerFallbackValue(ChatMessage(localId: '', role: '', text: '', createdAt: DateTime.now()));
   });
 
   setUp(() {
@@ -80,14 +69,8 @@ void main() {
 
   group('ScannerRepository', () {
     test('getProductByBarcode calls OffService', () async {
-      const product = OffProduct(
-        barcode: '123',
-        productName: 'Test',
-        brand: 'Brand',
-      );
-      when(
-        () => mockOffService.getProduct('123'),
-      ).thenAnswer((_) async => product);
+      const product = OffProduct(barcode: '123', productName: 'Test', brand: 'Brand');
+      when(() => mockOffService.getProduct('123')).thenAnswer((_) async => product);
 
       final result = await repository.getProductByBarcode('123');
 
@@ -96,17 +79,9 @@ void main() {
     });
 
     test('saveScanResult saves to Firestore and notifies UI', () async {
-      const result = ScanResult(
-        productName: 'Test Product',
-        brand: 'Brand',
-        score: 80,
-        impactType: ImpactType.positive,
-        impact: 'Good',
-      );
+      final result = ScanResult(productName: 'Test Product', brand: 'Brand', score: 80, impactType: ImpactType.positive, impact: 'Good', createdAt: DateTime.now());
 
-      when(
-        () => mockChatFirestoreService.saveMessage(any()),
-      ).thenAnswer((_) async => 'msg_id');
+      when(() => mockChatFirestoreService.saveMessage(any())).thenAnswer((_) async => 'msg_id');
       when(
         () => mockHistoryFirestoreService.saveToScanHistory(
           any(),
@@ -115,12 +90,8 @@ void main() {
         ),
       ).thenAnswer((_) async {});
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
-      when(
-        () => mockNotificationService.scheduleNoMealLoggedReminder(),
-      ).thenAnswer((_) async {});
-      when(
-        () => mockNotificationService.schedulePostMealCheckIn(),
-      ).thenAnswer((_) async {});
+      when(() => mockNotificationService.scheduleNoMealLoggedReminder()).thenAnswer((_) async {});
+      when(() => mockNotificationService.schedulePostMealCheckIn()).thenAnswer((_) async {});
       when(() => mockStreakService.markActivityToday()).thenAnswer((_) async {});
 
       await repository.saveScanResult(result);

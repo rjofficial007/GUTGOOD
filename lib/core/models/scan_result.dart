@@ -35,11 +35,11 @@ class ScanResult extends Equatable {
     this.source,
     this.userImageUrl,
     this.flaggedIngredients = const [],
-    this.time,
     this.isSaved = false,
     this.scanId,
     this.chatMessageId,
     this.servingSize,
+    required this.createdAt,
   });
 
   factory ScanResult.fromMap(Map<String, dynamic> map) {
@@ -110,11 +110,11 @@ class ScanResult extends Equatable {
       source: map['source']?.toString(),
       userImageUrl: map['userImageUrl']?.toString(),
       flaggedIngredients: ModelUtils.parseList<String>(map['flaggedIngredients']),
-      time: map['time'] != null ? DateTimeUtils.parse(map['time']) : null,
       isSaved: ModelUtils.parseBool(map['isSaved']),
       scanId: map['scanId']?.toString(),
       chatMessageId: map['chatMessageId']?.toString(),
       servingSize: map['servingSize']?.toString(),
+      createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['timestamp'] ?? map['time']),
     );
   }
 
@@ -184,9 +184,6 @@ class ScanResult extends Equatable {
   /// List of names for ingredients flagged as risky during analysis.
   final List<String> flaggedIngredients;
 
-  /// The timestamp when this scan was created.
-  final DateTime? time;
-
   /// Whether this product is saved as a favorite.
   final bool isSaved;
 
@@ -198,6 +195,9 @@ class ScanResult extends Equatable {
 
   /// Serving size information (e.g., "100g", "1 pack").
   final String? servingSize;
+
+  /// Record creation timestamp.
+  final DateTime createdAt;
 
   /// Returns true if this result represents a specific food product suitable for history.
   ///
@@ -264,11 +264,11 @@ class ScanResult extends Equatable {
     String? source,
     String? userImageUrl,
     List<String>? flaggedIngredients,
-    DateTime? time,
     bool? isSaved,
     String? scanId,
     String? chatMessageId,
     String? servingSize,
+    DateTime? createdAt,
   }) => ScanResult(
     productName: productName ?? this.productName,
     brand: brand ?? this.brand,
@@ -292,11 +292,11 @@ class ScanResult extends Equatable {
     source: source ?? this.source,
     userImageUrl: userImageUrl ?? this.userImageUrl,
     flaggedIngredients: flaggedIngredients ?? this.flaggedIngredients,
-    time: time ?? this.time,
     isSaved: isSaved ?? this.isSaved,
     scanId: scanId ?? this.scanId,
     chatMessageId: chatMessageId ?? this.chatMessageId,
     servingSize: servingSize ?? this.servingSize,
+    createdAt: createdAt ?? this.createdAt,
   );
 
   Map<String, dynamic> toMap() => {
@@ -322,21 +322,15 @@ class ScanResult extends Equatable {
     'source': source,
     'userImageUrl': userImageUrl,
     'flaggedIngredients': flaggedIngredients,
-    'time': time?.toIso8601String(),
     'isSaved': isSaved,
     'scanId': scanId,
     'chatMessageId': chatMessageId,
     'servingSize': servingSize,
+    'createdAt': DateTimeUtils.toTimestamp(createdAt),
   };
 
   /// Optimized Map for AI context to prevent 502/payload-too-large errors.
   /// Excludes large fields like full ingredients, nutrients, and swaps.
-  ///
-  /// 🟢 NEW: now also includes `flaggedIngredients` short-circuit already
-  /// present, plus is actually WIRED UP into chat history round-trips —
-  /// see `AiServiceImpl._historyToPayload` in ai_service.dart. Previously
-  /// this method existed but was never called from the chat streaming
-  /// path, so scan context silently vanished from follow-up turns.
   Map<String, dynamic> toAiMap() => {
     'productName': productName,
     'brand': brand,
@@ -348,5 +342,5 @@ class ScanResult extends Equatable {
   };
 
   @override
-  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved, scanId, chatMessageId, servingSize, time];
+  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved, scanId, chatMessageId, servingSize, createdAt];
 }

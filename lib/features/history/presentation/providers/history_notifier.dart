@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/models/journal_entry.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
@@ -9,17 +10,16 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 
+enum HistoryFilter { all, scans, meals, body }
+
 class HistoryNotifier with ChangeNotifier {
-  HistoryNotifier({
-    required HistoryRepository repository,
-    required AppStateService appStateService,
-    required FirebaseAuth auth,
-  }) : _repository = repository,
-       _appStateService = appStateService,
-       _auth = auth {
+  HistoryNotifier({required HistoryRepository repository, required AppStateService appStateService, required FirebaseAuth auth})
+    : _repository = repository,
+      _appStateService = appStateService,
+      _auth = auth {
     _appStateService.chatUpdated.addListener(refreshAll);
     _appStateService.sessionReset.addListener(clearAll);
-    
+
     _auth.authStateChanges().listen((user) {
       if (user != null) {
         refreshAll();
@@ -27,13 +27,22 @@ class HistoryNotifier with ChangeNotifier {
         clearAll();
       }
     });
-    
+
     refreshAll();
   }
 
   final HistoryRepository _repository;
   final AppStateService _appStateService;
   final FirebaseAuth _auth;
+
+  HistoryFilter _currentFilter = HistoryFilter.all;
+  HistoryFilter get currentFilter => _currentFilter;
+
+  void setFilter(HistoryFilter filter) {
+    if (_currentFilter == filter) return;
+    _currentFilter = filter;
+    notifyListeners();
+  }
 
   // Scans
   final List<ScanResult> _scans = [];
@@ -70,6 +79,31 @@ class HistoryNotifier with ChangeNotifier {
   bool get symptomsLoadingMore => _symptomsLoadingMore;
   bool get symptomsHasMore => _symptomsHasMore;
 
+  List<JournalEntry> get filteredEntries {
+    final allEntries = <JournalEntry>[];
+
+    if (_currentFilter == HistoryFilter.all || _currentFilter == HistoryFilter.scans) {
+      allEntries.addAll(_scans.map((s) => JournalEntry(id: s.scanId ?? 'scan_${s.createdAt.millisecondsSinceEpoch}', type: JournalEntryType.scan, createdAt: s.createdAt, scan: s)));
+    }
+
+    if (_currentFilter == HistoryFilter.all || _currentFilter == HistoryFilter.meals) {
+      allEntries.addAll(_meals.map((m) => JournalEntry(id: m.firestoreId ?? m.id?.toString() ?? 'meal_${m.createdAt.millisecondsSinceEpoch}', type: JournalEntryType.meal, createdAt: m.createdAt, meal: m)));
+    }
+
+    if (_currentFilter == HistoryFilter.all || _currentFilter == HistoryFilter.body) {
+      allEntries.addAll(
+        _symptoms.map((s) => JournalEntry(id: s.firestoreId ?? s.id?.toString() ?? 'symptom_${s.createdAt.millisecondsSinceEpoch}', type: JournalEntryType.symptom, createdAt: s.createdAt, symptom: s)),
+      );
+    }
+
+    // Sort chronologically (Newest first)
+    allEntries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    return allEntries;
+  }
+
+  bool get isLoading => _scansLoading || _mealsLoading || _symptomsLoading;
+
   @override
   void dispose() {
     _appStateService.chatUpdated.removeListener(refreshAll);
@@ -91,11 +125,7 @@ class HistoryNotifier with ChangeNotifier {
   }
 
   Future<void> refreshAll() async {
-    await Future.wait([
-      refreshScans(),
-      refreshMeals(),
-      refreshSymptoms(),
-    ]);
+    await Future.wait([refreshScans(), refreshMeals(), refreshSymptoms()]);
   }
 
   Future<void> refreshScans() async {
@@ -105,8 +135,9 @@ class HistoryNotifier with ChangeNotifier {
 
     try {
       final results = await _repository.getScanHistory(limit: _pageSize);
-      _scans..clear()
-      ..addAll(results);
+      _scans
+        ..clear()
+        ..addAll(results);
       if (results.length < _pageSize) _scansHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh scans', error: e);
@@ -123,16 +154,9 @@ class HistoryNotifier with ChangeNotifier {
     notifyListeners();
 
     try {
-      final lastTime = _scans.last.time;
-      if (lastTime == null) {
-        _scansHasMore = false;
-        return;
-      }
+      final lastTime = _scans.last.createdAt;
 
-      final results = await _repository.getScanHistory(
-        limit: _pageSize,
-        before: lastTime,
-      );
+      final results = await _repository.getScanHistory(limit: _pageSize, before: lastTime);
 
       if (results.length < _pageSize) _scansHasMore = false;
       _scans.addAll(results);
@@ -149,8 +173,9 @@ class HistoryNotifier with ChangeNotifier {
 
     try {
       final results = await _repository.getRecentMealLogs(limit: _pageSize);
-      _meals..clear()
-      ..addAll(results);
+      _meals
+        ..clear()
+        ..addAll(results);
       if (results.length < _pageSize) _mealsHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh meals', error: e);
@@ -167,10 +192,7 @@ class HistoryNotifier with ChangeNotifier {
     notifyListeners();
 
     try {
-      final results = await _repository.getRecentMealLogs(
-        limit: _pageSize,
-        before: _meals.last.time,
-      );
+      final results = await _repository.getRecentMealLogs(limit: _pageSize, before: _meals.last.createdAt);
 
       if (results.length < _pageSize) _mealsHasMore = false;
       _meals.addAll(results);
@@ -187,8 +209,9 @@ class HistoryNotifier with ChangeNotifier {
 
     try {
       final results = await _repository.getRecentSymptomLogs(limit: _pageSize);
-      _symptoms..clear()
-      ..addAll(results);
+      _symptoms
+        ..clear()
+        ..addAll(results);
       if (results.length < _pageSize) _symptomsHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh symptoms', error: e);
@@ -205,10 +228,7 @@ class HistoryNotifier with ChangeNotifier {
     notifyListeners();
 
     try {
-      final results = await _repository.getRecentSymptomLogs(
-        limit: _pageSize,
-        before: _symptoms.last.time,
-      );
+      final results = await _repository.getRecentSymptomLogs(limit: _pageSize, before: _symptoms.last.createdAt);
 
       if (results.length < _pageSize) _symptomsHasMore = false;
       _symptoms.addAll(results);

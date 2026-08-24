@@ -11,6 +11,7 @@ import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
 import 'package:gutgood/core/widgets/chat/thinking_indicator.dart';
@@ -21,7 +22,7 @@ class ChatBubble extends StatelessWidget {
     super.key,
     required this.text,
     required this.isUser,
-    required this.time,
+    required this.createdAt,
     this.isLoading = false,
     this.imageUrls = const [],
     this.localImages,
@@ -46,7 +47,7 @@ class ChatBubble extends StatelessWidget {
 
   final String text;
   final bool isUser;
-  final DateTime time;
+  final DateTime createdAt;
   final bool isLoading;
   final List<String> imageUrls;
   final List<Uint8List>? localImages;
@@ -81,7 +82,7 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isLoading) return _buildLoadingState(context);
 
-    final formattedTime = _getFormattedTime();
+    final formattedTime = DateFormatter.formatTime(createdAt);
 
     if (isUser) return _buildUserMessage(context, formattedTime);
 
@@ -90,12 +91,6 @@ class ChatBubble extends StatelessWidget {
     }
 
     return _buildAiMessage(context, formattedTime);
-  }
-
-  String _getFormattedTime() {
-    final hour = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
-    final amPm = time.hour >= 12 ? AppStrings.unitPM : AppStrings.unitAM;
-    return '$hour:${time.minute.toString().padLeft(2, '0')} $amPm';
   }
 
   Widget _buildLoadingState(BuildContext context) {
@@ -340,7 +335,7 @@ class ChatBubble extends StatelessWidget {
       runSpacing: 8,
       children: List.generate(count, (i) {
         final borderRadius = BorderRadius.circular(16);
-        final heroTag = 'chat_image_${local != null ? "local" : "url"}_${i}_${time.millisecondsSinceEpoch}';
+        final heroTag = 'chat_image_${local != null ? "local" : "url"}_${i}_${createdAt.millisecondsSinceEpoch}';
 
         final image = (local != null && local.isNotEmpty)
             ? Image.memory(local[i], height: size, width: size, fit: BoxFit.cover, gaplessPlayback: true)

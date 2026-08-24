@@ -10,7 +10,7 @@ INTENT CATEGORIES:
 2. meal_rating: User explicitly asks for a score, grade, or "how did I do".
 3. full_analysis: User wants deep details, "tell me everything", or comprehensive breakdown.
 4. health_assessment: User asks if something is "healthy", "balanced", or "okay for me".
-5. symptom_analysis: User reports a physical feeling (bloated, tired, pain) or asks "why do I feel...".
+5. symptom_analysis: User reports a physical or emotional feeling (bloated, tired, energetic, pain) or asks "why do I feel...".
 6. product_comparison: User compares two or more items (e.g., "Oat vs Soy").
 7. meal_planning: User asks for future suggestions or ideas ("What should I have for dinner?").
 8. menu: User refers to restaurant ordering or a physical menu.

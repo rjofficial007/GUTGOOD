@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
@@ -7,7 +8,9 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/services/app_services.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/config_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -102,17 +105,31 @@ class _LoginSheet extends StatefulWidget {
 
 class _LoginSheetState extends State<_LoginSheet> {
   late final GutAuthNotifier _authNotifier;
+  late final TapGestureRecognizer _termsRecognizer;
+  late final TapGestureRecognizer _privacyRecognizer;
 
   @override
   void initState() {
     super.initState();
     _authNotifier = context.read<GutAuthNotifier>()..addListener(_onAuthChanged);
+    _termsRecognizer = TapGestureRecognizer()..onTap = _onTermsTap;
+    _privacyRecognizer = TapGestureRecognizer()..onTap = _onPrivacyTap;
   }
 
   @override
   void dispose() {
     _authNotifier.removeListener(_onAuthChanged);
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
     super.dispose();
+  }
+
+  void _onTermsTap() {
+    unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl));
+  }
+
+  void _onPrivacyTap() {
+    unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl));
   }
 
   void _onAuthChanged() {
@@ -193,18 +210,40 @@ class _LoginSheetState extends State<_LoginSheet> {
 
     return GutSheetWrapper(
       children: [
-        const GutSheetHeader(title: AppStrings.signIn),
+        GutSheetHeader(title: '', onClose: () => context.pop()),
+        Text('Keep discovering\nyour patterns', textAlign: TextAlign.center, style: context.headingLg.copyWith(height: 1.1)),
+        Gap.h16,
         Text(
-          widget.customMessage ?? AppStrings.signInSubtitleGeneral,
+          widget.customMessage ?? 'You’ve used today’s free scans. Sign in to keep scanning and start building your personal food history.',
           textAlign: TextAlign.center,
           style: context.body.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w500),
         ),
         Gap.h32,
 
+        // Feature List
+        Container(
+          padding: EdgeInsets.all(AppSizes.p16),
+          decoration: BoxDecoration(color: isDark ? AppPalette.black : const Color(0xFFF8F7FF), borderRadius: BorderRadius.circular(AppSizes.r24)),
+          child: const Column(
+            children: [
+              _FeatureItem(icon: AppIcons.scan, title: 'Unlimited daily scans', description: 'Scan as much as you need', color: AppPalette.purple),
+              _Divider(),
+              _FeatureItem(icon: AppIcons.barChart, title: 'Personalized insights', description: 'See how food affects your body', color: AppPalette.green),
+              _Divider(),
+              _FeatureItem(icon: AppIcons.heartPulse, title: 'Save your history', description: 'Track meals and build better habits', color: AppPalette.pink),
+              _Divider(),
+              _FeatureItem(icon: AppIcons.cloud, title: 'Access anywhere', description: 'Your data stays safe and in sync', color: AppPalette.blue),
+            ],
+          ),
+        ),
+        Gap.h32,
+
         AuthOptionTile(
           imagePath: AppAssets.appleLogo,
-          label: AppStrings.signInWithApple,
-          imageColor: isDark ? AppPalette.white : null,
+          label: AppStrings.continueWithApple,
+          color: AppPalette.black,
+          textColor: AppPalette.white,
+          imageColor: AppPalette.white,
           onTap: authNotifier.isLoading
               ? null
               : () {
@@ -214,7 +253,7 @@ class _LoginSheetState extends State<_LoginSheet> {
         Gap.h12,
         AuthOptionTile(
           imagePath: AppAssets.googleLogo,
-          label: AppStrings.signInWithGoogle,
+          label: AppStrings.continueWithGoogle,
           onTap: authNotifier.isLoading
               ? null
               : () {
@@ -239,13 +278,78 @@ class _LoginSheetState extends State<_LoginSheet> {
 
         if (authNotifier.isLoading) ...[Gap.h24, CircularProgressIndicator(color: context.appColorScheme.textPrimary)],
         Gap.h32,
-        Text(
-          AppStrings.termsAndPrivacyNotice,
+        Text.rich(
+          TextSpan(
+            text: 'By signing in, you agree to our ',
+            children: [
+              TextSpan(
+                text: 'Terms of Service',
+                recognizer: _termsRecognizer,
+                style: const TextStyle(color: AppPalette.blueLink),
+              ),
+              const TextSpan(text: ' and '),
+              TextSpan(
+                text: 'Privacy Policy',
+                recognizer: _privacyRecognizer,
+                style: const TextStyle(color: AppPalette.blueLink),
+              ),
+              const TextSpan(text: '.'),
+            ],
+          ),
           textAlign: TextAlign.center,
-          style: context.caption.copyWith(color: context.appColorScheme.textMuted, height: 1.4, fontSize: AppSizes.s11),
+          style: context.caption.copyWith(color: context.appColorScheme.textMuted, height: 1.4, fontSize: AppSizes.s12),
         ),
         Gap.h24,
       ],
     );
   }
+}
+
+class _FeatureItem extends StatelessWidget {
+  const _FeatureItem({required this.icon, required this.title, required this.description, required this.color});
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.symmetric(vertical: AppSizes.p4),
+    child: Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(AppSizes.p10),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+          child: Icon(icon, color: color, size: AppSizes.icon20),
+        ),
+        Gap.w16,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: context.title.copyWith(color: color, fontSize: AppSizes.s15, fontWeight: FontWeight.w700),
+              ),
+              Text(
+                description,
+                style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary, fontSize: AppSizes.s13),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.only(left: AppSizes.p56, top: AppSizes.p4, bottom: AppSizes.p4),
+    child: Divider(color: context.appColorScheme.border.withValues(alpha: 0.5), height: 1),
+  );
 }

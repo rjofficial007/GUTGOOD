@@ -7,8 +7,8 @@ import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:intl/intl.dart';
 
 class AIHubSection extends StatelessWidget {
   const AIHubSection({super.key, required this.scans, required this.onViewAll});
@@ -69,7 +69,7 @@ class _ScanMiniTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text('${scan.data.brand} • ${DateFormat('MMM d, h:mm a').format(scan.time)}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
+              Text('${scan.data.brand} • ${DateFormatter.formatFull(scan.createdAt)}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
             ],
           ),
         ),
@@ -145,7 +145,7 @@ class _MealMiniTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text('${DateFormat('h:mm a').format(meal.time)} • ${meal.source?.toUpperCase() ?? 'LOG'}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
+              Text('${DateFormatter.formatTime(meal.createdAt)} • ${meal.source?.toUpperCase() ?? 'LOG'}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
             ],
           ),
         ),
@@ -215,7 +215,7 @@ class _SymptomMiniTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text('Severity: ${symptom.severity}/10 • ${DateFormat('h:mm a').format(symptom.time)}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
+              Text('Severity: ${symptom.severity}/10 • ${DateFormatter.formatTime(symptom.createdAt)}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
             ],
           ),
         ),

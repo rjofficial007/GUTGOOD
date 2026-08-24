@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DateTimeUtils {
+  /// Robust parser that handles Firestore [Timestamp], ISO 8601 [String],
+  /// unix [int], and existing [DateTime] objects.
   static DateTime parse(dynamic value) {
     if (value == null) return DateTime.now();
 
@@ -28,5 +30,11 @@ class DateTimeUtils {
   static DateTime parseToUtc(dynamic value) {
     final dt = parse(value);
     return dt.isUtc ? dt : dt.toUtc();
+  }
+
+  /// Converts any supported date/time format into a Firestore [Timestamp].
+  static Timestamp toTimestamp(dynamic value) {
+    if (value is Timestamp) return value;
+    return Timestamp.fromDate(parse(value));
   }
 }

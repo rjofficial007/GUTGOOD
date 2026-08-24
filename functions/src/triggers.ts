@@ -12,7 +12,7 @@ import { calculateStreakUpdate, getLocalDate } from './usage';
 /**
  * Shared helper to update user streak based on activity time.
  */
-async function handleActivityStreak(uid: string, docTime: string, docOffset?: number) {
+async function handleActivityStreak(uid: string, docTime: any, docOffset?: number) {
   const db = admin.firestore();
   const userRef = db.doc(`user_profiles/${uid}`);
 
@@ -33,7 +33,7 @@ async function handleActivityStreak(uid: string, docTime: string, docOffset?: nu
         return;
       }
 
-      const today = getLocalDate(docTime || new Date().toISOString(), offset);
+      const today = getLocalDate(docTime || new Date(), offset);
 
       const update = calculateStreakUpdate(userData, today);
       if (update) {
@@ -55,7 +55,7 @@ export const onScanCreated = functions
     if (!scanData) return;
 
     // 1. Update Streak
-    await handleActivityStreak(uid, scanData.time, scanData.timezoneOffset);
+    await handleActivityStreak(uid, scanData.createdAt);
 
     // 2. Process warnings (existing logic)
     const novaGroup = (scanData.novaGroup || '').toString();
@@ -71,7 +71,7 @@ export const onScanCreated = functions
 
     const recentScansSnap = await userRef
       .collection('scan_history')
-      .where('time', '>=', threeDaysAgo.toISOString())
+      .where('createdAt', '>=', threeDaysAgo)
       .get();
 
     const processedScans = recentScansSnap.docs.filter(doc => {
@@ -100,7 +100,6 @@ export const onScanCreated = functions
           title: 'Processed Food Alert',
           message: 'You\'ve logged several processed foods lately. These can disrupt your gut microbiome. Try swapping for "Healing Foods" from your Insights.',
           type: 'processed_food',
-          time: now.toISOString(),
           isRead: false,
         };
 
@@ -111,7 +110,7 @@ export const onScanCreated = functions
 
         // 2. Update throttle timestamp
         await userRef.update({
-          lastProcessedWarningTime: now.toISOString(),
+          lastProcessedWarningTime: admin.firestore.Timestamp.fromDate(now),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -164,7 +163,7 @@ export const onMealCreated = functions
     const { uid } = context.params;
     const data = snapshot.data();
     if (data) {
-      await handleActivityStreak(uid, data.time, data.timezoneOffset);
+      await handleActivityStreak(uid, data.createdAt);
     }
   });
 
@@ -206,7 +205,7 @@ export const onSymptomCreated = functions
     const { uid } = context.params;
     const data = snapshot.data();
     if (data) {
-      await handleActivityStreak(uid, data.time, data.timezoneOffset);
+      await handleActivityStreak(uid, data.createdAt);
     }
   });
 

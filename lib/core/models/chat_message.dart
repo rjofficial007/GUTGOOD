@@ -42,7 +42,7 @@ class ChatMessage extends Equatable {
     this.foodMentions = const [],
     this.symptomMentions = const [],
     this.isHidden = false,
-    required this.time,
+    required this.createdAt,
   }) : _imageUrl = imageUrl;
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) {
@@ -76,7 +76,7 @@ class ChatMessage extends Equatable {
       foodMentions: ModelUtils.parseList<String>(map['foodMentions']),
       symptomMentions: ModelUtils.parseList<String>(map['symptomMentions']),
       isHidden: ModelUtils.parseBool(map['isHidden'] ?? false),
-      time: DateTimeUtils.parse(map['time']),
+      createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['time']),
     );
   }
 
@@ -157,7 +157,7 @@ class ChatMessage extends Equatable {
   final bool isHidden;
 
   /// The exact time the message was created or received.
-  final DateTime time;
+  final DateTime createdAt;
 
   /// Back-compat getter for single-image widgets.
   Uint8List? get localImageBytes => (localImages != null && localImages!.isNotEmpty) ? localImages!.first : null;
@@ -186,7 +186,7 @@ class ChatMessage extends Equatable {
     List<String>? foodMentions,
     List<String>? symptomMentions,
     bool? isHidden,
-    DateTime? time,
+    DateTime? createdAt,
     bool clearLocalImages = false,
   }) {
     final nextImageUrls = imageUrls ?? this.imageUrls;
@@ -214,7 +214,7 @@ class ChatMessage extends Equatable {
       foodMentions: foodMentions ?? this.foodMentions,
       symptomMentions: symptomMentions ?? this.symptomMentions,
       isHidden: isHidden ?? this.isHidden,
-      time: time ?? this.time,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -238,7 +238,7 @@ class ChatMessage extends Equatable {
     'foodMentions': foodMentions,
     'symptomMentions': symptomMentions,
     'isHidden': isHidden,
-    'time': time.toIso8601String(),
+    'createdAt': DateTimeUtils.toTimestamp(createdAt),
   };
 
   /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
@@ -252,16 +252,36 @@ class ChatMessage extends Equatable {
     }
 
     if (mealLogs.isNotEmpty) {
-      buffer.write('\n\n[MEAL_CONTEXT]${jsonEncode(mealLogs.map((e) => e.toMap()).toList())}[/MEAL_CONTEXT]');
+      buffer.write('\n\n[MEAL_CONTEXT]${jsonEncode(mealLogs.map((e) => e.toAiMap()).toList())}[/MEAL_CONTEXT]');
     }
 
     if (symptomLogs.isNotEmpty) {
-      buffer.write('\n\n[SYMPTOM_CONTEXT]${jsonEncode(symptomLogs.map((e) => e.toMap()).toList())}[/SYMPTOM_CONTEXT]');
+      buffer.write('\n\n[SYMPTOM_CONTEXT]${jsonEncode(symptomLogs.map((e) => e.toAiMap()).toList())}[/SYMPTOM_CONTEXT]');
     }
 
     return {'role': role, 'content': buffer.toString().trim()};
   }
 
   @override
-  List<Object?> get props => [id, firestoreId, localId, role, text, imageUrl, imageUrls, scanData, mealLogs, symptomLogs, swapData, analysisResult, isSwap, feedback, isSending, sendFailed, errorKind, isHidden, time];
+  List<Object?> get props => [
+    id,
+    firestoreId,
+    localId,
+    role,
+    text,
+    imageUrl,
+    imageUrls,
+    scanData,
+    mealLogs,
+    symptomLogs,
+    swapData,
+    analysisResult,
+    isSwap,
+    feedback,
+    isSending,
+    sendFailed,
+    errorKind,
+    isHidden,
+    createdAt,
+  ];
 }

@@ -22,10 +22,10 @@ class HistorySection extends StatelessWidget {
         .map(
           (item) => ScanHistoryTile(
             scanResult: item.data,
-            time: item.time,
+            createdAt: item.createdAt,
             userImageUrl: item.userImageUrl,
             onTap: () {
-              final tag = 'scan_image_${item.data.barcode ?? item.data.productName}_${item.time.millisecondsSinceEpoch}';
+              final tag = 'scan_image_${item.data.barcode ?? item.data.productName}_${item.createdAt.millisecondsSinceEpoch}';
               final resultWithImage = item.data.copyWith(userImageUrl: item.userImageUrl);
               unawaited(
                 context.push(

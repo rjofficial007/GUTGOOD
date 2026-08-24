@@ -25,6 +25,8 @@ class AppRoutes {
   static const String allScans = '/all-scans';
   static const String scanResult = '/scan-result';
   static const String nutritionFacts = '/nutrition-facts';
+  static const String mealDetail = '/meal-detail';
+  static const String symptomDetail = '/symptom-detail';
 
   // Profile Sub-routes
   static const String goals = '/goals';

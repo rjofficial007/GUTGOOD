@@ -17,7 +17,16 @@ import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier with ChangeNotifier {
-  ProfileNotifier(this._authRepository, this._firestoreService, this._historyFirestoreService, this._appStateService, this._notificationService, this._analyticsService, this._crashlyticsService, this._streakService) {
+  ProfileNotifier(
+    this._authRepository,
+    this._firestoreService,
+    this._historyFirestoreService,
+    this._appStateService,
+    this._notificationService,
+    this._analyticsService,
+    this._crashlyticsService,
+    this._streakService,
+  ) {
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -65,11 +74,7 @@ class ProfileNotifier with ChangeNotifier {
       _isInitialized = true;
       if (profile != null) {
         // 1. Sync local streak with remote data
-        _streakService.syncWithRemote(
-          remoteStreak: profile.streak,
-          remoteLongest: profile.longestStreak,
-          remoteLastDate: profile.lastActivityDate,
-        );
+        _streakService.syncWithRemote(remoteStreak: profile.streak, remoteLongest: profile.longestStreak, remoteLastDate: profile.lastActivityDate);
 
         // 2. Detect streak increment for celebration
         final currentStreak = _streakService.currentStreak;
@@ -81,11 +86,7 @@ class ProfileNotifier with ChangeNotifier {
         _previousStreak = currentStreak;
 
         // 3. Update the profile object with localized streak data for consistent UI
-        profile = profile.copyWith(
-          streak: currentStreak,
-          longestStreak: _streakService.longestStreak,
-          lastActivityDate: _streakService.lastActiveDate,
-        );
+        profile = profile.copyWith(streak: currentStreak, longestStreak: _streakService.longestStreak, lastActivityDate: _streakService.lastActiveDate);
 
         // 4. Manage Streak Saver Notification
         final today = DateTime.now().toIso8601String().split('T')[0];
@@ -98,6 +99,7 @@ class ProfileNotifier with ChangeNotifier {
 
       _profile = profile;
       _updateInsights();
+      _syncTimezoneOffset();
       notifyListeners();
     }, onError: (e) => AppLogger.error('ProfileNotifier: Stream error', error: e));
 
@@ -131,6 +133,20 @@ class ProfileNotifier with ChangeNotifier {
       AppLogger.insights('ProfileNotifier: Synced scan average $score to profile gutScore');
     } catch (e) {
       AppLogger.error('ProfileNotifier: Failed to sync score to profile', error: e);
+    }
+  }
+
+  void _syncTimezoneOffset() async {
+    if (_profile == null) return;
+    final currentOffset = DateTime.now().timeZoneOffset.inMinutes;
+    if (_profile!.timezoneOffset != currentOffset) {
+      try {
+        final updatedProfile = _profile!.copyWith(timezoneOffset: currentOffset, updatedAt: DateTime.now());
+        await _firestoreService.updateUserProfile(updatedProfile);
+        AppLogger.info('ProfileNotifier: Updated timezoneOffset to $currentOffset');
+      } catch (e) {
+        AppLogger.error('ProfileNotifier: Failed to sync timezoneOffset', error: e);
+      }
     }
   }
 

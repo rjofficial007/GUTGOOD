@@ -227,7 +227,7 @@ class AccountSection extends StatelessWidget {
               AppTile(
                 icon: AppIcons.userPlus,
                 title: AppStrings.signInToSync,
-                onTap: () => unawaited(showAuthBottomSheet(context, customMessage: AppStrings.chatAuthMessage, onSuccess: profileNotifier.refresh)),
+                onTap: () => unawaited(showAuthBottomSheet(context, onSuccess: profileNotifier.refresh)),
               ),
             AppTile(icon: AppIcons.user, title: AppStrings.editProfile, onTap: () => onEditTap(profileNotifier)),
             AppTile(

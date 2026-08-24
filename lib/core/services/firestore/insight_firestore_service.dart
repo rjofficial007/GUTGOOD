@@ -117,9 +117,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       if (!snapshot.exists) return [];
       final data = snapshot.data();
       if (data == null || data['patterns'] == null) return [];
-      return (data['patterns'] as List)
-          .map((p) => BodyPattern.fromMap(p as Map<String, dynamic>))
-          .toList();
+      return (data['patterns'] as List).map((p) => BodyPattern.fromMap(p as Map<String, dynamic>)).toList();
     } catch (e) {
       AppLogger.firestore('Error getting latest patterns', error: e);
       return [];
@@ -186,7 +184,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
     if (doc == null) return Stream.value([]);
     return doc
         .collection('health_alerts')
-        .orderBy('time', descending: true)
+        .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots()
         .handleError((e) {

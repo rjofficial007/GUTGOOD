@@ -80,7 +80,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     }
 
     final Map<String, dynamic> aiData = jsonDecode(jsonStr);
-    aiData['time'] = DateTime.now().toIso8601String();
+    aiData['createdAt'] = DateTime.now().toIso8601String();
     aiData['imageUrl'] ??= product.imageUrl;
     aiData['barcode'] ??= product.barcode;
     aiData['nutrients'] ??= product.nutrients?.toMap();
@@ -129,7 +129,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     final jsonStr = ModelUtils.extractJson(rawJson);
     if (jsonStr != null) {
       final aiData = jsonDecode(jsonStr) as Map<String, dynamic>;
-      aiData['time'] = DateTime.now().toIso8601String();
+      aiData['createdAt'] = DateTime.now().toIso8601String();
 
       // Vision-mode scores are heuristic (no ground-truth OFF data to
       // compute from), so unlike the barcode path we keep the AI's score —
@@ -156,7 +156,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
       scanData: result.copyWith(scanId: finalScanId),
       imageUrl: userImageUrl,
       source: result.source,
-      time: DateTime.now(),
+      createdAt: DateTime.now(),
     );
 
     await _chatFirestoreService.saveMessage(aiMsg);
@@ -173,13 +173,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
       // 🟢 Automatically add to Meal Log if it's a food image/snap or gallery upload
       if (result.source == 'food' || result.source == 'meal' || result.source == 'gallery') {
-        final mealLog = MealLog(
-          items: [result.productName],
-          photoUrl: userImageUrl ?? result.imageUrl,
-          time: DateTime.now(),
-          source: result.source,
-          chatMessageId: finalScanId,
-        );
+        final mealLog = MealLog(items: [result.productName], photoUrl: userImageUrl ?? result.imageUrl, createdAt: DateTime.now(), source: result.source, chatMessageId: finalScanId);
         await _historyFirestoreService.logMeal(mealLog);
         AppLogger.info('ScannerRepository: Food image (${result.source}) automatically logged as a meal');
       }

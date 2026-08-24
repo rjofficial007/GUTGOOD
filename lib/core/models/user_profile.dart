@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
@@ -203,8 +204,8 @@ class UserProfile extends Equatable {
     'lastActivityDate': lastActivityDate,
     'timezoneOffset': timezoneOffset,
     'subscriptionStatus': subscriptionStatus,
-    'updatedAt': updatedAt.toIso8601String(),
-    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': DateTimeUtils.toTimestamp(updatedAt),
+    'createdAt': DateTimeUtils.toTimestamp(createdAt),
   };
 
   /// Returns a map of fields that the client is allowed to update.
@@ -225,7 +226,7 @@ class UserProfile extends Equatable {
     'notificationPreferences': notificationPreferences,
     'chatSummary': chatSummary,
     'timezoneOffset': timezoneOffset,
-    'updatedAt': DateTime.now().toIso8601String(),
+    'updatedAt': FieldValue.serverTimestamp(),
   };
 
   @override

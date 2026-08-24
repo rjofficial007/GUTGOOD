@@ -19,16 +19,27 @@ import 'package:gutgood/features/chat/presentation/providers/chat_history_notifi
 import 'package:mocktail/mocktail.dart';
 
 class MockChatRepository extends Mock implements ChatRepository {}
+
 class MockChatHistoryNotifier extends Mock implements ChatHistoryNotifier {}
+
 class MockAiService extends Mock implements AiService {}
+
 class MockStorageService extends Mock implements StorageService {}
+
 class MockOffService extends Mock implements OffService {}
+
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}
+
 class MockInternetConnectionChecker extends Mock implements InternetConnectionChecker {}
+
 class MockSendMessageStreamUseCase extends Mock implements SendMessageStreamUseCase {}
+
 class MockProcessChatTagUseCase extends Mock implements ProcessChatTagUseCase {}
+
 class MockPersistAiResponseUseCase extends Mock implements PersistAiResponseUseCase {}
+
 class MockAnalyticsService extends Mock implements AnalyticsService {}
+
 class MockAppStateService extends Mock implements AppStateService {}
 
 void main() {
@@ -46,7 +57,7 @@ void main() {
   late MockAppStateService appStateService;
 
   setUpAll(() {
-    registerFallbackValue(ChatMessage(localId: '', role: '', text: '', time: DateTime.now()));
+    registerFallbackValue(ChatMessage(localId: '', role: '', text: '', createdAt: DateTime.now()));
     registerFallbackValue(Uint8List(0));
   });
 
@@ -85,8 +96,12 @@ void main() {
     test('addAttachment compresses and adds image', () async {
       final bytes = Uint8List(10);
       when(() => storageService.compressImage(any())).thenAnswer((_) async => bytes);
-      when(() => analyticsService.logEvent(name: any(named: 'name'), parameters: any(named: 'parameters')))
-          .thenAnswer((_) async {});
+      when(
+        () => analyticsService.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async {});
 
       final result = await notifier.addAttachment(bytes);
 
@@ -98,14 +113,18 @@ void main() {
     test('removeAttachment removes specific id', () async {
       final bytes = Uint8List(10);
       when(() => storageService.compressImage(any())).thenAnswer((_) async => bytes);
-      when(() => analyticsService.logEvent(name: any(named: 'name'), parameters: any(named: 'parameters')))
-          .thenAnswer((_) async {});
-      
+      when(
+        () => analyticsService.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async {});
+
       await notifier.addAttachment(bytes);
       final id = notifier.pendingAttachments.first.id;
-      
+
       notifier.removeAttachment(id);
-      
+
       expect(notifier.pendingAttachments.isEmpty, true);
     });
   });

@@ -155,7 +155,7 @@ class AIInsight extends Equatable {
     'type': type,
     'confidenceLevel': confidenceLevel,
     'triggerData': triggerData,
-    'updatedAt': updatedAt.toIso8601String(),
+    'updatedAt': DateTimeUtils.toTimestamp(updatedAt),
   };
 
   @override

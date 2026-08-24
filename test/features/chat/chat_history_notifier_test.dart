@@ -15,13 +15,21 @@ import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MockChatRepository extends Mock implements ChatRepository {}
+
 class MockChatFirestoreService extends Mock implements ChatFirestoreService {}
+
 class MockAuthFirestoreService extends Mock implements AuthFirestoreService {}
+
 class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}
+
 class MockAiService extends Mock implements AiService {}
+
 class MockAppStateService extends Mock implements AppStateService {}
+
 class MockSharedPreferences extends Mock implements SharedPreferences {}
+
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}
+
 class MockUser extends Mock implements User {}
 
 void main() {
@@ -56,8 +64,7 @@ void main() {
     when(() => prefs.getStringList(any())).thenReturn(null);
     when(() => prefs.getBool(any())).thenReturn(null);
     when(() => prefs.getString(any())).thenReturn(null);
-    when(() => chatFirestoreService.getMessagesStream(limit: any(named: 'limit')))
-        .thenAnswer((_) => controller.stream);
+    when(() => chatFirestoreService.getMessagesStream(limit: any(named: 'limit'))).thenAnswer((_) => controller.stream);
 
     notifier = ChatHistoryNotifier(
       repository: repository,
@@ -77,12 +84,7 @@ void main() {
 
   group('ChatHistoryNotifier - Optimistic UI', () {
     test('addOptimisticMessage adds message to the list', () {
-      final msg = ChatMessage(
-        localId: '123',
-        role: 'user',
-        text: 'hello',
-        time: DateTime.now(),
-      );
+      final msg = ChatMessage(localId: '123', role: 'user', text: 'hello', createdAt: DateTime.now());
 
       notifier.addOptimisticMessage(msg);
 
@@ -91,12 +93,7 @@ void main() {
     });
 
     test('removeMessage removes message by localId', () {
-      final msg = ChatMessage(
-        localId: '123',
-        role: 'user',
-        text: 'hello',
-        time: DateTime.now(),
-      );
+      final msg = ChatMessage(localId: '123', role: 'user', text: 'hello', createdAt: DateTime.now());
       notifier.addOptimisticMessage(msg);
       expect(notifier.messages.length, 1);
 
@@ -106,12 +103,7 @@ void main() {
     });
 
     test('replaceMessage updates existing message', () {
-      final msg = ChatMessage(
-        localId: '123',
-        role: 'user',
-        text: 'hello',
-        time: DateTime.now(),
-      );
+      final msg = ChatMessage(localId: '123', role: 'user', text: 'hello', createdAt: DateTime.now());
       notifier.addOptimisticMessage(msg);
 
       final next = msg.copyWith(text: 'updated');
@@ -123,12 +115,7 @@ void main() {
 
   group('ChatHistoryNotifier - Firestore Sync', () {
     test('Snapshot update clears optimistic messages once confirmed', () async {
-      final msg = ChatMessage(
-        localId: '123',
-        role: 'user',
-        text: 'hello',
-        time: DateTime.now(),
-      );
+      final msg = ChatMessage(localId: '123', role: 'user', text: 'hello', createdAt: DateTime.now());
       notifier.addOptimisticMessage(msg);
 
       // Simulate Firestore stream emitting the confirmed message

@@ -11,11 +11,8 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
-import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
-import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
@@ -49,20 +46,31 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final visibleSections = _buildVisibleSections(context);
-
-    return Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
-      body: CustomScrollView(
-        slivers: [
-          Consumer<SavedFoodsProvider>(
-            builder: (context, savedProvider, _) {
-              final isSaved = savedProvider.isSaved(widget.scanData.productName, barcode: widget.scanData.barcode);
-              return ScanResultAppBar(
+  Widget build(BuildContext context) => Consumer<SavedFoodsProvider>(
+    builder: (context, savedProvider, _) {
+      final isSaved = savedProvider.isSaved(widget.scanData.productName, barcode: widget.scanData.barcode);
+      return Scaffold(
+        backgroundColor: context.appColorScheme.cardBackground,
+        appBar: GutAppBar(
+          title: AppStrings.scanResult,
+          centerTitle: true,
+          leading: IconButton(
+            icon: Icon(AppIcons.chevronLeft, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.history);
+              }
+            },
+          ),
+          actions: [
+            Padding(
+              padding: EdgeInsets.only(right: AppSizes.p16),
+              child: SaveButton(
                 isSaved: isSaved,
                 isLoading: _isLoading,
-                onSaveTap: () async {
+                onTap: () async {
                   setState(() => _isLoading = true);
                   try {
                     await _toggleSave();
@@ -70,125 +78,96 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                     if (mounted) setState(() => _isLoading = false);
                   }
                 },
-              );
-            },
-          ),
-          SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final isLast = index == visibleSections.length - 1;
-                return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? AppSizes.p20 : AppSizes.p20),
-                  child: visibleSections[index],
-                );
-              }, childCount: visibleSections.length),
+              ),
             ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          padding: EdgeInsets.all(AppSizes.p16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Hero Section (Header + Metrics)
+              ScanHeroSection(scanData: widget.scanData, heroTag: widget.heroTag),
+
+              // 3. What works for you
+              _buildWorksForYou(context),
+
+              // 4. What to watch / Additives
+              AdditivesSection(scanData: widget.scanData),
+
+              // 5. Meaning Banner
+              _buildMeaningBanner(context),
+
+              // 6. Swaps
+              if (widget.scanData.swaps.isNotEmpty) BetterSwapsCarousel(swaps: widget.scanData.swaps),
+
+              // 7. Ingredients
+              if (widget.scanData.ingredients.isNotEmpty) IngredientsSection(ingredients: widget.scanData.ingredients, scanData: widget.scanData),
+
+              // 8. Nutrition Table
+              NutritionFactsSection(scanData: widget.scanData),
+              Gap.h40,
+            ],
           ),
-        ],
-      ),
-    );
+        ),
+      );
+    },
+  );
+
+  Widget _buildWorksForYou(BuildContext context) {
+    final items = <ScanImpactDetailItem>[];
+    final scan = widget.scanData;
+    final scheme = context.appColorScheme;
+
+    if (scan.productName.toLowerCase().contains('organic')) {
+      items.add(ScanImpactDetailItem(title: 'Organic', subtitle: 'No synthetic herbicides or pesticides', icon: AppIcons.leaf, value: 'CLEAN', color: scheme.success, showCheck: true));
+    }
+
+    if (scan.nutrients != null) {
+      final n = scan.nutrients!;
+      if (n.fiber != null && n.fiber! > 2) {
+        items.add(ScanImpactDetailItem(title: AppStrings.fiber, subtitle: 'Great for gut motility', icon: AppIcons.salad, value: '${n.fiber}g', color: scheme.success));
+      }
+      if (n.proteins != null && n.proteins! > 5) {
+        items.add(ScanImpactDetailItem(title: AppStrings.protein, subtitle: 'Essential amino acids', icon: AppIcons.zap, value: '${n.proteins}g', color: scheme.success));
+      }
+    }
+
+    if (scan.nutrientLevels != null) {
+      final l = scan.nutrientLevels!;
+      if (l.sugars.toLowerCase() == 'low') {
+        items.add(ScanImpactDetailItem(title: AppStrings.sugars, subtitle: 'No sugar added', icon: AppIcons.package, value: 'LOW', color: scheme.success));
+      }
+      if (l.saturatedFat.toLowerCase() == 'low') {
+        items.add(ScanImpactDetailItem(title: AppStrings.saturatedFat, subtitle: 'No saturated fat', icon: AppIcons.droplet, value: 'LOW', color: scheme.success));
+      }
+      if (l.salt.toLowerCase() == 'low') {
+        items.add(ScanImpactDetailItem(title: AppStrings.salt, subtitle: 'Low sodium content', icon: AppIcons.wheat, value: 'LOW', color: scheme.success));
+      }
+    }
+
+    // Add green ingredients
+    for (final ing in scan.ingredients.where((i) => i.colorName.toLowerCase() == 'green').take(2)) {
+      items.add(ScanImpactDetailItem(title: ing.name, subtitle: ing.impact.isNotEmpty ? ing.impact : 'Clean ingredient', icon: AppIcons.leaf, value: 'CLEAN', color: scheme.success));
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return ScanImpactSection(title: 'What works for you', icon: AppIcons.checkCircle, iconColor: scheme.success, servingInfo: scan.servingSize, items: items);
   }
 
-  List<Widget> _buildVisibleSections(BuildContext context) {
-    final sections = <Widget>[ProductHero(scanData: widget.scanData, heroTag: widget.heroTag)];
-
-    if (widget.scanData.nutrientLevels != null) {
-      final levels = widget.scanData.nutrientLevels!;
-      sections.add(
-        DashboardEntrance(
-          delay: 100,
-          child: AnalysisCard(
-            metric: 'NUTRIENT',
-            label: AppStrings.nutrientLevelsLabel,
-            icon: AppIcons.utensils,
-            glowColor: context.appColorScheme.textPrimary,
-            items: [
-              AnalysisItem(title: levels.sugars.toUpperCase(), subtitle: AppStrings.sugars, icon: AppIcons.check, isDone: true),
-              AnalysisItem(title: levels.salt.toUpperCase(), subtitle: AppStrings.salt, icon: AppIcons.check, isDone: true),
-              AnalysisItem(title: levels.fat.toUpperCase(), subtitle: AppStrings.fatLabel, icon: AppIcons.check, isDone: true),
-              AnalysisItem(title: levels.saturatedFat.toUpperCase(), subtitle: AppStrings.satFatLabel, icon: AppIcons.check, isDone: true),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final hasAllergens = widget.scanData.allergens != null && widget.scanData.allergens!.isNotEmpty;
-    final hasAdditives = widget.scanData.additives != null && widget.scanData.additives!.isNotEmpty;
-    if (hasAllergens || hasAdditives) {
-      sections.add(
-        DashboardEntrance(
-          delay: 200,
-          child: AnalysisCard(
-            metric: 'ALERT',
-            label: AppStrings.safetyCautions,
-            icon: AppIcons.alertTriangle,
-            glowColor: AppPalette.red,
-            items: [
-              if (hasAllergens) AnalysisItem(title: widget.scanData.allergens!, subtitle: AppStrings.allergensLabel, icon: AppIcons.alertTriangle, isDone: true),
-              if (hasAdditives) AnalysisItem(title: widget.scanData.additives!, subtitle: AppStrings.additivesLabel, icon: AppIcons.alertCircle, isDone: true),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (widget.scanData.ingredients.isNotEmpty) {
-      sections.add(
-        DashboardEntrance(
-          delay: 300,
-          child: AnalysisCard(
-            metric: '${widget.scanData.ingredients.length}',
-            label: AppStrings.ingredients,
-            icon: AppIcons.clipboardList,
-            glowColor: AppPalette.blue,
-            items: widget.scanData.ingredients
-                .map(
-                  (ing) => AnalysisItem(
-                    title: ing.name,
-                    subtitle: '${getIngredientImpactLabel(ing.colorName)} • ${ing.impact}',
-                    icon: ing.colorName.toLowerCase() == 'red' ? AppIcons.alertCircle : AppIcons.check,
-                    isDone: true,
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      );
-    }
-
-    if (widget.scanData.swaps.isNotEmpty) {
-      sections.add(
-        DashboardEntrance(
-          delay: 400,
-          child: AnalysisCard(
-            metric: '${widget.scanData.swaps.length}',
-            label: AppStrings.betterSwapsLabel,
-            icon: AppIcons.salad,
-            glowColor: AppPalette.green,
-            items: widget.scanData.swaps.map((swap) => AnalysisItem(title: swap.title, subtitle: swap.subtitle, icon: AppIcons.refreshCw, isDone: true)).toList(),
-          ),
-        ),
-      );
-    }
-
+  Widget _buildMeaningBanner(BuildContext context) {
     final profile = context.watch<ProfileNotifier>().profile;
     final cycleEnabled = profile?.cycleSyncEnabled ?? false;
     final cycleInsight = widget.scanData.cycleInsight;
+    var insightText = widget.scanData.impact;
     if (cycleEnabled && cycleInsight != null && cycleInsight.description.isNotEmpty) {
-      sections.add(DashboardEntrance(delay: 500, child: CycleImpactDashboardSection(insight: cycleInsight)));
+      insightText = '${cycleInsight.description}\n\n$insightText';
     }
 
-    sections.add(
-      GutActionBanner(
-        title: AppStrings.nutritionFacts,
-        subtitle: AppStrings.per100g,
-        icon: AppIcons.clipboardList,
-        onTap: () => unawaited(context.push(AppRoutes.nutritionFacts, extra: widget.scanData)),
-      ),
-    );
+    if (insightText.isEmpty) return const SizedBox.shrink();
 
-    return sections;
+    return PersonalizedInsightCard(insight: insightText);
   }
 }

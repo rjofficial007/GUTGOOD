@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
@@ -53,7 +52,7 @@ class QuotaGuard {
     }
 
     if (authNotifier.isAnonymous) {
-      unawaited(showAuthBottomSheet(context, customMessage: AppStrings.guestLifetimeLimitMessage, onSuccess: onAuthSuccess));
+      unawaited(showAuthBottomSheet(context, onSuccess: onAuthSuccess));
     } else {
       unawaited(showPaywallBottomSheet(context, onProceedWithLimited: onProceedWithLimited ?? () {}));
     }

@@ -8,8 +8,10 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/router/route_codec.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
@@ -22,8 +24,10 @@ import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart'
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
 import 'package:gutgood/features/chat/presentation/pages/notification_archive_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dart';
+import 'package:gutgood/features/history/presentation/pages/meal_detail_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
+import 'package:gutgood/features/history/presentation/pages/symptom_detail_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
@@ -194,6 +198,14 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.nutritionFacts,
                 builder: (context, state) => NutritionFactsScreen(scanData: state.extra as ScanResult),
+              ),
+              GoRoute(
+                path: AppRoutes.mealDetail,
+                builder: (context, state) => MealDetailScreen(meal: state.extra as MealLog),
+              ),
+              GoRoute(
+                path: AppRoutes.symptomDetail,
+                builder: (context, state) => SymptomDetailScreen(symptom: state.extra as SymptomLog),
               ),
             ],
           ),

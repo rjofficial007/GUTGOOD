@@ -7,6 +7,7 @@ import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:shimmer/shimmer.dart';
 
 class MealHistoryTile extends StatelessWidget {
@@ -66,7 +67,7 @@ class MealHistoryTile extends StatelessWidget {
                   ),
                   Gap.h4,
                   Text(
-                    '${mealLog.mealType ?? AppStrings.mealSnapLabel} • ${_formatTime(mealLog.time)}',
+                    '${mealLog.mealType ?? AppStrings.mealSnapLabel} • ${DateFormatter.formatTime(mealLog.createdAt)}',
                     style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -78,11 +79,5 @@ class MealHistoryTile extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatTime(DateTime time) {
-    final hour = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
-    final amPm = time.hour >= 12 ? AppStrings.unitPM : AppStrings.unitAM;
-    return '$hour:${time.minute.toString().padLeft(2, '0')} $amPm';
   }
 }

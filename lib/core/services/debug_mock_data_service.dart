@@ -4,6 +4,7 @@ import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
+/// Service to generate pattern-rich mock data for testing.
 class DebugMockDataService {
   DebugMockDataService({required HistoryFirestoreService historyFirestoreService}) : _historyFirestoreService = historyFirestoreService;
 
@@ -30,17 +31,21 @@ class DebugMockDataService {
         MealLog(
           items: isFullnessDay ? const ['Steel Cut Oats', 'Walnuts', 'Blueberries'] : const ['White Toast', 'Jam'],
           mealType: 'breakfast',
-          time: DateTime(date.year, date.month, date.day, 8, 0),
+          createdAt: DateTime(date.year, date.month, date.day, 8, 0),
           source: 'debug',
         ),
       );
 
       // Mid-Morning (Pattern triggers)
       if (isEnergyDay) {
-        await _historyFirestoreService.logMeal(MealLog(items: const ['Whey Protein Shake', 'Banana'], mealType: 'snack', time: DateTime(date.year, date.month, date.day, 10, 30), source: 'debug'));
+        await _historyFirestoreService.logMeal(
+          MealLog(items: const ['Whey Protein Shake', 'Banana'], mealType: 'snack', createdAt: DateTime(date.year, date.month, date.day, 10, 30), source: 'debug'),
+        );
       }
       if (isHeadacheDay) {
-        await _historyFirestoreService.logMeal(MealLog(items: const ['Double Espresso', 'Sugar Packet'], mealType: 'snack', time: DateTime(date.year, date.month, date.day, 9, 0), source: 'debug'));
+        await _historyFirestoreService.logMeal(
+          MealLog(items: const ['Double Espresso', 'Sugar Packet'], mealType: 'snack', createdAt: DateTime(date.year, date.month, date.day, 9, 0), source: 'debug'),
+        );
       }
 
       // Lunch
@@ -48,7 +53,7 @@ class DebugMockDataService {
         MealLog(
           items: isDigestionDay ? const ['Spicy Street Tacos', 'Jalapeños'] : const ['Grilled Chicken Salad', 'Vinaigrette'],
           mealType: 'lunch',
-          time: DateTime(date.year, date.month, date.day, 13, 0),
+          createdAt: DateTime(date.year, date.month, date.day, 13, 0),
           source: 'debug',
         ),
       );
@@ -58,14 +63,14 @@ class DebugMockDataService {
         MealLog(
           items: isPizzaDay ? const ['Pepperoni Pizza', 'Garlic Bread', 'Soda'] : const ['Steamed Salmon', 'Broccoli', 'Brown Rice'],
           mealType: 'dinner',
-          time: DateTime(date.year, date.month, date.day, 19, 0),
+          createdAt: DateTime(date.year, date.month, date.day, 19, 0),
           source: 'debug',
         ),
       );
 
       // Late Night
       if (isSleepDay) {
-        await _historyFirestoreService.logMeal(MealLog(items: const ['Red Wine', 'Dark Chocolate'], mealType: 'snack', time: DateTime(date.year, date.month, date.day, 22, 0), source: 'debug'));
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Red Wine', 'Dark Chocolate'], mealType: 'snack', createdAt: DateTime(date.year, date.month, date.day, 22, 0), source: 'debug'));
       }
 
       // --- LOG SYMPTOMS (REACTIONS) ---
@@ -73,35 +78,35 @@ class DebugMockDataService {
       // Morning Fullness Check
       if (isFullnessDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Sustained Fullness', severity: 1, notes: 'Feeling satisfied long after breakfast.', time: DateTime(date.year, date.month, date.day, 11, 30), source: 'debug'),
+          SymptomLog(symptom: 'Sustained Fullness', severity: 1, notes: 'Feeling satisfied long after breakfast.', createdAt: DateTime(date.year, date.month, date.day, 11, 30), source: 'debug'),
         );
       }
 
       // Energy Spike
       if (isEnergyDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'High Energy', energyLevel: 9, notes: 'Feeling very productive.', time: DateTime(date.year, date.month, date.day, 12, 0), source: 'debug'),
+          SymptomLog(symptom: 'High Energy', energyLevel: 9, notes: 'Feeling very productive.', createdAt: DateTime(date.year, date.month, date.day, 12, 0), source: 'debug'),
         );
       }
 
       // Headache Check
       if (isHeadacheDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Headache', severity: 6, notes: 'Dull ache behind eyes.', time: DateTime(date.year, date.month, date.day, 11, 0), source: 'debug'),
+          SymptomLog(symptom: 'Headache', severity: 6, notes: 'Dull ache behind eyes.', createdAt: DateTime(date.year, date.month, date.day, 11, 0), source: 'debug'),
         );
       }
 
       // Digestion Check
       if (isDigestionDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Heartburn/Indigestion', severity: 5, notes: 'Burning sensation in chest.', time: DateTime(date.year, date.month, date.day, 15, 0), source: 'debug'),
+          SymptomLog(symptom: 'Heartburn/Indigestion', severity: 5, notes: 'Burning sensation in chest.', createdAt: DateTime(date.year, date.month, date.day, 15, 0), source: 'debug'),
         );
       }
 
       // Bloating Check
       if (isPizzaDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Severe Bloating', severity: 8, notes: 'Stomach feels like a balloon.', time: DateTime(date.year, date.month, date.day, 21, 30), source: 'debug'),
+          SymptomLog(symptom: 'Severe Bloating', severity: 8, notes: 'Stomach feels like a balloon.', createdAt: DateTime(date.year, date.month, date.day, 21, 30), source: 'debug'),
         );
       }
 
@@ -109,7 +114,7 @@ class DebugMockDataService {
       if (isSleepDay) {
         final nextDay = date.add(const Duration(days: 1));
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Restless Sleep', severity: 4, sleep: 'Poor', notes: 'Woke up multiple times.', time: DateTime(nextDay.year, nextDay.month, nextDay.day, 7, 0), source: 'debug'),
+          SymptomLog(symptom: 'Restless Sleep', severity: 4, sleep: 'Poor', notes: 'Woke up multiple times.', createdAt: DateTime(nextDay.year, nextDay.month, nextDay.day, 7, 0), source: 'debug'),
         );
       }
     }
@@ -136,7 +141,7 @@ class DebugMockDataService {
           nutriscore: p['nutri'] as String,
           novaGroup: (p['nova'] as int).toString(),
           category: 'food',
-          time: now.subtract(Duration(hours: i * 12)),
+          createdAt: now.subtract(Duration(hours: i * 12)),
           source: 'barcode',
         ),
       );

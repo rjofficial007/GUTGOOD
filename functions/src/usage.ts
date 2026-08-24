@@ -35,14 +35,24 @@ function todayKey(timezoneOffsetMinutes: number = 0): string {
 /**
  * Utility to calculate "today" from a specific timestamp and offset.
  */
-export function getLocalDate(timestamp: string | Date, timezoneOffsetMinutes: number = 0): string {
+export function getLocalDate(timestamp: any, timezoneOffsetMinutes: number = 0): string {
   try {
-    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    let date: Date;
+    if (typeof timestamp === 'string') {
+      date = new Date(timestamp);
+    } else if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (timestamp && typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    } else {
+      date = new Date();
+    }
+
     const offset = (timezoneOffsetMinutes === undefined || isNaN(timezoneOffsetMinutes)) ? 0 : timezoneOffsetMinutes;
     const localTime = new Date(date.getTime() + (offset * 60000));
     return localTime.toISOString().slice(0, 10);
   } catch (e) {
-    return (typeof timestamp === 'string' ? timestamp : timestamp.toISOString()).slice(0, 10);
+    return (typeof timestamp === 'string' ? timestamp : new Date().toISOString()).slice(0, 10);
   }
 }
 

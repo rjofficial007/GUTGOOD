@@ -5,9 +5,9 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class NotificationArchiveScreen extends StatefulWidget {
@@ -127,7 +127,7 @@ class _AlertTile extends StatelessWidget {
 
                   Gap.h4,
                   Text(
-                    '${alert.type.replaceAll('_', ' ').toUpperCase()} • ${DateFormat('MMM d, h:mm a').format(alert.time.toLocal())}',
+                    '${alert.type.replaceAll('_', ' ').toUpperCase()} • ${DateFormatter.formatFull(alert.createdAt)}',
                     style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold, fontSize: 10),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

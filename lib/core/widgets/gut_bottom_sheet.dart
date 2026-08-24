@@ -6,53 +6,34 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 
 class GutSheetHeader extends StatelessWidget {
-  const GutSheetHeader({
-    super.key,
-    required this.title,
-    this.showCloseButton = true,
-    this.onClose,
-  });
+  const GutSheetHeader({super.key, required this.title, this.showCloseButton = true, this.onClose});
   final String title;
   final bool showCloseButton;
   final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(
-      horizontal: AppSizes.p24,
-      vertical: AppSizes.p20,
-    ),
+    padding: EdgeInsets.symmetric(horizontal: AppSizes.p4, vertical: AppSizes.p10),
     child: Column(
       children: [
         // Drag handle
         Container(
           width: 40,
           height: 5,
-          decoration: BoxDecoration(
-            color: context.appColorScheme.border,
-            borderRadius: BorderRadius.circular(2.5),
-          ),
+          decoration: BoxDecoration(color: context.appColorScheme.border, borderRadius: BorderRadius.circular(2.5)),
         ),
-        Gap.h20,
+        Gap.h4,
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             if (showCloseButton) Gap.w48,
             Expanded(
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: context.headingSm,
-              ),
+              child: Text(title, textAlign: TextAlign.center, style: context.headingSm),
             ),
             if (showCloseButton)
               IconButton(
                 onPressed: onClose ?? () => context.pop(),
-                icon: Icon(
-                  AppIcons.x,
-                  size: AppSizes.icon16,
-                  color: context.appColorScheme.textSecondary,
-                ),
+                icon: Icon(AppIcons.x, size: AppSizes.icon16, color: context.appColorScheme.textSecondary),
                 style: IconButton.styleFrom(
                   backgroundColor: context.appColorScheme.elevatedSurface,
                   padding: EdgeInsets.zero,
@@ -69,12 +50,7 @@ class GutSheetHeader extends StatelessWidget {
 }
 
 class GutSheetWrapper extends StatelessWidget {
-  const GutSheetWrapper({
-    super.key,
-    required this.children,
-    this.padding,
-    this.footer,
-  });
+  const GutSheetWrapper({super.key, required this.children, this.padding, this.footer});
   final List<Widget> children;
   final EdgeInsets? padding;
   final Widget? footer;

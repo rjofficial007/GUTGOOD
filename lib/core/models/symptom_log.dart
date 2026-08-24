@@ -6,7 +6,21 @@ import 'package:gutgood/core/utils/date_time_utils.dart';
 /// Symptom logs are the primary data source for the [PatternEngineService] to
 /// find correlations between food intake and body reactions.
 class SymptomLog extends Equatable {
-  const SymptomLog({this.id, this.firestoreId, this.uid, this.chatMessageId, required this.symptom, this.severity, this.notes, this.energyLevel, this.mood, this.sleep, this.lastMealFirestoreId, this.source, required this.time});
+  const SymptomLog({
+    this.id,
+    this.firestoreId,
+    this.uid,
+    this.chatMessageId,
+    required this.symptom,
+    this.severity,
+    this.notes,
+    this.energyLevel,
+    this.mood,
+    this.sleep,
+    this.lastMealFirestoreId,
+    this.source,
+    required this.createdAt,
+  });
 
   factory SymptomLog.fromMap(Map<String, dynamic> map) {
     final rawId = map['id'] ?? map['firestoreId'];
@@ -23,7 +37,7 @@ class SymptomLog extends Equatable {
       sleep: map['sleep'],
       lastMealFirestoreId: map['lastMealFirestoreId']?.toString() ?? map['lastMealId']?.toString(),
       source: map['source'],
-      time: DateTimeUtils.parse(map['time']),
+      createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['time']),
     );
   }
 
@@ -63,8 +77,8 @@ class SymptomLog extends Equatable {
   /// Origin of the log entry ('chat', 'manual').
   final String? source;
 
-  /// Exact timestamp when the symptom occurred.
-  final DateTime time;
+  /// Exact timestamp of record creation.
+  final DateTime createdAt;
 
   SymptomLog copyWith({
     int? id,
@@ -79,7 +93,7 @@ class SymptomLog extends Equatable {
     String? sleep,
     String? lastMealFirestoreId,
     String? source,
-    DateTime? time,
+    DateTime? createdAt,
   }) => SymptomLog(
     id: id ?? this.id,
     firestoreId: firestoreId ?? this.firestoreId,
@@ -93,7 +107,7 @@ class SymptomLog extends Equatable {
     sleep: sleep ?? this.sleep,
     lastMealFirestoreId: lastMealFirestoreId ?? this.lastMealFirestoreId,
     source: source ?? this.source,
-    time: time ?? this.time,
+    createdAt: createdAt ?? this.createdAt,
   );
 
   Map<String, dynamic> toMap() => {
@@ -107,9 +121,22 @@ class SymptomLog extends Equatable {
     'sleep': sleep,
     'lastMealFirestoreId': lastMealFirestoreId,
     'source': source,
-    'time': time.toIso8601String(),
+    'createdAt': DateTimeUtils.toTimestamp(createdAt),
+  };
+
+  /// Optimized map for AI context (no Firestore [Timestamp] objects).
+  Map<String, dynamic> toAiMap() => {
+    'symptom': symptom,
+    'severity': severity,
+    'notes': notes,
+    'energyLevel': energyLevel,
+    'mood': mood,
+    'sleep': sleep,
+    'lastMealFirestoreId': lastMealFirestoreId,
+    'source': source,
+    'createdAt': createdAt.toIso8601String(),
   };
 
   @override
-  List<Object?> get props => [id, firestoreId, chatMessageId, symptom, severity, time, energyLevel, lastMealFirestoreId];
+  List<Object?> get props => [id, firestoreId, chatMessageId, symptom, severity, createdAt, energyLevel, lastMealFirestoreId];
 }

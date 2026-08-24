@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/models/meal_log.dart';
@@ -19,6 +18,7 @@ import 'package:gutgood/features/insights/domain/usecases/check_insight_threshol
 import 'package:gutgood/features/insights/domain/usecases/summarize_journal_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// UseCase to coordinate the generation of gut health insights.
 class GenerateInsightUseCase {
   GenerateInsightUseCase({
     required InsightRepository insightRepository,
@@ -58,54 +58,32 @@ class GenerateInsightUseCase {
       lastRun = DateTimeUtils.parseToUtc(lastRunStr);
     } else {
       final latestCloud = await _insightRepository.getLatestInsight();
-      lastRun = latestCloud?.updatedAt.toUtc() ??
-          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-      AppLogger.insights(
-        'No local lastRun found. Fallback to Firestore: $lastRun',
-      );
+      lastRun = latestCloud?.updatedAt.toUtc() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+      AppLogger.insights('No local lastRun found. Fallback to Firestore: $lastRun');
     }
 
     final nowUtc = DateTime.now().toUtc();
     final hoursSinceLastRun = nowUtc.difference(lastRun).inHours;
 
     if (hoursSinceLastRun < 24) {
-      AppLogger.debug(
-        'GenerateInsightUseCase: Last insight was generated $hoursSinceLastRun hours ago. Skipping.',
-      );
+      AppLogger.debug('GenerateInsightUseCase: Last insight was generated $hoursSinceLastRun hours ago. Skipping.');
       return;
     }
 
-    final counts = await Future.wait([
-      _historyFirestoreService.getTotalScansCount(),
-      _historyFirestoreService.getTotalMealLogsCount(),
-      _historyFirestoreService.getTotalSymptomsCount(),
-    ]);
+    final counts = await Future.wait([_historyFirestoreService.getTotalScansCount(), _historyFirestoreService.getTotalMealLogsCount(), _historyFirestoreService.getTotalSymptomsCount()]);
 
-    if (!_checkThreshold.execute(
-      scanCount: counts[0],
-      mealCount: counts[1],
-      symptomCount: counts[2],
-    )) {
-      AppLogger.debug(
-        'GenerateInsightUseCase: Insufficient data threshold not reached. Skipping.',
-      );
+    if (!_checkThreshold.execute(scanCount: counts[0], mealCount: counts[1], symptomCount: counts[2])) {
+      AppLogger.debug('GenerateInsightUseCase: Insufficient data threshold not reached. Skipping.');
       return;
     }
 
     final profile = await _authFirestoreService.getUserMetadata();
     final userGoals = profile?.goals ?? _prefs.getStringList('user_goals') ?? [];
-    final userSensitivities =
-        profile?.sensitivities ?? _prefs.getStringList('user_sensitivities') ?? [];
-    final userLifestyle =
-        profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
+    final userSensitivities = profile?.sensitivities ?? _prefs.getStringList('user_sensitivities') ?? [];
+    final userLifestyle = profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
 
-    final cycleSyncEnabled =
-        profile?.cycleSyncEnabled ?? _prefs.getBool('cycle_sync_enabled') ?? false;
-    final cyclePhase = cycleSyncEnabled
-        ? (profile?.cyclePhase ??
-            _prefs.getString('cycle_phase') ??
-            'Luteal Phase')
-        : 'Not specified';
+    final cycleSyncEnabled = profile?.cycleSyncEnabled ?? _prefs.getBool('cycle_sync_enabled') ?? false;
+    final cyclePhase = cycleSyncEnabled ? (profile?.cyclePhase ?? _prefs.getString('cycle_phase') ?? 'Luteal Phase') : 'Not specified';
 
     final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
     final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
@@ -126,9 +104,7 @@ class GenerateInsightUseCase {
     final allChat = dataStreams[5] as List<ChatMessage>;
 
     if (allMeals.isEmpty && allScans.isEmpty) {
-      AppLogger.debug(
-        'GenerateInsightUseCase: No meals or scans in last 30 days. Skipping.',
-      );
+      AppLogger.debug('GenerateInsightUseCase: No meals or scans in last 30 days. Skipping.');
       return;
     }
 
@@ -136,37 +112,20 @@ class GenerateInsightUseCase {
     final freshPatterns = await _patternEngineService.runAnalysis();
 
     // 🟢 TIERED JOURNALING: Split into High-Fidelity (7d) and Historical (8-30d)
-    final recentMeals =
-        allMeals.where((m) => m.time.isAfter(sevenDaysAgo)).toList();
-    final recentSymptoms =
-        allSymptoms.where((s) => s.time.isAfter(sevenDaysAgo)).toList();
-    final recentScans = allScans
-        .where((s) => s.time != null && s.time!.isAfter(sevenDaysAgo))
-        .toList();
+    final recentMeals = allMeals.where((m) => m.createdAt.isAfter(sevenDaysAgo)).toList();
+    final recentSymptoms = allSymptoms.where((s) => s.createdAt.isAfter(sevenDaysAgo)).toList();
+    final recentScans = allScans.where((s) => s.createdAt.isAfter(sevenDaysAgo)).toList();
 
-    final historicalMeals =
-        allMeals.where((m) => m.time.isBefore(sevenDaysAgo)).toList();
-    final historicalSymptoms =
-        allSymptoms.where((s) => s.time.isBefore(sevenDaysAgo)).toList();
-    final historicalScans = allScans
-        .where((s) => s.time != null && s.time!.isBefore(sevenDaysAgo))
-        .toList();
+    final historicalMeals = allMeals.where((m) => m.createdAt.isBefore(sevenDaysAgo)).toList();
+    final historicalSymptoms = allSymptoms.where((s) => s.createdAt.isBefore(sevenDaysAgo)).toList();
+    final historicalScans = allScans.where((s) => s.createdAt.isBefore(sevenDaysAgo)).toList();
 
-    final recentJournalText = _buildJournal.execute(
-      meals: recentMeals,
-      symptoms: recentSymptoms,
-      scans: recentScans,
-    );
+    final recentJournalText = _buildJournal.execute(meals: recentMeals, symptoms: recentSymptoms, scans: recentScans);
 
     String? historicalJournalSummary;
     if (historicalMeals.isNotEmpty || historicalScans.isNotEmpty) {
-      final historicalJournalText = _buildJournal.execute(
-        meals: historicalMeals,
-        symptoms: historicalSymptoms,
-        scans: historicalScans,
-      );
-      historicalJournalSummary =
-          await _summarizeJournal.execute(historicalJournalText);
+      final historicalJournalText = _buildJournal.execute(meals: historicalMeals, symptoms: historicalSymptoms, scans: historicalScans);
+      historicalJournalSummary = await _summarizeJournal.execute(historicalJournalText);
     }
 
     // 🟢 CHAT HYGIENE: Limit raw recent chat to last 10 messages
@@ -185,18 +144,13 @@ class GenerateInsightUseCase {
       chatHistory: recentChat,
       recentJournalText: recentJournalText,
       historicalJournalSummary: historicalJournalSummary,
-      scoreHistory: scoreHistoryString.isEmpty
-          ? null
-          : 'Score history (oldest to newest): $scoreHistoryString. Most recent score is $lastScore.',
+      scoreHistory: scoreHistoryString.isEmpty ? null : 'Score history (oldest to newest): $scoreHistoryString. Most recent score is $lastScore.',
       patternCandidates: freshPatterns,
       lastScore: lastScore,
     );
 
     // Side Effects
-    await _prefs.setString(
-      'last_insight_run',
-      DateTime.now().toUtc().toIso8601String(),
-    );
+    await _prefs.setString('last_insight_run', DateTime.now().toUtc().toIso8601String());
     await _insightRepository.saveInsight(insight);
 
     unawaited(
@@ -204,10 +158,9 @@ class GenerateInsightUseCase {
         HealthAlert(
           id: '',
           title: 'Gut Insight Ready',
-          message:
-              'Your latest personalized gut health analysis is ready. Open to see your new score!',
+          message: 'Your latest personalized gut health analysis is ready. Open to see your new score!',
           type: 'insight_ready',
-          time: DateTime.now(),
+          createdAt: DateTime.now(),
           isRead: false,
         ),
       ),
@@ -216,10 +169,7 @@ class GenerateInsightUseCase {
     unawaited(_notificationService.showInsightGeneratedNotification());
 
     if (profile != null) {
-      final updatedProfile = profile.copyWith(
-        gutScore: insight.gutScore,
-        updatedAt: DateTime.now(),
-      );
+      final updatedProfile = profile.copyWith(gutScore: insight.gutScore, updatedAt: DateTime.now());
       await _authFirestoreService.updateUserProfile(updatedProfile);
     }
   }

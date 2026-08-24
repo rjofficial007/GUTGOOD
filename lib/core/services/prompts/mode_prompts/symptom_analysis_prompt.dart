@@ -25,8 +25,8 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 9. Content: [Short supportive summary emphasizing that everyone's body responds differently].
 
 10. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
-    - Populate the "symptoms" array if the user is reporting a current feeling.
-    - Populate the "meal" object if a specific meal is being discussed as a trigger.
+    - Populate the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired").
+    - Ensure the "energyLevel" and "mood" fields are populated if mentioned.
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.

@@ -113,43 +113,43 @@ class ChatHistoryNotifier with ChangeNotifier {
     }
     notifyListeners();
 
-    _chatStreamSub = _chatFirestoreService.getMessagesStream(limit: _pageSize).listen(
-      (serverMessages) {
-        final serverLocalIds = serverMessages.map((m) => m.localId).toSet();
+    _chatStreamSub = _chatFirestoreService
+        .getMessagesStream(limit: _pageSize)
+        .listen(
+          (serverMessages) {
+            final serverLocalIds = serverMessages.map((m) => m.localId).toSet();
 
-        // Keep optimistic messages the server hasn't confirmed yet.
-        final pending = _streamedMessages
-            .where((m) => _optimisticIds.contains(m.localId) && !serverLocalIds.contains(m.localId))
-            .toList();
+            // Keep optimistic messages the server hasn't confirmed yet.
+            final pending = _streamedMessages.where((m) => _optimisticIds.contains(m.localId) && !serverLocalIds.contains(m.localId)).toList();
 
-        _streamedMessages
-          ..clear()
-          ..addAll(pending)
-          ..addAll(serverMessages);
+            _streamedMessages
+              ..clear()
+              ..addAll(pending)
+              ..addAll(serverMessages);
 
-        _optimisticIds.removeAll(serverLocalIds);
+            _optimisticIds.removeAll(serverLocalIds);
 
-        final wasLoading = _historyLoading;
-        _historyLoading = false;
+            final wasLoading = _historyLoading;
+            _historyLoading = false;
 
-        if (messages.isEmpty && wasLoading && !_isPaginationLoading) {
-          unawaited(_createInitialGreeting());
-        }
+            if (messages.isEmpty && wasLoading && !_isPaginationLoading) {
+              unawaited(_createInitialGreeting());
+            }
 
-        notifyListeners();
-        unawaited(_loadProfileData());
-      },
-      onError: (e) {
-        AppLogger.ai('Message stream error', error: e);
-        final wasLoading = _historyLoading;
-        _historyLoading = false;
+            notifyListeners();
+            unawaited(_loadProfileData());
+          },
+          onError: (e) {
+            AppLogger.ai('Message stream error', error: e);
+            final wasLoading = _historyLoading;
+            _historyLoading = false;
 
-        if (messages.isEmpty && wasLoading && !_isPaginationLoading) {
-          unawaited(_createInitialGreeting());
-        }
-        notifyListeners();
-      },
-    );
+            if (messages.isEmpty && wasLoading && !_isPaginationLoading) {
+              unawaited(_createInitialGreeting());
+            }
+            notifyListeners();
+          },
+        );
   }
 
   void refreshHistory() => _initChatStream();
@@ -165,7 +165,7 @@ class ChatHistoryNotifier with ChangeNotifier {
 
     try {
       final lastMessage = all.last;
-      final older = await _repository.getOlderMessages(limit: _pageSize, before: lastMessage.time);
+      final older = await _repository.getOlderMessages(limit: _pageSize, before: lastMessage.createdAt);
 
       if (older.length < _pageSize) {
         _hasMoreMessages = false;
@@ -184,7 +184,7 @@ class ChatHistoryNotifier with ChangeNotifier {
 
   Future<void> _createInitialGreeting() async {
     AppLogger.ai('Creating initial chat greeting.');
-    final initialMsg = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: AppStrings.chatInitialGreeting, isSwap: false, time: DateTime.now());
+    final initialMsg = ChatMessage(localId: const Uuid().v4(), role: 'ai', text: AppStrings.chatInitialGreeting, isSwap: false, createdAt: DateTime.now());
 
     _streamedMessages.add(initialMsg);
     _optimisticIds.add(initialMsg.localId);

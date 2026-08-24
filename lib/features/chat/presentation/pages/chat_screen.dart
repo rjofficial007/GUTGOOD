@@ -292,49 +292,49 @@ class ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) => UpgradeAlert(
-        dialogStyle: Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
-        barrierDismissible: !RemoteConfigService.instance.isForceUpdateApp,
-        showReleaseNotes: !kReleaseMode,
-        showIgnore: !RemoteConfigService.instance.isForceUpdateApp,
-        showLater: !RemoteConfigService.instance.isForceUpdateApp,
-        shouldPopScope: () => !RemoteConfigService.instance.isForceUpdateApp,
-        onIgnore: () => true,
-        onLater: () => true,
-        onUpdate: () => true,
-        upgrader: Upgrader(
-          durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp ? Duration.zero : const Duration(days: 3),
-          debugLogging: !kReleaseMode,
-          debugDisplayAlways: false,
-          messages: UpgraderMessages(),
-        ),
-        child: Scaffold(
-          backgroundColor: context.appColorScheme.cardBackground,
-          appBar: const _ChatAppBar(),
-          body: SafeArea(
-            child: Stack(
+    dialogStyle: Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
+    barrierDismissible: !RemoteConfigService.instance.isForceUpdateApp,
+    showReleaseNotes: !kReleaseMode,
+    showIgnore: !RemoteConfigService.instance.isForceUpdateApp,
+    showLater: !RemoteConfigService.instance.isForceUpdateApp,
+    shouldPopScope: () => !RemoteConfigService.instance.isForceUpdateApp,
+    onIgnore: () => true,
+    onLater: () => true,
+    onUpdate: () => true,
+    upgrader: Upgrader(
+      durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp ? Duration.zero : const Duration(days: 3),
+      debugLogging: !kReleaseMode,
+      debugDisplayAlways: false,
+      messages: UpgraderMessages(),
+    ),
+    child: Scaffold(
+      backgroundColor: context.appColorScheme.cardBackground,
+      appBar: const _ChatAppBar(),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
               children: [
-                Column(
-                  children: [
-                    const Expanded(child: _MessageListView()),
-                    _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
-                  ],
-                ),
-                if (_showJumpToLatest)
-                  Positioned(
-                    bottom: 100,
-                    right: 16,
-                    child: FloatingActionButton.small(
-                      onPressed: _jumpToLatest,
-                      backgroundColor: context.appColorScheme.textPrimary,
-                      foregroundColor: context.appColorScheme.cardBackground,
-                      child: const Icon(AppIcons.chevronDown),
-                    ),
-                  ),
+                const Expanded(child: _MessageListView()),
+                _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
               ],
             ),
-          ),
+            if (_showJumpToLatest)
+              Positioned(
+                bottom: 100,
+                right: 16,
+                child: FloatingActionButton.small(
+                  onPressed: _jumpToLatest,
+                  backgroundColor: context.appColorScheme.textPrimary,
+                  foregroundColor: context.appColorScheme.cardBackground,
+                  child: const Icon(AppIcons.chevronDown),
+                ),
+              ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 // =============================================================================
@@ -348,39 +348,39 @@ class _SuggestionChipsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Selector<ChatHistoryNotifier, int>(
-        selector: (_, n) => n.messages.length,
-        builder: (context, count, _) {
-          final suggestions = [
-            AppStrings.suggestRateMeal,
-            AppStrings.suggestBetterSwap,
-            AppStrings.suggestBloatCheck,
-            AppStrings.suggestIsThisHealthy,
-            AppStrings.suggestMealPlan,
-            AppStrings.suggestExplainIngredients,
-            AppStrings.menuPhotoPrompt,
-          ];
+    selector: (_, n) => n.messages.length,
+    builder: (context, count, _) {
+      final suggestions = [
+        AppStrings.suggestRateMeal,
+        AppStrings.suggestBetterSwap,
+        AppStrings.suggestBloatCheck,
+        AppStrings.suggestIsThisHealthy,
+        AppStrings.suggestMealPlan,
+        AppStrings.suggestExplainIngredients,
+        AppStrings.menuPhotoPrompt,
+      ];
 
-          return Container(
-            height: 38,
-            margin: EdgeInsets.only(bottom: AppSizes.p12),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
-              itemCount: suggestions.length,
-              itemBuilder: (context, i) => ChatSuggestionChip(
-                  label: suggestions[i],
-                  onTap: () {
-                    HapticHelper.light();
+      return Container(
+        height: 38,
+        margin: EdgeInsets.only(bottom: AppSizes.p12),
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
+          itemCount: suggestions.length,
+          itemBuilder: (context, i) => ChatSuggestionChip(
+            label: suggestions[i],
+            onTap: () {
+              HapticHelper.light();
 
-                    controller.text = suggestions[i];
+              controller.text = suggestions[i];
 
-                    controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
-                  },
-                ),
-            ),
-          );
-        },
+              controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+            },
+          ),
+        ),
       );
+    },
+  );
 }
 
 // =============================================================================
@@ -392,47 +392,47 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) => Selector2<ProfileNotifier, InsightsNotifier, (int?, bool)>(
-      selector: (_, p, i) => (p.profile?.streak, i.healthAlerts.any((a) => !a.isRead)),
-      builder: (context, data, _) {
-        final streak = data.$1;
-        final hasUnreadAlerts = data.$2;
+    selector: (_, p, i) => (p.profile?.streak, i.healthAlerts.any((a) => !a.isRead)),
+    builder: (context, data, _) {
+      final streak = data.$1;
+      final hasUnreadAlerts = data.$2;
 
-        return GutAppBar(
-          title: AppStrings.gutgood,
-          streak: streak,
-          actions: [
-            GestureDetector(
-              onTap: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
-              child: const Tooltip(message: AppStrings.viewPremiumBenefits, child: PremiumBadge()),
-            ),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(AppIcons.bell, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
-                  onPressed: () => context.push(AppRoutes.notificationArchive),
-                ),
-                if (hasUnreadAlerts)
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: context.appColorScheme.error,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
-                      ),
+      return GutAppBar(
+        title: AppStrings.gutgood,
+        streak: streak,
+        actions: [
+          GestureDetector(
+            onTap: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
+            child: const Tooltip(message: AppStrings.viewPremiumBenefits, child: PremiumBadge()),
+          ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: Icon(AppIcons.bell, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+                onPressed: () => context.push(AppRoutes.notificationArchive),
+              ),
+              if (hasUnreadAlerts)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: context.appColorScheme.error,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
                     ),
                   ),
-              ],
-            ),
-            Gap.w4,
-          ],
-        );
-      },
-    );
+                ),
+            ],
+          ),
+          Gap.w4,
+        ],
+      );
+    },
+  );
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -482,14 +482,8 @@ class _MessageListView extends StatelessWidget {
             reverse: true,
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             slivers: [
-              const SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                sliver: _MessageSliverList(),
-              ),
-              if (context.select<ChatHistoryNotifier, bool>((n) => n.isPaginationLoading))
-                const SliverToBoxAdapter(
-                  child: ChatPaginationLoader(),
-                ),
+              const SliverPadding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10), sliver: _MessageSliverList()),
+              if (context.select<ChatHistoryNotifier, bool>((n) => n.isPaginationLoading)) const SliverToBoxAdapter(child: ChatPaginationLoader()),
             ],
           ),
         );
@@ -550,8 +544,8 @@ class _MessageSliverListState extends State<_MessageSliverList> {
           if (olderMsg == null) {
             showDateHeader = true;
           } else {
-            final d1 = DateTime(msg.time.year, msg.time.month, msg.time.day);
-            final d2 = DateTime(olderMsg.time.year, olderMsg.time.month, olderMsg.time.day);
+            final d1 = DateTime(msg.createdAt.year, msg.createdAt.month, msg.createdAt.day);
+            final d2 = DateTime(olderMsg.createdAt.year, olderMsg.createdAt.month, olderMsg.createdAt.day);
 
             if (d1 != d2) {
               showDateHeader = true;
@@ -572,11 +566,11 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (showDateHeader) DateHeader(date: msg.time),
+                    if (showDateHeader) DateHeader(date: msg.createdAt),
                     ChatBubble(
                       text: msg.text,
                       isUser: msg.role == 'user',
-                      time: msg.time,
+                      createdAt: msg.createdAt,
                       isLoading: msg.role == 'ai' && (msg.text.isEmpty || msg.text == AppStrings.findingSwaps) && msg.errorKind == ChatErrorKind.none && msg.scanData == null && msg.swapData == null,
                       imageUrls: msg.imageUrls,
                       localImages: msg.localImages,

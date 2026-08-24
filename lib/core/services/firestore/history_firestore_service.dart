@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -66,7 +67,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
 
       final finalScanId = scanId ?? scanData.scanId ?? const Uuid().v4();
 
-      // 🟢 Optimization: Start the isSaved check and the write together, or 
+      // 🟢 Optimization: Start the isSaved check and the write together, or
       // handle isSaved defensively.
       var isSaved = scanData.isSaved;
       try {
@@ -81,17 +82,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       }
       if (bestImageUrl != null && bestImageUrl.isEmpty) bestImageUrl = null;
 
-      final data = {
-        ...scanData.toMap(),
-        'scanId': finalScanId,
-        'userId': uid,
-        'userImageUrl': bestImageUrl,
-        'isSaved': isSaved,
-        'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
-        'timestamp': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-        'time': scanData.time?.toIso8601String() ?? DateTime.now().toIso8601String(),
-      };
+      final data = {...scanData.toMap(), 'scanId': finalScanId, 'userId': uid, 'userImageUrl': bestImageUrl, 'isSaved': isSaved, 'createdAt': FieldValue.serverTimestamp()};
 
       await doc.collection('scan_history').doc(finalScanId).set(data, SetOptions(merge: true));
       AppLogger.firestore('Saved scan history doc: $finalScanId');
@@ -106,14 +97,14 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
 
-      var query = doc.collection('scan_history').orderBy('time', descending: true);
+      var query = doc.collection('scan_history').orderBy('createdAt', descending: true);
 
       if (since != null) {
-        query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+        query = query.where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since));
       }
-      
+
       if (before != null) {
-        query = query.where('time', isLessThan: before.toIso8601String());
+        query = query.where('createdAt', isLessThan: DateTimeUtils.toTimestamp(before));
       }
 
       if (limit != null) {
@@ -121,7 +112,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       }
 
       final snapshot = await query.get();
-      
+
       // 🟢 DEFENSIVE: Map one by one and catch individual parsing errors
       // so one corrupt document doesn't hide the entire history.
       final results = <ScanResult>[];
@@ -133,7 +124,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
           AppLogger.error('Failed to parse scan history document ${doc.id}', error: e);
         }
       }
-      
+
       return results;
     } catch (e) {
       AppLogger.firestore('Error getting scan history', error: e);
@@ -202,8 +193,8 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
 
-      // 🟢 Get all saved items from history, ordered by time
-      final snapshot = await doc.collection('scan_history').where('isSaved', isEqualTo: true).orderBy('time', descending: true).get();
+      // 🟢 Get all saved items from history, ordered by creation time
+      final snapshot = await doc.collection('scan_history').where('isSaved', isEqualTo: true).orderBy('createdAt', descending: true).get();
 
       final allSaved = snapshot.docs.map((doc) => ScanResult.fromMap({...doc.data(), 'id': doc.id})).toList();
 
@@ -229,13 +220,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return null;
       final docRef = doc.collection('meal_logs').doc();
-      final data = {
-        ...log.toMap(),
-        'firestoreId': docRef.id,
-        'source': log.source ?? 'chat',
-        'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+      final data = {...log.toMap(), 'firestoreId': docRef.id, 'source': log.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
@@ -250,14 +235,14 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
 
-      var query = doc.collection('meal_logs').orderBy('time', descending: true);
+      var query = doc.collection('meal_logs').orderBy('createdAt', descending: true);
 
       if (since != null) {
-        query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+        query = query.where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since));
       }
 
       if (before != null) {
-        query = query.where('time', isLessThan: before.toIso8601String());
+        query = query.where('createdAt', isLessThan: DateTimeUtils.toTimestamp(before));
       }
 
       if (limit != null) {
@@ -279,13 +264,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return null;
       final docRef = doc.collection('symptom_logs').doc();
-      final data = {
-        ...log.toMap(),
-        'firestoreId': docRef.id,
-        'source': log.source ?? 'manual',
-        'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+      final data = {...log.toMap(), 'firestoreId': docRef.id, 'source': log.source ?? 'manual', 'createdAt': FieldValue.serverTimestamp()};
       await docRef.set(data);
       return docRef.id;
     } catch (e) {
@@ -300,14 +279,14 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
 
-      var query = doc.collection('symptom_logs').orderBy('time', descending: true);
+      var query = doc.collection('symptom_logs').orderBy('createdAt', descending: true);
 
       if (since != null) {
-        query = query.where('time', isGreaterThanOrEqualTo: since.toIso8601String());
+        query = query.where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since));
       }
 
       if (before != null) {
-        query = query.where('time', isLessThan: before.toIso8601String());
+        query = query.where('createdAt', isLessThan: DateTimeUtils.toTimestamp(before));
       }
 
       if (limit != null) {
@@ -340,7 +319,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   Future<int> getScansCountSince(DateTime since) async {
     final doc = _userDoc;
     if (doc == null) return 0;
-    final snapshot = await doc.collection('scan_history').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
+    final snapshot = await doc.collection('scan_history').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)).get();
     return snapshot.size;
   }
 
@@ -348,7 +327,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   Future<int> getMealLogsCountSince(DateTime since) async {
     final doc = _userDoc;
     if (doc == null) return 0;
-    final snapshot = await doc.collection('meal_logs').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
+    final snapshot = await doc.collection('meal_logs').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)).get();
     return snapshot.size;
   }
 
@@ -356,7 +335,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   Future<int> getSymptomsCountSince(DateTime since) async {
     final doc = _userDoc;
     if (doc == null) return 0;
-    final snapshot = await doc.collection('symptom_logs').where('time', isGreaterThanOrEqualTo: since.toIso8601String()).get();
+    final snapshot = await doc.collection('symptom_logs').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)).get();
     return snapshot.size;
   }
 
