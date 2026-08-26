@@ -50,16 +50,8 @@ void initFeatureDI() {
     // --- Chat ---
     ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl(), streakService: sl()))
     ..registerLazySingleton(
-      () => ChatHistoryNotifier(
-        repository: sl(),
-        chatFirestoreService: sl(),
-        authFirestoreService: sl(),
-        historyFirestoreService: sl(),
-        aiService: sl(),
-        appStateService: sl(),
-        prefs: sl(),
-        auth: sl(),
-      ),
+      () =>
+          ChatHistoryNotifier(repository: sl(), chatFirestoreService: sl(), authFirestoreService: sl(), historyFirestoreService: sl(), aiService: sl(), appStateService: sl(), prefs: sl(), auth: sl()),
     )
     ..registerLazySingleton(
       () => ChatComposerNotifier(
@@ -67,6 +59,7 @@ void initFeatureDI() {
         historyNotifier: sl(),
         storageService: sl(),
         offService: sl(),
+        aiClassifierService: sl(),
         auth: sl(),
         connectionChecker: sl(),
         sendMessageStreamUseCase: sl(),
@@ -88,13 +81,21 @@ void initFeatureDI() {
         crashlyticsService: sl(),
       ),
     )
-    ..registerLazySingleton(
-      () => InsightsNotifier(sl(), sl(), sl(), sl(), sl()),
-    )
+    ..registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl()))
     // --- Scanner ---
     ..registerLazySingleton<ScannerRepository>(
-      () =>
-          ScannerRepositoryImpl(offService: sl(), aiService: sl(), chatFirestoreService: sl(), historyFirestoreService: sl(), notificationService: sl(), appStateService: sl(), analyticsService: sl(), streakService: sl()),
+      () => ScannerRepositoryImpl(
+        offService: sl(),
+        aiService: sl(),
+        aiClassifierService: sl(),
+        chatFirestoreService: sl(),
+        historyFirestoreService: sl(),
+        notificationService: sl(),
+        appStateService: sl(),
+        analyticsService: sl(),
+        streakService: sl(),
+        processChatTagUseCase: sl(),
+      ),
     )
     ..registerLazySingleton(() => ScannerNotifier(repository: sl(), authFirestoreService: sl(), offService: sl(), storageService: sl()))
     // --- Logs ---

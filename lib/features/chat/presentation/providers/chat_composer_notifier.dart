@@ -8,6 +8,7 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/chat_attachment.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -33,6 +34,7 @@ class ChatComposerNotifier with ChangeNotifier {
     required ChatHistoryNotifier historyNotifier,
     required StorageService storageService,
     required OffService offService,
+    required AiClassifierService aiClassifierService,
     required FirebaseAuth auth,
     required InternetConnectionChecker connectionChecker,
     required SendMessageStreamUseCase sendMessageStreamUseCase,
@@ -44,6 +46,7 @@ class ChatComposerNotifier with ChangeNotifier {
        _historyNotifier = historyNotifier,
        _storageService = storageService,
        _offService = offService,
+       _aiClassifierService = aiClassifierService,
        _auth = auth,
        _connectionChecker = connectionChecker,
        _sendMessageStreamUseCase = sendMessageStreamUseCase,
@@ -58,6 +61,7 @@ class ChatComposerNotifier with ChangeNotifier {
   final ChatHistoryNotifier _historyNotifier;
   final StorageService _storageService;
   final OffService _offService;
+  final AiClassifierService _aiClassifierService;
   final FirebaseAuth _auth;
   final InternetConnectionChecker _connectionChecker;
   final SendMessageStreamUseCase _sendMessageStreamUseCase;
@@ -243,7 +247,28 @@ class ChatComposerNotifier with ChangeNotifier {
     }
 
     final aiText = _effectiveAiText(displayText: displayText, hiddenContext: hiddenContext, hasImages: sending.isNotEmpty);
-    await _streamReply(userText: aiText, images: sending.isEmpty ? null : _lastSentImages, imageUrl: imageUrls.isNotEmpty ? imageUrls.first : null, source: userMsg.source);
+
+    String? detectedMode;
+    String? detectedIntent;
+
+    if (sending.isNotEmpty) {
+      try {
+        final classification = await _aiClassifierService.classifyImage(imageBytes: sending.first.bytes, userText: displayText);
+        detectedMode = classification.imageMode;
+        detectedIntent = classification.intent;
+        AppLogger.ai('ChatComposer: AI classified image as $detectedMode with intent $detectedIntent');
+      } catch (e) {
+        AppLogger.warning('ChatComposer: Image classification failed, falling back to source');
+      }
+    }
+
+    await _streamReply(
+      userText: aiText,
+      images: sending.isEmpty ? null : _lastSentImages,
+      imageUrl: imageUrls.isNotEmpty ? imageUrls.first : null,
+      source: detectedMode ?? userMsg.source,
+      detectedIntent: detectedIntent,
+    );
 
     return null;
   }
@@ -275,8 +300,28 @@ class ChatComposerNotifier with ChangeNotifier {
 
     await _analyticsService.logEvent(name: 'message_regenerated', parameters: {'has_images': _lastSentImages.isNotEmpty});
 
+    String? detectedMode;
+    String? detectedIntent;
+
+    if (_lastSentImages.isNotEmpty) {
+      try {
+        final classification = await _aiClassifierService.classifyImage(imageBytes: _lastSentImages.first, userText: _lastUserText);
+        detectedMode = classification.imageMode;
+        detectedIntent = classification.intent;
+      } catch (e) {
+        AppLogger.warning('ChatComposer: Regeneration classification failed');
+      }
+    }
+
     final aiText = _effectiveAiText(displayText: _lastUserText ?? '', hiddenContext: _lastHiddenContext, hasImages: _lastSentImages.isNotEmpty);
-    await _streamReply(userText: aiText, images: _lastSentImages.isEmpty ? null : _lastSentImages, imageUrl: _lastSentImageUrl, source: _lastSource, isRegenerate: true);
+    await _streamReply(
+      userText: aiText,
+      images: _lastSentImages.isEmpty ? null : _lastSentImages,
+      imageUrl: _lastSentImageUrl,
+      source: detectedMode ?? _lastSource,
+      detectedIntent: detectedIntent,
+      isRegenerate: true,
+    );
   }
 
   Future<ChatSendError?> retryMessage(ChatMessage failedMessage) async {
@@ -346,7 +391,7 @@ class ChatComposerNotifier with ChangeNotifier {
     return chronological;
   }
 
-  Future<void> _streamReply({required String userText, List<Uint8List>? images, String? imageUrl, String? source, bool isRegenerate = false}) async {
+  Future<void> _streamReply({required String userText, List<Uint8List>? images, String? imageUrl, String? source, String? detectedIntent, bool isRegenerate = false}) async {
     final aiLocalId = _activeAiLocalId;
     if (aiLocalId == null) {
       _finishTurn();
@@ -358,9 +403,11 @@ class ChatComposerNotifier with ChangeNotifier {
     _persistedTags.clear();
     _persistTagsForActiveTurn = !isRegenerate;
 
-    final intent = source ?? _getQuickIntent(userText.toLowerCase()) ?? 'full_analysis';
+    // 🟢 AI-BASED INTENT: Use detected intent if available, otherwise fallback to quick regex
+    final quickIntent = _getQuickIntent(userText.toLowerCase());
+    final intent = detectedIntent ?? quickIntent ?? source ?? 'full_analysis';
 
-    AppLogger.ai('Final intent for prompt: "$intent" (source: "$source")');
+    AppLogger.ai('Final intent for prompt: "$intent" (detected: "$detectedIntent", source: "$source", quickDetected: "$quickIntent")');
 
     await _aiSubscription?.cancel();
 
@@ -411,7 +458,7 @@ class ChatComposerNotifier with ChangeNotifier {
       );
     } catch (e, st) {
       AppLogger.ai('Stream setup failed', error: e, stackTrace: st);
-      _handleStreamError(e, aiLocalId);
+      await _handleStreamError(e, aiLocalId);
     }
   }
 
@@ -426,13 +473,8 @@ class ChatComposerNotifier with ChangeNotifier {
     if (lowerText == AppStrings.suggestMealPlan.toLowerCase()) return 'meal_planning';
     if (lowerText == AppStrings.suggestExplainIngredients.toLowerCase()) return 'label';
 
-    // 📸 Photo Prompt Matches (High Priority)
-    if (lowerText.contains(AppStrings.menuPhotoPrompt.toLowerCase())) return 'menu';
-    if (lowerText.contains(AppStrings.labelPhotoPrompt.toLowerCase())) return 'label';
-    if (lowerText.contains(AppStrings.mealPhotoPrompt.toLowerCase())) return 'full_analysis';
-    if (lowerText.contains(AppStrings.galleryPhotoPrompt.toLowerCase())) return 'gallery';
-
     // 🔍 Robust Regex Detection (Non-AI Fast-Path)
+    // Priority: Specific keywords should always override generic photo tags
     if (RegExp(r'\b(rate|score|grade|how did I do|feedback|how is my)\b').hasMatch(lowerText)) return 'meal_rating';
     if (RegExp(r'\b(swap|instead|better|alternative|healthier|replace|substitution)\b').hasMatch(lowerText)) return 'meal_swaps';
     if (RegExp(r'\b(bloat|bloating|bloated|pain|hurt|headache|tired|gas|cramp|nausea|stomachache)\b').hasMatch(lowerText)) return 'symptom_analysis';
@@ -441,7 +483,13 @@ class ChatComposerNotifier with ChangeNotifier {
     if (RegExp(r'\b(vs|versus|compare|difference between|which one is better)\b').hasMatch(lowerText)) return 'product_comparison';
     if (RegExp(r'\b(plan|eat next|tomorrow|dinner idea|lunch idea|snack idea|what should i eat)\b').hasMatch(lowerText)) return 'meal_planning';
     if (RegExp(r'\b(menu|order|restaurant|eat here)\b').hasMatch(lowerText)) return 'menu';
-    if (RegExp(r'\b(label|ingredient|gums|emulsifier|additive|e-number)\b').hasMatch(lowerText)) return 'label';
+    if (RegExp(r'\b(label|ingredients|ingredient|gums|emulsifier|additive|e-number)\b').hasMatch(lowerText)) return 'label';
+
+    // 📸 Photo Prompt Matches
+    if (lowerText.contains(AppStrings.menuPhotoPrompt.toLowerCase())) return 'menu';
+    if (lowerText.contains(AppStrings.labelPhotoPrompt.toLowerCase())) return 'label';
+    if (lowerText.contains(AppStrings.mealPhotoPrompt.toLowerCase())) return 'full_analysis';
+    if (lowerText.contains(AppStrings.galleryPhotoPrompt.toLowerCase())) return 'gallery';
 
     // Casual meal mentions
     if (lowerText.contains("i'm having a") || lowerText.contains('i ate') || lowerText.contains('for dinner')) return 'meal_overview';
@@ -497,7 +545,7 @@ class ChatComposerNotifier with ChangeNotifier {
     notifyListeners();
   }
 
-  void _handleStreamError(Object error, String aiLocalId) {
+  Future<void> _handleStreamError(Object error, String aiLocalId) async {
     _flushTimer?.cancel();
 
     final currentMsg = _historyNotifier.messages.firstWhere(
@@ -528,7 +576,10 @@ class ChatComposerNotifier with ChangeNotifier {
 
       // Persist any partial but valid results if we at least got the tags
       if (_persistTagsForActiveTurn) {
-        unawaited(_persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags));
+        final hydratedResult = await _persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags);
+
+        final updatedMsgWithIds = currentMsg.copyWith(scanData: hydratedResult.scan, mealLogs: hydratedResult.meal != null ? [hydratedResult.meal!] : null, symptomLogs: hydratedResult.symptoms);
+        _historyNotifier.replaceMessage(aiLocalId, updatedMsgWithIds);
       }
     }
 
@@ -536,9 +587,9 @@ class ChatComposerNotifier with ChangeNotifier {
 
     final updatedMsg = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);
     if (updatedMsg.text.isNotEmpty && kind != ChatErrorKind.quota) {
-      _persistAiMessage(aiLocalId, errorKind: kind);
+      await _persistAiMessage(aiLocalId, errorKind: kind);
       _finishTurn();
-      _historyNotifier.precomputeSummary();
+      await _historyNotifier.precomputeSummary();
       return;
     }
 
@@ -546,7 +597,7 @@ class ChatComposerNotifier with ChangeNotifier {
     _finishTurn();
   }
 
-  void _finalizeStream() {
+  Future<void> _finalizeStream() async {
     _flushTimer?.cancel();
     final aiLocalId = _activeAiLocalId;
     if (aiLocalId == null) {
@@ -589,13 +640,24 @@ class ChatComposerNotifier with ChangeNotifier {
 
     // 🟢 ATOMIC PERSISTENCE: Now that the AI turn is finished and validated,
     // persist all domain logs (meals, symptoms, scans) to history.
+    var finalToPersist = finalMsg;
     if (_persistTagsForActiveTurn && !_generationCancelled) {
-      unawaited(_persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags));
+      final hydratedResult = await _persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags);
+
+      // Update final message with IDs (firestoreId) so they can be saved as references in chat_history
+      finalToPersist = finalMsg.copyWith(
+        scanData: hydratedResult.scan,
+        mealLogs: hydratedResult.meal != null ? [hydratedResult.meal!] : null,
+        symptomLogs: hydratedResult.symptoms,
+        swapData: hydratedResult.swaps,
+        analysisResult: hydratedResult,
+      );
+      _historyNotifier.replaceMessage(aiLocalId, finalToPersist);
     }
 
-    _persistAiMessage(aiLocalId);
+    await _persistAiMessage(aiLocalId);
     _finishTurn();
-    _historyNotifier.precomputeSummary();
+    await _historyNotifier.precomputeSummary();
   }
 
   Future<void> _persistAiMessage(String localId, {ChatErrorKind errorKind = ChatErrorKind.none}) async {
@@ -716,10 +778,19 @@ class ChatComposerNotifier with ChangeNotifier {
 
       // Atomic persistence for See More Swaps
       final finalResult = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', chatMessageId: aiLocalId, isFinal: true);
-      unawaited(_persistAiResponseUseCase(finalResult, chatMessageId: aiLocalId, source: 'chat', persistedTagBlocks: persistedTags));
+      final hydratedResult = await _persistAiResponseUseCase(finalResult, chatMessageId: aiLocalId, source: 'chat', persistedTagBlocks: persistedTags);
 
       final finalAi = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);
-      final savedAi = await _repository.saveMessage(finalAi);
+      final updatedAi = finalAi.copyWith(
+        scanData: hydratedResult.scan,
+        mealLogs: hydratedResult.meal != null ? [hydratedResult.meal!] : null,
+        symptomLogs: hydratedResult.symptoms,
+        swapData: hydratedResult.swaps,
+        analysisResult: hydratedResult,
+      );
+      _historyNotifier.replaceMessage(aiLocalId, updatedAi);
+
+      final savedAi = await _repository.saveMessage(updatedAi);
       _historyNotifier.replaceMessage(aiLocalId, savedAi);
     } catch (e) {
       AppLogger.ai('See more swaps failed', error: e);

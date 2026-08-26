@@ -1,4 +1,5 @@
 import 'package:gutgood/core/di/di_instance.dart';
+import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_services.dart';
@@ -36,6 +37,7 @@ void initServiceDI() {
     ..registerLazySingleton<AppStateService>(AppStateServiceImpl.new)
     ..registerLazySingleton<RemoteConfigService>(() => RemoteConfigServiceImpl(remoteConfig: sl()))
     ..registerLazySingleton<AiService>(() => AiServiceImpl(dio: sl(), auth: sl(), config: sl(), analyticsService: sl(), crashlyticsService: sl()))
+    ..registerLazySingleton<AiClassifierService>(() => AiClassifierServiceImpl(aiService: sl()))
     ..registerLazySingleton<OffService>(() => OffServiceImpl(dio: sl()))
     ..registerLazySingleton<StorageService>(() => StorageServiceImpl(auth: sl(), storage: sl()))
     ..registerLazySingleton<StreakService>(() => StreakServiceImpl(prefs: sl()))

@@ -316,7 +316,7 @@ class SheetSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.only(bottom: 16.0.h),
+    padding: EdgeInsets.only(bottom: 10.0.h),
     child: Row(
       children: [
         Container(

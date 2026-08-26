@@ -101,9 +101,21 @@ class JournalTimelineEntry extends StatelessWidget {
 
     switch (entry.type) {
       case JournalEntryType.scan:
-        final isBarcode = entry.scan?.source == 'barcode';
-        icon = isBarcode ? AppIcons.barcode : AppIcons.scan;
-        color = isBarcode ? AppPalette.purple : AppPalette.green500;
+        final scan = entry.scan!;
+        final category = scan.category?.toLowerCase() ?? '';
+        final source = scan.source?.toLowerCase() ?? '';
+
+        if (category == 'label' || source == 'label') {
+          icon = AppIcons.fileText;
+          color = AppPalette.blue;
+        } else if (category == 'menu' || source == 'menu') {
+          icon = AppIcons.bookOpen;
+          color = AppPalette.orange;
+        } else {
+          final isBarcode = source == 'barcode';
+          icon = isBarcode ? AppIcons.barcode : AppIcons.scan;
+          color = isBarcode ? AppPalette.purple : AppPalette.green500;
+        }
         bgColor = color.withValues(alpha: 0.1);
         break;
       case JournalEntryType.meal:
@@ -127,24 +139,43 @@ class JournalTimelineEntry extends StatelessWidget {
   }
 
   Widget _buildCard(BuildContext context) {
-    String title = '';
-    String subtitle = '';
+    var title = '';
+    var subtitle = '';
     String? type;
     String? source;
     String? imageUrl;
     Widget? trailing;
     Color? typeColor;
 
+    IconData fallbackIcon = AppIcons.salad;
+
     switch (entry.type) {
       case JournalEntryType.scan:
         final scan = entry.scan!;
+        final category = scan.category?.toLowerCase() ?? '';
+        final scanSource = scan.source?.toLowerCase() ?? '';
+
         title = scan.productName;
-        type = scan.source == 'barcode' ? 'Barcode Scan' : 'Food Scan';
         subtitle = scan.brand;
-        source = null;
         imageUrl = scan.userImageUrl ?? scan.imageUrl;
-        typeColor = scan.source == 'barcode' ? AppPalette.purple : AppPalette.green500;
-        trailing = _ScoreBadge(score: scan.score);
+
+        if (category == 'label' || scanSource == 'label') {
+          type = 'Label Audit';
+          typeColor = AppPalette.blue;
+          trailing = null; // No score for labels usually
+          fallbackIcon = AppIcons.fileText;
+        } else if (category == 'menu' || scanSource == 'menu') {
+          type = 'Menu Guide';
+          typeColor = AppPalette.orange;
+          trailing = null;
+          fallbackIcon = AppIcons.bookOpen;
+        } else {
+          type = scan.source == 'barcode' ? 'Barcode Scan' : 'Food Scan';
+          typeColor = scan.source == 'barcode' ? AppPalette.purple : AppPalette.green500;
+          trailing = _ScoreBadge(score: scan.score);
+          fallbackIcon = scan.source == 'barcode' ? AppIcons.barcode : AppIcons.scan;
+        }
+        source = null;
         break;
       case JournalEntryType.meal:
         final meal = entry.meal!;
@@ -154,6 +185,7 @@ class JournalTimelineEntry extends StatelessWidget {
         source = meal.source?.toUpperCase() ?? 'LOG';
         imageUrl = meal.photoUrl;
         typeColor = AppPalette.orange;
+        fallbackIcon = AppIcons.utensils;
         break;
       case JournalEntryType.symptom:
         final symptom = entry.symptom!;
@@ -200,7 +232,7 @@ class JournalTimelineEntry extends StatelessWidget {
                   placeholder: (context, url) => Container(color: context.appColorScheme.border.withValues(alpha: 0.1)),
                   errorWidget: (context, url, error) => Container(
                     color: context.appColorScheme.border.withValues(alpha: 0.1),
-                    child: Icon(AppIcons.salad, color: context.appColorScheme.textPrimary, size: 20),
+                    child: Icon(fallbackIcon, color: context.appColorScheme.textPrimary, size: 20),
                   ),
                 ),
               )
@@ -209,7 +241,7 @@ class JournalTimelineEntry extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppSizes.r12)),
-                child: Icon(AppIcons.salad, color: context.appColorScheme.textPrimary, size: 20),
+                child: Icon(fallbackIcon, color: context.appColorScheme.textPrimary, size: 20),
               ),
             Gap.w12,
 
@@ -273,8 +305,8 @@ class _ScoreBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color = AppPalette.green;
-    String label = 'Great';
+    var color = AppPalette.green;
+    var label = 'Great';
 
     if (score >= 90) {
       color = AppPalette.green;

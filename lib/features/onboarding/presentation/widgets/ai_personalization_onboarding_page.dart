@@ -11,8 +11,9 @@ import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
 class AIPersonalizationOnboardingPage extends StatefulWidget {
-  const AIPersonalizationOnboardingPage({super.key, required this.onFinish});
+  const AIPersonalizationOnboardingPage({super.key, required this.onFinish, this.isLoading = false});
   final VoidCallback onFinish;
+  final bool isLoading;
 
   @override
   State<AIPersonalizationOnboardingPage> createState() => _AIPersonalizationOnboardingPageState();
@@ -84,7 +85,7 @@ class _AIPersonalizationOnboardingPageState extends State<AIPersonalizationOnboa
         if (_isSuccess)
           Padding(
             padding: EdgeInsets.only(bottom: AppSizes.p20),
-            child: GutButton(label: AppStrings.continueButton, suffixIcon: AppIcons.arrowRight, onTap: widget.onFinish),
+            child: GutButton(label: AppStrings.continueButton, suffixIcon: AppIcons.arrowRight, onTap: widget.onFinish, isLoading: widget.isLoading),
           ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0)
         else
           Gap.h32, // Reserved space for button

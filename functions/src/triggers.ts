@@ -62,6 +62,12 @@ export const onScanCreated = functions
     // Only proceed if the current scan is processed (3 or 4)
     if (novaGroup !== '3' && novaGroup !== '4') return;
 
+    // 🛡️ Semantic Check: Skip non-product scans (menus, generic labels) to avoid false alerts
+    const source = (scanData.source || '').toLowerCase();
+    const category = (scanData.category || '').toLowerCase();
+    const name = (scanData.productName || '').toLowerCase();
+    if (source === 'menu' || category === 'menu' || name.includes('menu')) return;
+
     const db = admin.firestore();
     const userRef = db.doc(`user_profiles/${uid}`);
 
@@ -154,11 +160,11 @@ export const onScanCreated = functions
   });
 
 /**
- * onMealCreated: Update streak when a manual meal is logged.
+ * onJournalEntryCreated: Update streak when a meal or symptom is logged in the consolidated journal.
  */
-export const onMealCreated = functions
+export const onJournalEntryCreated = functions
   .region(REGION)
-  .firestore.document('user_profiles/{uid}/meal_logs/{docId}')
+  .firestore.document('user_profiles/{uid}/journal_logs/{docId}')
   .onCreate(async (snapshot, context) => {
     const { uid } = context.params;
     const data = snapshot.data();
@@ -197,6 +203,7 @@ export const onInsightCreated = functions
 
 /**
  * onSymptomCreated: Update streak when a manual symptom check-in is performed.
+ * @deprecated Use onJournalEntryCreated
  */
 export const onSymptomCreated = functions
   .region(REGION)

@@ -27,9 +27,10 @@ class HistorySection extends StatelessWidget {
             onTap: () {
               final tag = 'scan_image_${item.data.barcode ?? item.data.productName}_${item.createdAt.millisecondsSinceEpoch}';
               final resultWithImage = item.data.copyWith(userImageUrl: item.userImageUrl);
+
               unawaited(
                 context.push(
-                  AppRoutes.scanResult,
+                  resultWithImage.detailRoute,
                   extra: ScanResultArgs(scanData: resultWithImage, heroTag: tag),
                 ),
               );

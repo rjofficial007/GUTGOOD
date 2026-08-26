@@ -193,7 +193,7 @@ class ModelUtils {
     // If we reach here, the JSON is unbalanced (likely truncated).
     var current = raw.substring(startIndex).trim();
 
-    // 🟢 DATA INTEGRITY: If the JSON was truncated immediately after a comma, 
+    // 🟢 DATA INTEGRITY: If the JSON was truncated immediately after a comma,
     // remove the trailing comma before force-closing to ensure validity.
     if (current.endsWith(',')) {
       current = current.substring(0, current.length - 1).trim();
@@ -235,5 +235,46 @@ class ModelUtils {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Deterministic calculation for the Gut Score based on factual product data.
+  ///
+  /// This formula is the "Ground Truth" engine that translates Nutri-Score,
+  /// NOVA processing group, and fiber/protein/sugar/salt levels into a 0-100 score.
+  static int computeDeterministicScore({String? nutriscore, int? novaGroup, num? fiberG, num? proteinG, num? sugarG, num? saltG, num? saturatedFatG}) {
+    var score = 50;
+
+    switch (nutriscore?.toUpperCase()) {
+      case 'A':
+        score += 25;
+      case 'B':
+        score += 15;
+      case 'C':
+        break;
+      case 'D':
+        score -= 15;
+      case 'E':
+        score -= 25;
+    }
+
+    switch (novaGroup) {
+      case 1:
+        score += 10;
+      case 2:
+        score += 5;
+      case 3:
+        break;
+      case 4:
+        score -= 10;
+    }
+
+    // Conservative nudges from raw nutrient values (per 100g)
+    if (fiberG != null && fiberG >= 5) score += 5;
+    if (proteinG != null && proteinG >= 10) score += 3;
+    if (sugarG != null && sugarG >= 20) score -= 5;
+    if (saltG != null && saltG >= 1.5) score -= 5;
+    if (saturatedFatG != null && saturatedFatG >= 5) score -= 3;
+
+    return score.clamp(0, 100);
   }
 }

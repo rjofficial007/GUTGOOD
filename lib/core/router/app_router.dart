@@ -36,6 +36,8 @@ import 'package:gutgood/features/insights/presentation/pages/pattern_detail_scre
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/label_result_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/menu_result_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/nutrition_facts_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/product_not_found_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/scan_result_screen.dart';
@@ -195,6 +197,21 @@ class AppRouter {
                   return ScanResultScreen(scanData: args.scanData, heroTag: args.heroTag);
                 },
               ),
+              GoRoute(
+                path: AppRoutes.labelResult,
+                builder: (context, state) {
+                  final args = state.extra as ScanResultArgs;
+                  return LabelResultScreen(scanData: args.scanData, heroTag: args.heroTag);
+                },
+              ),
+              GoRoute(
+                path: AppRoutes.menuResult,
+                builder: (context, state) {
+                  final args = state.extra as ScanResultArgs;
+                  return MenuResultScreen(scanData: args.scanData, heroTag: args.heroTag);
+                },
+              ),
+
               GoRoute(
                 path: AppRoutes.nutritionFacts,
                 builder: (context, state) => NutritionFactsScreen(scanData: state.extra as ScanResult),

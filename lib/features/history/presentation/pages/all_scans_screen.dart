@@ -65,14 +65,15 @@ class _AllScansScreenState extends State<AllScansScreen> {
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: RefreshIndicator(
-        onRefresh: notifier.refreshScans,
+        onRefresh: notifier.refreshAll,
         color: context.appColorScheme.textPrimary,
         child: CustomScrollView(
           controller: _scrollController,
           slivers: [
             const GutSliverAppBar(title: AppStrings.aiScanHistory, showBrandingIcon: false),
-            if (notifier.scansLoading) const _Loading() else if (notifier.scans.isEmpty) const _Empty() else _List(groupedHistory: _groupHistoryByDate(notifier.scans)),
+            if (notifier.scansLoading) const _Loading() else if (notifier.allScans.isEmpty) const _Empty() else _List(groupedHistory: _groupHistoryByDate(notifier.allScans)),
             if (notifier.scansLoadingMore)
+
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),

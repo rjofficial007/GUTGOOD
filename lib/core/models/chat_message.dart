@@ -65,8 +65,14 @@ class ChatMessage extends Equatable {
       text: map['text'] ?? '',
       imageUrl: resolvedImageUrls.isNotEmpty ? resolvedImageUrls.first : legacyImageUrl,
       imageUrls: resolvedImageUrls,
-      scanData: analysisResult?.scan ?? ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap),
-      mealLogs: analysisResult?.meal != null ? [analysisResult!.meal!] : ModelUtils.parseModelList<MealLog>(map['mealLogs'], MealLog.fromMap),
+      // 🚀 Professional Parsing: Support both embedded data and reference previews
+      scanData:
+          analysisResult?.scan ??
+          ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap) ??
+          (map['scanPreview'] != null ? ScanResult.fromMap({...map['scanPreview'], 'scanId': map['scanId']}) : null),
+      mealLogs: analysisResult?.meal != null
+          ? [analysisResult!.meal!]
+          : (ModelUtils.parseModelList<MealLog>(map['mealLogs'], MealLog.fromMap).isNotEmpty ? ModelUtils.parseModelList<MealLog>(map['mealLogs'], MealLog.fromMap) : []),
       symptomLogs: analysisResult != null && analysisResult.symptoms.isNotEmpty ? analysisResult.symptoms : ModelUtils.parseModelList<SymptomLog>(map['symptomLogs'], SymptomLog.fromMap),
       swapData: analysisResult != null && analysisResult.swaps.isNotEmpty ? analysisResult.swaps : ModelUtils.parseModelList<ProductSwap>(map['swapData'], ProductSwap.fromMap),
       analysisResult: analysisResult,
@@ -227,7 +233,23 @@ class ChatMessage extends Equatable {
     'text': text,
     'imageUrl': imageUrl,
     'imageUrls': imageUrls,
-    'scanData': scanData?.toMap(),
+    // 🚀 Deduplication: Store IDs and minimal preview metadata only
+    'scanId': scanData?.scanId,
+    'scanPreview': scanData != null
+        ? {
+            'productName': scanData!.productName,
+            'brand': scanData!.brand,
+            'score': scanData!.score,
+            'imageUrl': scanData!.imageUrl,
+            'userImageUrl': scanData!.userImageUrl,
+            'impactType': scanData!.impactType.name,
+            'impact': scanData!.impact,
+            'source': scanData!.source,
+            'category': scanData!.category,
+            'intent': scanData!.rawData?['intent'], // 🚀 Fixed: Include intent for smart routing
+          }
+        : null,
+    'journalEntryIds': [...mealLogs.map((e) => e.firestoreId).whereType<String>(), ...symptomLogs.map((e) => e.firestoreId).whereType<String>()],
     'mealLogs': mealLogs.map((e) => e.toMap()).toList(),
     'symptomLogs': symptomLogs.map((e) => e.toMap()).toList(),
     'swapData': swapData?.map((e) => e.toMap()).toList(),
@@ -257,6 +279,10 @@ class ChatMessage extends Equatable {
 
     if (symptomLogs.isNotEmpty) {
       buffer.write('\n\n[SYMPTOM_CONTEXT]${jsonEncode(symptomLogs.map((e) => e.toAiMap()).toList())}[/SYMPTOM_CONTEXT]');
+    }
+
+    if (swapData != null && swapData!.isNotEmpty) {
+      buffer.write('\n\n[SWAPS_CONTEXT]${jsonEncode(swapData!.map((e) => {'title': e.title, 'subtitle': e.subtitle}).toList())}[/SWAPS_CONTEXT]');
     }
 
     return {'role': role, 'content': buffer.toString().trim()};

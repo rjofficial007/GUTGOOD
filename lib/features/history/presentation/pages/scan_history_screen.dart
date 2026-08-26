@@ -12,8 +12,43 @@ import 'package:gutgood/features/history/presentation/providers/history_notifier
 import 'package:gutgood/features/history/presentation/widgets/journal_timeline_widgets.dart';
 import 'package:provider/provider.dart';
 
-class ScanHistoryScreen extends StatelessWidget {
+class ScanHistoryScreen extends StatefulWidget {
   const ScanHistoryScreen({super.key});
+
+  @override
+  State<ScanHistoryScreen> createState() => _ScanHistoryScreenState();
+}
+
+class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (currentScroll >= maxScroll * 0.9) {
+      final notifier = context.read<HistoryNotifier>();
+      if (notifier.currentFilter == HistoryFilter.all || notifier.currentFilter == HistoryFilter.scans) {
+        notifier.loadMoreScans();
+      } else if (notifier.currentFilter == HistoryFilter.meals) {
+        notifier.loadMoreMeals();
+      } else if (notifier.currentFilter == HistoryFilter.body) {
+        notifier.loadMoreSymptoms();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +60,7 @@ class ScanHistoryScreen extends StatelessWidget {
         onRefresh: notifier.refreshAll,
         color: context.appColorScheme.textPrimary,
         child: CustomScrollView(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const GutSliverAppBar(title: AppStrings.history),
@@ -40,6 +76,14 @@ class ScanHistoryScreen extends StatelessWidget {
               const _HistoryEmptyState()
             else
               _TimelineBody(entries: notifier.filteredEntries),
+
+            if (notifier.scansLoadingMore || notifier.mealsLoadingMore || notifier.symptomsLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                ),
+              ),
 
             SliverToBoxAdapter(child: Gap.h40),
           ],
@@ -137,9 +181,20 @@ class _TimelineBody extends StatelessWidget {
 
   void _handleEntryTap(BuildContext context, JournalEntry entry) {
     if (entry.type == JournalEntryType.scan && entry.scan != null) {
+      final result = entry.scan!;
+      final source = result.source?.toLowerCase() ?? '';
+      final category = result.category?.toLowerCase() ?? '';
+
+      var route = AppRoutes.scanResult;
+      if (source == 'label' || category == 'label') {
+        route = AppRoutes.labelResult;
+      } else if (source == 'menu' || category == 'menu') {
+        route = AppRoutes.menuResult;
+      }
+
       context.push(
-        AppRoutes.scanResult,
-        extra: ScanResultArgs(scanData: entry.scan!, heroTag: entry.id),
+        route,
+        extra: ScanResultArgs(scanData: result, heroTag: entry.id),
       );
     } else if (entry.type == JournalEntryType.meal && entry.meal != null) {
       context.push(AppRoutes.mealDetail, extra: entry.meal);

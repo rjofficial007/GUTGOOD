@@ -1,29 +1,37 @@
 rules_version = '2';
 
+/**
+ * GutGood Firestore Security Rules
+ *
+ * Architecture: Per-user subcollection model.
+ * Ownership is enforced via the {userId} path parameter matching request.auth.uid.
+ */
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: Checks if the requester is the owner of the user profile
+    // --- SHARED HELPERS ---
+
+    /** Checks if the requester is the authenticated owner of the user profile. */
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Helper: validates the client-written premium fields.
-    // Premium is managed CLIENT-SIDE via the RevenueCat SDK entitlement check;
-    // the app mirrors that entitlement into the profile so it is available
-    // cross-device and to the aiProxy quota check. Shape is validated here so
-    // garbage values can't be stored even from a tampered client.
+    /**
+     * Validates client-written premium fields.
+     * Premium is managed via RevenueCat; the app mirrors the status here for
+     * cross-device availability and server-side quota checks in Cloud Functions.
+     */
     function isValidPremiumFields() {
       let premium = request.resource.data.get('isPremium', false);
       let status = request.resource.data.get('subscriptionStatus', 'free');
       return premium is bool
         && status is string
         && status in ['free', 'premium']
-        // Consistency: a paid flag must not carry the 'free' status.
+        // Ensure paid flag and status string are consistent.
         && (premium == false || status == 'premium');
     }
 
-    // Validation for UserProfile specific fields.
+    /** Enforces structure for UserProfile documents. */
     function isValidUserProfile() {
       let data = request.resource.data;
       return isValidPremiumFields()
@@ -33,28 +41,33 @@ service cloud.firestore {
         && data.get('gutScore', 0) <= 100;
     }
 
-    // Shape validation for chat messages written by clients (audit §3.3 —
-    // prevents oversized/garbage documents and cost blowups).
+    /**
+     * Validates chat messages to prevent oversized documents or garbage data injection.
+     * Prevents cost blowups and ensures UI rendering consistency.
+     */
     function isValidChatMessage() {
       return request.resource.data.role in ['user', 'ai']
         && request.resource.data.text is string
-        && request.resource.data.text.size() < 20000
+        && request.resource.data.text.size() < 20000 // Bound text to ~20KB
         && request.resource.data.get('imageUrls', []) is list
         && request.resource.data.get('imageUrls', []).size() <= 4
-        && request.resource.size() < 512 * 1024;
+        && request.resource.size() < 512 * 1024; // Strict 512KB cap
     }
+
+    // --- COLLECTION RULES ---
 
     match /user_profiles/{userId} {
       allow read: if isOwner(userId);
 
-      // User profile validation: includes premium fields, onboarding status,
-      // and gut score constraints. Size restricted to 256KB for rich profile data.
+      /** Create user profile: includes onboarding and gut health constraints. */
       allow create: if isOwner(userId)
         && isValidUserProfile()
         && request.resource.size() < 256 * 1024;
 
+      /** Update profile: prevents clients from tampering with server-authoritative streak/score data. */
       allow update: if isOwner(userId)
         && isValidUserProfile()
+        // Force streak and score to remain unchanged by client (authoritative logic in Cloud Functions).
         && (request.resource.data.get('streak', 0) == resource.data.get('streak', 0))
         && (request.resource.data.get('gutScore', 0) == resource.data.get('gutScore', 0))
         && (request.resource.data.get('lastActivityDate', '') == resource.data.get('lastActivityDate', ''))
@@ -62,6 +75,7 @@ service cloud.firestore {
 
       allow delete: if isOwner(userId);
 
+      /** Chat History: Full conversations, excluding bulky analysis payloads (now reference-based). */
       match /chat_history/{docId} {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidChatMessage();
@@ -69,59 +83,59 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
 
+      /** Scan History: Unified home for Product, Label, and Menu analyses. */
       match /scan_history/{docId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
         allow delete: if isOwner(userId);
       }
 
-      match /meal_logs/{docId} {
+      /** Journal Logs: Unified timeline for Meals (consumption) and Symptoms (reactions). */
+      match /journal_logs/{docId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
         allow delete: if isOwner(userId);
       }
 
-      match /symptom_logs/{docId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
-        allow delete: if isOwner(userId);
-      }
-
+      /** AI Insights: Generated patterns and health trends. */
       match /insights/{docId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
         allow delete: if isOwner(userId);
       }
 
-      // Usage counters are server-authoritative now: the aiProxy Cloud
-      // Function (Admin SDK) consumes them transactionally. Clients may only
-      // READ their own usage for the paywall fast-path — never write it.
-      // (Closes the "reset your own counters" bypass from audit §3.1.)
+      /**
+       * Authoritative Usage Counters:
+       * Clients can READ for paywall logic, but only server (aiProxy) can write.
+       */
       match /daily_usage/{docId} {
         allow read: if isOwner(userId);
         allow write: if false;
       }
 
+      /** Pattern Engine state: latest analysis evidence. */
       match /pattern_data/{docId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
       }
 
+      /** Health Alerts: Surfaced alerts for UPFs or cycle-specific sensitivities. */
       match /health_alerts/{docId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
         allow delete: if isOwner(userId);
       }
 
-      // Idempotency markers written only by the mergeAnonymousAccount Cloud
-      // Function (Admin SDK bypasses rules). Clients can read but never forge.
+      /** Guest->Permanent merge markers. Server-side only (Admin SDK). */
       match /merges/{anonUid} {
         allow read: if isOwner(userId);
         allow write: if false;
       }
     }
 
-    // Explicit default-deny for anything not matched above.
+    // --- DEFAULT DENY ---
+
+    /** Explicitly deny any access not covered by the authenticated owner rules above. */
     match /{document=**} {
       allow read, write: if false;
     }

@@ -618,7 +618,12 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                       scanData: msg.scanData,
                       swapData: msg.swapData,
                       onSeeMoreSwaps: () => composerNotifier.handleSeeMoreSwaps(msg.text, i),
-                      onViewFullReport: msg.scanData != null ? () => unawaited(context.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: msg.scanData!))) : null,
+                      onViewFullReport: msg.scanData != null
+                          ? () {
+                              final result = msg.scanData!;
+                              unawaited(context.push(result.detailRoute, extra: ScanResultArgs(scanData: result)));
+                            }
+                          : null,
                     ),
                   ],
                 ),

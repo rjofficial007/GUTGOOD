@@ -31,20 +31,23 @@ class AppPalette {
   static const darkTextMuted = Color(0xFF8D96A5);
 
   // --- Semantic Colors ---
+  static const greenSoft = Color(0xFFE7F6E7);
+  static const redSoft = Color(0xFFFFF1F0);
+  static const orangeSoft = Color(0xFFFFF4E5);
+  static const lavender = Color(0xFFF1F0FF);
+  static const lavenderDark = Color(0xFF6750A4);
+
   static const green = Color(0xFF1F7A3D);
   static const green500 = Color(0xFF22C55E);
   static const greenLight = Color(0xFFE8F5EC);
   static const greenBg = Color(0xFFF0F9F3);
-  static const greenSoft = Color(0xFFE7F6E7);
 
   static const red = Color(0xFFC4302B);
   static const redLight = Color(0xFFFEE9E7);
   static const redBg = Color(0xFFFFF4F3);
-  static const redSoft = Color(0xFFFFF1F0);
 
   static const orange = Color(0xFFFFAB40);
   static const orangeLight = Color(0xFFFEF3E2);
-  static const orangeSoft = Color(0xFFFFF4E5);
 
   static const yellow = Color(0xFFEAB308);
   static const yellowLight = Color(0xFFFEF9C3);
@@ -54,8 +57,6 @@ class AppPalette {
 
   static const purple = Color(0xFF7C3AED);
   static const purpleLight = Color(0xFFEDE9FE);
-  static const lavender = Color(0xFFF1F0FF);
-  static const lavenderDark = Color(0xFF6750A4);
 
   static const pink = Color(0xFFDB2777);
   static const pinkLight = Color(0xFFFCE7F3);

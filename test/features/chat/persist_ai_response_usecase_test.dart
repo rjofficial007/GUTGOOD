@@ -45,7 +45,7 @@ void main() {
       final result = AiAnalysisResult(
         text: 'Analysis',
         scan: ScanResult(productName: 'Food', brand: 'Brand', score: 80, impactType: ImpactType.positive, impact: 'Good', category: 'food', createdAt: now),
-        meal: MealLog(items: ['Food'], createdAt: now),
+        meal: MealLog(items: const ['Food'], createdAt: now),
         symptoms: [SymptomLog(symptom: 'Bloating', severity: 2, createdAt: now)],
       );
 

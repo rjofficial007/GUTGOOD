@@ -50,19 +50,22 @@ class OffProduct extends Equatable {
     category: map['category'],
     categoryTag: map['categoryTag'],
     servingSize: map['servingSize']?.toString() ?? map['serving_size']?.toString(),
-    nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(
-      map['nutrientLevels'],
-      NutrientLevels.fromMap,
-    ),
-    nutrients: ModelUtils.parseNestedModel<NutrientData>(
-      map['nutrients'],
-      NutrientData.fromMap,
-    ),
-    impacts: ModelUtils.parseModelList<ImpactDetail>(
-      map['impacts'],
-      ImpactDetail.fromMap,
-    ),
+    nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'], NutrientLevels.fromMap),
+    nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
+    impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
   );
+
+  /// Returns the deterministically calculated Gut Score (0-100) for this product.
+  int get gutScore => ModelUtils.computeDeterministicScore(
+    nutriscore: nutriscore,
+    novaGroup: novaGroup,
+    fiberG: nutrients?.fiber,
+    proteinG: nutrients?.proteins,
+    sugarG: nutrients?.sugars,
+    saltG: nutrients?.salt,
+    saturatedFatG: nutrients?.saturatedFat,
+  );
+
   final String productName;
   final String? brand;
   final String? imageUrl;

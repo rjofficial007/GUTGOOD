@@ -14,10 +14,12 @@ class ProcessChatTagUseCase {
   AiAnalysisResult call(String text, {String? imageUrl, String? source, String? chatMessageId, bool isFinal = false}) {
     var displayOutput = text;
     String? intent;
+    String? imageMode;
     ScanResult? scanData;
     MealLog? mealLog;
     final symptomLogs = <SymptomLog>[];
     var swapsList = <ProductSwap>[];
+    Map<String, dynamic>? menuData;
     final metadata = <String, dynamic>{};
 
     // --- STEP 1: PARSING NEW UNIFIED DATA BLOCK ---
@@ -30,48 +32,55 @@ class ProcessChatTagUseCase {
     if (tagIndex != -1) {
       final endTagIndex = lowerText.indexOf(endTag, tagIndex + startTag.length);
       final isClosed = endTagIndex != -1;
-      final content = isClosed 
-          ? text.substring(tagIndex + startTag.length, endTagIndex) 
-          : text.substring(tagIndex + startTag.length);
+      final content = isClosed ? text.substring(tagIndex + startTag.length, endTagIndex) : text.substring(tagIndex + startTag.length);
 
       try {
         final jsonStr = ModelUtils.extractJson(content);
         if (jsonStr != null) {
           final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
-          
+
           intent = decoded['intent']?.toString();
-          
+          imageMode = decoded['image_mode']?.toString();
+
           if (decoded['scan'] != null && decoded['scan'] is Map<String, dynamic>) {
-            scanData = ScanResult.fromMap(decoded['scan']).copyWith(
-              source: source,
-              userImageUrl: imageUrl,
-              chatMessageId: chatMessageId,
-            );
+            final scanMap = Map<String, dynamic>.from(decoded['scan']);
+            if (decoded['menu'] != null) {
+              scanMap['menu'] = decoded['menu'];
+            }
+            // 🚀 Professional ID Mapping: Ensure the scanId used in Firestore (convention: msgId_scan)
+            // is attached to the model so hydration works correctly when viewing full reports.
+            // We also pass 'decoded' as rawData so all context (meal strategy, etc.) is preserved.
+            scanData = ScanResult.fromMap(
+              scanMap,
+            ).copyWith(source: imageMode ?? source, userImageUrl: imageUrl, chatMessageId: chatMessageId, scanId: chatMessageId != null ? '${chatMessageId}_scan' : null, rawData: decoded);
           }
-          
+
+          if (decoded['menu'] != null && decoded['menu'] is Map<String, dynamic>) {
+            menuData = decoded['menu'];
+          } else if (intent == 'menu_analysis' || source == 'menu') {
+            // Support unified format where menu items are in 'scan' and strategy is in 'meal'
+            menuData = decoded;
+          }
+
           if (decoded['meal'] != null && decoded['meal'] is Map<String, dynamic>) {
-            mealLog = MealLog.fromMap({
-              ...decoded['meal'],
-              'photoUrl': imageUrl,
-              'chatMessageId': chatMessageId,
-            }).copyWith(source: source ?? 'chat');
+            mealLog = MealLog.fromMap({...decoded['meal'], 'photoUrl': imageUrl, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
           }
-          
+
           if (decoded['symptoms'] != null && decoded['symptoms'] is List) {
             for (final s in decoded['symptoms']) {
               if (s is Map<String, dynamic>) {
-                symptomLogs.add(SymptomLog.fromMap({
-                  ...s,
-                  'chatMessageId': chatMessageId,
-                }).copyWith(source: source ?? 'chat'));
+                symptomLogs.add(SymptomLog.fromMap({...s, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat'));
+              } else if (s != null && s is String && s.isNotEmpty) {
+                // 🚀 Robust Fallback: Handle cases where AI returns a simple string list instead of objects
+                symptomLogs.add(SymptomLog(symptom: s, chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
               }
             }
           }
-          
+
           if (decoded['swaps'] != null && decoded['swaps'] is List) {
             swapsList = ModelUtils.parseModelList<ProductSwap>(decoded['swaps'], ProductSwap.fromMap);
           }
-          
+
           if (decoded['metadata'] != null && decoded['metadata'] is Map<String, dynamic>) {
             metadata.addAll(decoded['metadata']);
           }
@@ -83,7 +92,7 @@ class ProcessChatTagUseCase {
 
     // --- STEP 2: LEGACY FALLBACK FOR HISTORICAL MESSAGES ---
     if (intent == null && scanData == null && mealLog == null && symptomLogs.isEmpty && swapsList.isEmpty) {
-      final legacyTags = ['INTENT', 'SYMPTOM', 'MEAL', 'SCAN', 'SWAPS'];
+      final legacyTags = ['INTENT', 'SYMPTOM', 'MEAL', 'SCAN', 'SWAPS', 'SCAN_CONTEXT'];
       for (final tag in legacyTags) {
         final lStart = '[${tag.toLowerCase()}]';
         final lEnd = '[/${tag.toLowerCase()}]';
@@ -97,8 +106,11 @@ class ProcessChatTagUseCase {
               final decoded = jsonDecode(jsonStr);
               if (tag == 'INTENT' && decoded is Map) {
                 intent = decoded['category']?.toString();
-              } else if (tag == 'SCAN' && decoded is Map) {
-                scanData = ScanResult.fromMap(Map<String, dynamic>.from(decoded)).copyWith(source: source, userImageUrl: imageUrl, chatMessageId: chatMessageId);
+              } else if ((tag == 'SCAN' || tag == 'SCAN_CONTEXT') && decoded is Map) {
+                final scanMap = Map<String, dynamic>.from(decoded);
+                scanData = ScanResult.fromMap(
+                  scanMap,
+                ).copyWith(source: source, userImageUrl: imageUrl, chatMessageId: chatMessageId, scanId: chatMessageId != null ? '${chatMessageId}_scan' : null, rawData: scanMap);
               } else if (tag == 'MEAL' && decoded is Map) {
                 mealLog = MealLog.fromMap(Map<String, dynamic>.from(decoded)).copyWith(source: source ?? 'chat');
               } else if (tag == 'SYMPTOM' && decoded is Map) {
@@ -113,7 +125,7 @@ class ProcessChatTagUseCase {
     }
 
     // --- STEP 3: UI STRIPPING ---
-    final firstTagRegex = RegExp(r'\[(GUTGOOD_DATA|INTENT|SYMPTOM|MEAL|SCAN|SWAPS)\]', caseSensitive: false);
+    final firstTagRegex = RegExp(r'\[(GUTGOOD_DATA|INTENT|SYMPTOM|MEAL|SCAN|SWAPS|SCAN_CONTEXT)\]', caseSensitive: false);
     final match = firstTagRegex.firstMatch(text);
 
     if (match != null) {
@@ -124,14 +136,6 @@ class ProcessChatTagUseCase {
       displayOutput = text.substring(0, startIndex).trim();
     }
 
-    return AiAnalysisResult(
-      text: displayOutput,
-      intent: intent,
-      scan: scanData,
-      meal: mealLog,
-      symptoms: symptomLogs,
-      swaps: swapsList,
-      metadata: metadata,
-    );
+    return AiAnalysisResult(text: displayOutput, intent: intent, imageMode: imageMode, scan: scanData, meal: mealLog, symptoms: symptomLogs, swaps: swapsList, menu: menuData, metadata: metadata);
   }
 }

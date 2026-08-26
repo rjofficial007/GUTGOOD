@@ -15,6 +15,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     required this.softError,
     required this.warning,
     required this.softWarning,
+    required this.moderate,
+    required this.softModerate,
     required this.info,
     required this.softInfo,
     required this.lavender,
@@ -34,6 +36,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color softError;
   final Color warning;
   final Color softWarning;
+  final Color moderate;
+  final Color softModerate;
   final Color info;
   final Color softInfo;
   final Color lavender;
@@ -54,6 +58,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? softError,
     Color? warning,
     Color? softWarning,
+    Color? moderate,
+    Color? softModerate,
     Color? info,
     Color? softInfo,
     Color? lavender,
@@ -72,6 +78,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     softError: softError ?? this.softError,
     warning: warning ?? this.warning,
     softWarning: softWarning ?? this.softWarning,
+    moderate: moderate ?? this.moderate,
+    softModerate: softModerate ?? this.softModerate,
     info: info ?? this.info,
     softInfo: softInfo ?? this.softInfo,
     lavender: lavender ?? this.lavender,
@@ -95,6 +103,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       softError: Color.lerp(softError, other.softError, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       softWarning: Color.lerp(softWarning, other.softWarning, t)!,
+      moderate: Color.lerp(moderate, other.moderate, t)!,
+      softModerate: Color.lerp(softModerate, other.softModerate, t)!,
       info: Color.lerp(info, other.info, t)!,
       softInfo: Color.lerp(softInfo, other.softInfo, t)!,
       lavender: Color.lerp(lavender, other.lavender, t)!,
@@ -116,6 +126,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     softError: AppPalette.redSoft,
     warning: AppPalette.orange,
     softWarning: AppPalette.orangeSoft,
+    moderate: AppPalette.yellow,
+    softModerate: AppPalette.yellowLight,
     info: AppPalette.blue,
     softInfo: AppPalette.blueLight,
     lavender: AppPalette.lavender,
@@ -136,6 +148,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     softError: Color(0xFF3A1E1E),
     warning: AppPalette.orange,
     softWarning: Color(0xFF3A2A1E),
+    moderate: AppPalette.yellow,
+    softModerate: Color(0xFF3A361E),
     info: AppPalette.blue,
     softInfo: Color(0xFF1E2A3A),
     lavender: Color(0xFF2A2E3A),

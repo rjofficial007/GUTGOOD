@@ -136,7 +136,7 @@ class ProfileNotifier with ChangeNotifier {
     }
   }
 
-  void _syncTimezoneOffset() async {
+  Future<void> _syncTimezoneOffset() async {
     if (_profile == null) return;
     final currentOffset = DateTime.now().timeZoneOffset.inMinutes;
     if (_profile!.timezoneOffset != currentOffset) {

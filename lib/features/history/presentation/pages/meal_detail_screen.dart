@@ -10,34 +10,39 @@ import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';
 import 'package:shimmer/shimmer.dart';
 
 class MealDetailScreen extends StatelessWidget {
   const MealDetailScreen({super.key, required this.meal});
+
   final MealLog meal;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
+    final hasPhoto = meal.photoUrl != null && meal.photoUrl!.isNotEmpty;
 
     return Scaffold(
       backgroundColor: scheme.cardBackground,
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          const GutSliverAppBar(title: '', showBrandingIcon: false),
-          SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                DashboardEntrance(delay: 50, child: _MealHeroCard(meal: meal)),
-                Gap.h20,
-                if (meal.photoUrl != null && meal.photoUrl!.isNotEmpty) ...[DashboardEntrance(delay: 100, child: _MealPhotoCard(photoUrl: meal.photoUrl!)), Gap.h20],
-                DashboardEntrance(delay: 150, child: _MealItemsCard(items: meal.items)),
-                Gap.h20,
-                if (meal.analysisResult != null && meal.analysisResult!.isNotEmpty) ...[DashboardEntrance(delay: 200, child: _MealAnalysisCard(analysis: meal.analysisResult!)), Gap.h20],
-                if (meal.notes != null && meal.notes!.isNotEmpty) ...[DashboardEntrance(delay: 250, child: _MealNotesCard(notes: meal.notes!)), Gap.h40],
-              ]),
+          const GutSliverAppBar(title: 'MEAL DETAILS', centerTitle: true),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DashboardEntrance(delay: 50, child: _MealHeader(meal: meal)),
+                  Gap.h32,
+                  if (hasPhoto) DashboardEntrance(delay: 100, child: _MealPhotoSection(photoUrl: meal.photoUrl!)),
+                  DashboardEntrance(delay: 150, child: _MealItemsSection(items: meal.items)),
+                  if (meal.analysisResult != null && meal.analysisResult!.isNotEmpty) ...[Gap.h32, DashboardEntrance(delay: 200, child: _MealIntelligenceCard(analysis: meal.analysisResult!))],
+                  if (meal.notes != null && meal.notes!.isNotEmpty) ...[Gap.h32, DashboardEntrance(delay: 250, child: _MealNotesSection(notes: meal.notes!))],
+                  Gap.h40,
+                ],
+              ),
             ),
           ),
         ],
@@ -46,8 +51,8 @@ class MealDetailScreen extends StatelessWidget {
   }
 }
 
-class _MealHeroCard extends StatelessWidget {
-  const _MealHeroCard({required this.meal});
+class _MealHeader extends StatelessWidget {
+  const _MealHeader({required this.meal});
   final MealLog meal;
 
   @override
@@ -55,40 +60,46 @@ class _MealHeroCard extends StatelessWidget {
     final scheme = context.appColorScheme;
     final mealType = meal.mealType?.toUpperCase() ?? 'MEAL';
 
-    return ModernInsightCard(
-      title: mealType,
-      icon: AppIcons.utensils,
-      iconColor: scheme.textPrimary,
-      backgroundColor: scheme.cardBackground,
-      footer: Text(
-        DateFormatter.formatFull(meal.createdAt).toUpperCase(),
-        style: context.caption.copyWith(color: scheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 10.sp, letterSpacing: 1.2),
-      ),
-      footerColor: scheme.textPrimary,
-      child: Center(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Gap.h24,
-            Text(
-              meal.items.take(2).join(', ').toUpperCase(),
-              style: context.displaySm.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 0.9),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: scheme.textPrimary, borderRadius: BorderRadius.circular(4)),
+              child: Text(
+                mealType,
+                style: context.caption.copyWith(color: scheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 10.sp),
+              ),
             ),
-            Gap.h8,
-            Text('LOGGED FROM ${meal.source?.toUpperCase() ?? 'CHAT'}', style: context.eyebrow),
-            Gap.h32,
+            Gap.w12,
+            Text(DateFormatter.formatFull(meal.createdAt).toUpperCase(), style: context.eyebrow.copyWith(color: scheme.textMuted)),
           ],
         ),
-      ),
+        Gap.h16,
+        Text(
+          meal.items.isEmpty ? 'UNNAMED MEAL' : meal.items.join(', ').toUpperCase(),
+          style: context.displaySm.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1.0, color: scheme.textPrimary),
+        ),
+        Gap.h12,
+        Row(
+          children: [
+            Icon(AppIcons.info, size: 14, color: scheme.textMuted),
+            Gap.w6,
+            Text(
+              'LOGGED VIA ${meal.source?.toUpperCase() ?? 'CHAT'}',
+              style: context.caption.copyWith(color: scheme.textMuted, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
 
-class _MealPhotoCard extends StatelessWidget {
-  const _MealPhotoCard({required this.photoUrl});
+class _MealPhotoSection extends StatelessWidget {
+  const _MealPhotoSection({required this.photoUrl});
   final String photoUrl;
 
   @override
@@ -97,36 +108,39 @@ class _MealPhotoCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('PHOTO', style: context.eyebrow),
-        Gap.h16,
+        const SheetSectionHeader(title: 'PHOTO', color: Colors.transparent),
         Container(
-          height: 250.h,
+          height: 280.h,
           width: double.infinity,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSizes.r24),
-            border: Border.all(color: scheme.border.withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(AppSizes.r32),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppSizes.r24),
+            borderRadius: BorderRadius.circular(AppSizes.r32),
             child: CachedNetworkImage(
               imageUrl: photoUrl,
               fit: BoxFit.cover,
               placeholder: (context, url) => Shimmer.fromColors(
                 baseColor: scheme.border.withValues(alpha: 0.2),
                 highlightColor: scheme.border.withValues(alpha: 0.1),
-                child: Container(color: AppPalette.white),
+                child: Container(color: Colors.white),
               ),
-              errorWidget: (_, _, _) => Icon(AppIcons.image, size: AppSizes.icon48, color: scheme.textMuted),
+              errorWidget: (_, _, _) => Container(
+                color: scheme.elevatedSurface,
+                child: Icon(AppIcons.image, size: 48, color: scheme.textMuted),
+              ),
             ),
           ),
         ),
+        Gap.h32,
       ],
     );
   }
 }
 
-class _MealItemsCard extends StatelessWidget {
-  const _MealItemsCard({required this.items});
+class _MealItemsSection extends StatelessWidget {
+  const _MealItemsSection({required this.items});
   final List<String> items;
 
   @override
@@ -135,46 +149,71 @@ class _MealItemsCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('ITEMS', style: context.eyebrow),
-        Gap.h16,
-        AnalysisCard(
-          metric: items.length.toString(),
-          label: 'DETECTED ITEMS',
-          icon: AppIcons.package,
-          glowColor: scheme.textPrimary,
-          items: items.map((i) => AnalysisItem(title: i.toUpperCase(), subtitle: 'Part of this meal', icon: AppIcons.checkCircle, color: scheme.textPrimary)).toList(),
+        const SheetSectionHeader(title: 'INGREDIENTS', color: Colors.transparent),
+        Wrap(
+          spacing: 8,
+          runSpacing: 10,
+          children: items
+              .map(
+                (item) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: scheme.elevatedSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: scheme.border.withValues(alpha: 0.5)),
+                  ),
+                  child: Text(
+                    item.toUpperCase(),
+                    style: context.caption.copyWith(fontWeight: FontWeight.bold, color: scheme.textPrimary),
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ],
     );
   }
 }
 
-class _MealAnalysisCard extends StatelessWidget {
-  const _MealAnalysisCard({required this.analysis});
+class _MealIntelligenceCard extends StatelessWidget {
+  const _MealIntelligenceCard({required this.analysis});
   final String analysis;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('AI ANALYSIS', style: context.eyebrow),
-        Gap.h16,
-        AnalysisCard(
-          metric: 'AI',
-          label: 'INSIGHTS',
-          icon: AppIcons.brain,
-          glowColor: scheme.textPrimary,
-          items: [AnalysisItem(title: 'SUMMARY', subtitle: analysis, icon: AppIcons.info, color: scheme.textPrimary)],
-        ),
-      ],
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppPalette.lime.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppSizes.r32),
+        border: Border.all(color: AppPalette.lime.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(AppIcons.sparkles, color: AppPalette.lime, size: 20),
+              Gap.w12,
+              Text('GUTGOOD INTELLIGENCE', style: context.eyebrow.copyWith(color: AppPalette.lime, letterSpacing: 1.5)),
+            ],
+          ),
+          Gap.h20,
+          Text(
+            analysis,
+            style: context.body.copyWith(color: scheme.textPrimary, height: 1.5, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _MealNotesCard extends StatelessWidget {
-  const _MealNotesCard({required this.notes});
+class _MealNotesSection extends StatelessWidget {
+  const _MealNotesSection({required this.notes});
   final String notes;
 
   @override
@@ -183,17 +222,19 @@ class _MealNotesCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('NOTES', style: context.eyebrow),
-        Gap.h16,
+        const SheetSectionHeader(title: 'PERSONAL NOTES', color: Colors.transparent),
         Container(
-          padding: EdgeInsets.all(AppSizes.p20),
           width: double.infinity,
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: scheme.elevatedSurface,
             borderRadius: BorderRadius.circular(AppSizes.r24),
             border: Border.all(color: scheme.border.withValues(alpha: 0.5)),
           ),
-          child: Text(notes, style: context.body.copyWith(color: scheme.textSecondary)),
+          child: Text(
+            '"$notes"',
+            style: context.body.copyWith(color: scheme.textSecondary, fontStyle: FontStyle.italic),
+          ),
         ),
       ],
     );

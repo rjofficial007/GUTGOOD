@@ -87,6 +87,7 @@ class AppIcons {
   static const trophy = LucideIcons.trophy;
   static const xCircle = LucideIcons.xCircle;
   static const utensils = LucideIcons.utensils;
+  static const mapPin = LucideIcons.mapPin;
   static const messageCircle = LucideIcons.messageCircle;
   static const stethoscope = LucideIcons.stethoscope;
   static const bell = LucideIcons.bell;
@@ -104,6 +105,8 @@ class AppIcons {
   static const moon = LucideIcons.moon;
   static const cloud = LucideIcons.cloud;
   static const barcode = LucideIcons.barcode;
+  static const fileText = LucideIcons.fileText;
+  static const bookOpen = LucideIcons.bookOpen;
 
   static const scan = LucideIcons.scan;
   static const keyboard = LucideIcons.keyboard;

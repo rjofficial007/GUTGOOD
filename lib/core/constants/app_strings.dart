@@ -736,6 +736,32 @@ class AppStrings {
   static const String labelSavedItem = ScannerStrings.labelSavedItem;
   static const String analyzeWithAi = ScannerStrings.analyzeWithAi;
 
+  // --- Guided Scanner UX ---
+  static const String barcodeGuidancePrimary = ScannerStrings.barcodeGuidancePrimary;
+  static const String barcodeGuidanceSecondary = ScannerStrings.barcodeGuidanceSecondary;
+  static const String mealGuidancePrimary = ScannerStrings.mealGuidancePrimary;
+  static const String mealGuidanceSecondary = ScannerStrings.mealGuidanceSecondary;
+  static const String labelGuidancePrimary = ScannerStrings.labelGuidancePrimary;
+  static const String labelGuidanceSecondary = ScannerStrings.labelGuidanceSecondary;
+  static const String ingredientsGuidancePrimary = ScannerStrings.ingredientsGuidancePrimary;
+  static const String ingredientsGuidanceSecondary = ScannerStrings.ingredientsGuidanceSecondary;
+  static const String menuGuidancePrimary = ScannerStrings.menuGuidancePrimary;
+  static const String menuGuidanceSecondary = ScannerStrings.menuGuidanceSecondary;
+
+  static const String stateSearching = ScannerStrings.stateSearching;
+  static const String stateDetected = ScannerStrings.stateDetected;
+  static const String stateLabelDetected = ScannerStrings.stateLabelDetected;
+  static const String stateHoldSteady = ScannerStrings.stateHoldSteady;
+  static const String stateReady = ScannerStrings.stateReady;
+  static const String stateAnalyzing = ScannerStrings.stateAnalyzing;
+
+  static const String errorTooFar = ScannerStrings.errorTooFar;
+  static const String errorTooClose = ScannerStrings.errorTooClose;
+  static const String errorBlurry = ScannerStrings.errorBlurry;
+  static const String errorTooDark = ScannerStrings.errorTooDark;
+  static const String errorPartiallyVisible = ScannerStrings.errorPartiallyVisible;
+  static const String errorTextNotReadable = ScannerStrings.errorTextNotReadable;
+
   // --- Notifications ---
   static const String notifMealCheckTitle = NotificationStrings.notifMealCheckTitle;
   static const String notifNoMealLoggedTitle = NotificationStrings.notifNoMealLoggedTitle;

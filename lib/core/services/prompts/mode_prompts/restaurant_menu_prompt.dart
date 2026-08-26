@@ -33,8 +33,12 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 
 7. Content: [Short supportive summary of how to navigate this specific menu].
 
-8. OUTPUT FORMAT — ABSOLUTELY STRICT:
-This is the ONLY mode where structured tags are FORBIDDEN. Do NOT output [GUTGOOD_DATA], [SCAN], [MEAL], [SWAPS], or any other [TAG] blocks. Return ONLY the conversational text described above.
+8. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
+   - Set "intent": "menu_analysis".
+   - Populate the "scan" object with details from the menu (category: "menu").
+   - Populate the "menu" object (detailed below) with the restaurant name and recommended items.
+
+The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.

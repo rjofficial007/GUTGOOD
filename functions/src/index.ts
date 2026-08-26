@@ -19,4 +19,4 @@ export { aiProxy } from './ai_proxy';
 export { mergeAnonymousAccount } from './merge';
 export { onProfileWritten, onUserDeleted, cleanupAnonymousUsers } from './lifecycle';
 export { sendCustomMagicLink } from './auth';
-export { onScanCreated, onMealCreated, onSymptomCreated, onInsightCreated } from './triggers';
+export { onScanCreated, onJournalEntryCreated, onSymptomCreated, onInsightCreated } from './triggers';

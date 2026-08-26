@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
+import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/off_product.dart';
-import 'package:gutgood/core/models/scan_result.dart';
 
 abstract class ScannerRepository {
   Future<OffProduct?> getProductByBarcode(String barcode);
-  Future<ScanResult> analyzeProductWithAi({
+  Future<AiAnalysisResult> analyzeProductWithAi({
     required OffProduct product,
     required List<String> goals,
     required List<String> sensitivities,
@@ -13,7 +13,7 @@ abstract class ScannerRepository {
     required String cyclePhase,
     List<OffProduct>? alternatives,
   });
-  Future<ScanResult> analyzeImageWithAi({
+  Future<AiAnalysisResult> analyzeImageWithAi({
     required Uint8List imageBytes,
     required String mode,
     required List<String> goals,
@@ -21,7 +21,7 @@ abstract class ScannerRepository {
     required List<String> lifestyle,
     required String cyclePhase,
   });
-  Future<void> saveScanResult(ScanResult result, {String? userImageUrl, String? scanId});
+  Future<void> saveScanResult(AiAnalysisResult result, {String? userImageUrl, String? scanId});
 }
 
 class ScanAnalysisException implements Exception {
@@ -29,5 +29,5 @@ class ScanAnalysisException implements Exception {
   final OffProduct product;
 
   @override
-  String toString() => r'ScanAnalysisException: AI analysis failed for ${product.productName}';
+  String toString() => 'ScanAnalysisException: AI analysis failed for ${product.productName}';
 }

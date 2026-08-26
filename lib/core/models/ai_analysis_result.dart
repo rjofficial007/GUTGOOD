@@ -7,46 +7,74 @@ import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Represents the unified structured output from an AI analysis turn.
 class AiAnalysisResult extends Equatable {
-  const AiAnalysisResult({required this.text, this.intent, this.scan, this.meal, this.symptoms = const [], this.swaps = const [], this.metadata = const {}});
+  const AiAnalysisResult({
+    required this.text,
+    this.intent,
+    this.imageMode,
+    this.scan,
+    this.meal,
+    this.symptoms = const [],
+    this.swaps = const [],
+    this.menu,
+    this.metadata = const {},
+  });
 
   factory AiAnalysisResult.fromMap(Map<String, dynamic> map) => AiAnalysisResult(
     text: map['text'] as String? ?? '',
     intent: map['intent'] as String?,
+    imageMode: map['image_mode'] as String?,
     scan: ModelUtils.parseNestedModel<ScanResult>(map['scan'], ScanResult.fromMap),
     meal: ModelUtils.parseNestedModel<MealLog>(map['meal'], MealLog.fromMap),
     symptoms: ModelUtils.parseModelList<SymptomLog>(map['symptoms'], SymptomLog.fromMap),
     swaps: ModelUtils.parseModelList<ProductSwap>(map['swaps'], ProductSwap.fromMap),
+    menu: ModelUtils.parseMap(map['menu']),
     metadata: ModelUtils.parseMap(map['metadata']),
   );
 
   final String text;
   final String? intent;
+  final String? imageMode;
   final ScanResult? scan;
   final MealLog? meal;
   final List<SymptomLog> symptoms;
   final List<ProductSwap> swaps;
+  final Map<String, dynamic>? menu;
   final Map<String, dynamic> metadata;
 
   Map<String, dynamic> toMap() => {
     'text': text,
     'intent': intent,
+    'image_mode': imageMode,
     'scan': scan?.toMap(),
     'meal': meal?.toMap(),
     'symptoms': symptoms.map((e) => e.toMap()).toList(),
     'swaps': swaps.map((e) => e.toMap()).toList(),
+    'menu': menu,
     'metadata': metadata,
   };
 
-  AiAnalysisResult copyWith({String? text, String? intent, ScanResult? scan, MealLog? meal, List<SymptomLog>? symptoms, List<ProductSwap>? swaps, Map<String, dynamic>? metadata}) => AiAnalysisResult(
+  AiAnalysisResult copyWith({
+    String? text,
+    String? intent,
+    String? imageMode,
+    ScanResult? scan,
+    MealLog? meal,
+    List<SymptomLog>? symptoms,
+    List<ProductSwap>? swaps,
+    Map<String, dynamic>? menu,
+    Map<String, dynamic>? metadata,
+  }) => AiAnalysisResult(
     text: text ?? this.text,
     intent: intent ?? this.intent,
+    imageMode: imageMode ?? this.imageMode,
     scan: scan ?? this.scan,
     meal: meal ?? this.meal,
     symptoms: symptoms ?? this.symptoms,
     swaps: swaps ?? this.swaps,
+    menu: menu ?? this.menu,
     metadata: metadata ?? this.metadata,
   );
 
   @override
-  List<Object?> get props => [text, intent, scan, meal, symptoms, swaps, metadata];
+  List<Object?> get props => [text, intent, imageMode, scan, meal, symptoms, swaps, menu, metadata];
 }

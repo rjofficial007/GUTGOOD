@@ -100,46 +100,64 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _finish() async {
     if (_isFinishing) return;
     setState(() => _isFinishing = true);
+    AppLogger.info('OnboardingScreen: Starting finish flow...');
 
-    final profileNotifier = context.read<ProfileNotifier>();
+    try {
+      final profileNotifier = context.read<ProfileNotifier>();
 
-    // 🟢 Guard: Ensure we have a valid session before finishing.
-    final currentUser = sl<FirebaseAuth>().currentUser;
-    if (currentUser == null) {
-      AppLogger.warning('OnboardingScreen: Attempted to finish without active session.');
-      setState(() => _isFinishing = false);
-      if (mounted) context.go(AppRoutes.welcome);
-      return;
-    }
+      // 🟢 Guard: Ensure we have a valid session before finishing.
+      final currentUser = sl<FirebaseAuth>().currentUser;
+      if (currentUser == null) {
+        AppLogger.warning('OnboardingScreen: Attempted to finish without active session.');
+        setState(() => _isFinishing = false);
+        if (mounted) context.go(AppRoutes.welcome);
+        return;
+      }
 
-    await profileNotifier.completeOnboarding(
-      displayName: _nameController.text.trim().isEmpty ? 'Guest' : _nameController.text.trim(),
-      goals: _selectedGoals.toList(),
-      sensitivities: _selectedSensitivities.toList(),
-      lifestyle: _selectedLifestyle.toList(),
-      cycleSyncEnabled: _cycleSyncEnabled,
-      cyclePhase: _cycleSyncEnabled ? _selectedCyclePhase : null,
-      markOnboarded: false, // 🟢 Delay onboarded status until after paywall
-    );
+      AppLogger.info('OnboardingScreen: Completing onboarding data...');
+      await profileNotifier.completeOnboarding(
+        displayName: _nameController.text.trim().isEmpty ? 'Guest' : _nameController.text.trim(),
+        goals: _selectedGoals.toList(),
+        sensitivities: _selectedSensitivities.toList(),
+        lifestyle: _selectedLifestyle.toList(),
+        cycleSyncEnabled: _cycleSyncEnabled,
+        cyclePhase: _cycleSyncEnabled ? _selectedCyclePhase : null,
+        markOnboarded: false, // 🟢 Delay onboarded status until after paywall
+      );
 
-    await sl<NotificationService>().setupDefaultReminders();
-
-    if (mounted) {
-      // 🟢 Show the paywall while STILL on the Onboarding screen context.
-      // This works now because the AppRouter hasn't redirected us to /home/chat yet.
-      await showPaywallBottomSheet(context, onProceedWithLimited: () {});
-
-      // 🟢 Finally mark onboarding as officially complete.
-      // This will trigger the ProfileNotifier listener in AppRouter and perform the redirect.
-      await profileNotifier.markOnboardingComplete();
+      AppLogger.info('OnboardingScreen: Setting up reminders...');
+      try {
+        await sl<NotificationService>().setupDefaultReminders();
+      } catch (e) {
+        AppLogger.error('OnboardingScreen: Non-critical failure setting up reminders', error: e);
+      }
 
       if (mounted) {
-        // Fallback navigation in case listener doesn't fire immediately
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted && context.mounted) {
-            context.go(AppRoutes.chat);
-          }
-        });
+        AppLogger.info('OnboardingScreen: Showing paywall...');
+        // 🟢 Show the paywall while STILL on the Onboarding screen context.
+        // This works now because the AppRouter hasn't redirected us to /home/chat yet.
+        await showPaywallBottomSheet(context, onProceedWithLimited: () {});
+
+        AppLogger.info('OnboardingScreen: Marking onboarding as complete...');
+        // 🟢 Finally mark onboarding as officially complete.
+        // This will trigger the ProfileNotifier listener in AppRouter and perform the redirect.
+        await profileNotifier.markOnboardingComplete();
+
+        if (mounted) {
+          AppLogger.info('OnboardingScreen: Navigation fallback triggered.');
+          // Fallback navigation in case listener doesn't fire immediately
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (mounted && context.mounted) {
+              context.go(AppRoutes.chat);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      AppLogger.error('OnboardingScreen: Critical failure during finish', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Something went wrong. Please try again.')));
+        setState(() => _isFinishing = false);
       }
     }
   }
@@ -193,7 +211,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   onToggleEnabled: (val) => setState(() => _cycleSyncEnabled = val),
                   onPhaseSelected: (val) => setState(() => _selectedCyclePhase = val),
                 ),
-                AIPersonalizationOnboardingPage(onFinish: _next),
+                AIPersonalizationOnboardingPage(onFinish: _next, isLoading: _isFinishing),
               ],
             ),
           ),
@@ -217,14 +235,12 @@ class _OnboardingNamePage extends StatelessWidget {
         Gap.h16,
         Text(AppStrings.whatShouldWeCallYou, style: AppTextStyles.displaySm).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
         Gap.h10,
-        Text(AppStrings.enterNameContinuePrompt, style: AppTextStyles.bodyLg.copyWith(color: context.appColorScheme.textSecondary)).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.2, end: 0),
+        Text(
+          AppStrings.enterNameContinuePrompt,
+          style: AppTextStyles.bodyLg.copyWith(color: context.appColorScheme.textSecondary),
+        ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideY(begin: 0.2, end: 0),
         Gap.h32,
-        GutTextField(
-          controller: controller,
-          hintText: AppStrings.enterYourNameHint,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-        ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+        GutTextField(controller: controller, hintText: AppStrings.enterYourNameHint, autofocus: true, textCapitalization: TextCapitalization.words).animate().fadeIn(delay: 200.ms, duration: 500.ms),
       ],
     ),
   );

@@ -3,6 +3,7 @@ import 'package:gutgood/core/services/prompts/mode_prompts/default_objective_pro
 import 'package:gutgood/core/services/prompts/mode_prompts/full_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/general_rules_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/health_assessment_prompt.dart';
+import 'package:gutgood/core/services/prompts/mode_prompts/image_classification_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/ingredients_label_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/insights_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/intent_detection_prompt.dart';
@@ -31,6 +32,13 @@ class Prompts {
   static String get _safetyRules => GeneralRulesPrompt.safetyRules;
   static String get _patternEngineRules => GeneralRulesPrompt.patternEngineRules;
   static String get _strictFormattingRules => GeneralRulesPrompt.strictFormattingRules;
+
+  // ---------------------------------------------------------------------------
+  // IMAGE CLASSIFICATION
+  // ---------------------------------------------------------------------------
+
+  /// Instruction for classifying the image mode and user intent.
+  static String get imageClassificationInstruction => ImageClassificationPrompt.instruction;
 
   // ---------------------------------------------------------------------------
   // INTENT DETECTION
@@ -180,19 +188,25 @@ ${includePatternEngine ? '\n$_patternEngineRules' : ''}
     List<String> userLifestyle = const [],
     String cyclePhase = 'Not specified',
   }) {
-    final normalizedMode = mode.trim().toLowerCase();
+    final normalizedMode = mode.trim().toUpperCase();
 
     switch (normalizedMode) {
-      case 'menu':
+      case 'RESTAURANT_MENU':
+      case 'MENU':
         return ModePrompts.restaurantMenuInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase);
 
-      case 'food':
-      case 'meal':
+      case 'FOOD':
+      case 'MEAL':
         return ModePrompts.mealSnapInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase);
 
-      case 'label':
-      case 'ingredient':
+      case 'INGREDIENTS_LABEL':
+      case 'LABEL':
+      case 'INGREDIENT':
         return ModePrompts.ingredientLabelInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase);
+
+      case 'PRODUCT_BARCODE':
+      case 'BARCODE':
+        return barcodeAnalysisSystemInstruction;
 
       default:
         return _unknownVisionModeInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase);

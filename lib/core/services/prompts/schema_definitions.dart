@@ -29,7 +29,8 @@ class SchemaDefinitions {
       '''
 [GUTGOOD_DATA]
 {
-  "intent": "meal_analysis|food_identification|symptom_question|swap_request|general_chat|product_comparison|meal_planning|menu_analysis|label_analysis",
+  "image_mode": "FOOD|RESTAURANT_MENU|PRODUCT_BARCODE|INGREDIENTS_LABEL|NUTRITION_LABEL|PACKAGED_PRODUCT|FOOD_RECIPE|OTHER|UNKNOWN",
+  "intent": "MEAL_RECOGNITION|HEALTH_ASSESSMENT|MEAL_RATING|SWAP_REQUEST|COMPLETE_ANALYSIS|INGREDIENT_ANALYSIS|PRODUCT_IDENTIFICATION|NUTRITION_COMPARISON|FOOD_RECOMMENDATION|GENERAL_IMAGE_ANALYSIS|SYMPTOM_ANALYSIS|GENERAL_CHAT",
   "scan": {
     "productName": "string|null",
     "brand": "string|null",
@@ -65,6 +66,24 @@ $ingredientSchema
     ],
     "impact": "narrative summary",
     "cycleInsight": null
+  },
+  "menu": {
+    "restaurantName": "string|null",
+    "categories": ["string"],
+    "menuItems": [
+      {
+        "name": "string",
+        "description": "string",
+        "price": "string|null",
+        "category": "string|null",
+        "ingredients": ["string"],
+        "dietaryTags": ["string"],
+        "estimatedNutrition": "object|null",
+        "gutImpact": "string|null"
+      }
+    ],
+    "detectedText": "string|null",
+    "location": "string|null"
   },
   "meal": {
     "mealType": "string",
@@ -105,12 +124,14 @@ $ingredientSchema
 
   static const String typeRules = '''
 SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
-- intent: exactly one of "meal_analysis", "food_identification", "symptom_question", "swap_request", "general_chat", "product_comparison", "meal_planning", "menu_analysis", "label_analysis".
+- image_mode: one of "FOOD", "RESTAURANT_MENU", "PRODUCT_BARCODE", "INGREDIENTS_LABEL", "NUTRITION_LABEL", "PACKAGED_PRODUCT", "FOOD_RECIPE", "OTHER", "UNKNOWN".
+- intent: one of "MEAL_RECOGNITION", "HEALTH_ASSESSMENT", "MEAL_RATING", "SWAP_REQUEST", "COMPLETE_ANALYSIS", "INGREDIENT_ANALYSIS", "PRODUCT_IDENTIFICATION", "NUTRITION_COMPARISON", "FOOD_RECOMMENDATION", "GENERAL_IMAGE_ANALYSIS", "SYMPTOM_ANALYSIS", "GENERAL_CHAT".
 - category: "food", "meal", "menu", "label", "packaging", or "non-food".
 - novaGroup: integer 1-4, or JSON null.
 - score: integer 0-100. Never null.
 - nutriscore: "A","B","C","D","E", or JSON null.
 - time: ALWAYS ISO 8601 format string.
+- symptoms: ALWAYS an array of OBJECTS (not strings). Each object MUST have at minimum a "symptom" field.
 - Any value you cannot determine uses JSON null (or [] for arrays).
 - To prevent response truncation, limit ingredients to top 10 items.
 ''';

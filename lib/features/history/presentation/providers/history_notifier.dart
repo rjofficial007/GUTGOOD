@@ -50,6 +50,16 @@ class HistoryNotifier with ChangeNotifier {
   bool _scansLoadingMore = false;
   bool _scansHasMore = true;
 
+  // Label Scans
+  final List<ScanResult> _labelScans = [];
+  bool _labelScansLoading = true;
+  bool _labelScansHasMore = true;
+
+  // Menu Scans
+  final List<ScanResult> _menuScans = [];
+  bool _menuScansLoading = true;
+  bool _menuScansHasMore = true;
+
   // Meals
   final List<MealLog> _meals = [];
   bool _mealsLoading = true;
@@ -65,7 +75,27 @@ class HistoryNotifier with ChangeNotifier {
   static const int _pageSize = 20;
 
   List<ScanResult> get scans => List.unmodifiable(_scans);
-  bool get scansLoading => _scansLoading;
+  List<ScanResult> get labelScans => List.unmodifiable(_labelScans);
+  List<ScanResult> get menuScans => List.unmodifiable(_menuScans);
+
+  /// Combined list of all scans (Product, Label, and Menu) sorted by date.
+  List<ScanResult> get allScans {
+    final scanMap = <String, ScanResult>{};
+    for (final s in _scans) {
+      if (s.scanId != null) scanMap[s.scanId!] = s;
+    }
+    for (final s in _labelScans) {
+      if (s.scanId != null) scanMap[s.scanId!] = s;
+    }
+    for (final s in _menuScans) {
+      if (s.scanId != null) scanMap[s.scanId!] = s;
+    }
+
+    final combined = scanMap.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return combined;
+  }
+
+  bool get scansLoading => _scansLoading || _labelScansLoading || _menuScansLoading;
   bool get scansLoadingMore => _scansLoadingMore;
   bool get scansHasMore => _scansHasMore;
 
@@ -80,29 +110,47 @@ class HistoryNotifier with ChangeNotifier {
   bool get symptomsHasMore => _symptomsHasMore;
 
   List<JournalEntry> get filteredEntries {
-    final allEntries = <JournalEntry>[];
+    final entriesMap = <String, JournalEntry>{};
 
     if (_currentFilter == HistoryFilter.all || _currentFilter == HistoryFilter.scans) {
-      allEntries.addAll(_scans.map((s) => JournalEntry(id: s.scanId ?? 'scan_${s.createdAt.millisecondsSinceEpoch}', type: JournalEntryType.scan, createdAt: s.createdAt, scan: s)));
+      // 🚀 Professional Deduplication: Use scanId as the unique key to prevent
+      // items from appearing twice if they exist in multiple source streams.
+      for (final s in _scans) {
+        final id = s.scanId ?? 'scan_${s.createdAt.millisecondsSinceEpoch}';
+        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.scan, createdAt: s.createdAt, scan: s);
+      }
+      for (final s in _labelScans) {
+        final id = s.scanId ?? 'label_${s.createdAt.millisecondsSinceEpoch}';
+        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.scan, createdAt: s.createdAt, scan: s);
+      }
+      for (final s in _menuScans) {
+        final id = s.scanId ?? 'menu_${s.createdAt.millisecondsSinceEpoch}';
+        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.scan, createdAt: s.createdAt, scan: s);
+      }
     }
 
     if (_currentFilter == HistoryFilter.all || _currentFilter == HistoryFilter.meals) {
-      allEntries.addAll(_meals.map((m) => JournalEntry(id: m.firestoreId ?? m.id?.toString() ?? 'meal_${m.createdAt.millisecondsSinceEpoch}', type: JournalEntryType.meal, createdAt: m.createdAt, meal: m)));
+      for (final m in _meals) {
+        final id = m.firestoreId ?? m.id?.toString() ?? 'meal_${m.createdAt.millisecondsSinceEpoch}';
+        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.meal, createdAt: m.createdAt, meal: m);
+      }
     }
 
     if (_currentFilter == HistoryFilter.all || _currentFilter == HistoryFilter.body) {
-      allEntries.addAll(
-        _symptoms.map((s) => JournalEntry(id: s.firestoreId ?? s.id?.toString() ?? 'symptom_${s.createdAt.millisecondsSinceEpoch}', type: JournalEntryType.symptom, createdAt: s.createdAt, symptom: s)),
-      );
+      for (final s in _symptoms) {
+        final id = s.firestoreId ?? s.id?.toString() ?? 'symptom_${s.createdAt.millisecondsSinceEpoch}';
+        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.symptom, createdAt: s.createdAt, symptom: s);
+      }
     }
 
+    final allEntries = entriesMap.values.toList();
     // Sort chronologically (Newest first)
     allEntries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return allEntries;
   }
 
-  bool get isLoading => _scansLoading || _mealsLoading || _symptomsLoading;
+  bool get isLoading => _scansLoading || _labelScansLoading || _menuScansLoading || _mealsLoading || _symptomsLoading;
 
   @override
   void dispose() {
@@ -113,9 +161,13 @@ class HistoryNotifier with ChangeNotifier {
 
   void clearAll() {
     _scans.clear();
+    _labelScans.clear();
+    _menuScans.clear();
     _meals.clear();
     _symptoms.clear();
     _scansLoading = false;
+    _labelScansLoading = false;
+    _menuScansLoading = false;
     _mealsLoading = false;
     _symptomsLoading = false;
     _scansHasMore = true;
@@ -125,7 +177,7 @@ class HistoryNotifier with ChangeNotifier {
   }
 
   Future<void> refreshAll() async {
-    await Future.wait([refreshScans(), refreshMeals(), refreshSymptoms()]);
+    await Future.wait([refreshScans(), refreshLabelScans(), refreshMenuScans(), refreshMeals(), refreshSymptoms()]);
   }
 
   Future<void> refreshScans() async {
@@ -143,6 +195,44 @@ class HistoryNotifier with ChangeNotifier {
       AppLogger.error('HistoryNotifier: Failed to refresh scans', error: e);
     } finally {
       _scansLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshLabelScans() async {
+    _labelScansLoading = true;
+    _labelScansHasMore = true;
+    notifyListeners();
+
+    try {
+      final results = await _repository.getLabelScans(limit: _pageSize);
+      _labelScans
+        ..clear()
+        ..addAll(results);
+      if (results.length < _pageSize) _labelScansHasMore = false;
+    } catch (e) {
+      AppLogger.error('HistoryNotifier: Failed to refresh label scans', error: e);
+    } finally {
+      _labelScansLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshMenuScans() async {
+    _menuScansLoading = true;
+    _menuScansHasMore = true;
+    notifyListeners();
+
+    try {
+      final results = await _repository.getMenuScans(limit: _pageSize);
+      _menuScans
+        ..clear()
+        ..addAll(results);
+      if (results.length < _pageSize) _menuScansHasMore = false;
+    } catch (e) {
+      AppLogger.error('HistoryNotifier: Failed to refresh menu scans', error: e);
+    } finally {
+      _menuScansLoading = false;
       notifyListeners();
     }
   }

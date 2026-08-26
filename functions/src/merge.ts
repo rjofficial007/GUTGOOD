@@ -15,7 +15,7 @@ import { REGION } from './config';
 const BATCH_LIMIT = 400;
 const READ_LIMIT = 500;
 
-const ID_COLLECTIONS = ['chat_history', 'meal_logs', 'symptom_logs', 'health_alerts'];
+const ID_COLLECTIONS = ['chat_history', 'journal_logs', 'health_alerts'];
 const SCAN_COLLECTIONS = ['scan_history', 'saved_foods'];
 const INSIGHT_COLLECTION = 'insights';
 const PATTERN_COLLECTION = 'pattern_data';
@@ -55,7 +55,8 @@ function naturalKey(collection: string, data: admin.firestore.DocumentData): str
     if (data.localId) return `lid:${data.localId}`;
     const items = Array.isArray(data.items) ? data.items.join(',') : '';
     const body = (data.text || data.message || '').toString();
-    return `${data.role ?? ''}|${body}|${items}|${data.symptom ?? ''}|${data.title ?? ''}|${data.time ?? ''}`;
+    const time = (data.createdAt || data.time || data.timestamp || '').toString();
+    return `${data.role ?? ''}|${body}|${items}|${data.symptom ?? ''}|${data.title ?? ''}|${time}`;
   }
   if (SCAN_COLLECTIONS.includes(collection)) {
     const barcode = (data.barcode ?? '').toString();
@@ -88,22 +89,21 @@ async function mergeSubcollection(
   db: admin.firestore.Firestore,
   anonRef: admin.firestore.DocumentReference,
   permRef: admin.firestore.DocumentReference,
-  collection: string,
+  sourceCollection: string,
+  targetCollection: string,
   fromUid: string,
   toUid: string,
+  extraFields: Record<string, unknown> = {},
 ): Promise<number> {
   // Load ALL target keys first (content-addressed dedupe).
-  // Note: If a permanent user already has > READ_LIMIT docs, we might risk
-  // duplicates for very old content, but we prioritize performance.
-  const target = await permRef.collection(collection).orderBy(admin.firestore.FieldPath.documentId()).limit(READ_LIMIT).get();
-  const existingKeys = new Set(target.docs.map((d) => naturalKey(collection, d.data())));
+  const target = await permRef.collection(targetCollection).orderBy(admin.firestore.FieldPath.documentId()).limit(READ_LIMIT).get();
+  const existingKeys = new Set(target.docs.map((d) => naturalKey(targetCollection, d.data())));
 
   let moved = 0;
   let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
 
-  // 🟡 Fix F6: Paginate through the source to avoid silent truncation at 500 docs.
   while (true) {
-    let query = anonRef.collection(collection).orderBy(admin.firestore.FieldPath.documentId()).limit(READ_LIMIT);
+    let query = anonRef.collection(sourceCollection).orderBy(admin.firestore.FieldPath.documentId()).limit(READ_LIMIT);
     if (lastDoc) query = query.startAfter(lastDoc);
 
     const source = await query.get();
@@ -114,18 +114,18 @@ async function mergeSubcollection(
 
     for (const doc of source.docs) {
       const raw = doc.data();
-      const key = naturalKey(collection, raw);
+      const key = naturalKey(targetCollection, raw);
       if (existingKeys.has(key)) continue;
       existingKeys.add(key);
 
-      let data: admin.firestore.DocumentData = { ...raw, migratedFrom: fromUid };
+      let data: admin.firestore.DocumentData = { ...raw, ...extraFields, migratedFrom: fromUid };
       for (const field of Object.keys(data)) {
         if (URL_FIELDS.has(field) || URL_LIST_FIELDS.has(field)) {
           data[field] = rewriteUrls(data[field], fromUid, toUid);
         }
       }
 
-      batch.set(permRef.collection(collection).doc(), data);
+      batch.set(permRef.collection(targetCollection).doc(), data);
       pending++;
       moved++;
 
@@ -286,10 +286,22 @@ export const mergeAnonymousAccount = functions
     // 1. Copy Storage files first so rewritten URLs resolve.
     moved.files = anonUser ? await migrateStorage(anonymousUid, permanentUid) : 0;
 
-    // 2. Merge every subcollection with content-based dedupe.
-    for (const collection of [...ID_COLLECTIONS, ...SCAN_COLLECTIONS, INSIGHT_COLLECTION]) {
-      moved[collection] = await mergeSubcollection(db, anonRef, permRef, collection, anonymousUid, permanentUid);
+    // 2. Merge subcollections with mapping support
+    const collectionsToMerge = [
+      ...ID_COLLECTIONS,
+      ...SCAN_COLLECTIONS,
+      INSIGHT_COLLECTION,
+    ];
+
+    for (const collection of collectionsToMerge) {
+      moved[collection] = await mergeSubcollection(db, anonRef, permRef, collection, collection, anonymousUid, permanentUid);
     }
+
+    // 🚀 Consolidated Merge: Migrate legacy collections into new unified homes
+    moved.meal_logs_migrated = await mergeSubcollection(db, anonRef, permRef, 'meal_logs', 'journal_logs', anonymousUid, permanentUid, { type: 'meal' });
+    moved.symptom_logs_migrated = await mergeSubcollection(db, anonRef, permRef, 'symptom_logs', 'journal_logs', anonymousUid, permanentUid, { type: 'symptom' });
+    moved.label_scans_migrated = await mergeSubcollection(db, anonRef, permRef, 'label_scans', 'scan_history', anonymousUid, permanentUid, { source: 'label', category: 'label' });
+    moved.restaurant_menu_scans_migrated = await mergeSubcollection(db, anonRef, permRef, 'restaurant_menu_scans', 'scan_history', anonymousUid, permanentUid, { source: 'menu', category: 'menu' });
 
     // 3. Pattern data: single 'latest' document, safe to overwrite.
     const pattern = await anonRef.collection(PATTERN_COLLECTION).doc('latest').get();

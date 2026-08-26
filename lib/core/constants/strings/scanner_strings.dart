@@ -64,4 +64,30 @@ class ScannerStrings {
   static const String loadingSynthesizingInsights = 'Synthesizing insights...';
   static const String labelSavedItem = 'SAVED ITEM';
   static const String analyzeWithAi = 'Analyze with Intelligence';
+
+  // --- Guided Scanner UX ---
+  static const String barcodeGuidancePrimary = 'Center barcode in frame';
+  static const String barcodeGuidanceSecondary = 'Keep the barcode steady.';
+  static const String mealGuidancePrimary = 'Fit your meal inside the frame';
+  static const String mealGuidanceSecondary = 'Make sure the full meal is visible.';
+  static const String labelGuidancePrimary = 'Position the ingredients list inside the frame';
+  static const String labelGuidanceSecondary = 'Keep the text clear and readable.';
+  static const String ingredientsGuidancePrimary = 'Position ingredients list in frame';
+  static const String ingredientsGuidanceSecondary = 'Make sure the entire list is visible.';
+  static const String menuGuidancePrimary = 'Position menu in frame';
+  static const String menuGuidanceSecondary = 'Fit the menu text inside the frame.';
+
+  static const String stateSearching = 'Searching';
+  static const String stateDetected = 'Detected';
+  static const String stateLabelDetected = 'Label detected';
+  static const String stateHoldSteady = 'Hold steady';
+  static const String stateReady = 'Ready';
+  static const String stateAnalyzing = 'Analyzing...';
+
+  static const String errorTooFar = 'Move closer';
+  static const String errorTooClose = 'Move back slightly';
+  static const String errorBlurry = 'Hold steady';
+  static const String errorTooDark = 'Move to better lighting';
+  static const String errorPartiallyVisible = 'Fit the full label inside the frame';
+  static const String errorTextNotReadable = 'Keep the ingredients text clear';
 }

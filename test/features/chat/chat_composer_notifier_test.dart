@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -23,6 +24,8 @@ class MockChatRepository extends Mock implements ChatRepository {}
 class MockChatHistoryNotifier extends Mock implements ChatHistoryNotifier {}
 
 class MockAiService extends Mock implements AiService {}
+
+class MockAiClassifierService extends Mock implements AiClassifierService {}
 
 class MockStorageService extends Mock implements StorageService {}
 
@@ -46,6 +49,7 @@ void main() {
   late ChatComposerNotifier notifier;
   late MockChatRepository repository;
   late MockChatHistoryNotifier historyNotifier;
+  late MockAiClassifierService aiClassifierService;
   late MockStorageService storageService;
   late MockOffService offService;
   late MockFirebaseAuth auth;
@@ -64,6 +68,7 @@ void main() {
   setUp(() {
     repository = MockChatRepository();
     historyNotifier = MockChatHistoryNotifier();
+    aiClassifierService = MockAiClassifierService();
     storageService = MockStorageService();
     offService = MockOffService();
     auth = MockFirebaseAuth();
@@ -82,6 +87,7 @@ void main() {
       historyNotifier: historyNotifier,
       storageService: storageService,
       offService: offService,
+      aiClassifierService: aiClassifierService,
       auth: auth,
       connectionChecker: connectionChecker,
       sendMessageStreamUseCase: sendMessageStreamUseCase,

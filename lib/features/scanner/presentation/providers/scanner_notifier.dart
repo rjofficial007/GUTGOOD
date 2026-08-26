@@ -27,9 +27,80 @@ class ScannerNotifier with ChangeNotifier {
 
   bool _isProcessing = false;
   ScanResult? _lastResult;
+  bool _isAnalyzing = false;
 
   bool get isProcessing => _isProcessing;
+  bool get isAnalyzing => _isAnalyzing;
   ScanResult? get lastResult => _lastResult;
+
+  /// Fetches ground-truth data from Open Food Facts without performing AI analysis.
+  Future<OffProduct?> fetchBarcodeProduct(String barcode) async {
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final product = await _repository.getProductByBarcode(barcode);
+      return product;
+    } catch (e) {
+      AppLogger.error('ScannerNotifier: Failed to fetch product data', error: e);
+      return null;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Performs AI orchestration and deterministic scoring for a fetched product.
+  Future<ScanResult?> analyzeBarcodeProduct(OffProduct product, {Uint8List? capturedImage}) async {
+    _isAnalyzing = true;
+    notifyListeners();
+
+    final scanId = const Uuid().v4();
+
+    try {
+      String? userImageUrl;
+      if (capturedImage != null) {
+        userImageUrl = await _storageService.uploadFoodImage(capturedImage);
+      }
+
+      final profile = await _authFirestoreService.getUserMetadata();
+      final goals = profile?.goals ?? [];
+      final sensitivities = profile?.sensitivities ?? [];
+      final lifestyle = profile?.lifestyle ?? [];
+      final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
+
+      List<OffProduct>? alternatives;
+      try {
+        alternatives = await _offService.getBetterAlternatives(product.categoryTag, product.nutriscore);
+      } catch (e) {
+        AppLogger.warning('ScannerNotifier: Alternatives fetch failed');
+      }
+
+      final result = await _repository.analyzeProductWithAi(product: product, goals: goals, sensitivities: sensitivities, lifestyle: lifestyle, cyclePhase: cyclePhase, alternatives: alternatives);
+
+      final scan = result.scan;
+      if (scan != null) {
+        final finalScan = scan.copyWith(source: 'barcode', userImageUrl: userImageUrl, scanId: scanId);
+        final finalResult = result.copyWith(scan: finalScan);
+
+        AppLogger.info('ScannerNotifier: Saving barcode scan result for ${finalScan.productName} (ID: $scanId)');
+        await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
+
+        _lastResult = finalScan;
+
+        // 🟢 Trigger streak celebration if one is pending (Scan finished)
+        sl<ProfileNotifier>().triggerPendingCelebration();
+
+        return finalScan;
+      }
+      return null;
+    } catch (e, st) {
+      AppLogger.error('ScannerNotifier: AI analysis failed for product ${product.productName}', error: e, stackTrace: st);
+      return null;
+    } finally {
+      _isAnalyzing = false;
+      notifyListeners();
+    }
+  }
 
   /// Free-tier accounting: the AI call itself is counted server-side by the
   /// aiProxy (type = 'scan'). The client must not double-increment.
@@ -62,25 +133,24 @@ class ScannerNotifier with ChangeNotifier {
       }
 
       try {
-        final result = await _repository.analyzeProductWithAi(
-          product: product,
-          goals: goals,
-          sensitivities: sensitivities,
-          lifestyle: lifestyle,
-          cyclePhase: cyclePhase,
-          alternatives: alternatives,
-        );
+        final result = await _repository.analyzeProductWithAi(product: product, goals: goals, sensitivities: sensitivities, lifestyle: lifestyle, cyclePhase: cyclePhase, alternatives: alternatives);
 
-        final finalResult = result.copyWith(source: 'barcode', userImageUrl: userImageUrl, scanId: scanId);
-        AppLogger.info('ScannerNotifier: Saving barcode scan result for ${finalResult.productName} (ID: $scanId)');
-        await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
+        final scan = result.scan;
+        if (scan != null) {
+          final finalScan = scan.copyWith(source: 'barcode', userImageUrl: userImageUrl, scanId: scanId);
+          final finalResult = result.copyWith(scan: finalScan);
 
-        _lastResult = finalResult;
+          AppLogger.info('ScannerNotifier: Saving barcode scan result for ${finalScan.productName} (ID: $scanId)');
+          await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
 
-        // 🟢 Trigger streak celebration if one is pending (Scan finished)
-        sl<ProfileNotifier>().triggerPendingCelebration();
+          _lastResult = finalScan;
 
-        return finalResult;
+          // 🟢 Trigger streak celebration if one is pending (Scan finished)
+          sl<ProfileNotifier>().triggerPendingCelebration();
+
+          return finalScan;
+        }
+        return null;
       } catch (e, st) {
         AppLogger.error('ScannerNotifier: AI analysis failed for known product ${product.productName}', error: e, stackTrace: st);
         throw ScanAnalysisException(product);
@@ -96,7 +166,7 @@ class ScannerNotifier with ChangeNotifier {
     }
   }
 
-  Future<ScanResult?> processImage(Uint8List bytes, {required String mode}) async {
+  Future<ScanResult?> processImage(Uint8List bytes, {String? mode}) async {
     _isProcessing = true;
     notifyListeners();
 
@@ -110,23 +180,33 @@ class ScannerNotifier with ChangeNotifier {
 
       final result = await _repository.analyzeImageWithAi(
         imageBytes: bytes,
-        mode: mode,
+        mode: mode ?? 'unknown',
         goals: profile?.goals ?? [],
         sensitivities: profile?.sensitivities ?? [],
         lifestyle: profile?.lifestyle ?? [],
         cyclePhase: cyclePhase,
       );
 
-      final finalResult = result.copyWith(source: mode, userImageUrl: userImageUrl, scanId: scanId);
-      AppLogger.info('ScannerNotifier: Saving image scan result for ${finalResult.productName} (mode: $mode, ID: $scanId)');
-      await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
+      final scan = result.scan;
+      if (scan != null) {
+        final finalScan = scan.copyWith(
+          source: result.imageMode ?? mode ?? 'unknown', 
+          userImageUrl: userImageUrl, 
+          scanId: scanId,
+        );
+        final finalResult = result.copyWith(scan: finalScan);
 
-      _lastResult = finalResult;
+        AppLogger.info('ScannerNotifier: Saving image scan result for ${finalScan.productName} (detected: ${result.imageMode}, ID: $scanId)');
+        await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
 
-      // 🟢 Trigger streak celebration if one is pending (Scan finished)
-      sl<ProfileNotifier>().triggerPendingCelebration();
+        _lastResult = finalScan;
 
-      return finalResult;
+        // 🟢 Trigger streak celebration if one is pending (Scan finished)
+        sl<ProfileNotifier>().triggerPendingCelebration();
+
+        return finalScan;
+      }
+      return null;
     } catch (e) {
       AppLogger.error('ScannerNotifier: Image processing failed', error: e);
       return null;

@@ -1,4 +1,6 @@
 import 'package:gutgood/core/models/ai_analysis_result.dart';
+import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
@@ -17,17 +19,75 @@ class PersistAiResponseUseCase {
   final AppStateService _appStateService;
   final StreakService _streakService;
 
-  Future<void> call(AiAnalysisResult result, {String? chatMessageId, String? imageUrl, String? source, required Set<String> persistedTagBlocks}) async {
+  Future<AiAnalysisResult> call(AiAnalysisResult result, {String? chatMessageId, String? imageUrl, String? source, required Set<String> persistedTagBlocks}) async {
     var hasPersistedAnything = false;
+    var updatedResult = result;
 
-    // 1. Persist Scan Result
-    if (result.scan != null) {
-      final scan = result.scan!;
+    // 🚀 Intent-Based Persistence Router
+    final resolvedSource = (source ?? updatedResult.scan?.source ?? '').toUpperCase();
+    final resolvedCategory = (updatedResult.scan?.category ?? '').toUpperCase();
+    final intent = (updatedResult.intent ?? '').toUpperCase();
+
+    // 1. Label Analysis
+    if (resolvedSource.contains('LABEL') || resolvedCategory.contains('LABEL') || intent.contains('LABEL') || intent.contains('INGREDIENT')) {
+      if (updatedResult.scan != null) {
+        final persistenceKey = 'LABEL_${updatedResult.scan!.productName}_$chatMessageId';
+        if (!persistedTagBlocks.contains(persistenceKey)) {
+          AppLogger.ai('PersistAiResponse: Routing label to scan_history');
+
+          final stableScanId = chatMessageId != null ? '${chatMessageId}_scan' : null;
+          await _firestoreService.saveLabelScan(updatedResult.scan!, userImageUrl: imageUrl, scanId: stableScanId);
+
+          updatedResult = updatedResult.copyWith(
+            scan: updatedResult.scan!.copyWith(scanId: stableScanId, userImageUrl: imageUrl),
+          );
+
+          persistedTagBlocks.add(persistenceKey);
+          hasPersistedAnything = true;
+        }
+      }
+      _notifyAndMark(hasPersistedAnything);
+      return updatedResult;
+    }
+
+    // 2. Restaurant Menu Analysis
+    if (resolvedSource.contains('MENU') || resolvedCategory.contains('MENU') || intent.contains('MENU')) {
+      if (updatedResult.scan != null || updatedResult.menu != null) {
+        final persistenceKey = 'MENU_${updatedResult.scan?.productName ?? updatedResult.menu?['restaurantName']}_$chatMessageId';
+        if (!persistedTagBlocks.contains(persistenceKey)) {
+          AppLogger.ai('PersistAiResponse: Routing menu to scan_history');
+
+          final stableScanId = chatMessageId != null ? '${chatMessageId}_scan' : null;
+          await _firestoreService.saveMenuScan(
+            updatedResult.scan ?? ScanResult(productName: 'Unknown', brand: 'Unknown', score: 0, impactType: ImpactType.neutral, impact: '', createdAt: DateTime.now()),
+            menuData: updatedResult.menu,
+            userImageUrl: imageUrl,
+            scanId: stableScanId,
+          );
+
+          if (updatedResult.scan != null) {
+            updatedResult = updatedResult.copyWith(
+              scan: updatedResult.scan!.copyWith(scanId: stableScanId, userImageUrl: imageUrl),
+            );
+          }
+
+          persistedTagBlocks.add(persistenceKey);
+          hasPersistedAnything = true;
+        }
+      }
+      _notifyAndMark(hasPersistedAnything);
+      return updatedResult;
+    }
+
+    // 3. Normal Meal/Food/Product Scan
+    // Persist Scan Result (Analysis)
+    if (updatedResult.scan != null) {
+      final scan = updatedResult.scan!;
       final persistenceKey = 'SCAN_${scan.productName}_${scan.score}';
 
       if (!persistedTagBlocks.contains(persistenceKey)) {
         if (scan.isLoggableProduct) {
-          AppLogger.ai('PersistAiResponse: Saving Scan Result - ${scan.productName}');
+          AppLogger.ai('PersistAiResponse: Saving Scan Result to scan_history - ${scan.productName}');
           final stableScanId = chatMessageId != null ? '${chatMessageId}_scan' : null;
 
           await _firestoreService.saveToScanHistory(
@@ -35,38 +95,68 @@ class PersistAiResponseUseCase {
             userImageUrl: imageUrl,
             scanId: stableScanId,
           );
+
+          // 🚀 Professional Data Linkage: Ensure the userImageUrl and scanId are returned
+          // to the caller so they can be persisted in the Chat History document.
+          updatedResult = updatedResult.copyWith(
+            scan: scan.copyWith(scanId: stableScanId, chatMessageId: chatMessageId, userImageUrl: imageUrl),
+          );
+
           hasPersistedAnything = true;
         }
         persistedTagBlocks.add(persistenceKey);
       }
     }
 
-    // 2. Persist Meal Log
-    if (result.meal != null) {
-      final meal = result.meal!;
+    // Persist Meal Log (Consumption)
+    final isConsumptionIntent = intent == 'LOG_MEAL' || 
+                               intent == 'MEAL_RATING' || 
+                               intent == 'MEAL_PHOTO' || 
+                               intent == 'MEAL_RECOGNITION' ||
+                               intent == 'FOOD_RECOMMENDATION' ||
+                               (resolvedSource.contains('FOOD') && intent.contains('ANALYSIS'));
+
+    if (updatedResult.meal != null && isConsumptionIntent) {
+      final meal = updatedResult.meal!;
       final persistenceKey = 'MEAL_${meal.items.join('_')}_${meal.createdAt.millisecondsSinceEpoch}';
 
       if (!persistedTagBlocks.contains(persistenceKey)) {
-        AppLogger.ai('PersistAiResponse: Saving Meal Log');
-        await _logRepository.logMeal(meal.copyWith(chatMessageId: chatMessageId));
+        AppLogger.ai('PersistAiResponse: Saving Meal Log to journal_logs');
+        final id = await _firestoreService.logMeal(meal.copyWith(chatMessageId: chatMessageId, source: source));
+        if (id != null) {
+          updatedResult = updatedResult.copyWith(meal: updatedResult.meal!.copyWith(firestoreId: id));
+        }
         persistedTagBlocks.add(persistenceKey);
         hasPersistedAnything = true;
       }
     }
 
-    // 3. Persist Symptoms
-    for (final symptom in result.symptoms) {
-      final persistenceKey = 'SYMPTOM_${symptom.symptom}_${symptom.createdAt.millisecondsSinceEpoch}';
-      if (!persistedTagBlocks.contains(persistenceKey)) {
-        AppLogger.ai('PersistAiResponse: Saving Symptom - ${symptom.symptom}');
-        await _logRepository.logSymptom(symptom.copyWith(chatMessageId: chatMessageId));
-        persistedTagBlocks.add(persistenceKey);
-        hasPersistedAnything = true;
+    // Persist Symptoms
+    if (updatedResult.symptoms.isNotEmpty) {
+      final updatedSymptoms = <SymptomLog>[];
+      for (var symptom in updatedResult.symptoms) {
+        final persistenceKey = 'SYMPTOM_${symptom.symptom}_${symptom.createdAt.millisecondsSinceEpoch}';
+        if (!persistedTagBlocks.contains(persistenceKey)) {
+          AppLogger.ai('PersistAiResponse: Saving Symptom - ${symptom.symptom}');
+          final id = await _firestoreService.logSymptom(symptom.copyWith(chatMessageId: chatMessageId));
+          if (id != null) {
+            symptom = symptom.copyWith(firestoreId: id);
+          }
+          persistedTagBlocks.add(persistenceKey);
+          hasPersistedAnything = true;
+        }
+        updatedSymptoms.add(symptom);
       }
+      updatedResult = updatedResult.copyWith(symptoms: updatedSymptoms);
     }
 
+    _notifyAndMark(hasPersistedAnything);
+    return updatedResult;
+  }
+
+  void _notifyAndMark(bool hasPersistedAnything) {
     if (hasPersistedAnything) {
-      await _streakService.markActivityToday();
+      _streakService.markActivityToday();
       _appStateService.notifyChatUpdated();
     }
   }

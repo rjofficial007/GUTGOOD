@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -10,12 +12,17 @@ import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
+import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:gutgood/features/scanner/data/repositories/scanner_repository_impl.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockOffService extends Mock implements OffService {}
 
 class MockAiService extends Mock implements AiService {}
+
+class MockAiClassifierService extends Mock implements AiClassifierService {}
+
+class MockProcessChatTagUseCase extends Mock implements ProcessChatTagUseCase {}
 
 class MockChatFirestoreService extends Mock implements ChatFirestoreService {}
 
@@ -33,6 +40,8 @@ void main() {
   late ScannerRepositoryImpl repository;
   late MockOffService mockOffService;
   late MockAiService mockAiService;
+  late MockAiClassifierService mockAiClassifierService;
+  late MockProcessChatTagUseCase mockProcessChatTagUseCase;
   late MockChatFirestoreService mockChatFirestoreService;
   late MockHistoryFirestoreService mockHistoryFirestoreService;
   late MockNotificationService mockNotificationService;
@@ -48,6 +57,8 @@ void main() {
   setUp(() {
     mockOffService = MockOffService();
     mockAiService = MockAiService();
+    mockAiClassifierService = MockAiClassifierService();
+    mockProcessChatTagUseCase = MockProcessChatTagUseCase();
     mockChatFirestoreService = MockChatFirestoreService();
     mockHistoryFirestoreService = MockHistoryFirestoreService();
     mockNotificationService = MockNotificationService();
@@ -58,12 +69,14 @@ void main() {
     repository = ScannerRepositoryImpl(
       offService: mockOffService,
       aiService: mockAiService,
+      aiClassifierService: mockAiClassifierService,
       chatFirestoreService: mockChatFirestoreService,
       historyFirestoreService: mockHistoryFirestoreService,
       notificationService: mockNotificationService,
       appStateService: mockAppStateService,
       analyticsService: mockAnalyticsService,
       streakService: mockStreakService,
+      processChatTagUseCase: mockProcessChatTagUseCase,
     );
   });
 
@@ -79,7 +92,8 @@ void main() {
     });
 
     test('saveScanResult saves to Firestore and notifies UI', () async {
-      final result = ScanResult(productName: 'Test Product', brand: 'Brand', score: 80, impactType: ImpactType.positive, impact: 'Good', createdAt: DateTime.now());
+      final scanResult = ScanResult(productName: 'Test Product', brand: 'Brand', score: 80, impactType: ImpactType.positive, impact: 'Good', createdAt: DateTime.now());
+      final result = AiAnalysisResult(text: 'Analysis', scan: scanResult);
 
       when(() => mockChatFirestoreService.saveMessage(any())).thenAnswer((_) async => 'msg_id');
       when(

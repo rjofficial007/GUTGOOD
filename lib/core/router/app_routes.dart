@@ -24,6 +24,8 @@ class AppRoutes {
   static const String savedFoods = '/saved-foods';
   static const String allScans = '/all-scans';
   static const String scanResult = '/scan-result';
+  static const String labelResult = '/label-result';
+  static const String menuResult = '/menu-result';
   static const String nutritionFacts = '/nutrition-facts';
   static const String mealDetail = '/meal-detail';
   static const String symptomDetail = '/symptom-detail';
@@ -43,3 +45,5 @@ class AppRoutes {
   // Helper to build scanner path with mode
   static String scannerPath(String mode) => '/scanner/$mode';
 }
+
+// Forced update to resolve sync issue.

@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Categorizes the directional impact of a product on gut health.
@@ -40,6 +41,7 @@ class ScanResult extends Equatable {
     this.chatMessageId,
     this.servingSize,
     required this.createdAt,
+    this.rawData,
   });
 
   factory ScanResult.fromMap(Map<String, dynamic> map) {
@@ -49,10 +51,7 @@ class ScanResult extends Equatable {
     if (it == 'negative' || it == 'trigger') type = ImpactType.negative;
 
     // 🟢 FIXED: score is now clamped 0-100 via ModelUtils.parseScore instead
-    // of trusting the AI's raw integer verbatim. A malformed/out-of-range
-    // score used to flow straight into UI progress gauges
-    // (`CircularProgressIndicator(value: score / 100)`), which could
-    // render as overflowing or negative visuals.
+    // of trusting the AI's raw integer verbatim.
     final score = ModelUtils.parseScore(map['score']);
 
     if (map['impactType'] == null) {
@@ -63,20 +62,14 @@ class ScanResult extends Equatable {
       }
     }
 
-    // 🟢 FIXED: nutriscore is normalized to uppercase A-E, or null if the
-    // model returns something outside that set (previously any string,
-    // including stray lowercase letters or "unknown", was accepted as-is
-    // and rendered directly as a grade badge).
+    // 🟢 FIXED: nutriscore is normalized to uppercase A-E
     String? normalizedNutriscore;
     final rawNutriscore = map['nutriscore']?.toString().trim().toUpperCase();
     if (rawNutriscore != null && {'A', 'B', 'C', 'D', 'E'}.contains(rawNutriscore)) {
       normalizedNutriscore = rawNutriscore;
     }
 
-    // 🟢 FIXED: novaGroup is normalized to a plain "1".."4" string (or
-    // null) even if the model returns an int, a "1-4" range string, or a
-    // stray "unknown" — previously that malformed value was passed
-    // straight to `int.tryParse`-adjacent UI code with no guardrail.
+    // 🟢 FIXED: novaGroup is normalized to a plain "1".."4" string
     String? normalizedNova;
     final rawNova = map['novaGroup'];
     final novaInt = rawNova is num ? rawNova.toInt() : int.tryParse(rawNova?.toString() ?? '');
@@ -87,8 +80,17 @@ class ScanResult extends Equatable {
     // 🟢 FIXED: category is normalized to lowercase
     final category = map['category']?.toString().toLowerCase();
 
+    // 🚀 Robust Data Extraction: Unpack rawData if it was stored as a field in Firestore.
+    // This handles both direct AI results and hydrated records from History.
+    Map<String, dynamic> resolvedRaw;
+    if (map['rawData'] is Map) {
+      resolvedRaw = Map<String, dynamic>.from(map['rawData'] as Map);
+    } else {
+      resolvedRaw = map;
+    }
+
     return ScanResult(
-      productName: map['productName']?.toString() ?? 'Unknown',
+      productName: map['productName']?.toString() ?? map['restaurantName']?.toString() ?? 'Unknown',
       brand: map['brand']?.toString() ?? 'Unknown',
       category: category,
       imageUrl: map['imageUrl']?.toString(),
@@ -108,13 +110,17 @@ class ScanResult extends Equatable {
       cycleInsight: ModelUtils.parseNestedModel<CycleInsight>(map['cycleInsight'], CycleInsight.fromMap),
       barcode: map['barcode']?.toString(),
       source: map['source']?.toString(),
-      userImageUrl: map['userImageUrl']?.toString(),
+      // 🚀 Professional Image Fallback: Handles multiple common field names from AI and Firestore
+      userImageUrl:
+          ModelUtils.parseString(map['userImageUrl']) ?? ModelUtils.parseString(map['scanImage']) ?? ModelUtils.parseString(map['menuImage']) ?? ModelUtils.parseString(map['user_image_url']),
       flaggedIngredients: ModelUtils.parseList<String>(map['flaggedIngredients']),
       isSaved: ModelUtils.parseBool(map['isSaved']),
-      scanId: map['scanId']?.toString(),
+      // 🚀 Robust ID Parsing: Supports both 'scanId' and legacy 'id' keys
+      scanId: (map['scanId'] ?? map['id'])?.toString(),
       chatMessageId: map['chatMessageId']?.toString(),
       servingSize: map['servingSize']?.toString(),
       createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['timestamp'] ?? map['time']),
+      rawData: resolvedRaw,
     );
   }
 
@@ -199,6 +205,9 @@ class ScanResult extends Equatable {
   /// Record creation timestamp.
   final DateTime createdAt;
 
+  /// Holds the raw JSON data from the AI for routing and specialized storage.
+  final Map<String, dynamic>? rawData;
+
   /// Returns true if this result represents a specific food product suitable for history.
   ///
   /// Filters out generic utility scans like "Restaurant Menus" or "Ingredient Labels"
@@ -269,6 +278,7 @@ class ScanResult extends Equatable {
     String? chatMessageId,
     String? servingSize,
     DateTime? createdAt,
+    Map<String, dynamic>? rawData,
   }) => ScanResult(
     productName: productName ?? this.productName,
     brand: brand ?? this.brand,
@@ -297,6 +307,7 @@ class ScanResult extends Equatable {
     chatMessageId: chatMessageId ?? this.chatMessageId,
     servingSize: servingSize ?? this.servingSize,
     createdAt: createdAt ?? this.createdAt,
+    rawData: rawData ?? this.rawData,
   );
 
   Map<String, dynamic> toMap() => {
@@ -327,6 +338,7 @@ class ScanResult extends Equatable {
     'chatMessageId': chatMessageId,
     'servingSize': servingSize,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
+    'rawData': rawData,
   };
 
   /// Optimized Map for AI context to prevent 502/payload-too-large errors.
@@ -342,5 +354,58 @@ class ScanResult extends Equatable {
   };
 
   @override
-  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved, scanId, chatMessageId, servingSize, createdAt];
+  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved, scanId, chatMessageId, servingSize, createdAt, rawData];
+
+  /// 🚀 Professional Routing: Determines which screen should be used to display
+  /// the full details of this specific scan.
+  String get detailRoute {
+    final s = source?.toLowerCase() ?? '';
+    final c = category?.toLowerCase() ?? '';
+    final n = productName.toLowerCase();
+    final b = brand.toLowerCase();
+
+    // Unpack intent from rawData if available
+    final intent = (rawData?['intent'] ?? '').toString().toLowerCase();
+
+    AppLogger.info('ScanResult: Calculating detailRoute. ProductName: $productName, Intent: $intent, Category: $c, Source: $s');
+
+    // 🚀 Priority 1: Explicit Intent
+    // If the AI says it's a meal analysis, we use the Scan Result screen (with score/swaps).
+    if (intent == 'meal_analysis' || intent == 'meal_rating' || intent == 'food_analysis') {
+      return '/scan-result';
+    }
+    if (intent == 'menu_analysis' || intent == 'menu') {
+      return '/menu-result';
+    }
+    if (intent == 'label_analysis' || intent == 'label') {
+      return '/label-result';
+    }
+
+    // 🍴 Priority 2: Explicit Source/Category
+    if (s == 'menu' || c == 'menu') return '/menu-result';
+    if (s == 'label' || c == 'label') return '/label-result';
+
+    // 🔍 Priority 3: Name-based Heuristics (Venue vs Product)
+    // We check for venue-suggesting words.
+    final isVenue = n.contains('cafe') || n.contains('restaurant') || n.contains('kitchen') || n.contains('dining') || n.contains('bakery') || n.contains('bistro');
+    final hasMenuWord = n.contains('menu');
+    final hasItemsWord = n.contains('items') || n.contains('selection') || n.contains('dishes');
+
+    if (isVenue || hasMenuWord) {
+      // If it's a venue name, it's likely a menu unless it explicitly looks like a meal log
+      if (!hasItemsWord || intent == 'menu_analysis') {
+        return '/menu-result';
+      }
+
+      // Fallback: If it has "Menu" and "Items", it might be a venue analysis that identified dishes
+      if (hasMenuWord && isVenue) return '/menu-result';
+    }
+
+    if (n.contains('label') || n.contains('ingredients') || n.contains('nutrition facts') || n == 'ingredients list' || n == 'nutrition') {
+      return '/label-result';
+    }
+
+    // 🍎 Default: Standard Product/Meal Scan
+    return '/scan-result';
+  }
 }
