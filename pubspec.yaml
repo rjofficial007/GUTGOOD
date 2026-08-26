@@ -81,6 +81,7 @@ dependencies:
   uuid: ^4.6.0
   logger: ^2.7.0
   rxdart: ^0.28.0
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_test:

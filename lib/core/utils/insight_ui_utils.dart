@@ -12,22 +12,23 @@ class InsightUiUtils {
   static IconData getReactionIcon(String source) {
     final s = source.toLowerCase();
     return switch (s) {
-      _ when s.contains('🥗') || s.contains('🥬') || s.contains('🥦') || s.contains('leaf') => AppIcons.leaf,
-      _ when s.contains('⚡') || s.contains('🔋') || s.contains('zap') => AppIcons.zap,
-      _ when s.contains('💨') || s.contains('🌬️') || s.contains('wind') => AppIcons.wind,
-      _ when s.contains('🍕') || s.contains('🍔') || s.contains('🍟') || s.contains('utensils') => AppIcons.utensils,
-      _ when s.contains('🥛') || s.contains('🧀') || s.contains('milk') => AppIcons.milk,
-      _ when s.contains('🍬') || s.contains('🍭') || s.contains('🍩') || s.contains('candy') => AppIcons.candy,
-      _ when s.contains('🥩') || s.contains('🍖') || s.contains('beef') => AppIcons.beef,
+      _ when s.contains('🥗') || s.contains('🥬') || s.contains('🥦') || s.contains('leaf') || s.contains('salad') => AppIcons.salad,
+      _ when s.contains('⚡') || s.contains('🔋') || s.contains('zap') || s.contains('energy') => AppIcons.zap,
+      _ when s.contains('💨') || s.contains('🌬️') || s.contains('wind') || s.contains('bloat') => AppIcons.wind,
+      _ when s.contains('🍕') || s.contains('🍔') || s.contains('🍟') || s.contains('utensils') || s.contains('fast') => AppIcons.utensils,
+      _ when s.contains('🥛') || s.contains('🧀') || s.contains('milk') || s.contains('dairy') => AppIcons.milk,
+      _ when s.contains('🍬') || s.contains('🍭') || s.contains('🍩') || s.contains('candy') || s.contains('sugar') => AppIcons.candy,
+      _ when s.contains('🥩') || s.contains('🍖') || s.contains('beef') || s.contains('meat') => AppIcons.beef,
       _ when s.contains('🥚') || s.contains('egg') => AppIcons.egg,
       _ when s.contains('🥜') || s.contains('nut') => AppIcons.nut,
       _ when s.contains('🐟') || s.contains('fish') => AppIcons.fish,
-      _ when s.contains('💪') || s.contains('dumbbell') => AppIcons.dumbbell,
-      _ when s.contains('🧠') || s.contains('brain') => AppIcons.brain,
+      _ when s.contains('🍎') || s.contains('🍏') || s.contains('fruit') || s.contains('apple') => AppIcons.apple,
+      _ when s.contains('🍪') || s.contains('cookie') => AppIcons.cookie,
+      _ when s.contains('🧠') || s.contains('brain') || s.contains('focus') => AppIcons.brain,
       _ when s.contains('⚠️') || s.contains('🚫') || s.contains('alert') => AppIcons.alertTriangle,
       _ when s.contains('🌟') || s.contains('⭐') || s.contains('star') => AppIcons.star,
       _ when s.contains('🏆') || s.contains('trophy') => AppIcons.trophy,
-      _ => AppIcons.salad,
+      _ => AppIcons.utensils,
     };
   }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -6,18 +7,19 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/gut_action_banner.dart';
+import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
-import 'package:gutgood/core/widgets/gut_snapshot_hero_card.dart';
-import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
@@ -28,201 +30,469 @@ class InsightDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
     final dateStr = DateFormatter.formatDate(insight.updatedAt);
 
     return Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
+      backgroundColor: scheme.cardBackground,
       body: CustomScrollView(
         slivers: [
-          GutSliverAppBar(title: '${AppStrings.reportDate}${dateStr.toUpperCase()}', showBrandingIcon: false),
-          _MainDashboardSliver(data: insight),
+          GutSliverAppBar(title: 'SNAPSHOT: ${dateStr.toUpperCase()}', showBrandingIcon: false),
+          SliverPadding(
+            padding: EdgeInsets.all(AppSizes.p20),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _ScoreHeroSection(data: insight),
+                Gap.h24,
+                _StrategyGrid(data: insight),
+                Gap.h24,
+                _HighlightsSection(data: insight),
+                Gap.h24,
+                _DetailedTrendCard(
+                  title: "POSITIVE PROGRESS",
+                  trend: insight.healingTrend ?? "Analysis of your gut health boosters for this period.",
+                  foods: insight.healingFoods,
+                  color: AppPalette.lime,
+                  icon: AppIcons.zap,
+                  label: "Boosters",
+                ),
+                Gap.h20,
+                _DetailedTrendCard(
+                  title: "CAUTION AREAS",
+                  trend: insight.triggerTrend ?? "Sensitive items identified during this analysis period.",
+                  foods: insight.triggerFoods,
+                  color: const Color(0xFFFF9898),
+                  icon: AppIcons.alertTriangle,
+                  label: "Triggers",
+                ),
+                Gap.h24,
+                _PatternSection(patterns: insight.detectedPatterns),
+                if (insight.topInsight != null) ...[
+                  Gap.h24,
+                  ModernSmartAlert(insight: insight.topInsight!),
+                ],
+                Gap.h40,
+              ]),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _MainDashboardSliver extends StatelessWidget {
-  const _MainDashboardSliver({required this.data});
+class _ScoreHeroSection extends StatelessWidget {
+  const _ScoreHeroSection({required this.data});
   final AIInsight data;
 
   @override
   Widget build(BuildContext context) {
-    final profile = context.watch<ProfileNotifier>();
-
-    // For historical insights, we use the patterns recorded at that time.
-    final patterns = data.detectedPatterns;
-
-    final sections = _buildSections(context: context, streak: profile.profile?.streak ?? 0, patterns: patterns);
-
-    return SliverPadding(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final isLast = index == sections.length - 1;
-          return Padding(
-            padding: EdgeInsets.only(bottom: isLast ? AppSizes.p20 : AppSizes.p20),
-            child: sections[index],
-          );
-        }, childCount: sections.length),
+    final scheme = context.appColorScheme;
+    return Container(
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        color: scheme.elevatedSurface,
+        borderRadius: BorderRadius.circular(32.r),
+        border: Border.all(color: scheme.border),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("GUT SCORE", style: context.bodyBold.copyWith(fontSize: 12.sp, letterSpacing: 0.5, color: scheme.textPrimary)),
+                  Text("Historical Snapshot", style: context.caption.copyWith(fontSize: 10.sp, color: scheme.textMuted)),
+                ],
+              ),
+              if (data.scoreDiff != null)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: data.scoreDiff!.startsWith('+') ? AppPalette.greenSoft : AppPalette.redSoft,
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Text(
+                    data.scoreDiff!,
+                    style: context.bodyBold.copyWith(fontSize: 9.sp, color: data.scoreDiff!.startsWith('+') ? AppPalette.green : AppPalette.red),
+                  ),
+                ),
+            ],
+          ),
+          Gap.h32,
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 180.w,
+                height: 120.w,
+                child: CustomPaint(
+                  painter: _GaugePainter(value: data.gutScore / 100, color: scheme.textPrimary),
+                ),
+              ),
+              Positioned(
+                bottom: 15.w,
+                child: Text(
+                  "${data.gutScore}",
+                  style: context.bodyBold.copyWith(fontSize: 40.sp, fontWeight: FontWeight.w900, height: 1, color: scheme.textPrimary),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
 
-  List<Widget> _buildSections({required BuildContext context, required int streak, required List<BodyPattern> patterns}) {
-    final sections = <Widget>[GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: streak, isActive: false)];
+class _StrategyGrid extends StatelessWidget {
+  const _StrategyGrid({required this.data});
+  final AIInsight data;
 
-    // 1. STRATEGIC FOCUS (healingGoal / triggerSymptom)
-    if (data.healingGoal != null || data.triggerSymptom != null) {
-      sections.add(
-        DashboardEntrance(
-          delay: 50,
-          child: AnalysisCard(
-            metric: 'FOCUS',
-            label: 'CURRENT STRATEGY',
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatCard(
+            label: "FOCUS",
+            value: data.healingGoal ?? data.triggerSymptom ?? "Monitoring",
+            subtitle: "Historical goal",
             icon: AppIcons.target,
-            glowColor: AppPalette.blue,
-            items: [
-              if (data.healingGoal != null) AnalysisItem(title: 'GOAL: ${data.healingGoal!.toUpperCase()}', subtitle: 'Primary healing objective', icon: AppIcons.leaf, isDone: true),
-              if (data.triggerSymptom != null) AnalysisItem(title: 'WATCHING: ${data.triggerSymptom!.toUpperCase()}', subtitle: 'Tracking for patterns', icon: AppIcons.activity),
+            color: const Color(0xFF5D78FF),
+            isDark: true,
+          ),
+        ),
+        Gap.w20,
+        Expanded(
+          child: _StatCard(
+            label: "CONFIDENCE",
+            value: data.confidenceLevel,
+            subtitle: "Analysis strength",
+            icon: AppIcons.trendingUp,
+            color: AppPalette.lime,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HighlightsSection extends StatelessWidget {
+  const _HighlightsSection({required this.data});
+  final AIInsight data;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    if (data.topHealing == null && data.topTrigger == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("SNAPSHOT HIGHLIGHTS", style: context.bodyBold.copyWith(fontSize: 11.sp, letterSpacing: 1, color: scheme.textMuted)),
+        Gap.h12,
+        Row(
+          children: [
+            if (data.topHealing != null)
+              Expanded(
+                child: _StatCard(
+                  label: "CHAMPION",
+                  value: data.topHealing!.food,
+                  subtitle: data.topHealing!.effects,
+                  icon: AppIcons.trophy,
+                  color: AppPalette.greenSoft,
+                ),
+              ),
+            if (data.topHealing != null && data.topTrigger != null) Gap.w12,
+            if (data.topTrigger != null)
+              Expanded(
+                child: _StatCard(
+                  label: "REACTIVE",
+                  value: data.topTrigger!.food,
+                  subtitle: data.topTrigger!.effects,
+                  icon: AppIcons.alertCircle,
+                  color: AppPalette.redSoft,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    this.isDark = false,
+  });
+
+  final String label;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? Colors.white : Colors.black;
+    final secondaryColor = isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5);
+
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      height: 150.h,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(32.r),
+        boxShadow: [
+          if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.2) : Colors.white, shape: BoxShape.circle),
+                child: Icon(icon, size: 16.w, color: isDark ? Colors.white : Colors.black),
+              ),
+              Row(
+                children: [
+                  Container(width: 4.w, height: 4.w, decoration: BoxDecoration(color: textColor, shape: BoxShape.circle)),
+                  Gap.w4,
+                  Container(width: 4.w, height: 4.w, decoration: BoxDecoration(color: textColor, shape: BoxShape.circle)),
+                ],
+              ),
             ],
           ),
-        ),
-      );
-    }
-
-    // 2. BETTER ENERGY (healingFoods)
-    if (data.healingFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'positive')) {
-      final healingCount = data.healingFoods.length + data.foodImpacts.where((i) => i.impactType == 'positive').length;
-      final label = data.healingTrend != null ? 'BETTER ENERGY • ${data.healingTrend}' : 'BETTER ENERGY';
-
-      sections.add(
-        DashboardEntrance(
-          delay: 100,
-          child: AnalysisCard(
-            metric: '$healingCount',
-            label: label,
-            icon: AppIcons.zap,
-            glowColor: AppPalette.green,
-            items: [
-              ...data.healingFoods.map((f) => AnalysisItem(title: f.name, subtitle: f.effect, icon: AppIcons.check)),
-              ...data.foodImpacts.where((i) => i.impactType == 'positive').map((i) => AnalysisItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: AppIcons.check)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 3. BLOATING (triggerFoods)
-    if (data.triggerFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'negative')) {
-      final triggerCount = data.triggerFoods.length + data.foodImpacts.where((i) => i.impactType == 'negative').length;
-      final label = data.triggerTrend != null ? 'BLOATING TRIGGERS • ${data.triggerTrend}' : 'BLOATING TRIGGERS';
-
-      sections.add(
-        DashboardEntrance(
-          delay: 200,
-          child: AnalysisCard(
-            metric: '$triggerCount',
-            label: label,
-            icon: AppIcons.alertTriangle,
-            glowColor: AppPalette.red,
-            items: [
-              ...data.triggerFoods.map((f) => AnalysisItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle)),
-              ...data.foodImpacts.where((i) => i.impactType == 'negative').map((i) => AnalysisItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: AppIcons.alertCircle)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 4. INDIVIDUAL PATTERN CARDS
-    if (patterns.isNotEmpty) {
-      // 🟢 Deduplicate patterns by trigger and type
-      final seenPatterns = <String>{};
-      final uniquePatterns = <BodyPattern>[];
-      for (final p in patterns) {
-        final key = '${p.type}_${p.trigger.toLowerCase().trim()}';
-        if (!seenPatterns.contains(key)) {
-          seenPatterns.add(key);
-          uniquePatterns.add(p);
-        }
-      }
-
-      for (var i = 0; i < uniquePatterns.length; i++) {
-        final p = uniquePatterns[i];
-        sections.add(
-          DashboardEntrance(
-            delay: 300 + (i * 100),
-            child: AnalysisCard(
-              metric: p.frequency.toString(),
-              label: InsightUiUtils.getPatternName(p.type),
-              icon: InsightUiUtils.getPatternTypeIcon(p.type),
-              glowColor: context.appColorScheme.textPrimary,
-              onTap: () => context.push(AppRoutes.patternDetail, extra: p),
-              items: [AnalysisItem(title: p.trigger.toUpperCase(), subtitle: p.description, icon: AppIcons.lightbulb, color: context.appColorScheme.textPrimary)],
-            ),
-          ),
-        );
-      }
-    }
-
-    // 5. RECENT LOGS (foodImpacts)
-    if (data.foodImpacts.isNotEmpty) {
-      sections.add(
-        DashboardEntrance(
-          delay: 400,
-          child: AnalysisCard(
-            metric: '${data.foodImpacts.length}',
-            label: 'RECENT LOGS',
-            icon: AppIcons.history,
-            glowColor: AppPalette.blue,
-            items: data.foodImpacts
-                .map((i) => AnalysisItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: i.impactType == 'positive' ? AppIcons.check : AppIcons.alertCircle))
-                .toList(),
-          ),
-        ),
-      );
-    }
-
-    // 6. STATISTICAL MVP (topHealing/topTrigger)
-    if (data.topHealing != null || data.topTrigger != null) {
-      sections.add(
-        DashboardEntrance(
-          delay: 500,
-          child: AnalysisCard(
-            metric: data.topHealing?.frequency ?? 'MVP',
-            label: 'TOP PERFORMANCE',
-            icon: AppIcons.trophy,
-            glowColor: AppPalette.green,
-            items: [
-              if (data.topHealing != null) AnalysisItem(title: 'BEST: ${data.topHealing!.food}', subtitle: data.topHealing!.effects, icon: AppIcons.star),
-              if (data.topTrigger != null) AnalysisItem(title: 'MOST REACTIVE: ${data.topTrigger!.food}', subtitle: data.topTrigger!.effects, icon: AppIcons.alertTriangle),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 7. AI SMART ALERT
-    if (data.topInsight != null) {
-      sections.add(ModernSmartAlert(insight: data.topInsight!));
-    }
-
-    sections.add(
-      GutActionBanner(
-        title: AppStrings.weeklyGutRecap,
-        subtitle: AppStrings.last7DaysReady,
-        icon: AppIcons.salad,
-        onTap: () async {
-          if (await QuotaGuard.check(context, type: QuotaType.premium)) {
-            if (context.mounted) {
-              unawaited(context.push(AppRoutes.weeklyRecap, extra: data));
-            }
-          }
-        },
+          const Spacer(),
+          Text(label, style: context.bodyBold.copyWith(fontSize: 10.sp, color: secondaryColor)),
+          Text(value.toUpperCase(), style: context.bodyBold.copyWith(fontSize: 14.sp, color: textColor, height: 1.1), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(subtitle, style: context.caption.copyWith(fontSize: 9.sp, color: secondaryColor), maxLines: 1, overflow: TextOverflow.ellipsis),
+        ],
       ),
     );
-
-    return sections;
   }
+}
+
+class _DetailedTrendCard extends StatelessWidget {
+  const _DetailedTrendCard({required this.title, required this.trend, required this.foods, required this.color, required this.icon, required this.label});
+  final String title;
+  final String trend;
+  final List<dynamic> foods;
+  final Color color;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    return Container(
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        color: scheme.elevatedSurface,
+        borderRadius: BorderRadius.circular(32.r),
+        border: Border.all(color: scheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
+                child: Icon(icon, size: 16.w, color: scheme.textPrimary),
+              ),
+              Gap.w12,
+              Text(title, style: context.bodyBold.copyWith(fontSize: 11.sp, letterSpacing: 0.5, color: scheme.textPrimary)),
+              const Spacer(),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: scheme.aiResponseBackground, 
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: scheme.border.withOpacity(0.5)),
+                ),
+                child: Text("${foods.length} $label", style: context.bodyBold.copyWith(fontSize: 10.sp, color: scheme.textPrimary)),
+              ),
+            ],
+          ),
+          Gap.h16,
+          Text(trend, style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.4)),
+          if (foods.isNotEmpty) ...[
+            Gap.h20,
+            SizedBox(
+              height: 32.h,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: foods.length,
+                separatorBuilder: (_, __) => Gap.w8,
+                itemBuilder: (context, index) {
+                  final food = foods[index];
+                  final name = food is HealingFood ? food.name : (food as TriggerFood).name;
+                  return Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: scheme.aiResponseBackground,
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(color: scheme.border),
+                    ),
+                    child: Text(name.toUpperCase(), style: context.bodyBold.copyWith(fontSize: 10.sp, color: scheme.textPrimary)),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PatternSection extends StatelessWidget {
+  const _PatternSection({required this.patterns});
+  final List<BodyPattern> patterns;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    if (patterns.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        color: scheme.elevatedSurface,
+        borderRadius: BorderRadius.circular(32.r),
+        border: Border.all(color: scheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(AppIcons.brain, size: 18.w, color: scheme.textPrimary),
+              Gap.w12,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("IDENTIFIED PATTERNS", style: context.bodyBold.copyWith(fontSize: 12.sp, color: scheme.textPrimary)),
+                    Text("Historical findings", style: context.caption.copyWith(fontSize: 10.sp, color: scheme.textMuted)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Gap.h20,
+          ...patterns.take(3).map((p) => _PatternRowItem(pattern: p)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PatternRowItem extends StatelessWidget {
+  const _PatternRowItem({required this.pattern});
+  final BodyPattern pattern;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: GestureDetector(
+        onTap: () => context.push(AppRoutes.patternDetail, extra: pattern),
+        child: Container(
+          padding: EdgeInsets.all(12.w),
+          decoration: BoxDecoration(
+            color: scheme.aiResponseBackground,
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(color: scheme.border.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(color: scheme.elevatedSurface, shape: BoxShape.circle, border: Border.all(color: scheme.border)),
+                child: Icon(InsightUiUtils.getPatternTypeIcon(pattern.type), size: 14.w, color: scheme.textPrimary),
+              ),
+              Gap.w12,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(pattern.trigger.toUpperCase(), style: context.bodyBold.copyWith(fontSize: 11.sp, color: scheme.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(InsightUiUtils.getPatternName(pattern.type), style: context.caption.copyWith(fontSize: 9.sp, color: scheme.textMuted)),
+                  ],
+                ),
+              ),
+              Text("${pattern.frequency}x", style: context.bodyBold.copyWith(fontSize: 12.sp, color: scheme.textPrimary)),
+              Gap.w8,
+              Icon(Icons.chevron_right, size: 16, color: scheme.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GaugePainter extends CustomPainter {
+  _GaugePainter({required this.value, required this.color});
+  final double value;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height - 5);
+    final radius = size.width / 2;
+    final bgPaint = Paint()..color = AppPalette.gray200..style = PaintingStyle.stroke..strokeWidth = 1.5;
+    final progressPaint = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2.5;
+
+    for (var i = 0; i <= 60; i++) {
+      final angle = math.pi + (i / 60) * math.pi;
+      final isMajor = i % 10 == 0;
+      final tickLen = isMajor ? 8.0 : 4.0;
+      canvas.drawLine(
+        Offset(center.dx + (radius - tickLen) * math.cos(angle), center.dy + (radius - tickLen) * math.sin(angle)),
+        Offset(center.dx + radius * math.cos(angle), center.dy + radius * math.sin(angle)),
+        bgPaint,
+      );
+    }
+
+    final activeTicks = (value * 60).toInt();
+    for (var i = 0; i <= activeTicks; i++) {
+      final angle = math.pi + (i / 60) * math.pi;
+      final isMajor = i % 10 == 0;
+      final tickLen = isMajor ? 12.0 : 6.0;
+      canvas.drawLine(
+        Offset(center.dx + (radius - tickLen) * math.cos(angle), center.dy + (radius - tickLen) * math.sin(angle)),
+        Offset(center.dx + radius * math.cos(angle), center.dy + radius * math.sin(angle)),
+        progressPaint,
+      );
+    }
+
+    final needlePaint = Paint()..color = color.withOpacity(0.2)..style = PaintingStyle.stroke..strokeWidth = 1.0;
+    final indicatorAngle = math.pi + value * math.pi;
+    final dotPos = Offset(center.dx + radius * math.cos(indicatorAngle), center.dy + radius * math.sin(indicatorAngle));
+    canvas.drawLine(center, dotPos, needlePaint);
+    canvas.drawCircle(dotPos, 4, Paint()..color = color);
+    canvas.drawCircle(dotPos, 2, Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
