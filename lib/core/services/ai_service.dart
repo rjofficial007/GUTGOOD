@@ -94,7 +94,8 @@ class AiServiceImpl implements AiService {
   /// `symptomLogs` context via the enhanced `toAiMap()` to ensure follow-up
   /// questions about specific nutritional values or symptom severities are
   /// grounded in the structured truth, not just the natural language summary.
-  List<Map<String, dynamic>> _historyToPayload(List<ChatMessage> history) => history.where((m) => m.text.isNotEmpty || m.scanData != null || m.mealLogs.isNotEmpty || m.symptomLogs.isNotEmpty).map((m) => m.toAiMap()).toList();
+  List<Map<String, dynamic>> _historyToPayload(List<ChatMessage> history) =>
+      history.where((m) => m.text.isNotEmpty || m.scanData != null || m.mealLogs.isNotEmpty || m.symptomLogs.isNotEmpty).map((m) => m.toAiMap()).toList();
 
   Never _throwForStatus(int status, String body) {
     var message = 'Unexpected AI proxy error ($status).';
@@ -130,7 +131,7 @@ class AiServiceImpl implements AiService {
     final idempotencyKey = const Uuid().v4();
     final headers = await _buildHeaders(idempotencyKey);
 
-    final body = jsonEncode({
+    final body = ModelUtils.safeJsonEncode({
       'mode': mode,
       'systemInstruction': systemInstruction,
       'messages': _historyToPayload(history),
@@ -276,7 +277,7 @@ class AiServiceImpl implements AiService {
     final idempotencyKey = const Uuid().v4();
     final headers = await _buildHeaders(idempotencyKey);
 
-    final body = jsonEncode({
+    final body = ModelUtils.safeJsonEncode({
       'mode': 'json',
       'systemInstruction': systemInstruction,
       'prompt': prompt,
@@ -327,7 +328,7 @@ class AiServiceImpl implements AiService {
 
     // 🟢 Fix: Use toAiMap() to avoid payload-too-large (502) errors.
     final historyMaps = history.map((m) => m.toAiMap()).toList();
-    final historyJson = jsonEncode(historyMaps);
+    final historyJson = ModelUtils.safeJsonEncode(historyMaps);
 
     final prompt = '${Prompts.summarizationInstruction(previousSummary: previousSummary)}\n\n$historyJson';
 
@@ -336,7 +337,7 @@ class AiServiceImpl implements AiService {
       final headers = await _buildHeaders(idempotencyKey);
       final response = await _dio.post<String>(
         _config.aiProxyUrl,
-        data: jsonEncode({
+        data: ModelUtils.safeJsonEncode({
           'mode': 'plain',
           'prompt': prompt,
           'model': _config.openAIModel,

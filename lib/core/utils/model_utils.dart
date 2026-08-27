@@ -1,6 +1,46 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ModelUtils {
+  /// 🟢 NEW: Global safe JSON encoder that handles Firestore Timestamps and DateTimes.
+  /// Use this instead of standard jsonEncode to prevent 'Converting object to an
+  /// encodable object failed' crashes.
+  static String safeJsonEncode(Object? object, {bool indent = false}) {
+    try {
+      if (indent) {
+        return JsonEncoder.withIndent('  ', toSafeEncodable).convert(object);
+      }
+      return jsonEncode(object, toEncodable: toSafeEncodable);
+    } catch (e) {
+      return object?.toString() ?? '{}';
+    }
+  }
+
+  /// 🟢 NEW: Standard 'toEncodable' logic for all JSON serialization in the app.
+  static Object? toSafeEncodable(Object? nonEncodable) {
+    if (nonEncodable == null) return null;
+    if (nonEncodable is DateTime) return nonEncodable.toIso8601String();
+    if (nonEncodable is Timestamp) return nonEncodable.toDate().toIso8601String();
+
+    // 🚀 Robust Duck-Typing: handle objects from other libraries that might
+    // contain Timestamp-like properties (seconds/nanoseconds) or toDate() methods.
+    try {
+      final dynamic obj = nonEncodable;
+      if (obj.runtimeType.toString().contains('Timestamp')) {
+        return obj.toDate().toIso8601String();
+      }
+      if (obj.toMap != null) {
+        return obj.toMap();
+      }
+      if (obj.toJson != null) {
+        return obj.toJson();
+      }
+    } catch (_) {}
+
+    return nonEncodable.toString();
+  }
+
   /// Safely parses a value that could be a String, a List of Strings, or any object into a joined string.
   static String? parseString(dynamic value) {
     if (value == null) return null;

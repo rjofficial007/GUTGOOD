@@ -260,6 +260,14 @@ class ChatComposerNotifier with ChangeNotifier {
       } catch (e) {
         AppLogger.warning('ChatComposer: Image classification failed, falling back to source');
       }
+    } else if (displayText.isNotEmpty) {
+      try {
+        // 🚀 PRD §8 & §10: Rely on AI for intent detection even for text-only messages.
+        detectedIntent = await _aiClassifierService.classifyTextIntent(userText: displayText, historySummary: _historyNotifier.cachedSummary);
+        AppLogger.ai('ChatComposer: AI detected text intent as $detectedIntent');
+      } catch (e) {
+        AppLogger.warning('ChatComposer: Text intent detection failed');
+      }
     }
 
     await _streamReply(
@@ -403,11 +411,10 @@ class ChatComposerNotifier with ChangeNotifier {
     _persistedTags.clear();
     _persistTagsForActiveTurn = !isRegenerate;
 
-    // 🟢 AI-BASED INTENT: Use detected intent if available, otherwise fallback to quick regex
-    final quickIntent = _getQuickIntent(userText.toLowerCase());
-    final intent = detectedIntent ?? quickIntent ?? source ?? 'full_analysis';
+    // 🚀 PRD §10: Unified AI-driven routing.
+    final intent = detectedIntent ?? source ?? 'full_analysis';
 
-    AppLogger.ai('Final intent for prompt: "$intent" (detected: "$detectedIntent", source: "$source", quickDetected: "$quickIntent")');
+    AppLogger.ai('Final intent for prompt: "$intent" (detected: "$detectedIntent", source: "$source")');
 
     await _aiSubscription?.cancel();
 
@@ -460,40 +467,6 @@ class ChatComposerNotifier with ChangeNotifier {
       AppLogger.ai('Stream setup failed', error: e, stackTrace: st);
       await _handleStreamError(e, aiLocalId);
     }
-  }
-
-  String? _getQuickIntent(String text) {
-    final lowerText = text.toLowerCase();
-
-    // 🟢 Exact Suggestion Chip Matches (Zero Latency Fast-Path)
-    if (lowerText == AppStrings.suggestRateMeal.toLowerCase()) return 'meal_rating';
-    if (lowerText == AppStrings.suggestBetterSwap.toLowerCase()) return 'meal_swaps';
-    if (lowerText == AppStrings.suggestBloatCheck.toLowerCase()) return 'symptom_analysis';
-    if (lowerText == AppStrings.suggestIsThisHealthy.toLowerCase()) return 'health_assessment';
-    if (lowerText == AppStrings.suggestMealPlan.toLowerCase()) return 'meal_planning';
-    if (lowerText == AppStrings.suggestExplainIngredients.toLowerCase()) return 'label';
-
-    // 🔍 Robust Regex Detection (Non-AI Fast-Path)
-    // Priority: Specific keywords should always override generic photo tags
-    if (RegExp(r'\b(rate|score|grade|how did I do|feedback|how is my)\b').hasMatch(lowerText)) return 'meal_rating';
-    if (RegExp(r'\b(swap|instead|better|alternative|healthier|replace|substitution)\b').hasMatch(lowerText)) return 'meal_swaps';
-    if (RegExp(r'\b(bloat|bloating|bloated|pain|hurt|headache|tired|gas|cramp|nausea|stomachache)\b').hasMatch(lowerText)) return 'symptom_analysis';
-    if (RegExp(r'\b(healthy|balanced|good for me|gut-friendly|gut friendly|is this okay)\b').hasMatch(lowerText)) return 'health_assessment';
-    if (RegExp(r'\b(full analysis|breakdown|everything|details|all info|complete|tell me more|details please)\b').hasMatch(lowerText)) return 'full_analysis';
-    if (RegExp(r'\b(vs|versus|compare|difference between|which one is better)\b').hasMatch(lowerText)) return 'product_comparison';
-    if (RegExp(r'\b(plan|eat next|tomorrow|dinner idea|lunch idea|snack idea|what should i eat)\b').hasMatch(lowerText)) return 'meal_planning';
-    if (RegExp(r'\b(menu|order|restaurant|eat here)\b').hasMatch(lowerText)) return 'menu';
-    if (RegExp(r'\b(label|ingredients|ingredient|gums|emulsifier|additive|e-number)\b').hasMatch(lowerText)) return 'label';
-
-    // 📸 Photo Prompt Matches
-    if (lowerText.contains(AppStrings.menuPhotoPrompt.toLowerCase())) return 'menu';
-    if (lowerText.contains(AppStrings.labelPhotoPrompt.toLowerCase())) return 'label';
-    if (lowerText.contains(AppStrings.mealPhotoPrompt.toLowerCase())) return 'full_analysis';
-    if (lowerText.contains(AppStrings.galleryPhotoPrompt.toLowerCase())) return 'gallery';
-
-    // Casual meal mentions
-    if (lowerText.contains("i'm having a") || lowerText.contains('i ate') || lowerText.contains('for dinner')) return 'meal_overview';
-    return null;
   }
 
   DateTime? _lastPersistTime;

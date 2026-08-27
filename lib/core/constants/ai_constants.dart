@@ -18,26 +18,34 @@ class UserIntent {
   UserIntent._();
 
   static const String mealRecognition = 'MEAL_RECOGNITION';
-  static const String healthAssessment = 'HEALTH_ASSESSMENT';
   static const String mealRating = 'MEAL_RATING';
+  static const String healthAssessment = 'HEALTH_ASSESSMENT';
+  static const String improvementRequest = 'IMPROVEMENT_REQUEST';
   static const String swapRequest = 'SWAP_REQUEST';
   static const String completeAnalysis = 'COMPLETE_ANALYSIS';
   static const String ingredientAnalysis = 'INGREDIENT_ANALYSIS';
+  static const String nutritionAnalysis = 'NUTRITION_ANALYSIS';
   static const String productIdentification = 'PRODUCT_IDENTIFICATION';
+  static const String menuRecommendation = 'MENU_RECOMMENDATION';
   static const String nutritionComparison = 'NUTRITION_COMPARISON';
-  static const String foodRecommendation = 'FOOD_RECOMMENDATION';
+  static const String generalFoodQuestion = 'GENERAL_FOOD_QUESTION';
+  static const String generalWellness = 'GENERAL_WELLNESS';
   static const String generalImageAnalysis = 'GENERAL_IMAGE_ANALYSIS';
 
   static const List<String> all = [
     mealRecognition,
-    healthAssessment,
     mealRating,
+    healthAssessment,
+    improvementRequest,
     swapRequest,
     completeAnalysis,
     ingredientAnalysis,
+    nutritionAnalysis,
     productIdentification,
+    menuRecommendation,
     nutritionComparison,
-    foodRecommendation,
+    generalFoodQuestion,
+    generalWellness,
     generalImageAnalysis,
   ];
 }

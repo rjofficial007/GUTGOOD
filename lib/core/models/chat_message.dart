@@ -263,26 +263,28 @@ class ChatMessage extends Equatable {
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
   };
 
-  /// 🟢 NEW: Optimized Map for AI context to prevent 502/payload-too-large errors.
-  /// Serializes structured context into the 'content' string for the aiProxy.
   Map<String, String> toAiMap() {
     final role = this.role == 'user' ? 'user' : 'assistant';
     final buffer = StringBuffer(text);
 
     if (scanData != null) {
-      buffer.write('\n\n[SCAN_CONTEXT]${jsonEncode(scanData!.toAiMap())}[/SCAN_CONTEXT]');
+      buffer.write('\n\n[SCAN_CONTEXT]${ModelUtils.safeJsonEncode(scanData!.toAiMap())}[/SCAN_CONTEXT]');
     }
 
     if (mealLogs.isNotEmpty) {
-      buffer.write('\n\n[MEAL_CONTEXT]${jsonEncode(mealLogs.map((e) => e.toAiMap()).toList())}[/MEAL_CONTEXT]');
+      buffer.write('\n\n[MEAL_CONTEXT]${ModelUtils.safeJsonEncode({'items': mealLogs.map((e) => e.toAiMap()).toList()})}[/MEAL_CONTEXT]');
     }
 
     if (symptomLogs.isNotEmpty) {
-      buffer.write('\n\n[SYMPTOM_CONTEXT]${jsonEncode(symptomLogs.map((e) => e.toAiMap()).toList())}[/SYMPTOM_CONTEXT]');
+      buffer.write('\n\n[SYMPTOM_CONTEXT]${ModelUtils.safeJsonEncode({'items': symptomLogs.map((e) => e.toAiMap()).toList()})}[/SYMPTOM_CONTEXT]');
     }
 
     if (swapData != null && swapData!.isNotEmpty) {
-      buffer.write('\n\n[SWAPS_CONTEXT]${jsonEncode(swapData!.map((e) => {'title': e.title, 'subtitle': e.subtitle}).toList())}[/SWAPS_CONTEXT]');
+      buffer.write(
+        '\n\n[SWAPS_CONTEXT]${ModelUtils.safeJsonEncode({
+          'items': swapData!.map((e) => {'title': e.title, 'subtitle': e.subtitle}).toList(),
+        })}[/SWAPS_CONTEXT]',
+      );
     }
 
     return {'role': role, 'content': buffer.toString().trim()};

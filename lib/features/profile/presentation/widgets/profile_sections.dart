@@ -274,7 +274,7 @@ class SupportSection extends StatelessWidget {
     title: AppStrings.helpAndSupport,
     showCard: true,
     children: [
-      AppTile(icon: AppIcons.share2, title: AppStrings.shareWithFriends, onTap: () => sl<AppService>().shareWithFriends(context)),
+      AppTile(icon: AppIcons.share, title: AppStrings.shareWithFriends, onTap: () => sl<AppService>().shareWithFriends(context)),
       AppTile(
         icon: AppIcons.messageSquare,
         title: AppStrings.contactUs,

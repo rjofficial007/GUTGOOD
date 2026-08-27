@@ -22,10 +22,10 @@ abstract class HistoryFirestoreService {
   Future<void> toggleSaveFood(ScanResult scanData);
   Future<bool> isFoodSaved(String? productName, {String? barcode});
 
-  Future<String?> logMeal(MealLog log);
+  Future<String?> logMeal(MealLog log, {String? docId});
   Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before});
 
-  Future<String?> logSymptom(SymptomLog log);
+  Future<String?> logSymptom(SymptomLog log, {String? docId});
   Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before});
   Future<List<SymptomLog>> getSymptomLogs();
 
@@ -396,14 +396,21 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<String?> logMeal(MealLog log) async {
+  Future<String?> logMeal(MealLog log, {String? docId}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return null;
-      // 🚀 Consolidated: Save to journal_logs
-      final docRef = doc.collection('journal_logs').doc();
-      final data = {...log.toMap(), 'firestoreId': docRef.id, 'type': 'meal', 'source': log.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
-      await docRef.set(data);
+      // 🚀 PRD §13 & §14: Support deterministic IDs for idempotency.
+      final docRef = doc.collection('journal_logs').doc(docId);
+      final data = {
+        ...log.toMap(), 
+        'firestoreId': docRef.id, 
+        'type': 'meal', 
+        'source': log.source ?? 'chat', 
+        'createdAt': log.createdAt, // Preserve AI-estimated time if present
+        'loggedAt': FieldValue.serverTimestamp(),
+      };
+      await docRef.set(data, SetOptions(merge: true));
       return docRef.id;
     } catch (e) {
       AppLogger.firestore('Error logging meal to journal_logs', error: e);
@@ -442,14 +449,21 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<String?> logSymptom(SymptomLog log) async {
+  Future<String?> logSymptom(SymptomLog log, {String? docId}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return null;
-      // 🚀 Consolidated: Save to journal_logs
-      final docRef = doc.collection('journal_logs').doc();
-      final data = {...log.toMap(), 'firestoreId': docRef.id, 'type': 'symptom', 'source': log.source ?? 'manual', 'createdAt': FieldValue.serverTimestamp()};
-      await docRef.set(data);
+      // 🚀 PRD §13 & §14: Support deterministic IDs for idempotency.
+      final docRef = doc.collection('journal_logs').doc(docId);
+      final data = {
+        ...log.toMap(), 
+        'firestoreId': docRef.id, 
+        'type': 'symptom', 
+        'source': log.source ?? 'manual', 
+        'createdAt': log.createdAt,
+        'loggedAt': FieldValue.serverTimestamp(),
+      };
+      await docRef.set(data, SetOptions(merge: true));
       return docRef.id;
     } catch (e) {
       AppLogger.firestore('Error logging symptom to journal_logs', error: e);

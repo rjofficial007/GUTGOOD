@@ -61,8 +61,7 @@ class InsightRepositoryImpl implements InsightRepository {
   }
 
   @override
-  Future<List<AIInsight>> getInsightHistory() async =>
-      _insightFirestoreService.getInsightsHistory();
+  Future<List<AIInsight>> getInsightHistory() async => _insightFirestoreService.getInsightsHistory();
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
@@ -81,53 +80,33 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Stream<InsightsDashboardState> getDashboardStateStream() => Rx.combineLatest6(
-      _insightFirestoreService.getLatestInsightsStream(),
-      _insightFirestoreService.getPatternDataStream(),
-      _insightFirestoreService.getHealthAlertsStream(),
-      _historyFirestoreService.getTotalMealLogsCountStream(),
-      _historyFirestoreService.getTotalSymptomsCountStream(),
-      _historyFirestoreService.getTotalScansCountStream(),
-      (
-        AIInsight? latestInsight,
-        List<BodyPattern> patterns,
-        List<HealthAlert> alerts,
-        int meals,
-        int symptoms,
-        int scans,
-      ) =>
-          InsightsDashboardState(
-        latestInsight: latestInsight,
-        patterns: patterns,
-        alerts: alerts,
-        totalMeals: meals,
-        totalSymptoms: symptoms,
-        totalScans: scans,
-      ),
-    ).distinct();
+    _insightFirestoreService.getLatestInsightsStream(),
+    _insightFirestoreService.getPatternDataStream(),
+    _insightFirestoreService.getHealthAlertsStream(),
+    _historyFirestoreService.getTotalMealLogsCountStream(),
+    _historyFirestoreService.getTotalSymptomsCountStream(),
+    _historyFirestoreService.getTotalScansCountStream(),
+    (AIInsight? latestInsight, List<BodyPattern> patterns, List<HealthAlert> alerts, int meals, int symptoms, int scans) =>
+        InsightsDashboardState(latestInsight: latestInsight, patterns: patterns, alerts: alerts, totalMeals: meals, totalSymptoms: symptoms, totalScans: scans),
+  ).distinct();
 
   @override
-  Future<List<MealLog>> getRecentMeals(DateTime since) async =>
-      _historyFirestoreService.getRecentMealLogs(since: since);
+  Future<List<MealLog>> getRecentMeals(DateTime since) async => _historyFirestoreService.getRecentMealLogs(since: since);
 
   @override
-  Future<List<SymptomLog>> getRecentSymptoms(DateTime since) async =>
-      _historyFirestoreService.getRecentSymptomLogs(since: since);
+  Future<List<SymptomLog>> getRecentSymptoms(DateTime since) async => _historyFirestoreService.getRecentSymptomLogs(since: since);
 
   @override
-  Future<List<ScanResult>> getRecentScans(DateTime since) async =>
-      _historyFirestoreService.getRecentScans(since: since);
+  Future<List<ScanResult>> getRecentScans(DateTime since) async => _historyFirestoreService.getRecentScans(since: since);
 
   @override
-  Future<List<BodyPattern>> getLatestPatterns() async =>
-      _insightFirestoreService.getLatestPatterns();
+  Future<List<BodyPattern>> getLatestPatterns() async => _insightFirestoreService.getLatestPatterns();
 
   @override
   Future<List<ChatMessage>> getRecentChat(DateTime since) async {
     final chatHistory = await _chatFirestoreService.getMessages(since: since);
     // Only include messages that mention food or symptoms to keep tokens low
-    return chatHistory
-        .where((m) => m.foodMentions.isNotEmpty || m.symptomMentions.isNotEmpty)
-        .toList();
+    return chatHistory.where((m) => m.foodMentions.isNotEmpty || m.symptomMentions.isNotEmpty).toList();
   }
 
   @override
@@ -144,16 +123,11 @@ class InsightRepositoryImpl implements InsightRepository {
     required List<BodyPattern> patternCandidates,
     int? lastScore,
   }) async {
-    final historyJson =
-        jsonEncode(chatHistory.map((m) => m.toAiMap()).toList());
-    final preComputedPatternCandidates = patternCandidates.isNotEmpty
-        ? jsonEncode(patternCandidates.map((p) => p.toMap()).toList())
-        : null;
+    final historyJson = ModelUtils.safeJsonEncode(chatHistory.map((m) => m.toAiMap()).toList());
+    final preComputedPatternCandidates = patternCandidates.isNotEmpty ? ModelUtils.safeJsonEncode(patternCandidates.map((p) => p.toMap()).toList()) : null;
 
     try {
-      AppLogger.insights(
-        'Generating insight. Last Score: $lastScore, History: $scoreHistory',
-      );
+      AppLogger.insights('Generating insight. Last Score: $lastScore, History: $scoreHistory');
       final startTime = DateTime.now();
 
       final cleanJson = await _aiService.generateContent(
@@ -180,24 +154,14 @@ class InsightRepositoryImpl implements InsightRepository {
       final insight = AIInsight.fromMap(decoded);
 
       final duration = DateTime.now().difference(startTime).inSeconds;
-      await _analyticsService.logEvent(
-        name: 'insight_generated',
-        parameters: {'gut_score': insight.gutScore, 'duration_sec': duration},
-      );
+      await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
 
       await _prefs.setString('gutgood_insights_cache', cleanJson);
       return insight;
     } catch (e, st) {
       AppLogger.error('InsightRepo: AI Analysis failed', error: e);
-      await _analyticsService.logEvent(
-        name: 'insight_generation_failed',
-        parameters: {'error': e.toString()},
-      );
-      await _crashlyticsService.recordError(
-        e,
-        st,
-        reason: 'AI Insight generation failed',
-      );
+      await _analyticsService.logEvent(name: 'insight_generation_failed', parameters: {'error': e.toString()});
+      await _crashlyticsService.recordError(e, st, reason: 'AI Insight generation failed');
       rethrow;
     }
   }

@@ -38,6 +38,7 @@ class AiClassificationResult {
 
 abstract class AiClassifierService {
   Future<AiClassificationResult> classifyImage({required Uint8List imageBytes, String? userText});
+  Future<String> classifyTextIntent({required String userText, String? historySummary});
 }
 
 class AiClassifierServiceImpl implements AiClassifierService {
@@ -74,6 +75,30 @@ class AiClassifierServiceImpl implements AiClassifierService {
         confidence: 0.0,
         reason: 'Classification error',
       );
+    }
+  }
+
+  @override
+  Future<String> classifyTextIntent({required String userText, String? historySummary}) async {
+    AppLogger.ai('AiClassifier: Starting text intent detection');
+
+    final prompt = historySummary != null 
+        ? 'History Summary: $historySummary\n\nUser Message: "$userText"'
+        : 'User Message: "$userText"';
+
+    try {
+      final intent = await _aiService.generateContent(
+        systemInstruction: Prompts.intentDetectionInstruction,
+        prompt: prompt,
+        usageType: 'system',
+      );
+
+      final result = intent.trim().toUpperCase();
+      AppLogger.info('AiClassifier: Text Intent -> $result');
+      return result;
+    } catch (e) {
+      AppLogger.error('AiClassifier: Text intent detection failed', error: e);
+      return 'GENERAL_CHAT';
     }
   }
 }

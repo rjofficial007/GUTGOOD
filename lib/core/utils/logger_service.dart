@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:gutgood/core/constants/logger_string.dart';
 import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
+import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Centralized logging utility for the GutGood app.
 /// This class provides categorized logging with custom prefixes and emojis.
@@ -106,12 +107,7 @@ class AppLogger {
   static void data(String screenName, dynamic rawData) {
     if (kReleaseMode) return;
 
-    String prettyData;
-    try {
-      prettyData = const JsonEncoder.withIndent('  ').convert(rawData);
-    } catch (e) {
-      prettyData = rawData.toString();
-    }
+    final prettyData = ModelUtils.safeJsonEncode(rawData, indent: true);
 
     final buffer = StringBuffer()
       ..writeln('------------------------------------------------------------')
@@ -138,7 +134,7 @@ class AppLogger {
 
     final severitySuffix = error != null ? ' ${AppLoggerStrings.logError}' : '';
     final logMessage = StringBuffer('${AppLoggerStrings.logPrefix} $prefix$severitySuffix $message');
-    
+
     if (error != null) {
       logMessage.write('\nError: $error');
     }

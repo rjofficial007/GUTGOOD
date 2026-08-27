@@ -125,7 +125,10 @@ async function mergeSubcollection(
         }
       }
 
-      batch.set(permRef.collection(targetCollection).doc(), data);
+      // 🚀 Professional Data Linkage: Preserve the document ID during merge.
+      // This ensures that cross-document references (e.g. ChatMessage.mealLogs[0].firestoreId)
+      // remain valid in the new user's subtree.
+      batch.set(permRef.collection(targetCollection).doc(doc.id), data);
       pending++;
       moved++;
 

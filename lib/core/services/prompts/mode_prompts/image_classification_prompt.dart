@@ -20,14 +20,18 @@ IMAGE MODES:
 
 USER INTENTS:
 - ${UserIntent.mealRecognition}: User asks "What is this?" or implies they want to know what the food is.
-- ${UserIntent.healthAssessment}: User asks if the item is "healthy", "balanced", or "okay for me".
 - ${UserIntent.mealRating}: User asks for a score, grade, or "how did I do".
+- ${UserIntent.healthAssessment}: User asks if the item is "healthy", "balanced", or "okay for me".
+- ${UserIntent.improvementRequest}: User asks "what should I change?" or "how can I make this better?".
 - ${UserIntent.swapRequest}: User wants improvements, alternatives, or to "make it healthier".
 - ${UserIntent.completeAnalysis}: User wants deep details, "tell me everything", or a comprehensive breakdown.
 - ${UserIntent.ingredientAnalysis}: User asks specifically about ingredients, additives, or labels.
+- ${UserIntent.nutritionAnalysis}: User asks specifically about calories, protein, or other nutritional facts.
 - ${UserIntent.productIdentification}: User wants to identify a packaged product or barcode.
+- ${UserIntent.menuRecommendation}: User asks for advice on what to order or eat from a menu.
 - ${UserIntent.nutritionComparison}: User compares options or asks for the "best" choice among several.
-- ${UserIntent.foodRecommendation}: User asks for advice on what to order or eat.
+- ${UserIntent.generalFoodQuestion}: User has a general question about food or a specific ingredient.
+- ${UserIntent.generalWellness}: User asks about general gut health, symptoms, or wellness advice.
 - ${UserIntent.generalImageAnalysis}: DEFAULT for image uploads without a specific question or ambiguous intent.
 
 OUTPUT FORMAT:

@@ -86,7 +86,13 @@ class ScanResult extends Equatable {
     if (map['rawData'] is Map) {
       resolvedRaw = Map<String, dynamic>.from(map['rawData'] as Map);
     } else {
-      resolvedRaw = map;
+      // 🟢 Fix: Never store Firestore Timestamps in rawData to prevent jsonEncode crashes.
+      resolvedRaw = Map<String, dynamic>.from(map);
+      resolvedRaw.forEach((key, value) {
+        if (value is Timestamp) {
+          resolvedRaw[key] = value.toDate().toIso8601String();
+        }
+      });
     }
 
     return ScanResult(

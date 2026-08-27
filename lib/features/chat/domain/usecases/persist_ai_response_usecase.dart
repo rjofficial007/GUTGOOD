@@ -109,12 +109,13 @@ class PersistAiResponseUseCase {
     }
 
     // Persist Meal Log (Consumption)
-    final isConsumptionIntent = intent == 'LOG_MEAL' || 
-                               intent == 'MEAL_RATING' || 
-                               intent == 'MEAL_PHOTO' || 
-                               intent == 'MEAL_RECOGNITION' ||
-                               intent == 'FOOD_RECOMMENDATION' ||
-                               (resolvedSource.contains('FOOD') && intent.contains('ANALYSIS'));
+    final isConsumptionIntent =
+        intent == 'LOG_MEAL' ||
+        intent == 'MEAL_RATING' ||
+        intent == 'MEAL_PHOTO' ||
+        intent == 'MEAL_RECOGNITION' ||
+        intent == 'FOOD_RECOMMENDATION' ||
+        (resolvedSource.contains('FOOD') && intent.contains('ANALYSIS'));
 
     if (updatedResult.meal != null && isConsumptionIntent) {
       final meal = updatedResult.meal!;
@@ -122,7 +123,14 @@ class PersistAiResponseUseCase {
 
       if (!persistedTagBlocks.contains(persistenceKey)) {
         AppLogger.ai('PersistAiResponse: Saving Meal Log to journal_logs');
-        final id = await _firestoreService.logMeal(meal.copyWith(chatMessageId: chatMessageId, source: source));
+
+        // 🚀 PRD §13 & §14: Use chatMessageId to ensure idempotency.
+        final stableMealId = chatMessageId != null ? '${chatMessageId}_meal' : null;
+
+        final id = await _firestoreService.logMeal(
+          meal.copyWith(chatMessageId: chatMessageId, source: source),
+          docId: stableMealId,
+        );
         if (id != null) {
           updatedResult = updatedResult.copyWith(meal: updatedResult.meal!.copyWith(firestoreId: id));
         }
@@ -134,11 +142,16 @@ class PersistAiResponseUseCase {
     // Persist Symptoms
     if (updatedResult.symptoms.isNotEmpty) {
       final updatedSymptoms = <SymptomLog>[];
-      for (var symptom in updatedResult.symptoms) {
+      for (var i = 0; i < updatedResult.symptoms.length; i++) {
+        var symptom = updatedResult.symptoms[i];
         final persistenceKey = 'SYMPTOM_${symptom.symptom}_${symptom.createdAt.millisecondsSinceEpoch}';
         if (!persistedTagBlocks.contains(persistenceKey)) {
           AppLogger.ai('PersistAiResponse: Saving Symptom - ${symptom.symptom}');
-          final id = await _firestoreService.logSymptom(symptom.copyWith(chatMessageId: chatMessageId));
+
+          // 🚀 PRD §13 & §14: Use indexed chatMessageId for multiple symptoms in one turn.
+          final stableSymptomId = chatMessageId != null ? '${chatMessageId}_symptom_$i' : null;
+
+          final id = await _firestoreService.logSymptom(symptom.copyWith(chatMessageId: chatMessageId), docId: stableSymptomId);
           if (id != null) {
             symptom = symptom.copyWith(firestoreId: id);
           }

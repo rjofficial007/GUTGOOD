@@ -59,8 +59,8 @@ class BodyPattern extends Equatable {
 
   // Statistical Evidence
   final double evidenceRatio; // e.g. 0.8 means 80% of meals with this food were symptomatic
-  final int positiveCount;    // symptomatic occurrences
-  final int negativeCount;    // asymptomatic occurrences
+  final int positiveCount; // symptomatic occurrences
+  final int negativeCount; // asymptomatic occurrences
 
   // Insight Categories
   static const String typeBloating = 'bloating';
@@ -96,5 +96,22 @@ class BodyPattern extends Equatable {
   };
 
   @override
-  List<Object?> get props => [type, trigger, reaction, frequency, confidence, description, involvedFoods, recommendation, updatedAt, occurrences, commonFactors, totalSimilarMeals, timeframeDays, evidenceRatio, positiveCount, negativeCount];
+  List<Object?> get props => [
+    type,
+    trigger,
+    reaction,
+    frequency,
+    confidence,
+    description,
+    involvedFoods,
+    recommendation,
+    updatedAt,
+    occurrences,
+    commonFactors,
+    totalSimilarMeals,
+    timeframeDays,
+    evidenceRatio,
+    positiveCount,
+    negativeCount,
+  ];
 }
