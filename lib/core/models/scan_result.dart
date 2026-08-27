@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';

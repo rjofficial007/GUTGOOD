@@ -144,7 +144,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       )
                     else ...[
                       Gap.h32,
-                      DashboardEntrance(delay: 250, child: _buildWorksForYou(context)),
+                      DashboardEntrance(delay: 250, child: _buildDiningStrategy(context)),
+                      DashboardEntrance(delay: 260, child: _buildWorksForYou(context)),
                       // 🚀 NEW: Detected Items Section for Meal Analyses
                       if (_currentData.rawData?['meal']?['items'] != null)
                         DashboardEntrance(delay: 275, child: _DetectedItemsSection(items: List<Map<String, dynamic>>.from(_currentData.rawData!['meal']['items']))),
@@ -246,6 +247,87 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
     return ScanImpactSection(title: 'What works for you', icon: AppIcons.checkCircle, iconColor: scheme.success, servingInfo: scan.servingSize, items: items);
   }
+
+  Widget _buildDiningStrategy(BuildContext context) {
+    final Map<String, dynamic> raw = _currentData.rawData ?? {};
+    final Map<String, dynamic> mealBlock = raw['meal'] is Map ? Map<String, dynamic>.from(raw['meal'] as Map) : {};
+
+    final List workingWell = mealBlock['workingWell'] is List ? mealBlock['workingWell'] as List : [];
+    final List missing = mealBlock['missingOrCouldAdd'] is List ? mealBlock['missingOrCouldAdd'] as List : [];
+    final List sensitivities = mealBlock['sensitivityNotes'] is List ? mealBlock['sensitivityNotes'] as List : [];
+
+    if (workingWell.isEmpty && missing.isEmpty && sensitivities.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final scheme = context.appColorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SheetSectionHeader(title: 'EXPERT STRATEGY', color: Colors.transparent),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: scheme.textPrimary.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(AppSizes.r24),
+            border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (workingWell.isNotEmpty) ...[
+                _StrategyRow(icon: AppIcons.checkCircle, color: scheme.success, title: 'Safe Bets', items: workingWell),
+                if (missing.isNotEmpty || sensitivities.isNotEmpty) Gap.h20,
+              ],
+              if (missing.isNotEmpty) ...[
+                _StrategyRow(icon: AppIcons.plusCircle, color: AppPalette.blue, title: 'Better with...', items: missing),
+                if (sensitivities.isNotEmpty) Gap.h20,
+              ],
+              if (sensitivities.isNotEmpty) ...[
+                _StrategyRow(icon: AppIcons.alertTriangle, color: scheme.warning, title: 'Watch out for', items: sensitivities),
+              ],
+            ],
+          ),
+        ),
+        Gap.h32,
+      ],
+    );
+  }
+}
+
+class _StrategyRow extends StatelessWidget {
+  const _StrategyRow({required this.icon, required this.color, required this.title, required this.items});
+  final IconData icon;
+  final Color color;
+  final String title;
+  final List items;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 16, color: color),
+      Gap.w12,
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: context.caption.copyWith(fontWeight: FontWeight.w900, color: color, fontSize: 10.sp, letterSpacing: 0.5),
+            ),
+            Gap.h4,
+            Text(
+              items.join(' • '),
+              style: context.body.copyWith(fontSize: 14.sp, color: context.appColorScheme.textPrimary, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class _ProductHeader extends StatelessWidget {

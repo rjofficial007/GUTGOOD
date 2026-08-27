@@ -63,7 +63,12 @@ class ProcessChatTagUseCase {
           }
 
           if (decoded['meal'] != null && decoded['meal'] is Map<String, dynamic>) {
-            mealLog = MealLog.fromMap({...decoded['meal'], 'photoUrl': imageUrl, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
+            // 🚀 Unified Data Strategy: If we have a 'scan' block, we treat the 'meal' info 
+            // as part of the scan's rich context (rawData) rather than a separate loggable entity.
+            // This prevents duplicate entries in the journal history.
+            if (scanData == null) {
+              mealLog = MealLog.fromMap({...decoded['meal'], 'photoUrl': imageUrl, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
+            }
           }
 
           if (decoded['symptoms'] != null && decoded['symptoms'] is List) {

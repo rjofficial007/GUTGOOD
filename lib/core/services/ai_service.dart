@@ -10,6 +10,7 @@ import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:uuid/uuid.dart';
 
 /// Thrown when the server-side free-tier gate rejects the request (HTTP 429).

@@ -6,6 +6,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -51,6 +52,7 @@ class ScanResultInlineCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context, impactColor),
+          _buildMealStrategy(context),
           _buildAnalysisSection(context, ingredients),
           _buildCycleInsight(context),
           if (swaps.isNotEmpty) _buildSwapsSection(context, swaps),
@@ -309,6 +311,80 @@ class ScanResultInlineCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildMealStrategy(BuildContext context) {
+    final Map<String, dynamic> raw = scanData.rawData ?? {};
+    final Map<String, dynamic> mealBlock = raw['meal'] is Map ? Map<String, dynamic>.from(raw['meal'] as Map) : {};
+
+    final List workingWell = mealBlock['workingWell'] is List ? mealBlock['workingWell'] as List : [];
+    final List missing = mealBlock['missingOrCouldAdd'] is List ? mealBlock['missingOrCouldAdd'] as List : [];
+    final List sensitivities = mealBlock['sensitivityNotes'] is List ? mealBlock['sensitivityNotes'] as List : [];
+
+    if (workingWell.isEmpty && missing.isEmpty && sensitivities.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final scheme = context.appColorScheme;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.textPrimary.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(AppSizes.r24),
+        border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (workingWell.isNotEmpty) ...[
+            _StrategyLine(icon: AppIcons.checkCircle, color: scheme.success, title: 'Safe Bets', items: workingWell),
+            if (missing.isNotEmpty || sensitivities.isNotEmpty) Gap.h12,
+          ],
+          if (missing.isNotEmpty) ...[
+            _StrategyLine(icon: AppIcons.plusCircle, color: AppPalette.blue, title: 'Better with...', items: missing),
+            if (sensitivities.isNotEmpty) Gap.h12,
+          ],
+          if (sensitivities.isNotEmpty) ...[
+            _StrategyLine(icon: AppIcons.alertTriangle, color: scheme.warning, title: 'Watch out for', items: sensitivities),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StrategyLine extends StatelessWidget {
+  const _StrategyLine({required this.icon, required this.color, required this.title, required this.items});
+  final IconData icon;
+  final Color color;
+  final String title;
+  final List items;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 14, color: color),
+      Gap.w8,
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: context.caption.copyWith(fontWeight: FontWeight.w900, color: color, fontSize: 9.sp, letterSpacing: 0.5),
+            ),
+            Gap.h2,
+            Text(
+              items.join(' • '),
+              style: context.body.copyWith(fontSize: 12.sp, color: context.appColorScheme.textPrimary, height: 1.3),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class _RefinedTag extends StatelessWidget {
