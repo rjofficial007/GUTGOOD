@@ -6,6 +6,7 @@ export 'chat/chat_bubble.dart';
 export 'cycle_insight_card.dart';
 export 'empty_state_widget.dart';
 export 'feedback_tag.dart';
+export 'footer_action_button.dart';
 export 'gut_action_banner.dart';
 export 'gut_app_bar.dart';
 export 'gut_bottom_sheet.dart';

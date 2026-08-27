@@ -162,23 +162,48 @@ class ScanHeroSection extends StatelessWidget {
 
     final valueStyle = context.bodyBold.copyWith(color: isGlass ? Colors.white : scheme.textPrimary, fontSize: 24.sp, letterSpacing: -0.5, fontWeight: FontWeight.w900);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
       children: [
-        _MetricItem(label: 'NOVA-GROUP', value: scanData.novaGroup ?? '1', labelStyle: labelStyle, valueStyle: valueStyle),
-        if (scanData.nutriscore != null)
-          _MetricItem(
-            label: 'NUTRI-SCORE',
-            valueWidget: Text(scanData.nutriscore!, style: valueStyle.copyWith(color: isGlass ? Colors.white : scoreColor)),
-            // valueWidget: _NutriScoreBadge(grade: scanData.nutriscore!, isGlass: isGlass),
-            labelStyle: labelStyle,
-          ),
-        _MetricItem(
-          label: 'GUT-SCORE',
-          value: scanData.score.toString(),
-          valueWidget: Text('${scanData.score}', style: valueStyle.copyWith(color: isGlass ? Colors.white : scoreColor)),
-          labelStyle: labelStyle,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _MetricItem(label: 'NOVA-GROUP', value: scanData.novaGroup ?? '1', labelStyle: labelStyle, valueStyle: valueStyle),
+            if (scanData.nutriscore != null)
+              _MetricItem(
+                label: 'NUTRI-SCORE',
+                valueWidget: Text(scanData.nutriscore!, style: valueStyle.copyWith(color: isGlass ? Colors.white : scoreColor)),
+                labelStyle: labelStyle,
+              ),
+            _MetricItem(
+              label: 'GUT-SCORE',
+              value: scanData.score.toString(),
+              valueWidget: Text('${scanData.score}', style: valueStyle.copyWith(color: isGlass ? Colors.white : scoreColor)),
+              labelStyle: labelStyle,
+            ),
+          ],
         ),
+        if (scanData.allergens != null && scanData.allergens!.isNotEmpty) ...[
+          Gap.h16,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isGlass ? Colors.white.withValues(alpha: 0.15) : scheme.error.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: isGlass ? Colors.white24 : scheme.error.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(AppIcons.alertTriangle, size: 14, color: isGlass ? Colors.white : scheme.error),
+                Gap.w8,
+                Text(
+                  'CONTAINS: ${scanData.allergens!.toUpperCase()}',
+                  style: context.caption.copyWith(color: isGlass ? Colors.white : scheme.error, fontWeight: FontWeight.w900, fontSize: 10.sp, letterSpacing: 0.5),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

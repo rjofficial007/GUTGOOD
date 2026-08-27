@@ -10,6 +10,7 @@ import 'package:gutgood/core/services/prompts/mode_prompts/intent_detection_prom
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_overview_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_planning_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_rating_prompt.dart';
+import 'package:gutgood/core/services/prompts/mode_prompts/meal_snap_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_swaps_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/product_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/product_comparison_prompt.dart';
@@ -146,31 +147,31 @@ ${includePatternEngine ? '\n$_patternEngineRules' : ''}
   static String _getPromptForIntent(String? intent) {
     if (intent == null) return DefaultObjectivePrompt.instruction;
 
-    final normalized = intent.toLowerCase();
+    final normalized = intent.toUpperCase();
 
     // Check most specific intents first
-    if (normalized.contains('full_analysis')) {
+    if (normalized.contains('COMPLETE_ANALYSIS') || normalized.contains('FULL_ANALYSIS')) {
       return FullAnalysisPrompt.instruction;
-    } else if (normalized.contains('meal_rating')) {
+    } else if (normalized.contains('MEAL_RATING')) {
       return MealRatingPrompt.instruction;
-    } else if (normalized.contains('health_assessment')) {
+    } else if (normalized.contains('HEALTH_ASSESSMENT')) {
       return HealthAssessmentPrompt.instruction;
-    } else if (normalized.contains('meal_swaps')) {
+    } else if (normalized.contains('SWAP_REQUEST') || normalized.contains('MEAL_SWAPS') || normalized.contains('IMPROVEMENT_REQUEST')) {
       return MealSwapsPrompt.instruction;
-    } else if (normalized.contains('meal_overview')) {
+    } else if (normalized.contains('MEAL_OVERVIEW') || normalized.contains('MEAL_RECOGNITION')) {
       return MealOverviewPrompt.instruction;
-    } else if (normalized.contains('symptom_analysis')) {
+    } else if (normalized.contains('SYMPTOM_ANALYSIS')) {
       return SymptomAnalysisPrompt.instruction;
-    } else if (normalized.contains('product_comparison')) {
+    } else if (normalized.contains('PRODUCT_COMPARISON') || normalized.contains('NUTRITION_COMPARISON')) {
       return ProductComparisonPrompt.instruction;
-    } else if (normalized.contains('meal_planning')) {
+    } else if (normalized.contains('MEAL_PLANNING')) {
       return MealPlanningPrompt.instruction;
-    } else if (normalized.contains('menu')) {
+    } else if (normalized.contains('MENU') || normalized.contains('MENU_RECOMMENDATION')) {
       return RestaurantMenuPrompt.instruction;
-    } else if (normalized.contains('label')) {
+    } else if (normalized.contains('LABEL') || normalized.contains('INGREDIENT_ANALYSIS')) {
       return IngredientsLabelPrompt.instruction;
-    } else if (normalized.contains('food') || normalized.contains('gallery')) {
-      return FullAnalysisPrompt.instruction;
+    } else if (normalized.contains('FOOD') || normalized.contains('GALLERY') || normalized.contains('MEAL_SNAP')) {
+      return MealSnapPrompt.instruction;
     }
 
     return DefaultObjectivePrompt.instruction;

@@ -128,7 +128,7 @@ SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - intent: one of "MEAL_RECOGNITION", "HEALTH_ASSESSMENT", "MEAL_RATING", "SWAP_REQUEST", "COMPLETE_ANALYSIS", "INGREDIENT_ANALYSIS", "PRODUCT_IDENTIFICATION", "NUTRITION_COMPARISON", "FOOD_RECOMMENDATION", "GENERAL_IMAGE_ANALYSIS", "SYMPTOM_ANALYSIS", "GENERAL_CHAT".
 - category: "food", "meal", "menu", "label", "packaging", or "non-food".
 - novaGroup: integer 1-4, or JSON null.
-- score: integer 0-100. Never null.
+- score: integer 0-100. Never null. For meals or unidentified products, you MUST ESTIMATE a score based on metabolic balance, processing levels, and ingredients.
 - nutriscore: "A","B","C","D","E", or JSON null.
 - time: ALWAYS ISO 8601 format string.
 - symptoms: ALWAYS an array of OBJECTS (not strings). Each object MUST have at minimum a "symptom" field.

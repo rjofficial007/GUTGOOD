@@ -51,9 +51,33 @@ class ScanResult extends Equatable {
     if (it == 'positive' || it == 'healing') type = ImpactType.positive;
     if (it == 'negative' || it == 'trigger') type = ImpactType.negative;
 
+    // 🟢 FIXED: category is normalized to lowercase
+    final category = map['category']?.toString().toLowerCase();
+
+    // 🟢 FIXED: novaGroup is normalized to a plain "1".."4" string
+    String? normalizedNova;
+    final rawNova = map['novaGroup'];
+    final novaInt = rawNova is num ? rawNova.toInt() : int.tryParse(rawNova?.toString() ?? '');
+    if (novaInt != null && novaInt >= 1 && novaInt <= 4) {
+      normalizedNova = novaInt.toString();
+    }
+
     // 🟢 FIXED: score is now clamped 0-100 via ModelUtils.parseScore instead
     // of trusting the AI's raw integer verbatim.
-    final score = ModelUtils.parseScore(map['score']);
+    var score = ModelUtils.parseScore(map['score']);
+
+    // 🚀 Professional Fallback: If AI returns 0 for a meal/food scan, calculate a heuristic score
+    // based on NOVA group, nutrient levels, and meal balance.
+    if (score == 0 && (category == 'meal' || category == 'food')) {
+      final mealBlock = map['meal'] is Map ? Map<String, dynamic>.from(map['meal'] as Map) : (map['rawData']?['meal'] is Map ? Map<String, dynamic>.from(map['rawData']['meal'] as Map) : null);
+
+      score = ModelUtils.computeMealScore(
+        novaGroup: novaInt,
+        balance: mealBlock?['balance'] is Map ? Map<String, dynamic>.from(mealBlock!['balance'] as Map) : null,
+        nutrientLevels: map['nutrientLevels'] is Map ? Map<String, dynamic>.from(map['nutrientLevels'] as Map) : null,
+        impactType: it,
+      );
+    }
 
     if (map['impactType'] == null) {
       if (score > 70) {
@@ -69,17 +93,6 @@ class ScanResult extends Equatable {
     if (rawNutriscore != null && {'A', 'B', 'C', 'D', 'E'}.contains(rawNutriscore)) {
       normalizedNutriscore = rawNutriscore;
     }
-
-    // 🟢 FIXED: novaGroup is normalized to a plain "1".."4" string
-    String? normalizedNova;
-    final rawNova = map['novaGroup'];
-    final novaInt = rawNova is num ? rawNova.toInt() : int.tryParse(rawNova?.toString() ?? '');
-    if (novaInt != null && novaInt >= 1 && novaInt <= 4) {
-      normalizedNova = novaInt.toString();
-    }
-
-    // 🟢 FIXED: category is normalized to lowercase
-    final category = map['category']?.toString().toLowerCase();
 
     // 🚀 Robust Data Extraction: Unpack rawData if it was stored as a field in Firestore.
     // This handles both direct AI results and hydrated records from History.

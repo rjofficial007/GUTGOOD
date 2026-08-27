@@ -144,6 +144,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       )
                     else ...[
                       Gap.h32,
+                      DashboardEntrance(delay: 240, child: _buildMealBalance(context)),
                       DashboardEntrance(delay: 250, child: _buildDiningStrategy(context)),
                       DashboardEntrance(delay: 260, child: _buildWorksForYou(context)),
                       // 🚀 NEW: Detected Items Section for Meal Analyses
@@ -295,6 +296,59 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       ],
     );
   }
+
+  Widget _buildMealBalance(BuildContext context) {
+    final Map<String, dynamic> raw = _currentData.rawData ?? {};
+    final Map<String, dynamic> mealBlock = raw['meal'] is Map ? Map<String, dynamic>.from(raw['meal'] as Map) : {};
+    final Map<String, dynamic> balance = mealBlock['balance'] is Map ? Map<String, dynamic>.from(mealBlock['balance'] as Map) : {};
+
+    if (balance.isEmpty) return const SizedBox.shrink();
+
+    final scheme = context.appColorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SheetSectionHeader(title: 'NUTRITIONAL BALANCE', color: Colors.transparent),
+        Gap.h16,
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: balance.entries.map((e) {
+            final label = e.key.toUpperCase();
+            final status = e.value.toString().toLowerCase();
+            final Color color = switch (status) {
+              'good' || 'high' => scheme.success,
+              'moderate' => scheme.warning,
+              'low' || 'poor' => scheme.error,
+              _ => scheme.textMuted,
+            };
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: color.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                  Gap.w10,
+                  Text(
+                    '$label: ${status.toUpperCase()}',
+                    style: context.bodyBold.copyWith(color: color, fontSize: 11.sp, letterSpacing: 0.5),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+        Gap.h32,
+      ],
+    );
+  }
 }
 
 class _StrategyRow extends StatelessWidget {
@@ -374,29 +428,47 @@ class _DetectedItemsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Gap.h16,
         const SheetSectionHeader(title: 'WHAT I DETECTED', color: Colors.transparent),
         Gap.h16,
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
+        Column(
           children: items.map((item) {
             final name = item['name']?.toString() ?? 'Unknown';
+            final observation = item['observation']?.toString() ?? '';
             return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: scheme.elevatedSurface,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: scheme.border.withValues(alpha: 0.5)),
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(AppIcons.utensils, size: 14, color: scheme.textSecondary),
-                  Gap.w10,
-                  Text(
-                    name.toUpperCase(),
-                    style: context.bodyBold.copyWith(fontSize: 12.sp, color: scheme.textPrimary, letterSpacing: 0.5),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: scheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+                    child: Icon(AppIcons.utensils, size: 16, color: scheme.textPrimary),
+                  ),
+                  Gap.w16,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name.toUpperCase(),
+                          style: context.bodyBold.copyWith(fontSize: 14.sp, color: scheme.textPrimary, letterSpacing: 0.5),
+                        ),
+                        if (observation.isNotEmpty) ...[
+                          Gap.h4,
+                          Text(
+                            observation,
+                            style: context.caption.copyWith(fontSize: 12.sp, color: scheme.textSecondary, height: 1.4),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
               ),

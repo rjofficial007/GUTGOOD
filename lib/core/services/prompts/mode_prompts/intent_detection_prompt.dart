@@ -8,7 +8,6 @@ INTENT CATEGORIES:
 - MEAL_RECOGNITION: User asks "What is this?" or implies they want to know what the food is.
 - MEAL_RATING: User asks for a score, grade, or "how did I do".
 - HEALTH_ASSESSMENT: User asks if the item is "healthy", "balanced", or "okay for me".
-- IMPROVEMENT_REQUEST: User asks "what should I change?" or "how can I make this better?".
 - SWAP_REQUEST: User wants improvements, alternatives, or to "make it healthier".
 - COMPLETE_ANALYSIS: User wants deep details, "tell me everything", or a comprehensive breakdown.
 - INGREDIENT_ANALYSIS: User asks specifically about ingredients, additives, or labels.
@@ -19,6 +18,7 @@ INTENT CATEGORIES:
 - GENERAL_FOOD_QUESTION: User has a general question about food or a specific ingredient.
 - GENERAL_WELLNESS: User asks about general gut health, symptoms, or wellness advice.
 - SYMPTOM_ANALYSIS: User reports symptoms or asks about correlations.
+- MEAL_PLANNING: User asks for future meal suggestions or planning.
 - GENERAL_CHAT: Greetings, platform support, or non-food topics.
 
 STRICT CLASSIFICATION RULES:

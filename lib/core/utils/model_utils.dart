@@ -317,4 +317,54 @@ class ModelUtils {
 
     return score.clamp(0, 100);
   }
+
+  /// 🟢 NEW: Heuristic calculation for Meal Scores based on AI balance and processing.
+  /// Used as a fallback when AI returns 0 for a meal scan.
+  static int computeMealScore({
+    int? novaGroup,
+    Map<String, dynamic>? balance,
+    Map<String, dynamic>? nutrientLevels,
+    String? impactType,
+  }) {
+    // Base score for a standard meal
+    var score = 60;
+
+    // Adjust based on NOVA group (processing)
+    switch (novaGroup) {
+      case 1:
+        score += 20; // Unprocessed (Fruits, veg, meat)
+      case 2:
+        score += 10; // Culinary ingredients
+      case 3:
+        score += 0; // Processed (Bread, cheese, simple restaurant)
+      case 4:
+        score -= 20; // Ultra-processed (Fast food, heavy sauces)
+    }
+
+    // Adjust based on nutritional balance (from 'meal' block)
+    if (balance != null) {
+      final protein = balance['protein']?.toString().toLowerCase();
+      final fiber = balance['fiber']?.toString().toLowerCase();
+
+      if (protein == 'high' || protein == 'good') score += 5;
+      if (protein == 'low' || protein == 'poor') score -= 5;
+
+      if (fiber == 'high' || fiber == 'good') score += 10;
+      if (fiber == 'moderate') score += 5;
+      if (fiber == 'low' || fiber == 'poor') score -= 10;
+    }
+
+    // Adjust based on nutrient levels (from 'scan' block)
+    if (nutrientLevels != null) {
+      if (nutrientLevels['sugars']?.toString().toLowerCase() == 'high') score -= 15;
+      if (nutrientLevels['salt']?.toString().toLowerCase() == 'high') score -= 10;
+      if (nutrientLevels['fat']?.toString().toLowerCase() == 'high') score -= 5;
+    }
+
+    // Impact override
+    if (impactType == 'positive' || impactType == 'healing') score += 10;
+    if (impactType == 'negative' || impactType == 'trigger') score -= 20;
+
+    return score.clamp(1, 100);
+  }
 }

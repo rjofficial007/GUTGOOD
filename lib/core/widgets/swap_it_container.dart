@@ -93,35 +93,11 @@ class SwapItContainer extends StatelessWidget {
             ),
           ),
 
-          // Actions
-          Padding(
-            padding: isEmbedded ? EdgeInsets.only(top: AppSizes.p12) : EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onSeeMore,
-                borderRadius: BorderRadius.circular(AppSizes.r24),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppSizes.r24),
-                    border: Border.all(color: colorScheme.border, width: 1),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(AppIcons.refreshCcw, size: 12, color: colorScheme.textPrimary),
-                      Gap.w8,
-                      Text(
-                        AppStrings.seeMoreSwaps.toUpperCase(),
-                        style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.8),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          FooterActionButton(
+            label: AppStrings.seeMoreSwaps,
+            onTap: onSeeMore,
+            isEmbedded: isEmbedded,
+            icon: AppIcons.refreshCcw,
           ),
         ],
       ),

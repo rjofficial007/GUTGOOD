@@ -27,6 +27,11 @@ class ScanResultInlineCard extends StatelessWidget {
     final ingredients = scanData.ingredients;
     final swaps = scanData.swaps;
 
+    final Map<String, dynamic> raw = scanData.rawData ?? {};
+    final Map<String, dynamic> mealBlock = raw['meal'] is Map ? Map<String, dynamic>.from(raw['meal'] as Map) : {};
+    final Map<String, dynamic> balance = mealBlock['balance'] is Map ? Map<String, dynamic>.from(mealBlock['balance'] as Map) : {};
+    final List items = mealBlock['items'] is List ? mealBlock['items'] as List : [];
+
     final impactColor = scanData.impactType == ImpactType.positive
         ? colorScheme.success
         : scanData.impactType == ImpactType.neutral
@@ -52,11 +57,96 @@ class ScanResultInlineCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context, impactColor),
-          _buildMealStrategy(context),
           _buildAnalysisSection(context, ingredients),
           _buildCycleInsight(context),
           if (swaps.isNotEmpty) _buildSwapsSection(context, swaps),
-          _buildFooterAction(context),
+          FooterActionButton(
+          label: AppStrings.viewFullReport,
+          onTap: onViewFullReport,
+          isEmbedded: isEmbedded,
+        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNutritionalBalance(BuildContext context, Map<String, dynamic> balance) {
+    final scheme = context.appColorScheme;
+    return Padding(
+      padding: isEmbedded ? const EdgeInsets.only(bottom: 16) : const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: balance.entries.map((e) {
+          final label = e.key.toUpperCase();
+          final status = e.value.toString().toLowerCase();
+          final Color color = switch (status) {
+            'good' || 'high' => scheme.success,
+            'moderate' => scheme.warning,
+            _ => scheme.textMuted,
+          };
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 5, height: 5, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                Gap.w6,
+                Text(
+                  '$label: ${status.toUpperCase()}',
+                  style: context.caption.copyWith(color: color, fontWeight: FontWeight.w900, fontSize: 8.sp, letterSpacing: 0.3),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildIdentifiedItems(BuildContext context, List items) {
+    final scheme = context.appColorScheme;
+    return Padding(
+      padding: isEmbedded ? const EdgeInsets.only(bottom: 16) : const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('IDENTIFIED DISHES', style: context.eyebrow.copyWith(fontSize: 8.sp, letterSpacing: 1.0, color: scheme.textMuted)),
+          Gap.h8,
+          ...items.map((item) {
+            final data = item is Map ? item : {};
+            final name = data['name']?.toString() ?? 'Unknown';
+            final observation = data['observation']?.toString() ?? '';
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(AppIcons.check, size: 10.sp, color: scheme.success),
+                  Gap.w8,
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: context.body.copyWith(fontSize: 11.5.sp, color: scheme.textPrimary),
+                        children: [
+                          TextSpan(text: name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          if (observation.isNotEmpty)
+                            TextSpan(
+                              text: ' • $observation',
+                              style: TextStyle(color: scheme.textSecondary, fontSize: 10.5.sp),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -72,18 +162,18 @@ class ScanResultInlineCard extends StatelessWidget {
     final displayImgUrl = userImg ?? prodImg ?? getDynamicImageUrl(scanData.productName);
 
     return Padding(
-      padding: isEmbedded ? EdgeInsets.zero : EdgeInsets.all(AppSizes.p20),
+      padding: isEmbedded ? const EdgeInsets.only(bottom: 16) : EdgeInsets.all(AppSizes.p20),
       child: Row(
         children: [
           Container(
             width: 50.0.w,
             height: 50.0.h,
-            padding: EdgeInsets.all(AppSizes.p10),
             decoration: BoxDecoration(
               color: colorScheme.elevatedSurface,
               borderRadius: BorderRadius.circular(AppSizes.r12),
               image: DecorationImage(image: CachedNetworkImageProvider(displayImgUrl), fit: BoxFit.cover),
-              boxShadow: [BoxShadow(color: colorScheme.textPrimary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+              border: isEmbedded ? Border.all(color: colorScheme.border.withValues(alpha: 0.3)) : null,
+              boxShadow: isEmbedded ? null : [BoxShadow(color: colorScheme.textPrimary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
             ),
           ),
 
@@ -143,28 +233,29 @@ class ScanResultInlineCard extends StatelessWidget {
   }
 
   Widget _buildAnalysisSection(BuildContext context, List<Ingredient> ingredients) => Padding(
-    padding: isEmbedded ? EdgeInsets.symmetric(vertical: AppSizes.p20) : EdgeInsets.all(AppSizes.p20),
+    padding: isEmbedded ? const EdgeInsets.only(bottom: 16) : EdgeInsets.all(AppSizes.p20),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Gap.h10,
         if (ingredients.isNotEmpty) ...[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(AppStrings.contains.toUpperCase(), style: context.eyebrow.copyWith(letterSpacing: 1.2)),
+              Text(AppStrings.contains.toUpperCase(), style: context.eyebrow.copyWith(letterSpacing: 1.0, fontSize: 8.sp, color: context.appColorScheme.textMuted)),
               Text(
                 '${ingredients.length} ITEMS',
-                style: context.caption.copyWith(fontSize: 10.sp, fontWeight: FontWeight.w700),
+                style: context.caption.copyWith(fontSize: 9.sp, fontWeight: FontWeight.w700),
               ),
             ],
           ),
-          Gap.h12,
+          Gap.h10,
           Column(
             children: ingredients
                 .take(5)
                 .map(
                   (ing) => Padding(
-                    padding: EdgeInsets.only(bottom: 10.h),
+                    padding: EdgeInsets.only(bottom: 8.h),
                     child: _RefinedTag(label: ing.name, impact: ing.colorName),
                   ),
                 )
@@ -174,14 +265,20 @@ class ScanResultInlineCard extends StatelessWidget {
         ],
         Column(
           children: [
-            _RefinedBenefitRow(icon: AppIcons.shieldCheck, title: AppStrings.gutProtection, description: scanData.impact, isLast: false),
-            _RefinedBenefitRow(
-              icon: AppIcons.leaf,
-              title: AppStrings.cleanIngredients,
-              description: 'Prioritizing options without the ${scanData.ingredients.length} identified ingredients.',
-              isLast: false,
-            ),
-            const _RefinedBenefitRow(icon: AppIcons.zap, title: AppStrings.bioAvailability, description: AppStrings.bioAvailabilityDesc, isLast: true),
+            _RefinedBenefitRow(icon: AppIcons.shieldCheck, title: AppStrings.gutProtection, description: scanData.impact, isLast: scanData.impacts.isEmpty),
+            if (scanData.impacts.isNotEmpty)
+              ...scanData.impacts.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final imp = entry.value;
+                final isLast = idx == scanData.impacts.length - 1;
+                return _RefinedBenefitRow(
+                  icon: AppIcons.salad,
+                  title: imp.title == 'Impact' ? 'Key Finding' : imp.title,
+                  description: imp.title == 'Impact' ? imp.title : imp.level,
+                  descriptionOverride: imp.title,
+                  isLast: isLast,
+                );
+              }),
           ],
         ),
       ],
@@ -192,11 +289,11 @@ class ScanResultInlineCard extends StatelessWidget {
     final colorScheme = context.appColorScheme;
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.only(top: AppSizes.p8),
-      padding: isEmbedded ? EdgeInsets.symmetric(vertical: AppSizes.p20) : EdgeInsets.all(AppSizes.p20),
+      margin: EdgeInsets.only(top: isEmbedded ? 8 : 8),
+      padding: isEmbedded ? const EdgeInsets.all(16) : EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
-        color: isEmbedded ? colorScheme.textPrimary.withValues(alpha: 0.03) : colorScheme.textPrimary.withValues(alpha: 0.03),
-        borderRadius: isEmbedded ? BorderRadius.circular(AppSizes.r24) : BorderRadius.vertical(bottom: Radius.circular(AppSizes.r32)),
+        color: isEmbedded ? colorScheme.elevatedSurface.withValues(alpha: 0.5) : colorScheme.textPrimary.withValues(alpha: 0.03),
+        borderRadius: isEmbedded ? BorderRadius.circular(AppSizes.r20) : BorderRadius.vertical(bottom: Radius.circular(AppSizes.r32)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,9 +301,9 @@ class ScanResultInlineCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(AppSizes.p8),
-                decoration: BoxDecoration(color: colorScheme.textPrimary, borderRadius: BorderRadius.circular(AppSizes.r10)),
-                child: Icon(AppIcons.salad, size: 18.w, color: colorScheme.cardBackground),
+                padding: EdgeInsets.all(isEmbedded ? 6 : 8),
+                decoration: BoxDecoration(color: colorScheme.textPrimary, borderRadius: BorderRadius.circular(isEmbedded ? AppSizes.r8 : AppSizes.r10)),
+                child: Icon(AppIcons.salad, size: isEmbedded ? 14.sp : 18.w, color: colorScheme.cardBackground),
               ),
               Gap.w12,
               Expanded(
@@ -215,18 +312,18 @@ class ScanResultInlineCard extends StatelessWidget {
                   children: [
                     Text(
                       AppStrings.swapItFeelBetter.toUpperCase(),
-                      style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontWeight: FontWeight.w900),
+                      style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: isEmbedded ? 8.sp : 10.sp),
                     ),
                     Text(
                       AppStrings.easySwapsDesc,
-                      style: context.caption.copyWith(color: colorScheme.textMuted, fontSize: 11.sp),
+                      style: context.caption.copyWith(color: colorScheme.textMuted, fontSize: isEmbedded ? 10.sp : 11.sp),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          Gap.h20,
+          Gap.h16,
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
@@ -243,7 +340,7 @@ class ScanResultInlineCard extends StatelessWidget {
                     imageUrl: swap.imageUrl,
                     tag: idx == 0 ? 'PRIME CHOICE' : 'VALID SWAP',
                     badge: idx == 0 ? 'TOP PICK' : null,
-                    width: 150.w,
+                    width: isEmbedded ? 130.w : 150.w,
                   ),
                 );
               }).toList(),
@@ -254,44 +351,6 @@ class ScanResultInlineCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFooterAction(BuildContext context) {
-    if (onViewFullReport == null) return const SizedBox.shrink();
-    final colorScheme = context.appColorScheme;
-
-    return Padding(
-      padding: EdgeInsets.all(isEmbedded ? 0 : AppSizes.p20),
-      child: Column(
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onViewFullReport,
-              borderRadius: BorderRadius.circular(AppSizes.r24),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppSizes.r24),
-                  border: Border.all(color: colorScheme.border, width: 1),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(AppIcons.arrowRight, size: 12, color: colorScheme.textPrimary),
-                    Gap.w8,
-                    Text(
-                      AppStrings.viewFullReport.toUpperCase(),
-                      style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.8),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildCycleInsight(BuildContext context) {
     final profile = context.watch<ProfileNotifier>().profile;
@@ -327,26 +386,26 @@ class ScanResultInlineCard extends StatelessWidget {
     final scheme = context.appColorScheme;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: isEmbedded ? 16 : 8),
+      padding: EdgeInsets.all(isEmbedded ? 12 : 16),
       decoration: BoxDecoration(
-        color: scheme.textPrimary.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(AppSizes.r24),
-        border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+        color: scheme.textPrimary.withValues(alpha: isEmbedded ? 0.02 : 0.03),
+        borderRadius: BorderRadius.circular(isEmbedded ? AppSizes.r16 : AppSizes.r24),
+        border: isEmbedded ? null : Border.all(color: scheme.border.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (workingWell.isNotEmpty) ...[
-            _StrategyLine(icon: AppIcons.checkCircle, color: scheme.success, title: 'Safe Bets', items: workingWell),
+            _StrategyLine(icon: AppIcons.checkCircle, color: scheme.success, title: 'Safe Bets', items: workingWell, isEmbedded: isEmbedded),
             if (missing.isNotEmpty || sensitivities.isNotEmpty) Gap.h12,
           ],
           if (missing.isNotEmpty) ...[
-            _StrategyLine(icon: AppIcons.plusCircle, color: AppPalette.blue, title: 'Better with...', items: missing),
+            _StrategyLine(icon: AppIcons.plusCircle, color: AppPalette.blue, title: 'Better with...', items: missing, isEmbedded: isEmbedded),
             if (sensitivities.isNotEmpty) Gap.h12,
           ],
           if (sensitivities.isNotEmpty) ...[
-            _StrategyLine(icon: AppIcons.alertTriangle, color: scheme.warning, title: 'Watch out for', items: sensitivities),
+            _StrategyLine(icon: AppIcons.alertTriangle, color: scheme.warning, title: 'Watch out for', items: sensitivities, isEmbedded: isEmbedded),
           ],
         ],
       ),
@@ -355,17 +414,18 @@ class ScanResultInlineCard extends StatelessWidget {
 }
 
 class _StrategyLine extends StatelessWidget {
-  const _StrategyLine({required this.icon, required this.color, required this.title, required this.items});
+  const _StrategyLine({required this.icon, required this.color, required this.title, required this.items, this.isEmbedded = false});
   final IconData icon;
   final Color color;
   final String title;
   final List items;
+  final bool isEmbedded;
 
   @override
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Icon(icon, size: 14, color: color),
+      Icon(icon, size: isEmbedded ? 12.sp : 14, color: color),
       Gap.w8,
       Expanded(
         child: Column(
@@ -373,12 +433,12 @@ class _StrategyLine extends StatelessWidget {
           children: [
             Text(
               title.toUpperCase(),
-              style: context.caption.copyWith(fontWeight: FontWeight.w900, color: color, fontSize: 9.sp, letterSpacing: 0.5),
+              style: context.caption.copyWith(fontWeight: FontWeight.w900, color: color, fontSize: isEmbedded ? 8.sp : 9.sp, letterSpacing: 0.5),
             ),
             Gap.h2,
             Text(
               items.join(' • '),
-              style: context.body.copyWith(fontSize: 12.sp, color: context.appColorScheme.textPrimary, height: 1.3),
+              style: context.body.copyWith(fontSize: isEmbedded ? 11.sp : 12.sp, color: context.appColorScheme.textPrimary, height: 1.3),
             ),
           ],
         ),
@@ -420,10 +480,11 @@ class _RefinedTag extends StatelessWidget {
 }
 
 class _RefinedBenefitRow extends StatelessWidget {
-  const _RefinedBenefitRow({required this.icon, required this.title, required this.description, this.isLast = false});
+  const _RefinedBenefitRow({required this.icon, required this.title, required this.description, this.descriptionOverride, this.isLast = false});
   final IconData icon;
   final String title;
   final String description;
+  final String? descriptionOverride;
   final bool isLast;
 
   @override
@@ -441,12 +502,12 @@ class _RefinedBenefitRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title.toUpperCase(),
+                  (descriptionOverride != null ? 'Insight' : title).toUpperCase(),
                   style: context.eyebrow.copyWith(fontSize: 11.sp, color: colorScheme.textPrimary, fontWeight: FontWeight.w900),
                 ),
                 Gap.h2,
                 Text(
-                  description,
+                  descriptionOverride ?? description,
                   style: context.caption.copyWith(height: 1.4, fontSize: 12.sp, color: colorScheme.textSecondary),
                 ),
               ],

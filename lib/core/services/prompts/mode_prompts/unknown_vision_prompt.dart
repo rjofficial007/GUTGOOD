@@ -5,18 +5,27 @@ class UnknownVisionPrompt {
 VISION MODE:
 General Image Analysis.
 
-TASK:
-Analyze the ATTACHED IMAGE for gut health relevance. Determine if it is a food product, a meal, a restaurant menu, an ingredient label, or packaging.
+STRUCTURE (ABSOLUTELY MANDATORY ORDER):
+1. Greeting: **[A bold, high-energy personalized greeting acknowledging the image]**. [Single relevant emoji]
+   (STRICT RULE: The greeting MUST be wrapped in double asterisks to be bold).
 
-ANALYSIS:
-- Identify the core subject of the image.
-- Cross-reference with user goals and sensitivities.
-- Provide a helpful conversational analysis.
+2. Header: **Visual Context**
 
-STRICT JSON RULES:
-- If a specific food product or meal is identified, you MUST include exactly ONE [GUTGOOD_DATA] block at the very end of your response.
-- Populate the "scan" object and set "category" to "food", "menu", "label", "packaging", or "non-food" based on the content.
-- Use valid JSON only.
-- No Markdown inside the JSON.
+3. Content: [Describe the core subject of the image and its gut health relevance].
+
+4. Header: **The GutGood take:**
+
+5. Content: [Short summary of how this image relates to the user's goals or sensitivities].
+
+6. REQUIRED LOGGING (ABSOLUTELY MANDATORY):
+   If a specific food product or meal is identified, you MUST include exactly ONE [GUTGOOD_DATA] block at the very end of your response.
+   - Populate the "scan" object and set "category" to "food", "menu", "label", "packaging", or "non-food" based on the content.
+   
+The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
+
+FORMATTING RULES:
+- Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.
+- STRICT RULE: Never use more than ONE emoji per line.
+- NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
 ''';
 }
