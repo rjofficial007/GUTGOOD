@@ -60,42 +60,52 @@ class DashboardCard extends StatelessWidget {
   final String? footerLabel;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: context.appColorScheme.cardBackground,
-      borderRadius: BorderRadius.circular(AppSizes.r28),
-      border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        child,
-        if (footer != null || onFooterTap != null)
-          GestureDetector(
-            onTap: onFooterTap,
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 20.0.w, vertical: 12.0.h),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: context.appColorScheme.border.withValues(alpha: 0.5))),
-              ),
-              child:
-                  footer ??
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        footerLabel ?? 'View All',
-                        style: context.caption.copyWith(fontWeight: FontWeight.bold, color: context.appColorScheme.textPrimary),
-                      ),
-                      Icon(AppIcons.chevronRight, color: context.appColorScheme.textPrimary, size: 16.0.w),
-                    ],
-                  ),
-            ),
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.cardBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.border.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
-      ],
-    ),
-  );
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          child,
+          if (footer != null || onFooterTap != null)
+            GestureDetector(
+              onTap: onFooterTap,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20.0.w, vertical: 12.0.h),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: scheme.border.withValues(alpha: 0.5))),
+                ),
+                child:
+                    footer ??
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          footerLabel ?? 'View All',
+                          style: context.caption.copyWith(fontWeight: FontWeight.bold, color: scheme.textPrimary),
+                        ),
+                        Icon(AppIcons.chevronRight, color: scheme.textPrimary, size: 16.0.w),
+                      ],
+                    ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class DashboardDetailItem extends StatelessWidget {

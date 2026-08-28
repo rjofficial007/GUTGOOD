@@ -85,9 +85,14 @@ class _LabelResultScreenState extends State<LabelResultScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SheetSectionHeader(title: 'EXPERT SUMMARY', color: Colors.transparent),
-        Text(
-          summary,
-          style: context.body.copyWith(fontSize: 14.sp, height: 1.5, color: context.appColorScheme.textPrimary),
+        DashboardCard(
+          child: Padding(
+            padding: EdgeInsets.all(AppSizes.p20),
+            child: Text(
+              summary,
+              style: context.body.copyWith(fontSize: 14.sp, height: 1.5, color: context.appColorScheme.textPrimary),
+            ),
+          ),
         ),
       ],
     );
