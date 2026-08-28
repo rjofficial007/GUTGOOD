@@ -1,20 +1,21 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
-import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
+import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
+import 'package:provider/provider.dart';
+import '../widgets/scan_result_widgets.dart';
 
 class MenuResultScreen extends StatefulWidget {
   const MenuResultScreen({super.key, required this.scanData, this.heroTag});
@@ -27,189 +28,159 @@ class MenuResultScreen extends StatefulWidget {
 
 class _MenuResultScreenState extends State<MenuResultScreen> {
   late ScanResult _currentData;
-  bool _isRefreshing = false;
+  bool _isLoading = false, _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
     _currentData = widget.scanData;
-    AppLogger.info('MenuResultScreen: Init with data: ${_currentData.productName}. RawData presence: ${_currentData.rawData != null}');
+    AppLogger.info('MenuResultScreen: Init with data: ${_currentData.productName}');
 
     unawaited(sl<AnalyticsService>().logEvent(name: 'view_menu_result', parameters: {'restaurant_name': _currentData.productName}));
 
     if (_currentData.scanId != null) {
-      // 🚀 Deep Hydration Check: Even if rawData exists, check if it's "Full" (has menu/meal blocks)
-      final raw = _currentData.rawData ?? {};
-      final contextBlock = raw.containsKey('rawData') && raw['rawData'] is Map ? Map<String, dynamic>.from(raw['rawData'] as Map) : raw;
-      final isFull = contextBlock.containsKey('menu') || contextBlock.containsKey('meal') || contextBlock.containsKey('menuItems');
-
-      if (!isFull) {
-        AppLogger.info('MenuResultScreen: Data is partial/missing blocks, triggering hydration for ID: ${_currentData.scanId}');
-        _refreshData();
-      }
+      final hasDetails = _currentData.impacts.isNotEmpty || (_currentData.nutrients != null);
+      if (!hasDetails) _refreshData();
     }
   }
 
   Future<void> _refreshData() async {
     if (_currentData.scanId == null) return;
     setState(() => _isRefreshing = true);
-
     try {
       final fullData = await sl<HistoryRepository>().getScanById(_currentData.scanId!);
-      if (fullData != null && mounted) {
-        AppLogger.info('MenuResultScreen: Hydration successful. Full rawData keys: ${fullData.rawData?.keys.toList()}');
-        setState(() => _currentData = fullData);
-      } else {
-        AppLogger.warning('MenuResultScreen: Hydration returned null for ID: ${_currentData.scanId}');
-      }
-    } catch (e) {
-      AppLogger.error('MenuResultScreen: Hydration failed', error: e);
-    } finally {
-      if (mounted) setState(() => _isRefreshing = false);
-    }
+      if (fullData != null && mounted) setState(() => _currentData = fullData);
+    } catch (e) { AppLogger.error('MenuResultScreen: Hydration failed', error: e); }
+    finally { if (mounted) setState(() => _isRefreshing = false); }
+  }
+
+  Future<void> _toggleSave() async {
+    final provider = context.read<SavedFoodsProvider>();
+    await provider.toggleSave(_currentData);
+    sl<AppStateService>().notifyProfileUpdated();
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
 
-    // 🚀 High-Resolution Logging for Debugging
-    final raw = _currentData.rawData ?? {};
-    final hasScan = raw.containsKey('scan');
-    final hasMenu = raw.containsKey('menu');
-    final hasMeal = raw.containsKey('meal');
+    return Consumer<SavedFoodsProvider>(builder: (context, savedProvider, _) {
+      final isSaved = savedProvider.isSaved(_currentData.productName, barcode: _currentData.barcode);
 
-    final menuItemsCount = raw['menu']?['menuItems']?.length ?? raw['scan']?['menuItems']?.length ?? raw['menuItems']?.length ?? 0;
-
-    AppLogger.info(
-      'MenuResultScreen: Building UI. Restaurant: ${_currentData.productName}, '
-      'RawKeys: ${raw.keys.toList()}, '
-      'Blocks: [scan:$hasScan, menu:$hasMenu, meal:$hasMeal], '
-      'MenuItems: $menuItemsCount',
-    );
-
-    return Scaffold(
-      backgroundColor: scheme.cardBackground,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          const GutSliverAppBar(title: 'MENU SURVIVAL', centerTitle: true),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DashboardEntrance(delay: 50, child: _MenuHeader(scanData: _currentData)),
-                  Gap.h32,
-                  DashboardEntrance(
-                    delay: 100,
-                    child: ProductImageHeader(
-                      scanData: _currentData,
-                      heroTag: widget.heroTag,
-                      overlay: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (_currentData.impact.isNotEmpty)
-                            GlassCard(
-                              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(AppIcons.info, color: AppPalette.white, size: 16),
-                                      Gap.w8,
-                                      Text(
-                                        'SURVIVAL TAKE',
-                                        style: context.eyebrow.copyWith(color: AppPalette.white, fontSize: 10.sp),
-                                      ),
-                                    ],
-                                  ),
-                                  Gap.h10,
-                                  Text(
-                                    _currentData.impact,
-                                    maxLines: 5,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: context.bodySm.copyWith(color: Colors.white, fontWeight: FontWeight.w500, height: 1.4),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+      return Scaffold(
+        backgroundColor: scheme.cardBackground,
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            GutSliverAppBar(
+              title: 'MENU ANALYSIS',
+              centerTitle: true,
+              actions: [
+                Padding(
+                  padding: EdgeInsets.only(right: 16.w),
+                  child: SaveButton(
+                    isSaved: isSaved,
+                    isLoading: _isLoading,
+                    onTap: () async {
+                      setState(() => _isLoading = true);
+                      try { await _toggleSave(); } finally { if (mounted) setState(() => _isLoading = false); }
+                    },
                   ),
-
-                  if (_isRefreshing)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 32),
-                      child: Center(child: CircularProgressIndicator(color: scheme.textPrimary)),
-                    )
-                  else ...[
-                    Gap.h32,
-                    DashboardEntrance(delay: 200, child: MenuAnalysisSection(scanData: _currentData)),
-                    if (_currentData.allergens != null && _currentData.allergens!.isNotEmpty) ...[
-                      Gap.h32,
+                ),
+              ],
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DashboardEntrance(delay: 50, child: BentoImageCard(scanData: _currentData, heroTag: widget.heroTag)),
+                    if (_isRefreshing)
+                      Padding(padding: const EdgeInsets.only(top: 32), child: Center(child: CircularProgressIndicator(color: scheme.textPrimary)))
+                    else ...[
+                      Gap.h12,
+                      DashboardEntrance(delay: 100, child: DashboardMetricGrid(scanData: _currentData)),
+                      Gap.h12,
                       DashboardEntrance(
-                        delay: 250,
-                        child: AllergensSection(allergens: _currentData.allergens!, servingSize: _currentData.servingSize),
+                        delay: 150,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: ExpertSummaryCard(scanData: _currentData)),
+                            Gap.w12,
+                            Expanded(child: NutrientStatisticsCard(scanData: _currentData)),
+                          ],
+                        ),
                       ),
+                      Gap.h12,
+                      DashboardEntrance(
+                        delay: 200,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: MealBalanceCard(scanData: _currentData)),
+                            Gap.w12,
+                            Expanded(child: ExpertStrategyCard(scanData: _currentData)),
+                          ],
+                        ),
+                      ),
+                      Gap.h24,
+                      DashboardEntrance(delay: 250, child: MenuAnalysisSection(scanData: _currentData)),
+                      Gap.h24,
+                      DashboardEntrance(delay: 280, child: _buildImpactSection(context)),
+                      Gap.h24,
+                      DashboardEntrance(delay: 320, child: AdditivesSection(scanData: _currentData)),
+                      if (_currentData.allergens != null && _currentData.allergens!.isNotEmpty) ...[
+                        Gap.h24,
+                        DashboardEntrance(delay: 350, child: AllergensSection(allergens: _currentData.allergens!, servingSize: _currentData.servingSize)),
+                      ],
+                      if (_currentData.nutrients != null) ...[
+                        Gap.h24,
+                        DashboardEntrance(delay: 380, child: NutritionFactsSection(scanData: _currentData)),
+                        Gap.h24,
+                      ],
+                      DashboardEntrance(delay: 400, child: ProductMetadataSection(scanData: _currentData)),
                     ],
-                    if (_currentData.nutrients != null) ...[Gap.h32, DashboardEntrance(delay: 280, child: NutritionFactsSection(scanData: _currentData))],
-                    Gap.h32,
-                    DashboardEntrance(delay: 300, child: ProductMetadataSection(scanData: _currentData)),
+                    Gap.h40,
                   ],
-                  Gap.h40,
-                ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MenuHeader extends StatelessWidget {
-  const _MenuHeader({required this.scanData});
-  final ScanResult scanData;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-
-    // 🚀 Robust Extraction: The menu data might be in rawData directly or nested in a 'menu' or 'scan' key
-    final Map<String, dynamic> raw = scanData.rawData ?? {};
-    final Map<String, dynamic> scanBlock = raw.containsKey('scan') ? Map<String, dynamic>.from(raw['scan'] as Map) : {};
-    final Map<String, dynamic> menuBlock = raw.containsKey('menu') ? Map<String, dynamic>.from(raw['menu'] as Map) : (scanBlock.isNotEmpty ? scanBlock : raw);
-
-    final restaurantName = menuBlock['restaurantName']?.toString() ?? scanBlock['restaurantName']?.toString() ?? scanData.productName;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: AppPalette.orange, borderRadius: BorderRadius.circular(4)),
-              child: Text(
-                'RESTAURANT MENU',
-                style: context.caption.copyWith(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10.sp),
-              ),
-            ),
-            Gap.w12,
-            Text('ORDERING GUIDE', style: context.eyebrow.copyWith(color: scheme.textMuted)),
           ],
         ),
-        Gap.h16,
-        Text(
-          restaurantName.toString().toUpperCase(),
-          style: context.displaySm.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1.0, color: scheme.textPrimary),
-        ),
-      ],
-    );
+      );
+    });
+  }
+
+  Widget _buildImpactSection(BuildContext context) {
+    final scan = _currentData;
+    final scheme = context.appColorScheme;
+    final items = <ScanImpactDetailItem>[];
+
+    final Map<String, dynamic> raw = scan.rawData ?? {};
+    final List rawImpacts = ((raw['meal']?['impacts'] ?? raw['scan']?['impacts'] ?? raw['impacts']) ?? []) as List;
+
+    final impactsToUse = scan.impacts.isNotEmpty ? scan.impacts : rawImpacts.map((e) {
+      final data = e is Map ? e : {};
+      return ImpactDetail(title: data['title']?.toString() ?? '', level: data['level']?.toString() ?? '', color: 'gray');
+    }).where((e) => e.title.isNotEmpty).toList();
+
+    for (final impact in impactsToUse) {
+      var color = scheme.success;
+      var icon = AppIcons.checkCircle;
+      final level = impact.level.toLowerCase();
+      if (level == 'high' || level == 'trigger' || level == 'negative' || level == 'poor') {
+        color = scheme.error;
+        icon = AppIcons.alertTriangle;
+      } else if (level == 'moderate' || level == 'neutral' || level == 'low') {
+        color = scheme.warning;
+        icon = AppIcons.alertCircle;
+      }
+      items.add(ScanImpactDetailItem(title: impact.title, subtitle: '', icon: icon, value: impact.level.toUpperCase(), color: color));
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+    return ScanImpactSection(title: 'GUT HEALTH IMPACT', icon: AppIcons.activity, iconColor: scheme.textPrimary, servingInfo: scan.servingSize, items: items);
   }
 }

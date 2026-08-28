@@ -10,6 +10,7 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/extensions.dart';
+import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:intl/intl.dart';
@@ -51,9 +52,11 @@ class BentoCard extends StatelessWidget {
 }
 
 class ScoreGauge extends StatelessWidget {
-  const ScoreGauge({super.key, required this.score, required this.color});
+  const ScoreGauge({super.key, required this.score, required this.color, this.label = 'GUT SCORE', this.fontSize});
   final int score;
   final Color color;
+  final String label;
+  final double? fontSize;
   @override
   Widget build(BuildContext context) {
     final textColor = (color == const Color(0xFF181818)) ? Colors.white : AppPalette.black;
@@ -83,17 +86,17 @@ class ScoreGauge extends StatelessWidget {
                         '${value.toInt()}',
                         style: context.displaySm.copyWith(
                           fontWeight: FontWeight.w900,
-                          fontSize: (size * 0.28).clamp(32, 48).sp,
+                          fontSize: fontSize ?? (size * 0.28).clamp(32, 48).sp,
                           color: textColor,
                           height: 1.0,
                           letterSpacing: -1,
                         ),
                       ),
                       Text(
-                        'GUT SCORE',
+                        label,
                         style: context.caption.copyWith(
                           fontWeight: FontWeight.w900,
-                          fontSize: 7.sp,
+                          fontSize: (size * 0.08).clamp(6, 8).sp,
                           letterSpacing: 1.5,
                           color: textColor.withValues(alpha: 0.5),
                         ),
@@ -181,8 +184,58 @@ class ImpactTimeline extends StatelessWidget {
   const ImpactTimeline({super.key, required this.items});
   final List<TimelineItem> items;
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [for (int i = 0; i < items.length; i++) ...[_buildTimelineNode(items[i], i == items.length - 1)]]);
-  Widget _buildTimelineNode(TimelineItem item, bool isLast) => IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Column(children: [Container(width: 12, height: 12, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: item.color.withOpacity(0.3), blurRadius: 4)])), if (!isLast) Expanded(child: Container(width: 2, color: AppPalette.gray200))]), Gap.w16, Expanded(child: Padding(padding: const EdgeInsets.only(bottom: 24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item.title.toUpperCase(), style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w900, color: AppPalette.black, letterSpacing: 0.5)), Gap.h4, Text(item.subtitle, style: TextStyle(fontSize: 10.sp, color: AppPalette.gray500, height: 1.4))])))]));
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < items.length; i++) ...[_buildTimelineNode(context, scheme, items[i], i == items.length - 1)]
+      ],
+    );
+  }
+
+  Widget _buildTimelineNode(BuildContext context, AppColorScheme scheme, TimelineItem item, bool isLast) => IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: item.color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: scheme.cardBackground, width: 2),
+                    boxShadow: [BoxShadow(color: item.color.withValues(alpha: 0.3), blurRadius: 4)],
+                  ),
+                ),
+                if (!isLast) Expanded(child: Container(width: 2, color: scheme.border.withValues(alpha: 0.5))),
+              ],
+            ),
+            Gap.w16,
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title.toUpperCase(),
+                      style: context.caption.copyWith(fontSize: 10.sp, fontWeight: FontWeight.w900, color: scheme.textPrimary, letterSpacing: 0.5),
+                    ),
+                    Gap.h2,
+                    Text(
+                      item.subtitle,
+                      style: context.caption.copyWith(fontSize: 10.sp, color: scheme.textSecondary, height: 1.3),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class BentoImageCard extends StatelessWidget {
@@ -191,57 +244,49 @@ class BentoImageCard extends StatelessWidget {
   final String? heroTag;
   @override
   Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
     final displayImageUrl = scanData.userImageUrl ?? scanData.imageUrl;
-    final Color scoreColor = scanData.score >= 70 ? const Color(0xFFB4F1B4) : (scanData.score >= 40 ? AppPalette.orange : AppPalette.red);
+    final Color scoreColor = scanData.score >= 70 ? const Color(0xFFB4F1B4) : (scanData.score >= 40 ? const Color(0xFFC4B5FD) : AppPalette.red);
 
     return BentoCard(
       padding: const EdgeInsets.all(12),
-      height: 220.h,
-      backgroundColor: const Color(0xFF0D0D0D),
+      height: 200.h,
+      backgroundColor: scheme.cardBackground,
       child: Row(
         children: [
           // Left Panel: The "Wallet Card" aesthetic
           AspectRatio(
             aspectRatio: 1,
-            child: Container(
-              decoration: BoxDecoration(color: scoreColor, borderRadius: BorderRadius.circular(20)),
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: scoreColor, borderRadius: BorderRadius.circular(16)),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 child: Stack(
                   children: [
-                    if (displayImageUrl != null && displayImageUrl.isNotEmpty)
-                      Positioned.fill(
-                        child: Hero(
-                          tag: heroTag ?? '${AppStrings.scanImageHero}${scanData.barcode ?? scanData.productName}',
-                          child: Opacity(
-                            opacity: 0.15,
-                            child: CachedNetworkImage(imageUrl: displayImageUrl, fit: BoxFit.cover, color: Colors.black, colorBlendMode: BlendMode.saturation),
-                          ),
-                        ),
-                      ),
+
                     Positioned(
-                      top: 16,
-                      left: 16,
+                      top: 12,
+                      left: 12,
                       child: Text(
                         'ANALYSIS',
-                        style: TextStyle(color: Colors.black.withOpacity(0.4), fontSize: 8.sp, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                        style: TextStyle(color: Colors.black.withValues(alpha: 0.4), fontSize: 7.sp, fontWeight: FontWeight.w900, letterSpacing: 1.0),
                       ),
                     ),
                     Positioned(
-                      top: 14,
-                      right: 14,
+                      top: 10,
+                      right: 10,
                       child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]),
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]),
                       ),
                     ),
                     Positioned(
                       bottom: -10,
-                      left: 10,
+                      left: 8,
                       child: Text(
                         '${scanData.score}',
-                        style: TextStyle(color: Colors.black, fontSize: 84.sp, fontWeight: FontWeight.w900, letterSpacing: -6),
+                        style: TextStyle(color: Colors.black, fontSize: 72.sp, fontWeight: FontWeight.w900, letterSpacing: -5),
                       ),
                     ),
                   ],
@@ -249,35 +294,54 @@ class BentoImageCard extends StatelessWidget {
               ),
             ),
           ),
-          Gap.w20,
+          Gap.w16,
           // Right Panel: Narrative & Identity
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                if (displayImageUrl != null && displayImageUrl.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(height: 52, width: 52, imageUrl: displayImageUrl, fit: BoxFit.cover),
+                  ),
+                  Gap.h12,
+                ],
                 Text(
                   scanData.brand.toUpperCase(),
-                  style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 9.sp, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                  style: TextStyle(color: scheme.textSecondary, fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 1.2),
                 ),
-                Gap.h8,
+                Gap.h4,
                 Text(
                   scanData.productName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: context.bodyBold.copyWith(color: Colors.white, fontSize: 17.sp, fontWeight: FontWeight.w900, height: 1.1, letterSpacing: -0.5),
+                  style: context.bodyBold.copyWith(
+                    color: scheme.textPrimary,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w900,
+                    height: 1.0,
+                    letterSpacing: -0.8,
+                  ),
                 ),
-                Gap.h12,
+                Gap.h8,
                 Text(
                   scanData.impact,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: context.caption.copyWith(color: Colors.white.withOpacity(0.5), fontSize: 10.sp, height: 1.4),
+                  style: context.caption.copyWith(
+                    color: scheme.textSecondary,
+                    fontSize: 10.5.sp,
+                    height: 1.4,
+                    letterSpacing: -0.1,
+                  ),
                 ),
               ],
             ),
           ),
-          Gap.w8,
+          Gap.w4,
         ],
       ),
     );
@@ -288,11 +352,41 @@ class NutrientBalanceWrap extends StatelessWidget {
   const NutrientBalanceWrap({super.key, required this.balance});
   final Map<String, dynamic> balance;
   @override
-  Widget build(BuildContext context) => Wrap(spacing: 8, runSpacing: 8, children: balance.entries.map((e) {
-    final status = e.value.toString().toLowerCase();
-    final Color color = switch (status) { 'good' || 'high' => const Color(0xFFB4F1B4), 'moderate' => AppPalette.orange, 'low' || 'poor' => AppPalette.red, _ => AppPalette.gray400 };
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.2))), child: Row(mainAxisSize: MainAxisSize.min, children: [Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)), Gap.w6, Text(e.key.toUpperCase(), style: context.caption.copyWith(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 8.sp))]));
-  }).toList());
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: balance.entries.map((e) {
+        final status = e.value.toString().toLowerCase();
+        final Color color = switch (status) {
+          'good' || 'high' => const Color(0xFFB4F1B4),
+          'moderate' => AppPalette.orange,
+          'low' || 'poor' => AppPalette.red,
+          _ => AppPalette.gray400
+        };
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              Gap.w6,
+              Text(
+                e.key.toUpperCase(),
+                style: context.caption.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 8.sp, letterSpacing: 0.5),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
 }
 
 class SaveButton extends StatelessWidget {
@@ -310,6 +404,7 @@ class ProductImageHeader extends StatelessWidget {
   final Widget? overlay;
   @override
   Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
     final displayImageUrl = scanData.userImageUrl ?? scanData.imageUrl;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,9 +496,9 @@ class ScanHeroSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final labelStyle = context.caption.copyWith(color: isGlass ? Colors.white.withOpacity(0.7) : scheme.textMuted, fontWeight: FontWeight.w800, letterSpacing: 1.2, fontSize: 9.sp);
-    final valueStyle = context.bodyBold.copyWith(color: isGlass ? Colors.white : scheme.textPrimary, fontSize: 24.sp, letterSpacing: -0.5, fontWeight: FontWeight.w900);
-    return Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_MetricItem(label: 'NOVA-GROUP', value: scanData.novaGroup ?? '1', labelStyle: labelStyle, valueStyle: valueStyle), if (scanData.nutriscore != null) _MetricItem(label: 'NUTRI-SCORE', valueWidget: Text(scanData.nutriscore!, style: valueStyle.copyWith(color: isGlass ? Colors.white : (scanData.score >= 70 ? scheme.success : (scanData.score >= 40 ? scheme.warning : scheme.error)))), labelStyle: labelStyle), _MetricItem(label: 'GUT-SCORE', valueWidget: Text('${scanData.score}', style: valueStyle.copyWith(color: isGlass ? Colors.white : (scanData.score >= 70 ? scheme.success : (scanData.score >= 40 ? scheme.warning : scheme.error)))), labelStyle: labelStyle)]), if (scanData.allergens != null && scanData.allergens!.isNotEmpty) ...[Gap.h16, Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: isGlass ? Colors.white.withOpacity(0.15) : scheme.error.withOpacity(0.05), borderRadius: BorderRadius.circular(8), border: Border.all(color: isGlass ? Colors.white24 : scheme.error.withOpacity(0.2))), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(AppIcons.alertTriangle, size: 14, color: isGlass ? Colors.white : scheme.error), Gap.w8, Text('CONTAINS: ${scanData.allergens!.toUpperCase()}', style: context.caption.copyWith(color: isGlass ? Colors.white : scheme.error, fontWeight: FontWeight.w900, fontSize: 10.sp, letterSpacing: 0.5))]))]]);
+    final labelStyle = context.caption.copyWith(color: isGlass ? Colors.white.withOpacity(0.7) : scheme.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 8.5.sp);
+    final valueStyle = context.bodyBold.copyWith(color: isGlass ? Colors.white : scheme.textPrimary, fontSize: 26.sp, letterSpacing: -1.0, fontWeight: FontWeight.w900, height: 1.0);
+    return Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_MetricItem(label: 'NOVA-GROUP', value: scanData.novaGroup ?? '1', labelStyle: labelStyle, valueStyle: valueStyle), if (scanData.nutriscore != null) _MetricItem(label: 'NUTRI-SCORE', valueWidget: Text(scanData.nutriscore!, style: valueStyle.copyWith(color: isGlass ? Colors.white : (scanData.score >= 70 ? scheme.success : (scanData.score >= 40 ? const Color(0xFFC4B5FD) : scheme.error)))), labelStyle: labelStyle), _MetricItem(label: 'IMPACT', value: scanData.impactType.name.toUpperCase(), labelStyle: labelStyle, valueStyle: valueStyle.copyWith(fontSize: 18.sp, letterSpacing: -0.5))]), if (scanData.allergens != null && scanData.allergens!.isNotEmpty) ...[Gap.h16, Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: isGlass ? Colors.white.withOpacity(0.15) : scheme.error.withOpacity(0.05), borderRadius: BorderRadius.circular(10), border: Border.all(color: isGlass ? Colors.white24 : scheme.error.withOpacity(0.2))), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(AppIcons.alertTriangle, size: 14, color: isGlass ? Colors.white : scheme.error), Gap.w8, Text('CONTAINS: ${scanData.allergens!.toUpperCase()}', style: context.caption.copyWith(color: isGlass ? Colors.white : scheme.error, fontWeight: FontWeight.w900, fontSize: 10.sp, letterSpacing: 1.0))]))]]);
   }
 }
 
@@ -426,7 +521,43 @@ class ScanImpactSection extends StatelessWidget {
   final List<ScanImpactDetailItem> items;
   final String? servingInfo;
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [SheetSectionHeader(title: title, color: Colors.transparent), if (servingInfo != null) ...[Text('Per serving ($servingInfo)', style: context.caption.copyWith(color: context.appColorScheme.textMuted)), Gap.h16], DashboardCard(child: Padding(padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p8), child: Column(children: [for (int i = 0; i < items.length; i++) ...[items[i], if (i < items.length - 1) Divider(height: 1, color: context.appColorScheme.border.withOpacity(0.15))]])))]);
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DashboardCard(
+          child: Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, size: 18.w, color: scheme.textPrimary),
+                    Gap.w12,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: context.bodyBold.copyWith(fontSize: 14.sp)),
+                          if (servingInfo != null)
+                            Text('Per serving ($servingInfo)', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Gap.h20,
+                ...items,
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class ScanImpactDetailItem extends StatelessWidget {
@@ -436,7 +567,44 @@ class ScanImpactDetailItem extends StatelessWidget {
   final Color color;
   final bool showCheck, isLast;
   @override
-  Widget build(BuildContext context) => Padding(padding: EdgeInsets.symmetric(vertical: AppSizes.p12), child: Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle), child: Icon(icon, color: color, size: 16)), Gap.w16, Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title.capitalize, style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: 14.sp)), if (subtitle.isNotEmpty) ...[Gap.h2, Text(subtitle, style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontSize: 11.sp, height: 1.3))]])), Text(value, style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: 14.sp))]));
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: scheme.elevatedSurface,
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: 0.2)),
+            ),
+            child: Icon(icon, size: 16.w, color: color),
+          ),
+          Gap.w16,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title.capitalize, style: context.bodyBold.copyWith(fontSize: 14.sp, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: scheme.textPrimary)),
+                if (subtitle.isNotEmpty)
+                  Text(subtitle, style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, fontWeight: FontWeight.w600, height: 1.4)),
+              ],
+            ),
+          ),
+          Text(value, style: context.caption.copyWith(color: color,  fontWeight: FontWeight.w900, letterSpacing: -0.6)),
+          Gap.w4,
+        ],
+      ),
+    );
+  }
 }
 
 class AdditivesSection extends StatelessWidget {
@@ -444,30 +612,105 @@ class AdditivesSection extends StatelessWidget {
   final ScanResult scanData;
   @override
   Widget build(BuildContext context) {
-    final additives = scanData.additives ?? '';
-    final count = additives.split(',').where((e) => e.trim().isNotEmpty).length;
+    final Map<String, dynamic> raw = scanData.rawData ?? {};
+    final String additives = scanData.additives ?? (raw['meal']?['additives'] ?? raw['scan']?['additives'] ?? raw['additives'] ?? '').toString();
+    final addonList = additives.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     final scheme = context.appColorScheme;
-    var riskColor = scheme.success;
-    var riskLabel = 'CLEAN';
-    if (count > 0) { riskColor = scheme.warning; riskLabel = count > 3 ? 'CAUTION' : 'MODERATE'; }
-    if (count > 5 || scanData.novaGroup == '4') { riskColor = scheme.error; riskLabel = 'AVOID'; }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SheetSectionHeader(title: 'WHAT TO WATCH', color: Colors.transparent),
-      DashboardCard(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p8),
-          child: Column(
-            children: [
-              ScanImpactDetailItem(title: AppStrings.additivesLabel, subtitle: count > 0 ? 'Contains $count chemical additives' : 'No harmful additives detected', icon: AppIcons.flaskConical, value: count > 0 ? '$count TOTAL' : 'NONE', color: riskColor),
-              if (scanData.flaggedIngredients.isNotEmpty) ...[
-                Divider(height: 1, color: scheme.border.withOpacity(0.1)),
-                ScanImpactDetailItem(title: 'Flagged Items', subtitle: '${scanData.flaggedIngredients.length} matches your sensitivities', icon: AppIcons.alertCircle, value: riskLabel, color: scheme.error),
-              ]
-            ],
+
+    final List flagged = scanData.flaggedIngredients.isNotEmpty 
+        ? scanData.flaggedIngredients 
+        : ((raw['meal']?['flaggedIngredients'] ?? raw['scan']?['flaggedIngredients'] ?? raw['flaggedIngredients']) ?? []) as List;
+
+    if (addonList.isEmpty && flagged.isEmpty) return const SizedBox.shrink();
+
+    final List<Widget> items = [];
+    for (final add in addonList) {
+      items.add(_WatchingCard(title: add, subtitle: 'Chemical Additive', icon: AppIcons.flaskConical, color: scheme.warning));
+    }
+    for (final f in flagged) {
+      final String name = f is Map ? (f['name'] ?? '').toString() : f.toString();
+      if (name.isNotEmpty) {
+        items.add(_WatchingCard(title: name, subtitle: 'Personal Sensitivity', icon: AppIcons.alertCircle, color: scheme.error));
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DashboardCard(
+          child: Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(AppIcons.alertTriangle, size: 18.w, color: scheme.textPrimary),
+                    Gap.w12,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('WHAT TO WATCH', style: context.bodyBold.copyWith(fontSize: 14.sp)),
+                          Text('Potential risk factors detected', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Gap.h20,
+                ...items,
+              ],
+            ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _WatchingCard extends StatelessWidget {
+  const _WatchingCard({required this.title, required this.subtitle, required this.icon, required this.color});
+  final String title, subtitle;
+  final IconData icon;
+  final Color color;
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: scheme.elevatedSurface,
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
       ),
-    ]);
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: 0.2)),
+            ),
+            child: Icon(icon, size: 16.w, color: color),
+          ),
+          Gap.w16,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title.toUpperCase(), style: context.bodyBold.copyWith(fontSize: 14.sp, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: scheme.textPrimary)),
+                Text(subtitle, style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, fontWeight: FontWeight.w600, height: 1.4)),
+              ],
+            ),
+          ),
+          Icon(AppIcons.chevronRight, size: 16.w, color: scheme.textMuted),
+          Gap.w4,
+        ],
+      ),
+    );
   }
 }
 
@@ -581,28 +824,84 @@ class IngredientsSection extends StatelessWidget {
   final List<Ingredient> ingredients;
   final ScanResult scanData;
   @override
-  Widget build(BuildContext context) => DashboardCard(
-        child: Padding(
-          padding: EdgeInsets.all(AppSizes.p20),
-          child: RichText(
-            text: TextSpan(
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+
+    final List<Widget> items = [];
+    for (final ing in ingredients) {
+      final Color color = ['red', 'orange'].contains(ing.colorName.toLowerCase())
+          ? (ing.colorName.toLowerCase() == 'red' ? scheme.error : scheme.warning)
+          : scheme.success;
+
+      items.add(Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          color: scheme.elevatedSurface,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: color.withValues(alpha: 0.2)),
+              ),
+              child: Icon(AppIcons.leaf, size: 16.w, color: color),
+            ),
+            Gap.w16,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(ing.name.capitalize, style: context.bodyBold.copyWith(fontSize: 14.sp, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: scheme.textPrimary)),
+                  Text(ing.impact.isNotEmpty ? ing.impact : 'Scientific component', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, fontWeight: FontWeight.w600, height: 1.4)),
+                ],
+              ),
+            ),
+            Icon(AppIcons.chevronRight, size: 16.w, color: scheme.textMuted),
+            Gap.w4,
+          ],
+        ),
+      ));
+    }
+
+    return DashboardCard(
+      child: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                for (int i = 0; i < ingredients.length; i++) ...[
-                  TextSpan(
-                    text: ingredients[i].name.capitalize,
-                    style: context.body.copyWith(
-                      color: ['red', 'orange'].contains(ingredients[i].colorName.toLowerCase()) ? (ingredients[i].colorName.toLowerCase() == 'red' ? context.appColorScheme.error : context.appColorScheme.warning) : context.appColorScheme.textSecondary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14.sp,
-                    ),
+                Icon(AppIcons.flaskConical, size: 18.w, color: scheme.textPrimary),
+                Gap.w12,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('CLINICAL AUDIT', style: context.bodyBold.copyWith(fontSize: 14.sp)),
+                      Text('${ingredients.length} items verified', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                    ],
                   ),
-                  if (i < ingredients.length - 1) TextSpan(text: ', ', style: context.body.copyWith(color: context.appColorScheme.textMuted, fontSize: 14.sp)),
-                ]
+                ),
+                Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: BoxDecoration(color: scheme.textPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: Icon(AppIcons.shieldCheck, size: 12.w, color: scheme.textPrimary),
+                ),
               ],
             ),
-          ),
+            Gap.h20,
+            ...items,
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class NutritionFactsSection extends StatelessWidget {
@@ -620,7 +919,7 @@ class NutritionFactsSection extends StatelessWidget {
         final statusColor = color ?? scheme.textPrimary;
         items.add(Container(
           margin: EdgeInsets.only(bottom: 12.h),
-          padding: EdgeInsets.all(12.w),
+          padding: EdgeInsets.all(14.w),
           decoration: BoxDecoration(
             color: scheme.elevatedSurface,
             borderRadius: BorderRadius.circular(100),
@@ -629,25 +928,25 @@ class NutritionFactsSection extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8.w),
+                padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                   border: Border.all(color: statusColor.withValues(alpha: 0.2)),
                 ),
-                child: Icon(icon, size: 14.w, color: statusColor),
+                child: Icon(icon, size: 16.w, color: statusColor),
               ),
               Gap.w16,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: context.bodyBold.copyWith(fontSize: 13.sp, height: 1.1)),
-                    Text('$value $unit', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                    Text(label, style: context.bodyBold.copyWith(fontSize: 14.sp, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: scheme.textPrimary)),
+                    Text('$value $unit', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, fontWeight: FontWeight.w600, height: 1.4)),
                   ],
                 ),
               ),
-              Icon(AppIcons.chevronRight, size: 14.w, color: scheme.textMuted),
+              Icon(AppIcons.chevronRight, size: 16.w, color: scheme.textMuted),
               Gap.w4,
             ],
           ),
@@ -713,122 +1012,217 @@ class MenuAnalysisSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic> raw = scanData.rawData ?? {};
-    final Map<String, dynamic> contextBlock = raw.containsKey('rawData') && raw['rawData'] is Map ? Map<String, dynamic>.from(raw['rawData'] as Map) : raw;
-    final Map<String, dynamic> scanBlock = contextBlock.containsKey('scan') && contextBlock['scan'] is Map ? Map<String, dynamic>.from(contextBlock['scan'] as Map) : {};
-    final Map<String, dynamic> menuBlock = contextBlock.containsKey('menu') && contextBlock['menu'] is Map ? Map<String, dynamic>.from(contextBlock['menu'] as Map) : (scanBlock.isNotEmpty ? scanBlock : contextBlock);
-    final Map<String, dynamic> mealBlock = contextBlock.containsKey('meal') && contextBlock['meal'] is Map ? Map<String, dynamic>.from(contextBlock['meal'] as Map) : (scanBlock.isNotEmpty ? scanBlock : contextBlock);
-    final restaurantName = menuBlock['restaurantName']?.toString() ?? scanBlock['restaurantName']?.toString() ?? contextBlock['restaurantName']?.toString() ?? scanData.productName;
-    final List menuItems = menuBlock['menuItems'] is List ? menuBlock['menuItems'] as List : (scanBlock['menuItems'] is List ? scanBlock['menuItems'] as List : (mealBlock['items'] is List ? mealBlock['items'] as List : (contextBlock['menuItems'] is List ? contextBlock['menuItems'] as List : [])));
-    final location = menuBlock['location'] ?? scanBlock['location'] ?? contextBlock['location'];
-    final detectedText = menuBlock['detectedText'] ?? scanBlock['detectedText'] ?? contextBlock['detectedText'];
-    final List workingWell = mealBlock['workingWell'] is List ? mealBlock['workingWell'] as List : (scanBlock['workingWell'] is List ? scanBlock['workingWell'] as List : (contextBlock['workingWell'] is List ? contextBlock['workingWell'] as List : []));
-    final List missing = mealBlock['missingOrCouldAdd'] is List ? mealBlock['missingOrCouldAdd'] as List : (scanBlock['missingOrCouldAdd'] is List ? scanBlock['missingOrCouldAdd'] as List : (contextBlock['missingOrCouldAdd'] is List ? contextBlock['missingOrCouldAdd'] as List : []));
-    final List sensitivities = mealBlock['sensitivityNotes'] is List ? mealBlock['sensitivityNotes'] as List : (scanBlock['sensitivityNotes'] is List ? scanBlock['sensitivityNotes'] as List : (contextBlock['sensitivityNotes'] is List ? contextBlock['sensitivityNotes'] as List : []));
-    final Map<String, dynamic> balance = mealBlock['balance'] is Map ? Map<String, dynamic>.from(mealBlock['balance'] as Map) : {};
-    final String? summary = mealBlock['summary']?.toString() ?? scanBlock['summary']?.toString() ?? contextBlock['summary']?.toString();
 
-    if (menuItems.isEmpty && (detectedText == null || detectedText.toString().isEmpty) && summary == null && balance.isEmpty) return const SizedBox.shrink();
+    final findList = (String key) {
+      if (raw[key] is List) return raw[key] as List;
+      final blocks = ['menu', 'meal', 'scan', 'rawData'];
+      for (final b in blocks) {
+        if (raw[b] is Map && raw[b][key] is List) return raw[b][key] as List;
+      }
+      return [];
+    };
+
+    final List menuItems = (findList('menuItems').isEmpty 
+        ? (findList('items').isEmpty ? findList('dishes') : findList('items'))
+        : findList('menuItems'))
+        .where((e) => e is Map && (e.containsKey('name') || e.containsKey('dish_name') || e.containsKey('item_name') || e.containsKey('dishName') || e.containsKey('title'))).toList();
+
+    if (menuItems.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (summary != null && summary.isNotEmpty) ...[
-          const SheetSectionHeader(title: 'EXPERT SUMMARY', color: Colors.transparent),
-          DashboardCard(
-            child: Padding(
-              padding: EdgeInsets.all(AppSizes.p20),
-              child: Text(summary, style: context.body.copyWith(fontSize: 14.sp, height: 1.5, color: context.appColorScheme.textPrimary)),
-            ),
-          ),
-          Gap.h32,
-        ],
-        if (balance.isNotEmpty) ...[
-          const SheetSectionHeader(title: 'MEAL BALANCE', color: Colors.transparent),
-          DashboardCard(
-            child: Padding(
-              padding: EdgeInsets.all(AppSizes.p20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('NUTRITIONAL EQUILIBRIUM FOR THIS CHOICE', style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                  Gap.h16,
-                  NutrientBalanceWrap(balance: balance),
-                ],
-              ),
-            ),
-          ),
-          Gap.h32,
-        ],
-        if (workingWell.isNotEmpty || missing.isNotEmpty || sensitivities.isNotEmpty) ...[
-          const SheetSectionHeader(title: 'DINING STRATEGY', color: Colors.transparent),
-          DashboardCard(
-            child: Padding(
-              padding: EdgeInsets.all(AppSizes.p20),
-              child: _MenuStrategyCard(workingWell: workingWell, missing: missing, sensitivities: sensitivities),
-            ),
-          ),
-          Gap.h32,
-        ],
         const SheetSectionHeader(title: 'MENU RECOMMENDATIONS', color: Colors.transparent),
-        if (restaurantName != null && restaurantName != 'Unknown') ...[
-          Text(restaurantName.toUpperCase(), style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: 16.sp, letterSpacing: -0.5)),
-          if (location != null) ...[
-            Gap.h4,
-            Row(children: [Icon(AppIcons.mapPin, size: 12, color: context.appColorScheme.textMuted), Gap.w4, Text(location.toString(), style: context.caption.copyWith(color: context.appColorScheme.textMuted))]),
-          ],
-          Gap.h20,
-        ],
-        if (menuItems.isNotEmpty) ...[
-          for (int i = 0; i < menuItems.length; i++) ...[
-            _MenuItemTile(item: menuItems[i] is Map<String, dynamic> ? menuItems[i] : {}),
-            if (i < menuItems.length - 1) Divider(height: 32, color: context.appColorScheme.border.withOpacity(0.1)),
-          ]
-        ] else if (detectedText != null) ...[
-          DashboardCard(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(detectedText.toString(), style: context.body.copyWith(fontSize: 13.sp, color: context.appColorScheme.textSecondary)),
-            ),
+        SizedBox(
+          height: 200.h,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            itemCount: menuItems.length,
+            itemBuilder: (context, i) => _MenuItemCard(item: menuItems[i] is Map<String, dynamic> ? menuItems[i] : {}),
           ),
-        ]
+        ),
       ],
     );
   }
 }
 
-class _MenuStrategyCard extends StatelessWidget {
-  const _MenuStrategyCard({required this.workingWell, required this.missing, required this.sensitivities});
-  final List workingWell, missing, sensitivities;
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [if (workingWell.isNotEmpty) ...[_StrategyItem(title: 'Safe Bets', items: workingWell, icon: AppIcons.checkCircle, color: scheme.success), if (missing.isNotEmpty || sensitivities.isNotEmpty) Divider(height: 32, color: scheme.border.withOpacity(0.1))], if (missing.isNotEmpty) ...[_StrategyItem(title: 'Better with...', items: missing, icon: AppIcons.plusCircle, color: AppPalette.blue), if (sensitivities.isNotEmpty) Divider(height: 32, color: scheme.border.withOpacity(0.1))], if (sensitivities.isNotEmpty) ...[_StrategyItem(title: 'Watch out for', items: sensitivities, icon: AppIcons.alertTriangle, color: scheme.warning)]]);
-  }
-}
-
-class _StrategyItem extends StatelessWidget {
-  const _StrategyItem({required this.title, required this.items, required this.icon, required this.color});
-  final String title;
-  final List items;
-  final IconData icon;
-  final Color color;
-  @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(icon, size: 14, color: color), Gap.w8, Text(title.toUpperCase(), style: context.caption.copyWith(fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5))]), Gap.h8, Text(items.join(' • '), style: context.body.copyWith(fontSize: 13.sp, color: context.appColorScheme.textPrimary, height: 1.4))]);
-}
-
-class _MenuItemTile extends StatelessWidget {
-  const _MenuItemTile({required this.item});
+class _MenuItemCard extends StatelessWidget {
+  const _MenuItemCard({required this.item});
   final Map<String, dynamic> item;
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final name = item['name'] ?? 'Unknown Item';
-    final description = item['description'] ?? '';
-    final impact = item['gutImpact'] ?? item['observation'] ?? '';
-    final price = item['price'];
-    final List ingredients = item['ingredients'] ?? [];
-    final List tags = item['dietaryTags'] ?? [];
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(name.toString().toUpperCase(), style: context.bodyBold.copyWith(letterSpacing: 0.5, fontSize: 14.sp))), if (price != null) Text(price.toString(), style: context.caption.copyWith(fontWeight: FontWeight.w900, color: scheme.textPrimary))]), if (description.isNotEmpty) ...[Gap.h8, Text(description.toString(), style: context.caption.copyWith(color: scheme.textSecondary, height: 1.4, fontSize: 12.sp))], if (tags.isNotEmpty) ...[Gap.h12, Wrap(spacing: 8, runSpacing: 8, children: tags.map((tag) => Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: scheme.textPrimary.withOpacity(0.05), borderRadius: BorderRadius.circular(8)), child: Text(tag.toString().toUpperCase(), style: context.caption.copyWith(fontSize: 9.sp, fontWeight: FontWeight.bold, color: scheme.textPrimary)))).toList())], if (ingredients.isNotEmpty) ...[Gap.h12, Text('Ingredients: ${ingredients.join(', ')}', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.sp, fontStyle: FontStyle.italic))], if (impact.isNotEmpty) ...[Gap.h12, Row(children: [Icon(AppIcons.salad, size: 14, color: scheme.success), Gap.w8, Expanded(child: Text(impact.toString(), style: context.caption.copyWith(color: scheme.success, fontWeight: FontWeight.bold, fontSize: 11.sp)))])], Gap.h12]);
+    final successColor = scheme.success;
+
+    // 🚀 Robust Item Extraction
+    final name = (item['name'] ?? item['dish_name'] ?? item['item_name'] ?? item['dishName'] ?? 'Unknown Item').toString();
+    final description = (item['description'] ?? item['summary'] ?? item['about'] ?? item['desc'] ?? '').toString();
+    final impact = (item['gutImpact'] ?? item['observation'] ?? item['impact'] ?? item['health_note'] ?? item['note'] ?? '').toString();
+    final price = (item['price'] ?? item['cost'])?.toString();
+
+    // 🖼️ Dynamic Image Generation via Utils
+    String? rawImageUrl = (item['imageUrl'] ?? item['image_url'] ?? item['image'])?.toString();
+    if (rawImageUrl == 'null' || rawImageUrl == null || rawImageUrl.isEmpty) rawImageUrl = null;
+    final displayImageUrl = rawImageUrl ?? getDynamicImageUrl(name);
+
+    final rawIngredients = item['ingredients'] ?? item['components'] ?? [];
+    final List ingredients = rawIngredients is List ? rawIngredients : [];
+
+    return Container(
+      width: 260.w,
+      margin: EdgeInsets.only(right: 16.w),
+      decoration: BoxDecoration(
+        color: scheme.cardBackground,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: scheme.border.withValues(alpha: 0.8)),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // Visual Element: Right-side Dynamic Image with Gradient Fade
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 140.w,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CachedNetworkImage(
+                    imageUrl: displayImageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(color: scheme.textPrimary.withValues(alpha: 0.05)),
+                    errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          scheme.cardBackground,
+                          scheme.cardBackground.withValues(alpha: 0.8),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.2, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: EdgeInsets.all(24.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Header: Health Badge & Pricing
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: successColor.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(AppIcons.leaf, size: 18, color: successColor),
+                    ),
+                    if (price != null && price != 'null' && price.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: scheme.textPrimary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(
+                          price,
+                          style: context.caption.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 11.sp),
+                        ),
+                      ),
+                  ],
+                ),
+                Gap.h20,
+                // Premium Typography: Dish Identity
+                SizedBox(
+                  width: 160.w,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name.toUpperCase(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.bodyBold.copyWith(
+                          color: scheme.textPrimary,
+                          fontSize: 16.sp,
+                          height: 1.1,
+                          letterSpacing: -0.4,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (ingredients.isNotEmpty) ...[
+                        Gap.h8,
+                        Text(
+                          'Ingredients: ${ingredients.join(", ")}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.caption.copyWith(color: scheme.textSecondary.withValues(alpha: 0.6), fontSize: 9.sp, fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Gap.h12,
+                // Narrative Insight
+                SizedBox(
+                  width: 160.w,
+                  child: Text(
+                    impact.isNotEmpty ? impact : description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.body.copyWith(
+                      color: scheme.textSecondary,
+                      fontSize: 11.sp,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // Professional CTA Footer
+                Row(
+                  children: [
+                    Text(
+                      'Explore Science',
+                      style: context.caption.copyWith(
+                        color: successColor,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10.sp,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    Gap.w6,
+                    Icon(AppIcons.arrowRight, size: 12, color: successColor),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -904,7 +1298,7 @@ class ProductMetadataSection extends StatelessWidget {
     void addItem(String label, String value, IconData icon) {
       items.add(Container(
         margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
           color: scheme.elevatedSurface,
           borderRadius: BorderRadius.circular(100),
@@ -913,25 +1307,25 @@ class ProductMetadataSection extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(8.w),
+              padding: EdgeInsets.all(10.w),
               decoration: BoxDecoration(
                 color: scheme.textPrimary.withValues(alpha: 0.05),
                 shape: BoxShape.circle,
                 border: Border.all(color: scheme.border.withValues(alpha: 0.5)),
               ),
-              child: Icon(icon, size: 14.w, color: scheme.textPrimary),
+              child: Icon(icon, size: 16.w, color: scheme.textPrimary),
             ),
             Gap.w16,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: context.bodyBold.copyWith(fontSize: 13.sp, height: 1.1)),
-                  Text(value, style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                  Text(label, style: context.bodyBold.copyWith(fontSize: 14.sp, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: scheme.textPrimary)),
+                  Text(value, style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, fontWeight: FontWeight.w600, height: 1.4)),
                 ],
               ),
             ),
-            Icon(AppIcons.chevronRight, size: 14.w, color: scheme.textMuted),
+            Icon(AppIcons.chevronRight, size: 16.w, color: scheme.textMuted),
             Gap.w4,
           ],
         ),
@@ -982,12 +1376,291 @@ class ProductMetadataSection extends StatelessWidget {
   }
 }
 
-class _MetadataRow extends StatelessWidget {
-  const _MetadataRow({required this.label, required this.value, this.isLast = false});
-  final String label, value;
-  final bool isLast;
+class ExpertSummaryCard extends StatelessWidget {
+  const ExpertSummaryCard({super.key, required this.scanData});
+  final ScanResult scanData;
+
   @override
-  Widget build(BuildContext context) => Padding(padding: EdgeInsets.only(bottom: isLast ? 0 : AppSizes.p8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: context.caption.copyWith(color: context.appColorScheme.textMuted)), Text(value, style: context.caption.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.bold))]));
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final Map<String, dynamic> raw = scanData.rawData ?? {};
+
+    final findString = (String key) {
+      if (raw[key] is String) return raw[key].toString();
+      final blocks = ['meal', 'scan', 'rawData', 'analysis'];
+      for (final b in blocks) {
+        if (raw[b] is Map && raw[b][key] != null) return raw[b][key].toString();
+      }
+      return null;
+    };
+
+    final String? summaryStr = findString('summary') ?? scanData.impact;
+    if (summaryStr == null || summaryStr.isEmpty) return const SizedBox.shrink();
+
+    return BentoCard(
+      height: 240.h,
+      padding: const EdgeInsets.all(20),
+      backgroundColor: const Color(0xFFC4B5FD),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('EXPERT SUMMARY', style: context.caption.copyWith(color: Colors.black.withOpacity(0.6), fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2)),
+              Icon(AppIcons.sparkles, color: Colors.black.withOpacity(0.4), size: 14),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            summaryStr,
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
+            style: context.body.copyWith(fontSize: 13.5.sp, height: 1.5, color: Colors.black, fontWeight: FontWeight.w500, letterSpacing: -0.2),
+          ),
+          const Spacer(),
+
+        ],
+      ),
+    );
+  }
+}
+
+class NutrientStatisticsCard extends StatelessWidget {
+  const NutrientStatisticsCard({super.key, required this.scanData});
+  final ScanResult scanData;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final protein = (scanData.nutrients?.proteins ?? 0.0).toDouble();
+    final fiber = (scanData.nutrients?.fiber ?? 0.0).toDouble();
+
+    if (protein == 0 && fiber == 0) return const SizedBox.shrink();
+
+    return BentoCard(
+      height: 240.h,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('NUTRIENT STATS', style: context.caption.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2)),
+              Icon(AppIcons.activity, color: scheme.textSecondary, size: 14),
+            ],
+          ),
+          const Spacer(),
+          Text('${(protein + fiber).toStringAsFixed(1)}g', style: context.displaySm.copyWith(color: scheme.textPrimary, fontSize: 32.sp, fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1.0)),
+          Gap.h6,
+          const Spacer(),
+          NutrientBarChart(nutrients: {'protein': protein, 'fiber': fiber}),
+        ],
+      ),
+    );
+  }
+}
+
+class MealBalanceCard extends StatelessWidget {
+  const MealBalanceCard({super.key, required this.scanData});
+  final ScanResult scanData;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final Map<String, dynamic> raw = scanData.rawData ?? {};
+    Map<String, dynamic> balance = {};
+
+    final findMap = (String key) {
+      if (raw[key] is Map) return Map<String, dynamic>.from(raw[key] as Map);
+      final blocks = ['menu', 'meal', 'scan', 'rawData', 'analysis', 'nutrients'];
+      for (final b in blocks) {
+        if (raw[b] is Map && (raw[b] as Map).containsKey(key) && raw[b][key] is Map) {
+          return Map<String, dynamic>.from(raw[b][key] as Map);
+        }
+      }
+      return <String, dynamic>{};
+    };
+
+    balance = findMap('balance').isEmpty ? findMap('nutritionalBalance') : findMap('balance');
+    if (balance.isEmpty) balance = findMap('macroBalance');
+
+    if (balance.isEmpty) {
+      void search(Map<String, dynamic> m) {
+        if (balance.isNotEmpty) return;
+        if (m.containsKey('balance') && m['balance'] is Map) {
+          balance = Map<String, dynamic>.from(m['balance'] as Map);
+          return;
+        }
+        for (final v in m.values) {
+          if (v is Map) search(Map<String, dynamic>.from(v as Map));
+          if (balance.isNotEmpty) return;
+        }
+      }
+      search(raw);
+    }
+
+    if (balance.isEmpty) return const SizedBox.shrink();
+
+    final items = balance.entries.map((e) {
+      final status = e.value.toString().toUpperCase();
+      final Color color = switch (status.toLowerCase()) {
+        'good' || 'high' => const Color(0xFFB4F1B4),
+        'moderate' => AppPalette.orange,
+        'low' || 'poor' => AppPalette.red,
+        _ => AppPalette.gray400
+      };
+      return TimelineItem(title: e.key, subtitle: status, color: color);
+    }).toList();
+
+    return BentoCard(
+      height: 240.h,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('MEAL BALANCE', style: context.caption.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2)),
+              Row(
+                children: [
+                  CircleAvatar(radius: 6, backgroundColor: const Color(0xFFB4F1B4).withValues(alpha: 0.5)),
+                  Gap.w4,
+                  CircleAvatar(radius: 6, backgroundColor: const Color(0xFFC4B5FD).withValues(alpha: 0.5)),
+                ],
+              )
+            ],
+          ),
+          Gap.h24,
+          Expanded(child: ImpactTimeline(items: items)),
+        ],
+      ),
+    );
+  }
+}
+
+class ExpertStrategyCard extends StatelessWidget {
+  const ExpertStrategyCard({super.key, required this.scanData});
+  final ScanResult scanData;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final Map<String, dynamic> raw = scanData.rawData ?? {};
+    
+    // Attempt Label-style Clinical Audit first
+    final items = <TimelineItem>[];
+    if (scanData.nutrientLevels != null) {
+      final l = scanData.nutrientLevels!;
+      if (l.sugars.toLowerCase() == 'high') items.add(TimelineItem(title: 'Sugar', subtitle: 'Inflammatory spike', color: scheme.error));
+      if (l.salt.toLowerCase() == 'high') items.add(TimelineItem(title: 'Sodium', subtitle: 'Water retention', color: scheme.error));
+    }
+    for (final impact in scanData.impacts.take(2)) {
+      var color = const Color(0xFFB4F1B4);
+      final level = impact.level.toLowerCase();
+      if (level == 'high' || level == 'trigger' || level == 'negative') color = AppPalette.red;
+      else if (level == 'moderate' || level == 'neutral') color = AppPalette.orange;
+      items.add(TimelineItem(title: impact.title, subtitle: impact.level, color: color));
+    }
+
+    // Fallback to Meal Strategy logic if items empty
+    if (items.isEmpty) {
+      final Map<String, dynamic> meal = raw['meal'] ?? raw['scan'] ?? raw;
+      final List strategies = meal['workingWell'] is List ? meal['workingWell'] as List : [];
+      if (strategies.isNotEmpty) {
+        items.addAll(strategies.take(3).map((s) => TimelineItem(title: 'Safe', subtitle: s.toString(), color: const Color(0xFFB4F1B4))));
+      }
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return BentoCard(
+      height: 240.h,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('CLINICAL AUDIT', style: context.caption.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2)),
+              Icon(Icons.arrow_outward, color: scheme.textMuted, size: 14),
+            ],
+          ),
+          Gap.h24,
+          Expanded(child: ImpactTimeline(items: items)),
+        ],
+      ),
+    );
+  }
+}
+
+
+class DashboardMetricGrid extends StatelessWidget {
+  const DashboardMetricGrid({super.key, required this.scanData});
+  final ScanResult scanData;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final Map<String, dynamic> raw = scanData.rawData ?? {};
+    final isMenu = scanData.detailRoute == '/menu-result';
+    
+    final metric1 = isMenu 
+        ? _MetricData('Dishes', '${((raw['menu'] ?? raw)['items'] ?? []).length}', 'DETECTED')
+        : _MetricData('Calories', '${scanData.nutrients?.calories ?? 0}', 'KCAL');
+    
+    final metric2 = _MetricData('Safety', '${scanData.score}%', 'SCORE');
+    
+    final metric3 = isMenu 
+        ? _MetricData('Allergens', '${scanData.allergens?.split(',').length ?? 0}', 'TOTAL')
+        : _MetricData('Additives', '${scanData.additives?.split(',').where((e) => e.trim().isNotEmpty).length ?? 0}', 'DETECTED');
+
+    final metric4 = _MetricData('Nova', '${scanData.novaGroup ?? 1}', 'GROUP');
+
+    return Row(
+      children: [
+        Expanded(child: _SmallMetricCard(data: metric1)),
+        Gap.w12,
+        Expanded(child: _SmallMetricCard(data: metric2)),
+        Gap.w12,
+        Expanded(child: _SmallMetricCard(data: metric3)),
+        Gap.w12,
+        Expanded(child: _SmallMetricCard(data: metric4)),
+      ],
+    );
+  }
+}
+
+class _MetricData {
+  final String label, value, unit;
+  _MetricData(this.label, this.value, this.unit);
+}
+
+class _SmallMetricCard extends StatelessWidget {
+  const _SmallMetricCard({required this.data});
+  final _MetricData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    return BentoCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      borderRadius: 20,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(data.label.toUpperCase(), style: TextStyle(fontSize: 8.sp, fontWeight: FontWeight.w900, color: scheme.textSecondary, letterSpacing: 0.5)),
+          Gap.h8,
+          Text(data.value, style: context.headingSm.copyWith(fontWeight: FontWeight.w900, fontSize: 18.sp, color: scheme.textPrimary)),
+          Gap.h2,
+          Text(data.unit, style: TextStyle(fontSize: 6.sp, fontWeight: FontWeight.w800, color: scheme.textMuted)),
+        ],
+      ),
+    );
+  }
 }
 
 class AllergensSection extends StatelessWidget {
@@ -999,7 +1672,72 @@ class AllergensSection extends StatelessWidget {
     final scheme = context.appColorScheme;
     final allergenList = allergens.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (allergenList.isEmpty) return const SizedBox.shrink();
-    final items = allergenList.map((allergen) => ScanImpactDetailItem(title: allergen, subtitle: 'Potential inflammatory trigger', icon: AppIcons.alertTriangle, value: 'ALERT', color: scheme.error)).toList();
-    return ScanImpactSection(title: 'Allergens detected', icon: AppIcons.alertTriangle, iconColor: scheme.error, servingInfo: servingSize, items: items);
+
+    final List<Widget> items = [];
+    for (final allergen in allergenList) {
+      items.add(Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          color: scheme.elevatedSurface,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: scheme.error.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(color: scheme.error.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: Icon(AppIcons.alertTriangle, size: 16.w, color: scheme.error),
+            ),
+            Gap.w16,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(allergen.toUpperCase(), style: context.bodyBold.copyWith(fontSize: 14.sp, color: scheme.error, letterSpacing: -0.4, fontWeight: FontWeight.w800, height: 1.1)),
+                  Text('Inflammatory trigger', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, fontWeight: FontWeight.w600, height: 1.4)),
+                ],
+              ),
+            ),
+            Text('ALERT', style: context.caption.copyWith(color: scheme.error, fontWeight: FontWeight.w900, fontSize: 8.sp, letterSpacing: 1.0)),
+            Gap.w8,
+          ],
+        ),
+      ));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DashboardCard(
+          child: Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(AppIcons.alertTriangle, size: 18.w, color: scheme.error),
+                    Gap.w12,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('SAFETY AUDIT', style: context.bodyBold.copyWith(fontSize: 14.sp, color: scheme.error)),
+                          if (servingSize != null) Text('Analyzed per $servingSize', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Gap.h20,
+                ...items,
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

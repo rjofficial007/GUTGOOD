@@ -8,7 +8,6 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -388,7 +387,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
 
   Color _getScoreColor(BuildContext context, int score) {
     if (score >= 70) return context.appColorScheme.success;
-    if (score >= 40) return context.appColorScheme.warning;
+    if (score >= 40) return const Color(0xFFC4B5FD);
     return context.appColorScheme.error;
   }
 

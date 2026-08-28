@@ -24,10 +24,10 @@ import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart'
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
 import 'package:gutgood/features/chat/presentation/pages/notification_archive_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dart';
-import 'package:gutgood/features/history/presentation/pages/meal_detail_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/meal_detail_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
-import 'package:gutgood/features/history/presentation/pages/symptom_detail_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/symptom_detail_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';

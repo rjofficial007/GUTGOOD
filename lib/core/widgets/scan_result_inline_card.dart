@@ -6,7 +6,6 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -70,87 +69,6 @@ class ScanResultInlineCard extends StatelessWidget {
     );
   }
 
-  Widget _buildNutritionalBalance(BuildContext context, Map<String, dynamic> balance) {
-    final scheme = context.appColorScheme;
-    return Padding(
-      padding: isEmbedded ? const EdgeInsets.only(bottom: 16) : const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: balance.entries.map((e) {
-          final label = e.key.toUpperCase();
-          final status = e.value.toString().toLowerCase();
-          final Color color = switch (status) {
-            'good' || 'high' => scheme.success,
-            'moderate' => scheme.warning,
-            _ => scheme.textMuted,
-          };
-
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(width: 5, height: 5, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                Gap.w6,
-                Text(
-                  '$label: ${status.toUpperCase()}',
-                  style: context.caption.copyWith(color: color, fontWeight: FontWeight.w900, fontSize: 8.sp, letterSpacing: 0.3),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildIdentifiedItems(BuildContext context, List items) {
-    final scheme = context.appColorScheme;
-    return Padding(
-      padding: isEmbedded ? const EdgeInsets.only(bottom: 16) : const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('IDENTIFIED DISHES', style: context.eyebrow.copyWith(fontSize: 8.sp, letterSpacing: 1.0, color: scheme.textMuted)),
-          Gap.h8,
-          ...items.map((item) {
-            final data = item is Map ? item : {};
-            final name = data['name']?.toString() ?? 'Unknown';
-            final observation = data['observation']?.toString() ?? '';
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Icon(AppIcons.check, size: 10.sp, color: scheme.success),
-                  Gap.w8,
-                  Expanded(
-                    child: RichText(
-                      text: TextSpan(
-                        style: context.body.copyWith(fontSize: 11.5.sp, color: scheme.textPrimary),
-                        children: [
-                          TextSpan(text: name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          if (observation.isNotEmpty)
-                            TextSpan(
-                              text: ' • $observation',
-                              style: TextStyle(color: scheme.textSecondary, fontSize: 10.5.sp),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
 
   Widget _buildHeader(BuildContext context, Color impactColor) {
     final colorScheme = context.appColorScheme;
@@ -370,82 +288,8 @@ class ScanResultInlineCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildMealStrategy(BuildContext context) {
-    final Map<String, dynamic> raw = scanData.rawData ?? {};
-    final Map<String, dynamic> mealBlock = raw['meal'] is Map ? Map<String, dynamic>.from(raw['meal'] as Map) : {};
-
-    final List workingWell = mealBlock['workingWell'] is List ? mealBlock['workingWell'] as List : [];
-    final List missing = mealBlock['missingOrCouldAdd'] is List ? mealBlock['missingOrCouldAdd'] as List : [];
-    final List sensitivities = mealBlock['sensitivityNotes'] is List ? mealBlock['sensitivityNotes'] as List : [];
-
-    if (workingWell.isEmpty && missing.isEmpty && sensitivities.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final scheme = context.appColorScheme;
-
-    return Container(
-      margin: EdgeInsets.only(bottom: isEmbedded ? 16 : 8),
-      padding: EdgeInsets.all(isEmbedded ? 12 : 16),
-      decoration: BoxDecoration(
-        color: scheme.textPrimary.withValues(alpha: isEmbedded ? 0.02 : 0.03),
-        borderRadius: BorderRadius.circular(isEmbedded ? AppSizes.r16 : AppSizes.r24),
-        border: isEmbedded ? null : Border.all(color: scheme.border.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (workingWell.isNotEmpty) ...[
-            _StrategyLine(icon: AppIcons.checkCircle, color: scheme.success, title: 'Safe Bets', items: workingWell, isEmbedded: isEmbedded),
-            if (missing.isNotEmpty || sensitivities.isNotEmpty) Gap.h12,
-          ],
-          if (missing.isNotEmpty) ...[
-            _StrategyLine(icon: AppIcons.plusCircle, color: AppPalette.blue, title: 'Better with...', items: missing, isEmbedded: isEmbedded),
-            if (sensitivities.isNotEmpty) Gap.h12,
-          ],
-          if (sensitivities.isNotEmpty) ...[
-            _StrategyLine(icon: AppIcons.alertTriangle, color: scheme.warning, title: 'Watch out for', items: sensitivities, isEmbedded: isEmbedded),
-          ],
-        ],
-      ),
-    );
-  }
 }
 
-class _StrategyLine extends StatelessWidget {
-  const _StrategyLine({required this.icon, required this.color, required this.title, required this.items, this.isEmbedded = false});
-  final IconData icon;
-  final Color color;
-  final String title;
-  final List items;
-  final bool isEmbedded;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Icon(icon, size: isEmbedded ? 12.sp : 14, color: color),
-      Gap.w8,
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title.toUpperCase(),
-              style: context.caption.copyWith(fontWeight: FontWeight.w900, color: color, fontSize: isEmbedded ? 8.sp : 9.sp, letterSpacing: 0.5),
-            ),
-            Gap.h2,
-            Text(
-              items.join(' • '),
-              style: context.body.copyWith(fontSize: isEmbedded ? 11.sp : 12.sp, color: context.appColorScheme.textPrimary, height: 1.3),
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
-}
 
 class _RefinedTag extends StatelessWidget {
   const _RefinedTag({required this.label, required this.impact});
