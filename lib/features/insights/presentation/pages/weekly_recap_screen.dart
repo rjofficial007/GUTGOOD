@@ -11,12 +11,16 @@ import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/extensions.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
+
+import '../../../../features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class WeeklyRecapScreen extends StatelessWidget {
   const WeeklyRecapScreen({super.key, this.insight});
@@ -35,75 +39,197 @@ class WeeklyRecapScreen extends StatelessWidget {
       return const _RecapLoadingView();
     }
 
-    final visibleSections = _buildSections(context, recap, highlights);
-
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
           const GutSliverAppBar(title: AppStrings.weeklyRecap, showBrandingIcon: false),
-          SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => Padding(
-                  padding: EdgeInsets.only(bottom: AppSizes.p20),
-                  child: visibleSections[index],
-                ),
-                childCount: visibleSections.length,
-              ),
-            ),
-          ),
+          _MainDashboardSliver(data: insight!, highlights: highlights),
         ],
       ),
     );
   }
+}
 
-  List<Widget> _buildSections(BuildContext context, WeeklyRecap? recap, List<RecapHighlight> highlights) {
+class _MainDashboardSliver extends StatelessWidget {
+  const _MainDashboardSliver({required this.data, required this.highlights});
+  final AIInsight data;
+  final List<RecapHighlight> highlights;
+
+  @override
+  Widget build(BuildContext context) {
     final profile = context.watch<ProfileNotifier>();
     final streak = profile.streak;
+    final recap = data.weeklyRecap;
 
-    final sections = <Widget>[
-      const _RecapDateHeader(),
-      GutSnapshotHeroCard(score: recap?.avgScore ?? 0, scoreDiff: recap?.scoreSub, streak: streak, isActive: true),
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 1. Weekly Average Hero (Wallet Style with Date)
+            DashboardEntrance(
+              delay: 50,
+              child: GutSnapshotHeroCard(
+                score: recap?.avgScore ?? 0, 
+                scoreDiff: recap?.scoreSub, 
+                streak: streak, 
+                isActive: false,
+                title: recap?.dateRange ?? AppStrings.last7Days,
+              ),
+            ),
+            Gap.h12,
 
-      // 1. PERFORMANCE HIGHLIGHTS
-      DashboardEntrance(
-        delay: 100,
-        child: AnalysisCard(
-          metric: '${recap?.avgScore ?? 0}',
-          label: AppStrings.performanceHighlights,
-          icon: AppIcons.barChart,
-          glowColor: AppPalette.green,
-          items: [
-            AnalysisItem(title: recap?.bestDay ?? 'N/A', subtitle: AppStrings.peakPerformance, icon: AppIcons.star, isDone: true),
-            AnalysisItem(title: '${recap?.foodsLogged ?? 0}', subtitle: AppStrings.totalLogs, icon: AppIcons.utensils, isDone: true),
-            AnalysisItem(title: insight!.healingTrend?.toUpperCase() ?? AppStrings.stable, subtitle: AppStrings.weeklyTrend, icon: AppIcons.trendingUp, isDone: true),
+            // 2. Weekly Metrics Grid
+            DashboardEntrance(
+              delay: 100,
+              child: InsightMetricGrid(data: data),
+            ),
+            Gap.h12,
+
+            // 3. Performance Highlight (Bento Card)
+            DashboardEntrance(
+              delay: 150,
+              child: BentoCard(
+                padding: const EdgeInsets.all(12),
+                height: 180.h,
+                backgroundColor: AppPalette.greenPastel,
+                child: Row(
+                  children: [
+                    // Left block: Peak Performance
+                    Container(
+                      width: 156.h,
+                      height: 156.h,
+                      decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            top: 12, left: 12,
+                            child: Text('PEAK', style: context.captionMicro.copyWith(color: AppPalette.green, fontWeight: FontWeight.w900)),
+                          ),
+                          Center(child: Icon(AppIcons.star, size: 64.sp, color: AppPalette.green)),
+                          Positioned(
+                            bottom: 12, left: 12, right: 12,
+                            child: Text(recap?.bestDay ?? 'N/A', textAlign: TextAlign.center, style: context.captionBold.copyWith(color: AppPalette.black)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Gap.w16,
+                    // Right info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(AppStrings.performanceHighlights.toUpperCase(), style: context.captionBold.copyWith(color: AppPalette.black.withAlpha(102))),
+                          Gap.h8,
+                          Text('${recap?.foodsLogged ?? 0} FOODS LOGGED', style: context.bodyBold.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 16.sp)),
+                          Gap.h4,
+                          Text(data.healingTrend ?? 'Stable weekly trend.', style: context.caption.copyWith(color: AppPalette.black.withAlpha(153), height: 1.3)),
+                          Gap.h12,
+                          Row(
+                            children: [
+                              Icon(AppIcons.trendingUp, size: 14, color: AppPalette.green),
+                              Gap.w6,
+                              Text('OPTIMIZING', style: context.captionBold.copyWith(color: AppPalette.green)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Gap.h12,
+
+            // 4. Weekly Patterns (Discoveries)
+            if (highlights.isNotEmpty) ...[
+              ..._buildHighlightCards(context, highlights),
+            ],
+
+            // 5. Weekly Pulse (AI Intelligence)
+            ModernSmartAlert(
+              insight: InsightSummary(
+                title: AppStrings.weeklyPulse,
+                description: '${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}${data.healingTrend ?? AppStrings.optimizing}${AppStrings.narrativeBasedOnLogs}',
+                type: 'Weekly',
+              ),
+            ),
+            Gap.h40,
           ],
         ),
       ),
-    ];
+    );
+  }
 
-    // 2. YOUR PATTERNS
-    if (highlights.isNotEmpty) {
-      sections.add(
+  List<Widget> _buildHighlightCards(BuildContext context, List<RecapHighlight> highlights) {
+    final widgets = <Widget>[];
+    final scheme = context.appColorScheme;
+    
+    for (var i = 0; i < highlights.length; i++) {
+      final h = highlights[i];
+      widgets.add(
         DashboardEntrance(
-          delay: 200,
-          child: AnalysisCard(
-            metric: '${highlights.length}',
-            label: AppStrings.yourPatterns,
-            icon: AppIcons.brain,
-            glowColor: AppPalette.purple,
-            items: highlights.map((h) => AnalysisItem(title: h.text, subtitle: AppStrings.discovery, icon: AppIcons.lightbulb, isDone: true)).toList(),
+          delay: 200 + (i * 50),
+          child: BentoCard(
+            padding: const EdgeInsets.all(12),
+            height: 140.h,
+            backgroundColor: scheme.elevatedSurface,
+            child: Row(
+              children: [
+                // Left Panel: Identity block
+                Container(
+                  width: 116.h,
+                  height: 116.h,
+                  decoration: BoxDecoration(color: AppPalette.purplePastel, borderRadius: BorderRadius.circular(16)),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Text(
+                          'WEEKLY',
+                          style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(102), fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      Center(
+                        child: Icon(AppIcons.lightbulb, size: 36.sp, color: AppPalette.black.withAlpha(153)),
+                      ),
+                    ],
+                  ),
+                ),
+                Gap.w16,
+                // Right Panel: Text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        AppStrings.discovery.toUpperCase(),
+                        style: context.captionBold.copyWith(color: scheme.textMuted, fontSize: 9.sp),
+                      ),
+                      Gap.h4,
+                      Text(
+                        h.text,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.bodyBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 15.sp, letterSpacing: -0.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
+      widgets.add(Gap.h12);
     }
-
-    // 3. WEEKLY PULSE (AI Smart Alert)
-    sections.add(DashboardEntrance(delay: 300, child: _ModernSmartAlert(insight: insight!)));
-
-    return sections;
+    return widgets;
   }
 }
 
@@ -119,59 +245,4 @@ class _RecapLoadingView extends StatelessWidget {
       child: const ShimmerGridLoader(variant: ShimmerVariant.recap),
     ),
   );
-}
-
-class _RecapDateHeader extends StatelessWidget {
-  const _RecapDateHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final recap = context.read<InsightsNotifier>().latestInsight?.weeklyRecap;
-    return Center(
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p6),
-        decoration: BoxDecoration(
-          color: context.appColorScheme.border.withAlpha(51),
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: context.appColorScheme.border),
-        ),
-        child: Text(
-          recap?.dateRange ?? AppStrings.last7Days,
-          style: context.eyebrow.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900),
-        ),
-      ),
-    );
-  }
-}
-
-class _ModernSmartAlert extends StatelessWidget {
-  const _ModernSmartAlert({required this.insight});
-  final AIInsight insight;
-
-  @override
-  Widget build(BuildContext context) {
-    final profile = context.watch<ProfileNotifier>();
-    final streak = profile.streak;
-    final healingTrend = insight.healingTrend ?? AppStrings.optimizing;
-    final description = '${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}$healingTrend${AppStrings.narrativeBasedOnLogs}';
-
-    return ModernInsightCard(
-      title: AppStrings.weeklyPulse,
-      icon: AppIcons.salad,
-      backgroundColor: context.appColorScheme.cardBackground,
-      titleColor: context.appColorScheme.textPrimary,
-      iconColor: context.appColorScheme.textPrimary,
-      padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, AppSizes.p20),
-      footer: Text(
-        AppStrings.aiSummary,
-        textAlign: TextAlign.center,
-        style: context.captionBold.copyWith(color: context.appColorScheme.cardBackground),
-      ),
-      footerColor: context.appColorScheme.textPrimary,
-      child: Text(
-        description,
-        style: context.label.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
-      ),
-    );
-  }
 }

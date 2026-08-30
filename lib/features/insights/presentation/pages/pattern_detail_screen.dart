@@ -1,10 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/pattern_occurrence.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -12,8 +10,8 @@ import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class PatternDetailScreen extends StatelessWidget {
   const PatternDetailScreen({super.key, required this.pattern});
@@ -27,27 +25,173 @@ class PatternDetailScreen extends StatelessWidget {
       backgroundColor: scheme.cardBackground,
       body: CustomScrollView(
         slivers: [
-          const GutSliverAppBar(title: '', showBrandingIcon: false),
-          SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                DashboardEntrance(delay: 50, child: _PatternHeroCard(pattern: pattern)),
-                Gap.h20,
-                DashboardEntrance(delay: 100, child: _ObservationsCard(pattern: pattern)),
-                Gap.h20,
-                if (pattern.occurrences.isNotEmpty) ...[
+          const GutSliverAppBar(title: AppStrings.intelligenceDetail, showBrandingIcon: false),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 1. Discovery Hero (Wallet Identity)
+                  DashboardEntrance(
+                    delay: 50,
+                    child: _PatternHeroCard(pattern: pattern),
+                  ),
+                  Gap.h12,
+
+                  // 2. Statistical Quick View
+                  DashboardEntrance(
+                    delay: 100,
+                    child: _PatternMetricGrid(pattern: pattern),
+                  ),
+                  Gap.h12,
+
+                  // 3. Clinical Observation & Action Plan Row
                   DashboardEntrance(
                     delay: 150,
-                    child: _OccurrenceTimeline(occurrences: pattern.occurrences, patternType: pattern.type),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: BentoCard(
+                            height: 240.h,
+                            backgroundColor: AppPalette.purplePastel,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(AppStrings.observationsLabel.toUpperCase(), style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900)),
+                                    Icon(AppIcons.brain, color: AppPalette.black.withAlpha(102), size: 14),
+                                  ],
+                                ),
+                                const Spacer(),
+                                Text(
+                                  pattern.description,
+                                  maxLines: 5,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.3, fontWeight: FontWeight.w900, fontSize: 13.sp),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  'AI SUMMARY',
+                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Gap.w12,
+                        Expanded(
+                          child: BentoCard(
+                            height: 240.h,
+                            backgroundColor: AppPalette.greenPastel,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(AppStrings.actionPlan.toUpperCase(), style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900)),
+                                    Icon(AppIcons.lightbulb, color: AppPalette.black.withAlpha(102), size: 14),
+                                  ],
+                                ),
+                                const Spacer(),
+                                Text(
+                                  pattern.recommendation ?? 'Keep monitoring your intake to verify this body reaction.',
+                                  maxLines: 5,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.3, fontWeight: FontWeight.w900, fontSize: 13.sp),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  'AI ACTION',
+                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Gap.h20,
+                  Gap.h12,
+
+                  // 4. Involved Foods (Bento Cycler)
+                  if (pattern.involvedFoods.isNotEmpty) ...[
+                    DashboardEntrance(
+                      delay: 200,
+                      child: BentoCard(
+                        padding: const EdgeInsets.all(12),
+                        height: 180.h,
+                        backgroundColor: scheme.surfaceSubtle,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 136.h,
+                              height: 136.h,
+                              decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
+                              child: Stack(
+                                children: [
+                                  Positioned(top: 12, left: 12, child: Icon(AppIcons.utensils, size: 14, color: scheme.textPrimary)),
+                                  Center(child: Text('${pattern.involvedFoods.length}', style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 64.sp, letterSpacing: -4))),
+                                  Positioned(bottom: 12, left: 12, right: 12, child: Text('IDENTIFIED', textAlign: TextAlign.center, style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900))),
+                                ],
+                              ),
+                            ),
+                            Gap.w16,
+                            Expanded(
+                              child: BentoItemCycler(
+                                items: pattern.involvedFoods.map((f) => CyclerItemData(
+                                  name: f,
+                                  effect: 'Linked to this discovery.',
+                                  emoji: '🍽️',
+                                )).toList(),
+                                title: AppStrings.involvedFoodsLabel,
+                                trend: 'Statistical factors detected.',
+                                isPositive: false,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Gap.h12,
+                  ],
+
+                  // 5. Timeline Context
+                  if (pattern.occurrences.isNotEmpty) ...[
+                    DashboardEntrance(
+                      delay: 250,
+                      child: BentoCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(AppStrings.recentTimelineLabel.toUpperCase(), style: context.captionBold.copyWith(color: scheme.textSecondary)),
+                                Icon(AppIcons.history, color: scheme.textSecondary, size: 14),
+                              ],
+                            ),
+                            Gap.h20,
+                            ImpactTimeline(
+                              items: pattern.occurrences.take(5).map((o) => TimelineItem(
+                                title: o.mealName,
+                                subtitle: '${o.date} • ${o.reaction}',
+                                color: scheme.textPrimary,
+                              )).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Gap.h12,
+                  ],
+                  Gap.h40,
                 ],
-                if (pattern.involvedFoods.isNotEmpty) ...[DashboardEntrance(delay: 175, child: _InvolvedFoodsCard(foods: pattern.involvedFoods)), Gap.h20],
-                if (pattern.commonFactors.isNotEmpty) ...[DashboardEntrance(delay: 200, child: _CommonFactorsCard(factors: pattern.commonFactors)), Gap.h20],
-                DashboardEntrance(delay: 250, child: _NextStepsCard(pattern: pattern)),
-                Gap.h40,
-              ]),
+              ),
             ),
           ),
         ],
@@ -64,275 +208,118 @@ class _PatternHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     final icon = InsightUiUtils.getPatternTypeIcon(pattern.type);
-    final patternName = InsightUiUtils.getPatternName(pattern.type);
-
-    return ModernInsightCard(
-      title: patternName.toUpperCase(),
-      icon: icon,
-      iconColor: scheme.textPrimary,
-      backgroundColor: scheme.cardBackground,
-      footer: Text(
-        '${(pattern.evidenceRatio * 100).toInt()}% PROBABILITY • ${pattern.frequency}/${pattern.totalSimilarMeals} OCCURRENCES',
-        style: context.captionBold.copyWith(color: scheme.cardBackground),
-      ),
-      footerColor: scheme.textPrimary,
-      child: Center(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Gap.h24,
-            Text(
-              pattern.trigger.toUpperCase(),
-              style: context.displaySm.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 0.9),
-              textAlign: TextAlign.center,
+    final themeColor = InsightUiUtils.getPatternPastelColor(pattern.type);
+    final accentColor = InsightUiUtils.getPatternColor(pattern.type);
+    
+    return BentoCard(
+      padding: const EdgeInsets.all(12),
+      height: 200.h,
+      backgroundColor: themeColor,
+      child: Row(
+        children: [
+          // Left block: Identity
+          Container(
+            width: 176.h,
+            height: 176.h,
+            decoration: BoxDecoration(
+              color: scheme.cardBackground.withAlpha(204),
+              borderRadius: BorderRadius.circular(16),
             ),
-            Gap.h8,
-            Text(AppStrings.linkedTo.toUpperCase(), style: context.eyebrow),
-            Gap.h8,
-            Text(
-              pattern.reaction.toUpperCase(),
-              style: context.displaySm.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 0.9, color: scheme.textPrimary),
-              textAlign: TextAlign.center,
-            ),
-            Gap.h32,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ObservationsCard extends StatelessWidget {
-  const _ObservationsCard({required this.pattern});
-  final BodyPattern pattern;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(AppStrings.observationsLabel, style: context.eyebrow),
-      Gap.h16,
-      AnalysisCard(
-        metric: pattern.frequency.toString(),
-        label: AppStrings.detectedEvents,
-        icon: AppIcons.brain,
-        glowColor: context.appColorScheme.textPrimary,
-        items: [
-          AnalysisItem(title: AppStrings.descriptionLabel, subtitle: pattern.description, icon: AppIcons.info),
-          AnalysisItem(
-            title: AppStrings.statisticalEvidence,
-            subtitle: '${(pattern.evidenceRatio * 100).toInt()}% Impact Probability: Symptomatic in ${pattern.positiveCount} logs, asymptomatic in ${pattern.negativeCount}.',
-            icon: AppIcons.activity,
-          ),
-        ],
-      ),
-    ],
-  );
-}
-
-class _OccurrenceTimeline extends StatelessWidget {
-  const _OccurrenceTimeline({required this.occurrences, required this.patternType});
-  final List<PatternOccurrence> occurrences;
-  final String patternType;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(AppStrings.recentTimelineLabel, style: context.eyebrow),
-        Gap.h20,
-        ...List.generate(occurrences.length, (i) {
-          final o = occurrences[i];
-          final isLast = i == occurrences.length - 1;
-
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Stack(
               children: [
-                // 1. Timeline Line & Dot
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        margin: const EdgeInsets.only(top: 26),
-                        decoration: BoxDecoration(color: scheme.textPrimary, shape: BoxShape.circle),
-                      ),
-                      if (!isLast) Expanded(child: Container(width: 2, color: scheme.borderSubtle)),
-                    ],
-                  ),
+                Positioned(
+                  top: 12, left: 12,
+                  child: Text('DISCOVERY', style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900)),
                 ),
-                Gap.w20,
-                // 2. Content Card
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(bottom: isLast ? 0 : AppSizes.p12),
-                    child: _HistoryListTile(
-                      title: o.mealName,
-                      subtitle: '${o.date} • ${o.reaction} • ${o.timeAfter}',
-                      imageUrl: o.imageUrl,
-                      iconColor: scheme.textPrimary,
-                      margin: EdgeInsets.zero,
-
-                      onTap: () {},
-                    ),
+                Center(child: Icon(icon, size: 64.sp, color: accentColor)),
+                Positioned(
+                  bottom: 12, left: 12, right: 12,
+                  child: Text(
+                    '${pattern.confidence.toUpperCase()} CONFIDENCE',
+                    textAlign: TextAlign.center,
+                    style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900),
                   ),
                 ),
               ],
             ),
-          );
-        }),
-      ],
-    );
-  }
-}
-
-class _HistoryListTile extends StatelessWidget {
-  const _HistoryListTile({required this.title, required this.subtitle, this.imageUrl, required this.iconColor, required this.onTap, this.margin});
-
-  final String title;
-  final String subtitle;
-  final String? imageUrl;
-  final Color iconColor;
-  final VoidCallback onTap;
-  final EdgeInsetsGeometry? margin;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: margin ?? EdgeInsets.only(bottom: AppSizes.p12),
-        padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          color: scheme.elevatedSurface,
-          borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: scheme.borderSubtle),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: AppSizes.w52,
-              height: AppSizes.w52,
-              decoration: BoxDecoration(color: scheme.border.withAlpha(51), borderRadius: BorderRadius.circular(AppSizes.r12)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppSizes.r12),
-                child: imageUrl != null && imageUrl!.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Shimmer.fromColors(
-                          baseColor: context.appColorScheme.border.withAlpha(51),
-                          highlightColor: context.appColorScheme.border.withAlpha(26),
-                          child: Container(color: AppPalette.white),
-                        ),
-                        errorWidget: (_, _, _) => Icon(AppIcons.salad, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
-                      )
-                    : Icon(AppIcons.salad, color: iconColor, size: AppSizes.icon24),
-              ),
-            ),
-            Gap.w16,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: context.labelBold,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          ),
+          Gap.w16,
+          // Right info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  InsightUiUtils.getPatternName(pattern.type).toUpperCase(),
+                  style: context.captionBold.copyWith(color: AppPalette.black.withAlpha(153)),
+                ),
+                Gap.h8,
+                Text(
+                  pattern.trigger.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.headingSm.copyWith(
+                    color: AppPalette.black,
+                    fontWeight: FontWeight.w900,
+                    height: 1.1,
                   ),
-                  Gap.h4,
-                  Text(
-                    subtitle,
-                    style: context.caption.copyWith(color: scheme.textMuted, fontWeight: FontWeight.bold),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                ),
+                Gap.h4,
+                Text(
+                  'LINKED TO',
+                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(127), fontWeight: FontWeight.w900),
+                ),
+                Gap.h4,
+                Text(
+                  pattern.reaction.toUpperCase(),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.body.copyWith(
+                    color: AppPalette.black,
+                    fontWeight: FontWeight.w900,
+                    height: 1.1,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _InvolvedFoodsCard extends StatelessWidget {
-  const _InvolvedFoodsCard({required this.foods});
-  final List<String> foods;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(AppStrings.involvedFoodsLabel, style: context.eyebrow),
-        Gap.h16,
-        AnalysisCard(
-          metric: foods.length.toString(),
-          label: 'DETECTED INGREDIENTS',
-          icon: AppIcons.utensils,
-          glowColor: scheme.textPrimary,
-          items: foods.map((f) => AnalysisItem(title: f.toUpperCase(), subtitle: AppStrings.linkedToPattern, icon: AppIcons.package, color: scheme.textPrimary)).toList(),
-        ),
-      ],
-    );
-  }
-}
-
-class _CommonFactorsCard extends StatelessWidget {
-  const _CommonFactorsCard({required this.factors});
-  final List<CommonFactor> factors;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(AppStrings.commonFactorsLabel, style: context.eyebrow),
-      Gap.h16,
-      AnalysisCard(
-        metric: factors.length.toString(),
-        label: 'IMPACTING ELEMENTS',
-        icon: AppIcons.database,
-        glowColor: context.appColorScheme.textPrimary,
-        items: factors.map((f) => AnalysisItem(title: f.label.toUpperCase(), subtitle: AppStrings.potentialContributingFactor, icon: InsightUiUtils.getReactionIcon(f.icon))).toList(),
-      ),
-    ],
-  );
-}
-
-class _NextStepsCard extends StatelessWidget {
-  const _NextStepsCard({required this.pattern});
+class _PatternMetricGrid extends StatelessWidget {
+  const _PatternMetricGrid({required this.pattern});
   final BodyPattern pattern;
 
   @override
   Widget build(BuildContext context) {
-    final recommendation = pattern.recommendation ?? 'Keep logging to verify this pattern.';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Text(AppStrings.whatToDoNextLabel, style: context.eyebrow),
-        Gap.h16,
-        AnalysisCard(
-          metric: 'NEXT',
-          label: AppStrings.actionPlan,
-          icon: AppIcons.lightbulb,
-          glowColor: context.appColorScheme.textPrimary,
-          items: [
-            AnalysisItem(title: AppStrings.recommendationLabel, subtitle: recommendation, icon: AppIcons.checkCircle, isDone: true, color: context.appColorScheme.textPrimary),
-            AnalysisItem(title: AppStrings.verificationLabel, subtitle: 'Log your next 3 meals containing ${pattern.trigger} to confirm.', icon: AppIcons.target, color: context.appColorScheme.textPrimary),
-          ],
+        Expanded(
+          child: SmallInsightMetricCard(
+            label: 'Matches',
+            value: '${pattern.frequency}',
+            unit: 'LOGS',
+          ),
+        ),
+        Gap.w12,
+        Expanded(
+          child: SmallInsightMetricCard(
+            label: 'Impact',
+            value: '${(pattern.evidenceRatio * 100).toInt()}%',
+            unit: 'PROBABILITY',
+          ),
+        ),
+        Gap.w12,
+        Expanded(
+          child: SmallInsightMetricCard(
+            label: 'Severity',
+            value: '${pattern.positiveCount}',
+            unit: 'REACTIONS',
+          ),
         ),
       ],
     );

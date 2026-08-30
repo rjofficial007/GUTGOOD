@@ -11,15 +11,18 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/insights/presentation/widgets/analysis_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
+
+import '../../../../features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class InsightsScreen extends StatelessWidget {
   const InsightsScreen({super.key});
@@ -48,7 +51,12 @@ class InsightsScreen extends StatelessWidget {
                   Gap.w10,
                 ],
               ),
-              if (isLoading) const _InsightsLoadingState() else if (latestInsight == null) const _NoInsightsState() else _MainDashboardSliver(data: latestInsight, patterns: prioritizedPatterns),
+              if (isLoading)
+                const _InsightsLoadingState()
+              else if (latestInsight == null)
+                const _NoInsightsState()
+              else
+                _MainDashboardSliver(data: latestInsight, patterns: prioritizedPatterns),
             ],
           );
         },
@@ -193,174 +201,310 @@ class _MainDashboardSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileNotifier>();
     final streak = profile.streak;
+    final notifier = context.watch<InsightsNotifier>();
 
-    final sections = _buildSections(context: context, streak: streak);
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 1. Snapshot Hero (Premium Bento Style)
+            DashboardEntrance(
+              delay: 50,
+              child: GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: streak),
+            ),
+            Gap.h12,
 
-    return SliverPadding(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => Padding(
-            padding: EdgeInsets.only(bottom: AppSizes.p20),
-            child: sections[index],
-          ),
-          childCount: sections.length,
+            // 2. Metrics Quick View
+            DashboardEntrance(
+              delay: 100,
+              child: InsightMetricGrid(data: data, notifier: notifier),
+            ),
+            Gap.h12,
+
+            // 3. Strategic Summary
+            if (data.healingGoal != null || data.triggerSymptom != null)
+              DashboardEntrance(
+                delay: 150,
+                child: Row(
+                  children: [
+                    if (data.healingGoal != null)
+                      Expanded(
+                        child: BentoCard(
+                          padding: const EdgeInsets.all(12),
+                          height: 180.h,
+                          backgroundColor: AppPalette.bluePastel,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('TARGET', style: context.captionMicro.copyWith(color: AppPalette.blue, fontWeight: FontWeight.w900)),
+                                  Icon(AppIcons.target, size: 14, color: AppPalette.blue),
+                                ],
+                              ),
+                              const Spacer(),
+                              Text(data.healingGoal!.toUpperCase(), style: context.bodyBold.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 16.sp, height: 1.1)),
+                              Text(AppStrings.primaryHealingObjective, style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153))),
+                              const Spacer(),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (data.healingGoal != null && data.triggerSymptom != null) Gap.w12,
+                    if (data.triggerSymptom != null)
+                      Expanded(
+                        child: BentoCard(
+                          padding: const EdgeInsets.all(12),
+                          height: 180.h,
+                          backgroundColor: AppPalette.purplePastel,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('WATCH LIST', style: context.captionMicro.copyWith(color: AppPalette.purple, fontWeight: FontWeight.w900)),
+                                  Icon(AppIcons.activity, size: 14, color: AppPalette.purple),
+                                ],
+                              ),
+                              const Spacer(),
+                              Text(data.triggerSymptom!.toUpperCase(), style: context.bodyBold.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 16.sp, height: 1.1)),
+                              Text(AppStrings.symptomTrackedForPatterns, style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153))),
+                              const Spacer(),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            if (data.healingGoal != null || data.triggerSymptom != null) Gap.h12,
+
+            // 4. Performance & Performance Highlights (Energy Section)
+            if (data.healingFoods.isNotEmpty || data.topHealing != null)
+              DashboardEntrance(
+                delay: 200,
+                child: BentoCard(
+                  padding: const EdgeInsets.all(12),
+                  height: 180.h,
+                  backgroundColor: AppPalette.greenPastel,
+                  child: Row(
+                    children: [
+                      // Left block: Healing Score/Count
+                      Container(
+                        width: 136.h,
+                        height: 136.h,
+                        decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
+                        child: Stack(
+                          children: [
+                             Positioned(
+                              top: 12, left: 12,
+                              child: Icon(AppIcons.zap, size: 14, color: AppPalette.green),
+                             ),
+                             Center(child: Text('${data.healingFoods.length}', style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 64.sp, letterSpacing: -4))),
+                             Positioned(bottom: 12, left: 12, right: 12, child: Text('HEALING', textAlign: TextAlign.center, style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900))),
+                          ],
+                        ),
+                      ),
+                      Gap.w16,
+                      // Right info: Vertical Cycler
+                      Expanded(
+                        child: BentoFoodCycler(
+                          foods: data.healingFoods, 
+                          title: AppStrings.betterEnergy, 
+                          trend: data.healingTrend, 
+                          isPositive: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (data.healingFoods.isNotEmpty || data.topHealing != null) Gap.h12,
+
+            // 4b. Potential Triggers Section
+            if (data.triggerFoods.isNotEmpty || data.topTrigger != null)
+              DashboardEntrance(
+                delay: 220,
+                child: BentoCard(
+                  padding: const EdgeInsets.all(12),
+                  height: 180.h,
+                  backgroundColor: context.appColorScheme.errorSubtle,
+                  child: Row(
+                    children: [
+                      // Left block: Trigger Count
+                      Container(
+                        width: 136.h,
+                        height: 136.h,
+                        decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
+                        child: Stack(
+                          children: [
+                             Positioned(
+                              top: 12, left: 12,
+                              child: Icon(AppIcons.alertTriangle, size: 14, color: AppPalette.red),
+                             ),
+                             Center(child: Text('${data.triggerFoods.length}', style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 64.sp, letterSpacing: -4))),
+                             Positioned(bottom: 12, left: 12, right: 12, child: Text('TRIGGERS', textAlign: TextAlign.center, style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900))),
+                          ],
+                        ),
+                      ),
+                      Gap.w16,
+                      // Right info
+                      Expanded(
+                        child: BentoFoodCycler(
+                          foods: data.triggerFoods, 
+                          title: AppStrings.bloating, 
+                          trend: data.triggerTrend, 
+                          isPositive: false,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (data.triggerFoods.isNotEmpty || data.topTrigger != null) Gap.h12,
+
+            // 5. Individual Pattern Discoveries (Identity cards style)
+            ..._buildPatternCards(context, patterns.isNotEmpty ? patterns : data.detectedPatterns),
+
+            // 6. Recent Body Feedback (Bento Cycler)
+            if (data.foodImpacts.isNotEmpty) ...[
+              BentoActivityCard(impacts: data.foodImpacts),
+              Gap.h12,
+            ],
+
+            // 7. AI Intelligence Card
+            if (data.topInsight != null) ...[
+              DashboardEntrance(
+                delay: 450,
+                child: ModernSmartAlert(insight: data.topInsight!),
+              ),
+              Gap.h24,
+            ],
+
+            // 8. Action Banner
+            DashboardEntrance(
+              delay: 500,
+              child: GutActionBanner(
+                title: AppStrings.weeklySnapshot.toUpperCase(),
+                subtitle: AppStrings.last7DaysReady,
+                icon: AppIcons.salad,
+                backgroundColor: context.appColorScheme.textPrimary,
+                iconColor: context.appColorScheme.cardBackground,
+                onTap: () async {
+                  if (await QuotaGuard.check(context, type: QuotaType.premium)) {
+                    if (context.mounted) {
+                      unawaited(context.push(AppRoutes.weeklyRecap, extra: data));
+                    }
+                  }
+                },
+              ),
+            ),
+            Gap.h40,
+          ],
         ),
       ),
     );
   }
 
-  List<Widget> _buildSections({required BuildContext context, required int streak}) {
-    final sections = <Widget>[GutSnapshotHeroCard(score: data.gutScore, scoreDiff: data.scoreDiff, streak: streak)];
+  List<Widget> _buildPatternCards(BuildContext context, List<BodyPattern> patterns) {
+    if (patterns.isEmpty) return [];
+    final widgets = <Widget>[];
+    final scheme = context.appColorScheme;
+    
+    for (var i = 0; i < patterns.length; i++) {
+      final p = patterns[i];
+      final themeColor = InsightUiUtils.getPatternPastelColor(p.type);
+      final accentColor = InsightUiUtils.getPatternColor(p.type);
 
-    // 1. STRATEGIC FOCUS (healingGoal / triggerSymptom)
-    if (data.healingGoal != null || data.triggerSymptom != null) {
-      sections.add(
+      widgets.add(
         DashboardEntrance(
-          delay: 50,
-          child: AnalysisCard(
-            metric: AppStrings.target,
-            label: AppStrings.currentFocus,
-            icon: AppIcons.target,
-            glowColor: AppPalette.blue,
-            items: [
-              if (data.healingGoal != null) AnalysisItem(title: '${AppStrings.heal}: ${data.healingGoal!.toUpperCase()}', subtitle: AppStrings.primaryHealingObjective, icon: AppIcons.leaf, isDone: true),
-              if (data.triggerSymptom != null) AnalysisItem(title: '${AppStrings.symptomWatch}: ${data.triggerSymptom!.toUpperCase()}', subtitle: AppStrings.symptomTrackedForPatterns, icon: AppIcons.activity),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 2. BETTER ENERGY (healingFoods)
-    if (data.healingFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'positive')) {
-      final healingCount = data.healingFoods.length + data.foodImpacts.where((i) => i.impactType == 'positive').length;
-      final label = data.healingTrend != null ? '${AppStrings.betterEnergy} • ${data.healingTrend}' : AppStrings.betterEnergy;
-
-      sections.add(
-        DashboardEntrance(
-          delay: 100,
-          child: AnalysisCard(
-            metric: '$healingCount',
-            label: label,
-            icon: AppIcons.zap,
-            glowColor: AppPalette.green,
-            items: [
-              ...data.healingFoods.map((f) => AnalysisItem(title: f.name, subtitle: f.effect, icon: AppIcons.check)),
-              ...data.foodImpacts.where((i) => i.impactType == 'positive').map((i) => AnalysisItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: AppIcons.check)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 3. BLOATING (triggerFoods)
-    if (data.triggerFoods.isNotEmpty || data.foodImpacts.any((i) => i.impactType == 'negative')) {
-      final triggerCount = data.triggerFoods.length + data.foodImpacts.where((i) => i.impactType == 'negative').length;
-      final label = data.triggerTrend != null ? '${AppStrings.bloating} • ${data.triggerTrend}' : AppStrings.bloating;
-
-      sections.add(
-        DashboardEntrance(
-          delay: 200,
-          child: AnalysisCard(
-            metric: '$triggerCount',
-            label: label,
-            icon: AppIcons.alertTriangle,
-            glowColor: AppPalette.red,
-            items: [
-              ...data.triggerFoods.map((f) => AnalysisItem(title: f.name, subtitle: f.effect, icon: AppIcons.alertCircle)),
-              ...data.foodImpacts.where((i) => i.impactType == 'negative').map((i) => AnalysisItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: AppIcons.alertCircle)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 4. INDIVIDUAL PATTERN CARDS
-    final displayPatterns = patterns.isNotEmpty ? patterns : data.detectedPatterns;
-
-    if (displayPatterns.isNotEmpty) {
-      for (var i = 0; i < displayPatterns.length; i++) {
-        final p = displayPatterns[i];
-        sections.add(
-          DashboardEntrance(
-            delay: 300 + (i * 100),
-            child: AnalysisCard(
-              metric: p.frequency.toString(),
-              label: InsightUiUtils.getPatternName(p.type),
-              icon: InsightUiUtils.getPatternTypeIcon(p.type),
-              glowColor: context.appColorScheme.textPrimary,
-              onTap: () => context.push(AppRoutes.patternDetail, extra: p),
-              items: [AnalysisItem(title: p.trigger.toUpperCase(), subtitle: p.description, icon: AppIcons.lightbulb, color: context.appColorScheme.textPrimary)],
+          delay: 300 + (i * 50),
+          child: InkWell(
+            onTap: () => context.push(AppRoutes.patternDetail, extra: p),
+            borderRadius: BorderRadius.circular(AppSizes.r24),
+            child: BentoCard(
+              padding: const EdgeInsets.all(12),
+              height: 140.h,
+              backgroundColor: themeColor,
+              child: Row(
+                children: [
+                  // Left Panel: Identity block
+                  Container(
+                    width: 116.h,
+                    height: 116.h,
+                    decoration: BoxDecoration(color: scheme.cardBackground.withAlpha(204), borderRadius: BorderRadius.circular(16)),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: Text(
+                            'AI DISCOVERY',
+                            style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        Center(
+                          child: Icon(InsightUiUtils.getPatternTypeIcon(p.type), size: 36.sp, color: accentColor),
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          left: 12,
+                          right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: accentColor.withAlpha(26), borderRadius: BorderRadius.circular(100)),
+                            child: Text(
+                              '${p.confidence.toUpperCase()} CONFIDENCE',
+                              textAlign: TextAlign.center,
+                              style: context.captionMicro.copyWith(color: accentColor, fontSize: 7.sp, fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Gap.w16,
+                  // Right Panel: Text
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          InsightUiUtils.getPatternName(p.type).toUpperCase(),
+                          style: context.captionBold.copyWith(color: AppPalette.black.withAlpha(153), fontSize: 9.sp),
+                        ),
+                        Gap.h4,
+                        Text(
+                          p.trigger,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.bodyBold.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 16.sp, letterSpacing: -0.5),
+                        ),
+                        Gap.h4,
+                        Text(
+                          p.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.caption.copyWith(color: AppPalette.black.withAlpha(178), height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(AppIcons.chevronRight, color: AppPalette.black.withAlpha(102), size: 16),
+                ],
+              ),
             ),
           ),
-        );
-      }
-    }
-
-    // 5. RECENT PATTERNS (foodImpacts)
-    if (data.foodImpacts.isNotEmpty) {
-      sections.add(
-        DashboardEntrance(
-          delay: 400,
-          child: AnalysisCard(
-            metric: '${data.foodImpacts.length}',
-            label: AppStrings.recentActivityTitle,
-            icon: AppIcons.history,
-            glowColor: AppPalette.blue,
-            items: data.foodImpacts
-                .map((i) => AnalysisItem(title: i.food, subtitle: '${i.timeframeLabel}: ${i.effect}', icon: i.impactType == 'positive' ? AppIcons.check : AppIcons.alertCircle))
-                .toList(),
-          ),
         ),
       );
+      widgets.add(Gap.h12);
     }
-
-    // 6. STATISTICAL MVP (topHealing/topTrigger)
-    if (data.topHealing != null || data.topTrigger != null) {
-      sections.add(
-        DashboardEntrance(
-          delay: 500,
-          child: AnalysisCard(
-            metric: data.topHealing?.frequency ?? AppStrings.champion,
-            label: AppStrings.performanceAnalysis,
-            icon: AppIcons.trophy,
-            glowColor: AppPalette.green,
-            items: [
-              if (data.topHealing != null) AnalysisItem(title: '${AppStrings.topPerformer}: ${data.topHealing!.food}', subtitle: data.topHealing!.effects, icon: AppIcons.star),
-              if (data.topTrigger != null) AnalysisItem(title: '${AppStrings.mostReactive}: ${data.topTrigger!.food}', subtitle: data.topTrigger!.effects, icon: AppIcons.alertTriangle),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // 7. AI SMART ALERT
-    if (data.topInsight != null) {
-      sections.add(ModernSmartAlert(insight: data.topInsight!));
-    }
-
-    sections.add(
-      Padding(
-        padding: EdgeInsets.only(top: AppSizes.p10),
-        child: GutActionBanner(
-          title: AppStrings.weeklyGutRecap.toUpperCase(),
-          subtitle: AppStrings.last7DaysReady,
-          icon: AppIcons.salad,
-          backgroundColor: context.appColorScheme.textPrimary,
-          iconColor: context.appColorScheme.cardBackground,
-          onTap: () async {
-            if (await QuotaGuard.check(context, type: QuotaType.premium)) {
-              if (context.mounted) {
-                unawaited(context.push(AppRoutes.weeklyRecap, extra: data));
-              }
-            }
-          },
-        ),
-      ),
-    );
-
-    return sections;
+    return widgets;
   }
 }
 

@@ -32,14 +32,11 @@ class ShimmerGridLoader extends StatelessWidget {
       return Shimmer.fromColors(
         baseColor: baseColor,
         highlightColor: highlightColor,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          child: Column(
-            children: variant == ShimmerVariant.recap
-                ? _buildRecapSkeleton(context)
-                : _buildScanResultSkeleton(context),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: variant == ShimmerVariant.recap
+              ? _buildRecapSkeleton(context)
+              : _buildScanResultSkeleton(context),
         ),
       );
     }
@@ -106,7 +103,7 @@ class ShimmerGridLoader extends StatelessWidget {
             shape: BoxShape.circle,
           ),
         ),
-        const Spacer(),
+        Gap.h32,
         Container(
           width: 60.0.w,
           height: 12.0.h,
@@ -230,7 +227,8 @@ class ShimmerGridLoader extends StatelessWidget {
             ],
           ),
         ),
-        Expanded(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: Center(
             child: Container(
               width: AppSizes.p120 + AppSizes.p40,
@@ -309,7 +307,7 @@ class ShimmerGridLoader extends StatelessWidget {
             ],
           ),
         ),
-        const Spacer(),
+        Gap.h24,
         Container(
           height: AppSizes.p36,
           width: double.infinity,

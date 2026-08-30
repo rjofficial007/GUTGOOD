@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -7,7 +8,7 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class AnalysisCard extends StatelessWidget {
-  const AnalysisCard({super.key, required this.metric, required this.label, required this.icon, required this.glowColor, required this.items, this.onTap});
+  const AnalysisCard({super.key, required this.metric, required this.label, required this.icon, required this.glowColor, required this.items, this.onTap, this.headerColor});
 
   final String metric;
   final String label;
@@ -15,17 +16,16 @@ class AnalysisCard extends StatelessWidget {
   final Color glowColor;
   final List<AnalysisItem> items;
   final VoidCallback? onTap;
+  final Color? headerColor;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = context.appColorScheme;
 
-    // Matched exactly with Insight History Tile (elevatedSurface + 0.5 border)
-    final cardColor = scheme.elevatedSurface;
+    final cardColor = scheme.cardBackground;
     final borderColor = scheme.borderSubtle;
     final textColor = scheme.textPrimary;
-    final invertedColor = scheme.cardBackground;
 
     return GestureDetector(
       onTap: onTap,
@@ -33,62 +33,37 @@ class AnalysisCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: cardColor,
-          borderRadius: BorderRadius.circular(AppSizes.r32),
+          borderRadius: BorderRadius.circular(AppSizes.r24),
           border: Border.all(color: borderColor),
           boxShadow: [
             BoxShadow(
-              color: AppPalette.black.withAlpha(isDark ? 77 : 8),
+              color: scheme.surfaceSubtle,
               blurRadius: 15,
-              offset: const Offset(0, 8),
+              offset: const Offset(0, 5),
             ),
           ],
         ),
-        padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Header Section (Dynamic Height)
-            Container(
-              constraints: const BoxConstraints(minHeight: 100),
-              decoration: BoxDecoration(
-                color: scheme.surfaceSubtle,
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(color: borderColor),
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 18, 18, 20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          metric,
-                          style: context.headingMd.copyWith(color: textColor, fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1, fontFeatures: const [FontFeature.tabularFigures()]),
-                        ),
-                        Gap.h12,
-                        Text(
-                          label.toUpperCase(),
-                          style: context.eyebrow.copyWith(color: textColor.withAlpha(153)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(color: textColor, shape: BoxShape.circle),
-                    child: Icon(icon, color: invertedColor, size: 19),
-                  ),
-                ],
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(label.toUpperCase(), style: context.captionBold.copyWith(color: scheme.textSecondary)),
+                Icon(icon, color: scheme.textSecondary, size: 14),
+              ],
             ),
-            // ...
+            Gap.h24,
+            Text(
+              metric,
+              style: context.headingMd.copyWith(color: textColor, fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1, fontFeatures: const [FontFeature.tabularFigures()]),
+            ),
+            Gap.h12,
             ...items.map(
               (t) => Padding(
-                padding: const EdgeInsets.only(top: 5),
+                padding: const EdgeInsets.only(top: 8),
                 child: _AnalysisTaskRow(data: t, textColor: textColor, borderColor: borderColor),
               ),
             ),
@@ -110,18 +85,10 @@ class _AnalysisTaskRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final checked = data.isDone;
 
-    // Smart Radius Heuristic: If it has a subtitle or very long title, it's likely 2+ lines.
-    // Use a smaller radius (24) for multi-line items and a pill shape (50) for single lines.
     final isLong = (data.subtitle?.length ?? 0) > 50 || data.title.length > 35;
     final radius = isLong ? 24.0 : 50.0;
 
-    // If icon is provided, use it. If checked, default to check icon.
-    final iconData = data.icon ?? (checked ? AppIcons.check : null);
-
-    // Determine the background color of the circle (monochromatic theme by default, or custom)
     final circleBgColor = data.color ?? textColor;
-    final circleBorderColor = data.color ?? textColor;
-    final iconColor = context.appColorScheme.cardBackground;
 
     return GestureDetector(
       onTap: data.onTap,
@@ -137,14 +104,16 @@ class _AnalysisTaskRow extends StatelessWidget {
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 32,
+              width: 36,
               height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: circleBgColor,
-                border: Border.all(color: circleBorderColor, width: 1.5),
+                color: circleBgColor.withAlpha(26),
+                border: Border.all(color: circleBgColor.withAlpha(51), width: 1.5),
               ),
-              child: iconData != null ? Icon(iconData, size: 14, color: iconColor) : null,
+              child: Center(
+                child: data.leading ?? (data.icon != null ? Icon(data.icon, size: 14, color: circleBgColor) : (checked ? Icon(AppIcons.check, size: 14, color: circleBgColor) : null)),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -175,7 +144,7 @@ class _AnalysisTaskRow extends StatelessWidget {
 }
 
 class AnalysisItem {
-  const AnalysisItem({required this.title, this.subtitle, this.isDone = false, this.icon, this.onTap, this.color});
+  const AnalysisItem({required this.title, this.subtitle, this.isDone = false, this.icon, this.onTap, this.color, this.leading});
 
   final String title;
   final String? subtitle;
@@ -183,4 +152,5 @@ class AnalysisItem {
   final IconData? icon;
   final VoidCallback? onTap;
   final Color? color;
+  final Widget? leading;
 }

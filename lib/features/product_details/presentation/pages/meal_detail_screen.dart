@@ -104,48 +104,47 @@ class _MealHeroSection extends StatelessWidget {
       child: Row(
         children: [
           // Left Panel: The "Wallet Card" aesthetic
-          AspectRatio(
-            aspectRatio: 1,
-            child: DecoratedBox(
-              decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(16)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: Text(
-                        AppStrings.mealLogLabel,
-                        style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
-                      ),
+          Container(
+            width: 176.h,
+            height: 176.h,
+            decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(16)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Text(
+                      AppStrings.mealLogLabel,
+                      style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
                     ),
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
-                      ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
                     ),
-                    Positioned(
-                      bottom: 4,
-                      left: 10,
-                      child: Icon(
-                        switch (mealType.toLowerCase()) {
-                          'breakfast' => Icons.wb_sunny_outlined,
-                          'lunch' => Icons.lunch_dining_outlined,
-                          'dinner' => Icons.restaurant_outlined,
-                          'snack' => Icons.cookie_outlined,
-                          _ => AppIcons.utensils,
-                        },
-                        size: 48.sp,
-                        color: AppPalette.black.withAlpha(204),
-                      ),
+                  ),
+                  Positioned(
+                    bottom: 4,
+                    left: 10,
+                    child: Icon(
+                      switch (mealType.toLowerCase()) {
+                        'breakfast' => Icons.wb_sunny_outlined,
+                        'lunch' => Icons.lunch_dining_outlined,
+                        'dinner' => Icons.restaurant_outlined,
+                        'snack' => Icons.cookie_outlined,
+                        _ => AppIcons.utensils,
+                      },
+                      size: 48.sp,
+                      color: AppPalette.black.withAlpha(204),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

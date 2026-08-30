@@ -6,82 +6,116 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/core/widgets/gut_score_gauge.dart';
-import 'package:gutgood/core/widgets/modern_insight_card.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 /// A prominent hero card that displays the user's current gut score.
 ///
-/// Includes a circular [GutScoreGauge] to visualize the user's overall health.
 /// Used at the top of the [InsightsScreen] and [WeeklyRecapScreen].
 class GutSnapshotHeroCard extends StatelessWidget {
-  const GutSnapshotHeroCard({super.key, required this.score, this.scoreDiff, required this.streak, this.isActive = true, this.onTap, this.borderRadius});
+  const GutSnapshotHeroCard({super.key, required this.score, this.scoreDiff, required this.streak, this.isActive = true, this.onTap, this.borderRadius, this.title});
 
-  /// The numerical gut health score (0-100).
   final int score;
-
-  /// Formatted difference from the previous score (e.g., "+2").
   final String? scoreDiff;
-
-  /// The user's current daily check-in streak.
   final int streak;
-
-  /// Whether the "Live" status indicator should be shown.
   final bool isActive;
-
-  /// Optional tap handler for navigation or details.
   final VoidCallback? onTap;
-
-  /// Optional custom corner radius.
   final double? borderRadius;
+  final String? title;
 
   @override
-  Widget build(BuildContext context) => ModernInsightCard(
-    title: AppStrings.gutSnapshot,
-    icon: AppIcons.activity,
-    iconColor: context.appColorScheme.textPrimary,
-    backgroundColor: context.appColorScheme.cardBackground,
-    titleColor: context.appColorScheme.textPrimary.withAlpha(178),
-    onTap: onTap,
-    borderRadius: borderRadius,
-    padding: EdgeInsets.all(Responsive.w(24.0)),
-    footerColor: context.appColorScheme.textPrimary,
-    footer: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(AppIcons.flame, size: 12, color: context.appColorScheme.cardBackground),
-        Gap.w8,
-        RichText(
-          text: TextSpan(
-            style: context.captionBold.copyWith(color: context.appColorScheme.cardBackground.withAlpha(178)),
-            children: [
-              TextSpan(
-                text: streak.toString(),
-                style: const TextStyle(fontWeight: FontWeight.w900, color: AppPalette.white),
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final Color scoreColor = score >= 70 ? AppPalette.greenPastel : (score >= 40 ? AppPalette.purplePastel : AppPalette.red);
+
+    return BentoCard(
+      padding: const EdgeInsets.all(12),
+      height: 200.h,
+      backgroundColor: scheme.cardBackground,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(borderRadius ?? 20),
+        child: Row(
+          children: [
+            // Left Panel: Wallet aesthetic
+            Container(
+              width: 176.h,
+              height: 176.h,
+              decoration: BoxDecoration(color: scoreColor, borderRadius: BorderRadius.circular(16)),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Text(
+                      (title ?? AppStrings.gutSnapshot).toUpperCase(),
+                      style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 5,
+                    left: 10,
+                    child: Text(
+                      '$score',
+                      style: context.displayHero.copyWith(color: AppPalette.black, letterSpacing: -5),
+                    ),
+                  ),
+                ],
               ),
-              const TextSpan(text: ' '),
-              TextSpan(text: AppStrings.dayStreakLabel.toUpperCase()),
-            ],
-          ),
-        ),
-      ],
-    ),
-    child: Column(
-      children: [
-        Center(
-          child: GutScoreGauge(score: score, size: Responsive.w(200)),
-        ),
-        if (scoreDiff != null && scoreDiff!.isNotEmpty) ...[
-          Gap.h12,
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
-            decoration: BoxDecoration(color: context.appColorScheme.borderSubtle, borderRadius: BorderRadius.circular(100)),
-            child: Text(
-              scoreDiff!,
-              style: context.captionBold.copyWith(color: context.appColorScheme.textPrimary),
             ),
-          ),
-        ],
-      ],
-    ),
-  );
+            Gap.w16,
+            // Right Panel
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Icon(AppIcons.flame, size: 14, color: scheme.textPrimary),
+                      Gap.w6,
+                      Text(
+                        '$streak ${AppStrings.dayStreakLabel.toUpperCase()}',
+                        style: context.captionBold.copyWith(color: scheme.textPrimary),
+                      ),
+                    ],
+                  ),
+                  Gap.h8,
+                  Text(
+                    AppStrings.intelligenceDetail.toUpperCase(),
+                    style: context.captionBold.copyWith(color: scheme.textSecondary),
+                  ),
+                  Gap.h4,
+                  Text(
+                    AppStrings.keepItUp,
+                    style: context.headingSm.copyWith(fontWeight: FontWeight.w900, color: scheme.textPrimary),
+                  ),
+                  if (scoreDiff != null && scoreDiff!.isNotEmpty) ...[
+                    Gap.h8,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: scheme.borderSubtle, borderRadius: BorderRadius.circular(100)),
+                      child: Text(
+                        scoreDiff!,
+                        style: context.captionBold.copyWith(color: scheme.textPrimary),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

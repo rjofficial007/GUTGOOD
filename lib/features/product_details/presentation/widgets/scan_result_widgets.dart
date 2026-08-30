@@ -249,42 +249,40 @@ class BentoImageCard extends StatelessWidget {
       child: Row(
         children: [
           // Left Panel: The "Wallet Card" aesthetic
-          AspectRatio(
-            aspectRatio: 1,
-            child: DecoratedBox(
-              decoration: BoxDecoration(color: scoreColor, borderRadius: BorderRadius.circular(16)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Stack(
-                  children: [
-
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: Text(
-                        AppStrings.analysisLabel,
-                        style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
-                      ),
+          Container(
+            width: 176.h, // Matched with card height (200.h - 24 padding)
+            height: 176.h,
+            decoration: BoxDecoration(color: scoreColor, borderRadius: BorderRadius.circular(16)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Text(
+                      AppStrings.analysisLabel,
+                      style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
                     ),
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
-                      ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
                     ),
-                    Positioned(
-                      bottom: -10,
-                      left: 8,
-                      child: Text(
-                        '${scanData.score}',
-                        style: context.displayHero.copyWith(color: AppPalette.black, letterSpacing: -5),
-                      ),
+                  ),
+                  Positioned(
+                    bottom: 5,
+                    left: 10,
+                    child: Text(
+                      '${scanData.score}',
+                      style: context.displayHero.copyWith(color: AppPalette.black, letterSpacing: -5),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

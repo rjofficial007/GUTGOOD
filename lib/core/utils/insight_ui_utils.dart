@@ -52,6 +52,17 @@ class InsightUiUtils {
     _ => AppPalette.black,
   };
 
+  /// Returns a soft pastel shade for a specific pattern category (ideal for Bento cards).
+  static Color getPatternPastelColor(String type) => switch (type) {
+    BodyPattern.typeBloating => AppPalette.greenPastel,
+    BodyPattern.typeEnergy => AppPalette.yellowLight,
+    BodyPattern.typeHeadache => AppPalette.redSoft,
+    BodyPattern.typeDigestion => AppPalette.orangeSoft,
+    BodyPattern.typeFullness => AppPalette.bluePastel,
+    BodyPattern.typeSleep => AppPalette.purplePastel,
+    _ => AppPalette.gray100,
+  };
+
   /// Returns the proper display name for a pattern category.
   static String getPatternName(String type) => switch (type) {
     BodyPattern.typeBloating => AppStrings.bloatingPattern,
