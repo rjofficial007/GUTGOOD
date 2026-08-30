@@ -33,11 +33,11 @@ class AIHubSection extends StatelessWidget {
                 children: [
                   Container(
                     padding: EdgeInsets.all(AppSizes.p8),
-                    decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: context.appColorScheme.surfaceSubtle, shape: BoxShape.circle),
                     child: Icon(AppIcons.scan, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
                   ),
                   Gap.w12,
-                  Text(AppStrings.aiScanHistory.toUpperCase(), style: context.bodyBold.copyWith(letterSpacing: 1.0, fontSize: AppSizes.s13)),
+                  Text(AppStrings.aiScanHistory.toUpperCase(), style: context.labelBold.copyWith(letterSpacing: 1.0)),
                 ],
               ),
               Gap.h20,
@@ -65,7 +65,7 @@ class _ScanMiniTile extends StatelessWidget {
             children: [
               Text(
                 scan.data.productName,
-                style: context.bodyBold.copyWith(fontSize: AppSizes.s14),
+                style: context.bodyBold,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -76,10 +76,10 @@ class _ScanMiniTile extends StatelessWidget {
         Gap.w12,
         Container(
           padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p4),
-          decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(AppSizes.r8)),
+          decoration: BoxDecoration(color: context.appColorScheme.surfaceSubtle, borderRadius: BorderRadius.circular(AppSizes.r8)),
           child: Text(
             '${scan.data.score}',
-            style: context.bodyBold.copyWith(fontSize: AppSizes.s12, fontFeatures: const [FontFeature.tabularFigures()]),
+            style: context.labelBold.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
           ),
         ),
       ],
@@ -104,11 +104,11 @@ class MealHubSection extends StatelessWidget {
               children: [
                 Container(
                   padding: EdgeInsets.all(AppSizes.p8),
-                  decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: context.appColorScheme.surfaceSubtle, shape: BoxShape.circle),
                   child: Icon(AppIcons.utensils, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
                 ),
                 Gap.w12,
-                Text(AppStrings.dailyMealJournal.toUpperCase(), style: context.bodyBold.copyWith(letterSpacing: 1.0, fontSize: AppSizes.s13)),
+                Text(AppStrings.dailyMealJournal.toUpperCase(), style: context.labelBold.copyWith(letterSpacing: 1.0)),
               ],
             ),
             Gap.h20,
@@ -132,7 +132,7 @@ class _MealMiniTile extends StatelessWidget {
         Container(
           width: 4,
           height: 32,
-          decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
+          decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withAlpha(77), borderRadius: BorderRadius.circular(2)),
         ),
         Gap.w12,
         Expanded(
@@ -141,11 +141,11 @@ class _MealMiniTile extends StatelessWidget {
             children: [
               Text(
                 meal.items.join(', '),
-                style: context.bodyBold.copyWith(fontSize: AppSizes.s14),
+                style: context.bodyBold,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text('${DateFormatter.formatTime(meal.createdAt)} • ${meal.source?.toUpperCase() ?? 'LOG'}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
+              Text('${DateFormatter.formatTime(meal.createdAt)} • ${meal.source?.toUpperCase() ?? AppStrings.labelLog}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
             ],
           ),
         ),
@@ -171,11 +171,11 @@ class SymptomHubSection extends StatelessWidget {
               children: [
                 Container(
                   padding: EdgeInsets.all(AppSizes.p8),
-                  decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: context.appColorScheme.surfaceSubtle, shape: BoxShape.circle),
                   child: Icon(AppIcons.activity, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
                 ),
                 Gap.w12,
-                Text(AppStrings.bodySymptomTracker.toUpperCase(), style: context.bodyBold.copyWith(letterSpacing: 1.0, fontSize: AppSizes.s13)),
+                Text(AppStrings.bodySymptomTracker.toUpperCase(), style: context.labelBold.copyWith(letterSpacing: 1.0)),
               ],
             ),
             Gap.h20,
@@ -201,7 +201,7 @@ class _SymptomMiniTile extends StatelessWidget {
       children: [
         Container(
           padding: EdgeInsets.all(AppSizes.p6),
-          decoration: BoxDecoration(color: context.appColorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: context.appColorScheme.surfaceSubtle, shape: BoxShape.circle),
           child: Icon(AppIcons.alertCircle, size: 14, color: context.appColorScheme.textSecondary),
         ),
         Gap.w12,
@@ -211,11 +211,11 @@ class _SymptomMiniTile extends StatelessWidget {
             children: [
               Text(
                 symptom.symptom,
-                style: context.bodyBold.copyWith(fontSize: AppSizes.s14),
+                style: context.bodyBold,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text('Severity: ${symptom.severity}/10 • ${DateFormatter.formatTime(symptom.createdAt)}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
+              Text('${AppStrings.severity}: ${symptom.severity}/10 • ${DateFormatter.formatTime(symptom.createdAt)}', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
             ],
           ),
         ),

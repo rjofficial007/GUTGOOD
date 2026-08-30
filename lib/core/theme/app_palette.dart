@@ -60,6 +60,18 @@ class AppPalette {
 
   static const pink = Color(0xFFDB2777);
   static const pinkLight = Color(0xFFFCE7F3);
+  static const pinkDark = Color(0xFFF472B6);
+  static const greenPastel = Color(0xFFB4F1B4);
+  static const purplePastel = Color(0xFFC4B5FD);
+  static const bluePastel = Color(0xFF98B7FF);
+  static const darkGrey = Color(0xFF181818);
+
+  // --- Nutri-Score ---
+  static const nutriGreen = Color(0xFF038141);
+  static const nutriLightGreen = Color(0xFF85BB2F);
+  static const nutriYellow = Color(0xFFFECB02);
+  static const nutriOrange = Color(0xFFEE8100);
+  static const nutriRed = Color(0xFFE63E11);
 
   // --- Accents ---
   static const lime = Color(0xFFD9FF30);
@@ -69,6 +81,9 @@ class AppPalette {
   // --- Misc ---
   static const splashBg = Color(0xFF060606);
   static const transparent = Colors.transparent;
+  static const scrim = Color(0x1A000000);
+  static const overlay = Color(0x66000000);
+  static const white15 = Color(0x26FFFFFF);
 
   // --- Material Colors (Static equivalents) ---
   static const white70 = Color(0xB3FFFFFF);

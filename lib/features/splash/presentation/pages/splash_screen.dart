@@ -100,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
+    backgroundColor: AppPalette.black,
     body: Stack(
       children: [
         const Center(child: _SplashLogo()),
@@ -130,7 +130,7 @@ class _BootProgressBar extends StatelessWidget {
     height: 4,
     child: ClipRRect(
       borderRadius: BorderRadius.circular(2),
-      child: LinearProgressIndicator(value: progress, backgroundColor: Colors.white.withValues(alpha: 0.2), valueColor: const AlwaysStoppedAnimation<Color>(Colors.white)),
+      child: LinearProgressIndicator(value: progress, backgroundColor: AppPalette.white.withAlpha(51), valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.white)),
     ),
   );
 }

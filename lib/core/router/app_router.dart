@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
@@ -93,7 +94,7 @@ class AppRouter {
       // 🟢 Fix: Use OR logic to ensure that if EITHER Firestore or Local Prefs says
       // we are onboarded, we don't redirect back to onboarding. This prevents
       // race conditions where the local flag is updated before the Firestore stream.
-      final onboarded = (profileNotifier.profile?.onboarded == true) || (prefs.getBool('onboarded') == true);
+      final onboarded = (profileNotifier.profile?.onboarded == true) || (prefs.getBool(StorageKeys.onboarded) == true);
 
       final isSplash = state.matchedLocation == AppRoutes.splash;
       final isWelcome = state.matchedLocation == AppRoutes.welcome;

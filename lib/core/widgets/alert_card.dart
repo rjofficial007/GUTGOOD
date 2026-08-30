@@ -23,7 +23,7 @@ class AlertCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(AppSizes.p12),
       decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: 0.08),
+        color: effectiveColor.withAlpha(20),
         borderRadius: BorderRadius.circular(AppSizes.r12),
       ),
       child: Row(
@@ -34,10 +34,8 @@ class AlertCard extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: AppTextStyles.bodySm.copyWith(
+              style: context.label.copyWith(
                 color: effectiveColor,
-                fontWeight: FontWeight.w500,
-                fontSize: 11.0.sp,
                 height: 1.4,
               ),
             ),

@@ -67,8 +67,8 @@ class SymptomDetailScreen extends StatelessWidget {
 
 
   Color _getSeverityColor(BuildContext context, int severity) {
-    if (severity <= 3) return const Color(0xFFB4F1B4);
-    if (severity <= 7) return const Color(0xFFC4B5FD);
+    if (severity <= 3) return AppPalette.greenPastel;
+    if (severity <= 7) return AppPalette.purplePastel;
     return AppPalette.red;
   }
 }
@@ -102,8 +102,8 @@ class _SymptomHeroSection extends StatelessWidget {
                       top: 12,
                       left: 12,
                       child: Text(
-                        'SEVERITY',
-                        style: TextStyle(color: Colors.black.withValues(alpha: 0.4), fontSize: 7.sp, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                        AppStrings.severityLabel,
+                        style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
                       ),
                     ),
                     Positioned(
@@ -112,7 +112,7 @@ class _SymptomHeroSection extends StatelessWidget {
                       child: Container(
                         width: 12,
                         height: 12,
-                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]),
+                        decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
                       ),
                     ),
                     Positioned(
@@ -120,7 +120,7 @@ class _SymptomHeroSection extends StatelessWidget {
                       left: 8,
                       child: Text(
                         '$severity',
-                        style: TextStyle(color: Colors.black, fontSize: 72.sp, fontWeight: FontWeight.w900, letterSpacing: -5),
+                        style: context.displayHero.copyWith(color: AppPalette.black, letterSpacing: -5),
                       ),
                     ),
                   ],
@@ -136,30 +136,24 @@ class _SymptomHeroSection extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'SYMPTOM ANALYSIS',
-                  style: TextStyle(color: scheme.textSecondary, fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                  AppStrings.symptomAnalysis,
+                  style: context.captionBold.copyWith(color: scheme.textSecondary),
                 ),
                 Gap.h4,
                 Text(
                   symptom.symptom.toUpperCase(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: context.bodyBold.copyWith(
+                  style: context.headingSm.copyWith(
                     color: scheme.textPrimary,
-                    fontSize: 22.sp,
                     fontWeight: FontWeight.w900,
-                    height: 1.0,
-                    letterSpacing: -0.8,
                   ),
                 ),
                 Gap.h8,
                 Text(
                   DateFormatter.formatFull(symptom.createdAt),
-                  style: context.caption.copyWith(
+                  style: context.captionBold.copyWith(
                     color: scheme.textSecondary,
-                    fontSize: 10.5.sp,
-                    height: 1.4,
-                    letterSpacing: -0.1,
                   ),
                 ),
                 Gap.h12,
@@ -168,12 +162,9 @@ class _SymptomHeroSection extends StatelessWidget {
                     Icon(AppIcons.info, size: 12.sp, color: scheme.textMuted),
                     Gap.w6,
                     Text(
-                      'LOGGED VIA ${symptom.source?.toUpperCase() ?? 'CHAT'}',
-                      style: context.caption.copyWith(
+                      AppStrings.loggedVia(symptom.source?.toUpperCase() ?? AppStrings.chatSource),
+                      style: context.captionBold.copyWith(
                         color: scheme.textMuted,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 8.sp,
-                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -200,7 +191,7 @@ class _SymptomStatsGrid extends StatelessWidget {
       if (symptom.energyLevel != null) _MetricData('Energy', '${symptom.energyLevel}/10', 'LEVEL'),
       if (symptom.mood != null) _MetricData('Mood', symptom.mood!.toUpperCase(), 'STATE'),
       if (symptom.sleep != null) _MetricData('Sleep', symptom.sleep!.toUpperCase(), 'QUALITY'),
-      _MetricData('Source', symptom.source?.toUpperCase() ?? 'MANUAL', 'ORIGIN'),
+      _MetricData('Source', symptom.source?.toUpperCase() ?? AppStrings.manualLabel, 'ORIGIN'),
     ];
 
     return Row(
@@ -255,7 +246,7 @@ class _SmallMetricCard extends StatelessWidget {
               Gap.w4,
               Text(
                 label.toUpperCase(),
-                style: TextStyle(fontSize: 8.sp, fontWeight: FontWeight.w900, color: scheme.textSecondary, letterSpacing: 0.5),
+                style: context.captionBold.copyWith(color: scheme.textSecondary),
               ),
             ],
           ),
@@ -264,10 +255,10 @@ class _SmallMetricCard extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: context.headingSm.copyWith(fontWeight: FontWeight.w900, fontSize: 16.sp, color: scheme.textPrimary),
+            style: context.labelBold.copyWith(color: scheme.textPrimary),
           ),
           Gap.h2,
-          Text(unit, style: TextStyle(fontSize: 6.sp, fontWeight: FontWeight.w800, color: scheme.textMuted)),
+          Text(unit, style: context.captionMicro.copyWith(color: scheme.textMuted)),
         ],
       ),
     );
@@ -290,18 +281,15 @@ class _SymptomNotesSection extends StatelessWidget {
           Positioned(
             right: 0,
             top: 0,
-            child: Icon(Icons.format_quote_rounded, color: scheme.textMuted.withValues(alpha: 0.2), size: 48),
+            child: Icon(Icons.format_quote_rounded, color: scheme.textMuted.withAlpha(51), size: 48),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'REACTION MEMO',
-                style: context.caption.copyWith(
+                AppStrings.reactionMemo,
+                style: context.captionBold.copyWith(
                   color: scheme.textSecondary,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 9.sp,
-                  letterSpacing: 1.2,
                 ),
               ),
               const Spacer(),
@@ -309,11 +297,10 @@ class _SymptomNotesSection extends StatelessWidget {
                 notes,
                 maxLines: 6,
                 overflow: TextOverflow.ellipsis,
-                style: context.body.copyWith(
+                style: context.label.copyWith(
                   color: scheme.textPrimary,
                   height: 1.6,
                   fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -323,12 +310,12 @@ class _SymptomNotesSection extends StatelessWidget {
                   Container(
                     width: 12,
                     height: 2,
-                    decoration: BoxDecoration(color: scheme.textMuted.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(color: scheme.textMuted.withAlpha(127), borderRadius: BorderRadius.circular(2)),
                   ),
                   Gap.w8,
                   Text(
-                    'USER OBSERVATION',
-                    style: context.caption.copyWith(color: scheme.textMuted, fontSize: 7.sp, fontWeight: FontWeight.w900),
+                    AppStrings.userObservation,
+                    style: context.captionTiny.copyWith(color: scheme.textMuted),
                   ),
                 ],
               ),
@@ -350,7 +337,7 @@ class _PotentialTriggerCard extends StatelessWidget {
     return BentoCard(
       height: 240.h,
       padding: const EdgeInsets.all(20),
-      backgroundColor: const Color(0xFFC4B5FD),
+      backgroundColor: AppPalette.purplePastel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -358,15 +345,12 @@ class _PotentialTriggerCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'EXPERT ANALYSIS',
-                style: context.caption.copyWith(
-                  color: Colors.black.withOpacity(0.6),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 9.sp,
-                  letterSpacing: 1.2,
+                AppStrings.expertAnalysis,
+                style: context.captionBold.copyWith(
+                  color: AppPalette.black.withAlpha(153),
                 ),
               ),
-              const Icon(AppIcons.sparkles, color: Colors.black45, size: 14),
+              const Icon(AppIcons.sparkles, color: AppPalette.black12, size: 14),
             ],
           ),
           const Spacer(),
@@ -377,24 +361,23 @@ class _PotentialTriggerCard extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.1), shape: BoxShape.circle),
-                    child: const Icon(AppIcons.utensils, color: Colors.black, size: 14),
+                    decoration: BoxDecoration(color: AppPalette.black.withAlpha(26), shape: BoxShape.circle),
+                    child: const Icon(AppIcons.utensils, color: AppPalette.black, size: 14),
                   ),
                   Gap.w10,
                   Text(
-                    'POTENTIAL TRIGGER',
-                    style: context.bodyBold.copyWith(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 13.sp),
+                    AppStrings.potentialTrigger,
+                    style: context.labelBold.copyWith(color: AppPalette.black),
                   ),
                 ],
               ),
               Gap.h12,
               Text(
                 'A meal logged shortly before this reaction is being analyzed for potential sensitivities.',
-                style: context.body.copyWith(
-                  color: Colors.black,
+                style: context.label.copyWith(
+                  color: AppPalette.black,
                   height: 1.4,
                   fontWeight: FontWeight.w500,
-                  fontSize: 12.5.sp,
                 ),
               ),
             ],

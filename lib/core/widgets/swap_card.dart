@@ -38,10 +38,10 @@ class SwapCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.cardBackground,
         borderRadius: BorderRadius.circular(AppSizes.r20),
-        border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+        border: Border.all(color: colorScheme.borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.textPrimary.withValues(alpha: 0.03),
+            color: colorScheme.surfaceSubtle,
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -59,7 +59,7 @@ class SwapCard extends StatelessWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: colorScheme.elevatedSurface,
-                  border: Border(bottom: BorderSide(color: colorScheme.border.withValues(alpha: 0.3))),
+                  border: Border(bottom: BorderSide(color: colorScheme.border.withAlpha(77))),
                 ),
                 child: CachedNetworkImage(
                   imageUrl: imageUrl ?? getDynamicImageUrl(imageKeyword),
@@ -80,10 +80,8 @@ class SwapCard extends StatelessWidget {
                     ),
                     child: Text(
                       badge!.toUpperCase(),
-                      style: context.eyebrow.copyWith(
+                      style: context.captionTiny.copyWith(
                         color: colorScheme.cardBackground,
-                        fontSize: 7.sp,
-                        fontWeight: FontWeight.w900,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -99,15 +97,14 @@ class SwapCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: context.bodyBold.copyWith(fontSize: 13.sp, height: 1.1),
+                  style: context.labelBold.copyWith(height: 1.1),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Gap.h6,
                 Text(
                   subtitle,
-                  style: context.caption.copyWith(
-                    fontSize: 11.sp,
+                  style: context.label.copyWith(
                     color: colorScheme.textSecondary,
                     height: 1.3,
                   ),
@@ -138,10 +135,8 @@ class SwapCard extends StatelessWidget {
                       Flexible(
                         child: Text(
                           tag.toUpperCase(),
-                          style: context.eyebrow.copyWith(
+                          style: context.captionBold.copyWith(
                             color:  colorScheme.textPrimary,
-                            fontSize: 8.sp,
-                            fontWeight: FontWeight.w900,
                             letterSpacing: 0.5,
                           ),
                           maxLines: 1,

@@ -221,4 +221,13 @@ class InsightStrings {
   static const String fullnessPattern = 'Fullness Pattern';
   static const String sleepPattern = 'Sleep Pattern';
   static const String discoveryPattern = 'Discovery Pattern';
+
+  // New
+  static const String linkedTo = 'LINKED TO';
+  static const String observationsLabel = 'OBSERVATIONS';
+  static const String recentTimelineLabel = 'RECENT TIMELINE';
+  static const String involvedFoodsLabel = 'INVOLVED FOODS';
+  static const String commonFactorsLabel = 'COMMON FACTORS';
+  static const String whatToDoNextLabel = 'WHAT TO DO NEXT';
+  static const String intelligenceDetail = 'INTELLIGENCE DETAIL';
 }

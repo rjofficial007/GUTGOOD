@@ -51,7 +51,7 @@ class VerificationOverlay extends StatelessWidget {
               Positioned.fill(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(color: context.appColorScheme.cardBackground.withValues(alpha: 0.8)),
+                  child: Container(color: context.appColorScheme.cardBackground.withAlpha(204)),
                 ),
               ),
 
@@ -78,7 +78,7 @@ class VerificationOverlay extends StatelessWidget {
                     // Status Text
                     Text(
                       title,
-                      style: context.h1.copyWith(fontSize: 20.0.sp, fontWeight: FontWeight.w900),
+                      style: context.headingSm.copyWith(fontWeight: FontWeight.w900),
                     ),
                     Gap.h12,
                     Text(subtitle, style: context.body.copyWith(color: context.appColorScheme.textSecondary)),

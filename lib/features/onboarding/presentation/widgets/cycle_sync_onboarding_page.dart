@@ -54,9 +54,7 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                       color: context.appColorScheme.elevatedSurface,
                       borderRadius: BorderRadius.circular(AppSizes.r18),
                       border: Border.all(
-                        color: context.appColorScheme.border.withValues(
-                          alpha: 0.5,
-                        ),
+                        color: context.appColorScheme.borderSubtle,
                       ),
                     ),
                     child: Row(
@@ -65,9 +63,7 @@ class CycleSyncOnboardingPage extends StatelessWidget {
                           width: AppSizes.w42,
                           height: AppSizes.w42,
                           decoration: BoxDecoration(
-                            color: context.appColorScheme.border.withValues(
-                              alpha: 0.3,
-                            ),
+                            color: context.appColorScheme.border.withAlpha(77),
                             borderRadius: BorderRadius.circular(AppSizes.r14),
                           ),
                           child: Icon(

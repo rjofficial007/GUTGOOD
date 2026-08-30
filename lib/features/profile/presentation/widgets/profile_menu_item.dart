@@ -35,9 +35,7 @@ class ProfileMenuItem extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(AppSizes.p8),
             decoration: BoxDecoration(
-              color: (color ?? context.appColorScheme.textPrimary).withValues(
-                alpha: 0.1,
-              ),
+              color: (color ?? context.appColorScheme.textPrimary).withAlpha(26),
               borderRadius: BorderRadius.circular(AppSizes.r8),
             ),
             child: Icon(
@@ -50,7 +48,7 @@ class ProfileMenuItem extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: context.bodyBold.copyWith(
+              style: context.labelBold.copyWith(
                 color: color ?? context.appColorScheme.textPrimary,
               ),
             ),
@@ -97,9 +95,7 @@ class ProfileMenuSection extends StatelessWidget {
         ),
         child: Text(
           title.toUpperCase(),
-          style: context.caption.copyWith(
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
+          style: context.captionBold.copyWith(
             color: context.appColorScheme.textMuted,
           ),
         ),
@@ -110,7 +106,7 @@ class ProfileMenuSection extends StatelessWidget {
           color: context.appColorScheme.cardBackground,
           borderRadius: BorderRadius.circular(AppSizes.r24),
           border: Border.all(
-            color: context.appColorScheme.border.withValues(alpha: 0.5),
+            color: context.appColorScheme.borderSubtle,
           ),
         ),
         child: Column(children: items),

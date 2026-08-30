@@ -3,6 +3,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_score_gauge.dart';
@@ -39,7 +40,7 @@ class GutSnapshotHeroCard extends StatelessWidget {
     icon: AppIcons.activity,
     iconColor: context.appColorScheme.textPrimary,
     backgroundColor: context.appColorScheme.cardBackground,
-    titleColor: context.appColorScheme.textPrimary.withValues(alpha: 0.7),
+    titleColor: context.appColorScheme.textPrimary.withAlpha(178),
     onTap: onTap,
     borderRadius: borderRadius,
     padding: EdgeInsets.all(Responsive.w(24.0)),
@@ -51,11 +52,11 @@ class GutSnapshotHeroCard extends StatelessWidget {
         Gap.w8,
         RichText(
           text: TextSpan(
-            style: context.eyebrow.copyWith(color: context.appColorScheme.cardBackground.withValues(alpha: 0.7), letterSpacing: 1.0, fontSize: 9.sp),
+            style: context.captionBold.copyWith(color: context.appColorScheme.cardBackground.withAlpha(178)),
             children: [
               TextSpan(
                 text: streak.toString(),
-                style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+                style: const TextStyle(fontWeight: FontWeight.w900, color: AppPalette.white),
               ),
               const TextSpan(text: ' '),
               TextSpan(text: AppStrings.dayStreakLabel.toUpperCase()),
@@ -73,10 +74,10 @@ class GutSnapshotHeroCard extends StatelessWidget {
           Gap.h12,
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
-            decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(100)),
+            decoration: BoxDecoration(color: context.appColorScheme.borderSubtle, borderRadius: BorderRadius.circular(100)),
             child: Text(
               scoreDiff!,
-              style: context.caption.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 10.0.sp),
+              style: context.captionBold.copyWith(color: context.appColorScheme.textPrimary),
             ),
           ),
         ],

@@ -70,8 +70,8 @@ class GutSectionCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: context.appColorScheme.elevatedSurface,
       borderRadius: BorderRadius.circular(AppSizes.r24),
-      border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-      boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+      border: Border.all(color: context.appColorScheme.borderSubtle),
+      boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(5), blurRadius: 10, offset: const Offset(0, 4))],
     ),
     child: Column(mainAxisSize: MainAxisSize.min, children: children),
   );

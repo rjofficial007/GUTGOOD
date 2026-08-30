@@ -64,7 +64,7 @@ class _NutritionList extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(AppStrings.calories, style: context.title.copyWith(fontWeight: FontWeight.w800)),
+              Text(AppStrings.calories, style: context.headingSm.copyWith(fontWeight: FontWeight.w800)),
               Text('${nutrients.calories}', style: context.headingMd.copyWith(fontWeight: FontWeight.w900)),
             ],
           ),

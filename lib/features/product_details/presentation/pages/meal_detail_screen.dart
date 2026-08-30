@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
@@ -28,7 +29,7 @@ class MealDetailScreen extends StatelessWidget {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          const GutSliverAppBar(title: 'MEAL DETAILS', centerTitle: true),
+          const GutSliverAppBar(title: AppStrings.mealDetailsLabel, centerTitle: true),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
@@ -90,9 +91,9 @@ class _MealHeroSection extends StatelessWidget {
     
     // Aesthetic Color Selection
     final Color accentColor = switch (mealType.toLowerCase()) {
-      'breakfast' => const Color(0xFFB4F1B4),
-      'lunch' => const Color(0xFFC4B5FD),
-      'dinner' => const Color(0xFF98B7FF),
+      'breakfast' => AppPalette.greenPastel,
+      'lunch' => AppPalette.purplePastel,
+      'dinner' => AppPalette.bluePastel,
       _ => AppPalette.orange
     };
 
@@ -115,8 +116,8 @@ class _MealHeroSection extends StatelessWidget {
                       top: 12,
                       left: 12,
                       child: Text(
-                        'MEAL LOG',
-                        style: TextStyle(color: Colors.black.withValues(alpha: 0.4), fontSize: 7.sp, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                        AppStrings.mealLogLabel,
+                        style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
                       ),
                     ),
                     Positioned(
@@ -125,7 +126,7 @@ class _MealHeroSection extends StatelessWidget {
                       child: Container(
                         width: 12,
                         height: 12,
-                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]),
+                        decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
                       ),
                     ),
                     Positioned(
@@ -140,7 +141,7 @@ class _MealHeroSection extends StatelessWidget {
                           _ => AppIcons.utensils,
                         },
                         size: 48.sp,
-                        color: Colors.black.withValues(alpha: 0.8),
+                        color: AppPalette.black.withAlpha(204),
                       ),
                     ),
                   ],
@@ -164,29 +165,23 @@ class _MealHeroSection extends StatelessWidget {
                 ],
                 Text(
                   mealType,
-                  style: TextStyle(color: scheme.textSecondary, fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                  style: context.captionBold.copyWith(color: scheme.textSecondary),
                 ),
                 Gap.h4,
                 Text(
-                  meal.items.isEmpty ? 'UNNAMED MEAL' : meal.items.join(', ').toUpperCase(),
+                  meal.items.isEmpty ? AppStrings.unnamedMealLabel : meal.items.join(', ').toUpperCase(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: context.bodyBold.copyWith(
+                  style: context.headingSm.copyWith(
                     color: scheme.textPrimary,
-                    fontSize: 18.sp,
                     fontWeight: FontWeight.w900,
-                    height: 1.0,
-                    letterSpacing: -0.8,
                   ),
                 ),
                 Gap.h8,
                 Text(
                   DateFormatter.formatFull(meal.createdAt),
-                  style: context.caption.copyWith(
+                  style: context.captionBold.copyWith(
                     color: scheme.textSecondary,
-                    fontSize: 10.5.sp,
-                    height: 1.4,
-                    letterSpacing: -0.1,
                   ),
                 ),
               ],
@@ -209,7 +204,7 @@ class _MealPhotoSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SheetSectionHeader(title: 'VISUAL EVIDENCE', color: Colors.transparent),
+        const SheetSectionHeader(title: AppStrings.visualEvidenceLabel, color: AppPalette.transparent),
         BentoCard(
           padding: EdgeInsets.zero,
           height: 280.h,
@@ -220,9 +215,9 @@ class _MealPhotoSection extends StatelessWidget {
               width: double.infinity,
               fit: BoxFit.cover,
               placeholder: (context, url) => Shimmer.fromColors(
-                baseColor: scheme.border.withValues(alpha: 0.2),
-                highlightColor: scheme.border.withValues(alpha: 0.1),
-                child: Container(color: Colors.white),
+                baseColor: context.appColorScheme.borderSubtle,
+                highlightColor: context.appColorScheme.border.withAlpha(26),
+                child: Container(color: AppPalette.white),
               ),
               errorWidget: (_, _, _) => Container(
                 color: scheme.elevatedSurface,
@@ -246,7 +241,7 @@ class _MealItemsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SheetSectionHeader(title: 'COMPONENTS', color: Colors.transparent),
+        const SheetSectionHeader(title: AppStrings.componentsLabel, color: AppPalette.transparent),
         BentoCard(
           padding: const EdgeInsets.all(16),
           height: 280.h,
@@ -254,12 +249,9 @@ class _MealItemsSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'VERIFIED ITEMS',
-                style: context.caption.copyWith(
+                AppStrings.verifiedItemsLabel,
+                style: context.captionBold.copyWith(
                   color: scheme.textMuted,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 8.sp,
-                  letterSpacing: 1.0,
                 ),
               ),
               Gap.h16,
@@ -275,14 +267,12 @@ class _MealItemsSection extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: scheme.elevatedSurface,
                               borderRadius: BorderRadius.circular(100),
-                              border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+                              border: Border.all(color: scheme.borderSubtle),
                             ),
                             child: Text(
                               item.toUpperCase(),
-                              style: context.caption.copyWith(
-                                fontWeight: FontWeight.w900,
+                              style: context.captionBold.copyWith(
                                 color: scheme.textPrimary,
-                                fontSize: 9.sp,
                               ),
                             ),
                           ),
@@ -310,7 +300,7 @@ class _MealIntelligenceCard extends StatelessWidget {
     return BentoCard(
       height: 240.h,
       padding: const EdgeInsets.all(20),
-      backgroundColor: const Color(0xFFC4B5FD),
+      backgroundColor: AppPalette.purplePastel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -318,15 +308,12 @@ class _MealIntelligenceCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'EXPERT ANALYSIS',
-                style: context.caption.copyWith(
-                  color: Colors.black.withOpacity(0.6),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 9.sp,
-                  letterSpacing: 1.2,
+                AppStrings.expertAnalysis,
+                style: context.captionBold.copyWith(
+                  color: AppPalette.black.withAlpha(153),
                 ),
               ),
-              const Icon(AppIcons.sparkles, color: Colors.black45, size: 14),
+              const Icon(AppIcons.sparkles, color: AppPalette.black12, size: 14),
             ],
           ),
           const Spacer(),
@@ -335,7 +322,7 @@ class _MealIntelligenceCard extends StatelessWidget {
             maxLines: 6,
             overflow: TextOverflow.ellipsis,
             style: context.body.copyWith(
-              color: Colors.black,
+              color: AppPalette.black,
               height: 1.5,
               fontWeight: FontWeight.w500,
               fontSize: 13.sp,
@@ -365,18 +352,15 @@ class _MealNotesSection extends StatelessWidget {
           Positioned(
             right: 0,
             top: 0,
-            child: Icon(Icons.format_quote_rounded, color: scheme.textMuted.withValues(alpha: 0.2), size: 48),
+            child: Icon(Icons.format_quote_rounded, color: scheme.textMuted.withAlpha(51), size: 48),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'PERSONAL MEMO',
-                style: context.caption.copyWith(
+                AppStrings.personalMemoLabel,
+                style: context.captionBold.copyWith(
                   color: scheme.textSecondary,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 9.sp,
-                  letterSpacing: 1.2,
                 ),
               ),
               const Spacer(),
@@ -384,11 +368,10 @@ class _MealNotesSection extends StatelessWidget {
                 notes,
                 maxLines: 6,
                 overflow: TextOverflow.ellipsis,
-                style: context.body.copyWith(
+                style: context.label.copyWith(
                   color: scheme.textPrimary,
                   height: 1.6,
                   fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -398,12 +381,12 @@ class _MealNotesSection extends StatelessWidget {
                   Container(
                     width: 12,
                     height: 2,
-                    decoration: BoxDecoration(color: scheme.textMuted.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(color: scheme.textMuted.withAlpha(127), borderRadius: BorderRadius.circular(2)),
                   ),
                   Gap.w8,
                   Text(
-                    'USER NOTES',
-                    style: context.caption.copyWith(color: scheme.textMuted, fontSize: 7.sp, fontWeight: FontWeight.w900),
+                    AppStrings.userNotesLabel,
+                    style: context.captionTiny.copyWith(color: scheme.textMuted),
                   ),
                 ],
               ),

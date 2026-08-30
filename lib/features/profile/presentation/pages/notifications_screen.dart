@@ -536,7 +536,7 @@ class _ModernSettingCard extends StatelessWidget {
       color: context.appColorScheme.elevatedSurface,
       borderRadius: BorderRadius.circular(AppSizes.r24),
       border: Border.all(
-        color: context.appColorScheme.border.withValues(alpha: 0.5),
+        color: context.appColorScheme.borderSubtle,
       ),
     ),
     child: child,
@@ -562,7 +562,7 @@ class _ModernTimeTile extends StatelessWidget {
       color: context.appColorScheme.elevatedSurface,
       borderRadius: BorderRadius.circular(AppSizes.r24),
       border: Border.all(
-        color: context.appColorScheme.border.withValues(alpha: 0.5),
+        color: context.appColorScheme.borderSubtle,
       ),
     ),
     child: Material(

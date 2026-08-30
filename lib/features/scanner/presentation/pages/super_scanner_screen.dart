@@ -192,7 +192,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppPalette.transparent,
       isScrollControlled: true,
       builder: (context) => ScanSummarySheet(product: product, capturedImage: capturedImage),
     ).then((_) {
@@ -550,7 +550,7 @@ class _PermissionOverlay extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: context.appColorScheme.cardBackground,
     appBar: AppBar(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppPalette.transparent,
       elevation: 0,
       leading: IconButton(
         icon: Icon(AppIcons.x, color: context.appColorScheme.textPrimary),

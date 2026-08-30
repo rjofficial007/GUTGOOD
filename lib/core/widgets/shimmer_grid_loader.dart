@@ -24,8 +24,8 @@ class ShimmerGridLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = context.appColorScheme.border.withValues(alpha: 0.2);
-    final highlightColor = context.appColorScheme.border.withValues(alpha: 0.1);
+    final baseColor = context.appColorScheme.border.withAlpha(51);
+    final highlightColor = context.appColorScheme.border.withAlpha(26);
 
     if (variant == ShimmerVariant.recap ||
         variant == ShimmerVariant.scanResult) {
@@ -246,7 +246,7 @@ class ShimmerGridLoader extends StatelessWidget {
           height: AppSizes.p44,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: AppPalette.white.withValues(alpha: 0.5),
+            color: AppPalette.white.withAlpha(127),
             borderRadius: BorderRadius.only(
               bottomLeft: Radius.circular(AppSizes.r32),
               bottomRight: Radius.circular(AppSizes.r32),
@@ -314,7 +314,7 @@ class ShimmerGridLoader extends StatelessWidget {
           height: AppSizes.p36,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: AppPalette.white.withValues(alpha: 0.5),
+            color: AppPalette.white.withAlpha(127),
             borderRadius: BorderRadius.only(
               bottomLeft: Radius.circular(AppSizes.r32),
               bottomRight: Radius.circular(AppSizes.r32),

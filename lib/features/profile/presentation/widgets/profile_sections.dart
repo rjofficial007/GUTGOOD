@@ -387,7 +387,7 @@ class AppVersionInfo extends StatelessWidget {
                   Text(AppStrings.appName, style: AppTextStyles.bodyBold),
                   Text(
                     'v${sl<AppVersionService>().appVersion} (${sl<AppVersionService>().buildVersion})',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted.withValues(alpha: 0.7)),
+                    style: context.captionBold.copyWith(color: context.appColorScheme.textMuted),
                   ),
                 ],
               ),
@@ -406,7 +406,7 @@ class AIUsageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     final textColor = scheme.textPrimary;
-    final borderColor = scheme.border.withValues(alpha: 0.5);
+    final borderColor = scheme.borderSubtle;
 
     final usageNotifier = context.watch<UsageNotifier>();
     final usage = usageNotifier.usage;
@@ -436,7 +436,7 @@ class AIUsageCard extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.limits.toUpperCase(),
-                    style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
+                    style: context.captionBold.copyWith(color: textColor.withAlpha(153)),
                   ),
                   Text(isAnon ? AppStrings.guestAccount : AppStrings.freePlan, style: context.bodyBold.copyWith(color: textColor, height: 1.1)),
                 ],
@@ -448,7 +448,7 @@ class AIUsageCard extends StatelessWidget {
                   decoration: BoxDecoration(color: textColor, borderRadius: BorderRadius.circular(100)),
                   child: Text(
                     AppStrings.upgrade.toUpperCase(),
-                    style: context.caption.copyWith(color: scheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 8.5.sp, letterSpacing: 1),
+                    style: context.captionBold.copyWith(color: scheme.cardBackground),
                   ),
                 ),
               ),
@@ -483,18 +483,18 @@ class UsageRow extends StatelessWidget {
           children: [
             Text(
               label.toUpperCase(),
-              style: context.eyebrow.copyWith(fontSize: 9.sp, color: context.appColorScheme.textSecondary, letterSpacing: 1.0),
+              style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary),
             ),
             Text(
               '$current / $total',
-              style: context.caption.copyWith(fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()], fontSize: 10.sp),
+              style: context.captionBold.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
             ),
           ],
         ),
         Gap.h6,
         ClipRRect(
           borderRadius: BorderRadius.circular(100),
-          child: LinearProgressIndicator(value: progress, backgroundColor: context.appColorScheme.border.withValues(alpha: 0.5), valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 5),
+          child: LinearProgressIndicator(value: progress, backgroundColor: context.appColorScheme.borderSubtle, valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 5),
         ),
       ],
     );
@@ -528,13 +528,13 @@ class AppearanceOption extends StatelessWidget {
           children: [
             Container(
               padding: EdgeInsets.all(AppSizes.p8),
-              decoration: BoxDecoration(color: isSelected ? context.appColorScheme.cardBackground.withValues(alpha: 0.15) : context.appColorScheme.cardBackground, shape: BoxShape.circle),
+              decoration: BoxDecoration(color: isSelected ? context.appColorScheme.cardBackground.withAlpha(38) : context.appColorScheme.cardBackground, shape: BoxShape.circle),
               child: Icon(icon, color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, size: AppSizes.icon20),
             ),
             Gap.w16,
             Text(
               title,
-              style: context.bodyBold.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, fontSize: AppSizes.s15),
+              style: context.labelBold.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary),
             ),
             const Spacer(),
             if (isSelected) Icon(AppIcons.checkCircle2, color: context.appColorScheme.cardBackground, size: AppSizes.icon20),

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/pattern_occurrence.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -72,7 +73,7 @@ class _PatternHeroCard extends StatelessWidget {
       backgroundColor: scheme.cardBackground,
       footer: Text(
         '${(pattern.evidenceRatio * 100).toInt()}% PROBABILITY • ${pattern.frequency}/${pattern.totalSimilarMeals} OCCURRENCES',
-        style: context.caption.copyWith(color: scheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 10.sp, letterSpacing: 1.2),
+        style: context.captionBold.copyWith(color: scheme.cardBackground),
       ),
       footerColor: scheme.textPrimary,
       child: Center(
@@ -86,7 +87,7 @@ class _PatternHeroCard extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             Gap.h8,
-            Text('linked to'.toUpperCase(), style: context.eyebrow),
+            Text(AppStrings.linkedTo.toUpperCase(), style: context.eyebrow),
             Gap.h8,
             Text(
               pattern.reaction.toUpperCase(),
@@ -109,17 +110,17 @@ class _ObservationsCard extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('OBSERVATIONS', style: context.eyebrow),
+      Text(AppStrings.observationsLabel, style: context.eyebrow),
       Gap.h16,
       AnalysisCard(
         metric: pattern.frequency.toString(),
-        label: 'DETECTED EVENTS',
+        label: AppStrings.detectedEvents,
         icon: AppIcons.brain,
         glowColor: context.appColorScheme.textPrimary,
         items: [
-          AnalysisItem(title: 'DESCRIPTION', subtitle: pattern.description, icon: AppIcons.info),
+          AnalysisItem(title: AppStrings.descriptionLabel, subtitle: pattern.description, icon: AppIcons.info),
           AnalysisItem(
-            title: 'STATISTICAL EVIDENCE',
+            title: AppStrings.statisticalEvidence,
             subtitle: '${(pattern.evidenceRatio * 100).toInt()}% Impact Probability: Symptomatic in ${pattern.positiveCount} logs, asymptomatic in ${pattern.negativeCount}.',
             icon: AppIcons.activity,
           ),
@@ -141,7 +142,7 @@ class _OccurrenceTimeline extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('RECENT TIMELINE', style: context.eyebrow),
+        Text(AppStrings.recentTimelineLabel, style: context.eyebrow),
         Gap.h20,
         ...List.generate(occurrences.length, (i) {
           final o = occurrences[i];
@@ -162,7 +163,7 @@ class _OccurrenceTimeline extends StatelessWidget {
                         margin: const EdgeInsets.only(top: 26),
                         decoration: BoxDecoration(color: scheme.textPrimary, shape: BoxShape.circle),
                       ),
-                      if (!isLast) Expanded(child: Container(width: 2, color: scheme.border.withValues(alpha: 0.5))),
+                      if (!isLast) Expanded(child: Container(width: 2, color: scheme.borderSubtle)),
                     ],
                   ),
                 ),
@@ -213,14 +214,14 @@ class _HistoryListTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.elevatedSurface,
           borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: scheme.border.withValues(alpha: 0.5)),
+          border: Border.all(color: scheme.borderSubtle),
         ),
         child: Row(
           children: [
             Container(
               width: AppSizes.w52,
               height: AppSizes.w52,
-              decoration: BoxDecoration(color: scheme.border.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(AppSizes.r12)),
+              decoration: BoxDecoration(color: scheme.border.withAlpha(51), borderRadius: BorderRadius.circular(AppSizes.r12)),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppSizes.r12),
                 child: imageUrl != null && imageUrl!.isNotEmpty
@@ -228,8 +229,8 @@ class _HistoryListTile extends StatelessWidget {
                         imageUrl: imageUrl!,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Shimmer.fromColors(
-                          baseColor: context.appColorScheme.border.withValues(alpha: 0.2),
-                          highlightColor: context.appColorScheme.border.withValues(alpha: 0.1),
+                          baseColor: context.appColorScheme.border.withAlpha(51),
+                          highlightColor: context.appColorScheme.border.withAlpha(26),
                           child: Container(color: AppPalette.white),
                         ),
                         errorWidget: (_, _, _) => Icon(AppIcons.salad, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
@@ -244,7 +245,7 @@ class _HistoryListTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s15),
+                    style: context.labelBold,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -275,14 +276,14 @@ class _InvolvedFoodsCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('INVOLVED FOODS', style: context.eyebrow),
+        Text(AppStrings.involvedFoodsLabel, style: context.eyebrow),
         Gap.h16,
         AnalysisCard(
           metric: foods.length.toString(),
           label: 'DETECTED INGREDIENTS',
           icon: AppIcons.utensils,
           glowColor: scheme.textPrimary,
-          items: foods.map((f) => AnalysisItem(title: f.toUpperCase(), subtitle: 'Linked to this pattern', icon: AppIcons.package, color: scheme.textPrimary)).toList(),
+          items: foods.map((f) => AnalysisItem(title: f.toUpperCase(), subtitle: AppStrings.linkedToPattern, icon: AppIcons.package, color: scheme.textPrimary)).toList(),
         ),
       ],
     );
@@ -297,14 +298,14 @@ class _CommonFactorsCard extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('COMMON FACTORS', style: context.eyebrow),
+      Text(AppStrings.commonFactorsLabel, style: context.eyebrow),
       Gap.h16,
       AnalysisCard(
         metric: factors.length.toString(),
         label: 'IMPACTING ELEMENTS',
         icon: AppIcons.database,
         glowColor: context.appColorScheme.textPrimary,
-        items: factors.map((f) => AnalysisItem(title: f.label.toUpperCase(), subtitle: 'Potential contributing factor', icon: InsightUiUtils.getReactionIcon(f.icon))).toList(),
+        items: factors.map((f) => AnalysisItem(title: f.label.toUpperCase(), subtitle: AppStrings.potentialContributingFactor, icon: InsightUiUtils.getReactionIcon(f.icon))).toList(),
       ),
     ],
   );
@@ -321,16 +322,16 @@ class _NextStepsCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('WHAT TO DO NEXT', style: context.eyebrow),
+        Text(AppStrings.whatToDoNextLabel, style: context.eyebrow),
         Gap.h16,
         AnalysisCard(
           metric: 'NEXT',
-          label: 'ACTION PLAN',
+          label: AppStrings.actionPlan,
           icon: AppIcons.lightbulb,
           glowColor: context.appColorScheme.textPrimary,
           items: [
-            AnalysisItem(title: 'RECOMMENDATION', subtitle: recommendation, icon: AppIcons.checkCircle, isDone: true, color: context.appColorScheme.textPrimary),
-            AnalysisItem(title: 'VERIFICATION', subtitle: 'Log your next 3 meals containing ${pattern.trigger} to confirm.', icon: AppIcons.target, color: context.appColorScheme.textPrimary),
+            AnalysisItem(title: AppStrings.recommendationLabel, subtitle: recommendation, icon: AppIcons.checkCircle, isDone: true, color: context.appColorScheme.textPrimary),
+            AnalysisItem(title: AppStrings.verificationLabel, subtitle: 'Log your next 3 meals containing ${pattern.trigger} to confirm.', icon: AppIcons.target, color: context.appColorScheme.textPrimary),
           ],
         ),
       ],

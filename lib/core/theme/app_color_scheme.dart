@@ -22,6 +22,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     required this.lavender,
     required this.lavenderDark,
     required this.aiResponseBackground,
+    required this.borderSubtle,
+    required this.surfaceSubtle,
+    required this.textDisabled,
+    required this.successSubtle,
+    required this.errorSubtle,
   });
 
   final Color cardBackground;
@@ -43,6 +48,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color lavender;
   final Color lavenderDark;
   final Color aiResponseBackground;
+  final Color borderSubtle;
+  final Color surfaceSubtle;
+  final Color textDisabled;
+  final Color successSubtle;
+  final Color errorSubtle;
 
   @override
   ThemeExtension<AppColorScheme> copyWith({
@@ -65,6 +75,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? lavender,
     Color? lavenderDark,
     Color? aiResponseBackground,
+    Color? borderSubtle,
+    Color? surfaceSubtle,
+    Color? textDisabled,
+    Color? successSubtle,
+    Color? errorSubtle,
   }) => AppColorScheme(
     cardBackground: cardBackground ?? this.cardBackground,
     elevatedSurface: elevatedSurface ?? this.elevatedSurface,
@@ -85,6 +100,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     lavender: lavender ?? this.lavender,
     lavenderDark: lavenderDark ?? this.lavenderDark,
     aiResponseBackground: aiResponseBackground ?? this.aiResponseBackground,
+    borderSubtle: borderSubtle ?? this.borderSubtle,
+    surfaceSubtle: surfaceSubtle ?? this.surfaceSubtle,
+    textDisabled: textDisabled ?? this.textDisabled,
+    successSubtle: successSubtle ?? this.successSubtle,
+    errorSubtle: errorSubtle ?? this.errorSubtle,
   );
 
   @override
@@ -110,6 +130,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       lavender: Color.lerp(lavender, other.lavender, t)!,
       lavenderDark: Color.lerp(lavenderDark, other.lavenderDark, t)!,
       aiResponseBackground: Color.lerp(aiResponseBackground, other.aiResponseBackground, t)!,
+      borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
+      surfaceSubtle: Color.lerp(surfaceSubtle, other.surfaceSubtle, t)!,
+      textDisabled: Color.lerp(textDisabled, other.textDisabled, t)!,
+      successSubtle: Color.lerp(successSubtle, other.successSubtle, t)!,
+      errorSubtle: Color.lerp(errorSubtle, other.errorSubtle, t)!,
     );
   }
 
@@ -133,6 +158,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     lavender: AppPalette.lavender,
     lavenderDark: AppPalette.lavenderDark,
     aiResponseBackground: AppPalette.aiResponseBackground,
+    borderSubtle: Color(0x80E4E4E8),
+    surfaceSubtle: Color(0x080A0A0A),
+    textDisabled: Color(0x806E7280),
+    successSubtle: Color(0x0D1F7A3D),
+    errorSubtle: Color(0x14C4302B),
   );
 
   static const dark = AppColorScheme(
@@ -155,6 +185,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     lavender: Color(0xFF2A2E3A),
     lavenderDark: AppPalette.purpleLight,
     aiResponseBackground: AppPalette.darkElevated,
+    borderSubtle: Color(0x801F1F1F),
+    surfaceSubtle: Color(0x08F5F7FA),
+    textDisabled: Color(0x808D96A5),
+    successSubtle: Color(0x1A22C55E),
+    errorSubtle: Color(0x26C4302B),
   );
 }
 

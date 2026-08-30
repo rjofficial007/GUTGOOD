@@ -264,16 +264,16 @@ class _PlanCard extends StatelessWidget {
     final intro = storeProduct.introductoryPrice;
     final hasFreeTrial = intro != null && intro.price == 0;
 
-    String? savingsText;
+    int? savingsAmt;
     String? originalPriceText;
 
     if (isAnnual && monthlyPackage != null) {
       final monthlyPrice = monthlyPackage!.storeProduct.price;
       final annualPrice = storeProduct.price;
       final fullAnnualPrice = monthlyPrice * 12;
-      final savings = ((fullAnnualPrice - annualPrice) / fullAnnualPrice * 100).round();
-      if (savings > 0) {
-        savingsText = 'Save $savings%';
+      final s = ((fullAnnualPrice - annualPrice) / fullAnnualPrice * 100).round();
+      if (s > 0) {
+        savingsAmt = s;
         originalPriceText = '${monthlyPackage!.storeProduct.currencyCode == 'USD' ? r'$' : ''}${fullAnnualPrice.toStringAsFixed(2)} / year';
       }
     }
@@ -284,7 +284,7 @@ class _PlanCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? scheme.success.withValues(alpha: 0.05) : scheme.cardBackground,
+          color: isSelected ? scheme.successSubtle : scheme.cardBackground,
           borderRadius: BorderRadius.circular(AppSizes.r20),
           border: Border.all(color: isSelected ? scheme.success : scheme.border, width: isSelected ? 1.5 : 1.0),
         ),
@@ -298,13 +298,13 @@ class _PlanCard extends StatelessWidget {
                   height: 22,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: isSelected ? scheme.success : scheme.textMuted.withValues(alpha: 0.4), width: 1.5),
+                    border: Border.all(color: isSelected ? scheme.success : scheme.textMuted.withAlpha(102), width: 1.5),
                   ),
                   child: Center(
                     child: Container(
                       width: 12,
                       height: 12,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: isSelected ? scheme.success : Colors.transparent),
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: isSelected ? scheme.success : AppPalette.transparent),
                     ),
                   ),
                 ),
@@ -317,23 +317,23 @@ class _PlanCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(isAnnual ? 'Yearly' : 'Monthly', style: context.bodyBold.copyWith(fontSize: 16, color: scheme.textPrimary)),
+                          Text(isAnnual ? AppStrings.yearly : AppStrings.monthly, style: context.bodyBold.copyWith(color: scheme.textPrimary)),
                           if (isAnnual) ...[
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(color: scheme.success.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
+                              decoration: BoxDecoration(color: scheme.successSubtle, borderRadius: BorderRadius.circular(100)),
                               child: Text(
-                                'BEST VALUE',
-                                style: context.overline.copyWith(color: scheme.success, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                                AppStrings.bestValue,
+                                style: context.captionBold.copyWith(color: scheme.success),
                               ),
                             ),
                           ],
                         ],
                       ),
                       const SizedBox(height: 2),
-                      if (savingsText != null)
-                        Text(savingsText, style: context.bodyBold.copyWith(color: scheme.success, fontSize: 13))
+                      if (savingsAmt != null)
+                        Text(AppStrings.savePercent(savingsAmt), style: context.bodyBold.copyWith(color: scheme.success, fontSize: 13))
                       else if (!hasFreeTrial)
                         Text('${storeProduct.priceString} / month', style: context.bodySm.copyWith(color: scheme.textMuted)),
                       if (hasFreeTrial)
@@ -354,7 +354,7 @@ class _PlanCard extends StatelessWidget {
                     if (originalPriceText != null)
                       Text(
                         originalPriceText,
-                        style: context.caption.copyWith(color: scheme.textMuted.withValues(alpha: 0.6), decoration: TextDecoration.lineThrough),
+                        style: context.caption.copyWith(color: scheme.textMuted.withAlpha(153), decoration: TextDecoration.lineThrough),
                       ),
                   ],
                 ),
@@ -380,7 +380,7 @@ class _PaywallRow extends StatelessWidget {
       Container(
         width: 40,
         height: 40,
-        decoration: BoxDecoration(color: context.appColorScheme.success.withValues(alpha: 0.1), shape: BoxShape.circle),
+        decoration: BoxDecoration(color: context.appColorScheme.successSubtle, shape: BoxShape.circle),
         child: Icon(icon, color: context.appColorScheme.success, size: 20),
       ),
       Gap.w14,

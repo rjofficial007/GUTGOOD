@@ -176,7 +176,7 @@ class _ProgressRow extends StatelessWidget {
         child: LinearProgressIndicator(
           value: progress,
           minHeight: 6,
-          backgroundColor: context.appColorScheme.border.withValues(alpha: 0.3),
+          backgroundColor: context.appColorScheme.borderSubtle,
           valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
         ),
       ),

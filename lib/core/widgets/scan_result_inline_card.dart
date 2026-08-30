@@ -49,8 +49,8 @@ class ScanResultInlineCard extends StatelessWidget {
                 bottomLeft: Radius.circular(AppSizes.r32),
                 bottomRight: Radius.circular(AppSizes.r32),
               ),
-              border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
-              boxShadow: [BoxShadow(color: colorScheme.textPrimary.withValues(alpha: 0.04), blurRadius: 20, offset: const Offset(0, 8))],
+              border: Border.all(color: colorScheme.borderSubtle),
+              boxShadow: [BoxShadow(color: colorScheme.surfaceSubtle, blurRadius: 20, offset: const Offset(0, 8))],
             ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,8 +90,8 @@ class ScanResultInlineCard extends StatelessWidget {
               color: colorScheme.elevatedSurface,
               borderRadius: BorderRadius.circular(AppSizes.r12),
               image: DecorationImage(image: CachedNetworkImageProvider(displayImgUrl), fit: BoxFit.cover),
-              border: isEmbedded ? Border.all(color: colorScheme.border.withValues(alpha: 0.3)) : null,
-              boxShadow: isEmbedded ? null : [BoxShadow(color: colorScheme.textPrimary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+              border: isEmbedded ? Border.all(color: colorScheme.border.withAlpha(77)) : null,
+              boxShadow: isEmbedded ? null : [BoxShadow(color: colorScheme.surfaceSubtle, blurRadius: 10, offset: const Offset(0, 4))],
             ),
           ),
 
@@ -103,19 +103,19 @@ class ScanResultInlineCard extends StatelessWidget {
                 Text(scanData.productName.toUpperCase(), style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontSize: 10)),
                 Text(
                   scanData.brand,
-                  style: context.bodySm.copyWith(color: colorScheme.textMuted, fontSize: 12.sp),
+                  style: context.labelBold.copyWith(color: colorScheme.textMuted),
                 ),
                 Gap.h4,
                 Row(
                   children: [
                     RichText(
                       text: TextSpan(
-                        style: context.eyebrow.copyWith(color: colorScheme.textMuted, fontSize: 9.sp, letterSpacing: 0.5),
+                        style: context.captionBold.copyWith(color: colorScheme.textMuted),
                         children: [
                           TextSpan(text: '${AppStrings.gutGoodScore.toUpperCase()} '),
                           TextSpan(
                             text: scanData.score.toString(),
-                            style: TextStyle(color: colorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 11.sp),
+                            style: context.labelBold.copyWith(color: colorScheme.textPrimary),
                           ),
                         ],
                       ),
@@ -129,12 +129,12 @@ class ScanResultInlineCard extends StatelessWidget {
                       ),
                       RichText(
                         text: TextSpan(
-                          style: context.eyebrow.copyWith(color: colorScheme.textMuted, fontSize: 9.sp, letterSpacing: 0.5),
+                          style: context.captionBold.copyWith(color: colorScheme.textMuted),
                           children: [
                             TextSpan(text: '${AppStrings.nutriScore.toUpperCase()} '),
                             TextSpan(
                               text: scanData.nutriscore,
-                              style: TextStyle(color: colorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 11.sp),
+                              style: context.labelBold.copyWith(color: colorScheme.textPrimary),
                             ),
                           ],
                         ),
@@ -160,10 +160,10 @@ class ScanResultInlineCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(AppStrings.contains.toUpperCase(), style: context.eyebrow.copyWith(letterSpacing: 1.0, fontSize: 8.sp, color: context.appColorScheme.textMuted)),
+              Text(AppStrings.contains.toUpperCase(), style: context.captionBold.copyWith(color: context.appColorScheme.textMuted)),
               Text(
-                '${ingredients.length} ITEMS',
-                style: context.caption.copyWith(fontSize: 9.sp, fontWeight: FontWeight.w700),
+                AppStrings.itemsCount(ingredients.length),
+                style: context.captionBold,
               ),
             ],
           ),
@@ -210,7 +210,7 @@ class ScanResultInlineCard extends StatelessWidget {
       margin: EdgeInsets.only(top: isEmbedded ? 8 : 8),
       padding: isEmbedded ? const EdgeInsets.all(16) : EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
-        color: isEmbedded ? colorScheme.elevatedSurface.withValues(alpha: 0.5) : colorScheme.textPrimary.withValues(alpha: 0.03),
+        color: isEmbedded ? colorScheme.elevatedSurface.withAlpha(127) : colorScheme.surfaceSubtle,
         borderRadius: isEmbedded ? BorderRadius.circular(AppSizes.r20) : BorderRadius.vertical(bottom: Radius.circular(AppSizes.r32)),
       ),
       child: Column(
@@ -230,11 +230,11 @@ class ScanResultInlineCard extends StatelessWidget {
                   children: [
                     Text(
                       AppStrings.swapItFeelBetter.toUpperCase(),
-                      style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: isEmbedded ? 8.sp : 10.sp),
+                      style: context.captionBold.copyWith(color: colorScheme.textPrimary),
                     ),
                     Text(
                       AppStrings.easySwapsDesc,
-                      style: context.caption.copyWith(color: colorScheme.textMuted, fontSize: isEmbedded ? 10.sp : 11.sp),
+                      style: context.caption.copyWith(color: colorScheme.textMuted),
                     ),
                   ],
                 ),
@@ -315,7 +315,7 @@ class _RefinedTag extends StatelessWidget {
         Expanded(
           child: Text(
             label.toUpperCase(),
-            style: context.caption.copyWith(color: colorScheme.textPrimary, fontSize: 11.sp, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+            style: context.labelBold.copyWith(color: colorScheme.textPrimary),
           ),
         ),
       ],
@@ -346,13 +346,13 @@ class _RefinedBenefitRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  (descriptionOverride != null ? 'Insight' : title).toUpperCase(),
-                  style: context.eyebrow.copyWith(fontSize: 11.sp, color: colorScheme.textPrimary, fontWeight: FontWeight.w900),
+                  (descriptionOverride != null ? AppStrings.insightLabel : title).toUpperCase(),
+                  style: context.labelBold.copyWith(color: colorScheme.textPrimary),
                 ),
                 Gap.h2,
                 Text(
                   descriptionOverride ?? description,
-                  style: context.caption.copyWith(height: 1.4, fontSize: 12.sp, color: colorScheme.textSecondary),
+                  style: context.label.copyWith(color: colorScheme.textSecondary),
                 ),
               ],
             ),

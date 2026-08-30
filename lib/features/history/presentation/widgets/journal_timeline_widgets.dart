@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/journal_entry.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
@@ -20,9 +21,9 @@ class JournalFilterBar extends StatelessWidget {
     height: 48,
     margin: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p16, AppSizes.p16, 0),
     decoration: BoxDecoration(
-      color: context.appColorScheme.cardBackground.withValues(alpha: 0.8),
+      color: context.appColorScheme.cardBackground.withAlpha(204),
       borderRadius: BorderRadius.circular(AppSizes.r24),
-      border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+      border: Border.all(color: context.appColorScheme.borderSubtle),
     ),
     child: Row(
       children: HistoryFilter.values.map((filter) {
@@ -33,11 +34,11 @@ class JournalFilterBar extends StatelessWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: const EdgeInsets.all(4),
-              decoration: BoxDecoration(color: isSelected ? context.appColorScheme.textPrimary : Colors.transparent, borderRadius: BorderRadius.circular(AppSizes.r20)),
+              decoration: BoxDecoration(color: isSelected ? context.appColorScheme.textPrimary : AppPalette.transparent, borderRadius: BorderRadius.circular(AppSizes.r20)),
               alignment: Alignment.center,
               child: Text(
                 filter.name.toUpperCase()[0] + filter.name.substring(1),
-                style: context.bodyBold.copyWith(fontSize: AppSizes.s13, color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textSecondary),
+                style: context.labelBold.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textSecondary),
               ),
             ),
           ),
@@ -67,14 +68,14 @@ class JournalTimelineEntry extends StatelessWidget {
             children: [
               Text(
                 DateFormatter.formatTime(entry.createdAt),
-                style: context.caption.copyWith(color: context.appColorScheme.textSecondary, fontSize: AppSizes.s11, fontWeight: FontWeight.w600),
+                style: context.label.copyWith(color: context.appColorScheme.textSecondary),
               ),
               Gap.h10,
               Expanded(
                 child: Stack(
                   alignment: Alignment.topCenter,
                   children: [
-                    if (!isLast) Container(width: 2, margin: const EdgeInsets.only(top: 36), color: context.appColorScheme.border.withValues(alpha: 0.5)),
+                    if (!isLast) Container(width: 2, margin: const EdgeInsets.only(top: 36), color: context.appColorScheme.borderSubtle),
                     _buildIcon(context),
                   ],
                 ),
@@ -116,17 +117,17 @@ class JournalTimelineEntry extends StatelessWidget {
           icon = isBarcode ? AppIcons.barcode : AppIcons.scan;
           color = isBarcode ? AppPalette.purple : AppPalette.green500;
         }
-        bgColor = color.withValues(alpha: 0.1);
+        bgColor = color.withAlpha(26);
         break;
       case JournalEntryType.meal:
         icon = AppIcons.utensils;
         color = AppPalette.orange;
-        bgColor = color.withValues(alpha: 0.1);
+        bgColor = color.withAlpha(26);
         break;
       case JournalEntryType.symptom:
         icon = AppIcons.heartPulse;
         color = AppPalette.pink;
-        bgColor = color.withValues(alpha: 0.1);
+        bgColor = color.withAlpha(26);
         break;
     }
 
@@ -160,17 +161,17 @@ class JournalTimelineEntry extends StatelessWidget {
         imageUrl = scan.userImageUrl ?? scan.imageUrl;
 
         if (category == 'label' || scanSource == 'label') {
-          type = 'Label Audit';
+          type = AppStrings.labelAudit;
           typeColor = AppPalette.blue;
           trailing = null; // No score for labels usually
           fallbackIcon = AppIcons.fileText;
         } else if (category == 'menu' || scanSource == 'menu') {
-          type = 'Menu Guide';
+          type = AppStrings.menuGuide;
           typeColor = AppPalette.orange;
           trailing = null;
           fallbackIcon = AppIcons.bookOpen;
         } else {
-          type = scan.source == 'barcode' ? 'Barcode Scan' : 'Food Scan';
+          type = scan.source == 'barcode' ? AppStrings.barcodeScan : AppStrings.foodScan;
           typeColor = scan.source == 'barcode' ? AppPalette.purple : AppPalette.green500;
           trailing = _ScoreBadge(score: scan.score);
           fallbackIcon = scan.source == 'barcode' ? AppIcons.barcode : AppIcons.scan;
@@ -179,10 +180,10 @@ class JournalTimelineEntry extends StatelessWidget {
         break;
       case JournalEntryType.meal:
         final meal = entry.meal!;
-        title = meal.items.isNotEmpty ? meal.items.first : (meal.mealType ?? 'Meal');
+        title = meal.items.isNotEmpty ? meal.items.first : (meal.mealType ?? AppStrings.meal);
         subtitle = [if (meal.items.length > 1) meal.items.skip(1).join(', '), if (meal.notes != null && meal.notes!.isNotEmpty) meal.notes!].join(' • ');
-        type = 'Meal';
-        source = meal.source?.toUpperCase() ?? 'LOG';
+        type = AppStrings.meal;
+        source = meal.source?.toUpperCase() ?? AppStrings.labelLog;
         imageUrl = meal.photoUrl;
         typeColor = AppPalette.orange;
         fallbackIcon = AppIcons.utensils;
@@ -190,11 +191,11 @@ class JournalTimelineEntry extends StatelessWidget {
       case JournalEntryType.symptom:
         final symptom = entry.symptom!;
         title = 'Felt ${symptom.symptom.toLowerCase()}';
-        type = 'Body Signal';
+        type = AppStrings.bodySignal;
         subtitle = [
           if (symptom.notes != null && symptom.notes!.isNotEmpty) symptom.notes!,
-          if (symptom.energyLevel != null) 'Energy: ${symptom.energyLevel}/10',
-          if ((symptom.notes == null || symptom.notes!.isEmpty) && symptom.energyLevel == null) 'Severity: ${symptom.severity}/10',
+          if (symptom.energyLevel != null) AppStrings.energyCount(symptom.energyLevel!),
+          if ((symptom.notes == null || symptom.notes!.isEmpty) && symptom.energyLevel == null) '${AppStrings.severity}: ${symptom.severity}/10',
         ].join(' • ');
         typeColor = AppPalette.pink;
         trailing = null; // Removed chevron until detail screen is implemented
@@ -208,8 +209,8 @@ class JournalTimelineEntry extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appColorScheme.cardBackground,
           borderRadius: BorderRadius.circular(AppSizes.r16),
-          border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.01), blurRadius: 10, offset: const Offset(0, 4))],
+          border: Border.all(color: context.appColorScheme.borderSubtle),
+          boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(3), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Row(
           children: [
@@ -218,7 +219,7 @@ class JournalTimelineEntry extends StatelessWidget {
               Container(
                 width: 48,
                 height: 48,
-                decoration: BoxDecoration(color: AppPalette.pink.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(AppSizes.r12)),
+                decoration: BoxDecoration(color: context.appColorScheme.errorSubtle, borderRadius: BorderRadius.circular(AppSizes.r12)),
                 child: Center(child: Text(_getSymptomEmoji(entry.symptom?.symptom), style: const TextStyle(fontSize: 24))),
               )
             else if (imageUrl != null)
@@ -229,9 +230,9 @@ class JournalTimelineEntry extends StatelessWidget {
                   width: 48,
                   height: 48,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(color: context.appColorScheme.border.withValues(alpha: 0.1)),
+                  placeholder: (context, url) => Container(color: context.appColorScheme.borderSubtle),
                   errorWidget: (context, url, error) => Container(
-                    color: context.appColorScheme.border.withValues(alpha: 0.1),
+                    color: context.appColorScheme.borderSubtle,
                     child: Icon(fallbackIcon, color: context.appColorScheme.textPrimary, size: 20),
                   ),
                 ),
@@ -240,7 +241,7 @@ class JournalTimelineEntry extends StatelessWidget {
               Container(
                 width: 48,
                 height: 48,
-                decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppSizes.r12)),
+                decoration: BoxDecoration(color: context.appColorScheme.borderSubtle, borderRadius: BorderRadius.circular(AppSizes.r12)),
                 child: Icon(fallbackIcon, color: context.appColorScheme.textPrimary, size: 20),
               ),
             Gap.w12,
@@ -259,7 +260,7 @@ class JournalTimelineEntry extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        type,
+                        type ?? '',
                         style: context.caption.copyWith(color: typeColor, fontWeight: FontWeight.w700),
                       ),
                       if (source != null) Text(' • $source', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
@@ -310,38 +311,37 @@ class _ScoreBadge extends StatelessWidget {
 
     if (score >= 90) {
       color = AppPalette.green;
-      label = 'Excellent';
+      label = AppStrings.excellent;
     } else if (score >= 70) {
       color = AppPalette.green500;
-      label = 'Great';
+      label = AppStrings.great;
     } else if (score >= 50) {
       color = AppPalette.yellow;
-      label = 'Good';
+      label = AppStrings.good;
     } else if (score >= 30) {
       color = AppPalette.orange;
-      label = 'Fair';
+      label = AppStrings.fair;
     } else {
       color = AppPalette.red;
-      label = 'Trigger';
+      label = AppStrings.trigger;
     }
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(AppSizes.r8),
-        // border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             score.toString(),
-            style: context.bodyBold.copyWith(color: color, fontSize: AppSizes.s15),
+            style: context.bodyBold.copyWith(color: color),
           ),
           Text(
             label,
-            style: context.caption.copyWith(color: color, fontSize: AppSizes.s10, fontWeight: FontWeight.w700),
+            style: context.captionBold.copyWith(color: color),
           ),
         ],
       ),

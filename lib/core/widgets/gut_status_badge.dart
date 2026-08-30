@@ -23,10 +23,8 @@ class GutStatusBadge extends StatelessWidget {
       children: [
         Text(
           isActive ? AppStrings.live : AppStrings.off,
-          style: context.caption.copyWith(
+          style: context.captionBold.copyWith(
             color: context.appColorScheme.cardBackground,
-            fontSize: AppSizes.s9,
-            fontWeight: FontWeight.bold,
           ),
         ),
         Gap.w4,

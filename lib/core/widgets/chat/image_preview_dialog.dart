@@ -1,8 +1,10 @@
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 
 class ImagePreviewDialog extends StatefulWidget {
   const ImagePreviewDialog({
@@ -51,7 +53,7 @@ class _ImagePreviewDialogState extends State<ImagePreviewDialog> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppPalette.transparent,
         body: Stack(
           children: [
             // iOS Style Blurred Background
@@ -64,7 +66,7 @@ class _ImagePreviewDialogState extends State<ImagePreviewDialog> {
                     sigmaY: 10 * opacity,
                   ),
                   child: Container(
-                    color: Colors.black.withValues(alpha: 0.4 * opacity),
+                    color: AppPalette.black.withAlpha((102 * opacity).round()),
                   ),
                 ),
               ),
@@ -102,7 +104,7 @@ class _ImagePreviewDialogState extends State<ImagePreviewDialog> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(24),
                             child: Container(
-                              color: Colors.black,
+                              color: AppPalette.black,
                               child: AspectRatio(
                                 aspectRatio: 1, // iOS Style Square-ish Preview
                                 child: PageView.builder(
@@ -124,13 +126,13 @@ class _ImagePreviewDialogState extends State<ImagePreviewDialog> {
                                             fit: BoxFit.cover,
                                             placeholder: (_, _) => const Center(
                                               child: CircularProgressIndicator(
-                                                color: Colors.white,
+                                                color: AppPalette.white,
                                                 strokeWidth: 2,
                                               ),
                                             ),
                                             errorWidget: (_, _, _) => const Icon(
                                                   Icons.error,
-                                                  color: Colors.white,
+                                                  color: AppPalette.white,
                                                 ),
                                           );
 
@@ -167,8 +169,8 @@ class _ImagePreviewDialogState extends State<ImagePreviewDialog> {
                                 height: 6,
                                 decoration: BoxDecoration(
                                   color: _currentIndex == index
-                                      ? Colors.white
-                                      : Colors.white.withValues(alpha: 0.3),
+                                      ? AppPalette.white
+                                      : AppPalette.white.withAlpha(77),
                                   borderRadius: BorderRadius.circular(3),
                                 ),
                               ),
@@ -194,12 +196,12 @@ class _ImagePreviewDialogState extends State<ImagePreviewDialog> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
+                          color: AppPalette.white15,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.close,
-                          color: Colors.white,
+                          color: AppPalette.white,
                           size: 20,
                         ),
                       ),

@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
@@ -23,7 +24,7 @@ class BottomSheetHelper {
   }) => showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
-    backgroundColor: backgroundColor ?? Colors.transparent,
+    backgroundColor: backgroundColor ?? AppPalette.transparent,
     builder: (context) => GutSheetWrapper(
       footer: footer,
       padding: padding,
@@ -75,7 +76,7 @@ class BottomSheetHelper {
       children: [
         Container(
           padding: EdgeInsets.all(Responsive.w(16.0)),
-          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: context.appColorScheme.border.withAlpha(51), shape: BoxShape.circle),
           child: Icon(AppIcons.alertTriangle, color: context.appColorScheme.textPrimary, size: 32.0.w),
         ),
         Gap.h20,
@@ -106,7 +107,7 @@ class BottomSheetHelper {
       children: [
         Container(
           padding: EdgeInsets.all(Responsive.w(16.0)),
-          decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: context.appColorScheme.border.withAlpha(51), shape: BoxShape.circle),
           child: Icon(AppIcons.trash2, color: context.appColorScheme.textPrimary, size: 32.0.w),
         ),
         Gap.h20,

@@ -25,7 +25,7 @@ class DialogHelper {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.r24),
       ),
-      title: Text(title, style: context.bodyBold.copyWith(fontSize: 18.0.sp)),
+      title: Text(title, style: context.headingSm.copyWith(fontWeight: FontWeight.w900)),
       content: Text(
         message,
         style: context.body.copyWith(
@@ -73,7 +73,7 @@ class DialogHelper {
           Container(
             padding: EdgeInsets.all(AppSizes.p16),
             decoration: BoxDecoration(
-              color: context.appColorScheme.border.withValues(alpha: 0.2),
+              color: context.appColorScheme.border.withAlpha(51),
               shape: BoxShape.circle,
             ),
             child: Icon(

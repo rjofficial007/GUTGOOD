@@ -40,7 +40,7 @@ class GutActionBanner extends StatelessWidget {
         iconColor ?? context.appColorScheme.cardBackground;
     final effectiveIconContainer =
         iconContainerColor ??
-        context.appColorScheme.cardBackground.withValues(alpha: 0.1);
+        context.appColorScheme.cardBackground.withAlpha(26);
 
     return GestureDetector(
       onTap: onTap,
@@ -51,11 +51,11 @@ class GutActionBanner extends StatelessWidget {
           color: effectiveBg,
           borderRadius: BorderRadius.circular(50.0.r),
           border: Border.all(
-            color: context.appColorScheme.border.withValues(alpha: 0.5),
+            color: context.appColorScheme.borderSubtle,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppPalette.black.withValues(alpha: 0.04),
+              color: AppPalette.black.withAlpha(10),
               blurRadius: 24,
               offset: const Offset(0, 8),
             ),
@@ -79,7 +79,6 @@ class GutActionBanner extends StatelessWidget {
                   Text(
                     title,
                     style: context.bodyBold.copyWith(
-                      fontSize: 14.0.sp,
                       color: effectiveIconColor,
                     ),
                     maxLines: 1,
@@ -88,8 +87,7 @@ class GutActionBanner extends StatelessWidget {
                   Text(
                     subtitle,
                     style: context.caption.copyWith(
-                      color: effectiveIconColor.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w600,
+                      color: effectiveIconColor.withAlpha(178),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

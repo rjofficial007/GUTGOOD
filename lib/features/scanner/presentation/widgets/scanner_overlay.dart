@@ -24,7 +24,7 @@ class ScannerOverlay extends StatelessWidget {
         // Optimized Cutout Overlay using CustomPainter
         Positioned.fill(
           child: CustomPaint(
-            painter: _CutoutPainter(frameSize: frameSize, borderRadius: AppSizes.r32, overlayColor: Colors.black38),
+            painter: _CutoutPainter(frameSize: frameSize, borderRadius: AppSizes.r32, overlayColor: AppPalette.black.withAlpha(97)),
           ),
         ),
 
@@ -122,7 +122,7 @@ class _ScannerFrameBordersState extends State<_ScannerFrameBorders> with SingleT
         borderColor = AppPalette.lime;
         break;
       case ScanningState.error:
-        borderColor = AppPalette.red.withValues(alpha: 0.8);
+        borderColor = AppPalette.red.withAlpha(204);
         break;
     }
 
@@ -240,7 +240,7 @@ class _ScanningLineState extends State<_ScanningLine> with SingleTickerProviderS
         height: 2,
         decoration: BoxDecoration(
           color: AppPalette.lime,
-          boxShadow: [BoxShadow(color: AppPalette.lime.withValues(alpha: 0.6), blurRadius: 8, spreadRadius: 1)],
+          boxShadow: [BoxShadow(color: AppPalette.lime.withAlpha(153), blurRadius: 8, spreadRadius: 1)],
         ),
       ),
     ),
@@ -293,10 +293,10 @@ class _GuidanceOverlay extends StatelessWidget {
       key: ValueKey(text),
       textAlign: TextAlign.center,
       style: AppTextStyles.body.copyWith(
-        color: AppPalette.white.withValues(alpha: opacity),
+        color: AppPalette.white.withAlpha((255 * opacity).round()),
         fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
         fontSize: isBold ? AppSizes.s15 : AppSizes.s14,
-        shadows: [Shadow(color: AppPalette.black.withValues(alpha: 0.6), blurRadius: 8, offset: const Offset(0, 1))],
+        shadows: [Shadow(color: AppPalette.black.withAlpha(153), blurRadius: 8, offset: const Offset(0, 1))],
       ),
     ),
   );

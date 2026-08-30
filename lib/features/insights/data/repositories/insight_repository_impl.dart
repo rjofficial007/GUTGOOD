@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/chat_message.dart';
@@ -52,7 +53,7 @@ class InsightRepositoryImpl implements InsightRepository {
     final cloud = await _insightFirestoreService.getLatestInsights();
     if (cloud != null) return cloud;
 
-    final cached = _prefs.getString('gutgood_insights_cache');
+    final cached = _prefs.getString(StorageKeys.gutgoodInsightsCache);
     if (cached != null) {
       return AIInsight.fromMap(jsonDecode(cached));
     }
@@ -156,7 +157,7 @@ class InsightRepositoryImpl implements InsightRepository {
       final duration = DateTime.now().difference(startTime).inSeconds;
       await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
 
-      await _prefs.setString('gutgood_insights_cache', cleanJson);
+      await _prefs.setString(StorageKeys.gutgoodInsightsCache, cleanJson);
       return insight;
     } catch (e, st) {
       AppLogger.error('InsightRepo: AI Analysis failed', error: e);

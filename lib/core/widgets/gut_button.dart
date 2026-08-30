@@ -78,14 +78,14 @@ class _GutButtonState extends State<GutButton> {
             ),
             decoration: BoxDecoration(
               color: widget.isLoading
-                  ? effectiveColor.withValues(alpha: 0.7)
-                  : (_isFocused ? effectiveColor.withValues(alpha: 0.9) : effectiveColor),
+                  ? effectiveColor.withAlpha(178)
+                  : (_isFocused ? effectiveColor.withAlpha(229) : effectiveColor),
               borderRadius: BorderRadius.circular(widget.borderRadius ?? AppSizes.r12),
               border: widget.isOutlined
                   ? Border.all(color: _isFocused ? colorScheme.textPrimary : colorScheme.border, width: 1.5)
-                  : (_isFocused ? Border.all(color: colorScheme.textPrimary.withValues(alpha: 0.5), width: 2.0) : null),
+                  : (_isFocused ? Border.all(color: colorScheme.textPrimary.withAlpha(127), width: 2.0) : null),
               boxShadow: _isFocused
-                  ? [BoxShadow(color: effectiveColor.withValues(alpha: 0.2), blurRadius: 12, spreadRadius: 2)]
+                  ? [BoxShadow(color: effectiveColor.withAlpha(51), blurRadius: 12, spreadRadius: 2)]
                   : null,
             ),
             child: Center(
@@ -107,8 +107,6 @@ class _GutButtonState extends State<GutButton> {
                           style: context.eyebrow.copyWith(
                             color: effectiveTextColor,
                             fontSize: widget.isSmall ? 10 : 12,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.8,
                           ),
                         ),
                         if (widget.suffixIcon != null) ...[

@@ -4,6 +4,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
@@ -120,9 +121,7 @@ class _TrendBarChart extends StatelessWidget {
                     height: 50.0.h,
                     alignment: Alignment.bottomCenter,
                     decoration: BoxDecoration(
-                      color: context.appColorScheme.border.withValues(
-                        alpha: 0.5,
-                      ),
+                      color: context.appColorScheme.borderSubtle,
                       borderRadius: BorderRadius.circular(50.0.r),
                     ),
                     child: Container(
@@ -131,7 +130,7 @@ class _TrendBarChart extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: hasValue
                             ? context.appColorScheme.textPrimary
-                            : Colors.transparent,
+                            : AppPalette.transparent,
                         borderRadius: BorderRadius.circular(50.0.r),
                       ),
                     ),
@@ -140,12 +139,10 @@ class _TrendBarChart extends StatelessWidget {
                 Gap.h12,
                 Text(
                   dayName,
-                  style: context.caption.copyWith(
-                    fontSize: 10.0.sp,
+                  style: context.captionBold.copyWith(
                     color: isToday
                         ? context.appColorScheme.textPrimary
                         : context.appColorScheme.textMuted,
-                    fontWeight: isToday ? FontWeight.w900 : FontWeight.w600,
                   ),
                 ),
               ],
@@ -173,7 +170,7 @@ class _TrendDirectionTile extends StatelessWidget {
 
     return DashboardDetailItem(
       title: '${isPositive ? '+' : '-'}${diff.abs()} ${AppStrings.pointsUnit}',
-      subtitle: isPositive ? 'Improving' : 'Declining',
+      subtitle: isPositive ? AppStrings.improving : AppStrings.declining,
       icon: isPositive ? AppIcons.arrowUp : AppIcons.arrowDown,
       color: isPositive
           ? context.appColorScheme.success

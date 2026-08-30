@@ -88,7 +88,7 @@ class _AlertTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appColorScheme.elevatedSurface,
           borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+          border: Border.all(color: context.appColorScheme.borderSubtle),
         ),
         child: Row(
           children: [
@@ -96,7 +96,7 @@ class _AlertTile extends StatelessWidget {
             Container(
               width: AppSizes.w52,
               height: AppSizes.w52,
-              decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(AppSizes.r12)),
+              decoration: BoxDecoration(color: context.appColorScheme.border.withAlpha(51), borderRadius: BorderRadius.circular(AppSizes.r12)),
               child: Icon(_getAlertIcon(alert.type), color: color, size: AppSizes.icon24),
             ),
             Gap.w16,
@@ -110,7 +110,7 @@ class _AlertTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           alert.title,
-                          style: context.bodyBold.copyWith(fontSize: AppSizes.s15),
+                          style: context.labelBold,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -128,7 +128,7 @@ class _AlertTile extends StatelessWidget {
                   Gap.h4,
                   Text(
                     '${alert.type.replaceAll('_', ' ').toUpperCase()} • ${DateFormatter.formatFull(alert.createdAt)}',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold, fontSize: 10),
+                    style: context.captionBold.copyWith(color: context.appColorScheme.textMuted),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

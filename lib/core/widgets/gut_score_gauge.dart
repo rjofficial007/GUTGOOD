@@ -27,9 +27,7 @@ class GutScoreGauge extends StatelessWidget {
             child: CustomPaint(
               painter: _GaugePainter(
                 score: animatedScore,
-                trackColor: context.appColorScheme.border.withValues(
-                  alpha: 0.5,
-                ),
+                trackColor: context.appColorScheme.borderSubtle,
                 progressColor: context.appColorScheme.textPrimary,
               ),
               child: Stack(
@@ -44,18 +42,14 @@ class GutScoreGauge extends StatelessWidget {
                       children: [
                         Text(
                           '$animatedScore',
-                          style: context.h1.copyWith(
+                          style: context.displayHero.copyWith(
                             fontSize: 48.0.sp,
-                            fontWeight: FontWeight.w900,
                             height: 1,
                           ),
                         ),
                         Text(
                           'Gut Score',
-                          style: context.caption.copyWith(
-                            color: context.appColorScheme.textMuted,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: context.caption,
                         ),
                       ],
                     ),

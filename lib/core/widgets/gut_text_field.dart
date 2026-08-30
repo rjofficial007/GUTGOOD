@@ -58,7 +58,7 @@ class GutTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: inputStyle.copyWith(
-          color: context.appColorScheme.textMuted.withValues(alpha: 0.5),
+          color: context.appColorScheme.textDisabled,
         ),
         prefixIcon: prefixIcon != null
             ? Icon(
@@ -86,7 +86,7 @@ class GutTextField extends StatelessWidget {
         ),
         disabledBorder: _buildBorder(
           context,
-          context.appColorScheme.border.withValues(alpha: 0.5),
+          context.appColorScheme.borderSubtle,
         ),
       ),
     );

@@ -111,7 +111,7 @@ class ChatBubble extends StatelessWidget {
                 bottomLeft: Radius.circular(AppSizes.r24),
                 bottomRight: Radius.circular(AppSizes.r24),
               ),
-              border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+              border: Border.all(color: colorScheme.borderSubtle),
             ),
             child: const ThinkingIndicator(),
           ),
@@ -168,7 +168,7 @@ class ChatBubble extends StatelessWidget {
       if (isSending)
         Padding(
           padding: const EdgeInsets.only(right: 4.0),
-          child: SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: context.appColorScheme.cardBackground.withValues(alpha: 0.7))),
+          child: SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: context.appColorScheme.cardBackground.withAlpha(178))),
         )
       else if (sendFailed)
         Padding(
@@ -177,7 +177,7 @@ class ChatBubble extends StatelessWidget {
         ),
       Text(
         isSending ? AppStrings.labelSending : (sendFailed ? AppStrings.labelFailed : '$formattedTime ✓✓'),
-        style: TextStyle(color: context.appColorScheme.cardBackground.withValues(alpha: 0.54), fontSize: AppSizes.s10, fontWeight: FontWeight.bold),
+        style: context.captionTiny.copyWith(color: context.appColorScheme.cardBackground.withAlpha(138), fontWeight: FontWeight.bold),
       ),
     ],
   );
@@ -223,8 +223,8 @@ class ChatBubble extends StatelessWidget {
                         bottomLeft: Radius.circular(AppSizes.r32),
                         bottomRight: Radius.circular(AppSizes.r32),
                       ),
-                      border: Border.all(color: colorScheme.border.withValues(alpha: 0.3)),
-                      boxShadow: [BoxShadow(color: colorScheme.textPrimary.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))],
+                      border: Border.all(color: colorScheme.borderSubtle),
+                      boxShadow: [BoxShadow(color: colorScheme.surfaceSubtle, blurRadius: 15, offset: const Offset(0, 5))],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,13 +237,13 @@ class ChatBubble extends StatelessWidget {
                               _buildMarkdownContent(context),
                               if (scanData != null) ...[
                                 Gap.h12,
-                                Divider(color: colorScheme.border.withValues(alpha: 0.3), height: 1),
+                                Divider(color: colorScheme.borderSubtle, height: 1),
                                 Gap.h16,
                                 ScanResultInlineCard(scanData: scanData!, isEmbedded: true, onViewFullReport: onViewFullReport),
                               ],
                               if (swapData != null && swapData!.isNotEmpty) ...[
                                 Gap.h12,
-                                Divider(color: colorScheme.border.withValues(alpha: 0.3), height: 1),
+                                Divider(color: colorScheme.borderSubtle, height: 1),
                                 Gap.h16,
                                 SwapItContainer(swaps: swapData!, isEmbedded: true, onSeeMore: onSeeMoreSwaps),
                               ],
@@ -264,7 +264,7 @@ class ChatBubble extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             decoration: BoxDecoration(
-                              color: colorScheme.warning.withValues(alpha: 0.05),
+                              color: colorScheme.warning.withAlpha(13),
                               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
                             ),
                             child: _buildInterruptedRow(context),
@@ -282,35 +282,38 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildMarkdownContent(BuildContext context) => MarkdownBody(
-    data: isStreaming ? '$text ▌' : text,
-    selectable: !isStreaming,
-    styleSheet: MarkdownStyleSheet(
-      p: context.body.copyWith(height: 1.6, letterSpacing: -0.1),
-      strong: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary),
-      h1: context.headingSm.copyWith(fontWeight: FontWeight.w900),
-      h2: context.title.copyWith(fontWeight: FontWeight.w800),
-      listBullet: context.body,
-      code: context.bodySm.copyWith(fontFamily: 'monospace', backgroundColor: context.appColorScheme.elevatedSurface, color: context.appColorScheme.textPrimary),
-      codeblockPadding: const EdgeInsets.all(12),
-      codeblockDecoration: BoxDecoration(
-        color: context.appColorScheme.elevatedSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+  Widget _buildMarkdownContent(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return MarkdownBody(
+      data: isStreaming ? '$text ▌' : text,
+      selectable: !isStreaming,
+      styleSheet: MarkdownStyleSheet(
+        p: context.body.copyWith(height: 1.6, letterSpacing: -0.1),
+        strong: context.bodyBold.copyWith(color: colorScheme.textPrimary),
+        h1: context.headingSm.copyWith(fontWeight: FontWeight.w900),
+        h2: context.title.copyWith(fontWeight: FontWeight.w800),
+        listBullet: context.body,
+        code: context.bodySm.copyWith(fontFamily: 'monospace', backgroundColor: colorScheme.elevatedSurface, color: colorScheme.textPrimary),
+        codeblockPadding: const EdgeInsets.all(12),
+        codeblockDecoration: BoxDecoration(
+          color: colorScheme.elevatedSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colorScheme.borderSubtle),
+        ),
+        tableHead: context.bodyBold,
+        tableBody: context.body,
+        tableBorder: TableBorder.all(color: colorScheme.borderSubtle, width: 0.5),
+        blockquote: context.body.copyWith(color: colorScheme.textSecondary, fontStyle: FontStyle.italic),
+        blockquoteDecoration: BoxDecoration(
+          border: Border(left: BorderSide(color: colorScheme.textPrimary, width: 2)),
+          color: colorScheme.surfaceSubtle,
+        ),
+        horizontalRuleDecoration: BoxDecoration(
+          border: Border(top: BorderSide(color: colorScheme.borderSubtle, width: 0.5)),
+        ),
       ),
-      tableHead: context.bodyBold,
-      tableBody: context.body,
-      tableBorder: TableBorder.all(color: context.appColorScheme.border.withValues(alpha: 0.3), width: 0.5),
-      blockquote: context.body.copyWith(color: context.appColorScheme.textSecondary, fontStyle: FontStyle.italic),
-      blockquoteDecoration: BoxDecoration(
-        border: Border(left: BorderSide(color: context.appColorScheme.textPrimary, width: 2)),
-        color: context.appColorScheme.textPrimary.withValues(alpha: 0.02),
-      ),
-      horizontalRuleDecoration: BoxDecoration(
-        border: Border(top: BorderSide(color: context.appColorScheme.border.withValues(alpha: 0.3), width: 0.5)),
-      ),
-    ),
-  );
+    );
+  }
 
   Widget _buildFeedbackRow(BuildContext context) => Padding(
     padding: const EdgeInsets.only(left: 4, bottom: 16, right: 10),
@@ -345,7 +348,7 @@ class ChatBubble extends StatelessWidget {
                 width: size,
                 fit: BoxFit.cover,
                 memCacheWidth: (size * 2).round(),
-                placeholder: (_, _) => Container(height: size, width: size, color: dark ? AppPalette.white.withValues(alpha: 0.24) : context.appColorScheme.elevatedSurface),
+                placeholder: (_, _) => Container(height: size, width: size, color: dark ? AppPalette.white15 : context.appColorScheme.elevatedSurface),
                 errorWidget: (_, _, _) => Container(
                   height: size,
                   width: size,
@@ -369,7 +372,7 @@ class ChatBubble extends StatelessWidget {
     Navigator.of(context).push(
       PageRouteBuilder(
         opaque: false,
-        barrierColor: Colors.black.withValues(alpha: 0.1),
+        barrierColor: AppPalette.black.withAlpha(26),
         pageBuilder: (context, _, _) => ImagePreviewDialog(imageUrls: imageUrls, localImages: localImages, initialIndex: index, heroTag: heroTag),
         transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
       ),
@@ -397,9 +400,9 @@ class ChatBubble extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: colorScheme.cardBackground,
-          border: Border.all(color: (isQuota ? colorScheme.warning : colorScheme.error).withValues(alpha: 0.3)),
+          border: Border.all(color: (isQuota ? colorScheme.warning : colorScheme.error).withAlpha(77)),
           borderRadius: BorderRadius.circular(AppSizes.r24),
-          boxShadow: [BoxShadow(color: (isQuota ? colorScheme.warning : colorScheme.error).withValues(alpha: 0.05), blurRadius: 10)],
+          boxShadow: [BoxShadow(color: (isQuota ? colorScheme.warning : colorScheme.error).withAlpha(13), blurRadius: 10)],
         ),
         child: Row(
           children: [
@@ -434,7 +437,7 @@ class _IntelligenceStamp extends StatelessWidget {
       decoration: BoxDecoration(color: colorScheme.textPrimary, borderRadius: BorderRadius.circular(50)),
       child: Text(
         AppStrings.appName,
-        style: context.eyebrow.copyWith(color: colorScheme.cardBackground, fontSize: 7, letterSpacing: 0.5, fontWeight: FontWeight.w900),
+        style: context.captionMicro.copyWith(color: colorScheme.cardBackground, letterSpacing: 0.5, fontWeight: FontWeight.w900),
       ),
     );
   }

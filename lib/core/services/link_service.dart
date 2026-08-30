@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
@@ -120,7 +121,7 @@ class LinkServiceImpl implements LinkService {
       'LinkService: Valid Email Sign-in Link detected. Proceeding with verification.',
     );
     _appStateService.setVerifyingAuth(true);
-    final email = _prefs.getString('login_email');
+    final email = _prefs.getString(StorageKeys.loginEmail);
 
     if (email != null) {
       AppLogger.deepLink('Attempting sign-in for email: $email');
@@ -131,7 +132,7 @@ class LinkServiceImpl implements LinkService {
         );
         if (user != null) {
           AppLogger.deepLink('Sign-in successful for ${user.email}');
-          await _prefs.remove('login_email');
+          await _prefs.remove(StorageKeys.loginEmail);
         } else {
           AppLogger.warning(
             'LinkService: signInWithEmailLink returned null user.',

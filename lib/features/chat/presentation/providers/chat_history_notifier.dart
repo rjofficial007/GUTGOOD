@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -219,15 +220,15 @@ class ChatHistoryNotifier with ChangeNotifier {
       _cyclePhase = _cycleSyncEnabled ? (cp ?? AppStrings.phaseLuteal) : AppStrings.notSpecified;
       _cachedSummary = profile.chatSummary;
     } else {
-      _userGoals = _prefs.getStringList('user_goals') ?? [];
-      _userSensitivities = _prefs.getStringList('user_sensitivities') ?? [];
-      _userLifestyle = _prefs.getStringList('user_lifestyle') ?? [];
-      _cycleSyncEnabled = _prefs.getBool('cycle_sync_enabled') ?? false;
-      final cp = _prefs.getString('cycle_phase');
+      _userGoals = _prefs.getStringList(StorageKeys.userGoals) ?? [];
+      _userSensitivities = _prefs.getStringList(StorageKeys.userSensitivities) ?? [];
+      _userLifestyle = _prefs.getStringList(StorageKeys.userLifestyle) ?? [];
+      _cycleSyncEnabled = _prefs.getBool(StorageKeys.cycleSyncEnabled) ?? false;
+      final cp = _prefs.getString(StorageKeys.cyclePhase);
       _cyclePhase = _cycleSyncEnabled ? (cp ?? AppStrings.phaseLuteal) : AppStrings.notSpecified;
     }
 
-    _commStyle = _prefs.getString('ai_comm_style') ?? AppStrings.friendlySupportive;
+    _commStyle = _prefs.getString(StorageKeys.aiCommStyle) ?? AppStrings.friendlySupportive;
   }
 
   // Optimistic UI methods

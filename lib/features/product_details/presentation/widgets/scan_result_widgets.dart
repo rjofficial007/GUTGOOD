@@ -35,11 +35,11 @@ class BentoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? scheme.cardBackground,
         borderRadius: BorderRadius.circular(borderRadius ?? 20),
-        border: Border.all(color: scheme.border.withValues(alpha: 0.5)),
+        border: Border.all(color: scheme.borderSubtle),
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color: scheme.textPrimary.withValues(alpha: 0.03),
+                  color: scheme.surfaceSubtle,
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -59,7 +59,7 @@ class ScoreGauge extends StatelessWidget {
   final double? fontSize;
   @override
   Widget build(BuildContext context) {
-    final textColor = (color == const Color(0xFF181818)) ? Colors.white : AppPalette.black;
+    final textColor = (color == AppPalette.darkGrey) ? AppPalette.white : AppPalette.black;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: score.toDouble()),
       duration: const Duration(milliseconds: 1500),
@@ -84,21 +84,16 @@ class ScoreGauge extends StatelessWidget {
                     children: [
                       Text(
                         '${value.toInt()}',
-                        style: context.displaySm.copyWith(
-                          fontWeight: FontWeight.w900,
+                        style: context.displayHero.copyWith(
                           fontSize: fontSize ?? (size * 0.28).clamp(32, 48).sp,
                           color: textColor,
-                          height: 1.0,
-                          letterSpacing: -1,
                         ),
                       ),
                       Text(
                         label,
-                        style: context.caption.copyWith(
-                          fontWeight: FontWeight.w900,
+                        style: context.captionBold.copyWith(
                           fontSize: (size * 0.08).clamp(6, 8).sp,
-                          letterSpacing: 1.5,
-                          color: textColor.withValues(alpha: 0.5),
+                          color: textColor.withAlpha(127),
                         ),
                       ),
                     ],
@@ -125,7 +120,7 @@ class _GaugePainter extends CustomPainter {
 
     final bgPaint =
         Paint()
-          ..color = (color == const Color(0xFF181818) ? Colors.white : AppPalette.black).withValues(alpha: 0.1)
+          ..color = (color == AppPalette.darkGrey ? AppPalette.white : AppPalette.black).withAlpha(26)
           ..style = PaintingStyle.stroke
           ..strokeWidth = strokeWidth
           ..strokeCap = StrokeCap.round;
@@ -140,11 +135,10 @@ class _GaugePainter extends CustomPainter {
     // Outer glow for the progress
     final glowPaint =
         Paint()
-          ..color = color.withValues(alpha: 0.3)
+          ..color = color.withAlpha(77)
           ..style = PaintingStyle.stroke
           ..strokeWidth = strokeWidth + 4
-          ..strokeCap = StrokeCap.round
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+          ..strokeCap = StrokeCap.round;
 
     // Full circle background
     canvas.drawCircle(center, radius - strokeWidth / 2, bgPaint);
@@ -167,10 +161,10 @@ class NutrientBarChart extends StatelessWidget {
   const NutrientBarChart({super.key, required this.nutrients});
   final Map<String, double> nutrients;
   @override
-  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [_buildBar('Sept', nutrients['protein'] ?? 0, const Color(0xFFC4B5FD)), Gap.w12, _buildBar('Nov', nutrients['fiber'] ?? 0, const Color(0xFFB4F1B4))]);
-  Widget _buildBar(String label, double value, Color color) {
+  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.end, children: [_buildBar(context, 'Sept', nutrients['protein'] ?? 0, AppPalette.purplePastel), Gap.w12, _buildBar(context, 'Nov', nutrients['fiber'] ?? 0, AppPalette.greenPastel)]);
+  Widget _buildBar(BuildContext context, String label, double value, Color color) {
     final height = (value / 20).clamp(0.2, 1.0) * 80.h;
-    return Column(mainAxisAlignment: MainAxisAlignment.end, children: [Text(label, style: TextStyle(color: Colors.white70, fontSize: 10.sp, fontWeight: FontWeight.w500)), Gap.h8, Container(width: 48.w, height: height, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)))]);
+    return Column(mainAxisAlignment: MainAxisAlignment.end, children: [Text(label, style: context.caption.copyWith(color: AppPalette.white70)), Gap.h8, Container(width: 48.w, height: height, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)))]);
   }
 }
 
@@ -207,10 +201,10 @@ class ImpactTimeline extends StatelessWidget {
                     color: item.color,
                     shape: BoxShape.circle,
                     border: Border.all(color: scheme.cardBackground, width: 2),
-                    boxShadow: [BoxShadow(color: item.color.withValues(alpha: 0.3), blurRadius: 4)],
+                    boxShadow: [BoxShadow(color: item.color.withAlpha(77), blurRadius: 4)],
                   ),
                 ),
-                if (!isLast) Expanded(child: Container(width: 2, color: scheme.border.withValues(alpha: 0.5))),
+                if (!isLast) Expanded(child: Container(width: 2, color: scheme.borderSubtle)),
               ],
             ),
             Gap.w16,
@@ -246,7 +240,7 @@ class BentoImageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     final displayImageUrl = scanData.userImageUrl ?? scanData.imageUrl;
-    final Color scoreColor = scanData.score >= 70 ? const Color(0xFFB4F1B4) : (scanData.score >= 40 ? const Color(0xFFC4B5FD) : AppPalette.red);
+    final Color scoreColor = scanData.score >= 70 ? AppPalette.greenPastel : (scanData.score >= 40 ? AppPalette.purplePastel : AppPalette.red);
 
     return BentoCard(
       padding: const EdgeInsets.all(12),
@@ -268,8 +262,8 @@ class BentoImageCard extends StatelessWidget {
                       top: 12,
                       left: 12,
                       child: Text(
-                        'ANALYSIS',
-                        style: TextStyle(color: Colors.black.withValues(alpha: 0.4), fontSize: 7.sp, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                        AppStrings.analysisLabel,
+                        style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
                       ),
                     ),
                     Positioned(
@@ -278,7 +272,7 @@ class BentoImageCard extends StatelessWidget {
                       child: Container(
                         width: 12,
                         height: 12,
-                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]),
+                        decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
                       ),
                     ),
                     Positioned(
@@ -286,7 +280,7 @@ class BentoImageCard extends StatelessWidget {
                       left: 8,
                       child: Text(
                         '${scanData.score}',
-                        style: TextStyle(color: Colors.black, fontSize: 72.sp, fontWeight: FontWeight.w900, letterSpacing: -5),
+                        style: context.displayHero.copyWith(color: AppPalette.black, letterSpacing: -5),
                       ),
                     ),
                   ],
@@ -311,19 +305,16 @@ class BentoImageCard extends StatelessWidget {
                 ],
                 Text(
                   scanData.brand.toUpperCase(),
-                  style: TextStyle(color: scheme.textSecondary, fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                  style: context.captionBold.copyWith(color: scheme.textSecondary),
                 ),
                 Gap.h4,
                 Text(
                   scanData.productName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: context.bodyBold.copyWith(
+                  style: context.headingSm.copyWith(
                     color: scheme.textPrimary,
-                    fontSize: 18.sp,
                     fontWeight: FontWeight.w900,
-                    height: 1.0,
-                    letterSpacing: -0.8,
                   ),
                 ),
                 Gap.h8,
@@ -331,11 +322,8 @@ class BentoImageCard extends StatelessWidget {
                   scanData.impact,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: context.caption.copyWith(
+                  style: context.captionBold.copyWith(
                     color: scheme.textSecondary,
-                    fontSize: 10.5.sp,
-                    height: 1.4,
-                    letterSpacing: -0.1,
                   ),
                 ),
               ],
@@ -360,7 +348,7 @@ class NutrientBalanceWrap extends StatelessWidget {
       children: balance.entries.map((e) {
         final status = e.value.toString().toLowerCase();
         final Color color = switch (status) {
-          'good' || 'high' => const Color(0xFFB4F1B4),
+          'good' || 'high' => AppPalette.greenPastel,
           'moderate' => AppPalette.orange,
           'low' || 'poor' => AppPalette.red,
           _ => AppPalette.gray400
@@ -368,9 +356,9 @@ class NutrientBalanceWrap extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: color.withAlpha(26),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
+            border: Border.all(color: color.withAlpha(51)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -379,7 +367,7 @@ class NutrientBalanceWrap extends StatelessWidget {
               Gap.w6,
               Text(
                 e.key.toUpperCase(),
-                style: context.caption.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 8.sp, letterSpacing: 0.5),
+                style: context.captionBold.copyWith(color: scheme.textPrimary),
               ),
             ],
           ),
@@ -394,7 +382,7 @@ class SaveButton extends StatelessWidget {
   final bool isSaved, isLoading;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => GestureDetector(onTap: isLoading ? null : onTap, child: Container(width: 44.0.w, height: 44.0.w, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]), child: isLoading ? Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppPalette.black))) : Icon(isSaved ? Icons.favorite : Icons.favorite_border, color: isSaved ? AppPalette.red : AppPalette.black, size: 20)));
+  Widget build(BuildContext context) => GestureDetector(onTap: isLoading ? null : onTap, child: Container(width: 44.0.w, height: 44.0.w, decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(13), blurRadius: 10, offset: const Offset(0, 4))]), child: isLoading ? Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppPalette.black))) : Icon(isSaved ? Icons.favorite : Icons.favorite_border, color: isSaved ? AppPalette.red : AppPalette.black, size: 20)));
 }
 
 class ProductImageHeader extends StatelessWidget {
@@ -409,16 +397,16 @@ class ProductImageHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SheetSectionHeader(title: 'FOOD ANALYSIS', color: Colors.transparent),
+        const SheetSectionHeader(title: AppStrings.foodAnalysisLabel, color: AppPalette.transparent),
         Container(
           height: 420.h,
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.3)),
+            border: Border.all(color: context.appColorScheme.border.withAlpha(77)),
             boxShadow: [
               BoxShadow(
-                color: context.appColorScheme.textPrimary.withValues(alpha: 0.05),
+                color: context.appColorScheme.surfaceSubtle,
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -440,9 +428,9 @@ class ProductImageHeader extends StatelessWidget {
                               fit: BoxFit.cover,
                               placeholder:
                                   (context, url) => Shimmer.fromColors(
-                                    baseColor: context.appColorScheme.border.withOpacity(0.2),
-                                    highlightColor: context.appColorScheme.border.withOpacity(0.1),
-                                    child: Container(color: Colors.white),
+                                    baseColor: context.appColorScheme.borderSubtle,
+                                    highlightColor: context.appColorScheme.border.withAlpha(26),
+                                    child: Container(color: AppPalette.white),
                                   ),
                               errorWidget:
                                   (_, _, _) => Container(
@@ -462,7 +450,7 @@ class ProductImageHeader extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.black.withOpacity(0.2), Colors.transparent, Colors.black.withOpacity(0.7)],
+                        colors: [AppPalette.black.withAlpha(51), AppPalette.transparent, AppPalette.black.withAlpha(178)],
                         stops: const [0.0, 0.3, 1.0],
                       ),
                     ),
@@ -485,7 +473,7 @@ class GlassCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final Color? backgroundColor;
   @override
-  Widget build(BuildContext context) => ClipRRect(borderRadius: borderRadius ?? BorderRadius.circular(24), child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), child: Container(padding: padding ?? const EdgeInsets.all(16), decoration: BoxDecoration(color: backgroundColor ?? Colors.white.withOpacity(0.1), borderRadius: borderRadius ?? BorderRadius.circular(24)), child: child)));
+  Widget build(BuildContext context) => ClipRRect(borderRadius: borderRadius ?? BorderRadius.circular(24), child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), child: Container(padding: padding ?? const EdgeInsets.all(16), decoration: BoxDecoration(color: backgroundColor ?? AppPalette.white.withAlpha(26), borderRadius: borderRadius ?? BorderRadius.circular(24)), child: child)));
 }
 
 class ScanHeroSection extends StatelessWidget {
@@ -496,9 +484,9 @@ class ScanHeroSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final labelStyle = context.caption.copyWith(color: isGlass ? Colors.white.withOpacity(0.7) : scheme.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 8.5.sp);
-    final valueStyle = context.bodyBold.copyWith(color: isGlass ? Colors.white : scheme.textPrimary, fontSize: 26.sp, letterSpacing: -1.0, fontWeight: FontWeight.w900, height: 1.0);
-    return Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_MetricItem(label: 'NOVA-GROUP', value: scanData.novaGroup ?? '1', labelStyle: labelStyle, valueStyle: valueStyle), if (scanData.nutriscore != null) _MetricItem(label: 'NUTRI-SCORE', valueWidget: Text(scanData.nutriscore!, style: valueStyle.copyWith(color: isGlass ? Colors.white : (scanData.score >= 70 ? scheme.success : (scanData.score >= 40 ? const Color(0xFFC4B5FD) : scheme.error)))), labelStyle: labelStyle), _MetricItem(label: 'IMPACT', value: scanData.impactType.name.toUpperCase(), labelStyle: labelStyle, valueStyle: valueStyle.copyWith(fontSize: 18.sp, letterSpacing: -0.5))]), if (scanData.allergens != null && scanData.allergens!.isNotEmpty) ...[Gap.h16, Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: isGlass ? Colors.white.withOpacity(0.15) : scheme.error.withOpacity(0.05), borderRadius: BorderRadius.circular(10), border: Border.all(color: isGlass ? Colors.white24 : scheme.error.withOpacity(0.2))), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(AppIcons.alertTriangle, size: 14, color: isGlass ? Colors.white : scheme.error), Gap.w8, Text('CONTAINS: ${scanData.allergens!.toUpperCase()}', style: context.caption.copyWith(color: isGlass ? Colors.white : scheme.error, fontWeight: FontWeight.w900, fontSize: 10.sp, letterSpacing: 1.0))]))]]);
+    final labelStyle = context.captionBold.copyWith(color: isGlass ? AppPalette.white.withAlpha(178) : scheme.textMuted);
+    final valueStyle = context.bodyBold.copyWith(color: isGlass ? AppPalette.white : scheme.textPrimary, fontSize: 26.sp, letterSpacing: -1.0, fontWeight: FontWeight.w900, height: 1.0);
+    return Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [_MetricItem(label: 'NOVA-GROUP', value: scanData.novaGroup ?? '1', labelStyle: labelStyle, valueStyle: valueStyle), if (scanData.nutriscore != null) _MetricItem(label: 'NUTRI-SCORE', valueWidget: Text(scanData.nutriscore!, style: valueStyle.copyWith(color: isGlass ? AppPalette.white : (scanData.score >= 70 ? scheme.success : (scanData.score >= 40 ? const Color(0xFFC4B5FD) : scheme.error)))), labelStyle: labelStyle), _MetricItem(label: 'IMPACT', value: scanData.impactType.name.toUpperCase(), labelStyle: labelStyle, valueStyle: valueStyle.copyWith(fontSize: 18.sp, letterSpacing: -0.5))]), if (scanData.allergens != null && scanData.allergens!.isNotEmpty) ...[Gap.h16, Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: isGlass ? AppPalette.white.withAlpha(38) : scheme.errorSubtle, borderRadius: BorderRadius.circular(10), border: Border.all(color: isGlass ? AppPalette.white15 : scheme.error.withAlpha(51))), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(AppIcons.alertTriangle, size: 14, color: isGlass ? AppPalette.white : scheme.error), Gap.w8, Text('${AppStrings.contains.toUpperCase()}: ${scanData.allergens!.toUpperCase()}', style: context.captionBold.copyWith(color: isGlass ? AppPalette.white : scheme.error))]))]]);
   }
 }
 
@@ -541,9 +529,9 @@ class ScanImpactSection extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(title, style: context.bodyBold.copyWith(fontSize: 14.sp)),
+                          Text(title, style: context.bodyBold),
                           if (servingInfo != null)
-                            Text('Per serving ($servingInfo)', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                            Text(AppStrings.perServing(servingInfo!), style: context.captionBold.copyWith(color: scheme.textMuted)),
                         ],
                       ),
                     ),
@@ -575,16 +563,16 @@ class ScanImpactDetailItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.elevatedSurface,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+        border: Border.all(color: scheme.border.withAlpha(77)),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withAlpha(26),
               shape: BoxShape.circle,
-              border: Border.all(color: color.withValues(alpha: 0.2)),
+              border: Border.all(color: color.withAlpha(51)),
             ),
             child: Icon(icon, size: 16.w, color: color),
           ),
@@ -593,13 +581,13 @@ class ScanImpactDetailItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title.capitalize, style: context.bodyBold.copyWith(fontSize: 14.sp, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: scheme.textPrimary)),
+                Text(title.capitalize, style: context.bodyBold.copyWith(height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: scheme.textPrimary)),
                 if (subtitle.isNotEmpty)
-                  Text(subtitle, style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, fontWeight: FontWeight.w600, height: 1.4)),
+                  Text(subtitle, style: context.captionBold.copyWith(color: scheme.textMuted, fontWeight: FontWeight.w600, height: 1.4)),
               ],
             ),
           ),
-          Text(value, style: context.caption.copyWith(color: color,  fontWeight: FontWeight.w900, letterSpacing: -0.6)),
+          Text(value, style: context.captionBold.copyWith(color: color, letterSpacing: -0.6)),
           Gap.w4,
         ],
       ),
@@ -651,8 +639,8 @@ class AdditivesSection extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('WHAT TO WATCH', style: context.bodyBold.copyWith(fontSize: 14.sp)),
-                          Text('Potential risk factors detected', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                          Text(AppStrings.whatToWatch, style: context.bodyBold),
+                          Text(AppStrings.potentialRiskFactors, style: context.captionBold.copyWith(color: scheme.textMuted)),
                         ],
                       ),
                     ),
@@ -683,16 +671,16 @@ class _WatchingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.elevatedSurface,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+        border: Border.all(color: scheme.border.withAlpha(77)),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withAlpha(26),
               shape: BoxShape.circle,
-              border: Border.all(color: color.withValues(alpha: 0.2)),
+              border: Border.all(color: color.withAlpha(51)),
             ),
             child: Icon(icon, size: 16.w, color: color),
           ),
@@ -721,7 +709,7 @@ class PersonalizedInsightCard extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SheetSectionHeader(title: 'PERSONALIZED INSIGHT', color: Colors.transparent),
+          const SheetSectionHeader(title: AppStrings.personalizedInsightLabel, color: AppPalette.transparent),
           DashboardCard(
             child: Padding(
               padding: EdgeInsets.all(AppSizes.p20),
@@ -733,15 +721,15 @@ class PersonalizedInsightCard extends StatelessWidget {
                       Icon(AppIcons.sparkles, color: context.appColorScheme.textPrimary, size: 18),
                       Gap.w12,
                       Text(
-                        'AI ANALYSIS',
-                        style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontSize: 13.sp),
+                        AppStrings.aiDrivenFindings.toUpperCase(),
+                        style: context.labelBold.copyWith(color: context.appColorScheme.textPrimary),
                       ),
                     ],
                   ),
                   Gap.h12,
                   Text(
                     insight,
-                    style: context.body.copyWith(fontSize: 13.sp, height: 1.5, color: context.appColorScheme.textSecondary),
+                    style: context.label.copyWith(height: 1.5, color: context.appColorScheme.textSecondary),
                   ),
                 ],
               ),
@@ -755,7 +743,7 @@ class BetterSwapsCarousel extends StatelessWidget {
   const BetterSwapsCarousel({super.key, required this.swaps});
   final List<ProductSwap> swaps;
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const SheetSectionHeader(title: AppStrings.betterSwapsLabel, color: Colors.transparent), SizedBox(height: 100.0.h, child: ListView.builder(scrollDirection: Axis.horizontal, clipBehavior: Clip.none, itemCount: swaps.length, itemBuilder: (context, i) => _SwapCard(swap: swaps[i])))]);
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const SheetSectionHeader(title: AppStrings.betterSwapsLabel, color: AppPalette.transparent), SizedBox(height: 100.0.h, child: ListView.builder(scrollDirection: Axis.horizontal, clipBehavior: Clip.none, itemCount: swaps.length, itemBuilder: (context, i) => _SwapCard(swap: swaps[i])))]);
 }
 
 class _SwapCard extends StatelessWidget {
@@ -771,10 +759,10 @@ class _SwapCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.cardBackground,
         borderRadius: BorderRadius.circular(AppSizes.r20),
-        border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+        border: Border.all(color: scheme.border.withAlpha(77)),
         boxShadow: [
           BoxShadow(
-            color: scheme.textPrimary.withValues(alpha: 0.03),
+            color: scheme.surfaceSubtle,
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -797,16 +785,16 @@ class _SwapCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(swap.title, style: context.bodyBold.copyWith(fontSize: 12.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(swap.subtitle, style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(swap.title, style: context.labelBold, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(swap.subtitle, style: context.captionBold.copyWith(color: scheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
                 Gap.h8,
                 Row(
                   children: [
                     Icon(AppIcons.trendingUp, size: 10.sp, color: scheme.success),
                     Gap.w4,
                     Text(
-                      'BETTER CHOICE',
-                      style: context.eyebrow.copyWith(color: scheme.success, fontSize: 8.sp, letterSpacing: 0.5),
+                      AppStrings.betterChoiceLabel.toUpperCase(),
+                      style: context.captionBold.copyWith(color: scheme.success),
                     ),
                   ],
                 ),
@@ -839,16 +827,16 @@ class IngredientsSection extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.elevatedSurface,
           borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+          border: Border.all(color: scheme.border.withAlpha(77)),
         ),
         child: Row(
           children: [
             Container(
               padding: EdgeInsets.all(10.w),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withAlpha(26),
                 shape: BoxShape.circle,
-                border: Border.all(color: color.withValues(alpha: 0.2)),
+                border: Border.all(color: color.withAlpha(51)),
               ),
               child: Icon(AppIcons.leaf, size: 16.w, color: color),
             ),
@@ -883,14 +871,14 @@ class IngredientsSection extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('CLINICAL AUDIT', style: context.bodyBold.copyWith(fontSize: 14.sp)),
-                      Text('${ingredients.length} items verified', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                      Text(AppStrings.clinicalAudit, style: context.bodyBold),
+                      Text(AppStrings.itemsVerified(ingredients.length), style: context.captionBold.copyWith(color: scheme.textMuted)),
                     ],
                   ),
                 ),
                 Container(
                   padding: EdgeInsets.all(6.w),
-                  decoration: BoxDecoration(color: scheme.textPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: scheme.textPrimary.withAlpha(26), shape: BoxShape.circle),
                   child: Icon(AppIcons.shieldCheck, size: 12.w, color: scheme.textPrimary),
                 ),
               ],
@@ -923,16 +911,16 @@ class NutritionFactsSection extends StatelessWidget {
           decoration: BoxDecoration(
             color: scheme.elevatedSurface,
             borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+            border: Border.all(color: scheme.border.withAlpha(77)),
           ),
           child: Row(
             children: [
               Container(
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
+                  color: statusColor.withAlpha(26),
                   shape: BoxShape.circle,
-                  border: Border.all(color: statusColor.withValues(alpha: 0.2)),
+                  border: Border.all(color: statusColor.withAlpha(51)),
                 ),
                 child: Icon(icon, size: 16.w, color: statusColor),
               ),
@@ -941,8 +929,8 @@ class NutritionFactsSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: context.bodyBold.copyWith(fontSize: 14.sp, height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: scheme.textPrimary)),
-                    Text('$value $unit', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, fontWeight: FontWeight.w600, height: 1.4)),
+                    Text(label, style: context.bodyBold.copyWith(height: 1.1, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: scheme.textPrimary)),
+                    Text(AppStrings.valueWithUnit(value, unit), style: context.captionBold.copyWith(color: scheme.textMuted, fontWeight: FontWeight.w600, height: 1.4)),
                   ],
                 ),
               ),
@@ -982,14 +970,14 @@ class NutritionFactsSection extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('NUTRITION ANALYTICS', style: context.bodyBold.copyWith(fontSize: 14.sp)),
-                          Text('Scientific distribution', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                          Text(AppStrings.nutritionAnalytics, style: context.bodyBold),
+                          Text(AppStrings.scientificDistribution, style: context.captionBold.copyWith(color: scheme.textMuted)),
                         ],
                       ),
                     ),
                     Container(
                       padding: EdgeInsets.all(6.w),
-                      decoration: BoxDecoration(color: scheme.textPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      decoration: BoxDecoration(color: scheme.textPrimary.withAlpha(26), shape: BoxShape.circle),
                       child: Icon(AppIcons.trendingUp, size: 12.w, color: scheme.textPrimary),
                     ),
                   ],
@@ -1032,7 +1020,7 @@ class MenuAnalysisSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SheetSectionHeader(title: 'MENU RECOMMENDATIONS', color: Colors.transparent),
+        const SheetSectionHeader(title: AppStrings.menuRecommendationsLabel, color: AppPalette.transparent),
         SizedBox(
           height: 200.h,
           child: ListView.builder(
@@ -1075,10 +1063,10 @@ class _MenuItemCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.cardBackground,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: scheme.border.withValues(alpha: 0.8)),
+        border: Border.all(color: scheme.border.withAlpha(204)),
         boxShadow: [
           BoxShadow(
-            color: scheme.textPrimary.withValues(alpha: 0.03),
+            color: scheme.surfaceSubtle,
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1099,7 +1087,7 @@ class _MenuItemCard extends StatelessWidget {
                   child: CachedNetworkImage(
                     imageUrl: displayImageUrl,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: scheme.textPrimary.withValues(alpha: 0.05)),
+                    placeholder: (_, __) => Container(color: scheme.surfaceSubtle),
                     errorWidget: (_, __, ___) => const SizedBox.shrink(),
                   ),
                 ),
@@ -1111,8 +1099,8 @@ class _MenuItemCard extends StatelessWidget {
                         end: Alignment.centerRight,
                         colors: [
                           scheme.cardBackground,
-                          scheme.cardBackground.withValues(alpha: 0.8),
-                          Colors.transparent,
+                          scheme.cardBackground.withAlpha(204),
+                          AppPalette.transparent,
                         ],
                         stops: const [0.0, 0.2, 1.0],
                       ),
@@ -1135,7 +1123,7 @@ class _MenuItemCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: successColor.withValues(alpha: 0.15),
+                        color: successColor.withAlpha(38),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(AppIcons.leaf, size: 18, color: successColor),
@@ -1144,12 +1132,12 @@ class _MenuItemCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: scheme.textPrimary.withValues(alpha: 0.1),
+                          color: scheme.textPrimary.withAlpha(26),
                           borderRadius: BorderRadius.circular(100),
                         ),
                         child: Text(
                           price,
-                          style: context.caption.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 11.sp),
+                          style: context.labelBold.copyWith(color: scheme.textPrimary),
                         ),
                       ),
                   ],
@@ -1179,7 +1167,7 @@ class _MenuItemCard extends StatelessWidget {
                           'Ingredients: ${ingredients.join(", ")}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: context.caption.copyWith(color: scheme.textSecondary.withValues(alpha: 0.6), fontSize: 9.sp, fontStyle: FontStyle.italic),
+                          style: context.captionBold.copyWith(color: scheme.textSecondary.withAlpha(153), fontStyle: FontStyle.italic),
                         ),
                       ],
                     ],
@@ -1235,7 +1223,7 @@ class CycleInsightSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SheetSectionHeader(title: 'CYCLE INSIGHT', color: Colors.transparent),
+        const SheetSectionHeader(title: AppStrings.cycleInsightLabel, color: AppPalette.transparent),
         DashboardCard(
           child: Padding(
             padding: EdgeInsets.all(AppSizes.p20),
@@ -1244,18 +1232,18 @@ class CycleInsightSection extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(AppIcons.sparkles, color: Colors.purple, size: 18),
+                    const Icon(AppIcons.sparkles, color: AppPalette.purple, size: 18),
                     Gap.w12,
                     Text(
                       insight.phase.toUpperCase(),
-                      style: context.headingSm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18.sp),
+                      style: context.headingSm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900),
                     ),
                   ],
                 ),
                 Gap.h12,
                 Text(
                   insight.description,
-                  style: context.body.copyWith(color: scheme.textSecondary, height: 1.5, fontSize: 13.sp),
+                  style: context.label.copyWith(color: scheme.textSecondary, height: 1.5),
                 ),
                 if (insight.tags != null && insight.tags!.isNotEmpty) ...[
                   Gap.h12,
@@ -1267,10 +1255,10 @@ class CycleInsightSection extends StatelessWidget {
                             .map(
                               (tag) => Container(
                                 padding: EdgeInsets.symmetric(horizontal: AppSizes.p10, vertical: AppSizes.p4),
-                                decoration: BoxDecoration(color: Colors.purple.withOpacity(0.1), borderRadius: BorderRadius.circular(AppSizes.r8)),
+                                decoration: BoxDecoration(color: AppPalette.purple.withAlpha(26), borderRadius: BorderRadius.circular(AppSizes.r8)),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
-                                  children: [Text(tag.text, style: context.caption.copyWith(color: Colors.purple, fontWeight: FontWeight.bold))],
+                                  children: [Text(tag.text, style: context.captionBold.copyWith(color: AppPalette.purple))],
                                 ),
                               ),
                             )
@@ -1302,16 +1290,16 @@ class ProductMetadataSection extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.elevatedSurface,
           borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: scheme.border.withValues(alpha: 0.3)),
+          border: Border.all(color: scheme.border.withAlpha(77)),
         ),
         child: Row(
           children: [
             Container(
               padding: EdgeInsets.all(10.w),
               decoration: BoxDecoration(
-                color: scheme.textPrimary.withValues(alpha: 0.05),
+                color: scheme.textPrimary.withAlpha(13),
                 shape: BoxShape.circle,
-                border: Border.all(color: scheme.border.withValues(alpha: 0.5)),
+                border: Border.all(color: scheme.borderSubtle),
               ),
               child: Icon(icon, size: 16.w, color: scheme.textPrimary),
             ),
@@ -1353,14 +1341,14 @@ class ProductMetadataSection extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('PRODUCT METADATA', style: context.bodyBold.copyWith(fontSize: 14.sp)),
-                          Text('Technical verification', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                          Text(AppStrings.productMetadata, style: context.bodyBold),
+                          Text(AppStrings.technicalVerification, style: context.captionBold.copyWith(color: scheme.textMuted)),
                         ],
                       ),
                     ),
                     Container(
                       padding: EdgeInsets.all(6.w),
-                      decoration: BoxDecoration(color: scheme.textPrimary.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      decoration: BoxDecoration(color: scheme.textPrimary.withAlpha(26), shape: BoxShape.circle),
                       child: Icon(AppIcons.checkCircle, size: 12.w, color: scheme.textPrimary),
                     ),
                   ],
@@ -1400,15 +1388,15 @@ class ExpertSummaryCard extends StatelessWidget {
     return BentoCard(
       height: 240.h,
       padding: const EdgeInsets.all(20),
-      backgroundColor: const Color(0xFFC4B5FD),
+      backgroundColor: AppPalette.purplePastel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('EXPERT SUMMARY', style: context.caption.copyWith(color: Colors.black.withOpacity(0.6), fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2)),
-              Icon(AppIcons.sparkles, color: Colors.black.withOpacity(0.4), size: 14),
+              Text(AppStrings.expertSummary, style: context.captionBold.copyWith(color: AppPalette.black.withAlpha(153))),
+              Icon(AppIcons.sparkles, color: AppPalette.black.withAlpha(102), size: 14),
             ],
           ),
           const Spacer(),
@@ -1416,7 +1404,7 @@ class ExpertSummaryCard extends StatelessWidget {
             summaryStr,
             maxLines: 5,
             overflow: TextOverflow.ellipsis,
-            style: context.body.copyWith(fontSize: 13.5.sp, height: 1.5, color: Colors.black, fontWeight: FontWeight.w500, letterSpacing: -0.2),
+            style: context.body.copyWith(color: AppPalette.black, fontWeight: FontWeight.w500),
           ),
           const Spacer(),
 
@@ -1447,12 +1435,12 @@ class NutrientStatisticsCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('NUTRIENT STATS', style: context.caption.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2)),
+              Text(AppStrings.nutrientStatsLabel, style: context.captionBold.copyWith(color: scheme.textSecondary)),
               Icon(AppIcons.activity, color: scheme.textSecondary, size: 14),
             ],
           ),
           const Spacer(),
-          Text('${(protein + fiber).toStringAsFixed(1)}g', style: context.displaySm.copyWith(color: scheme.textPrimary, fontSize: 32.sp, fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1.0)),
+          Text('${(protein + fiber).toStringAsFixed(1)}g', style: context.displayHero.copyWith(color: scheme.textPrimary, fontSize: 32.sp)),
           Gap.h6,
           const Spacer(),
           NutrientBarChart(nutrients: {'protein': protein, 'fiber': fiber}),
@@ -1506,7 +1494,7 @@ class MealBalanceCard extends StatelessWidget {
     final items = balance.entries.map((e) {
       final status = e.value.toString().toUpperCase();
       final Color color = switch (status.toLowerCase()) {
-        'good' || 'high' => const Color(0xFFB4F1B4),
+        'good' || 'high' => AppPalette.greenPastel,
         'moderate' => AppPalette.orange,
         'low' || 'poor' => AppPalette.red,
         _ => AppPalette.gray400
@@ -1523,12 +1511,12 @@ class MealBalanceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('MEAL BALANCE', style: context.caption.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2)),
+              Text(AppStrings.mealBalanceLabel, style: context.captionBold.copyWith(color: scheme.textSecondary)),
               Row(
                 children: [
-                  CircleAvatar(radius: 6, backgroundColor: const Color(0xFFB4F1B4).withValues(alpha: 0.5)),
+                  CircleAvatar(radius: 6, backgroundColor: AppPalette.greenPastel.withAlpha(127)),
                   Gap.w4,
-                  CircleAvatar(radius: 6, backgroundColor: const Color(0xFFC4B5FD).withValues(alpha: 0.5)),
+                  CircleAvatar(radius: 6, backgroundColor: AppPalette.purplePastel.withAlpha(127)),
                 ],
               )
             ],
@@ -1558,7 +1546,7 @@ class ExpertStrategyCard extends StatelessWidget {
       if (l.salt.toLowerCase() == 'high') items.add(TimelineItem(title: 'Sodium', subtitle: 'Water retention', color: scheme.error));
     }
     for (final impact in scanData.impacts.take(2)) {
-      var color = const Color(0xFFB4F1B4);
+      var color = AppPalette.greenPastel;
       final level = impact.level.toLowerCase();
       if (level == 'high' || level == 'trigger' || level == 'negative') color = AppPalette.red;
       else if (level == 'moderate' || level == 'neutral') color = AppPalette.orange;
@@ -1570,7 +1558,7 @@ class ExpertStrategyCard extends StatelessWidget {
       final Map<String, dynamic> meal = raw['meal'] ?? raw['scan'] ?? raw;
       final List strategies = meal['workingWell'] is List ? meal['workingWell'] as List : [];
       if (strategies.isNotEmpty) {
-        items.addAll(strategies.take(3).map((s) => TimelineItem(title: 'Safe', subtitle: s.toString(), color: const Color(0xFFB4F1B4))));
+        items.addAll(strategies.take(3).map((s) => TimelineItem(title: 'Safe', subtitle: s.toString(), color: AppPalette.greenPastel)));
       }
     }
 
@@ -1585,7 +1573,7 @@ class ExpertStrategyCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('CLINICAL AUDIT', style: context.caption.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2)),
+              Text(AppStrings.clinicalAudit, style: context.captionBold.copyWith(color: scheme.textSecondary)),
               Icon(Icons.arrow_outward, color: scheme.textMuted, size: 14),
             ],
           ),
@@ -1652,11 +1640,11 @@ class _SmallMetricCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(data.label.toUpperCase(), style: TextStyle(fontSize: 8.sp, fontWeight: FontWeight.w900, color: scheme.textSecondary, letterSpacing: 0.5)),
+          Text(data.label.toUpperCase(), style: context.captionBold.copyWith(color: scheme.textSecondary)),
           Gap.h8,
-          Text(data.value, style: context.headingSm.copyWith(fontWeight: FontWeight.w900, fontSize: 18.sp, color: scheme.textPrimary)),
+          Text(data.value, style: context.headingSm.copyWith(fontWeight: FontWeight.w900, color: scheme.textPrimary)),
           Gap.h2,
-          Text(data.unit, style: TextStyle(fontSize: 6.sp, fontWeight: FontWeight.w800, color: scheme.textMuted)),
+          Text(data.unit, style: context.captionMicro.copyWith(color: scheme.textMuted)),
         ],
       ),
     );
@@ -1681,13 +1669,13 @@ class AllergensSection extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.elevatedSurface,
           borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: scheme.error.withValues(alpha: 0.1)),
+          border: Border.all(color: scheme.error.withAlpha(26)),
         ),
         child: Row(
           children: [
             Container(
               padding: EdgeInsets.all(10.w),
-              decoration: BoxDecoration(color: scheme.error.withValues(alpha: 0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: scheme.error.withAlpha(26), shape: BoxShape.circle),
               child: Icon(AppIcons.alertTriangle, size: 16.w, color: scheme.error),
             ),
             Gap.w16,
@@ -1695,12 +1683,12 @@ class AllergensSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(allergen.toUpperCase(), style: context.bodyBold.copyWith(fontSize: 14.sp, color: scheme.error, letterSpacing: -0.4, fontWeight: FontWeight.w800, height: 1.1)),
-                  Text('Inflammatory trigger', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, fontWeight: FontWeight.w600, height: 1.4)),
+                  Text(allergen.toUpperCase(), style: context.bodyBold.copyWith(color: scheme.error, letterSpacing: -0.4, fontWeight: FontWeight.w800, height: 1.1)),
+                  Text(AppStrings.inflammatoryTrigger, style: context.captionBold.copyWith(color: scheme.textMuted, fontWeight: FontWeight.w600, height: 1.4)),
                 ],
               ),
             ),
-            Text('ALERT', style: context.caption.copyWith(color: scheme.error, fontWeight: FontWeight.w900, fontSize: 8.sp, letterSpacing: 1.0)),
+            Text(AppStrings.alertLabel, style: context.captionBold.copyWith(color: scheme.error)),
             Gap.w8,
           ],
         ),
@@ -1724,8 +1712,8 @@ class AllergensSection extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('SAFETY AUDIT', style: context.bodyBold.copyWith(fontSize: 14.sp, color: scheme.error)),
-                          if (servingSize != null) Text('Analyzed per $servingSize', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.sp)),
+                          Text(AppStrings.safetyAuditLabel, style: context.bodyBold.copyWith(color: scheme.error)),
+                          if (servingSize != null) Text(AppStrings.analyzedPer(servingSize!), style: context.captionBold.copyWith(color: scheme.textMuted)),
                         ],
                       ),
                     ),

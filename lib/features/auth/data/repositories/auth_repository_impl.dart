@@ -8,6 +8,7 @@ import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:gutgood/core/constants/api_constants.dart';
+import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/user_profile.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -111,7 +112,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // 🟢 Fix: Explicitly set onboarded to false in SharedPreferences for new Guest.
       // This prevents the app from incorrectly jumping to Chat if a previous session left a stale flag.
-      await _prefs.setBool('onboarded', false);
+      await _prefs.setBool(StorageKeys.onboarded, false);
 
       _appStateService.notifyProfileUpdated();
       await _identifyUser(user.uid, user.email);
@@ -386,7 +387,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       // 🟢 Fix: Explicitly ensure 'onboarded' status is true after successful merge
-      await _prefs.setBool('onboarded', true);
+      await _prefs.setBool(StorageKeys.onboarded, true);
 
       // Cleanup persistence
       await _prefs.remove('pending_merge_anon_uid');
@@ -447,7 +448,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     // Persist onboarding status locally for fast-track checking on restart
-    await _prefs.setBool('onboarded', profile.onboarded);
+    await _prefs.setBool(StorageKeys.onboarded, profile.onboarded);
 
     await _purchaseService.login(user.uid);
     await _identifyUser(user.uid, user.email);
@@ -551,26 +552,26 @@ class AuthRepositoryImpl implements AuthRepository {
     // chat draft, or pending merge state. Only genuinely device-level prefs
     // (e.g. theme) are preserved.
     const userKeys = {
-      'login_email',
-      'login_display_name',
-      'is_premium',
-      'onboarded',
-      'user_goals',
-      'user_sensitivities',
-      'user_lifestyle',
-      'cycle_sync_enabled',
-      'cycle_phase',
-      'ai_comm_style',
-      'gutgood_insights_cache',
-      'last_insight_run',
-      'chat_draft',
-      'pending_merge_anon_uid',
-      'pending_merge_provider',
+      StorageKeys.loginEmail,
+      StorageKeys.loginDisplayName,
+      StorageKeys.isPremium,
+      StorageKeys.onboarded,
+      StorageKeys.userGoals,
+      StorageKeys.userSensitivities,
+      StorageKeys.userLifestyle,
+      StorageKeys.cycleSyncEnabled,
+      StorageKeys.cyclePhase,
+      StorageKeys.aiCommStyle,
+      StorageKeys.gutgoodInsightsCache,
+      StorageKeys.lastInsightRun,
+      StorageKeys.chatDraft,
+      StorageKeys.pendingMergeAnonUid,
+      StorageKeys.pendingMergeProvider,
     };
 
     final keys = _prefs.getKeys();
     for (final key in keys) {
-      if (userKeys.contains(key) || key.startsWith('last_firebase_sync_')) {
+      if (userKeys.contains(key) || key.startsWith(StorageKeys.lastFirebaseSync)) {
         await _prefs.remove(key);
       }
     }

@@ -35,7 +35,7 @@ class ScanHistoryTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appColorScheme.elevatedSurface,
           borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+          border: Border.all(color: context.appColorScheme.borderSubtle),
         ),
         child: Row(
           children: [
@@ -53,8 +53,8 @@ class ScanHistoryTile extends StatelessWidget {
                           imageUrl: displayImageUrl,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Shimmer.fromColors(
-                            baseColor: context.appColorScheme.border.withValues(alpha: 0.2),
-                            highlightColor: context.appColorScheme.border.withValues(alpha: 0.1),
+                            baseColor: context.appColorScheme.borderSubtle,
+                            highlightColor: context.appColorScheme.border.withAlpha(26),
                             child: Container(color: AppPalette.white),
                           ),
                           errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
@@ -71,14 +71,14 @@ class ScanHistoryTile extends StatelessWidget {
                 children: [
                   Text(
                     scanResult.productName,
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s15),
+                    style: context.labelBold,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h4,
                   Text(
                     '${scanResult.brand} • ${createdAt != null ? DateFormatter.formatTime(createdAt!) : AppStrings.labelSavedItem}',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold),
+                    style: context.captionBold.copyWith(color: context.appColorScheme.textMuted),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -97,12 +97,12 @@ class ScanHistoryTile extends StatelessWidget {
                     value: scanResult.score / 100,
                     strokeWidth: 5,
                     strokeCap: StrokeCap.round,
-                    backgroundColor: context.appColorScheme.textPrimary.withValues(alpha: 0.1),
+                    backgroundColor: context.appColorScheme.textPrimary.withAlpha(26),
                     valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
                   ),
                   Text(
                     '${scanResult.score}',
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s13, fontWeight: FontWeight.w900),
+                    style: context.labelBold,
                   ),
                 ],
               ),

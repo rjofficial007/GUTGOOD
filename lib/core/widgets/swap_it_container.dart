@@ -4,6 +4,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/swap_card.dart';
@@ -22,12 +23,12 @@ class SwapItContainer extends StatelessWidget {
     return Container(
       margin: isEmbedded ? EdgeInsets.zero : EdgeInsets.only(bottom: AppSizes.p24, right: AppSizes.p16),
       decoration: BoxDecoration(
-        color: isEmbedded ? Colors.transparent : colorScheme.cardBackground,
+        color: isEmbedded ? AppPalette.transparent : colorScheme.cardBackground,
         borderRadius: isEmbedded
             ? null
             : BorderRadius.only(topLeft: const Radius.circular(4), topRight: Radius.circular(AppSizes.r32), bottomLeft: Radius.circular(AppSizes.r32), bottomRight: Radius.circular(AppSizes.r32)),
-        border: isEmbedded ? null : Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
-        boxShadow: isEmbedded ? null : [BoxShadow(color: colorScheme.textPrimary.withValues(alpha: 0.04), blurRadius: 20, offset: const Offset(0, 8))],
+        border: isEmbedded ? null : Border.all(color: colorScheme.borderSubtle),
+        boxShadow: isEmbedded ? null : [BoxShadow(color: colorScheme.surfaceSubtle, blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,10 +48,10 @@ class SwapItContainer extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(AppStrings.swapItFeelBetter.toUpperCase(), style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontSize: 10)),
+                      Text(AppStrings.swapItFeelBetter.toUpperCase(), style: context.eyebrow.copyWith(color: colorScheme.textPrimary)),
                       Text(
                         AppStrings.easySwapsDesc,
-                        style: context.bodySm.copyWith(color: colorScheme.textMuted, fontSize: 12.sp),
+                        style: context.label.copyWith(color: colorScheme.textMuted),
                       ),
                     ],
                   ),
@@ -62,7 +63,7 @@ class SwapItContainer extends StatelessWidget {
           if (!isEmbedded)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSizes.p20),
-              child: Divider(color: colorScheme.border.withValues(alpha: 0.3), height: 1),
+              child: Divider(color: colorScheme.borderSubtle, height: 1),
             ),
 
           // Swaps Scroll
@@ -83,8 +84,8 @@ class SwapItContainer extends StatelessWidget {
                       subtitle: swap.subtitle,
                       imageKeyword: swap.imageKeyword,
                       imageUrl: swap.imageUrl,
-                      tag: idx == 0 ? 'PRIME CHOICE' : 'VALID SWAP',
-                      badge: idx == 0 ? 'TOP PICK' : null,
+                      tag: idx == 0 ? AppStrings.primeChoice : AppStrings.validSwap,
+                      badge: idx == 0 ? AppStrings.topPick : null,
                       width: 140,
                     ),
                   );

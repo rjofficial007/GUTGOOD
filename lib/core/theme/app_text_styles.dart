@@ -6,6 +6,7 @@ class AppTextStyles {
   const AppTextStyles._();
 
   // Typography Scale - No hardcoded colors here by default to allow theme inheritance
+  static TextStyle get displayHero => TextStyle(fontSize: 72.0.sp, fontWeight: FontWeight.w900, letterSpacing: -0.05, height: 1.0);
   static TextStyle get displayLg => TextStyle(fontSize: 56.0.sp, fontWeight: FontWeight.w900, letterSpacing: -0.04, height: 1.1);
   static TextStyle get displayMd => TextStyle(fontSize: 44.0.sp, fontWeight: FontWeight.w900, letterSpacing: -0.04, height: 1.1);
   static TextStyle get displaySm => TextStyle(fontSize: 34.0.sp, fontWeight: FontWeight.w800, letterSpacing: -0.03, height: 1.1);
@@ -21,7 +22,11 @@ class AppTextStyles {
   static TextStyle get bodySm => TextStyle(fontSize: 13.0.sp, fontWeight: FontWeight.w400, letterSpacing: -0.01, height: 1.5);
 
   static TextStyle get label => TextStyle(fontSize: 13.0.sp, fontWeight: FontWeight.w500, letterSpacing: -0.01, height: 1.4);
+  static TextStyle get labelBold => TextStyle(fontSize: 11.0.sp, fontWeight: FontWeight.w900, letterSpacing: -0.01, height: 1.4);
   static TextStyle get caption => TextStyle(fontSize: 10.0.sp, fontWeight: FontWeight.w500, letterSpacing: 0.01, height: 1.4);
+  static TextStyle get captionBold => TextStyle(fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 0.01, height: 1.2);
+  static TextStyle get captionTiny => TextStyle(fontSize: 7.0.sp, fontWeight: FontWeight.w900, letterSpacing: 0.01, height: 1.2);
+  static TextStyle get captionMicro => TextStyle(fontSize: 6.0.sp, fontWeight: FontWeight.w800, letterSpacing: 0.01, height: 1.1);
   static TextStyle get overline => TextStyle(fontSize: 11.0.sp, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.4);
   static TextStyle get eyebrow => TextStyle(fontSize: 10.0.sp, fontWeight: FontWeight.w900, letterSpacing: 1.5, height: 1.2);
 
@@ -34,6 +39,7 @@ class AppTextStyles {
 }
 
 extension AppTextStylesX on BuildContext {
+  TextStyle get displayHero => AppTextStyles.displayHero.copyWith(color: appColorScheme.textPrimary);
   TextStyle get displayLg => AppTextStyles.displayLg.copyWith(color: appColorScheme.textPrimary);
   TextStyle get displayMd => AppTextStyles.displayMd.copyWith(color: appColorScheme.textPrimary);
   TextStyle get displaySm => AppTextStyles.displaySm.copyWith(color: appColorScheme.textPrimary);
@@ -53,7 +59,11 @@ extension AppTextStylesX on BuildContext {
   TextStyle get h3 => AppTextStyles.h3.copyWith(color: appColorScheme.textPrimary);
 
   TextStyle get label => AppTextStyles.label.copyWith(color: appColorScheme.textPrimary);
+  TextStyle get labelBold => AppTextStyles.labelBold.copyWith(color: appColorScheme.textPrimary);
   TextStyle get caption => AppTextStyles.caption.copyWith(color: appColorScheme.textSecondary);
+  TextStyle get captionBold => AppTextStyles.captionBold.copyWith(color: appColorScheme.textSecondary);
+  TextStyle get captionTiny => AppTextStyles.captionTiny.copyWith(color: appColorScheme.textSecondary);
+  TextStyle get captionMicro => AppTextStyles.captionMicro.copyWith(color: appColorScheme.textMuted);
   TextStyle get overline => AppTextStyles.overline.copyWith(color: appColorScheme.textMuted);
   TextStyle get eyebrow => AppTextStyles.eyebrow.copyWith(color: appColorScheme.textMuted);
 

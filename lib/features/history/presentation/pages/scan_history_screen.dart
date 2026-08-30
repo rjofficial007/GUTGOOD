@@ -113,9 +113,9 @@ class _HistoryEmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('No entries found', style: context.title.copyWith(color: context.appColorScheme.textSecondary)),
+          Text(AppStrings.noEntriesFound, style: context.title.copyWith(color: context.appColorScheme.textSecondary)),
           Gap.h8,
-          Text('Log meals or scan products to see them here.', style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
+          Text(AppStrings.emptyHistoryDesc, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
         ],
       ),
     ),
@@ -138,9 +138,9 @@ class _TimelineBody extends StatelessWidget {
       final entryDate = DateTime(entry.createdAt.year, entry.createdAt.month, entry.createdAt.day);
 
       if (entryDate == today) {
-        headerKey = 'TODAY • ${_formatMonthDay(entry.createdAt)}';
+        headerKey = '${AppStrings.today.toUpperCase()} • ${_formatMonthDay(entry.createdAt)}';
       } else if (entryDate == yesterday) {
-        headerKey = 'YESTERDAY • ${_formatMonthDay(entry.createdAt)}';
+        headerKey = '${AppStrings.yesterday.toUpperCase()} • ${_formatMonthDay(entry.createdAt)}';
       } else {
         headerKey = _formatMonthDay(entry.createdAt);
       }
@@ -160,7 +160,7 @@ class _TimelineBody extends StatelessWidget {
               padding: EdgeInsets.only(left: AppSizes.p16, top: AppSizes.p24, bottom: AppSizes.p16),
               child: Text(
                 key,
-                style: context.caption.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary),
               ),
             ),
             ...groupEntries.asMap().entries.map((e) {

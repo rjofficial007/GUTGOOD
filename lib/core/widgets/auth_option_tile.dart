@@ -38,7 +38,7 @@ class AuthOptionTile extends StatelessWidget {
             color: color ?? context.appColorScheme.cardBackground,
             border: color == null ? Border.all(color: context.appColorScheme.border) : null,
             borderRadius: BorderRadius.circular(AppSizes.r16),
-            boxShadow: color != null ? [BoxShadow(color: color!.withValues(alpha: 0.2), blurRadius: 8, offset: const Offset(0, 4))] : null,
+            boxShadow: color != null ? [BoxShadow(color: color!.withAlpha(51), blurRadius: 8, offset: const Offset(0, 4))] : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -48,7 +48,7 @@ class AuthOptionTile extends StatelessWidget {
               else if (icon != null)
                 Icon(icon, size: 20, color: textColor ?? context.appColorScheme.textPrimary),
               Gap.w12,
-              Text(label, style: AppTextStyles.bodyBold.copyWith(color: textColor ?? context.appColorScheme.textPrimary)),
+              Text(label, style: context.bodyBold.copyWith(color: textColor ?? context.appColorScheme.textPrimary)),
             ],
           ),
         ),

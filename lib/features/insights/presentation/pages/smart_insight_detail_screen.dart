@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
@@ -22,7 +23,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
       backgroundColor: scheme.cardBackground,
       body: CustomScrollView(
         slivers: [
-          const GutSliverAppBar(title: 'INTELLIGENCE DETAIL', showBrandingIcon: false),
+          const GutSliverAppBar(title: AppStrings.intelligenceDetail, showBrandingIcon: false),
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),
             sliver: SliverList(
@@ -57,13 +58,13 @@ class _InsightHeroCard extends StatelessWidget {
         : '${insight.strength?.toUpperCase() ?? 'MODERATE'} STRENGTH • ${insight.frequency ?? 1} OCCURRENCES';
 
     return ModernInsightCard(
-      title: 'SMART ALERT',
+      title: AppStrings.smartAlert,
       icon: AppIcons.salad,
       iconColor: color,
       backgroundColor: scheme.cardBackground,
       footer: Text(
         footerText,
-        style: context.caption.copyWith(color: scheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 9.sp, letterSpacing: 1.2),
+        style: context.captionBold.copyWith(color: scheme.cardBackground),
       ),
       footerColor: color,
       child: Column(
@@ -72,7 +73,7 @@ class _InsightHeroCard extends StatelessWidget {
           Gap.h24,
           Text(
             insight.title.toUpperCase(),
-            style: context.bodyBold.copyWith(fontSize: 28.sp, fontWeight: FontWeight.w900, letterSpacing: -1.2, height: 1.0),
+            style: context.headingLg.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1.2, height: 1.0),
             textAlign: TextAlign.center,
           ),
           Gap.h12,
@@ -97,14 +98,14 @@ class _ObservationCard extends StatelessWidget {
     final scheme = context.appColorScheme;
     return AnalysisCard(
       metric: (insight.frequency ?? 1).toString(),
-      label: 'WHAT WE NOTICED',
+      label: AppStrings.whatWeNoticed,
       icon: AppIcons.brain,
       glowColor: scheme.textPrimary,
       items: [
-        AnalysisItem(title: 'DETAILED OBSERVATION', subtitle: insight.observation ?? insight.description, icon: AppIcons.info),
+        AnalysisItem(title: AppStrings.detailedObservation, subtitle: insight.observation ?? insight.description, icon: AppIcons.info),
         if (insight.evidenceRatio != null)
           AnalysisItem(
-            title: 'STATISTICAL EVIDENCE',
+            title: AppStrings.statisticalEvidence,
             subtitle: '${(insight.evidenceRatio! * 100).toInt()}% Impact Probability: Symptomatic in ${insight.positiveCount} logs, asymptomatic in ${insight.negativeCount}.',
             icon: AppIcons.activity,
           ),
@@ -122,10 +123,10 @@ class _FoodsInvolvedCard extends StatelessWidget {
     final scheme = context.appColorScheme;
     return AnalysisCard(
       metric: foods.length.toString(),
-      label: 'FOODS INVOLVED',
+      label: AppStrings.foodsInvolved,
       icon: AppIcons.utensils,
       glowColor: scheme.textPrimary,
-      items: foods.map((f) => AnalysisItem(title: f.toUpperCase(), subtitle: 'Linked to this insight', icon: AppIcons.package, isDone: true, color: scheme.textPrimary)).toList(),
+      items: foods.map((f) => AnalysisItem(title: f.toUpperCase(), subtitle: AppStrings.linkedToInsight, icon: AppIcons.package, isDone: true, color: scheme.textPrimary)).toList(),
     );
   }
 }
@@ -141,12 +142,12 @@ class _NextStepsCard extends StatelessWidget {
 
     return AnalysisCard(
       metric: 'NEXT',
-      label: 'ACTION PLAN',
+      label: AppStrings.actionPlan,
       icon: AppIcons.lightbulb,
       glowColor: scheme.success,
       items: [
-        AnalysisItem(title: 'WHAT YOU CAN DO', subtitle: nextStep, icon: AppIcons.checkCircle, isDone: true, color: scheme.textPrimary),
-        AnalysisItem(title: 'ASK GUTGOOD', subtitle: 'Ask about "${insight.title}"', icon: AppIcons.messageSquare, color: scheme.textPrimary),
+        AnalysisItem(title: AppStrings.whatYouCanDo, subtitle: nextStep, icon: AppIcons.checkCircle, isDone: true, color: scheme.textPrimary),
+        AnalysisItem(title: AppStrings.askGutGood, subtitle: 'Ask about "${insight.title}"', icon: AppIcons.messageSquare, color: scheme.textPrimary),
       ],
     );
   }

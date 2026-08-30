@@ -32,7 +32,7 @@ Future<AuthUser?> showAuthBottomSheet(BuildContext context, {String? customMessa
   isScrollControlled: true,
   // 🟢 Fix: Ensure the sheet is on the same navigator as the login screen.
   useRootNavigator: true,
-  backgroundColor: Colors.transparent,
+  backgroundColor: AppPalette.transparent,
   builder: (context) => _LoginSheet(customMessage: customMessage, onSuccess: onSuccess),
 );
 
@@ -211,28 +211,28 @@ class _LoginSheetState extends State<_LoginSheet> {
     return GutSheetWrapper(
       children: [
         GutSheetHeader(title: '', onClose: () => context.pop()),
-        Text('Keep discovering\nyour patterns', textAlign: TextAlign.center, style: context.headingLg.copyWith(height: 1.1)),
+        Text(AppStrings.keepDiscoveringPatterns, textAlign: TextAlign.center, style: context.headingLg),
         Gap.h16,
         Text(
-          widget.customMessage ?? 'You’ve used today’s free scans. Sign in to keep scanning and start building your personal food history.',
+          widget.customMessage ?? AppStrings.authLimitMessage,
           textAlign: TextAlign.center,
-          style: context.body.copyWith(color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w500),
+          style: context.body.copyWith(color: context.appColorScheme.textSecondary),
         ),
         Gap.h32,
 
         // Feature List
         Container(
           padding: EdgeInsets.all(AppSizes.p16),
-          decoration: BoxDecoration(color: isDark ? AppPalette.black : const Color(0xFFF8F7FF), borderRadius: BorderRadius.circular(AppSizes.r24)),
+          decoration: BoxDecoration(color: isDark ? AppPalette.black : AppPalette.gray50, borderRadius: BorderRadius.circular(AppSizes.r24)),
           child: const Column(
             children: [
-              _FeatureItem(icon: AppIcons.scan, title: 'Unlimited daily scans', description: 'Scan as much as you need', color: AppPalette.purple),
+              _FeatureItem(icon: AppIcons.scan, title: AppStrings.featureUnlimitedScans, description: AppStrings.featureUnlimitedScansDesc, color: AppPalette.purple),
               _Divider(),
-              _FeatureItem(icon: AppIcons.barChart, title: 'Personalized insights', description: 'See how food affects your body', color: AppPalette.green),
+              _FeatureItem(icon: AppIcons.barChart, title: AppStrings.featurePersonalizedInsights, description: AppStrings.featurePersonalizedInsightsDesc, color: AppPalette.green),
               _Divider(),
-              _FeatureItem(icon: AppIcons.heartPulse, title: 'Save your history', description: 'Track meals and build better habits', color: AppPalette.pink),
+              _FeatureItem(icon: AppIcons.heartPulse, title: AppStrings.featureSaveHistory, description: AppStrings.featureSaveHistoryDesc, color: AppPalette.pink),
               _Divider(),
-              _FeatureItem(icon: AppIcons.cloud, title: 'Access anywhere', description: 'Your data stays safe and in sync', color: AppPalette.blue),
+              _FeatureItem(icon: AppIcons.cloud, title: AppStrings.featureAccessAnywhere, description: AppStrings.featureAccessAnywhereDesc, color: AppPalette.blue),
             ],
           ),
         ),
@@ -280,16 +280,16 @@ class _LoginSheetState extends State<_LoginSheet> {
         Gap.h32,
         Text.rich(
           TextSpan(
-            text: 'By signing in, you agree to our ',
+            text: AppStrings.bySigningInNotice,
             children: [
               TextSpan(
-                text: 'Terms of Service',
+                text: AppStrings.termsOfService,
                 recognizer: _termsRecognizer,
                 style: const TextStyle(color: AppPalette.blueLink),
               ),
-              const TextSpan(text: ' and '),
+              TextSpan(text: ' ${AppStrings.andLabel} '),
               TextSpan(
-                text: 'Privacy Policy',
+                text: AppStrings.privacyPolicy,
                 recognizer: _privacyRecognizer,
                 style: const TextStyle(color: AppPalette.blueLink),
               ),
@@ -320,7 +320,7 @@ class _FeatureItem extends StatelessWidget {
       children: [
         Container(
           padding: EdgeInsets.all(AppSizes.p10),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: color.withAlpha(26), shape: BoxShape.circle),
           child: Icon(icon, color: color, size: AppSizes.icon20),
         ),
         Gap.w16,
@@ -330,11 +330,11 @@ class _FeatureItem extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: context.title.copyWith(color: color, fontSize: AppSizes.s15, fontWeight: FontWeight.w700),
+                style: context.labelBold.copyWith(color: color),
               ),
               Text(
                 description,
-                style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary, fontSize: AppSizes.s13),
+                style: context.label.copyWith(color: context.appColorScheme.textSecondary),
               ),
             ],
           ),
@@ -350,6 +350,6 @@ class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: EdgeInsets.only(left: AppSizes.p56, top: AppSizes.p4, bottom: AppSizes.p4),
-    child: Divider(color: context.appColorScheme.border.withValues(alpha: 0.5), height: 1),
+    child: Divider(color: context.appColorScheme.borderSubtle, height: 1),
   );
 }

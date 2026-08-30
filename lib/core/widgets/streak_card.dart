@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -65,7 +66,7 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     final textColor = scheme.textPrimary;
-    final borderColor = scheme.border.withValues(alpha: 0.5);
+    final borderColor = scheme.borderSubtle;
 
     return Container(
       padding: EdgeInsets.all(AppSizes.p20),
@@ -97,22 +98,22 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${widget.streak} DAYS',
+                        AppStrings.daysCount(widget.streak),
                         style: context.headingMd.copyWith(color: textColor, height: 1.1, fontWeight: FontWeight.w900, fontFeatures: const [FontFeature.tabularFigures()]),
                       ),
                       Row(
                         children: [
                           Text(
-                            'DAILY STREAK',
-                            style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
+                            AppStrings.dayStreakLabel.toUpperCase(),
+                            style: context.captionBold.copyWith(color: textColor.withAlpha(153)),
                           ),
                           if (widget.longestStreak > 0) ...[
                             Gap.w8,
-                            Container(width: 1, height: 8, color: textColor.withValues(alpha: 0.2)),
+                            Container(width: 1, height: 8, color: textColor.withAlpha(51)),
                             Gap.w8,
                             Text(
-                              'BEST: ${widget.longestStreak}',
-                              style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.4), letterSpacing: 1.0, fontSize: 8.sp, fontWeight: FontWeight.w900),
+                              '${AppStrings.bestScore}: ${widget.longestStreak}',
+                              style: context.captionBold.copyWith(color: textColor.withAlpha(102)),
                             ),
                           ],
                         ],
@@ -133,14 +134,14 @@ class _StreakCardState extends State<StreakCard> with SingleTickerProviderStateM
                         ),
                         TextSpan(
                           text: ' / 100',
-                          style: context.caption.copyWith(color: textColor.withValues(alpha: 0.4), fontWeight: FontWeight.w800, fontSize: 10.sp),
+                          style: context.captionBold.copyWith(color: textColor.withAlpha(102)),
                         ),
                       ],
                     ),
                   ),
                   Text(
-                    'GUT SCORE',
-                    style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), letterSpacing: 1.2, fontSize: 9.sp),
+                    AppStrings.gutGoodScore.toUpperCase(),
+                    style: context.captionBold.copyWith(color: textColor.withAlpha(153)),
                   ),
                 ],
               ),
@@ -169,7 +170,7 @@ class _WeeklyBubbles extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
-      decoration: BoxDecoration(color: scheme.border.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(24)),
+      decoration: BoxDecoration(color: scheme.surfaceSubtle, borderRadius: BorderRadius.circular(24)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(7, (index) {
@@ -196,17 +197,17 @@ class _WeeklyBubbles extends StatelessWidget {
                 height: 32.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isStreakDay ? scheme.textPrimary : (isToday ? scheme.textPrimary.withValues(alpha: 0.1) : scheme.border.withValues(alpha: 0.1)),
-                  border: isToday && !isStreakDay ? Border.all(color: scheme.textPrimary.withValues(alpha: 0.4), width: 1.5) : null,
+                  color: isStreakDay ? scheme.textPrimary : (isToday ? scheme.textPrimary.withAlpha(26) : scheme.border.withAlpha(26)),
+                  border: isToday && !isStreakDay ? Border.all(color: scheme.textPrimary.withAlpha(102), width: 1.5) : null,
                 ),
                 child: isStreakDay
                     ? Icon(AppIcons.flame, size: 14, color: scheme.cardBackground)
-                    : (isToday ? Icon(AppIcons.flame, size: 14, color: scheme.textPrimary) : Icon(AppIcons.flame, size: 14, color: scheme.textPrimary.withValues(alpha: 0.5))),
+                    : (isToday ? Icon(AppIcons.flame, size: 14, color: scheme.textPrimary) : Icon(AppIcons.flame, size: 14, color: scheme.textPrimary.withAlpha(127))),
               ),
               Gap.h8,
               Text(
                 dayName,
-                style: context.caption.copyWith(fontSize: 12.sp, fontWeight: FontWeight.w900, color: isToday ? scheme.textPrimary : scheme.textPrimary.withValues(alpha: 0.4)),
+                style: context.captionBold.copyWith(color: isToday ? scheme.textPrimary : scheme.textPrimary.withAlpha(102)),
               ),
             ],
           );

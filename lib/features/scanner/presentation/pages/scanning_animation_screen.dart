@@ -165,7 +165,7 @@ class _RotatingDecorativeRing extends StatelessWidget {
     angle: angle,
     child: CustomPaint(
       size: const Size(220, 220),
-      painter: _DashedCirclePainter(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+      painter: _DashedCirclePainter(color: context.appColorScheme.borderSubtle),
     ),
   );
 }
@@ -181,7 +181,7 @@ class _ProgressRing extends StatelessWidget {
     child: CircularProgressIndicator(
       value: value,
       strokeWidth: 10,
-      backgroundColor: context.appColorScheme.border.withValues(alpha: 0.3),
+      backgroundColor: context.appColorScheme.border.withAlpha(77),
       valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
       strokeCap: StrokeCap.round,
     ),
@@ -198,7 +198,7 @@ class _PulseIcon extends StatelessWidget {
     child: Container(
       width: 100,
       height: 100,
-      decoration: BoxDecoration(color: context.appColorScheme.border.withValues(alpha: 0.3), shape: BoxShape.circle),
+      decoration: BoxDecoration(color: context.appColorScheme.border.withAlpha(77), shape: BoxShape.circle),
       child: Icon(AppIcons.barcode, size: AppSizes.icon40, color: context.appColorScheme.textPrimary),
     ),
   );
@@ -215,8 +215,8 @@ class _ScanningBeam extends StatelessWidget {
       width: 160,
       height: 2,
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [context.appColorScheme.textPrimary.withValues(alpha: 0), context.appColorScheme.textPrimary, context.appColorScheme.textPrimary.withValues(alpha: 0)]),
-        boxShadow: [BoxShadow(color: context.appColorScheme.textPrimary.withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 2)],
+        gradient: LinearGradient(colors: [context.appColorScheme.textPrimary.withAlpha(0), context.appColorScheme.textPrimary, context.appColorScheme.textPrimary.withAlpha(0)]),
+        boxShadow: [BoxShadow(color: context.appColorScheme.textPrimary.withAlpha(127), blurRadius: 8, spreadRadius: 2)],
       ),
     ),
   );

@@ -28,7 +28,7 @@ class MealHistoryTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.appColorScheme.elevatedSurface,
           borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+          border: Border.all(color: context.appColorScheme.borderSubtle),
         ),
         child: Row(
           children: [
@@ -44,8 +44,8 @@ class MealHistoryTile extends StatelessWidget {
                         imageUrl: displayImageUrl,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Shimmer.fromColors(
-                          baseColor: context.appColorScheme.border.withValues(alpha: 0.2),
-                          highlightColor: context.appColorScheme.border.withValues(alpha: 0.1),
+                          baseColor: context.appColorScheme.borderSubtle,
+                          highlightColor: context.appColorScheme.border.withAlpha(26),
                           child: Container(color: AppPalette.white),
                         ),
                         errorWidget: (_, _, _) => Icon(AppIcons.utensils, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
@@ -61,14 +61,14 @@ class MealHistoryTile extends StatelessWidget {
                 children: [
                   Text(
                     mealLog.items.join(', '),
-                    style: context.bodyBold.copyWith(fontSize: AppSizes.s15),
+                    style: context.labelBold,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h4,
                   Text(
                     '${mealLog.mealType ?? AppStrings.mealSnapLabel} • ${DateFormatter.formatTime(mealLog.createdAt)}',
-                    style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.bold),
+                    style: context.captionBold.copyWith(color: context.appColorScheme.textMuted),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

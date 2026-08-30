@@ -75,4 +75,16 @@ class AuthStrings {
   static const String secondUnit = 's';
   static const String guestLifetimeLimitTitle = 'Guest Limit Reached';
   static const String guestLifetimeLimitMessage = 'You\'ve used your 2 free guest actions. Sign in to unlock more daily scans and save your history!';
+
+  // New
+  static const String keepDiscoveringPatterns = 'Keep discovering\nyour patterns';
+  static const String featureUnlimitedScans = 'Unlimited daily scans';
+  static const String featureUnlimitedScansDesc = 'Scan as much as you need';
+  static const String featurePersonalizedInsights = 'Personalized insights';
+  static const String featurePersonalizedInsightsDesc = 'See how food affects your body';
+  static const String featureSaveHistory = 'Save your history';
+  static const String featureSaveHistoryDesc = 'Track meals and build better habits';
+  static const String featureAccessAnywhere = 'Access anywhere';
+  static const String featureAccessAnywhereDesc = 'Your data stays safe and in sync';
+  static const String authLimitMessage = 'You’ve used today’s free scans. Sign in to keep scanning and start building your personal food history.';
 }

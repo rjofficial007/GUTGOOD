@@ -75,9 +75,9 @@ class _ContributeSection extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(AppSizes.p20),
       decoration: BoxDecoration(
-        color: colorScheme.success.withValues(alpha: 0.05),
+        color: colorScheme.successSubtle,
         borderRadius: BorderRadius.circular(AppSizes.r20),
-        border: Border.all(color: colorScheme.success.withValues(alpha: 0.1)),
+        border: Border.all(color: colorScheme.success.withAlpha(26)),
       ),
       child: Column(
         children: [
@@ -86,12 +86,12 @@ class _ContributeSection extends StatelessWidget {
               Icon(AppIcons.sparkles, color: colorScheme.success, size: AppSizes.icon20),
               Gap.w12,
               Expanded(
-                child: Text(AppStrings.beAContributor, style: context.bodyBold.copyWith(color: colorScheme.success)),
+                child: Text(AppStrings.beAContributor, style: context.labelBold.copyWith(color: colorScheme.success)),
               ),
             ],
           ),
           Gap.h8,
-          Text(AppStrings.contributorSubtitle, style: context.bodySm.copyWith(color: colorScheme.success.withValues(alpha: 0.8))),
+          Text(AppStrings.contributorSubtitle, style: context.label.copyWith(color: colorScheme.success.withAlpha(204))),
           Gap.h16,
           _ContributeButton(
             label: AppStrings.takePhotosAndAdd,
@@ -163,12 +163,12 @@ class _OptionTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: context.bodyBold),
-                Text(subtitle, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
+                Text(title, style: context.labelBold),
+                Text(subtitle, style: context.label.copyWith(color: context.appColorScheme.textMuted)),
               ],
             ),
           ),
-          Icon(AppIcons.chevronRight, color: context.appColorScheme.textMuted.withValues(alpha: 0.5), size: AppSizes.icon20),
+          Icon(AppIcons.chevronRight, color: context.appColorScheme.textDisabled, size: AppSizes.icon20),
         ],
       ),
     ),

@@ -63,7 +63,7 @@ class GutGridTile extends StatelessWidget {
             : context.appColorScheme.textPrimary);
 
     final mutedTextColor = isFullVibrant
-        ? effectiveTextColor.withValues(alpha: 0.7)
+        ? effectiveTextColor.withAlpha(178)
         : context.appColorScheme.textMuted;
 
     return GestureDetector(
@@ -76,12 +76,12 @@ class GutGridTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppSizes.r24),
           border: !isFullVibrant
               ? Border.all(
-                  color: context.appColorScheme.border.withValues(alpha: 0.5),
+                  color: context.appColorScheme.borderSubtle,
                 )
               : null,
           boxShadow: [
             BoxShadow(
-              color: AppPalette.black.withValues(alpha: 0.02),
+              color: AppPalette.black.withAlpha(5),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -101,15 +101,12 @@ class GutGridTile extends StatelessWidget {
                         color:
                             iconContainerColor ??
                             (isFullVibrant
-                                ? context.appColorScheme.cardBackground
-                                      .withValues(alpha: 0.2)
+                                ? context.appColorScheme.cardBackground.withAlpha(51)
                                 : context.appColorScheme.cardBackground),
                         shape: BoxShape.circle,
                         border: !isFullVibrant
                             ? Border.all(
-                                color: context.appColorScheme.border.withValues(
-                                  alpha: 0.3,
-                                ),
+                                color: context.appColorScheme.borderSubtle,
                                 width: 1.5,
                               )
                             : null,
@@ -147,18 +144,14 @@ class GutGridTile extends StatelessWidget {
             const Spacer(),
             Text(
               title.toUpperCase(),
-              style: context.caption.copyWith(
-                fontWeight: FontWeight.w900,
-                fontSize: 8.0.sp,
-                letterSpacing: 1.2,
+              style: context.captionBold.copyWith(
                 color: mutedTextColor,
               ),
             ),
             Gap.h4,
             Text(
               value,
-              style: context.bodyBold.copyWith(
-                fontSize: 13.0.sp,
+              style: context.labelBold.copyWith(
                 color: effectiveTextColor,
               ),
               maxLines: 1,
@@ -166,10 +159,8 @@ class GutGridTile extends StatelessWidget {
             ),
             Text(
               subtitle,
-              style: context.caption.copyWith(
-                fontSize: 9.0.sp,
+              style: context.captionBold.copyWith(
                 color: mutedTextColor,
-                fontWeight: FontWeight.bold,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

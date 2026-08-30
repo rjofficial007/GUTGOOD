@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
@@ -80,7 +81,7 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
       decoration: BoxDecoration(
         color: AppPalette.black,
         borderRadius: BorderRadius.circular(AppSizes.r28),
-        border: Border.all(color: AppPalette.white.withValues(alpha: 0.12)),
+        border: Border.all(color: AppPalette.white.withAlpha(31)),
       ),
       child: Column(
         children: [
@@ -111,7 +112,7 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppPalette.white.withValues(alpha: 0.1), width: 1),
+                        border: Border.all(color: AppPalette.white.withAlpha(26), width: 1),
                       ),
                       child: Stack(
                         alignment: Alignment.bottomRight,
@@ -124,7 +125,7 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                               color: AppPalette.gray800,
                               border: Border.all(color: AppPalette.black, width: 3),
                               image: hasPhoto ? DecorationImage(image: CachedNetworkImageProvider(widget.photoUrl!), fit: BoxFit.cover) : null,
-                              boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.8), blurRadius: 20, offset: const Offset(0, 10))],
+                              boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(204), blurRadius: 20, offset: const Offset(0, 10))],
                             ),
                             child: !hasPhoto
                                 ? Center(
@@ -170,12 +171,12 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p2),
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppPalette.white.withValues(alpha: 0.2)),
+                      border: Border.all(color: AppPalette.white.withAlpha(51)),
                       borderRadius: BorderRadius.circular(AppSizes.r4),
                     ),
                     child: Text(
-                      'PREMIUM',
-                      style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.6), fontSize: AppSizes.s8, letterSpacing: 2.0),
+                      AppStrings.premium,
+                      style: context.eyebrow.copyWith(color: AppPalette.white.withAlpha(153), fontSize: AppSizes.s8, letterSpacing: 2.0),
                     ),
                   ),
                   Gap.h8,
@@ -237,16 +238,16 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 2),
                                 child: Text(
-                                  'BEST: ${widget.longestStreak}',
-                                  style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.3), letterSpacing: 1.0, fontSize: 7.sp, fontWeight: FontWeight.w900),
+                                  '${AppStrings.bestScore}: ${widget.longestStreak}',
+                                  style: context.captionBold.copyWith(color: AppPalette.white.withAlpha(77)),
                                 ),
                               ),
                             ],
                           ],
                         ),
                         Text(
-                          'DAY STREAK',
-                          style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.4), letterSpacing: 1.0, fontSize: 8.sp),
+                          AppStrings.dayStreakLabel.toUpperCase(),
+                          style: context.captionBold.copyWith(color: AppPalette.white.withAlpha(102)),
                         ),
                       ],
                     ),
@@ -265,14 +266,14 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                           ),
                           TextSpan(
                             text: '/100',
-                            style: context.caption.copyWith(color: AppPalette.white.withValues(alpha: 0.3), fontSize: 10.sp),
+                            style: context.caption.copyWith(color: AppPalette.white.withAlpha(77)),
                           ),
                         ],
                       ),
                     ),
                     Text(
-                      'GUT SCORE',
-                      style: context.eyebrow.copyWith(color: AppPalette.white.withValues(alpha: 0.4), letterSpacing: 1.0, fontSize: 8.sp),
+                      AppStrings.gutGoodScore.toUpperCase(),
+                      style: context.captionBold.copyWith(color: AppPalette.white.withAlpha(102)),
                     ),
                   ],
                 ),
@@ -322,15 +323,15 @@ class _MinimalWeeklyBubbles extends StatelessWidget {
               height: 28.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isStreakDay ? AppPalette.white : (isToday ? AppPalette.white.withValues(alpha: 0.1) : AppPalette.transparent),
-                border: Border.all(color: isStreakDay ? AppPalette.white : AppPalette.white.withValues(alpha: 0.1), width: 1),
+                color: isStreakDay ? AppPalette.white : (isToday ? AppPalette.white.withAlpha(26) : AppPalette.transparent),
+                border: Border.all(color: isStreakDay ? AppPalette.white : AppPalette.white.withAlpha(26), width: 1),
               ),
               child: isStreakDay ? const Icon(AppIcons.flame, size: 10, color: AppPalette.black) : (isToday ? const Icon(AppIcons.flame, size: 10, color: AppPalette.white) : null),
             ),
             Gap.h8,
             Text(
               dayName,
-              style: context.caption.copyWith(fontSize: 12.sp, fontWeight: isToday ? FontWeight.bold : FontWeight.normal, color: isToday ? AppPalette.white : AppPalette.white.withValues(alpha: 0.3)),
+              style: context.caption.copyWith(fontSize: 12.sp, fontWeight: isToday ? FontWeight.bold : FontWeight.normal, color: isToday ? AppPalette.white : AppPalette.white.withAlpha(77)),
             ),
           ],
         );

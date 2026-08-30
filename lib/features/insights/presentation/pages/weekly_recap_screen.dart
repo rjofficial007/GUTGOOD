@@ -131,7 +131,7 @@ class _RecapDateHeader extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p6),
         decoration: BoxDecoration(
-          color: context.appColorScheme.border.withValues(alpha: 0.2),
+          color: context.appColorScheme.border.withAlpha(51),
           borderRadius: BorderRadius.circular(100),
           border: Border.all(color: context.appColorScheme.border),
         ),
@@ -165,12 +165,12 @@ class _ModernSmartAlert extends StatelessWidget {
       footer: Text(
         AppStrings.aiSummary,
         textAlign: TextAlign.center,
-        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
+        style: context.captionBold.copyWith(color: context.appColorScheme.cardBackground),
       ),
       footerColor: context.appColorScheme.textPrimary,
       child: Text(
         description,
-        style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
+        style: context.label.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
       ),
     );
   }

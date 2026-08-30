@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
@@ -22,11 +23,11 @@ class IngredientTile extends StatelessWidget {
         color: context.appColorScheme.elevatedSurface,
         borderRadius: BorderRadius.circular(AppSizes.r24),
         border: Border.all(
-          color: context.appColorScheme.border.withValues(alpha: 0.5),
+          color: context.appColorScheme.borderSubtle,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppPalette.black.withValues(alpha: 0.02),
+            color: AppPalette.black.withAlpha(5),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -46,7 +47,7 @@ class IngredientTile extends StatelessWidget {
                       color: context.appColorScheme.cardBackground,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: accentColor.withValues(alpha: 0.3),
+                        color: accentColor.withAlpha(77),
                         width: 1.5,
                       ),
                     ),
@@ -71,7 +72,7 @@ class IngredientTile extends StatelessWidget {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: accentColor.withValues(alpha: 0.5),
+                            color: accentColor.withAlpha(127),
                             blurRadius: 4,
                           ),
                         ],
@@ -85,10 +86,7 @@ class IngredientTile extends StatelessWidget {
           const Spacer(),
           Text(
             _getLabel(ingredient.colorName).toUpperCase(),
-            style: context.caption.copyWith(
-              fontWeight: FontWeight.w900,
-              fontSize: AppSizes.s8,
-              letterSpacing: 1.2,
+            style: context.captionBold.copyWith(
               color: context.appColorScheme.textMuted,
             ),
             maxLines: 1,
@@ -97,8 +95,7 @@ class IngredientTile extends StatelessWidget {
           Gap.h2,
           Text(
             ingredient.name,
-            style: context.bodyBold.copyWith(
-              fontSize: AppSizes.s13,
+            style: context.labelBold.copyWith(
               color: context.appColorScheme.textPrimary,
             ),
             maxLines: 1,
@@ -106,10 +103,8 @@ class IngredientTile extends StatelessWidget {
           ),
           Text(
             ingredient.impact,
-            style: context.caption.copyWith(
-              fontSize: AppSizes.s9,
+            style: context.captionBold.copyWith(
               color: context.appColorScheme.textMuted,
-              fontWeight: FontWeight.bold,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -144,11 +139,11 @@ class IngredientTile extends StatelessWidget {
   String _getLabel(String colorName) {
     switch (colorName.toLowerCase()) {
       case 'red':
-        return 'High Risk';
+        return AppStrings.highRiskLabel;
       case 'orange':
-        return 'Moderate';
+        return AppStrings.moderateLabel;
       default:
-        return 'Clean Label';
+        return AppStrings.cleanLabel;
     }
   }
 }

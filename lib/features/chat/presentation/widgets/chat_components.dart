@@ -203,13 +203,13 @@ class _EmptyStateCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: colorScheme.cardBackground,
           borderRadius: BorderRadius.circular(AppSizes.r24),
-          border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+          border: Border.all(color: colorScheme.borderSubtle),
         ),
         child: Column(
           children: [
             Container(
               padding: EdgeInsets.all(AppSizes.p12),
-              decoration: BoxDecoration(color: colorScheme.textPrimary.withValues(alpha: 0.05), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: colorScheme.surfaceSubtle, shape: BoxShape.circle),
               child: Icon(icon, size: AppSizes.icon20, color: colorScheme.textPrimary),
             ),
             Gap.h12,
@@ -241,17 +241,17 @@ class DateHeader extends StatelessWidget {
       margin: EdgeInsets.only(bottom: AppSizes.p24, top: AppSizes.p12),
       child: Row(
         children: [
-          Expanded(child: Divider(color: colorScheme.border.withValues(alpha: 0.3))),
+          Expanded(child: Divider(color: colorScheme.border.withAlpha(77))),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
               color: colorScheme.cardBackground,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: colorScheme.border.withValues(alpha: 0.5)),
+              border: Border.all(color: colorScheme.borderSubtle),
             ),
-            child: Text(label.toUpperCase(), style: context.eyebrow.copyWith(color: colorScheme.textMuted, fontSize: 9, letterSpacing: 1)),
+            child: Text(label.toUpperCase(), style: context.captionTiny.copyWith(color: colorScheme.textMuted)),
           ),
-          Expanded(child: Divider(color: colorScheme.border.withValues(alpha: 0.3))),
+          Expanded(child: Divider(color: colorScheme.border.withAlpha(77))),
         ],
       ),
     );
@@ -278,7 +278,7 @@ class AttachmentPreview extends StatelessWidget {
               Navigator.of(context).push(
                 PageRouteBuilder(
                   opaque: false,
-                  barrierColor: Colors.black.withValues(alpha: 0.1),
+                  barrierColor: AppPalette.black.withAlpha(26),
                   pageBuilder: (context, _, _) => ImagePreviewDialog(localImages: [bytes], initialIndex: 0, heroTag: heroTag),
                   transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
                 ),
@@ -338,16 +338,13 @@ class ChatSuggestionChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: colorScheme.elevatedSurface,
           borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: colorScheme.border.withValues(alpha: 0.4)),
+          border: Border.all(color: colorScheme.border.withAlpha(102)),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
-          style: context.body.copyWith(
-            color: colorScheme.textPrimary.withValues(alpha: 0.8),
-            fontSize: 12.5.sp,
-            letterSpacing: -0.1,
-            fontWeight: FontWeight.w500,
+          style: context.label.copyWith(
+            color: colorScheme.textPrimary.withAlpha(204),
           ),
         ),
       ),
@@ -378,7 +375,7 @@ class ComposerIconButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: context.appColorScheme.cardBackground,
               borderRadius: BorderRadius.circular(AppSizes.r14),
-              border: Border.all(color: context.appColorScheme.border.withValues(alpha: 0.5)),
+              border: Border.all(color: context.appColorScheme.borderSubtle),
             ),
             child: Icon(icon, color: context.appColorScheme.textPrimary, size: 20),
           ),

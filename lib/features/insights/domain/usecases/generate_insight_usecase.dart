@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/health_alert.dart';
@@ -51,7 +52,7 @@ class GenerateInsightUseCase {
   final PatternEngineService _patternEngineService;
 
   Future<void> execute() async {
-    final lastRunStr = _prefs.getString('last_insight_run');
+    final lastRunStr = _prefs.getString(StorageKeys.lastInsightRun);
     DateTime lastRun;
 
     if (lastRunStr != null) {
@@ -78,7 +79,7 @@ class GenerateInsightUseCase {
     }
 
     final profile = await _authFirestoreService.getUserMetadata();
-    final userGoals = profile?.goals ?? _prefs.getStringList('user_goals') ?? [];
+    final userGoals = profile?.goals ?? _prefs.getStringList(StorageKeys.userGoals) ?? [];
     final userSensitivities = profile?.sensitivities ?? _prefs.getStringList('user_sensitivities') ?? [];
     final userLifestyle = profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
 
@@ -150,7 +151,7 @@ class GenerateInsightUseCase {
     );
 
     // Side Effects
-    await _prefs.setString('last_insight_run', DateTime.now().toUtc().toIso8601String());
+    await _prefs.setString(StorageKeys.lastInsightRun, DateTime.now().toUtc().toIso8601String());
     await _insightRepository.saveInsight(insight);
 
     unawaited(

@@ -41,7 +41,7 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
     leading: leading,
     centerTitle: centerTitle,
     elevation: elevation,
-    backgroundColor: backgroundColor ?? context.appColorScheme.cardBackground.withValues(alpha: 0.8),
+    backgroundColor: backgroundColor ?? context.appColorScheme.cardBackground.withAlpha(204),
     automaticallyImplyLeading: automaticallyImplyLeading,
     flexibleSpace: ClipRect(
       child: BackdropFilter(
@@ -57,7 +57,7 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showBrandingIcon) ...[Image.asset(AppAssets.appIconBg, height: 24.0.w, width: 24.0.w, color: context.appColorScheme.textPrimary), Gap.w10],
-        Text(title!.toUpperCase(), style: context.title.copyWith(letterSpacing: 0.1, fontWeight: .w800)),
+        Text(title!.toUpperCase(), style: context.title.copyWith(letterSpacing: 0.1)),
       ],
     );
   }
@@ -106,7 +106,7 @@ class GutSliverAppBar extends StatelessWidget {
     snap: snap,
     elevation: 0,
     forceElevated: forceElevated,
-    backgroundColor: context.appColorScheme.cardBackground.withValues(alpha: 0.8),
+    backgroundColor: context.appColorScheme.cardBackground.withAlpha(204),
     automaticallyImplyLeading: automaticallyImplyLeading,
     flexibleSpace: ClipRect(
       child: BackdropFilter(
@@ -122,7 +122,7 @@ class GutSliverAppBar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showBrandingIcon) ...[Image.asset(AppAssets.appIconBg, height: 24.0.w, width: 24.0.w, color: context.appColorScheme.textPrimary), Gap.w10],
-        Text(title!.toUpperCase(), style: context.title.copyWith(letterSpacing: 0.1, fontWeight: .w800)),
+        Text(title!.toUpperCase(), style: context.title.copyWith(letterSpacing: 0.1)),
         if (streak != null) ...[Gap.w12, _StreakBadge(streak: streak!)],
       ],
     );
@@ -137,9 +137,9 @@ class _StreakBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
     decoration: BoxDecoration(
-      color: AppPalette.orange.withValues(alpha: 0.1),
+      color: AppPalette.orange.withAlpha(26),
       borderRadius: BorderRadius.circular(100),
-      border: Border.all(color: AppPalette.orange.withValues(alpha: 0.3), width: 1),
+      border: Border.all(color: AppPalette.orange.withAlpha(77), width: 1),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -148,7 +148,7 @@ class _StreakBadge extends StatelessWidget {
         Gap.w6,
         Text(
           streak.toString(),
-          style: context.caption.copyWith(color: AppPalette.orange, fontWeight: FontWeight.w900, fontSize: 13.0.sp),
+          style: context.labelBold.copyWith(color: AppPalette.orange),
         ),
       ],
     ),

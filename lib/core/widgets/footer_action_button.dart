@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
@@ -30,7 +31,7 @@ class FooterActionButton extends StatelessWidget {
         children: [
           if (isEmbedded) Gap.h12,
           Material(
-            color: Colors.transparent,
+            color: AppPalette.transparent,
             child: InkWell(
               onTap: onTap,
               borderRadius: BorderRadius.circular(AppSizes.r24),
@@ -39,8 +40,8 @@ class FooterActionButton extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppSizes.r24),
-                  border: Border.all(color: colorScheme.border.withValues(alpha: 1.0), width: 1),
-                  color: isEmbedded ? colorScheme.elevatedSurface.withValues(alpha: 0.3) : null,
+                  border: Border.all(color: colorScheme.border, width: 1),
+                  color: isEmbedded ? colorScheme.elevatedSurface.withAlpha(77) : null,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -51,9 +52,6 @@ class FooterActionButton extends StatelessWidget {
                       label.toUpperCase(),
                       style: context.eyebrow.copyWith(
                         color: colorScheme.textPrimary,
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.8,
                       ),
                     ),
                   ],

@@ -98,7 +98,7 @@ class ModernInsightCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: backgroundColor ?? context.appColorScheme.elevatedSurface,
                 borderRadius: BorderRadius.circular(radius),
-                boxShadow: [BoxShadow(color: AppPalette.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, 8))],
+                boxShadow: [BoxShadow(color: AppPalette.scrim, blurRadius: 24, offset: const Offset(0, 8))],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(radius),
@@ -117,12 +117,12 @@ class ModernInsightCard extends StatelessWidget {
                                 if (leading != null) leading! else if (icon != null) Icon(icon, color: iconColor ?? context.appColorScheme.textPrimary, size: 20.0.w),
                                 if (leading != null || icon != null) Gap.w12,
                                 Expanded(
-                                  child: Text(title.toUpperCase(), style: context.eyebrow.copyWith(color: titleColor ?? context.appColorScheme.textPrimary, letterSpacing: 1.2)),
+                                  child: Text(title.toUpperCase(), style: context.eyebrow.copyWith(color: titleColor ?? context.appColorScheme.textPrimary)),
                                 ),
                               ],
                             ),
                           ),
-                          ?actionWidget,
+                          if (actionWidget != null) actionWidget,
                         ],
                       ),
                     ),

@@ -16,8 +16,8 @@ class CycleInsightCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = context.appColorScheme;
 
-    final mainColor = isDark ? const Color(0xFFF472B6) : AppPalette.pink; // Lighter pink for dark mode
-    final bgColor = isDark ? mainColor.withValues(alpha: 0.08) : AppPalette.pinkLight.withValues(alpha: 0.5);
+    final mainColor = isDark ? AppPalette.pinkDark : AppPalette.pink; // Lighter pink for dark mode
+    final bgColor = isDark ? mainColor.withAlpha(20) : AppPalette.pinkLight.withAlpha(127);
 
     return Container(
       width: double.infinity,
@@ -31,7 +31,7 @@ class CycleInsightCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: mainColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: mainColor.withAlpha(26), shape: BoxShape.circle),
             child: Icon(AppIcons.flower, color: mainColor, size: 16.0.w),
           ),
           Gap.w10,
@@ -42,7 +42,7 @@ class CycleInsightCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   insight.phase.toUpperCase(),
-                  style: context.eyebrow.copyWith(color: mainColor, fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 10.0.sp),
+                  style: context.eyebrow.copyWith(color: mainColor),
                 ),
                 Gap.h4,
                 Text(
@@ -78,18 +78,18 @@ class _CycleTagPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: baseColor.withValues(alpha: isDark ? 0.1 : 0.05),
+        color: baseColor.withAlpha(isDark ? 26 : 13),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: baseColor.withValues(alpha: 0.15)),
+        border: Border.all(color: baseColor.withAlpha(38)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_getIcon(tag.icon), size: 10, color: isDark ? baseColor : baseColor.withValues(alpha: 0.8)),
+          Icon(_getIcon(tag.icon), size: 10, color: isDark ? baseColor : baseColor.withAlpha(204)),
           Gap.w4,
           Text(
             tag.text.toUpperCase(),
-            style: context.caption.copyWith(fontSize: 9.sp, fontWeight: FontWeight.w900, color: isDark ? baseColor : baseColor.withValues(alpha: 0.8), letterSpacing: 0.5),
+            style: context.captionBold.copyWith(color: isDark ? baseColor : baseColor.withAlpha(204)),
           ),
         ],
       ),

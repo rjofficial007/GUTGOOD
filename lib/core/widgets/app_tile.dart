@@ -33,7 +33,7 @@ class AppTile extends StatelessWidget {
         border: showBottomBorder
             ? Border(
                 bottom: BorderSide(
-                  color: context.appColorScheme.border.withValues(alpha: 0.5),
+                  color: context.appColorScheme.borderSubtle,
                   width: 1,
                 ),
               )
@@ -53,15 +53,12 @@ class AppTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: context.bodySm.copyWith(fontWeight: FontWeight.w600),
+                  style: context.labelBold,
                 ),
                 if (subtitle != null)
                   Text(
                     subtitle!,
-                    style: context.caption.copyWith(
-                      color: context.appColorScheme.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: context.caption,
                   ),
               ],
             ),

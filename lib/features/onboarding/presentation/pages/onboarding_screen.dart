@@ -156,7 +156,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (e) {
       AppLogger.error('OnboardingScreen: Critical failure during finish', error: e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Something went wrong. Please try again.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.errorGeneral)));
         setState(() => _isFinishing = false);
       }
     }

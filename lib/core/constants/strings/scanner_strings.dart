@@ -90,4 +90,16 @@ class ScannerStrings {
   static const String errorTooDark = 'Move to better lighting';
   static const String errorPartiallyVisible = 'Fit the full label inside the frame';
   static const String errorTextNotReadable = 'Keep the ingredients text clear';
+
+  // New
+  static const String gutHealthImpact = 'GUT HEALTH IMPACT';
+  static const String whatToWatch = 'WHAT TO WATCH';
+  static const String clinicalAudit = 'CLINICAL AUDIT';
+  static const String nutritionAnalytics = 'NUTRITION ANALYTICS';
+  static const String productMetadata = 'PRODUCT METADATA';
+  static const String expertSummary = 'EXPERT SUMMARY';
+  static const String inflammatoryTrigger = 'Inflammatory trigger';
+  static const String alert = 'ALERT';
+  static const String caution = 'CAUTION';
+  static String analyzedPer(String size) => 'Analyzed per $size';
 }

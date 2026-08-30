@@ -16,7 +16,7 @@ class AppSwitchTile extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: EdgeInsets.symmetric(vertical: AppSizes.p16),
     decoration: BoxDecoration(
-      border: showBottomBorder ? Border(bottom: BorderSide(color: context.appColorScheme.border.withValues(alpha: 0.5))) : null,
+      border: showBottomBorder ? Border(bottom: BorderSide(color: context.appColorScheme.borderSubtle)) : null,
     ),
     child: Row(
       children: [

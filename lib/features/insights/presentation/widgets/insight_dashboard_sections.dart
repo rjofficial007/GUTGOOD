@@ -26,12 +26,12 @@ class ModernSmartAlert extends StatelessWidget {
       footer: Text(
         '${insight.type.toUpperCase()}${AppStrings.insightLabelSuffix}  ➜',
         textAlign: TextAlign.center,
-        style: context.caption.copyWith(color: context.appColorScheme.cardBackground, fontWeight: FontWeight.w900, fontSize: AppSizes.s10, letterSpacing: 1.0),
+        style: context.captionBold.copyWith(color: context.appColorScheme.cardBackground),
       ),
       footerColor: context.appColorScheme.textPrimary,
       child: Text(
         insight.description,
-        style: context.bodySm.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
+        style: context.label.copyWith(color: context.appColorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
         softWrap: true,
         maxLines: null,
       ),

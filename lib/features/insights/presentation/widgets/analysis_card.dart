@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
@@ -22,7 +23,7 @@ class AnalysisCard extends StatelessWidget {
 
     // Matched exactly with Insight History Tile (elevatedSurface + 0.5 border)
     final cardColor = scheme.elevatedSurface;
-    final borderColor = scheme.border.withValues(alpha: 0.5);
+    final borderColor = scheme.borderSubtle;
     final textColor = scheme.textPrimary;
     final invertedColor = scheme.cardBackground;
 
@@ -36,7 +37,7 @@ class AnalysisCard extends StatelessWidget {
           border: Border.all(color: borderColor),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
+              color: AppPalette.black.withAlpha(isDark ? 77 : 8),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -49,7 +50,7 @@ class AnalysisCard extends StatelessWidget {
             Container(
               constraints: const BoxConstraints(minHeight: 100),
               decoration: BoxDecoration(
-                color: scheme.border.withValues(alpha: 0.05),
+                color: scheme.surfaceSubtle,
                 borderRadius: BorderRadius.circular(26),
                 border: Border.all(color: borderColor),
               ),
@@ -69,7 +70,7 @@ class AnalysisCard extends StatelessWidget {
                         Gap.h12,
                         Text(
                           label.toUpperCase(),
-                          style: context.eyebrow.copyWith(color: textColor.withValues(alpha: 0.6), fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                          style: context.eyebrow.copyWith(color: textColor.withAlpha(153)),
                         ),
                       ],
                     ),
@@ -153,13 +154,13 @@ class _AnalysisTaskRow extends StatelessWidget {
                 children: [
                   Text(
                     data.title,
-                    style: context.bodySm.copyWith(fontWeight: FontWeight.w600, color: textColor),
+                    style: context.labelBold.copyWith(color: textColor),
                   ),
                   if (data.subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       data.subtitle!,
-                      style: context.caption.copyWith(color: textColor.withValues(alpha: 0.5), fontSize: 11.sp),
+                      style: context.label.copyWith(color: textColor.withAlpha(127)),
                     ),
                   ],
                 ],

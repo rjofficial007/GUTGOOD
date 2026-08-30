@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/off_product.dart';
@@ -44,7 +45,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
         decoration: BoxDecoration(
           color: scheme.cardBackground,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -5))],
+          boxShadow: [BoxShadow(color: AppPalette.scrim, blurRadius: 20, offset: const Offset(0, -5))],
         ),
         child: Column(
           children: [
@@ -54,7 +55,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
               child: Container(
                 width: 40,
                 height: 4,
-                decoration: BoxDecoration(color: scheme.border.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: scheme.borderSubtle, borderRadius: BorderRadius.circular(2)),
               ),
             ),
 
@@ -67,30 +68,30 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
                   _buildMinimalHeader(context),
 
                   Gap.h16,
-                  Divider(color: scheme.border.withValues(alpha: 0.1)),
+                  Divider(color: scheme.border.withAlpha(26)),
                   Gap.h16,
 
                   // 2. Intelligence Result
-                  if (isAnalyzed) ...[_buildAnalyzedContent(context), Gap.h24, Divider(color: scheme.border.withValues(alpha: 0.1)), Gap.h16],
+                  if (isAnalyzed) ...[_buildAnalyzedContent(context), Gap.h24, Divider(color: scheme.border.withAlpha(26)), Gap.h16],
 
                   // 3. Secondary Badges
                   _buildGroundTruthBadges(context),
                   Gap.h24,
                   // 3. Negatives Section
-                  _buildFactorSection(context, title: 'Negatives', factors: _getNegatives(context)),
+                  _buildFactorSection(context, title: AppStrings.negativesLabel, factors: _getNegatives(context)),
 
                   Gap.h24,
 
                   // 4. Positives Section
-                  _buildFactorSection(context, title: 'Positives', factors: _getPositives(context)),
+                  _buildFactorSection(context, title: AppStrings.positivesLabel, factors: _getPositives(context)),
 
                   Gap.h24,
 
                   // 5. Ingredients Section (New Style)
-                  _buildFactorSection(context, title: 'Ingredients', factors: _getIngredients(context)),
+                  _buildFactorSection(context, title: AppStrings.ingredientsLabelText, factors: _getIngredients(context)),
 
                   Gap.h24,
-                  Divider(color: scheme.border.withValues(alpha: 0.1)),
+                  Divider(color: scheme.border.withAlpha(26)),
                   Gap.h32,
 
                   // 7. Action Button
@@ -124,7 +125,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
                   placeholder: (context, url) => Shimmer.fromColors(
                     baseColor: scheme.elevatedSurface,
                     highlightColor: scheme.border,
-                    child: Container(color: Colors.white),
+                    child: Container(color: AppPalette.white),
                   ),
                   errorWidget: (_, _, _) => Icon(AppIcons.utensils, color: scheme.textMuted, size: 40),
                 )
@@ -203,9 +204,9 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: scheme.success.withValues(alpha: 0.05),
+        color: scheme.successSubtle,
         borderRadius: BorderRadius.circular(AppSizes.r20),
-        border: Border.all(color: scheme.success.withValues(alpha: 0.1)),
+        border: Border.all(color: scheme.success.withAlpha(26)),
       ),
       child: Column(
         children: [
@@ -214,7 +215,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
             children: [
               Icon(AppIcons.sparkles, color: scheme.success, size: 18),
               Gap.w10,
-              Text('GUTGOOD INTELLIGENCE', style: context.eyebrow.copyWith(color: scheme.success)),
+              Text(AppStrings.gutgoodHealthIntelligence, style: context.eyebrow.copyWith(color: scheme.success)),
             ],
           ),
           Gap.h12,
@@ -234,7 +235,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
 
     if (isAnalyzed) {
       return GutButton(
-        label: 'VIEW FULL REPORT',
+        label: AppStrings.viewFullReportButton,
         onTap: () {
           final result = _analyzedResult!;
 
@@ -246,7 +247,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
     }
 
     return GutButton(
-      label: 'GET PERSONALIZED INSIGHTS',
+      label: AppStrings.getPersonalizedInsightsLabel,
       isLoading: notifier.isAnalyzing,
       onTap: () async {
         final result = await notifier.analyzeBarcodeProduct(widget.product, capturedImage: widget.capturedImage);
@@ -356,15 +357,15 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
   Color _getNutriScoreColor(String grade) {
     switch (grade.toUpperCase()) {
       case 'A':
-        return const Color(0xFF038141);
+        return AppPalette.nutriGreen;
       case 'B':
-        return const Color(0xFF85BB2F);
+        return AppPalette.nutriLightGreen;
       case 'C':
-        return const Color(0xFFFECB02);
+        return AppPalette.nutriYellow;
       case 'D':
-        return const Color(0xFFEE8100);
+        return AppPalette.nutriOrange;
       case 'E':
-        return const Color(0xFFE63E11);
+        return AppPalette.nutriRed;
       default:
         return AppPalette.gray400;
     }
@@ -373,13 +374,13 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
   Color _getNovaColor(int group) {
     switch (group) {
       case 1:
-        return const Color(0xFF038141);
+        return AppPalette.nutriGreen;
       case 2:
-        return const Color(0xFFFECB02);
+        return AppPalette.nutriYellow;
       case 3:
-        return const Color(0xFFEE8100);
+        return AppPalette.nutriOrange;
       case 4:
-        return const Color(0xFFE63E11);
+        return AppPalette.nutriRed;
       default:
         return AppPalette.gray400;
     }
@@ -387,16 +388,16 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
 
   Color _getScoreColor(BuildContext context, int score) {
     if (score >= 70) return context.appColorScheme.success;
-    if (score >= 40) return const Color(0xFFC4B5FD);
+    if (score >= 40) return AppPalette.purplePastel;
     return context.appColorScheme.error;
   }
 
   String _getGradeLabel(int score) {
-    if (score >= 90) return 'Excellent';
-    if (score >= 70) return 'Great';
-    if (score >= 50) return 'Good';
-    if (score >= 30) return 'Fair';
-    return 'Bad';
+    if (score >= 90) return AppStrings.excellent;
+    if (score >= 70) return AppStrings.great;
+    if (score >= 50) return AppStrings.good;
+    if (score >= 30) return AppStrings.fair;
+    return AppStrings.badLabel;
   }
 }
 
@@ -443,7 +444,7 @@ class _FactorRow extends StatelessWidget {
             ],
           ),
         ),
-        if (!isLast) Divider(color: context.appColorScheme.border.withValues(alpha: 0.1), height: 1),
+        if (!isLast) Divider(color: context.appColorScheme.border.withAlpha(26), height: 1),
       ],
     );
   }

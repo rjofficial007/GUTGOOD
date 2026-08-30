@@ -8,6 +8,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/router/app_routes.dart';
@@ -38,7 +39,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class ChatScreenState extends State<ChatScreen> {
-  static const String _draftKey = 'chat_draft';
+  static const String _draftKey = StorageKeys.chatDraft;
 
   final TextEditingController _controller = TextEditingController();
 
@@ -688,7 +689,7 @@ class _ChatComposer extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.cardBackground,
-        border: Border(top: BorderSide(color: colorScheme.border.withValues(alpha: 0.5))),
+        border: Border(top: BorderSide(color: colorScheme.borderSubtle)),
       ),
       padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
       child: Column(
@@ -716,7 +717,7 @@ class _ChatComposer extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: colorScheme.elevatedSurface,
                       borderRadius: BorderRadius.circular(AppSizes.r20),
-                      border: Border.all(color: colorScheme.border.withValues(alpha: 0.8)),
+                      border: Border.all(color: colorScheme.border.withAlpha(204)),
                     ),
                     child: Row(
                       children: [

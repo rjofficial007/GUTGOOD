@@ -9,6 +9,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/extensions.dart';
@@ -197,7 +198,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('login_email', email);
+      await prefs.setString(StorageKeys.loginEmail, email);
       if (name.isNotEmpty) {
         await prefs.setString('login_display_name', name);
       }
