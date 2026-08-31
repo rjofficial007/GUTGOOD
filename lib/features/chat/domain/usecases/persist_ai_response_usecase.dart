@@ -10,12 +10,10 @@ import 'package:gutgood/features/logs/domain/repositories/log_repository.dart';
 class PersistAiResponseUseCase {
   PersistAiResponseUseCase({required HistoryFirestoreService firestoreService, required LogRepository logRepository, required AppStateService appStateService, required StreakService streakService})
     : _firestoreService = firestoreService,
-      _logRepository = logRepository,
       _appStateService = appStateService,
       _streakService = streakService;
 
   final HistoryFirestoreService _firestoreService;
-  final LogRepository _logRepository;
   final AppStateService _appStateService;
   final StreakService _streakService;
 

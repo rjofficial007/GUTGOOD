@@ -11,8 +11,8 @@ import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:shimmer/shimmer.dart';
-import '../widgets/scan_result_widgets.dart';
 
 class MealDetailScreen extends StatelessWidget {
   const MealDetailScreen({super.key, required this.meal});
@@ -38,9 +38,11 @@ class MealDetailScreen extends StatelessWidget {
                 children: [
                   DashboardEntrance(delay: 50, child: _MealHeroSection(meal: meal)),
                   Gap.h12,
+                  DashboardEntrance(delay: 100, child: _MealIntelligenceCard(analysis: meal.analysisResult ?? '')),
+                  Gap.h12,
                   if (hasPhoto) ...[
                     DashboardEntrance(
-                      delay: 100,
+                      delay: 150,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -51,23 +53,10 @@ class MealDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ] else ...[
-                    DashboardEntrance(delay: 100, child: _MealItemsSection(items: meal.items)),
+                    DashboardEntrance(delay: 150, child: _MealItemsSection(items: meal.items)),
                   ],
                   Gap.h12,
-                  DashboardEntrance(
-                    delay: 200,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (meal.analysisResult != null && meal.analysisResult!.isNotEmpty)
-                          Expanded(child: _MealIntelligenceCard(analysis: meal.analysisResult!)),
-                        if (meal.notes != null && meal.notes!.isNotEmpty) ...[
-                          if (meal.analysisResult != null && meal.analysisResult!.isNotEmpty) Gap.w12,
-                          Expanded(child: _MealNotesSection(notes: meal.notes!)),
-                        ],
-                      ],
-                    ),
-                  ),
+                  DashboardEntrance(delay: 200, child: _MealNotesSection(notes: meal.notes ?? '')),
                   Gap.h40,
                 ],
               ),
@@ -88,13 +77,13 @@ class _MealHeroSection extends StatelessWidget {
     final scheme = context.appColorScheme;
     final mealType = meal.mealType?.toUpperCase() ?? 'MEAL';
     final hasPhoto = meal.photoUrl != null && meal.photoUrl!.isNotEmpty;
-    
+
     // Aesthetic Color Selection
-    final Color accentColor = switch (mealType.toLowerCase()) {
+    final accentColor = switch (mealType.toLowerCase()) {
       'breakfast' => AppPalette.greenPastel,
       'lunch' => AppPalette.purplePastel,
       'dinner' => AppPalette.bluePastel,
-      _ => AppPalette.orange
+      _ => AppPalette.orange,
     };
 
     return BentoCard(
@@ -115,10 +104,7 @@ class _MealHeroSection extends StatelessWidget {
                   Positioned(
                     top: 12,
                     left: 12,
-                    child: Text(
-                      AppStrings.mealLogLabel,
-                      style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
-                    ),
+                    child: Text(AppStrings.mealLogLabel, style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102))),
                   ),
                   Positioned(
                     top: 10,
@@ -126,7 +112,11 @@ class _MealHeroSection extends StatelessWidget {
                     child: Container(
                       width: 12,
                       height: 12,
-                      decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
+                      decoration: BoxDecoration(
+                        color: AppPalette.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)],
+                      ),
                     ),
                   ),
                   Positioned(
@@ -162,27 +152,16 @@ class _MealHeroSection extends StatelessWidget {
                   ),
                   Gap.h12,
                 ],
-                Text(
-                  mealType,
-                  style: context.captionBold.copyWith(color: scheme.textSecondary),
-                ),
+                Text(mealType, style: context.captionBold.copyWith(color: scheme.textSecondary)),
                 Gap.h4,
                 Text(
                   meal.items.isEmpty ? AppStrings.unnamedMealLabel : meal.items.join(', ').toUpperCase(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: context.headingSm.copyWith(
-                    color: scheme.textPrimary,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: context.headingSm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900),
                 ),
                 Gap.h8,
-                Text(
-                  DateFormatter.formatFull(meal.createdAt),
-                  style: context.captionBold.copyWith(
-                    color: scheme.textSecondary,
-                  ),
-                ),
+                Text(DateFormatter.formatFull(meal.createdAt), style: context.captionBold.copyWith(color: scheme.textSecondary)),
               ],
             ),
           ),
@@ -247,12 +226,7 @@ class _MealItemsSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                AppStrings.verifiedItemsLabel,
-                style: context.captionBold.copyWith(
-                  color: scheme.textMuted,
-                ),
-              ),
+              Text(AppStrings.verifiedItemsLabel, style: context.captionBold.copyWith(color: scheme.textMuted)),
               Gap.h16,
               Expanded(
                 child: SingleChildScrollView(
@@ -268,12 +242,7 @@ class _MealItemsSection extends StatelessWidget {
                               borderRadius: BorderRadius.circular(100),
                               border: Border.all(color: scheme.borderSubtle),
                             ),
-                            child: Text(
-                              item.toUpperCase(),
-                              style: context.captionBold.copyWith(
-                                color: scheme.textPrimary,
-                              ),
-                            ),
+                            child: Text(item.toUpperCase(), style: context.captionBold.copyWith(color: scheme.textPrimary)),
                           ),
                         )
                         .toList(),
@@ -295,40 +264,26 @@ class _MealIntelligenceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return BentoCard(
-      height: 240.h,
       padding: const EdgeInsets.all(20),
-      backgroundColor: AppPalette.purplePastel,
+      backgroundColor: isDark ? AppPalette.purple.withAlpha(26) : AppPalette.purplePastel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                AppStrings.expertAnalysis,
-                style: context.captionBold.copyWith(
-                  color: AppPalette.black.withAlpha(153),
-                ),
-              ),
-              const Icon(AppIcons.sparkles, color: AppPalette.black12, size: 14),
+              Text(AppStrings.expertAnalysis, style: context.captionBold.copyWith(color: isDark ? AppPalette.purplePastel.withAlpha(153) : AppPalette.black.withAlpha(153))),
+              Icon(AppIcons.sparkles, color: isDark ? AppPalette.purplePastel.withAlpha(102) : AppPalette.black.withAlpha(102), size: 14),
             ],
           ),
-          const Spacer(),
+          Gap.h16,
           Text(
-            analysis,
-            maxLines: 6,
-            overflow: TextOverflow.ellipsis,
-            style: context.body.copyWith(
-              color: AppPalette.black,
-              height: 1.5,
-              fontWeight: FontWeight.w500,
-              fontSize: 13.sp,
-              letterSpacing: -0.2,
-            ),
+            analysis.isEmpty ? 'ANALYSIS IN PROGRESS...' : analysis,
+            style: context.body.copyWith(color: isDark ? scheme.textPrimary : AppPalette.black, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic, height: 1.6, letterSpacing: -0.2),
           ),
-          const Spacer(),
         ],
       ),
     );
@@ -343,38 +298,21 @@ class _MealNotesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     return BentoCard(
-      height: 240.h,
       padding: const EdgeInsets.all(24),
       backgroundColor: scheme.elevatedSurface,
       child: Stack(
         children: [
-          Positioned(
-            right: 0,
-            top: 0,
-            child: Icon(Icons.format_quote_rounded, color: scheme.textMuted.withAlpha(51), size: 48),
-          ),
+          Positioned(right: 0, top: 0, child: Icon(Icons.format_quote_rounded, color: scheme.textMuted.withAlpha(51), size: 48)),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(AppStrings.personalMemoLabel, style: context.captionBold.copyWith(color: scheme.textSecondary)),
+              Gap.h16,
               Text(
-                AppStrings.personalMemoLabel,
-                style: context.captionBold.copyWith(
-                  color: scheme.textSecondary,
-                ),
+                notes.isEmpty ? 'NO PERSONAL NOTES ADDED' : notes,
+                style: context.label.copyWith(color: scheme.textPrimary, height: 1.6, fontWeight: FontWeight.w600, fontStyle: notes.isEmpty ? FontStyle.normal : FontStyle.italic),
               ),
-              const Spacer(),
-              Text(
-                notes,
-                maxLines: 6,
-                overflow: TextOverflow.ellipsis,
-                style: context.label.copyWith(
-                  color: scheme.textPrimary,
-                  height: 1.6,
-                  fontWeight: FontWeight.w600,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              const Spacer(),
+              Gap.h16,
               Row(
                 children: [
                   Container(
@@ -383,10 +321,7 @@ class _MealNotesSection extends StatelessWidget {
                     decoration: BoxDecoration(color: scheme.textMuted.withAlpha(127), borderRadius: BorderRadius.circular(2)),
                   ),
                   Gap.w8,
-                  Text(
-                    AppStrings.userNotesLabel,
-                    style: context.captionTiny.copyWith(color: scheme.textMuted),
-                  ),
+                  Text(AppStrings.userNotesLabel, style: context.captionTiny.copyWith(color: scheme.textMuted)),
                 ],
               ),
             ],

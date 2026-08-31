@@ -66,9 +66,9 @@ class ScanResult extends Equatable {
     // of trusting the AI's raw integer verbatim.
     var score = ModelUtils.parseScore(map['score']);
 
-    // 🚀 Professional Fallback: If AI returns 0 for a meal/food scan, calculate a heuristic score
+    // 🚀 Professional Fallback: If AI returns 0 for a meal/food/menu scan, calculate a heuristic score
     // based on NOVA group, nutrient levels, and meal balance.
-    if (score == 0 && (category == 'meal' || category == 'food')) {
+    if (score == 0 && (category == 'meal' || category == 'food' || category == 'menu')) {
       final mealBlock = map['meal'] is Map ? Map<String, dynamic>.from(map['meal'] as Map) : (map['rawData']?['meal'] is Map ? Map<String, dynamic>.from(map['rawData']['meal'] as Map) : null);
 
       score = ModelUtils.computeMealScore(
@@ -110,13 +110,13 @@ class ScanResult extends Equatable {
     }
 
     return ScanResult(
-      productName: map['productName']?.toString() ?? map['restaurantName']?.toString() ?? 'Unknown',
-      brand: map['brand']?.toString() ?? 'Unknown',
+      productName: map['productName']?.toString() ?? map['restaurantName']?.toString() ?? map['menu']?['restaurantName']?.toString() ?? map['location']?.toString() ?? map['detectedText']?.toString() ?? 'Unknown',
+      brand: map['brand']?.toString() ?? map['restaurantName']?.toString() ?? 'Unknown',
       category: category,
       imageUrl: map['imageUrl']?.toString(),
       score: score,
       impactType: type,
-      impact: map['impact']?.toString() ?? '',
+      impact: map['impact']?.toString() ?? map['meal']?['summary']?.toString() ?? map['rawData']?['meal']?['summary']?.toString() ?? '',
       badge: map['badge']?.toString(),
       nutriscore: normalizedNutriscore,
       novaGroup: normalizedNova,
@@ -126,7 +126,9 @@ class ScanResult extends Equatable {
       nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
       nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'], NutrientLevels.fromMap),
       impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
-      swaps: ModelUtils.parseModelList<ProductSwap>(map['swaps'], ProductSwap.fromMap),
+      // 🚀 Robust Recovery: Check primary field and rawData block for swaps.
+      // We check for null or empty list to ensure old data with empty swaps is fixed.
+      swaps: ModelUtils.parseModelList<ProductSwap>((map['swaps'] is List && (map['swaps'] as List).isNotEmpty) ? map['swaps'] : (resolvedRaw['swaps'] ?? map['swaps']), ProductSwap.fromMap),
       cycleInsight: ModelUtils.parseNestedModel<CycleInsight>(map['cycleInsight'], CycleInsight.fromMap),
       barcode: map['barcode']?.toString(),
       source: map['source']?.toString(),
@@ -382,7 +384,6 @@ class ScanResult extends Equatable {
     final s = source?.toLowerCase() ?? '';
     final c = category?.toLowerCase() ?? '';
     final n = productName.toLowerCase();
-    final b = brand.toLowerCase();
 
     // Unpack intent from rawData if available
     final intent = (rawData?['intent'] ?? '').toString().toLowerCase();

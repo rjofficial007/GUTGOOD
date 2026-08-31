@@ -15,7 +15,7 @@ class AppTextStyles {
   static TextStyle get headingMd => TextStyle(fontSize: 24.0.sp, fontWeight: FontWeight.w700, letterSpacing: -0.02, height: 1.25);
   static TextStyle get headingSm => TextStyle(fontSize: 20.0.sp, fontWeight: FontWeight.w700, letterSpacing: -0.02, height: 1.25);
 
-  static TextStyle get title => const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.02, height: 1.25);
+  static TextStyle get title => const TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.02, height: 1.25);
 
   static TextStyle get bodyLg => TextStyle(fontSize: 16.0.sp, fontWeight: FontWeight.w400, letterSpacing: -0.01, height: 1.5);
   static TextStyle get body => TextStyle(fontSize: 15.0.sp, fontWeight: FontWeight.w400, letterSpacing: -0.01, height: 1.4);

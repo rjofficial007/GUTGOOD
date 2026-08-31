@@ -9,14 +9,11 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-
-import '../providers/insights_notifier.dart';
 
 class ModernSmartAlert extends StatelessWidget {
   const ModernSmartAlert({super.key, required this.insight});
@@ -25,6 +22,9 @@ class ModernSmartAlert extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppPalette.purple.withAlpha(26) : AppPalette.purplePastel;
+    final contentColor = isDark ? scheme.textPrimary : AppPalette.black;
 
     return DashboardEntrance(
       delay: 450,
@@ -33,32 +33,29 @@ class ModernSmartAlert extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSizes.r24),
         child: BentoCard(
           padding: const EdgeInsets.all(12),
-          height: 180.h,
-          backgroundColor: scheme.textPrimary,
+          height: 140.h,
+          backgroundColor: bgColor,
+          borderColor: isDark ? AppPalette.purple.withAlpha(50) : AppPalette.purple.withAlpha(20),
           child: Row(
             children: [
               // Left block: AI Identity
               Container(
-                width: 136.h,
-                height: 136.h,
-                decoration: BoxDecoration(
-                  color: scheme.cardBackground.withAlpha(204),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                width: 116.h,
+                height: 116.h,
+                decoration: BoxDecoration(color: scheme.cardBackground.withAlpha(isDark ? 102 : 204), borderRadius: BorderRadius.circular(16)),
                 child: Stack(
                   children: [
                     Positioned(
-                      top: 12,
-                      left: 12,
+                      top: 10,
+                      left: 10,
                       child: Text(
                         'AI PULSE',
-                        style: context.captionMicro.copyWith(
-                          color: scheme.textPrimary,
-                          fontWeight: FontWeight.w900,
-                        ),
+                        style: context.captionMicro.copyWith(color: AppPalette.purple, fontWeight: FontWeight.w900, fontSize: 8.sp),
                       ),
                     ),
-                    Center(child: Icon(AppIcons.brain, size: 56.sp, color: scheme.textPrimary)),
+                    Center(
+                      child: Icon(AppIcons.brain, size: 44.sp, color: AppPalette.purple),
+                    ),
                   ],
                 ),
               ),
@@ -71,25 +68,21 @@ class ModernSmartAlert extends StatelessWidget {
                   children: [
                     Text(
                       insight.title.toUpperCase(),
-                      style: context.captionBold.copyWith(color: scheme.cardBackground.withAlpha(153)),
+                      style: context.captionBold.copyWith(color: contentColor.withAlpha(153)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Gap.h8,
                     Text(
                       insight.description,
-                      style: context.caption.copyWith(color: scheme.cardBackground, height: 1.3),
-                      maxLines: 4,
+                      style: context.caption.copyWith(color: contentColor, height: 1.3),
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Gap.h8,
                     Text(
                       '${insight.type.toUpperCase()}${AppStrings.insightLabelSuffix.toUpperCase()} ➜',
-                      style: context.captionMicro.copyWith(
-                        color: scheme.cardBackground,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                      ),
+                      style: context.captionMicro.copyWith(color: AppPalette.purple, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                     ),
                   ],
                 ),
@@ -103,47 +96,71 @@ class ModernSmartAlert extends StatelessWidget {
 }
 
 class InsightMetricGrid extends StatelessWidget {
-  const InsightMetricGrid({super.key, required this.data, this.notifier});
+  const InsightMetricGrid({super.key, required this.data, this.notifier, required this.streak});
   final AIInsight data;
   final InsightsNotifier? notifier;
+  final int streak;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: SmallInsightMetricCard(label: 'Score', value: '${data.gutScore}%', unit: 'GUT')),
-        Gap.w12,
-        Expanded(child: SmallInsightMetricCard(label: 'Logs', value: '${notifier?.totalMeals ?? data.foodImpacts.length}', unit: 'TOTAL')),
-        Gap.w12,
-        Expanded(child: SmallInsightMetricCard(label: 'Patterns', value: '${data.detectedPatterns.length}', unit: 'ACTIVE')),
-        Gap.w12,
-        Expanded(child: SmallInsightMetricCard(label: 'Feelings', value: '${notifier?.totalSymptoms ?? 0}', unit: 'LOGGED')),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: SmallInsightMetricCard(label: 'Streak', value: '$streak', unit: 'DAYS', icon: AppIcons.flame, accentColor: AppPalette.orange),
+      ),
+      Gap.w12,
+      Expanded(
+        child: SmallInsightMetricCard(label: 'Logs', value: '${notifier?.totalMeals ?? data.foodImpacts.length}', unit: 'TOTAL', icon: AppIcons.history, accentColor: AppPalette.blue),
+      ),
+      Gap.w12,
+      Expanded(
+        child: SmallInsightMetricCard(label: 'Patterns', value: '${data.detectedPatterns.length}', unit: 'ACTIVE', icon: AppIcons.brain, accentColor: AppPalette.purple),
+      ),
+      Gap.w12,
+      Expanded(
+        child: SmallInsightMetricCard(label: 'Feelings', value: '${notifier?.totalSymptoms ?? 0}', unit: 'LOGGED', icon: AppIcons.activity, accentColor: AppPalette.pink),
+      ),
+    ],
+  );
 }
 
 class SmallInsightMetricCard extends StatelessWidget {
-  const SmallInsightMetricCard({required this.label, required this.value, required this.unit});
+  const SmallInsightMetricCard({super.key, required this.label, required this.value, required this.unit, required this.icon, required this.accentColor});
   final String label;
   final String value;
   final String unit;
+  final IconData icon;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     return BentoCard(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
       borderRadius: 20,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(label.toUpperCase(), style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 8.sp)),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: accentColor.withAlpha(20), shape: BoxShape.circle),
+            child: Icon(icon, size: 12.sp, color: accentColor),
+          ),
           Gap.h8,
-          Text(value, style: context.headingSm.copyWith(fontWeight: FontWeight.w900, color: scheme.textPrimary, fontSize: 16.sp)),
+          Text(
+            label.toUpperCase(),
+            style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 7.5.sp, letterSpacing: 0.5),
+          ),
+          Gap.h4,
+          Text(
+            value,
+            style: context.headingSm.copyWith(fontWeight: FontWeight.w900, color: scheme.textPrimary, fontSize: 16.sp, height: 1),
+          ),
           Gap.h2,
-          Text(unit, style: context.captionMicro.copyWith(color: scheme.textMuted)),
+          Text(
+            unit,
+            style: context.captionMicro.copyWith(color: scheme.textMuted, fontWeight: FontWeight.bold, fontSize: 6.sp),
+          ),
         ],
       ),
     );
@@ -158,25 +175,21 @@ class BentoFoodCycler extends StatelessWidget {
   final bool isPositive;
 
   @override
-  Widget build(BuildContext context) {
-    return BentoItemCycler(
-      title: title,
-      trend: trend,
-      isPositive: isPositive,
-      items: foods.map((f) => CyclerItemData(
-        name: f is HealingFood || f is TriggerFood ? f.name : (f is FoodImpact ? f.food : 'Unknown'),
-        effect: f is FoodImpact ? f.effect : (f.effect ?? ''),
-        emoji: f.emoji,
-      )).toList(),
-    );
-  }
+  Widget build(BuildContext context) => BentoItemCycler(
+    title: title,
+    trend: trend,
+    isPositive: isPositive,
+    items: foods
+        .map((f) => CyclerItemData(name: f is HealingFood || f is TriggerFood ? f.name : (f is FoodImpact ? f.food : 'Unknown'), effect: f is FoodImpact ? f.effect : (f.effect ?? ''), emoji: f.emoji))
+        .toList(),
+  );
 }
 
 class CyclerItemData {
+  CyclerItemData({required this.name, required this.effect, required this.emoji});
   final String name;
   final String effect;
   final String emoji;
-  CyclerItemData({required this.name, required this.effect, required this.emoji});
 }
 
 class BentoItemCycler extends StatefulWidget {
@@ -206,9 +219,7 @@ class _BentoItemCyclerState extends State<BentoItemCycler> {
     final secondaryColor = widget.isPositive ? AppPalette.black.withAlpha(153) : scheme.textSecondary;
     final mutedColor = widget.isPositive ? AppPalette.black.withAlpha(102) : scheme.textMuted;
 
-    final displayItems = widget.items.isEmpty 
-        ? [CyclerItemData(name: 'STABLE HABITS', effect: 'Your gut is tracking well.', emoji: '✨')] 
-        : widget.items;
+    final displayItems = widget.items.isEmpty ? [CyclerItemData(name: 'STABLE HABITS', effect: 'Your gut is tracking well.', emoji: '✨')] : widget.items;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,7 +231,7 @@ class _BentoItemCyclerState extends State<BentoItemCycler> {
           children: [
             Expanded(
               child: SizedBox(
-                height: 80.h,
+                height: 70.h,
                 child: PageView.builder(
                   controller: _controller,
                   scrollDirection: Axis.vertical,
@@ -265,13 +276,7 @@ class _BentoItemCyclerState extends State<BentoItemCycler> {
                 child: SmoothPageIndicator(
                   controller: _controller,
                   count: displayItems.length,
-                  effect: ScrollingDotsEffect(
-                    activeDotColor: primaryColor,
-                    dotColor: primaryColor.withAlpha(51),
-                    dotHeight: 4,
-                    dotWidth: 4,
-                    spacing: 4,
-                  ),
+                  effect: ScrollingDotsEffect(activeDotColor: primaryColor, dotColor: primaryColor.withAlpha(51), dotHeight: 4, dotWidth: 4, spacing: 4),
                 ),
               ),
             ],
@@ -300,35 +305,41 @@ class BentoActivityCard extends StatelessWidget {
       delay: 250,
       child: BentoCard(
         padding: const EdgeInsets.all(12),
-        height: 180.h,
+        height: 140.h,
         backgroundColor: scheme.surfaceSubtle,
         child: Row(
           children: [
             // Left block: History Identity
             Container(
-              width: 136.h,
-              height: 136.h,
+              width: 116.h,
+              height: 116.h,
               decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
               child: Stack(
                 children: [
-                  Positioned(
-                    top: 12, left: 12,
-                    child: Icon(AppIcons.history, size: 14, color: scheme.textPrimary),
+                  Positioned(top: 10, left: 10, child: Icon(AppIcons.history, size: 12, color: scheme.textPrimary)),
+                  Center(
+                    child: Text(
+                      '${impacts.length}',
+                      style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 56.sp, letterSpacing: -4),
+                    ),
                   ),
-                  Center(child: Text('${impacts.length}', style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 64.sp, letterSpacing: -4))),
-                  Positioned(bottom: 12, left: 12, right: 12, child: Text('RECENT LOGS', textAlign: TextAlign.center, style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900))),
+                  Positioned(
+                    bottom: 10,
+                    left: 10,
+                    right: 10,
+                    child: Text(
+                      'RECENT LOGS',
+                      textAlign: TextAlign.center,
+                      style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 8.sp),
+                    ),
+                  ),
                 ],
               ),
             ),
             Gap.w16,
             // Right info: Vertical Cycler
             Expanded(
-              child: BentoFoodCycler(
-                foods: impacts,
-                title: AppStrings.recentActivityTitle,
-                trend: 'Last ${impacts.length} encounters recorded.',
-                isPositive: false,
-              ),
+              child: BentoFoodCycler(foods: impacts, title: AppStrings.recentActivityTitle, trend: 'Last ${impacts.length} encounters recorded.', isPositive: false),
             ),
           ],
         ),

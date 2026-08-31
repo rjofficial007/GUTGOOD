@@ -9,7 +9,7 @@ class ModelUtils {
   static String safeJsonEncode(Object? object, {bool indent = false}) {
     try {
       if (indent) {
-        return JsonEncoder.withIndent('  ', toSafeEncodable).convert(object);
+        return const JsonEncoder.withIndent('  ', toSafeEncodable).convert(object);
       }
       return jsonEncode(object, toEncodable: toSafeEncodable);
     } catch (e) {

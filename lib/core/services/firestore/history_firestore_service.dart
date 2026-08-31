@@ -138,7 +138,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final raw = menuData ?? scanData.rawData ?? {};
 
       // 🚀 Consolidated: Save to scan_history with source='menu'
-      final Map<String, dynamic> dataToSave = {
+      final dataToSave = <String, dynamic>{
         ...scanData.toMap(),
         'scanId': finalScanId,
         'userId': uid,

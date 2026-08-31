@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -14,8 +15,8 @@ import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:provider/provider.dart';
-import '../widgets/scan_result_widgets.dart';
 
 class MenuResultScreen extends StatefulWidget {
   const MenuResultScreen({super.key, required this.scanData, this.heroTag});
@@ -50,8 +51,11 @@ class _MenuResultScreenState extends State<MenuResultScreen> {
     try {
       final fullData = await sl<HistoryRepository>().getScanById(_currentData.scanId!);
       if (fullData != null && mounted) setState(() => _currentData = fullData);
-    } catch (e) { AppLogger.error('MenuResultScreen: Hydration failed', error: e); }
-    finally { if (mounted) setState(() => _isRefreshing = false); }
+    } catch (e) {
+      AppLogger.error('MenuResultScreen: Hydration failed', error: e);
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
+    }
   }
 
   Future<void> _toggleSave() async {
@@ -64,123 +68,151 @@ class _MenuResultScreenState extends State<MenuResultScreen> {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
 
-    return Consumer<SavedFoodsProvider>(builder: (context, savedProvider, _) {
-      final isSaved = savedProvider.isSaved(_currentData.productName, barcode: _currentData.barcode);
+    return Consumer<SavedFoodsProvider>(
+      builder: (context, savedProvider, _) {
+        final isSaved = savedProvider.isSaved(_currentData.productName, barcode: _currentData.barcode);
 
-      return Scaffold(
-        backgroundColor: scheme.cardBackground,
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            GutSliverAppBar(
-              title: 'MENU ANALYSIS',
-              centerTitle: true,
-              actions: [
-                Padding(
-                  padding: EdgeInsets.only(right: 16.w),
-                  child: SaveButton(
-                    isSaved: isSaved,
-                    isLoading: _isLoading,
-                    onTap: () async {
-                      setState(() => _isLoading = true);
-                      try { await _toggleSave(); } finally { if (mounted) setState(() => _isLoading = false); }
-                    },
+        return Scaffold(
+          backgroundColor: scheme.cardBackground,
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              GutSliverAppBar(
+                title: 'MENU ANALYSIS',
+                centerTitle: true,
+                actions: [
+                  Padding(
+                    padding: EdgeInsets.only(right: 16.w),
+                    child: SaveButton(
+                      isSaved: isSaved,
+                      isLoading: _isLoading,
+                      onTap: () async {
+                        setState(() => _isLoading = true);
+                        try {
+                          await _toggleSave();
+                        } finally {
+                          if (mounted) setState(() => _isLoading = false);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DashboardEntrance(
+                        delay: 50,
+                        child: BentoImageCard(scanData: _currentData, heroTag: widget.heroTag),
+                      ),
+                      if (_isRefreshing)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 32),
+                          child: Center(child: CircularProgressIndicator(color: scheme.textPrimary)),
+                        )
+                      else ...[
+                        Gap.h12,
+                        DashboardEntrance(delay: 100, child: DashboardMetricGrid(scanData: _currentData)),
+                        Gap.h12,
+                        DashboardEntrance(delay: 150, child: ExpertSummaryCard(scanData: _currentData)),
+                        Gap.h12,
+                        DashboardEntrance(
+                          delay: 180,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: MealBalanceCard(scanData: _currentData)),
+                              Gap.w12,
+                              Expanded(child: ExpertStrategyCard(scanData: _currentData)),
+                            ],
+                          ),
+                        ),
+                        Gap.h12,
+                        DashboardEntrance(delay: 250, child: MenuAnalysisSection(scanData: _currentData)),
+                        if (_currentData.swaps.isNotEmpty) ...[Gap.h12, DashboardEntrance(delay: 260, child: BetterSwapsCarousel(swaps: _currentData.swaps))],
+                        Gap.h12,
+                        DashboardEntrance(
+                          delay: 280,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildImpactSection(context)),
+                              Gap.w12,
+                              Expanded(child: NutrientStatisticsCard(scanData: _currentData)),
+                            ],
+                          ),
+                        ),
+                        Gap.h12,
+                        DashboardEntrance(
+                          delay: 320,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: AllergensSection(allergens: _currentData.allergens ?? '', servingSize: _currentData.servingSize),
+                              ),
+                              Gap.w12,
+                              Expanded(child: NutritionFactsSection(scanData: _currentData)),
+                            ],
+                          ),
+                        ),
+                        Gap.h12,
+                        DashboardEntrance(
+                          delay: 350,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: AdditivesSection(scanData: _currentData)),
+                              Gap.w12,
+                              Expanded(child: ProductMetadataSection(scanData: _currentData)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      Gap.h40,
+                    ],
                   ),
                 ),
-              ],
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DashboardEntrance(delay: 50, child: BentoImageCard(scanData: _currentData, heroTag: widget.heroTag)),
-                    if (_isRefreshing)
-                      Padding(padding: const EdgeInsets.only(top: 32), child: Center(child: CircularProgressIndicator(color: scheme.textPrimary)))
-                    else ...[
-                      Gap.h12,
-                      DashboardEntrance(delay: 100, child: DashboardMetricGrid(scanData: _currentData)),
-                      Gap.h12,
-                      DashboardEntrance(
-                        delay: 150,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: ExpertSummaryCard(scanData: _currentData)),
-                            Gap.w12,
-                            Expanded(child: NutrientStatisticsCard(scanData: _currentData)),
-                          ],
-                        ),
-                      ),
-                      Gap.h12,
-                      DashboardEntrance(
-                        delay: 200,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: MealBalanceCard(scanData: _currentData)),
-                            Gap.w12,
-                            Expanded(child: ExpertStrategyCard(scanData: _currentData)),
-                          ],
-                        ),
-                      ),
-                      Gap.h24,
-                      DashboardEntrance(delay: 250, child: MenuAnalysisSection(scanData: _currentData)),
-                      Gap.h24,
-                      DashboardEntrance(delay: 280, child: _buildImpactSection(context)),
-                      Gap.h24,
-                      DashboardEntrance(delay: 320, child: AdditivesSection(scanData: _currentData)),
-                      if (_currentData.allergens != null && _currentData.allergens!.isNotEmpty) ...[
-                        Gap.h24,
-                        DashboardEntrance(delay: 350, child: AllergensSection(allergens: _currentData.allergens!, servingSize: _currentData.servingSize)),
-                      ],
-                      if (_currentData.nutrients != null) ...[
-                        Gap.h24,
-                        DashboardEntrance(delay: 380, child: NutritionFactsSection(scanData: _currentData)),
-                        Gap.h24,
-                      ],
-                      DashboardEntrance(delay: 400, child: ProductMetadataSection(scanData: _currentData)),
-                    ],
-                    Gap.h40,
-                  ],
-                ),
               ),
-            ),
-          ],
-        ),
-      );
-    });
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildImpactSection(BuildContext context) {
     final scan = _currentData;
     final scheme = context.appColorScheme;
-    final items = <ScanImpactDetailItem>[];
+    final items = <TimelineItem>[];
 
-    final Map<String, dynamic> raw = scan.rawData ?? {};
-    final List rawImpacts = ((raw['meal']?['impacts'] ?? raw['scan']?['impacts'] ?? raw['impacts']) ?? []) as List;
+    final raw = scan.rawData ?? {};
+    final rawImpacts = ((raw['meal']?['impacts'] ?? raw['scan']?['impacts'] ?? raw['impacts']) ?? []) as List;
 
-    final impactsToUse = scan.impacts.isNotEmpty ? scan.impacts : rawImpacts.map((e) {
-      final data = e is Map ? e : {};
-      return ImpactDetail(title: data['title']?.toString() ?? '', level: data['level']?.toString() ?? '', color: 'gray');
-    }).where((e) => e.title.isNotEmpty).toList();
+    final impactsToUse = scan.impacts.isNotEmpty
+        ? scan.impacts
+        : rawImpacts
+              .map((e) {
+                final data = e is Map ? e : {};
+                return ImpactDetail(title: data['title']?.toString() ?? '', level: data['level']?.toString() ?? '', color: 'gray');
+              })
+              .where((e) => e.title.isNotEmpty)
+              .toList();
 
     for (final impact in impactsToUse) {
       var color = scheme.success;
-      var icon = AppIcons.checkCircle;
       final level = impact.level.toLowerCase();
       if (level == 'high' || level == 'trigger' || level == 'negative' || level == 'poor') {
         color = scheme.error;
-        icon = AppIcons.alertTriangle;
       } else if (level == 'moderate' || level == 'neutral' || level == 'low') {
         color = scheme.warning;
-        icon = AppIcons.alertCircle;
       }
-      items.add(ScanImpactDetailItem(title: impact.title, subtitle: '', icon: icon, value: impact.level.toUpperCase(), color: color));
+      items.add(TimelineItem(title: impact.title, subtitle: impact.level.toUpperCase(), color: color));
     }
 
-    if (items.isEmpty) return const SizedBox.shrink();
     return ScanImpactSection(title: 'GUT HEALTH IMPACT', icon: AppIcons.activity, iconColor: scheme.textPrimary, servingInfo: scan.servingSize, items: items);
   }
 }

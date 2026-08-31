@@ -143,9 +143,9 @@ class HistoryNotifier with ChangeNotifier {
       }
     }
 
-    final allEntries = entriesMap.values.toList();
+    final allEntries = entriesMap.values.toList()
     // Sort chronologically (Newest first)
-    allEntries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return allEntries;
   }

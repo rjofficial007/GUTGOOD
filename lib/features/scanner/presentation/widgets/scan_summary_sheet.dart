@@ -3,9 +3,9 @@ import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_result.dart';
@@ -45,7 +45,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
         decoration: BoxDecoration(
           color: scheme.cardBackground,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          boxShadow: [BoxShadow(color: AppPalette.scrim, blurRadius: 20, offset: const Offset(0, -5))],
+          boxShadow: const [BoxShadow(color: AppPalette.scrim, blurRadius: 20, offset: Offset(0, -5))],
         ),
         child: Column(
           children: [
@@ -259,7 +259,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
   }
 
   List<_HealthFactor> _getNegatives(BuildContext context) {
-    final List<_HealthFactor> items = [];
+    final items = <_HealthFactor>[];
     final n = widget.product.nutrients;
     final scheme = context.appColorScheme;
 
@@ -319,7 +319,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
   }
 
   List<_HealthFactor> _getPositives(BuildContext context) {
-    final List<_HealthFactor> items = [];
+    final items = <_HealthFactor>[];
     final n = widget.product.nutrients;
     final scheme = context.appColorScheme;
 
@@ -344,7 +344,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
   }
 
   List<_HealthFactor> _getIngredients(BuildContext context) {
-    final List<_HealthFactor> items = [];
+    final items = <_HealthFactor>[];
     final ingredients = widget.product.ingredients;
     if (ingredients != null && ingredients.isNotEmpty) {
       for (final ing in ingredients.take(8)) {
@@ -416,8 +416,7 @@ class _FactorRow extends StatelessWidget {
   final bool isLast;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -447,7 +446,6 @@ class _FactorRow extends StatelessWidget {
         if (!isLast) Divider(color: context.appColorScheme.border.withAlpha(26), height: 1),
       ],
     );
-  }
 }
 
 class _FactBadge extends StatelessWidget {

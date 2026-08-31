@@ -25,7 +25,7 @@ class PatternDetailScreen extends StatelessWidget {
       backgroundColor: scheme.cardBackground,
       body: CustomScrollView(
         slivers: [
-          const GutSliverAppBar(title: AppStrings.intelligenceDetail, showBrandingIcon: false),
+          const GutSliverAppBar(title: '', showBrandingIcon: false),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
@@ -33,17 +33,11 @@ class PatternDetailScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // 1. Discovery Hero (Wallet Identity)
-                  DashboardEntrance(
-                    delay: 50,
-                    child: _PatternHeroCard(pattern: pattern),
-                  ),
+                  DashboardEntrance(delay: 50, child: _PatternHeroCard(pattern: pattern)),
                   Gap.h12,
 
                   // 2. Statistical Quick View
-                  DashboardEntrance(
-                    delay: 100,
-                    child: _PatternMetricGrid(pattern: pattern),
-                  ),
+                  DashboardEntrance(delay: 100, child: _PatternMetricGrid(pattern: pattern)),
                   Gap.h12,
 
                   // 3. Clinical Observation & Action Plan Row
@@ -54,7 +48,7 @@ class PatternDetailScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: BentoCard(
-                            height: 240.h,
+                            height: 160.h,
                             backgroundColor: AppPalette.purplePastel,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,21 +56,24 @@ class PatternDetailScreen extends StatelessWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(AppStrings.observationsLabel.toUpperCase(), style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900)),
-                                    Icon(AppIcons.brain, color: AppPalette.black.withAlpha(102), size: 14),
+                                    Text(
+                                      AppStrings.observationsLabel.toUpperCase(),
+                                      style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 8.sp),
+                                    ),
+                                    Icon(AppIcons.brain, color: AppPalette.black.withAlpha(102), size: 12),
                                   ],
                                 ),
                                 const Spacer(),
                                 Text(
                                   pattern.description,
-                                  maxLines: 5,
+                                  maxLines: 4,
                                   overflow: TextOverflow.ellipsis,
-                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.3, fontWeight: FontWeight.w900, fontSize: 13.sp),
+                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.2, fontWeight: FontWeight.w900, fontSize: 12.sp),
                                 ),
                                 const Spacer(),
                                 Text(
                                   'AI SUMMARY',
-                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900),
+                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 7.sp),
                                 ),
                               ],
                             ),
@@ -85,7 +82,7 @@ class PatternDetailScreen extends StatelessWidget {
                         Gap.w12,
                         Expanded(
                           child: BentoCard(
-                            height: 240.h,
+                            height: 160.h,
                             backgroundColor: AppPalette.greenPastel,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,21 +90,24 @@ class PatternDetailScreen extends StatelessWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(AppStrings.actionPlan.toUpperCase(), style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900)),
-                                    Icon(AppIcons.lightbulb, color: AppPalette.black.withAlpha(102), size: 14),
+                                    Text(
+                                      AppStrings.actionPlan.toUpperCase(),
+                                      style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 8.sp),
+                                    ),
+                                    Icon(AppIcons.lightbulb, color: AppPalette.black.withAlpha(102), size: 12),
                                   ],
                                 ),
                                 const Spacer(),
                                 Text(
                                   pattern.recommendation ?? 'Keep monitoring your intake to verify this body reaction.',
-                                  maxLines: 5,
+                                  maxLines: 4,
                                   overflow: TextOverflow.ellipsis,
-                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.3, fontWeight: FontWeight.w900, fontSize: 13.sp),
+                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.2, fontWeight: FontWeight.w900, fontSize: 12.sp),
                                 ),
                                 const Spacer(),
                                 Text(
                                   'AI ACTION',
-                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900),
+                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 7.sp),
                                 ),
                               ],
                             ),
@@ -124,30 +124,40 @@ class PatternDetailScreen extends StatelessWidget {
                       delay: 200,
                       child: BentoCard(
                         padding: const EdgeInsets.all(12),
-                        height: 180.h,
+                        height: 140.h,
                         backgroundColor: scheme.surfaceSubtle,
                         child: Row(
                           children: [
                             Container(
-                              width: 136.h,
-                              height: 136.h,
+                              width: 116.h,
+                              height: 116.h,
                               decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
                               child: Stack(
                                 children: [
-                                  Positioned(top: 12, left: 12, child: Icon(AppIcons.utensils, size: 14, color: scheme.textPrimary)),
-                                  Center(child: Text('${pattern.involvedFoods.length}', style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 64.sp, letterSpacing: -4))),
-                                  Positioned(bottom: 12, left: 12, right: 12, child: Text('IDENTIFIED', textAlign: TextAlign.center, style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900))),
+                                  Positioned(top: 10, left: 10, child: Icon(AppIcons.utensils, size: 12, color: scheme.textPrimary)),
+                                  Center(
+                                    child: Text(
+                                      '${pattern.involvedFoods.length}',
+                                      style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 56.sp, letterSpacing: -4),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    bottom: 10,
+                                    left: 10,
+                                    right: 10,
+                                    child: Text(
+                                      'IDENTIFIED',
+                                      textAlign: TextAlign.center,
+                                      style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 8.sp),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                             Gap.w16,
                             Expanded(
                               child: BentoItemCycler(
-                                items: pattern.involvedFoods.map((f) => CyclerItemData(
-                                  name: f,
-                                  effect: 'Linked to this discovery.',
-                                  emoji: '🍽️',
-                                )).toList(),
+                                items: pattern.involvedFoods.map((f) => CyclerItemData(name: f, effect: 'Linked to this discovery.', emoji: '🍽️')).toList(),
                                 title: AppStrings.involvedFoodsLabel,
                                 trend: 'Statistical factors detected.',
                                 isPositive: false,
@@ -177,11 +187,7 @@ class PatternDetailScreen extends StatelessWidget {
                             ),
                             Gap.h20,
                             ImpactTimeline(
-                              items: pattern.occurrences.take(5).map((o) => TimelineItem(
-                                title: o.mealName,
-                                subtitle: '${o.date} • ${o.reaction}',
-                                color: scheme.textPrimary,
-                              )).toList(),
+                              items: pattern.occurrences.take(5).map((o) => TimelineItem(title: o.mealName, subtitle: '${o.date} • ${o.reaction}', color: scheme.textPrimary)).toList(),
                             ),
                           ],
                         ),
@@ -210,34 +216,34 @@ class _PatternHeroCard extends StatelessWidget {
     final icon = InsightUiUtils.getPatternTypeIcon(pattern.type);
     final themeColor = InsightUiUtils.getPatternPastelColor(pattern.type);
     final accentColor = InsightUiUtils.getPatternColor(pattern.type);
-    
+
     return BentoCard(
       padding: const EdgeInsets.all(12),
-      height: 200.h,
+      height: 160.h,
       backgroundColor: themeColor,
       child: Row(
         children: [
           // Left block: Identity
           Container(
-            width: 176.h,
-            height: 176.h,
-            decoration: BoxDecoration(
-              color: scheme.cardBackground.withAlpha(204),
-              borderRadius: BorderRadius.circular(16),
-            ),
+            width: 136.h,
+            height: 136.h,
+            decoration: BoxDecoration(color: scheme.cardBackground.withAlpha(204), borderRadius: BorderRadius.circular(16)),
             child: Stack(
               children: [
                 Positioned(
-                  top: 12, left: 12,
-                  child: Text('DISCOVERY', style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900)),
+                  top: 10,
+                  left: 10,
+                  child: Text('DISCOVERY', style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900, fontSize: 8.sp)),
                 ),
-                Center(child: Icon(icon, size: 64.sp, color: accentColor)),
+                Center(child: Icon(icon, size: 48.sp, color: accentColor)),
                 Positioned(
-                  bottom: 12, left: 12, right: 12,
+                  bottom: 10,
+                  left: 10,
+                  right: 10,
                   child: Text(
                     '${pattern.confidence.toUpperCase()} CONFIDENCE',
                     textAlign: TextAlign.center,
-                    style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900),
+                    style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900, fontSize: 8.sp),
                   ),
                 ),
               ],
@@ -250,20 +256,13 @@ class _PatternHeroCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  InsightUiUtils.getPatternName(pattern.type).toUpperCase(),
-                  style: context.captionBold.copyWith(color: AppPalette.black.withAlpha(153)),
-                ),
+                Text(InsightUiUtils.getPatternName(pattern.type).toUpperCase(), style: context.captionBold.copyWith(color: AppPalette.black.withAlpha(153))),
                 Gap.h8,
                 Text(
                   pattern.trigger.toUpperCase(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: context.headingSm.copyWith(
-                    color: AppPalette.black,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1,
-                  ),
+                  style: context.headingSm.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, height: 1.1),
                 ),
                 Gap.h4,
                 Text(
@@ -275,11 +274,7 @@ class _PatternHeroCard extends StatelessWidget {
                   pattern.reaction.toUpperCase(),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: context.body.copyWith(
-                    color: AppPalette.black,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1,
-                  ),
+                  style: context.body.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, height: 1.1),
                 ),
               ],
             ),
@@ -295,33 +290,19 @@ class _PatternMetricGrid extends StatelessWidget {
   final BodyPattern pattern;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: SmallInsightMetricCard(
-            label: 'Matches',
-            value: '${pattern.frequency}',
-            unit: 'LOGS',
-          ),
-        ),
-        Gap.w12,
-        Expanded(
-          child: SmallInsightMetricCard(
-            label: 'Impact',
-            value: '${(pattern.evidenceRatio * 100).toInt()}%',
-            unit: 'PROBABILITY',
-          ),
-        ),
-        Gap.w12,
-        Expanded(
-          child: SmallInsightMetricCard(
-            label: 'Severity',
-            value: '${pattern.positiveCount}',
-            unit: 'REACTIONS',
-          ),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: SmallInsightMetricCard(label: 'Matches', value: '${pattern.frequency}', unit: 'LOGS', icon: AppIcons.history, accentColor: AppPalette.blue),
+      ),
+      Gap.w12,
+      Expanded(
+        child: SmallInsightMetricCard(label: 'Impact', value: '${(pattern.evidenceRatio * 100).toInt()}%', unit: 'PROBABILITY', icon: AppIcons.brain, accentColor: AppPalette.purple),
+      ),
+      Gap.w12,
+      Expanded(
+        child: SmallInsightMetricCard(label: 'Severity', value: '${pattern.positiveCount}', unit: 'REACTIONS', icon: AppIcons.activity, accentColor: AppPalette.pink),
+      ),
+    ],
+  );
 }

@@ -100,7 +100,7 @@ class _SavedFoodsList extends StatelessWidget {
             final source = scanResult.source?.toLowerCase() ?? '';
             final category = scanResult.category?.toLowerCase() ?? '';
 
-            String route = AppRoutes.scanResult;
+            var route = AppRoutes.scanResult;
             if (source == 'label' || category == 'label') {
               route = AppRoutes.labelResult;
             } else if (source == 'menu' || category == 'menu') {

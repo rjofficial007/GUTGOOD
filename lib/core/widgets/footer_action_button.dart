@@ -7,10 +7,6 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class FooterActionButton extends StatelessWidget {
-  final String label;
-  final VoidCallback? onTap;
-  final bool isEmbedded;
-  final IconData? icon;
 
   const FooterActionButton({
     super.key,
@@ -19,6 +15,10 @@ class FooterActionButton extends StatelessWidget {
     this.isEmbedded = false,
     this.icon,
   });
+  final String label;
+  final VoidCallback? onTap;
+  final bool isEmbedded;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {

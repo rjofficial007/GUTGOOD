@@ -92,12 +92,12 @@ class ScannerStrings {
   static const String errorTextNotReadable = 'Keep the ingredients text clear';
 
   // New
-  static const String gutHealthImpact = 'GUT HEALTH IMPACT';
-  static const String whatToWatch = 'WHAT TO WATCH';
-  static const String clinicalAudit = 'CLINICAL AUDIT';
-  static const String nutritionAnalytics = 'NUTRITION ANALYTICS';
-  static const String productMetadata = 'PRODUCT METADATA';
-  static const String expertSummary = 'EXPERT SUMMARY';
+  static const String gutHealthImpact = 'BODY RESPONSE';
+  static const String whatToWatch = 'INGREDIENT ALERTS';
+  static const String clinicalAudit = 'OPTIMIZATION TIPS';
+  static const String nutritionAnalytics = 'POWER STATS';
+  static const String productMetadata = 'SCAN DETAILS';
+  static const String expertSummary = 'THE GUTGOOD TAKE';
   static const String inflammatoryTrigger = 'Inflammatory trigger';
   static const String alert = 'ALERT';
   static const String caution = 'CAUTION';

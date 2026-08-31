@@ -25,10 +25,8 @@ import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart'
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
 import 'package:gutgood/features/chat/presentation/pages/notification_archive_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dart';
-import 'package:gutgood/features/product_details/presentation/pages/meal_detail_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
-import 'package:gutgood/features/product_details/presentation/pages/symptom_detail_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
@@ -38,10 +36,12 @@ import 'package:gutgood/features/insights/presentation/pages/smart_insight_detai
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/label_result_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/meal_detail_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/menu_result_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/nutrition_facts_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/product_not_found_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/scan_result_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/symptom_detail_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/cycle_phase_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/goals_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/lifestyle_screen.dart';

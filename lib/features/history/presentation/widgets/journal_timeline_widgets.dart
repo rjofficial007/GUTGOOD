@@ -148,7 +148,7 @@ class JournalTimelineEntry extends StatelessWidget {
     Widget? trailing;
     Color? typeColor;
 
-    IconData fallbackIcon = AppIcons.salad;
+    var fallbackIcon = AppIcons.salad;
 
     switch (entry.type) {
       case JournalEntryType.scan:
@@ -260,7 +260,7 @@ class JournalTimelineEntry extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        type ?? '',
+                        type,
                         style: context.caption.copyWith(color: typeColor, fontWeight: FontWeight.w700),
                       ),
                       if (source != null) Text(' • $source', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),

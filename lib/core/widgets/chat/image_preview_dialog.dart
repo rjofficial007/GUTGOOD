@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -195,7 +194,7 @@ class _ImagePreviewDialogState extends State<ImagePreviewDialog> {
                       onTap: () => Navigator.of(context).pop(),
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppPalette.white15,
                           shape: BoxShape.circle,
                         ),

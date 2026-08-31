@@ -6,8 +6,6 @@ import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/core/widgets/swap_card.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
 class SwapItContainer extends StatelessWidget {

@@ -1,11 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 
 class AnalysisCard extends StatelessWidget {
   const AnalysisCard({super.key, required this.metric, required this.label, required this.icon, required this.glowColor, required this.items, this.onTap, this.headerColor});
@@ -20,7 +17,6 @@ class AnalysisCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = context.appColorScheme;
 
     final cardColor = scheme.cardBackground;

@@ -10,7 +10,7 @@ import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import '../widgets/scan_result_widgets.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class SymptomDetailScreen extends StatelessWidget {
   const SymptomDetailScreen({super.key, required this.symptom});
@@ -41,20 +41,9 @@ class SymptomDetailScreen extends StatelessWidget {
                   Gap.h12,
                   DashboardEntrance(delay: 100, child: _SymptomStatsGrid(symptom: symptom)),
                   Gap.h12,
-                  DashboardEntrance(
-                    delay: 200,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (symptom.lastMealFirestoreId != null)
-                          Expanded(child: _PotentialTriggerCard(mealId: symptom.lastMealFirestoreId!)),
-                        if (symptom.notes != null && symptom.notes!.isNotEmpty) ...[
-                          if (symptom.lastMealFirestoreId != null) Gap.w12,
-                          Expanded(child: _SymptomNotesSection(notes: symptom.notes!)),
-                        ],
-                      ],
-                    ),
-                  ),
+                  DashboardEntrance(delay: 150, child: _PotentialTriggerCard(mealId: symptom.lastMealFirestoreId)),
+                  Gap.h12,
+                  DashboardEntrance(delay: 200, child: _SymptomNotesSection(notes: symptom.notes ?? '')),
                   Gap.h40,
                 ],
               ),
@@ -64,7 +53,6 @@ class SymptomDetailScreen extends StatelessWidget {
       ),
     );
   }
-
 
   Color _getSeverityColor(BuildContext context, int severity) {
     if (severity <= 3) return AppPalette.greenPastel;
@@ -101,10 +89,7 @@ class _SymptomHeroSection extends StatelessWidget {
                   Positioned(
                     top: 12,
                     left: 12,
-                    child: Text(
-                      AppStrings.severityLabel,
-                      style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102)),
-                    ),
+                    child: Text(AppStrings.severityLabel, style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102))),
                   ),
                   Positioned(
                     top: 10,
@@ -112,16 +97,17 @@ class _SymptomHeroSection extends StatelessWidget {
                     child: Container(
                       width: 12,
                       height: 12,
-                      decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)]),
+                      decoration: BoxDecoration(
+                        color: AppPalette.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)],
+                      ),
                     ),
                   ),
                   Positioned(
                     bottom: -10,
                     left: 8,
-                    child: Text(
-                      '$severity',
-                      style: context.displayHero.copyWith(color: AppPalette.black, letterSpacing: -5),
-                    ),
+                    child: Text('$severity', style: context.displayHero.copyWith(color: AppPalette.black, letterSpacing: -5)),
                   ),
                 ],
               ),
@@ -134,38 +120,22 @@ class _SymptomHeroSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  AppStrings.symptomAnalysis,
-                  style: context.captionBold.copyWith(color: scheme.textSecondary),
-                ),
+                Text(AppStrings.symptomAnalysis, style: context.captionBold.copyWith(color: scheme.textSecondary)),
                 Gap.h4,
                 Text(
                   symptom.symptom.toUpperCase(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: context.headingSm.copyWith(
-                    color: scheme.textPrimary,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: context.headingSm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900),
                 ),
                 Gap.h8,
-                Text(
-                  DateFormatter.formatFull(symptom.createdAt),
-                  style: context.captionBold.copyWith(
-                    color: scheme.textSecondary,
-                  ),
-                ),
+                Text(DateFormatter.formatFull(symptom.createdAt), style: context.captionBold.copyWith(color: scheme.textSecondary)),
                 Gap.h12,
                 Row(
                   children: [
                     Icon(AppIcons.info, size: 12.sp, color: scheme.textMuted),
                     Gap.w6,
-                    Text(
-                      AppStrings.loggedVia(symptom.source?.toUpperCase() ?? AppStrings.chatSource),
-                      style: context.captionBold.copyWith(
-                        color: scheme.textMuted,
-                      ),
-                    ),
+                    Text(AppStrings.loggedVia(symptom.source?.toUpperCase() ?? AppStrings.chatSource), style: context.captionBold.copyWith(color: scheme.textMuted)),
                   ],
                 ),
               ],
@@ -184,8 +154,6 @@ class _SymptomStatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-
     final metrics = [
       if (symptom.energyLevel != null) _MetricData('Energy', '${symptom.energyLevel}/10', 'LEVEL'),
       if (symptom.mood != null) _MetricData('Mood', symptom.mood!.toUpperCase(), 'STATE'),
@@ -219,13 +187,17 @@ class _SymptomStatsGrid extends StatelessWidget {
 }
 
 class _MetricData {
-  final String label, value, unit;
   _MetricData(this.label, this.value, this.unit);
+  final String label;
+  final String value;
+  final String unit;
 }
 
 class _SmallMetricCard extends StatelessWidget {
   const _SmallMetricCard({required this.label, required this.value, required this.unit, required this.icon});
-  final String label, value, unit;
+  final String label;
+  final String value;
+  final String unit;
   final IconData icon;
 
   @override
@@ -243,10 +215,7 @@ class _SmallMetricCard extends StatelessWidget {
             children: [
               Icon(icon, size: 10.sp, color: scheme.textSecondary),
               Gap.w4,
-              Text(
-                label.toUpperCase(),
-                style: context.captionBold.copyWith(color: scheme.textSecondary),
-              ),
+              Text(label.toUpperCase(), style: context.captionBold.copyWith(color: scheme.textSecondary)),
             ],
           ),
           const Spacer(),
@@ -272,38 +241,21 @@ class _SymptomNotesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     return BentoCard(
-      height: 240.h,
       padding: const EdgeInsets.all(24),
       backgroundColor: scheme.elevatedSurface,
       child: Stack(
         children: [
-          Positioned(
-            right: 0,
-            top: 0,
-            child: Icon(Icons.format_quote_rounded, color: scheme.textMuted.withAlpha(51), size: 48),
-          ),
+          Positioned(right: 0, top: 0, child: Icon(Icons.format_quote_rounded, color: scheme.textMuted.withAlpha(51), size: 48)),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(AppStrings.reactionMemo, style: context.captionBold.copyWith(color: scheme.textSecondary)),
+              Gap.h16,
               Text(
-                AppStrings.reactionMemo,
-                style: context.captionBold.copyWith(
-                  color: scheme.textSecondary,
-                ),
+                notes.isEmpty ? 'NO ADDITIONAL OBSERVATIONS LOGGED' : notes,
+                style: context.label.copyWith(color: scheme.textPrimary, height: 1.6, fontWeight: FontWeight.w600, fontStyle: notes.isEmpty ? FontStyle.normal : FontStyle.italic),
               ),
-              const Spacer(),
-              Text(
-                notes,
-                maxLines: 6,
-                overflow: TextOverflow.ellipsis,
-                style: context.label.copyWith(
-                  color: scheme.textPrimary,
-                  height: 1.6,
-                  fontWeight: FontWeight.w600,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              const Spacer(),
+              Gap.h16,
               Row(
                 children: [
                   Container(
@@ -312,10 +264,7 @@ class _SymptomNotesSection extends StatelessWidget {
                     decoration: BoxDecoration(color: scheme.textMuted.withAlpha(127), borderRadius: BorderRadius.circular(2)),
                   ),
                   Gap.w8,
-                  Text(
-                    AppStrings.userObservation,
-                    style: context.captionTiny.copyWith(color: scheme.textMuted),
-                  ),
+                  Text(AppStrings.userObservation, style: context.captionTiny.copyWith(color: scheme.textMuted)),
                 ],
               ),
             ],
@@ -328,31 +277,27 @@ class _SymptomNotesSection extends StatelessWidget {
 
 class _PotentialTriggerCard extends StatelessWidget {
   const _PotentialTriggerCard({required this.mealId});
-  final String mealId;
+  final String? mealId;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return BentoCard(
-      height: 240.h,
       padding: const EdgeInsets.all(20),
-      backgroundColor: AppPalette.purplePastel,
+      backgroundColor: isDark ? AppPalette.purple.withAlpha(26) : AppPalette.purplePastel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                AppStrings.expertAnalysis,
-                style: context.captionBold.copyWith(
-                  color: AppPalette.black.withAlpha(153),
-                ),
-              ),
-              const Icon(AppIcons.sparkles, color: AppPalette.black12, size: 14),
+              Text(AppStrings.expertAnalysis, style: context.captionBold.copyWith(color: isDark ? AppPalette.purplePastel.withAlpha(153) : AppPalette.black.withAlpha(153))),
+              Icon(AppIcons.sparkles, color: isDark ? AppPalette.purplePastel.withAlpha(102) : AppPalette.black.withAlpha(102), size: 14),
             ],
           ),
-          const Spacer(),
+          Gap.h24,
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -360,28 +305,25 @@ class _PotentialTriggerCard extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: AppPalette.black.withAlpha(26), shape: BoxShape.circle),
-                    child: const Icon(AppIcons.utensils, color: AppPalette.black, size: 14),
+                    decoration: BoxDecoration(color: isDark ? AppPalette.white.withAlpha(26) : AppPalette.black.withAlpha(26), shape: BoxShape.circle),
+                    child: Icon(AppIcons.utensils, color: isDark ? scheme.textPrimary : AppPalette.black, size: 14),
                   ),
                   Gap.w10,
-                  Text(
-                    AppStrings.potentialTrigger,
-                    style: context.labelBold.copyWith(color: AppPalette.black),
-                  ),
+                  Text(AppStrings.potentialTrigger, style: context.labelBold.copyWith(color: isDark ? scheme.textPrimary : AppPalette.black)),
                 ],
               ),
               Gap.h12,
               Text(
-                'A meal logged shortly before this reaction is being analyzed for potential sensitivities.',
+                mealId == null ? 'NO POTENTIAL TRIGGERS IDENTIFIED FOR THIS REACTION' : 'A meal logged shortly before this reaction is being analyzed for potential sensitivities.',
                 style: context.label.copyWith(
-                  color: AppPalette.black,
-                  height: 1.4,
-                  fontWeight: FontWeight.w500,
+                  color: isDark ? scheme.textPrimary : AppPalette.black,
+                  height: 1.6,
+                  fontWeight: FontWeight.w600,
+                  fontStyle: mealId == null ? FontStyle.normal : FontStyle.italic,
                 ),
               ),
             ],
           ),
-          const Spacer(),
         ],
       ),
     );

@@ -8,19 +8,16 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
-import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/extensions.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
+import 'package:gutgood/features/insights/presentation/widgets/modern_gut_score_card.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
-
-import '../../../../features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class WeeklyRecapScreen extends StatelessWidget {
   const WeeklyRecapScreen({super.key, this.insight});
@@ -40,7 +37,7 @@ class WeeklyRecapScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           const GutSliverAppBar(title: AppStrings.weeklyRecap, showBrandingIcon: false),
@@ -68,15 +65,13 @@ class _MainDashboardSliver extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 1. Weekly Average Hero (Wallet Style with Date)
+            // 1. Weekly Average Hero (Modern Style)
             DashboardEntrance(
               delay: 50,
-              child: GutSnapshotHeroCard(
-                score: recap?.avgScore ?? 0, 
-                scoreDiff: recap?.scoreSub, 
-                streak: streak, 
-                isActive: false,
-                title: recap?.dateRange ?? AppStrings.last7Days,
+              child: ModernGutScoreCard(
+                score: recap?.avgScore ?? 0,
+                scoreDiff: recap?.scoreSub,
+                onTap: () {}, // Static view
               ),
             ),
             Gap.h12,
@@ -84,7 +79,7 @@ class _MainDashboardSliver extends StatelessWidget {
             // 2. Weekly Metrics Grid
             DashboardEntrance(
               delay: 100,
-              child: InsightMetricGrid(data: data),
+              child: InsightMetricGrid(data: data, streak: streak),
             ),
             Gap.h12,
 
@@ -93,25 +88,37 @@ class _MainDashboardSliver extends StatelessWidget {
               delay: 150,
               child: BentoCard(
                 padding: const EdgeInsets.all(12),
-                height: 180.h,
+                height: 140.h,
                 backgroundColor: AppPalette.greenPastel,
                 child: Row(
                   children: [
                     // Left block: Peak Performance
                     Container(
-                      width: 156.h,
-                      height: 156.h,
-                      decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
+                      width: 116.h,
+                      height: 116.h,
+                      decoration: BoxDecoration(color: Colors.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
                       child: Stack(
                         children: [
                           Positioned(
-                            top: 12, left: 12,
-                            child: Text('PEAK', style: context.captionMicro.copyWith(color: AppPalette.green, fontWeight: FontWeight.w900)),
+                            top: 10,
+                            left: 10,
+                            child: Text(
+                              'PEAK',
+                              style: context.captionMicro.copyWith(color: AppPalette.green, fontWeight: FontWeight.w900, fontSize: 8.sp),
+                            ),
                           ),
-                          Center(child: Icon(AppIcons.star, size: 64.sp, color: AppPalette.green)),
+                          Center(
+                            child: Icon(AppIcons.star, size: 48.sp, color: AppPalette.green),
+                          ),
                           Positioned(
-                            bottom: 12, left: 12, right: 12,
-                            child: Text(recap?.bestDay ?? 'N/A', textAlign: TextAlign.center, style: context.captionBold.copyWith(color: AppPalette.black)),
+                            bottom: 10,
+                            left: 10,
+                            right: 10,
+                            child: Text(
+                              recap?.bestDay ?? 'N/A',
+                              textAlign: TextAlign.center,
+                              style: context.captionBold.copyWith(color: AppPalette.black, fontSize: 9.sp),
+                            ),
                           ),
                         ],
                       ),
@@ -125,13 +132,16 @@ class _MainDashboardSliver extends StatelessWidget {
                         children: [
                           Text(AppStrings.performanceHighlights.toUpperCase(), style: context.captionBold.copyWith(color: AppPalette.black.withAlpha(102))),
                           Gap.h8,
-                          Text('${recap?.foodsLogged ?? 0} FOODS LOGGED', style: context.bodyBold.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 16.sp)),
+                          Text(
+                            '${recap?.foodsLogged ?? 0} FOODS LOGGED',
+                            style: context.bodyBold.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 16.sp),
+                          ),
                           Gap.h4,
                           Text(data.healingTrend ?? 'Stable weekly trend.', style: context.caption.copyWith(color: AppPalette.black.withAlpha(153), height: 1.3)),
                           Gap.h12,
                           Row(
                             children: [
-                              Icon(AppIcons.trendingUp, size: 14, color: AppPalette.green),
+                              const Icon(AppIcons.trendingUp, size: 14, color: AppPalette.green),
                               Gap.w6,
                               Text('OPTIMIZING', style: context.captionBold.copyWith(color: AppPalette.green)),
                             ],
@@ -146,9 +156,7 @@ class _MainDashboardSliver extends StatelessWidget {
             Gap.h12,
 
             // 4. Weekly Patterns (Discoveries)
-            if (highlights.isNotEmpty) ...[
-              ..._buildHighlightCards(context, highlights),
-            ],
+            if (highlights.isNotEmpty) ...[..._buildHighlightCards(context, highlights)],
 
             // 5. Weekly Pulse (AI Intelligence)
             ModernSmartAlert(
@@ -167,67 +175,67 @@ class _MainDashboardSliver extends StatelessWidget {
 
   List<Widget> _buildHighlightCards(BuildContext context, List<RecapHighlight> highlights) {
     final widgets = <Widget>[];
-    final scheme = context.appColorScheme;
-    
+
     for (var i = 0; i < highlights.length; i++) {
       final h = highlights[i];
-      widgets.add(
-        DashboardEntrance(
-          delay: 200 + (i * 50),
-          child: BentoCard(
-            padding: const EdgeInsets.all(12),
-            height: 140.h,
-            backgroundColor: scheme.elevatedSurface,
-            child: Row(
-              children: [
-                // Left Panel: Identity block
-                Container(
-                  width: 116.h,
-                  height: 116.h,
-                  decoration: BoxDecoration(color: AppPalette.purplePastel, borderRadius: BorderRadius.circular(16)),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: Text(
-                          'WEEKLY',
-                          style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(102), fontWeight: FontWeight.w900),
+      widgets
+        ..add(
+          DashboardEntrance(
+            delay: 200 + (i * 50),
+            child: BentoCard(
+              padding: const EdgeInsets.all(12),
+              height: 140.h,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Row(
+                children: [
+                  // Left Panel: Identity block
+                  Container(
+                    width: 116.h,
+                    height: 116.h,
+                    decoration: BoxDecoration(color: AppPalette.purplePastel, borderRadius: BorderRadius.circular(16)),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: Text(
+                            'WEEKLY',
+                            style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(102), fontWeight: FontWeight.w900),
+                          ),
                         ),
-                      ),
-                      Center(
-                        child: Icon(AppIcons.lightbulb, size: 36.sp, color: AppPalette.black.withAlpha(153)),
-                      ),
-                    ],
+                        Center(
+                          child: Icon(AppIcons.lightbulb, size: 36.sp, color: AppPalette.black.withAlpha(153)),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Gap.w16,
-                // Right Panel: Text
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        AppStrings.discovery.toUpperCase(),
-                        style: context.captionBold.copyWith(color: scheme.textMuted, fontSize: 9.sp),
-                      ),
-                      Gap.h4,
-                      Text(
-                        h.text,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.bodyBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 15.sp, letterSpacing: -0.5),
-                      ),
-                    ],
+                  Gap.w16,
+                  // Right Panel: Text
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          AppStrings.discovery.toUpperCase(),
+                          style: context.captionBold.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(153), fontSize: 9.sp),
+                        ),
+                        Gap.h4,
+                        Text(
+                          h.text,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.bodyBold.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w900, fontSize: 15.sp, letterSpacing: -0.5),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      );
-      widgets.add(Gap.h12);
+        )
+        ..add(Gap.h12);
     }
     return widgets;
   }
@@ -238,7 +246,7 @@ class _RecapLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: context.appColorScheme.cardBackground,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     appBar: const GutAppBar(title: AppStrings.weeklyRecap),
     body: Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p10),

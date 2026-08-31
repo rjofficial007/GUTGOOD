@@ -26,11 +26,6 @@ class ScanResultInlineCard extends StatelessWidget {
     final ingredients = scanData.ingredients;
     final swaps = scanData.swaps;
 
-    final Map<String, dynamic> raw = scanData.rawData ?? {};
-    final Map<String, dynamic> mealBlock = raw['meal'] is Map ? Map<String, dynamic>.from(raw['meal'] as Map) : {};
-    final Map<String, dynamic> balance = mealBlock['balance'] is Map ? Map<String, dynamic>.from(mealBlock['balance'] as Map) : {};
-    final List items = mealBlock['items'] is List ? mealBlock['items'] as List : [];
-
     final impactColor = scanData.impactType == ImpactType.positive
         ? colorScheme.success
         : scanData.impactType == ImpactType.neutral
@@ -58,17 +53,11 @@ class ScanResultInlineCard extends StatelessWidget {
           _buildHeader(context, impactColor),
           _buildAnalysisSection(context, ingredients),
           _buildCycleInsight(context),
-          if (swaps.isNotEmpty) _buildSwapsSection(context, swaps),
-          FooterActionButton(
-          label: AppStrings.viewFullReport,
-          onTap: onViewFullReport,
-          isEmbedded: isEmbedded,
-        ),
+          FooterActionButton(label: AppStrings.viewFullReport, onTap: onViewFullReport, isEmbedded: isEmbedded),
         ],
       ),
     );
   }
-
 
   Widget _buildHeader(BuildContext context, Color impactColor) {
     final colorScheme = context.appColorScheme;
@@ -101,10 +90,7 @@ class ScanResultInlineCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(scanData.productName.toUpperCase(), style: context.eyebrow.copyWith(color: colorScheme.textPrimary, fontSize: 10)),
-                Text(
-                  scanData.brand,
-                  style: context.labelBold.copyWith(color: colorScheme.textMuted),
-                ),
+                Text(scanData.brand, style: context.labelBold.copyWith(color: colorScheme.textMuted)),
                 Gap.h4,
                 Row(
                   children: [
@@ -161,10 +147,7 @@ class ScanResultInlineCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(AppStrings.contains.toUpperCase(), style: context.captionBold.copyWith(color: context.appColorScheme.textMuted)),
-              Text(
-                AppStrings.itemsCount(ingredients.length),
-                style: context.captionBold,
-              ),
+              Text(AppStrings.itemsCount(ingredients.length), style: context.captionBold),
             ],
           ),
           Gap.h10,
@@ -228,14 +211,8 @@ class ScanResultInlineCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      AppStrings.swapItFeelBetter.toUpperCase(),
-                      style: context.captionBold.copyWith(color: colorScheme.textPrimary),
-                    ),
-                    Text(
-                      AppStrings.easySwapsDesc,
-                      style: context.caption.copyWith(color: colorScheme.textMuted),
-                    ),
+                    Text(AppStrings.swapItFeelBetter.toUpperCase(), style: context.captionBold.copyWith(color: colorScheme.textPrimary)),
+                    Text(AppStrings.easySwapsDesc, style: context.caption.copyWith(color: colorScheme.textMuted)),
                   ],
                 ),
               ),
@@ -269,7 +246,6 @@ class ScanResultInlineCard extends StatelessWidget {
     );
   }
 
-
   Widget _buildCycleInsight(BuildContext context) {
     final profile = context.watch<ProfileNotifier>().profile;
     final cycleEnabled = profile?.cycleSyncEnabled ?? false;
@@ -289,7 +265,6 @@ class ScanResultInlineCard extends StatelessWidget {
     );
   }
 }
-
 
 class _RefinedTag extends StatelessWidget {
   const _RefinedTag({required this.label, required this.impact});
@@ -313,10 +288,7 @@ class _RefinedTag extends StatelessWidget {
         ),
         Gap.w12,
         Expanded(
-          child: Text(
-            label.toUpperCase(),
-            style: context.labelBold.copyWith(color: colorScheme.textPrimary),
-          ),
+          child: Text(label.toUpperCase(), style: context.labelBold.copyWith(color: colorScheme.textPrimary)),
         ),
       ],
     );
@@ -345,15 +317,9 @@ class _RefinedBenefitRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  (descriptionOverride != null ? AppStrings.insightLabel : title).toUpperCase(),
-                  style: context.labelBold.copyWith(color: colorScheme.textPrimary),
-                ),
+                Text((descriptionOverride != null ? AppStrings.insightLabel : title).toUpperCase(), style: context.labelBold.copyWith(color: colorScheme.textPrimary)),
                 Gap.h2,
-                Text(
-                  descriptionOverride ?? description,
-                  style: context.label.copyWith(color: colorScheme.textSecondary),
-                ),
+                Text(descriptionOverride ?? description, style: context.label.copyWith(color: colorScheme.textSecondary)),
               ],
             ),
           ),

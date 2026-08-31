@@ -36,8 +36,8 @@ class CommonStrings {
   static const String labelScorePrefix = 'Score: ';
   static const String labelGramSuffix = 'g';
   static const String severity = 'Severity';
-  static const String nutrientStats = 'Nutrient Stats';
-  static const String mealBalance = 'Meal Balance';
+  static const String nutrientStats = 'POWER STATS';
+  static const String mealBalance = 'NUTRITIONAL BALANCE';
   static const String alert = 'Alert';
   static const String noEntriesFound = 'No entries found';
   static const String emptyHistoryDesc = 'Log meals or scan products to see them here.';
@@ -105,7 +105,7 @@ class CommonStrings {
   static const String personalizedInsight = 'PERSONALIZED INSIGHT';
   static const String menuRecommendations = 'MENU RECOMMENDATIONS';
   static const String cycleInsight = 'CYCLE INSIGHT';
-  static const String safetyAudit = 'SAFETY AUDIT';
+  static const String safetyAudit = 'ALLERGENS & TRIGGERS';
   static const String betterChoice = 'BETTER CHOICE';
   static const String scientificDistribution = 'Scientific distribution';
   static const String technicalVerification = 'Technical verification';

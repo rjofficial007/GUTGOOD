@@ -7,7 +7,6 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';

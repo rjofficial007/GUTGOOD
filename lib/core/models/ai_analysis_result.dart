@@ -7,29 +7,30 @@ import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Represents the unified structured output from an AI analysis turn.
 class AiAnalysisResult extends Equatable {
-  const AiAnalysisResult({
-    required this.text,
-    this.intent,
-    this.imageMode,
-    this.scan,
-    this.meal,
-    this.symptoms = const [],
-    this.swaps = const [],
-    this.menu,
-    this.metadata = const {},
-  });
+  const AiAnalysisResult({required this.text, this.intent, this.imageMode, this.scan, this.meal, this.symptoms = const [], this.swaps = const [], this.menu, this.metadata = const {}});
 
-  factory AiAnalysisResult.fromMap(Map<String, dynamic> map) => AiAnalysisResult(
-    text: map['text'] as String? ?? '',
-    intent: map['intent'] as String?,
-    imageMode: map['image_mode'] as String?,
-    scan: ModelUtils.parseNestedModel<ScanResult>(map['scan'], ScanResult.fromMap),
-    meal: ModelUtils.parseNestedModel<MealLog>(map['meal'], MealLog.fromMap),
-    symptoms: ModelUtils.parseModelList<SymptomLog>(map['symptoms'], SymptomLog.fromMap),
-    swaps: ModelUtils.parseModelList<ProductSwap>(map['swaps'], ProductSwap.fromMap),
-    menu: ModelUtils.parseMap(map['menu']),
-    metadata: ModelUtils.parseMap(map['metadata']),
-  );
+  factory AiAnalysisResult.fromMap(Map<String, dynamic> map) {
+    final swapsList = ModelUtils.parseModelList<ProductSwap>(map['swaps'], ProductSwap.fromMap);
+    var scanData = ModelUtils.parseNestedModel<ScanResult>(map['scan'], ScanResult.fromMap);
+
+    // 🚀 Professional Sync: Ensure swaps from the unified data block are attached
+    // to the ScanResult so they render correctly in the ScanResultScreen.
+    if (scanData != null && swapsList.isNotEmpty && scanData.swaps.isEmpty) {
+      scanData = scanData.copyWith(swaps: swapsList);
+    }
+
+    return AiAnalysisResult(
+      text: map['text'] as String? ?? '',
+      intent: map['intent'] as String?,
+      imageMode: map['image_mode'] as String?,
+      scan: scanData,
+      meal: ModelUtils.parseNestedModel<MealLog>(map['meal'], MealLog.fromMap),
+      symptoms: ModelUtils.parseModelList<SymptomLog>(map['symptoms'], SymptomLog.fromMap),
+      swaps: swapsList,
+      menu: ModelUtils.parseMap(map['menu']),
+      metadata: ModelUtils.parseMap(map['metadata']),
+    );
+  }
 
   final String text;
   final String? intent;

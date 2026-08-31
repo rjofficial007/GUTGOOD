@@ -22,7 +22,6 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/profile_header.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';

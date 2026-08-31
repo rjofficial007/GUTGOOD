@@ -287,7 +287,7 @@ class _LoginSheetState extends State<_LoginSheet> {
                 recognizer: _termsRecognizer,
                 style: const TextStyle(color: AppPalette.blueLink),
               ),
-              TextSpan(text: ' ${AppStrings.andLabel} '),
+              const TextSpan(text: ' ${AppStrings.andLabel} '),
               TextSpan(
                 text: AppStrings.privacyPolicy,
                 recognizer: _privacyRecognizer,

@@ -25,7 +25,7 @@ class GutSnapshotHeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final Color scoreColor = score >= 70 ? AppPalette.greenPastel : (score >= 40 ? AppPalette.purplePastel : AppPalette.red);
+    final scoreColor = score >= 70 ? AppPalette.greenPastel : (score >= 40 ? AppPalette.purplePastel : AppPalette.red);
 
     return BentoCard(
       padding: const EdgeInsets.all(12),

@@ -63,7 +63,7 @@ class ProcessChatTagUseCase {
           }
 
           if (decoded['meal'] != null && decoded['meal'] is Map<String, dynamic>) {
-            // 🚀 Unified Data Strategy: If we have a 'scan' block, we treat the 'meal' info 
+            // 🚀 Unified Data Strategy: If we have a 'scan' block, we treat the 'meal' info
             // as part of the scan's rich context (rawData) rather than a separate loggable entity.
             // This prevents duplicate entries in the journal history.
             if (scanData == null) {
@@ -139,6 +139,11 @@ class ProcessChatTagUseCase {
         startIndex--;
       }
       displayOutput = text.substring(0, startIndex).trim();
+    }
+
+    // 🚀 Professional Sync: Ensure swaps are attached to scanData for consistent UI & persistence.
+    if (scanData != null && swapsList.isNotEmpty && scanData.swaps.isEmpty) {
+      scanData = scanData.copyWith(swaps: swapsList);
     }
 
     return AiAnalysisResult(text: displayOutput, intent: intent, imageMode: imageMode, scan: scanData, meal: mealLog, symptoms: symptomLogs, swaps: swapsList, menu: menuData, metadata: metadata);
