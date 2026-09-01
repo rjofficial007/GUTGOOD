@@ -1,5 +1,4 @@
 import 'package:gutgood/core/services/prompts/mode_prompts.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/default_objective_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/full_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/general_rules_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/health_assessment_prompt.dart';
@@ -10,7 +9,6 @@ import 'package:gutgood/core/services/prompts/mode_prompts/intent_detection_prom
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_overview_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_planning_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_rating_prompt.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/meal_snap_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_swaps_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/product_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/product_comparison_prompt.dart';
@@ -104,6 +102,7 @@ ${mode != null ? 'ACTIVE MODE: $mode' : 'ACTIVE MODE: General Chat'}
 CRITICAL: YOUR RESPONSE IS NOT COMPLETE UNTIL YOU EMIT THE [GUTGOOD_DATA] BLOCK.
 - You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
 - If an image was attached: You MUST populate BOTH the "scan" and "meal" objects in the data block. You MUST ESTIMATE high-fidelity details (nutrients, ingredients, novaGroup) for meals to ensure the user's scan result screen is fully grounded in data.
+- If 'Current Cycle Phase' is provided and not 'Not specified': You MUST populate the 'cycleInsight' object within the 'scan' block to explain how this food interacts with the user's current hormonal phase.
 - If the user is reporting a symptom: You MUST populate the "symptoms" array.
 - If you recommended swaps: You MUST populate the "swaps" array.
 
@@ -145,7 +144,9 @@ ${includePatternEngine ? '\n$_patternEngineRules' : ''}
   }
 
   static String _getPromptForIntent(String? intent) {
-    if (intent == null) return DefaultObjectivePrompt.instruction;
+    // 🚀 Professional Default: Complete Analysis
+    // We default to a comprehensive breakdown unless a specific narrower intent is detected.
+    if (intent == null) return FullAnalysisPrompt.instruction;
 
     final normalized = intent.toUpperCase();
 
@@ -159,7 +160,9 @@ ${includePatternEngine ? '\n$_patternEngineRules' : ''}
     } else if (normalized.contains('SWAP_REQUEST') || normalized.contains('MEAL_SWAPS') || normalized.contains('IMPROVEMENT_REQUEST')) {
       return MealSwapsPrompt.instruction;
     } else if (normalized.contains('MEAL_OVERVIEW') || normalized.contains('MEAL_RECOGNITION')) {
-      return MealOverviewPrompt.instruction;
+      // 🚀 Professional Sync: Even if the AI detects a simple recognition intent,
+      // we now upgrade it to a Full Analysis to ensure the user gets the GutGood Rating.
+      return FullAnalysisPrompt.instruction;
     } else if (normalized.contains('SYMPTOM_ANALYSIS')) {
       return SymptomAnalysisPrompt.instruction;
     } else if (normalized.contains('PRODUCT_COMPARISON') || normalized.contains('NUTRITION_COMPARISON')) {
@@ -171,10 +174,11 @@ ${includePatternEngine ? '\n$_patternEngineRules' : ''}
     } else if (normalized.contains('LABEL') || normalized.contains('INGREDIENT_ANALYSIS')) {
       return IngredientsLabelPrompt.instruction;
     } else if (normalized.contains('FOOD') || normalized.contains('GALLERY') || normalized.contains('MEAL_SNAP')) {
-      return MealSnapPrompt.instruction;
+      return FullAnalysisPrompt.instruction;
     }
 
-    return DefaultObjectivePrompt.instruction;
+    // Default to Full Analysis for unknown intents
+    return FullAnalysisPrompt.instruction;
   }
 
   // ---------------------------------------------------------------------------
@@ -191,27 +195,18 @@ ${includePatternEngine ? '\n$_patternEngineRules' : ''}
   }) {
     final normalizedMode = mode.trim().toUpperCase();
 
-    switch (normalizedMode) {
-      case 'RESTAURANT_MENU':
-      case 'MENU':
-        return ModePrompts.restaurantMenuInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase);
+    final instruction = switch (normalizedMode) {
+      'RESTAURANT_MENU' || 'MENU' => ModePrompts.restaurantMenuInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase),
+      'FOOD' || 'MEAL' => ModePrompts.mealSnapInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase),
+      'INGREDIENTS_LABEL' || 'LABEL' || 'INGREDIENT' => ModePrompts.ingredientLabelInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase),
+      'PRODUCT_BARCODE' || 'BARCODE' => barcodeAnalysisSystemInstruction,
+      _ => _unknownVisionModeInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase),
+    };
 
-      case 'FOOD':
-      case 'MEAL':
-        return ModePrompts.mealSnapInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase);
-
-      case 'INGREDIENTS_LABEL':
-      case 'LABEL':
-      case 'INGREDIENT':
-        return ModePrompts.ingredientLabelInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase);
-
-      case 'PRODUCT_BARCODE':
-      case 'BARCODE':
-        return barcodeAnalysisSystemInstruction;
-
-      default:
-        return _unknownVisionModeInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase);
+    if (cyclePhase != 'Not specified') {
+      return '$instruction\n\nREQUIRED: Since the user\'s cycle phase is known ($cyclePhase), you MUST populate the "cycleInsight" object within the "scan" block of the [GUTGOOD_DATA] block.';
     }
+    return instruction;
   }
 
   static String _unknownVisionModeInstruction({required List<String> goals, required List<String> sensitivities, required List<String> lifestyle, required String phase}) =>

@@ -44,8 +44,8 @@ class MealHistoryTile extends StatelessWidget {
                         imageUrl: displayImageUrl,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Shimmer.fromColors(
-                          baseColor: context.appColorScheme.borderSubtle,
-                          highlightColor: context.appColorScheme.border.withAlpha(26),
+                          baseColor: AppPalette.shimmerBase(context),
+                          highlightColor: AppPalette.shimmerHighlight(context),
                           child: Container(color: AppPalette.white),
                         ),
                         errorWidget: (_, _, _) => Icon(AppIcons.utensils, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
@@ -59,12 +59,7 @@ class MealHistoryTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    mealLog.items.join(', '),
-                    style: context.labelBold,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(mealLog.items.join(', '), style: context.labelBold, maxLines: 1, overflow: TextOverflow.ellipsis),
                   Gap.h4,
                   Text(
                     '${mealLog.mealType ?? AppStrings.mealSnapLabel} • ${DateFormatter.formatTime(mealLog.createdAt)}',

@@ -162,7 +162,13 @@ class AiServiceImpl implements AiService {
         response = await _dio.post<ResponseBody>(
           _config.aiProxyUrl,
           data: body,
-          options: Options(responseType: ResponseType.stream, headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(minutes: 4), validateStatus: (_) => true),
+          options: Options(
+            responseType: ResponseType.stream,
+            headers: headers,
+            sendTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(minutes: 4),
+            // 🟢 Removed validateStatus so _isRetryable can catch 5xx and retry the initial connection.
+          ),
         );
         lastError = null;
         break;
@@ -176,16 +182,18 @@ class AiServiceImpl implements AiService {
     if (lastError != null || response == null) {
       final e = lastError;
       await _analyticsService.logEvent(name: 'ai_stream_failed', parameters: {'error': e.toString(), 'type': images != null ? 'scan' : 'chat'});
+      
+      if (e?.response != null) {
+        final errorBody = await _readErrorBody(e!.response!.data as ResponseBody?);
+        _throwForStatus(e.response!.statusCode ?? 500, errorBody);
+      }
+      
       if (e != null) await _crashlyticsService.recordError(e, e.stackTrace, reason: 'AI Stream connection failed');
       throw AiServiceException(e?.message ?? 'Connection failed.', statusCode: e?.response?.statusCode);
     }
 
     final status = response.statusCode ?? 500;
-    if (status != 200) {
-      final errorBody = await _readErrorBody(response.data);
-      await _analyticsService.logEvent(name: 'ai_stream_error', parameters: {'status': status, 'type': images != null ? 'scan' : 'chat'});
-      _throwForStatus(status, errorBody);
-    }
+    // Status is guaranteed 200 here if no exception was thrown by Dio
 
     final stream = response.data?.stream;
     if (stream == null) throw const AiServiceException('Empty response stream.');
@@ -296,11 +304,14 @@ class AiServiceImpl implements AiService {
         final response = await _dio.post<String>(
           _config.aiProxyUrl,
           data: body,
-          options: Options(headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(seconds: 90), validateStatus: (_) => true),
+          options: Options(
+            headers: headers,
+            sendTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 90),
+            // 🟢 REMOVED validateStatus: (_) => true to let Dio throw DioException on non-200.
+            // This allows _isRetryable() to trigger retries for transient 5xx errors.
+          ),
         );
-
-        final status = response.statusCode ?? 500;
-        if (status != 200) _throwForStatus(status, response.data ?? '');
 
         final duration = DateTime.now().difference(startTime).inMilliseconds;
         await _analyticsService.logEvent(name: 'ai_json_success', parameters: {'latency_ms': duration, 'usage_type': usageType});
@@ -312,13 +323,19 @@ class AiServiceImpl implements AiService {
 
         return (decoded['text'] ?? '').toString();
       } on DioException catch (e, st) {
-        // Retry only when the request provably never reached / completed at the
-        // server; the idempotency key guards the rare ambiguous case.
         AppLogger.error('content generation failed (attempt $attempts/$_maxRetries)', error: e, stackTrace: st);
-        if (attempts >= _maxRetries || !_isRetryable(e)) {
-          throw AiServiceException(e.message ?? 'Connection failed.', statusCode: e.response?.statusCode);
+        
+        if (attempts < _maxRetries && _isRetryable(e)) {
+          await Future.delayed(Duration(seconds: attempts * 2));
+          continue;
         }
-        await Future.delayed(Duration(seconds: attempts * 2));
+
+        // If not retryable or max attempts reached, throw specialized exception
+        if (e.response != null) {
+          _throwForStatus(e.response!.statusCode ?? 500, e.response!.data?.toString() ?? '');
+        }
+        
+        throw AiServiceException(e.message ?? 'Connection failed.', statusCode: e.response?.statusCode);
       }
     }
   }

@@ -19,12 +19,12 @@ IMAGE MODES:
 - ${ImageMode.unknown}: Image is too blurry, dark, or contains insufficient information.
 
 USER INTENTS:
+- ${UserIntent.completeAnalysis}: User wants deep details, "tell me everything", a comprehensive breakdown, OR simply uploads a food photo without specific text. (DEFAULT FOR FOOD)
 - ${UserIntent.mealRecognition}: User asks "What is this?" or implies they want to know what the food is.
 - ${UserIntent.mealRating}: User asks for a score, grade, or "how did I do".
 - ${UserIntent.healthAssessment}: User asks if the item is "healthy", "balanced", or "okay for me".
 - ${UserIntent.improvementRequest}: User asks "what should I change?" or "how can I make this better?".
 - ${UserIntent.swapRequest}: User wants improvements, alternatives, or to "make it healthier".
-- ${UserIntent.completeAnalysis}: User wants deep details, "tell me everything", or a comprehensive breakdown.
 - ${UserIntent.ingredientAnalysis}: User asks specifically about ingredients, additives, or labels.
 - ${UserIntent.nutritionAnalysis}: User asks specifically about calories, protein, or other nutritional facts.
 - ${UserIntent.productIdentification}: User wants to identify a packaged product or barcode.
@@ -32,7 +32,7 @@ USER INTENTS:
 - ${UserIntent.nutritionComparison}: User compares options or asks for the "best" choice among several.
 - ${UserIntent.generalFoodQuestion}: User has a general question about food or a specific ingredient.
 - ${UserIntent.generalWellness}: User asks about general gut health, symptoms, or wellness advice.
-- ${UserIntent.generalImageAnalysis}: DEFAULT for image uploads without a specific question or ambiguous intent.
+- ${UserIntent.generalImageAnalysis}: DEFAULT for non-food images without a specific question or ambiguous intent.
 
 OUTPUT FORMAT:
 Return ONLY a JSON object with the following structure:
@@ -45,7 +45,7 @@ Return ONLY a JSON object with the following structure:
 
 CRITICAL RULES:
 1. The visual content wins over the UI entry point.
-2. Consider the user's text to refine the intent.
+2. Consider the user's text to refine the intent. If the user says "What am I getting from this?", you MUST return `COMPLETE_ANALYSIS`.
 3. If unsure, use ${ImageMode.unknown} and ${UserIntent.generalImageAnalysis}.
 ''';
 }

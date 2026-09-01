@@ -9,7 +9,6 @@ import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
@@ -77,23 +76,20 @@ class _LabelResultScreenState extends State<LabelResultScreen> {
             physics: const BouncingScrollPhysics(),
             slivers: [
               GutSliverAppBar(
-                title: 'LABEL ANALYSIS',
+                title: 'Label analysis',
                 centerTitle: true,
                 actions: [
-                  Padding(
-                    padding: EdgeInsets.only(right: 16.w),
-                    child: SaveButton(
-                      isSaved: isSaved,
-                      isLoading: _isLoading,
-                      onTap: () async {
-                        setState(() => _isLoading = true);
-                        try {
-                          await _toggleSave();
-                        } finally {
-                          if (mounted) setState(() => _isLoading = false);
-                        }
-                      },
-                    ),
+                  SaveButton(
+                    isSaved: isSaved,
+                    isLoading: _isLoading,
+                    onTap: () async {
+                      setState(() => _isLoading = true);
+                      try {
+                        await _toggleSave();
+                      } finally {
+                        if (mounted) setState(() => _isLoading = false);
+                      }
+                    },
                   ),
                 ],
               ),
@@ -117,26 +113,26 @@ class _LabelResultScreenState extends State<LabelResultScreen> {
                         DashboardEntrance(delay: 100, child: DashboardMetricGrid(scanData: _currentData)),
                         Gap.h12,
                         DashboardEntrance(delay: 150, child: ExpertSummaryCard(scanData: _currentData)),
+                        if (_currentData.cycleInsight != null) ...[Gap.h12, DashboardEntrance(delay: 180, child: CycleInsightSection(insight: _currentData.cycleInsight!))],
                         Gap.h12,
                         DashboardEntrance(
-                          delay: 180,
+                          delay: 200,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(child: MealBalanceCard(scanData: _currentData)),
-                              Gap.w12,
                               Expanded(child: ExpertStrategyCard(scanData: _currentData)),
+                              Gap.w12,
+                              Expanded(child: AdditivesSection(scanData: _currentData)),
                             ],
                           ),
                         ),
-                        if (_currentData.swaps.isNotEmpty) ...[Gap.h12, DashboardEntrance(delay: 250, child: BetterSwapsCarousel(swaps: _currentData.swaps))],
                         Gap.h12,
                         DashboardEntrance(
                           delay: 300,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(child: _buildImpactSection(context)),
+                              Expanded(child: MealBalanceCard(scanData: _currentData)),
                               Gap.w12,
                               Expanded(child: NutrientStatisticsCard(scanData: _currentData)),
                             ],
@@ -144,7 +140,7 @@ class _LabelResultScreenState extends State<LabelResultScreen> {
                         ),
                         Gap.h12,
                         DashboardEntrance(
-                          delay: 330,
+                          delay: 340,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -152,25 +148,15 @@ class _LabelResultScreenState extends State<LabelResultScreen> {
                                 child: IngredientsSection(ingredients: _currentData.ingredients, scanData: _currentData),
                               ),
                               Gap.w12,
-                              Expanded(
-                                child: AllergensSection(allergens: _currentData.allergens ?? '', servingSize: _currentData.servingSize),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Gap.h12,
-                        DashboardEntrance(
-                          delay: 360,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: AdditivesSection(scanData: _currentData)),
-                              Gap.w12,
-                              Expanded(child: ProductMetadataSection(scanData: _currentData)),
+                              Expanded(child: NutritionFactsSection(scanData: _currentData)),
                             ],
                           ),
                         ),
                       ],
+                      if (_currentData.swaps.isNotEmpty) ...[Gap.h12, DashboardEntrance(delay: 250, child: BetterSwapsCarousel(swaps: _currentData.swaps))],
+                      Gap.h12,
+                      DashboardEntrance(delay: 370, child: ProductMetadataSection(scanData: _currentData)),
+
                       Gap.h40,
                     ],
                   ),
@@ -181,24 +167,5 @@ class _LabelResultScreenState extends State<LabelResultScreen> {
         );
       },
     );
-  }
-
-  Widget _buildImpactSection(BuildContext context) {
-    final items = <TimelineItem>[];
-    final scan = _currentData;
-    final scheme = context.appColorScheme;
-
-    for (final impact in scan.impacts) {
-      var color = scheme.success;
-      final level = impact.level.toLowerCase();
-      if (level == 'high' || level == 'trigger' || level == 'negative') {
-        color = scheme.error;
-      } else if (level == 'moderate' || level == 'neutral') {
-        color = scheme.warning;
-      }
-      items.add(TimelineItem(title: impact.title, subtitle: impact.level.toUpperCase(), color: color));
-    }
-
-    return ScanImpactSection(title: 'GUT HEALTH IMPACT', icon: AppIcons.activity, iconColor: scheme.textPrimary, servingInfo: scan.servingSize, items: items);
   }
 }

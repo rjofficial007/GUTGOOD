@@ -209,65 +209,73 @@ class ChatComposerNotifier with ChangeNotifier {
 
     await _analyticsService.logEvent(name: 'message_sent', parameters: {'has_attachments': sending.isNotEmpty, 'text_length': displayText.length, 'source': userMsg.source ?? 'chat'});
 
-    var imageUrls = const <String>[];
-    if (sending.isNotEmpty) {
-      if (_auth.currentUser == null) {
-        _historyNotifier
-          ..replaceMessage(userMsg.localId, userMsg.copyWith(isSending: false, sendFailed: true))
-          ..removeMessage(aiPlaceholder.localId);
-        _finishTurn();
-        return ChatSendError.uploadFailed;
-      }
-      try {
-        imageUrls = await Future.wait(
-          _lastSentImages.map((bytes) async {
-            final url = await _storageService.uploadFoodImage(bytes);
-            if (url == null) throw StateError('upload returned null');
-            return url;
-          }),
-        );
-      } catch (e) {
-        AppLogger.ai('Image upload failed', error: e);
-        _historyNotifier
-          ..replaceMessage(userMsg.localId, userMsg.copyWith(isSending: false, sendFailed: true))
-          ..removeMessage(aiPlaceholder.localId);
-        _finishTurn();
-        return ChatSendError.uploadFailed;
-      }
+    final aiText = _effectiveAiText(displayText: displayText, hiddenContext: hiddenContext, hasImages: sending.isNotEmpty);
 
+    // 🚀 Latency Optimization: Start classification and message saving in parallel.
+    // We also prepare the classification future early to avoid sequential blocking.
+    final classificationFuture = sending.isNotEmpty
+        ? _aiClassifierService.classifyImage(imageBytes: sending.first.bytes, userText: displayText)
+        : (displayText.isNotEmpty
+              ? _aiClassifierService
+                    .classifyTextIntent(userText: displayText, historySummary: _historyNotifier.cachedSummary)
+                    .then((intent) => AiClassificationResult(imageMode: 'UNKNOWN', intent: intent, confidence: 1.0))
+              : Future.value(const AiClassificationResult(imageMode: 'UNKNOWN', intent: 'COMPLETE_ANALYSIS', confidence: 1.0)));
+
+    String? detectedMode;
+    String? detectedIntent;
+    var imageUrls = const <String>[];
+
+    try {
+      if (sending.isNotEmpty) {
+        if (_auth.currentUser == null) {
+          _historyNotifier
+            ..replaceMessage(userMsg.localId, userMsg.copyWith(isSending: false, sendFailed: true))
+            ..removeMessage(aiPlaceholder.localId);
+          _finishTurn();
+          return ChatSendError.uploadFailed;
+        }
+
+        // Parallelize image upload and classification
+        final results = await Future.wait([Future.wait(sending.map((a) => _storageService.uploadFoodImage(a.bytes))), classificationFuture]);
+
+        final rawUrls = results[0] as List<String?>;
+        if (rawUrls.any((url) => url == null)) throw StateError('upload returned null');
+        imageUrls = rawUrls.cast<String>();
+
+        final classification = results[1] as AiClassificationResult;
+        detectedMode = classification.imageMode;
+        detectedIntent = classification.intent;
+        AppLogger.ai('ChatComposer: AI classified image as $detectedMode with intent $detectedIntent');
+      } else {
+        // Parallelize message saving and classification
+        final results = await Future.wait([_repository.saveMessage(userMsg), classificationFuture]);
+
+        final saved = results[0] as ChatMessage;
+        _historyNotifier.replaceMessage(userMsg.localId, saved);
+
+        final classification = results[1] as AiClassificationResult;
+        detectedIntent = classification.intent;
+        AppLogger.ai('ChatComposer: AI detected text intent as $detectedIntent');
+      }
+    } catch (e) {
+      AppLogger.warning('ChatComposer: Parallel task failed, falling back to defaults. Error: $e');
+      if (sending.isNotEmpty && imageUrls.isEmpty) {
+        // If image upload failed specifically
+        _historyNotifier
+          ..replaceMessage(userMsg.localId, userMsg.copyWith(isSending: false, sendFailed: true))
+          ..removeMessage(aiPlaceholder.localId);
+        _finishTurn();
+        return ChatSendError.uploadFailed;
+      }
+    }
+
+    if (sending.isNotEmpty && imageUrls.isNotEmpty) {
       final uploaded = userMsg.copyWith(imageUrls: imageUrls, isSending: false, clearLocalImages: false);
-      _lastSentImageUrl = imageUrls.isNotEmpty ? imageUrls.first : null;
+      _lastSentImageUrl = imageUrls.first;
       _historyNotifier.replaceMessage(userMsg.localId, uploaded);
 
       final saved = await _repository.saveMessage(uploaded);
       _historyNotifier.replaceMessage(uploaded.localId, saved.copyWith(clearLocalImages: true));
-    } else {
-      final saved = await _repository.saveMessage(userMsg);
-      _historyNotifier.replaceMessage(userMsg.localId, saved);
-    }
-
-    final aiText = _effectiveAiText(displayText: displayText, hiddenContext: hiddenContext, hasImages: sending.isNotEmpty);
-
-    String? detectedMode;
-    String? detectedIntent;
-
-    if (sending.isNotEmpty) {
-      try {
-        final classification = await _aiClassifierService.classifyImage(imageBytes: sending.first.bytes, userText: displayText);
-        detectedMode = classification.imageMode;
-        detectedIntent = classification.intent;
-        AppLogger.ai('ChatComposer: AI classified image as $detectedMode with intent $detectedIntent');
-      } catch (e) {
-        AppLogger.warning('ChatComposer: Image classification failed, falling back to source');
-      }
-    } else if (displayText.isNotEmpty) {
-      try {
-        // 🚀 PRD §8 & §10: Rely on AI for intent detection even for text-only messages.
-        detectedIntent = await _aiClassifierService.classifyTextIntent(userText: displayText, historySummary: _historyNotifier.cachedSummary);
-        AppLogger.ai('ChatComposer: AI detected text intent as $detectedIntent');
-      } catch (e) {
-        AppLogger.warning('ChatComposer: Text intent detection failed');
-      }
     }
 
     await _streamReply(

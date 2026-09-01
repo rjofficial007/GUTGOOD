@@ -39,7 +39,7 @@ class ScannerStrings {
   static const String nova = 'NOVA';
   static const String allergensLabel = 'Allergens';
   static const String additivesLabel = 'Additives';
-  static const String betterSwapsLabel = 'Better Swaps';
+  static const String betterSwapsLabel = 'Better swaps';
   static const String productNotFoundMessage = 'We couldn\'t find this product in our database.';
   static const String errorAnalyzingProduct = 'Error analyzing product data.';
   static const String enterBarcodeHint = 'Enter 13-digit barcode';
@@ -92,12 +92,12 @@ class ScannerStrings {
   static const String errorTextNotReadable = 'Keep the ingredients text clear';
 
   // New
-  static const String gutHealthImpact = 'BODY RESPONSE';
-  static const String whatToWatch = 'INGREDIENT ALERTS';
-  static const String clinicalAudit = 'OPTIMIZATION TIPS';
+  static const String gutHealthImpact = 'How you might feel';
+  static const String whatToWatch = 'What to watch';
+  static const String clinicalAudit = 'What works for you';
   static const String nutritionAnalytics = 'POWER STATS';
-  static const String productMetadata = 'SCAN DETAILS';
-  static const String expertSummary = 'THE GUTGOOD TAKE';
+  static const String productMetadata = 'Scan details';
+  static const String expertSummary = 'What this means for you';
   static const String inflammatoryTrigger = 'Inflammatory trigger';
   static const String alert = 'ALERT';
   static const String caution = 'CAUTION';

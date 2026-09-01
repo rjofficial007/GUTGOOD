@@ -89,4 +89,7 @@ class AppPalette {
   static const white70 = Color(0xB3FFFFFF);
   static const black12 = Color(0x1F000000);
   static const aiResponseBackground = Color(0xFFF7F7F7);
+
+  static Color shimmerBase(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? gray800 : gray200;
+  static Color shimmerHighlight(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? gray700 : gray50;
 }

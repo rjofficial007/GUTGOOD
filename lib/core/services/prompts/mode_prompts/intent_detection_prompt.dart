@@ -27,6 +27,12 @@ STRICT CLASSIFICATION RULES:
     - If the user asks "Is this healthy?", use `health_assessment`.
     - If no text is provided, use the camera mode (e.g., if mode is 'menu', use `menu`).
 - Prioritize Action: If a user says "Is this healthy? Tell me everything," use `full_analysis`.
-- Output ONLY the category name. No quotes, no explanation.
+- Explicit Phrase: If the user says "What am I getting from this?", you MUST return `COMPLETE_ANALYSIS`.
+
+OUTPUT FORMAT:
+Return ONLY a JSON object with the following structure:
+{
+  "intent": "CATEGORY_NAME"
+}
 ''';
 }

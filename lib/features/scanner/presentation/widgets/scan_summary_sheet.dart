@@ -417,35 +417,35 @@ class _FactorRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              Icon(factor.icon, size: 28, color: context.appColorScheme.textSecondary),
-              Gap.w16,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(factor.label, style: context.bodyBold),
-                    Text(factor.description, style: context.caption),
-                  ],
-                ),
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Icon(factor.icon, size: 28, color: context.appColorScheme.textSecondary),
+            Gap.w16,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(factor.label, style: context.bodyBold),
+                  Text(factor.description, style: context.caption),
+                ],
               ),
-              if (factor.value.isNotEmpty) Text(factor.value, style: context.caption.copyWith(fontWeight: FontWeight.bold)),
-              Gap.w12,
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(color: factor.color, shape: BoxShape.circle),
-              ),
-            ],
-          ),
+            ),
+            if (factor.value.isNotEmpty) Text(factor.value, style: context.caption.copyWith(fontWeight: FontWeight.bold)),
+            Gap.w12,
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(color: factor.color, shape: BoxShape.circle),
+            ),
+          ],
         ),
-        if (!isLast) Divider(color: context.appColorScheme.border.withAlpha(26), height: 1),
-      ],
-    );
+      ),
+      if (!isLast) Divider(color: context.appColorScheme.border.withAlpha(26), height: 1),
+    ],
+  );
 }
 
 class _FactBadge extends StatelessWidget {

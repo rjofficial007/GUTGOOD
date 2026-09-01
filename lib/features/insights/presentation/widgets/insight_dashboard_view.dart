@@ -34,7 +34,21 @@ class InsightDashboardSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayPatterns = patterns ?? data.detectedPatterns;
+    final displayPatterns = (patterns != null && patterns!.isNotEmpty) ? patterns! : data.detectedPatterns;
+
+    debugPrint('--- InsightDashboardSliver: Building ---');
+    debugPrint('Gut Score: ${data.gutScore}');
+    debugPrint('Healing Foods: ${data.healingFoods.length}');
+    debugPrint('Trigger Foods: ${data.triggerFoods.length}');
+    debugPrint('Detected Patterns (Model): ${data.detectedPatterns.length}');
+    debugPrint('Prioritized Patterns (Notifier): ${patterns?.length}');
+    debugPrint('Display Patterns Count: ${displayPatterns.length}');
+    if (displayPatterns.isNotEmpty) {
+      for (var i = 0; i < displayPatterns.length; i++) {
+        debugPrint('Display Pattern [$i]: ${displayPatterns[i].trigger}');
+      }
+    }
+    debugPrint('-----------------------------------------');
 
     return SliverToBoxAdapter(
       child: Padding(
@@ -76,77 +90,25 @@ class InsightDashboardSliver extends StatelessWidget {
                   children: [
                     if (data.healingGoal != null)
                       Expanded(
-                        child: BentoCard(
-                          padding: const EdgeInsets.all(16),
-                          height: 130.h,
-                          backgroundColor: AppPalette.blue.withAlpha(15),
-                          borderColor: AppPalette.blue.withAlpha(30),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(color: AppPalette.blue.withAlpha(40), shape: BoxShape.circle),
-                                    child: const Icon(AppIcons.target, size: 12, color: AppPalette.blue),
-                                  ),
-                                  Gap.w8,
-                                  Text('TARGET', style: context.captionBold.copyWith(color: AppPalette.blue, letterSpacing: 1.1)),
-                                ],
-                              ),
-                              const Spacer(),
-                              Text(
-                                data.healingGoal!.toUpperCase(),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 15.sp, height: 1.1),
-                              ),
-                              Gap.h4,
-                              Text(
-                                AppStrings.primaryHealingObjective,
-                                style: context.captionMicro.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
+                        child: PhysicalGoalCard(
+                          title: data.healingGoal!.toUpperCase(),
+                          subtitle: 'CURRENT GOAL',
+                          label: AppStrings.primaryHealingObjective,
+                          icon: AppIcons.target,
+                          color: AppPalette.blue,
+                          progress: 0.50,
                         ),
                       ),
                     if (data.healingGoal != null && data.triggerSymptom != null) Gap.w12,
                     if (data.triggerSymptom != null)
                       Expanded(
-                        child: BentoCard(
-                          padding: const EdgeInsets.all(16),
-                          height: 130.h,
-                          backgroundColor: AppPalette.pink.withAlpha(15),
-                          borderColor: AppPalette.pink.withAlpha(30),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(color: AppPalette.pink.withAlpha(40), shape: BoxShape.circle),
-                                    child: const Icon(AppIcons.activity, size: 12, color: AppPalette.pink),
-                                  ),
-                                  Gap.w8,
-                                  Text('WATCH LIST', style: context.captionBold.copyWith(color: AppPalette.pink, letterSpacing: 1.1)),
-                                ],
-                              ),
-                              const Spacer(),
-                              Text(
-                                data.triggerSymptom!.toUpperCase(),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 15.sp, height: 1.1),
-                              ),
-                              Gap.h4,
-                              Text(
-                                AppStrings.symptomTrackedForPatterns,
-                                style: context.captionMicro.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
+                        child: PhysicalGoalCard(
+                          title: data.triggerSymptom!.toUpperCase(),
+                          subtitle: 'WATCH LIST',
+                          label: AppStrings.symptomTrackedForPatterns,
+                          icon: AppIcons.activity,
+                          color: AppPalette.pink,
+                          progress: 0.45,
                         ),
                       ),
                   ],
@@ -391,5 +353,81 @@ class InsightDashboardSliver extends StatelessWidget {
         ..add(Gap.h12);
     }
     return widgets;
+  }
+}
+
+class PhysicalGoalCard extends StatelessWidget {
+  const PhysicalGoalCard({super.key, required this.title, required this.subtitle, required this.label, required this.icon, required this.color, this.progress = 0.65});
+
+  final String title;
+  final String subtitle;
+  final String label;
+  final IconData icon;
+  final Color color;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Adaptive Theme Colors
+    final cardBg = isDark ? AppPalette.darkCard : color.withAlpha(15);
+    final cardBorder = isDark ? AppPalette.white.withAlpha(20) : color.withAlpha(30);
+    final subtitleColor = isDark ? AppPalette.white.withAlpha(153) : scheme.textSecondary;
+    final labelColor = isDark ? AppPalette.white.withAlpha(102) : scheme.textMuted;
+
+    return BentoCard(
+      padding: EdgeInsets.zero,
+      height: 140.h,
+      backgroundColor: cardBg,
+      borderColor: cardBorder,
+      child: Stack(
+        children: [
+          // 🌊 Large Icon with Liquid Fill effect
+          Positioned(
+            right: -20,
+            bottom: -20,
+            child: Opacity(
+              opacity: isDark ? 0.8 : 0.4,
+              child: ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (rect) => LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [color, color, color.withAlpha(isDark ? 40 : 80), color.withAlpha(isDark ? 40 : 80)],
+                  stops: [0.0, progress, progress, 1.0],
+                ).createShader(rect),
+                child: Icon(icon, size: 140.h),
+              ),
+            ),
+          ),
+
+          // 📝 Content
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.displayHero.copyWith(color: color, fontSize: 20.sp, letterSpacing: -1, fontWeight: FontWeight.w900),
+                ),
+                Text(subtitle, style: context.captionBold.copyWith(color: subtitleColor)),
+                const Spacer(),
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.captionMicro.copyWith(color: labelColor, fontWeight: FontWeight.w600, height: 1.2),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

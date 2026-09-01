@@ -17,22 +17,26 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
 class AnimatedChatItem extends StatefulWidget {
-  const AnimatedChatItem({super.key, required this.child});
+  const AnimatedChatItem({super.key, required this.child, this.animate = true});
   final Widget child;
+  final bool animate;
 
   @override
   State<AnimatedChatItem> createState() => _AnimatedChatItemState();
 }
 
 class _AnimatedChatItemState extends State<AnimatedChatItem> {
-  bool _visible = false;
+  late bool _visible;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() => _visible = true);
-    });
+    _visible = !widget.animate;
+    if (widget.animate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _visible = true);
+      });
+    }
   }
 
   @override
@@ -49,9 +53,8 @@ class ChatShimmerLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.appColorScheme;
-    final baseColor = colorScheme.elevatedSurface;
-    final highlightColor = colorScheme.cardBackground;
+    final baseColor = AppPalette.shimmerBase(context);
+    final highlightColor = AppPalette.shimmerHighlight(context);
 
     return ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
@@ -73,10 +76,7 @@ class ChatShimmerLoading extends StatelessWidget {
                   height: isUser ? 50 : 80,
                   decoration: BoxDecoration(
                     color: AppPalette.white,
-                    borderRadius: BorderRadius.circular(AppSizes.r20).copyWith(
-                      bottomRight: isUser ? const Radius.circular(4) : null,
-                      bottomLeft: !isUser ? const Radius.circular(4) : null,
-                    ),
+                    borderRadius: BorderRadius.circular(AppSizes.r20).copyWith(bottomRight: isUser ? const Radius.circular(4) : null, topLeft: !isUser ? const Radius.circular(4) : null),
                   ),
                 ),
               ),
@@ -93,20 +93,19 @@ class ChatPaginationLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.appColorScheme;
+    final baseColor = AppPalette.shimmerBase(context);
+    final highlightColor = AppPalette.shimmerHighlight(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
       alignment: Alignment.center,
       child: Shimmer.fromColors(
-        baseColor: colorScheme.elevatedSurface,
-        highlightColor: colorScheme.cardBackground,
+        baseColor: baseColor,
+        highlightColor: highlightColor,
         child: Container(
           width: 120,
           height: 32,
-          decoration: BoxDecoration(
-            color: AppPalette.white,
-            borderRadius: BorderRadius.circular(AppSizes.r16),
-          ),
+          decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r16)),
         ),
       ),
     );
@@ -226,7 +225,6 @@ class _EmptyStateCard extends StatelessWidget {
   }
 }
 
-
 class DateHeader extends StatelessWidget {
   const DateHeader({super.key, required this.date});
   final DateTime date;
@@ -340,12 +338,7 @@ class ChatSuggestionChip extends StatelessWidget {
           border: Border.all(color: colorScheme.border.withAlpha(102)),
         ),
         alignment: Alignment.center,
-        child: Text(
-          label,
-          style: context.label.copyWith(
-            color: colorScheme.textPrimary.withAlpha(204),
-          ),
-        ),
+        child: Text(label, style: context.label.copyWith(color: colorScheme.textPrimary.withAlpha(204))),
       ),
     );
   }

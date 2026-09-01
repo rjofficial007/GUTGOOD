@@ -1,17 +1,18 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
-import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/pattern_occurrence.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
+import 'package:gutgood/core/widgets/gut_app_bar.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PatternDetailScreen extends StatelessWidget {
   const PatternDetailScreen({super.key, required this.pattern});
@@ -20,182 +21,48 @@ class PatternDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
+    final accentColor = InsightUiUtils.getPatternColor(pattern.type);
 
     return Scaffold(
       backgroundColor: scheme.cardBackground,
       body: CustomScrollView(
         slivers: [
-          const GutSliverAppBar(title: '', showBrandingIcon: false),
+          GutSliverAppBar(title: InsightUiUtils.getPatternName(pattern.type).toUpperCase(), centerTitle: true, showBrandingIcon: false),
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+              padding: EdgeInsets.all(AppSizes.p16),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Discovery Hero (Wallet Identity)
-                  DashboardEntrance(delay: 50, child: _PatternHeroCard(pattern: pattern)),
-                  Gap.h12,
-
-                  // 2. Statistical Quick View
-                  DashboardEntrance(delay: 100, child: _PatternMetricGrid(pattern: pattern)),
-                  Gap.h12,
-
-                  // 3. Clinical Observation & Action Plan Row
+                  // 1. Premium Smart Alert Hero
                   DashboardEntrance(
-                    delay: 150,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: BentoCard(
-                            height: 160.h,
-                            backgroundColor: AppPalette.purplePastel,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      AppStrings.observationsLabel.toUpperCase(),
-                                      style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 8.sp),
-                                    ),
-                                    Icon(AppIcons.brain, color: AppPalette.black.withAlpha(102), size: 12),
-                                  ],
-                                ),
-                                const Spacer(),
-                                Text(
-                                  pattern.description,
-                                  maxLines: 4,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.2, fontWeight: FontWeight.w900, fontSize: 12.sp),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  'AI SUMMARY',
-                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 7.sp),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Gap.w12,
-                        Expanded(
-                          child: BentoCard(
-                            height: 160.h,
-                            backgroundColor: AppPalette.greenPastel,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      AppStrings.actionPlan.toUpperCase(),
-                                      style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 8.sp),
-                                    ),
-                                    Icon(AppIcons.lightbulb, color: AppPalette.black.withAlpha(102), size: 12),
-                                  ],
-                                ),
-                                const Spacer(),
-                                Text(
-                                  pattern.recommendation ?? 'Keep monitoring your intake to verify this body reaction.',
-                                  maxLines: 4,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.2, fontWeight: FontWeight.w900, fontSize: 12.sp),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  'AI ACTION',
-                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 7.sp),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    delay: 50,
+                    child: _SmartAlertHero(pattern: pattern, accentColor: accentColor),
                   ),
-                  Gap.h12,
+                  Gap.h16,
 
-                  // 4. Involved Foods (Bento Cycler)
-                  if (pattern.involvedFoods.isNotEmpty) ...[
-                    DashboardEntrance(
-                      delay: 200,
-                      child: BentoCard(
-                        padding: const EdgeInsets.all(12),
-                        height: 140.h,
-                        backgroundColor: scheme.surfaceSubtle,
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 116.h,
-                              height: 116.h,
-                              decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
-                              child: Stack(
-                                children: [
-                                  Positioned(top: 10, left: 10, child: Icon(AppIcons.utensils, size: 12, color: scheme.textPrimary)),
-                                  Center(
-                                    child: Text(
-                                      '${pattern.involvedFoods.length}',
-                                      style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 56.sp, letterSpacing: -4),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 10,
-                                    left: 10,
-                                    right: 10,
-                                    child: Text(
-                                      'IDENTIFIED',
-                                      textAlign: TextAlign.center,
-                                      style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 8.sp),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Gap.w16,
-                            Expanded(
-                              child: BentoItemCycler(
-                                items: pattern.involvedFoods.map((f) => CyclerItemData(name: f, effect: 'Linked to this discovery.', emoji: '🍽️')).toList(),
-                                title: AppStrings.involvedFoodsLabel,
-                                trend: 'Statistical factors detected.',
-                                isPositive: false,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Gap.h12,
-                  ],
-
-                  // 5. Timeline Context
+                  // 2. Moments We Noticed
                   if (pattern.occurrences.isNotEmpty) ...[
                     DashboardEntrance(
-                      delay: 250,
-                      child: BentoCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(AppStrings.recentTimelineLabel.toUpperCase(), style: context.captionBold.copyWith(color: scheme.textSecondary)),
-                                Icon(AppIcons.history, color: scheme.textSecondary, size: 14),
-                              ],
-                            ),
-                            Gap.h20,
-                            ImpactTimeline(
-                              items: pattern.occurrences.take(5).map((o) => TimelineItem(title: o.mealName, subtitle: '${o.date} • ${o.reaction}', color: scheme.textPrimary)).toList(),
-                            ),
-                          ],
-                        ),
-                      ),
+                      delay: 150,
+                      child: _MomentsSection(occurrences: pattern.occurrences, reaction: pattern.reaction),
                     ),
-                    Gap.h12,
+                    Gap.h16,
                   ],
-                  Gap.h40,
+
+                  // 3. Worth Watching / Progress
+                  DashboardEntrance(
+                    delay: 250,
+                    child: _WorthWatchingSection(pattern: pattern, accentColor: accentColor),
+                  ),
+                  Gap.h16,
+
+                  // 4. Next Steps
+                  DashboardEntrance(
+                    delay: 350,
+                    child: _NextStepsSection(pattern: pattern, accentColor: accentColor),
+                  ),
+                  Gap.h32,
                 ],
               ),
             ),
@@ -206,76 +73,328 @@ class PatternDetailScreen extends StatelessWidget {
   }
 }
 
-class _PatternHeroCard extends StatelessWidget {
-  const _PatternHeroCard({required this.pattern});
+class _SmartAlertHero extends StatelessWidget {
+  const _SmartAlertHero({required this.pattern, required this.accentColor});
   final BodyPattern pattern;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = context.appColorScheme;
+    final bgColor = isDark ? accentColor.withAlpha(40) : accentColor.withAlpha(80);
     final icon = InsightUiUtils.getPatternTypeIcon(pattern.type);
-    final themeColor = InsightUiUtils.getPatternPastelColor(pattern.type);
-    final accentColor = InsightUiUtils.getPatternColor(pattern.type);
+    final timeLabel = pattern.occurrences.isNotEmpty ? pattern.occurrences.first.timeAfter : '~2 HRS';
 
-    return BentoCard(
-      padding: const EdgeInsets.all(12),
-      height: 160.h,
-      backgroundColor: themeColor,
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accentColor.withAlpha(isDark ? 60 : 30)),
+        boxShadow: [BoxShadow(color: scheme.surfaceSubtle, blurRadius: 15, offset: const Offset(0, 8))],
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [bgColor, bgColor.withAlpha(isDark ? 20 : 10)]),
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left block: Identity
-          Container(
-            width: 136.h,
-            height: 136.h,
-            decoration: BoxDecoration(color: scheme.cardBackground.withAlpha(204), borderRadius: BorderRadius.circular(16)),
-            child: Stack(
+          // Left Content: Text
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Text('DISCOVERY', style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900, fontSize: 8.sp)),
+                // Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppPalette.white.withAlpha(isDark ? 30 : 255),
+                    borderRadius: BorderRadius.circular(100),
+                    boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 4, offset: const Offset(0, 2))],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(AppIcons.sparkles, size: 10, color: accentColor),
+                      Gap.w4,
+                      Text(
+                        'SMART ALERT',
+                        style: context.captionBold.copyWith(color: accentColor, fontSize: 8.sp, letterSpacing: 0.5),
+                      ),
+                    ],
+                  ),
                 ),
-                Center(child: Icon(icon, size: 48.sp, color: accentColor)),
-                Positioned(
-                  bottom: 10,
-                  left: 10,
-                  right: 10,
-                  child: Text(
-                    '${pattern.confidence.toUpperCase()} CONFIDENCE',
-                    textAlign: TextAlign.center,
-                    style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900, fontSize: 8.sp),
+                Gap.h16,
+                // Title
+                Text(
+                  pattern.trigger,
+                  style: context.displayHero.copyWith(fontSize: 28.sp, height: 1.0, color: isDark ? AppPalette.white : AppPalette.black, fontWeight: FontWeight.w900, letterSpacing: -1),
+                ),
+                Row(
+                  children: [
+                    Icon(Icons.arrow_forward_rounded, color: isDark ? AppPalette.white : AppPalette.black, size: 24.sp),
+                    Gap.w8,
+                    Expanded(
+                      child: Text(
+                        pattern.reaction,
+                        style: context.displayHero.copyWith(fontSize: 28.sp, height: 1.1, color: accentColor, fontWeight: FontWeight.w900, letterSpacing: -1),
+                      ),
+                    ),
+                  ],
+                ),
+                Gap.h8,
+                // Description
+                Text(
+                  pattern.description,
+                  style: context.body.copyWith(color: isDark ? AppPalette.white.withAlpha(180) : AppPalette.black.withAlpha(150), height: 1.3, fontSize: 12.sp),
+                ),
+                Gap.h16,
+                // Pill
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppPalette.white.withAlpha(20) : AppPalette.white,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(color: accentColor.withAlpha(50)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.bar_chart_rounded, size: 12, color: accentColor),
+                      Gap.w6,
+                      Text(
+                        '${pattern.confidence.toUpperCase()} STRENGTH • ${pattern.frequency} OCCURRENCES',
+                        style: context.captionBold.copyWith(color: accentColor, fontSize: 8.sp),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          Gap.w16,
-          // Right info
+
+          Gap.w12,
+
+          // Right Content: Diagram
           Expanded(
+            flex: 2,
+            child: SizedBox(
+              height: 180.h,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Dashed Line
+                  CustomPaint(
+                    size: Size(2, 120.h),
+                    painter: DashedLinePainter(color: accentColor.withAlpha(100)),
+                  ),
+
+                  // Top Circle (Trigger Image)
+                  Positioned(
+                    top: 0,
+                    child: _CircleVisual(imageUrl: getDynamicImageUrl(pattern.trigger), size: 64.h, borderColor: AppPalette.white),
+                  ),
+
+                  // Middle Time Bubble
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: BorderRadius.circular(100),
+                      boxShadow: [BoxShadow(color: accentColor.withAlpha(60), blurRadius: 8)],
+                    ),
+                    child: Text(
+                      timeLabel.toUpperCase(),
+                      style: context.captionBold.copyWith(color: AppPalette.white, fontSize: 7.sp),
+                    ),
+                  ),
+
+                  // Bottom Circle (Reaction Icon/Graphic)
+                  Positioned(
+                    bottom: 0,
+                    child: _CircleVisual(icon: icon, accentColor: accentColor, size: 64.h, borderColor: AppPalette.white, isIcon: true),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircleVisual extends StatelessWidget {
+  const _CircleVisual({this.imageUrl, this.icon, this.accentColor, required this.size, required this.borderColor, this.isIcon = false});
+  final String? imageUrl;
+  final IconData? icon;
+  final Color? accentColor;
+  final double size;
+  final Color borderColor;
+  final bool isIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isIcon ? (accentColor?.withAlpha(30) ?? Colors.white) : Colors.white,
+        border: Border.all(color: borderColor, width: 3),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(size),
+        child: isIcon
+            ? Center(
+                child: Icon(icon, size: size * 0.5, color: accentColor),
+              )
+            : CachedNetworkImage(
+                imageUrl: imageUrl!,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(color: Colors.grey[200]),
+                errorWidget: (_, __, ___) => const Icon(Icons.error),
+              ),
+      ),
+    );
+  }
+}
+
+class DashedLinePainter extends CustomPainter {
+  DashedLinePainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    const dashHeight = 5.0;
+    const dashSpace = 3.0;
+    double startY = 0;
+    while (startY < size.height) {
+      canvas.drawLine(Offset(0, startY), Offset(0, startY + dashHeight), paint);
+      startY += dashHeight + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+class _MomentsSection extends StatelessWidget {
+  const _MomentsSection({required this.occurrences, required this.reaction});
+  final List<PatternOccurrence> occurrences;
+  final String reaction;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.calendar_today_rounded, size: 16, color: scheme.textPrimary),
+            Gap.w8,
+            Text('THE MOMENTS WE NOTICED', style: context.captionBold.copyWith(color: scheme.textPrimary, letterSpacing: 0.5)),
+          ],
+        ),
+        Gap.h4,
+        Text('These meals were followed by ${reaction.toLowerCase()}.', style: context.caption.copyWith(color: scheme.textSecondary)),
+        Gap.h16,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          child: Row(
+            children: [
+              for (var i = 0; i < occurrences.length; i++) ...[_MomentCard(occurrence: occurrences[i], index: i + 1), if (i < occurrences.length - 1) Gap.w12],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MomentCard extends StatelessWidget {
+  const _MomentCard({required this.occurrence, required this.index});
+  final PatternOccurrence occurrence;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final displayImageUrl = occurrence.imageUrl ?? getDynamicImageUrl(occurrence.mealName);
+
+    return Container(
+      width: 150.w,
+      decoration: BoxDecoration(
+        color: scheme.cardBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.borderSubtle),
+        boxShadow: [BoxShadow(color: scheme.surfaceSubtle, blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image / Placeholder
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                child: CachedNetworkImage(
+                  imageUrl: displayImageUrl,
+                  height: 100.h,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Shimmer.fromColors(
+                    baseColor: AppPalette.shimmerBase(context),
+                    highlightColor: AppPalette.shimmerHighlight(context),
+                    child: Container(color: Colors.white),
+                  ),
+                  errorWidget: (_, _, _) => Container(
+                    height: 100.h,
+                    width: double.infinity,
+                    color: scheme.elevatedSurface,
+                    child: Icon(AppIcons.utensils, color: scheme.textMuted, size: 28),
+                  ),
+                ),
+              ),
+              // Index Badge
+              Positioned(
+                top: 6,
+                left: 6,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
+                  child: Center(
+                    child: Text('$index', style: context.captionBold.copyWith(color: AppPalette.black, fontSize: 10)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(InsightUiUtils.getPatternName(pattern.type).toUpperCase(), style: context.captionBold.copyWith(color: AppPalette.black.withAlpha(153))),
-                Gap.h8,
                 Text(
-                  pattern.trigger.toUpperCase(),
-                  maxLines: 2,
+                  occurrence.mealName.toUpperCase(),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: context.headingSm.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, height: 1.1),
+                  style: context.captionBold.copyWith(color: scheme.textPrimary, fontSize: 11.sp),
                 ),
                 Gap.h4,
-                Text(
-                  'LINKED TO',
-                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(127), fontWeight: FontWeight.w900),
-                ),
-                Gap.h4,
-                Text(
-                  pattern.reaction.toUpperCase(),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.body.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, height: 1.1),
-                ),
+                Text(occurrence.date, style: context.captionMicro.copyWith(color: scheme.textSecondary)),
               ],
             ),
           ),
@@ -285,24 +404,164 @@ class _PatternHeroCard extends StatelessWidget {
   }
 }
 
-class _PatternMetricGrid extends StatelessWidget {
-  const _PatternMetricGrid({required this.pattern});
+class _WorthWatchingSection extends StatelessWidget {
+  const _WorthWatchingSection({required this.pattern, required this.accentColor});
   final BodyPattern pattern;
+  final Color accentColor;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: SmallInsightMetricCard(label: 'Matches', value: '${pattern.frequency}', unit: 'LOGS', icon: AppIcons.history, accentColor: AppPalette.blue),
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final isHigh = pattern.confidence == BodyPattern.confidenceHigh;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: accentColor.withAlpha(10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accentColor.withAlpha(20)),
       ),
-      Gap.w12,
-      Expanded(
-        child: SmallInsightMetricCard(label: 'Impact', value: '${(pattern.evidenceRatio * 100).toInt()}%', unit: 'PROBABILITY', icon: AppIcons.brain, accentColor: AppPalette.purple),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(AppIcons.target, size: 16, color: accentColor),
+                    Gap.w8,
+                    Text(isHigh ? 'VERIFIED PATTERN' : 'WORTH WATCHING', style: context.captionBold.copyWith(color: scheme.textPrimary, letterSpacing: 0.5)),
+                  ],
+                ),
+                Gap.h6,
+                Text(
+                  isHigh
+                      ? 'This association is statistically significant. Reducing ${pattern.trigger.toLowerCase()} may improve your symptoms.'
+                      : '${pattern.frequency} times is enough to notice, but not enough to know for sure.',
+                  style: context.caption.copyWith(color: scheme.textSecondary, height: 1.3),
+                ),
+              ],
+            ),
+          ),
+          Gap.w16,
+          // Mini Bar Chart
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _buildBar(16.h, accentColor.withAlpha(80)),
+              Gap.w2,
+              _buildBar(28.h, accentColor.withAlpha(150)),
+              Gap.w2,
+              _buildBar(40.h, accentColor),
+              Gap.w2,
+              _buildBar(52.h, accentColor.withAlpha(50), isDashed: true),
+            ],
+          ),
+        ],
       ),
-      Gap.w12,
-      Expanded(
-        child: SmallInsightMetricCard(label: 'Severity', value: '${pattern.positiveCount}', unit: 'REACTIONS', icon: AppIcons.activity, accentColor: AppPalette.pink),
+    );
+  }
+
+  Widget _buildBar(double height, Color color, {bool isDashed = false}) {
+    return Container(
+      width: 12.w,
+      height: height,
+      decoration: BoxDecoration(
+        color: isDashed ? Colors.transparent : color,
+        borderRadius: BorderRadius.circular(4),
+        border: isDashed ? Border.all(color: color, width: 1, style: BorderStyle.solid) : null,
       ),
-    ],
-  );
+      child: isDashed
+          ? Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: color, width: 1.5, style: BorderStyle.solid),
+              ),
+            )
+          : null,
+    );
+  }
+}
+
+class _NextStepsSection extends StatelessWidget {
+  const _NextStepsSection({required this.pattern, required this.accentColor});
+  final BodyPattern pattern;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.lightbulb_outline_rounded, size: 18, color: scheme.textPrimary),
+            Gap.w8,
+            Text('YOUR NEXT STEPS', style: context.captionBold.copyWith(color: scheme.textPrimary, letterSpacing: 0.5)),
+          ],
+        ),
+        Gap.h16,
+        _ActionItem(icon: Icons.check_circle_outline_rounded, iconColor: Colors.teal, title: 'What you can do', subtitle: pattern.recommendation ?? 'Keep monitoring your intake.', onTap: () {}),
+        Gap.h12,
+        _ActionItem(icon: Icons.chat_bubble_outline_rounded, iconColor: Colors.indigo, title: 'Ask GutGood', subtitle: 'Ask about "${pattern.trigger} and ${pattern.reaction}"', onTap: () {}),
+      ],
+    );
+  }
+}
+
+class _ActionItem extends StatelessWidget {
+  const _ActionItem({required this.icon, required this.iconColor, required this.title, required this.subtitle, required this.onTap});
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: scheme.cardBackground,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: scheme.borderSubtle),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: iconColor.withAlpha(20), shape: BoxShape.circle),
+              child: Icon(icon, size: 18, color: iconColor),
+            ),
+            Gap.w12,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: context.bodyBold.copyWith(color: scheme.textPrimary, fontSize: 13.sp),
+                  ),
+                  Gap.h2,
+                  Text(
+                    subtitle,
+                    style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 11.sp),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: scheme.textMuted, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
 }

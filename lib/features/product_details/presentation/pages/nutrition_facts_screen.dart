@@ -7,7 +7,9 @@ import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
+import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/nutrition_row.dart';
 
 class NutritionFactsScreen extends StatelessWidget {
@@ -58,6 +60,8 @@ class _NutritionList extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SheetSectionHeader(title: 'What\'s inside', color: Colors.transparent),
+        Gap.h16,
         Text(AppStrings.per100g, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
         Gap.h8,
         if (nutrients.calories != null)

@@ -13,7 +13,7 @@ class InsightStrings {
   static const String insightHistory = 'INSIGHT HISTORY';
   static const String noHistoryYet = 'No history yet';
   static const String mealTimeline = 'Meal Timeline';
-  static const String nutritionFacts = 'Nutrition Facts';
+  static const String nutritionFacts = 'Nutrition facts';
   static const String analyzingPatterns = 'Analyzing patterns...';
   static const String noClearPattern = 'No clear pattern yet';
   static const String noInsightsYet = 'No insights yet';

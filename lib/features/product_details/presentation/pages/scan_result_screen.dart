@@ -10,7 +10,6 @@ import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
@@ -73,23 +72,20 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             physics: const BouncingScrollPhysics(),
             slivers: [
               GutSliverAppBar(
-                title: 'SCAN RESULT',
+                title: 'Scan result',
                 centerTitle: true,
                 actions: [
-                  Padding(
-                    padding: EdgeInsets.only(right: 16.w),
-                    child: SaveButton(
-                      isSaved: isSaved,
-                      isLoading: _isLoading,
-                      onTap: () async {
-                        setState(() => _isLoading = true);
-                        try {
-                          await _toggleSave();
-                        } finally {
-                          if (mounted) setState(() => _isLoading = false);
-                        }
-                      },
-                    ),
+                  SaveButton(
+                    isSaved: isSaved,
+                    isLoading: _isLoading,
+                    onTap: () async {
+                      setState(() => _isLoading = true);
+                      try {
+                        await _toggleSave();
+                      } finally {
+                        if (mounted) setState(() => _isLoading = false);
+                      }
+                    },
                   ),
                 ],
               ),
@@ -106,17 +102,26 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       DashboardEntrance(delay: 100, child: DashboardMetricGrid(scanData: _currentData)),
                       Gap.h12,
                       DashboardEntrance(delay: 150, child: ExpertSummaryCard(scanData: _currentData)),
-                      Gap.h12,
-                      DashboardEntrance(delay: 200, child: ExpertStrategyCard(scanData: _currentData)),
-                      if (_currentData.swaps.isNotEmpty) ...[Gap.h12, DashboardEntrance(delay: 250, child: BetterSwapsCarousel(swaps: _currentData.swaps))],
-                      if (_currentData.cycleInsight != null) ...[Gap.h12, DashboardEntrance(delay: 300, child: CycleInsightSection(insight: _currentData.cycleInsight!))],
+                      if (_currentData.cycleInsight != null) ...[Gap.h12, DashboardEntrance(delay: 180, child: CycleInsightSection(insight: _currentData.cycleInsight!))],
                       Gap.h12,
                       DashboardEntrance(
-                        delay: 320,
+                        delay: 200,
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(child: _buildImpactSection(context)),
+                            Expanded(child: ExpertStrategyCard(scanData: _currentData)),
+                            Gap.w12,
+                            Expanded(child: AdditivesSection(scanData: _currentData)),
+                          ],
+                        ),
+                      ),
+                      Gap.h12,
+                      DashboardEntrance(
+                        delay: 300,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: MealBalanceCard(scanData: _currentData)),
                             Gap.w12,
                             Expanded(child: NutrientStatisticsCard(scanData: _currentData)),
                           ],
@@ -136,19 +141,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                           ],
                         ),
                       ),
+                      if (_currentData.swaps.isNotEmpty) ...[Gap.h12, DashboardEntrance(delay: 250, child: BetterSwapsCarousel(swaps: _currentData.swaps))],
                       Gap.h12,
-                      DashboardEntrance(
-                        delay: 360,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: AdditivesSection(scanData: _currentData)),
-                            Gap.w12,
-                            Expanded(child: ProductMetadataSection(scanData: _currentData)),
-                          ],
-                        ),
-                      ),
-                      Gap.h40,
+                      DashboardEntrance(delay: 370, child: ProductMetadataSection(scanData: _currentData)),
                     ],
                   ),
                 ),
@@ -158,38 +153,5 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         );
       },
     );
-  }
-
-  Widget _buildImpactSection(BuildContext context) {
-    final scan = _currentData;
-    final scheme = context.appColorScheme;
-    final items = <TimelineItem>[];
-
-    final raw = scan.rawData ?? {};
-    final rawImpacts = ((raw['meal']?['impacts'] ?? raw['scan']?['impacts'] ?? raw['impacts']) ?? []) as List;
-
-    // Explicit Impacts from AI
-    final impactsToUse = scan.impacts.isNotEmpty
-        ? scan.impacts
-        : rawImpacts
-              .map((e) {
-                final data = e is Map ? e : {};
-                return ImpactDetail(title: data['title']?.toString() ?? '', level: data['level']?.toString() ?? '', color: 'gray');
-              })
-              .where((e) => e.title.isNotEmpty)
-              .toList();
-
-    for (final impact in impactsToUse) {
-      var color = scheme.success;
-      final level = impact.level.toLowerCase();
-      if (level == 'high' || level == 'trigger' || level == 'negative' || level == 'poor') {
-        color = scheme.error;
-      } else if (level == 'moderate' || level == 'neutral' || level == 'low') {
-        color = scheme.warning;
-      }
-      items.add(TimelineItem(title: impact.title, subtitle: impact.level.toUpperCase(), color: color));
-    }
-
-    return ScanImpactSection(title: 'GUT HEALTH IMPACT', icon: AppIcons.activity, iconColor: scheme.textPrimary, servingInfo: scan.servingSize, items: items);
   }
 }

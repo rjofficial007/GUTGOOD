@@ -1,6 +1,6 @@
 import 'package:gutgood/core/services/prompts/mode_prompts/barcode_analysis_prompt.dart';
+import 'package:gutgood/core/services/prompts/mode_prompts/full_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/ingredients_label_prompt.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/meal_snap_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/restaurant_menu_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/vision_safety_prompt.dart';
 import 'package:gutgood/core/services/prompts/schema_definitions.dart';
@@ -20,7 +20,7 @@ class ModePrompts {
     return '''
 $_sharedRules
 
-VISION MODE: Meal Snap
+VISION MODE: Complete Meal Analysis
 
 USER PROFILE
 Goals: $goalList
@@ -28,7 +28,7 @@ Sensitivities: $sensitivityList
 Lifestyle: $lifestyleList
 Current Phase: $phase
 
-${MealSnapPrompt.instruction}
+${FullAnalysisPrompt.instruction}
 
 ${SchemaDefinitions.unifiedDataSchema}
 ''';

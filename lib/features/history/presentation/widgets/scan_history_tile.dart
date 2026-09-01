@@ -11,13 +11,7 @@ import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ScanHistoryTile extends StatelessWidget {
-  const ScanHistoryTile({
-    super.key,
-    required this.scanResult,
-    this.createdAt,
-    this.userImageUrl,
-    required this.onTap,
-  });
+  const ScanHistoryTile({super.key, required this.scanResult, this.createdAt, this.userImageUrl, required this.onTap});
   final ScanResult scanResult;
   final DateTime? createdAt;
   final String? userImageUrl;
@@ -53,8 +47,8 @@ class ScanHistoryTile extends StatelessWidget {
                           imageUrl: displayImageUrl,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Shimmer.fromColors(
-                            baseColor: context.appColorScheme.borderSubtle,
-                            highlightColor: context.appColorScheme.border.withAlpha(26),
+                            baseColor: AppPalette.shimmerBase(context),
+                            highlightColor: AppPalette.shimmerHighlight(context),
                             child: Container(color: AppPalette.white),
                           ),
                           errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
@@ -69,12 +63,7 @@ class ScanHistoryTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    scanResult.productName,
-                    style: context.labelBold,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(scanResult.productName, style: context.labelBold, maxLines: 1, overflow: TextOverflow.ellipsis),
                   Gap.h4,
                   Text(
                     '${scanResult.brand} • ${createdAt != null ? DateFormatter.formatTime(createdAt!) : AppStrings.labelSavedItem}',
@@ -100,10 +89,7 @@ class ScanHistoryTile extends StatelessWidget {
                     backgroundColor: context.appColorScheme.textPrimary.withAlpha(26),
                     valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
                   ),
-                  Text(
-                    '${scanResult.score}',
-                    style: context.labelBold,
-                  ),
+                  Text('${scanResult.score}', style: context.labelBold),
                 ],
               ),
             ),

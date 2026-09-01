@@ -290,12 +290,11 @@ class _PotentialTriggerCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(AppStrings.expertAnalysis, style: context.captionBold.copyWith(color: isDark ? AppPalette.purplePastel.withAlpha(153) : AppPalette.black.withAlpha(153))),
-              Icon(AppIcons.sparkles, color: isDark ? AppPalette.purplePastel.withAlpha(102) : AppPalette.black.withAlpha(102), size: 14),
-            ],
+          BentoCardHeader(
+            title: AppStrings.expertAnalysis,
+            icon: AppIcons.sparkles,
+            textColor: isDark ? AppPalette.purplePastel.withAlpha(153) : AppPalette.black.withAlpha(153),
+            iconColor: isDark ? AppPalette.purplePastel.withAlpha(102) : AppPalette.black.withAlpha(102),
           ),
           Gap.h24,
           Column(

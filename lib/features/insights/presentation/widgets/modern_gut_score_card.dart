@@ -32,7 +32,7 @@ class ModernGutScoreCard extends StatelessWidget {
     padding: EdgeInsets.all(AppSizes.p16),
     decoration: BoxDecoration(
       color: const Color(0xFF0D1217),
-      borderRadius: BorderRadius.circular(AppSizes.r28),
+      borderRadius: BorderRadius.circular(AppSizes.r20),
       boxShadow: [BoxShadow(color: Colors.black.withAlpha(40), blurRadius: 15, offset: const Offset(0, 8))],
     ),
     child: IntrinsicHeight(

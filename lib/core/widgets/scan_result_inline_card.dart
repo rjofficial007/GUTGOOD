@@ -24,7 +24,8 @@ class ScanResultInlineCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.appColorScheme;
     final ingredients = scanData.ingredients;
-    final swaps = scanData.swaps;
+    final profile = context.watch<ProfileNotifier>().profile;
+    final cycleEnabled = profile?.cycleSyncEnabled ?? false;
 
     final impactColor = scanData.impactType == ImpactType.positive
         ? colorScheme.success
@@ -52,7 +53,8 @@ class ScanResultInlineCard extends StatelessWidget {
         children: [
           _buildHeader(context, impactColor),
           _buildAnalysisSection(context, ingredients),
-          _buildCycleInsight(context),
+          _buildLikelyImpact(context),
+          if (cycleEnabled) _buildCycleInsight(context),
           FooterActionButton(label: AppStrings.viewFullReport, onTap: onViewFullReport, isEmbedded: isEmbedded),
         ],
       ),
@@ -136,192 +138,144 @@ class ScanResultInlineCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAnalysisSection(BuildContext context, List<Ingredient> ingredients) => Padding(
-    padding: isEmbedded ? const EdgeInsets.only(bottom: 16) : EdgeInsets.all(AppSizes.p20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Gap.h10,
-        if (ingredients.isNotEmpty) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(AppStrings.contains.toUpperCase(), style: context.captionBold.copyWith(color: context.appColorScheme.textMuted)),
-              Text(AppStrings.itemsCount(ingredients.length), style: context.captionBold),
-            ],
-          ),
-          Gap.h10,
-          Column(
-            children: ingredients
-                .take(5)
-                .map(
-                  (ing) => Padding(
-                    padding: EdgeInsets.only(bottom: 8.h),
-                    child: _RefinedTag(label: ing.name, impact: ing.colorName),
-                  ),
-                )
-                .toList(),
-          ),
-          Gap.h12,
-        ],
-        Column(
-          children: [
-            _RefinedBenefitRow(icon: AppIcons.shieldCheck, title: AppStrings.gutProtection, description: scanData.impact, isLast: scanData.impacts.isEmpty),
-            if (scanData.impacts.isNotEmpty)
-              ...scanData.impacts.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final imp = entry.value;
-                final isLast = idx == scanData.impacts.length - 1;
-                return _RefinedBenefitRow(
-                  icon: AppIcons.salad,
-                  title: imp.title == 'Impact' ? 'Key Finding' : imp.title,
-                  description: imp.title == 'Impact' ? imp.title : imp.level,
-                  descriptionOverride: imp.title,
-                  isLast: isLast,
-                );
-              }),
-          ],
-        ),
-      ],
-    ),
-  );
+  Widget _buildAnalysisSection(BuildContext context, List<Ingredient> ingredients) {
+    if (ingredients.isEmpty) return const SizedBox.shrink();
 
-  Widget _buildSwapsSection(BuildContext context, List<ProductSwap> swaps) {
     final colorScheme = context.appColorScheme;
-    return Container(
-      width: double.infinity,
-      margin: EdgeInsets.only(top: isEmbedded ? 8 : 8),
-      padding: isEmbedded ? const EdgeInsets.all(16) : EdgeInsets.all(AppSizes.p20),
-      decoration: BoxDecoration(
-        color: isEmbedded ? colorScheme.elevatedSurface.withAlpha(127) : colorScheme.surfaceSubtle,
-        borderRadius: isEmbedded ? BorderRadius.circular(AppSizes.r20) : BorderRadius.vertical(bottom: Radius.circular(AppSizes.r32)),
-      ),
+
+    // 🚀 Professional Sorting: Red (Triggers) -> Orange (Caution) -> Low (Neutral)
+    final sorted = List<Ingredient>.from(ingredients);
+    sorted.sort((a, b) {
+      int score(Ingredient i) => switch (i.colorName.toLowerCase()) {
+        'red' => 2,
+        'orange' => 1,
+        _ => 0,
+      };
+      return score(b).compareTo(score(a));
+    });
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(0, AppSizes.p10, 0, AppSizes.p20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(AppStrings.contains.toUpperCase(), style: context.eyebrow.copyWith(color: colorScheme.textMuted, fontSize: 10)),
+              Text(AppStrings.itemsCount(ingredients.length), style: context.captionBold.copyWith(color: colorScheme.textMuted, fontSize: 10)),
+            ],
+          ),
+          Gap.h12,
+          Wrap(
+            spacing: 8.w,
+            runSpacing: 8.h,
+            children: sorted.take(8).map((ing) => _IngredientPill(ingredient: ing)).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLikelyImpact(BuildContext context) {
+    if (scanData.impact.isEmpty) return const SizedBox.shrink();
+
+    final colorScheme = context.appColorScheme;
+    final isNegative = scanData.impactType == ImpactType.negative;
+    final isPositive = scanData.impactType == ImpactType.positive;
+
+    final baseColor = isNegative ? colorScheme.error : (isPositive ? colorScheme.success : colorScheme.warning);
+    final bgColor = isNegative ? colorScheme.errorSubtle : (isPositive ? colorScheme.successSubtle : colorScheme.softWarning.withAlpha(50));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(AppSizes.p12),
+          decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(AppSizes.r12)),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: EdgeInsets.all(isEmbedded ? 6 : 8),
-                decoration: BoxDecoration(color: colorScheme.textPrimary, borderRadius: BorderRadius.circular(isEmbedded ? AppSizes.r8 : AppSizes.r10)),
-                child: Icon(AppIcons.salad, size: isEmbedded ? 14.sp : 18.w, color: colorScheme.cardBackground),
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: baseColor.withAlpha(26), shape: BoxShape.circle),
+                child: Icon(isNegative ? AppIcons.flame : AppIcons.sparkles, color: baseColor, size: 16.w),
               ),
-              Gap.w12,
+              Gap.w10,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(AppStrings.swapItFeelBetter.toUpperCase(), style: context.captionBold.copyWith(color: colorScheme.textPrimary)),
-                    Text(AppStrings.easySwapsDesc, style: context.caption.copyWith(color: colorScheme.textMuted)),
+                    const SizedBox(height: 2),
+                    Text(AppStrings.likelyImpact.toUpperCase(), style: context.eyebrow.copyWith(color: baseColor, fontSize: 10)),
+                    Gap.h4,
+                    Text(
+                      scanData.impact,
+                      style: context.caption.copyWith(color: colorScheme.textPrimary, height: 1.4, fontWeight: FontWeight.w500),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          Gap.h16,
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            child: Row(
-              children: swaps.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final swap = entry.value;
-                return Padding(
-                  padding: EdgeInsets.only(right: idx == swaps.length - 1 ? 0 : 12.0.w),
-                  child: SwapCard(
-                    title: swap.title,
-                    subtitle: swap.subtitle,
-                    imageKeyword: swap.imageKeyword,
-                    imageUrl: swap.imageUrl,
-                    tag: idx == 0 ? 'PRIME CHOICE' : 'VALID SWAP',
-                    badge: idx == 0 ? 'TOP PICK' : null,
-                    width: isEmbedded ? 130.w : 150.w,
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
+        ),
+        Gap.h20,
+      ],
     );
   }
 
   Widget _buildCycleInsight(BuildContext context) {
-    final profile = context.watch<ProfileNotifier>().profile;
-    final cycleEnabled = profile?.cycleSyncEnabled ?? false;
-
-    if (!cycleEnabled || scanData.cycleInsight == null) {
+    if (scanData.cycleInsight == null) {
       return const SizedBox.shrink();
     }
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.p20),
-      child: Column(
-        children: [
-          CycleInsightCard(insight: scanData.cycleInsight!),
-          Gap.h20,
-        ],
-      ),
-    );
-  }
-}
-
-class _RefinedTag extends StatelessWidget {
-  const _RefinedTag({required this.label, required this.impact});
-  final String label;
-  final String? impact;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = context.appColorScheme;
-    final isRisky = impact == 'red';
-    final isCaution = impact == 'orange';
-
-    final indicatorColor = isRisky ? colorScheme.error : (isCaution ? colorScheme.warning : colorScheme.success);
-
-    return Row(
+    return Column(
       children: [
-        Container(
-          width: 3.w,
-          height: 14.h,
-          decoration: BoxDecoration(color: indicatorColor, borderRadius: BorderRadius.circular(4)),
-        ),
-        Gap.w12,
-        Expanded(
-          child: Text(label.toUpperCase(), style: context.labelBold.copyWith(color: colorScheme.textPrimary)),
-        ),
+        CycleInsightCard(insight: scanData.cycleInsight!),
+        Gap.h20,
       ],
     );
   }
 }
 
-class _RefinedBenefitRow extends StatelessWidget {
-  const _RefinedBenefitRow({required this.icon, required this.title, required this.description, this.descriptionOverride, this.isLast = false});
-  final IconData icon;
-  final String title;
-  final String description;
-  final String? descriptionOverride;
-  final bool isLast;
+class _IngredientPill extends StatelessWidget {
+  const _IngredientPill({required this.ingredient});
+  final Ingredient ingredient;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.appColorScheme;
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : AppSizes.p16),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final impact = ingredient.colorName.toLowerCase();
+
+    final (baseColor, bgColor, isNeutral) = switch (impact) {
+      'red' => (colorScheme.error, colorScheme.errorSubtle, false),
+      'orange' => (colorScheme.warning, colorScheme.softWarning.withAlpha(isDark ? 50 : 30), false),
+      _ => (colorScheme.success, colorScheme.softSuccess.withAlpha(isDark ? 50 : 30), false),
+    };
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppSizes.r8),
+        border: Border.all(color: isNeutral ? colorScheme.borderSubtle : baseColor.withAlpha(isDark ? 80 : 40), width: 1),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16.w, color: colorScheme.textPrimary),
-          Gap.w10,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text((descriptionOverride != null ? AppStrings.insightLabel : title).toUpperCase(), style: context.labelBold.copyWith(color: colorScheme.textPrimary)),
-                Gap.h2,
-                Text(descriptionOverride ?? description, style: context.label.copyWith(color: colorScheme.textSecondary)),
-              ],
+          if (!isNeutral) ...[
+            Container(
+              width: 5.w,
+              height: 5.w,
+              decoration: BoxDecoration(color: baseColor, shape: BoxShape.circle),
             ),
+            Gap.w6,
+          ],
+          Text(
+            ingredient.name.toUpperCase(),
+            style: context.labelBold.copyWith(color: isNeutral ? colorScheme.textSecondary : (isDark ? baseColor : baseColor.withAlpha(230)), fontSize: 9.sp, letterSpacing: 0.3),
           ),
         ],
       ),

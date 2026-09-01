@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
@@ -39,7 +39,39 @@ class ChatScreen extends StatefulWidget {
 }
 
 class ChatScreenState extends State<ChatScreen> {
-  static const String _draftKey = StorageKeys.chatDraft;
+  static const String _draftKey = 'chat_draft';
+
+  /// Where the latest user message should appear in the viewport.
+  ///
+  /// 0.0  = very top
+  /// 0.12 = 12% from top
+  /// 0.5  = center
+  static const double _userMessageAlignment = 0.12;
+
+  /// Number of frames to wait for the newly-created message.
+  static const int _maxAnchorAttempts = 12;
+
+  /// Prevents multiple anchor operations from being queued.
+  bool _anchorScrollScheduled = false;
+
+  /// Prevents repeated anchoring during the same turn.
+  bool _hasAnchoredCurrentTurn = false;
+
+  /// Prevents programmatic scrolling from being interpreted as
+  /// manual scrolling.
+  bool _programmaticScrolling = false;
+
+  /// True when the user manually interacts with the conversation.
+  bool _userIsInteractingWithScroll = false;
+
+  /// Whether temporary anchor space is currently enabled.
+  bool _anchorSpaceEnabled = false;
+
+  /// ID of the latest user message.
+  String? _latestUserMsgId;
+
+  /// Stable key attached to the latest user message.
+  final GlobalKey _latestUserMsgKey = GlobalKey();
 
   final TextEditingController _controller = TextEditingController();
 
@@ -47,11 +79,12 @@ class ChatScreenState extends State<ChatScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
+  bool _hasScrolledToBottomInitially = false;
+
   ChatHistoryNotifier? _historyNotifier;
+  ChatComposerNotifier? _composerNotifier;
 
   Timer? _draftDebounce;
-
-  bool _showJumpToLatest = false;
 
   @override
   void initState() {
@@ -65,6 +98,8 @@ class ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
 
       _historyNotifier = context.read<ChatHistoryNotifier>();
+
+      _composerNotifier = context.read<ChatComposerNotifier>();
 
       _historyNotifier?.addListener(_handleHistoryLoaded);
 
@@ -91,7 +126,25 @@ class ChatScreenState extends State<ChatScreen> {
   // ===========================================================================
 
   void _handleHistoryLoaded() {
-    // No initial scroll to bottom needed with reverse: true
+    final notifier = _historyNotifier;
+
+    if (notifier == null) return;
+
+    if (!notifier.historyLoading && !_hasScrolledToBottomInitially && notifier.messages.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients) {
+          return;
+        }
+
+        _scrollToBottom(animated: false);
+
+        _hasScrolledToBottomInitially = true;
+
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
   }
 
   // ===========================================================================
@@ -103,21 +156,292 @@ class ChatScreenState extends State<ChatScreen> {
 
     final position = _scroll.position;
 
-    // Show jump to bottom button if we are scrolled up significantly
-    final isScrolledUp = position.pixels > 300;
-    if (isScrolledUp != _showJumpToLatest) {
-      setState(() => _showJumpToLatest = isScrolledUp);
+    /*
+     * Don't interpret our own animation as user interaction.
+     */
+    if (!_programmaticScrolling && position.isScrollingNotifier.value) {
+      _userIsInteractingWithScroll = true;
     }
 
-    // Pagination: when reaching the top (end of the list in reverse: true)
-    if (position.pixels >= position.maxScrollExtent - 200) {
-      _historyNotifier?.loadMore();
+    /*
+     * Existing pagination behavior.
+     *
+     * Keep this exactly as your original implementation:
+     * reaching the top loads older messages.
+     */
+    if (position.pixels <= 50) {
+      context.read<ChatHistoryNotifier>().loadMore();
     }
   }
 
-  Future<void> _jumpToLatest() async {
-    if (!_scroll.hasClients) return;
-    await _scroll.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOutQuad);
+  /// Scrolls to the bottom.
+  ///
+  /// Used only for initial conversation loading.
+  Future<void> _scrollToBottom({bool animated = true}) async {
+    if (!mounted || !_scroll.hasClients) {
+      return;
+    }
+
+    final maxScroll = _scroll.position.maxScrollExtent;
+
+    _programmaticScrolling = true;
+
+    try {
+      if (animated) {
+        await _scroll.animateTo(maxScroll, duration: const Duration(milliseconds: 250), curve: Curves.easeOutQuad);
+      } else {
+        _scroll.jumpTo(maxScroll);
+      }
+
+      await WidgetsBinding.instance.endOfFrame;
+
+      if (!mounted || !_scroll.hasClients) {
+        return;
+      }
+
+      final newMax = _scroll.position.maxScrollExtent;
+
+      if ((newMax - _scroll.position.pixels).abs() > 4) {
+        if (animated) {
+          await _scroll.animateTo(newMax, duration: const Duration(milliseconds: 200), curve: Curves.easeOutQuad);
+        } else {
+          _scroll.jumpTo(newMax);
+        }
+      }
+    } finally {
+      _programmaticScrolling = false;
+    }
+  }
+
+  // ===========================================================================
+  // LATEST USER MESSAGE ANCHOR
+  // ===========================================================================
+
+  /// Enables temporary space below the conversation.
+  ///
+  /// This is important.
+  ///
+  /// Without this, Flutter may not physically have enough scroll extent
+  /// to move the latest user message to 12% of the viewport.
+  void _enableAnchorSpace() {
+    if (_anchorSpaceEnabled) return;
+
+    _anchorSpaceEnabled = true;
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _disableAnchorSpace() {
+    if (!_anchorSpaceEnabled) return;
+
+    _anchorSpaceEnabled = false;
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _scrollToLatestUser({int attempt = 0}) {
+    if (!mounted) return;
+
+    if (_latestUserMsgId == null) {
+      return;
+    }
+
+    if (_anchorScrollScheduled) {
+      return;
+    }
+
+    _anchorScrollScheduled = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _anchorScrollScheduled = false;
+
+      if (!mounted) return;
+
+      await _tryAnchorLatestUser(attempt: attempt);
+    });
+  }
+
+  Future<void> _tryAnchorLatestUser({required int attempt}) async {
+    if (!mounted) return;
+
+    /*
+     * Don't fight the user.
+     */
+    if (_userIsInteractingWithScroll) {
+      return;
+    }
+
+    final targetContext = _latestUserMsgKey.currentContext;
+
+    /*
+     * Message isn't built yet.
+     */
+    if (targetContext == null) {
+      if (attempt >= _maxAnchorAttempts) {
+        AppLogger.warning(
+          'ChatScreen: Latest user message anchor '
+          'was not found after '
+          '$_maxAnchorAttempts attempts.',
+        );
+
+        return;
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+
+        _tryAnchorLatestUser(attempt: attempt + 1);
+      });
+
+      return;
+    }
+
+    final renderObject = targetContext.findRenderObject();
+
+    if (renderObject == null || !renderObject.attached) {
+      if (attempt >= _maxAnchorAttempts) {
+        return;
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+
+        _tryAnchorLatestUser(attempt: attempt + 1);
+      });
+
+      return;
+    }
+
+    await _animateToAnchor(targetContext);
+
+    _hasAnchoredCurrentTurn = true;
+  }
+
+  /// Calculates the exact scroll position required to put the
+  /// latest user message at [_userMessageAlignment].
+  ///
+  /// Unlike Scrollable.ensureVisible(), this explicitly asks Flutter
+  /// where the target should be revealed.
+  Future<void> _animateToAnchor(BuildContext messageContext) async {
+    if (!mounted || !_scroll.hasClients) {
+      return;
+    }
+
+    if (_userIsInteractingWithScroll) {
+      return;
+    }
+
+    final renderObject = messageContext.findRenderObject();
+
+    if (renderObject == null || !renderObject.attached) {
+      return;
+    }
+
+    final viewport = RenderAbstractViewport.of(renderObject);
+
+    if (viewport == null) {
+      return;
+    }
+
+    try {
+      final reveal = viewport.getOffsetToReveal(renderObject, _userMessageAlignment);
+
+      final minScroll = _scroll.position.minScrollExtent;
+
+      final maxScroll = _scroll.position.maxScrollExtent;
+
+      final targetOffset = reveal.offset.clamp(minScroll, maxScroll);
+
+      final difference = (targetOffset - _scroll.position.pixels).abs();
+
+      /*
+       * Already correctly positioned.
+       */
+      if (difference <= 2) {
+        return;
+      }
+
+      _programmaticScrolling = true;
+
+      await _scroll.animateTo(targetOffset.toDouble(), duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
+    } catch (e, st) {
+      AppLogger.error('ChatScreen: Failed to anchor latest user message', error: e, stackTrace: st);
+    } finally {
+      _programmaticScrolling = false;
+    }
+  }
+
+  /// Performs a small number of corrections after the first anchor.
+  ///
+  /// This handles layout changes caused by:
+  ///
+  /// - AI response placeholder
+  /// - image loading
+  /// - streamed text
+  ///
+  /// It intentionally does NOT continuously follow every AI token.
+  Future<void> _correctLatestUserAnchor() async {
+    if (!mounted) return;
+
+    if (!_hasAnchoredCurrentTurn) {
+      return;
+    }
+
+    if (_userIsInteractingWithScroll) {
+      return;
+    }
+
+    for (var i = 0; i < 3; i++) {
+      await WidgetsBinding.instance.endOfFrame;
+
+      if (!mounted || !_scroll.hasClients) {
+        return;
+      }
+
+      if (_userIsInteractingWithScroll) {
+        return;
+      }
+
+      final context = _latestUserMsgKey.currentContext;
+
+      if (context == null) {
+        return;
+      }
+
+      final renderObject = context.findRenderObject();
+
+      if (renderObject == null || !renderObject.attached) {
+        return;
+      }
+
+      final viewport = RenderAbstractViewport.of(renderObject);
+
+      if (viewport == null) {
+        return;
+      }
+
+      final reveal = viewport.getOffsetToReveal(renderObject, _userMessageAlignment);
+
+      final targetOffset = reveal.offset.clamp(_scroll.position.minScrollExtent, _scroll.position.maxScrollExtent);
+
+      final difference = (targetOffset - _scroll.position.pixels).abs();
+
+      if (difference <= 3) {
+        return;
+      }
+
+      try {
+        _programmaticScrolling = true;
+
+        await _scroll.animateTo(targetOffset.toDouble(), duration: const Duration(milliseconds: 150), curve: Curves.easeOut);
+      } finally {
+        _programmaticScrolling = false;
+      }
+    }
   }
 
   // ===========================================================================
@@ -235,13 +559,21 @@ class ChatScreenState extends State<ChatScreen> {
   // ===========================================================================
 
   Future<void> _send(ChatHistoryNotifier historyNotifier, ChatComposerNotifier composerNotifier, GutAuthNotifier authNotifier, [String? quickText]) async {
-    if (composerNotifier.isLoading) return;
+    if (composerNotifier.isLoading) {
+      return;
+    }
 
-    final msg = (quickText ?? _controller.text).trim();
     final hasImages = composerNotifier.pendingAttachments.isNotEmpty;
 
-    if (msg.isEmpty && !hasImages) return;
+    final msg = (quickText ?? _controller.text).trim();
 
+    if (msg.isEmpty && !hasImages) {
+      return;
+    }
+
+    /*
+     * Close keyboard before measuring viewport.
+     */
     FocusManager.instance.primaryFocus?.unfocus();
 
     if (!await QuotaGuard.check(context, type: hasImages ? QuotaType.scan : QuotaType.chat, onAuthSuccess: historyNotifier.refreshHistory)) {
@@ -250,10 +582,34 @@ class ChatScreenState extends State<ChatScreen> {
 
     if (!mounted) return;
 
+    // ========================================================================
+    // NEW TURN
+    // ========================================================================
+
     final userMsgId = const Uuid().v4();
 
-    // Reset UI state for new turn
-    setState(() => _showJumpToLatest = false);
+    /*
+     * This is a NEW explicit user action.
+     * Therefore allow the anchor to happen even if the user previously
+     * scrolled manually.
+     */
+    _userIsInteractingWithScroll = false;
+
+    setState(() {
+      _latestUserMsgId = userMsgId;
+
+      _hasAnchoredCurrentTurn = false;
+
+      /*
+       * Give the conversation enough scroll extent to physically
+       * position the user message near the top.
+       */
+      _anchorSpaceEnabled = true;
+    });
+
+    // ========================================================================
+    // SEND
+    // ========================================================================
 
     final sendFuture = composerNotifier.send(
       text: msg,
@@ -262,8 +618,10 @@ class ChatScreenState extends State<ChatScreen> {
       providedUserMsgId: userMsgId,
     );
 
-    // No auto-scroll when user sends or AI responds.
-    // The viewport remains naturally anchored at the bottom in reverse: true mode.
+    /*
+     * Wait until the user message has actually entered the widget tree.
+     */
+    await _waitForLatestUserMessageAndAnchor();
 
     final error = await sendFuture;
 
@@ -271,20 +629,99 @@ class ChatScreenState extends State<ChatScreen> {
 
     if (error == null) {
       _controller.clear();
+
       _clearDraft();
+
       composerNotifier.clearPendingHiddenContext();
+
+      /*
+       * Give any final layout changes one frame.
+       *
+       * We do not continuously scroll during streaming.
+       */
+      await _correctLatestUserAnchor();
+
+      /*
+       * The conversation now has enough real AI content in most cases.
+       *
+       * Keep the anchor space enabled while this turn is visible.
+       * It will be replaced by the actual response height naturally.
+       */
       return;
     }
+
+    /*
+     * If sending failed, remove the temporary anchor space.
+     */
+    _disableAnchorSpace();
 
     switch (error) {
       case ChatSendError.offline:
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+
       case ChatSendError.uploadFailed:
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.connectionError), behavior: SnackBarBehavior.floating));
+
       case ChatSendError.busy:
       case ChatSendError.empty:
         break;
     }
+  }
+
+  Future<void> _waitForLatestUserMessageAndAnchor() async {
+    if (!mounted) return;
+
+    final requestedId = _latestUserMsgId;
+
+    if (requestedId == null) {
+      return;
+    }
+
+    /*
+     * First layout.
+     */
+    await WidgetsBinding.instance.endOfFrame;
+
+    if (!mounted) return;
+
+    if (_latestUserMsgKey.currentContext != null) {
+      _hasAnchoredCurrentTurn = true;
+
+      _scrollToLatestUser();
+
+      return;
+    }
+
+    /*
+     * Wait for subsequent frames.
+     */
+    for (var i = 0; i < _maxAnchorAttempts; i++) {
+      await WidgetsBinding.instance.endOfFrame;
+
+      if (!mounted) return;
+
+      /*
+       * A newer message was sent.
+       */
+      if (_latestUserMsgId != requestedId) {
+        return;
+      }
+
+      final targetContext = _latestUserMsgKey.currentContext;
+
+      if (targetContext != null) {
+        _hasAnchoredCurrentTurn = true;
+
+        _scrollToLatestUser();
+
+        return;
+      }
+    }
+
+    AppLogger.warning(
+      'ChatScreen: Latest user message '
+      'was not available for scroll anchoring.',
+    );
   }
 
   // ===========================================================================
@@ -292,50 +729,37 @@ class ChatScreenState extends State<ChatScreen> {
   // ===========================================================================
 
   @override
-  Widget build(BuildContext context) => UpgradeAlert(
-    dialogStyle: Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
-    barrierDismissible: !RemoteConfigService.instance.isForceUpdateApp,
-    showReleaseNotes: !kReleaseMode,
-    showIgnore: !RemoteConfigService.instance.isForceUpdateApp,
-    showLater: !RemoteConfigService.instance.isForceUpdateApp,
-    shouldPopScope: () => !RemoteConfigService.instance.isForceUpdateApp,
-    onIgnore: () => true,
-    onLater: () => true,
-    onUpdate: () => true,
-    upgrader: Upgrader(
-      durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp ? Duration.zero : const Duration(days: 3),
-      debugLogging: !kReleaseMode,
-      debugDisplayAlways: false,
-      messages: UpgraderMessages(),
-    ),
-    child: Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
-      appBar: const _ChatAppBar(),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                const Expanded(child: _MessageListView()),
-                _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
-              ],
-            ),
-            if (_showJumpToLatest)
-              Positioned(
-                bottom: 100,
-                right: 16,
-                child: FloatingActionButton.small(
-                  onPressed: _jumpToLatest,
-                  backgroundColor: context.appColorScheme.textPrimary,
-                  foregroundColor: context.appColorScheme.cardBackground,
-                  child: const Icon(AppIcons.chevronDown),
-                ),
-              ),
-          ],
+  Widget build(BuildContext context) {
+    return UpgradeAlert(
+      dialogStyle: Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
+      barrierDismissible: !RemoteConfigService.instance.isForceUpdateApp,
+      showReleaseNotes: !kReleaseMode,
+      showIgnore: !RemoteConfigService.instance.isForceUpdateApp,
+      showLater: !RemoteConfigService.instance.isForceUpdateApp,
+      shouldPopScope: () => !RemoteConfigService.instance.isForceUpdateApp,
+      onIgnore: () => true,
+      onLater: () => true,
+      onUpdate: () => true,
+      upgrader: Upgrader(
+        durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp ? Duration.zero : const Duration(days: 3),
+        debugLogging: !kReleaseMode,
+        debugDisplayAlways: false,
+        messages: UpgraderMessages(),
+      ),
+      child: Scaffold(
+        backgroundColor: context.appColorScheme.cardBackground,
+        appBar: const _ChatAppBar(),
+        body: SafeArea(
+          child: Column(
+            children: [
+              const Expanded(child: _MessageListView()),
+              _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 // =============================================================================
@@ -348,40 +772,44 @@ class _SuggestionChipsSection extends StatelessWidget {
   final TextEditingController controller;
 
   @override
-  Widget build(BuildContext context) => Selector<ChatHistoryNotifier, int>(
-    selector: (_, n) => n.messages.length,
-    builder: (context, count, _) {
-      final suggestions = [
-        AppStrings.suggestRateMeal,
-        AppStrings.suggestBetterSwap,
-        AppStrings.suggestBloatCheck,
-        AppStrings.suggestIsThisHealthy,
-        AppStrings.suggestMealPlan,
-        AppStrings.suggestExplainIngredients,
-        AppStrings.menuPhotoPrompt,
-      ];
+  Widget build(BuildContext context) {
+    return Selector<ChatHistoryNotifier, int>(
+      selector: (_, n) => n.messages.length,
+      builder: (context, count, _) {
+        final suggestions = [
+          AppStrings.suggestRateMeal,
+          AppStrings.suggestBetterSwap,
+          AppStrings.suggestBloatCheck,
+          AppStrings.suggestIsThisHealthy,
+          AppStrings.suggestMealPlan,
+          AppStrings.suggestExplainIngredients,
+          AppStrings.menuPhotoPrompt,
+        ];
 
-      return Container(
-        height: 38,
-        margin: EdgeInsets.only(bottom: AppSizes.p12),
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
-          itemCount: suggestions.length,
-          itemBuilder: (context, i) => ChatSuggestionChip(
-            label: suggestions[i],
-            onTap: () {
-              HapticHelper.light();
+        return Container(
+          height: 38,
+          margin: EdgeInsets.only(bottom: AppSizes.p12),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
+            itemCount: suggestions.length,
+            itemBuilder: (context, i) {
+              return ChatSuggestionChip(
+                label: suggestions[i],
+                onTap: () {
+                  HapticHelper.light();
 
-              controller.text = suggestions[i];
+                  controller.text = suggestions[i];
 
-              controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+                  controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+                },
+              );
             },
           ),
-        ),
-      );
-    },
-  );
+        );
+      },
+    );
+  }
 }
 
 // =============================================================================
@@ -392,48 +820,50 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _ChatAppBar();
 
   @override
-  Widget build(BuildContext context) => Selector2<ProfileNotifier, InsightsNotifier, (int?, bool)>(
-    selector: (_, p, i) => (p.profile?.streak, i.healthAlerts.any((a) => !a.isRead)),
-    builder: (context, data, _) {
-      final streak = data.$1;
-      final hasUnreadAlerts = data.$2;
+  Widget build(BuildContext context) {
+    return Selector2<ProfileNotifier, InsightsNotifier, (int?, bool)>(
+      selector: (_, p, i) => (p.profile?.streak, i.healthAlerts.any((a) => !a.isRead)),
+      builder: (context, data, _) {
+        final streak = data.$1;
+        final hasUnreadAlerts = data.$2;
 
-      return GutAppBar(
-        title: AppStrings.gutgood,
-        streak: streak,
-        actions: [
-          GestureDetector(
-            onTap: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
-            child: const Tooltip(message: AppStrings.viewPremiumBenefits, child: PremiumBadge()),
-          ),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: Icon(AppIcons.bell, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
-                onPressed: () => context.push(AppRoutes.notificationArchive),
-              ),
-              if (hasUnreadAlerts)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: context.appColorScheme.error,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
+        return GutAppBar(
+          title: AppStrings.gutgood,
+          streak: streak,
+          actions: [
+            GestureDetector(
+              onTap: () => showPaywallBottomSheet(context, onProceedWithLimited: () {}),
+              child: const Tooltip(message: AppStrings.viewPremiumBenefits, child: PremiumBadge()),
+            ),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(AppIcons.bell, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+                  onPressed: () => context.push(AppRoutes.notificationArchive),
+                ),
+                if (hasUnreadAlerts)
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: context.appColorScheme.error,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
+                      ),
                     ),
                   ),
-                ),
-            ],
-          ),
-          Gap.w4,
-        ],
-      );
-    },
-  );
+              ],
+            ),
+            Gap.w4,
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -461,6 +891,8 @@ class _MessageListView extends StatelessWidget {
 
         final messages = allMessages.where((m) => !m.isHidden).toList();
 
+        final messageCount = messages.length;
+
         final isLoading = context.select<ChatComposerNotifier, bool>((n) => n.isLoading);
 
         if (historyLoading) {
@@ -473,19 +905,37 @@ class _MessageListView extends StatelessWidget {
           return const ChatEmptyState();
         }
 
-        return NotificationListener<ScrollNotification>(
+        return NotificationListener<UserScrollNotification>(
           onNotification: (notification) {
-            chatScreenState._onScroll();
+            if (notification.direction != ScrollDirection.idle) {
+              chatScreenState._userIsInteractingWithScroll = true;
+            }
+
             return false;
           },
-          child: CustomScrollView(
-            controller: scrollController,
-            reverse: true,
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            slivers: [
-              const SliverPadding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10), sliver: _MessageSliverList()),
-              if (context.select<ChatHistoryNotifier, bool>((n) => n.isPaginationLoading)) const SliverToBoxAdapter(child: ChatPaginationLoader()),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return CustomScrollView(
+                controller: scrollController,
+                reverse: false,
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                slivers: [
+                  SliverPadding(padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p10, AppSizes.p16, 0), sliver: const _MessageSliverList()),
+
+                  /*
+                   * Temporary anchor space.
+                   *
+                   * This is the important part that allows a newly
+                   * sent user message to actually move to 12% of the
+                   * viewport even when there isn't enough AI content
+                   * below it yet.
+                   *
+                   * It is disabled when no new turn is active.
+                   */
+                  if (chatScreenState._anchorSpaceEnabled) SliverToBoxAdapter(child: SizedBox(height: constraints.maxHeight * (1 - ChatScreenState._userMessageAlignment))),
+                ],
+              );
+            },
           ),
         );
       },
@@ -513,15 +963,18 @@ class _MessageSliverListState extends State<_MessageSliverList> {
 
     final authNotifier = context.read<GutAuthNotifier>();
 
+    final screenState = context.findAncestorStateOfType<ChatScreenState>()!;
+
     final allMessages = context.select<ChatHistoryNotifier, List<ChatMessage>>((n) => n.messages);
 
     /*
      * IMPORTANT:
      *
-     * In reverse: true, index 0 is the bottom.
-     * messages[0] is the newest message.
+     * KEEP YOUR ORIGINAL ORDERING.
+     *
+     * Do not change this unless ChatHistoryNotifier itself changes.
      */
-    final messages = allMessages.where((m) => !m.isHidden).toList();
+    final messages = allMessages.where((m) => !m.isHidden).toList().reversed.toList();
 
     final isStreaming = context.select<ChatComposerNotifier, bool>((n) => n.isStreaming);
 
@@ -534,30 +987,29 @@ class _MessageSliverListState extends State<_MessageSliverList> {
         (ctx, i) {
           final msg = messages[i];
 
-          // In reverse: true, messages[i+1] is rendered ABOVE messages[i]
-          // Wait, no. index i is BELOW index i+1.
-          // So messages[i+1] is physically above messages[i].
-          // messages[i+1] is OLDER than messages[i].
-          final olderMsg = i < messages.length - 1 ? messages[i + 1] : null;
+          final prevMsg = i > 0 ? messages[i - 1] : null;
 
           var showDateHeader = false;
 
-          if (olderMsg == null) {
+          if (prevMsg == null) {
             showDateHeader = true;
           } else {
             final d1 = DateTime(msg.createdAt.year, msg.createdAt.month, msg.createdAt.day);
-            final d2 = DateTime(olderMsg.createdAt.year, olderMsg.createdAt.month, olderMsg.createdAt.day);
+
+            final d2 = DateTime(prevMsg.createdAt.year, prevMsg.createdAt.month, prevMsg.createdAt.day);
 
             if (d1 != d2) {
               showDateHeader = true;
             }
           }
 
-          final showAvatar = msg.role == 'ai' && (olderMsg == null || olderMsg.role != 'ai' || showDateHeader);
+          final showAvatar = msg.role == 'ai' && (prevMsg == null || prevMsg.role != 'ai' || showDateHeader);
 
           final isLatestAi = i == latestAiIndex;
 
-          final messageKey = ValueKey(msg.localId);
+          final isLatestUser = msg.localId == screenState._latestUserMsgId;
+
+          final messageKey = isLatestUser ? screenState._latestUserMsgKey : ValueKey(msg.localId);
 
           return KeyedSubtree(
             key: messageKey,
@@ -621,8 +1073,24 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                       onSeeMoreSwaps: () => composerNotifier.handleSeeMoreSwaps(msg.text, i),
                       onViewFullReport: msg.scanData != null
                           ? () {
-                              final result = msg.scanData!;
-                              unawaited(context.push(result.detailRoute, extra: ScanResultArgs(scanData: result)));
+                              final scan = msg.scanData!;
+                              final cat = scan.category?.toLowerCase() ?? '';
+                              final src = scan.source?.toLowerCase() ?? '';
+                              final name = scan.productName.toLowerCase();
+
+                              // 🚀 Smart Routing: Select screen based on scan type
+                              if (cat == 'menu' || src == 'menu' || name.contains('menu')) {
+                                if (msg.mealLogs.isNotEmpty) {
+                                  unawaited(context.push(AppRoutes.mealDetail, extra: msg.mealLogs.first));
+                                } else {
+                                  // Fallback to menu result if no structured meal log is attached
+                                  unawaited(context.push(AppRoutes.menuResult, extra: ScanResultArgs(scanData: scan)));
+                                }
+                              } else if (cat == 'label' || src == 'label' || name.contains('label') || name.contains('ingredients')) {
+                                unawaited(context.push(AppRoutes.labelResult, extra: ScanResultArgs(scanData: scan)));
+                              } else {
+                                unawaited(context.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: scan)));
+                              }
                             }
                           : null,
                     ),
@@ -649,7 +1117,7 @@ class _MessageSliverListState extends State<_MessageSliverList> {
   }
 
   int _latestAiIndex(List<ChatMessage> messages) {
-    for (var i = 0; i < messages.length; i++) {
+    for (var i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role == 'ai') {
         return i;
       }
@@ -689,9 +1157,9 @@ class _ChatComposer extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.cardBackground,
-        border: Border(top: BorderSide(color: colorScheme.borderSubtle)),
+        border: Border(top: BorderSide(color: colorScheme.border.withValues(alpha: 0.5))),
       ),
-      padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
+      padding: EdgeInsets.fromLTRB(0, AppSizes.p12, 0, MediaQuery.paddingOf(context).bottom + AppSizes.p12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -717,7 +1185,7 @@ class _ChatComposer extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: colorScheme.elevatedSurface,
                       borderRadius: BorderRadius.circular(AppSizes.r20),
-                      border: Border.all(color: colorScheme.border.withAlpha(204)),
+                      border: Border.all(color: colorScheme.border.withValues(alpha: 0.8)),
                     ),
                     child: Row(
                       children: [

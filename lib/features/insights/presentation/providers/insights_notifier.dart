@@ -14,13 +14,7 @@ import 'package:gutgood/features/insights/domain/usecases/generate_insight_useca
 import 'package:rxdart/rxdart.dart';
 
 class InsightsNotifier with ChangeNotifier {
-  InsightsNotifier(
-    this._repository,
-    this._appStateService,
-    this._authRepository,
-    this._analyticsService,
-    this._generateInsightUseCase,
-  ) {
+  InsightsNotifier(this._repository, this._appStateService, this._authRepository, this._analyticsService, this._generateInsightUseCase) {
     _initDashboardStream();
     _appStateService.chatUpdated.addListener(_onDataUpdated);
     _appStateService.profileUpdated.addListener(_onDataUpdated);
@@ -64,7 +58,29 @@ class InsightsNotifier with ChangeNotifier {
           (newState) {
             final oldInsight = _state.latestInsight;
             _state = newState;
-            
+
+            debugPrint('--- InsightsNotifier: New State Received ---');
+            debugPrint('Total Meals: ${_state.totalMeals}');
+            debugPrint('Total Symptoms: ${_state.totalSymptoms}');
+            debugPrint('Total Scans: ${_state.totalScans}');
+            debugPrint('Latest Insight Firestore ID: ${_state.latestInsight?.firestoreId}');
+            if (_state.latestInsight != null) {
+              debugPrint('Insight Gut Score: ${_state.latestInsight!.gutScore}');
+              debugPrint('Insight Healing Foods: ${_state.latestInsight!.healingFoods.length}');
+              debugPrint('Insight Trigger Foods: ${_state.latestInsight!.triggerFoods.length}');
+              debugPrint('Insight Detected Patterns: ${_state.latestInsight!.detectedPatterns.length}');
+            }
+            debugPrint('Global Body Patterns Count: ${_state.patterns.length}');
+            if (_state.patterns.isNotEmpty) {
+              for (var i = 0; i < _state.patterns.length; i++) {
+                final p = _state.patterns[i];
+                debugPrint('Global Pattern [$i]: ${p.trigger} -> ${p.type} (${p.confidence})');
+              }
+            }
+            debugPrint('Health Alerts Count: ${_state.alerts.length}');
+            debugPrint('Is Sufficient for generation: $isSufficient');
+            debugPrint('--------------------------------------------');
+
             _appStateService.setInsightsData(_state.latestInsight);
 
             // 🟢 Fix: Only auto-generate if we have enough data to actually succeed
@@ -90,10 +106,7 @@ class InsightsNotifier with ChangeNotifier {
   Future<void> _fetchHistory() async {
     try {
       _insightHistory = await _repository.getInsightHistory();
-      await _analyticsService.logEvent(
-        name: 'insight_history_viewed',
-        parameters: {'count': _insightHistory.length},
-      );
+      await _analyticsService.logEvent(name: 'insight_history_viewed', parameters: {'count': _insightHistory.length});
       notifyListeners();
     } catch (e) {
       AppLogger.error('InsightsNotifier: Failed to fetch history', error: e);
@@ -109,7 +122,7 @@ class InsightsNotifier with ChangeNotifier {
   List<BodyPattern> get prioritizedPatterns {
     final seenKeys = <String>{};
     final uniquePatterns = <BodyPattern>[];
-    
+
     final sorted = [..._state.patterns]
       ..sort((a, b) {
         // 1. Evidence Ratio (Impact Probability)
@@ -143,31 +156,24 @@ class InsightsNotifier with ChangeNotifier {
   int get totalSymptoms => _state.totalSymptoms;
   int get totalScans => _state.totalScans;
 
-  bool get isSufficient =>
-      _state.totalScans >= 3 || (_state.totalMeals >= 3 && _state.totalSymptoms >= 1);
+  bool get isSufficient => _state.totalScans >= 3 || (_state.totalMeals >= 3 && _state.totalSymptoms >= 1);
 
   bool get isLoading => _isLoading;
   bool get isGenerating => _isGenerating;
 
   Future<void> markAllAlertsAsRead() async {
-    final unreadIds =
-        _state.alerts.where((a) => !a.isRead).map((a) => a.id).toList();
+    final unreadIds = _state.alerts.where((a) => !a.isRead).map((a) => a.id).toList();
     if (unreadIds.isEmpty) return;
 
     // Local optimistic update
-    final updatedAlerts = _state.alerts
-        .map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a)
-        .toList();
+    final updatedAlerts = _state.alerts.map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a).toList();
     _state = _state.copyWith(alerts: updatedAlerts);
     notifyListeners();
 
     try {
       await _repository.markAlertsAsRead(unreadIds);
     } catch (e) {
-      AppLogger.error(
-        'InsightsNotifier: Error marking alerts as read',
-        error: e,
-      );
+      AppLogger.error('InsightsNotifier: Error marking alerts as read', error: e);
     }
   }
 
@@ -185,11 +191,7 @@ class InsightsNotifier with ChangeNotifier {
     _generationDebounce?.cancel();
     _generationDebounce = Timer(const Duration(seconds: 5), () {
       generateNewInsight().catchError((e, st) {
-        AppLogger.error(
-          'InsightsNotifier: background generation failed',
-          error: e,
-          stackTrace: st,
-        );
+        AppLogger.error('InsightsNotifier: background generation failed', error: e, stackTrace: st);
       });
     });
   }
@@ -199,10 +201,14 @@ class InsightsNotifier with ChangeNotifier {
     _isGenerating = true;
     notifyListeners();
 
+    debugPrint('--- InsightsNotifier: Generation Started ---');
     await _analyticsService.logEvent(name: 'insight_generation_requested');
 
     try {
       await _generateInsightUseCase.execute();
+      debugPrint('--- InsightsNotifier: Generation Successful ---');
+    } catch (e) {
+      debugPrint('--- InsightsNotifier: Generation FAILED: $e ---');
     } finally {
       _isGenerating = false;
       notifyListeners();

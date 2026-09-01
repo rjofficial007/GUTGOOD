@@ -106,6 +106,7 @@ class AppSizes {
 class Gap {
   const Gap._();
 
+  static Widget get w2 => SizedBox(width: 2.0.w);
   static Widget get w4 => SizedBox(width: 4.0.w);
   static Widget get w6 => SizedBox(width: 6.0.w);
   static Widget get w8 => SizedBox(width: 8.0.w);

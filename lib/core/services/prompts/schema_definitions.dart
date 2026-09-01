@@ -65,7 +65,17 @@ class SchemaDefinitions {
 $ingredientSchema
     ],
     "impact": "narrative summary",
-    "cycleInsight": null
+    "cycleInsight": {
+      "phase": "string",
+      "description": "string",
+      "tags": [
+        {
+          "text": "string",
+          "icon": "zap|leaf|sparkle|activity",
+          "color": "string"
+        }
+      ]
+    }
   },
   "menu": {
     "restaurantName": "string|null",

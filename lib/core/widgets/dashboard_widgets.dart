@@ -68,13 +68,7 @@ class DashboardCard extends StatelessWidget {
         color: scheme.cardBackground,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: scheme.borderSubtle),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.surfaceSubtle,
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: scheme.surfaceSubtle, blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -137,16 +131,8 @@ class DashboardDetailItem extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title.toUpperCase(),
-                style: context.labelBold.copyWith(height: 1.1),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                subtitle,
-                style: context.caption.copyWith(color: context.appColorScheme.textMuted, height: 1.1),
-              ),
+              Text(title.toUpperCase(), style: context.labelBold.copyWith(height: 1.1), maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(subtitle, style: context.caption.copyWith(color: context.appColorScheme.textMuted, height: 1.1)),
             ],
           ),
         ),
@@ -183,10 +169,7 @@ class GutDashboardSection extends StatelessWidget {
                   title.toUpperCase(),
                   style: context.headingSm.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1, color: titleColor ?? context.appColorScheme.textPrimary),
                 ),
-                Text(
-                  subtitle.toUpperCase(),
-                  style: context.caption.copyWith(color: context.appColorScheme.textMuted),
-                ),
+                Text(subtitle.toUpperCase(), style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
                 Gap.h24,
                 visualization,
               ],
@@ -211,10 +194,7 @@ class DashboardVisualizationBar extends StatelessWidget {
     children: [
       GutProgressBar(ratio: ratio),
       Gap.h12,
-      Text(
-        label,
-        style: context.caption.copyWith(color: context.appColorScheme.textMuted),
-      ),
+      Text(label, style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
     ],
   );
 }
@@ -311,10 +291,7 @@ class SheetHeroSection extends StatelessWidget {
         child: Icon(icon, color: context.appColorScheme.textPrimary, size: 40.0.w),
       ),
       Gap.h16,
-      Text(
-        title,
-        style: context.displaySm.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1),
-      ),
+      Text(title, style: context.displaySm.copyWith(fontWeight: FontWeight.w900, letterSpacing: -1)),
       Text(subtitle, style: context.eyebrow.copyWith(color: context.appColorScheme.textMuted)),
     ],
   );

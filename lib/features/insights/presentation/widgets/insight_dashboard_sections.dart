@@ -109,10 +109,6 @@ class InsightMetricGrid extends StatelessWidget {
       ),
       Gap.w12,
       Expanded(
-        child: SmallInsightMetricCard(label: 'Logs', value: '${notifier?.totalMeals ?? data.foodImpacts.length}', unit: 'TOTAL', icon: AppIcons.history, accentColor: AppPalette.blue),
-      ),
-      Gap.w12,
-      Expanded(
         child: SmallInsightMetricCard(label: 'Patterns', value: '${data.detectedPatterns.length}', unit: 'ACTIVE', icon: AppIcons.brain, accentColor: AppPalette.purple),
       ),
       Gap.w12,
@@ -134,34 +130,69 @@ class SmallInsightMetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Adaptive Theme Colors (Mirroring PhysicalGoalCard)
+    final cardBg = isDark ? AppPalette.darkCard : accentColor.withAlpha(15);
+    final cardBorder = isDark ? AppPalette.white.withAlpha(20) : accentColor.withAlpha(30);
+    final unitColor = isDark ? AppPalette.white.withAlpha(153) : scheme.textSecondary;
+    final labelColor = isDark ? AppPalette.white.withAlpha(102) : scheme.textMuted;
+
     return BentoCard(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      padding: EdgeInsets.zero,
+      height: 120.h,
+      backgroundColor: cardBg,
+      borderColor: cardBorder,
       borderRadius: 20,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: accentColor.withAlpha(20), shape: BoxShape.circle),
-            child: Icon(icon, size: 12.sp, color: accentColor),
-          ),
-          Gap.h8,
-          Text(
-            label.toUpperCase(),
-            style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 7.5.sp, letterSpacing: 0.5),
-          ),
-          Gap.h4,
-          Text(
-            value,
-            style: context.headingSm.copyWith(fontWeight: FontWeight.w900, color: scheme.textPrimary, fontSize: 16.sp, height: 1),
-          ),
-          Gap.h2,
-          Text(
-            unit,
-            style: context.captionMicro.copyWith(color: scheme.textMuted, fontWeight: FontWeight.bold, fontSize: 6.sp),
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            // 🌊 Large Icon with Liquid Fill effect
+            Positioned(
+              right: -10,
+              bottom: -15,
+              child: Opacity(
+                opacity: isDark ? 0.6 : 0.3,
+                child: ShaderMask(
+                  blendMode: BlendMode.srcIn,
+                  shaderCallback: (rect) => LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [accentColor, accentColor, accentColor.withAlpha(isDark ? 40 : 80), accentColor.withAlpha(isDark ? 40 : 80)],
+                    stops: const [0.0, 0.65, 0.65, 1.0],
+                  ).createShader(rect),
+                  child: Icon(icon, size: 80.h),
+                ),
+              ),
+            ),
+
+            // 📝 Content
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: context.displayHero.copyWith(color: accentColor, fontSize: 24.sp, letterSpacing: -1, fontWeight: FontWeight.w900, height: 1),
+                  ),
+                  Text(
+                    unit.toUpperCase(),
+                    style: context.captionBold.copyWith(color: unitColor, fontSize: 8.sp, letterSpacing: 0.5),
+                  ),
+                  const Spacer(),
+                  Text(
+                    label.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.captionMicro.copyWith(color: labelColor, fontWeight: FontWeight.w900, fontSize: 7.sp, letterSpacing: 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
 class ProductNotFoundScreen extends StatelessWidget {
@@ -72,35 +73,41 @@ class _ContributeSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.appColorScheme;
-    return Container(
-      padding: EdgeInsets.all(AppSizes.p20),
-      decoration: BoxDecoration(
-        color: colorScheme.successSubtle,
-        borderRadius: BorderRadius.circular(AppSizes.r20),
-        border: Border.all(color: colorScheme.success.withAlpha(26)),
-      ),
-      child: Column(
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SheetSectionHeader(title: 'Help us out', color: Colors.transparent),
+        Container(
+          padding: EdgeInsets.all(AppSizes.p20),
+          decoration: BoxDecoration(
+            color: colorScheme.successSubtle,
+            borderRadius: BorderRadius.circular(AppSizes.r20),
+            border: Border.all(color: colorScheme.success.withAlpha(26)),
+          ),
+          child: Column(
             children: [
-              Icon(AppIcons.sparkles, color: colorScheme.success, size: AppSizes.icon20),
-              Gap.w12,
-              Expanded(
-                child: Text(AppStrings.beAContributor, style: context.labelBold.copyWith(color: colorScheme.success)),
+              Row(
+                children: [
+                  Icon(AppIcons.sparkles, color: colorScheme.success, size: AppSizes.icon20),
+                  Gap.w12,
+                  Expanded(
+                    child: Text(AppStrings.beAContributor, style: context.labelBold.copyWith(color: colorScheme.success)),
+                  ),
+                ],
+              ),
+              Gap.h8,
+              Text(AppStrings.contributorSubtitle, style: context.label.copyWith(color: colorScheme.success.withAlpha(204))),
+              Gap.h16,
+              _ContributeButton(
+                label: AppStrings.takePhotosAndAdd,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.contributionComingSoon)));
+                },
               ),
             ],
           ),
-          Gap.h8,
-          Text(AppStrings.contributorSubtitle, style: context.label.copyWith(color: colorScheme.success.withAlpha(204))),
-          Gap.h16,
-          _ContributeButton(
-            label: AppStrings.takePhotosAndAdd,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.contributionComingSoon)));
-            },
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -110,7 +117,9 @@ class _ActionsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
+      const SheetSectionHeader(title: 'What now', color: Colors.transparent),
       _OptionTile(icon: AppIcons.sparkles, title: AppStrings.analyzeWithAi, subtitle: AppStrings.analyzeWithAiSubtitle, onTap: () => context.pop('TRIGGER_CAMERA')),
       Gap.h12,
       _OptionTile(icon: AppIcons.refreshCw, title: AppStrings.tryAgain, subtitle: AppStrings.rescanBarcode, onTap: () => context.pop()),
