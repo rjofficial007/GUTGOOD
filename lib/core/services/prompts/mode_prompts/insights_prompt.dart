@@ -77,7 +77,7 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
       ]
     }
   ],
-  "foodImpacts": [{"food": "string", "dateLabel": "string", "effect": "string", "timeframeLabel": "string", "emoji": "string", "impactType": "positive|negative"}],
+  "foodImpacts": [{"food": "string", "dateLabel": "string", "effect": "string", "timeframeLabel": "string", "emoji": "string", "impactType": "positive|negative", "imageUrl": "string (URL)"}],
   "weeklyRecap": {
     "dateRange": "string",
     "avgScore": 0,

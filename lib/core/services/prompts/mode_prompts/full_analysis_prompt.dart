@@ -61,7 +61,7 @@ STRUCTURE (MANDATORY ORDER):
    - scan.category: Use "meal".
    - scan.score: Calculate the GutGood 0-100 score.
    
-   Also populate the "meal" object for the daily journal and "swaps" if recommended.
+   Also populate the "meal" object for the daily journal, "swaps" if recommended, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
 The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
 

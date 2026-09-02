@@ -10,7 +10,7 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 
-enum HistoryFilter { all, scans, meals, body }
+enum HistoryFilter { all, scans, body }
 
 class HistoryNotifier with ChangeNotifier {
   HistoryNotifier({required HistoryRepository repository, required AppStateService appStateService, required FirebaseAuth auth})
@@ -129,7 +129,7 @@ class HistoryNotifier with ChangeNotifier {
       }
     }
 
-    if (_currentFilter == HistoryFilter.all || _currentFilter == HistoryFilter.meals) {
+    if (_currentFilter == HistoryFilter.all) {
       for (final m in _meals) {
         final id = m.firestoreId ?? m.id?.toString() ?? 'meal_${m.createdAt.millisecondsSinceEpoch}';
         entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.meal, createdAt: m.createdAt, meal: m);
@@ -144,8 +144,8 @@ class HistoryNotifier with ChangeNotifier {
     }
 
     final allEntries = entriesMap.values.toList()
-    // Sort chronologically (Newest first)
-    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      // Sort chronologically (Newest first)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return allEntries;
   }

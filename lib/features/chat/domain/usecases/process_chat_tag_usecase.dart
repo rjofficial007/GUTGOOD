@@ -29,6 +29,8 @@ class ProcessChatTagUseCase {
     const endTag = '[/$unifiedTag]';
 
     final tagIndex = lowerText.indexOf(startTag);
+    Map<String, dynamic>? decoded;
+
     if (tagIndex != -1) {
       final endTagIndex = lowerText.indexOf(endTag, tagIndex + startTag.length);
       final isClosed = endTagIndex != -1;
@@ -37,61 +39,81 @@ class ProcessChatTagUseCase {
       try {
         final jsonStr = ModelUtils.extractJson(content);
         if (jsonStr != null) {
-          final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
-
-          intent = decoded['intent']?.toString();
-          imageMode = decoded['image_mode']?.toString();
-
-          if (decoded['scan'] != null && decoded['scan'] is Map<String, dynamic>) {
-            final scanMap = Map<String, dynamic>.from(decoded['scan']);
-            if (decoded['menu'] != null) {
-              scanMap['menu'] = decoded['menu'];
-            }
-            // 🚀 Professional ID Mapping: Ensure the scanId used in Firestore (convention: msgId_scan)
-            // is attached to the model so hydration works correctly when viewing full reports.
-            // We also pass 'decoded' as rawData so all context (meal strategy, etc.) is preserved.
-            scanData = ScanResult.fromMap(
-              scanMap,
-            ).copyWith(source: imageMode ?? source, userImageUrl: imageUrl, chatMessageId: chatMessageId, scanId: chatMessageId != null ? '${chatMessageId}_scan' : null, rawData: decoded);
-          }
-
-          if (decoded['menu'] != null && decoded['menu'] is Map<String, dynamic>) {
-            menuData = decoded['menu'];
-          } else if (intent == 'menu_analysis' || source == 'menu') {
-            // Support unified format where menu items are in 'scan' and strategy is in 'meal'
-            menuData = decoded;
-          }
-
-          if (decoded['meal'] != null && decoded['meal'] is Map<String, dynamic>) {
-            // 🚀 Unified Data Strategy: If we have a 'scan' block, we treat the 'meal' info
-            // as part of the scan's rich context (rawData) rather than a separate loggable entity.
-            // This prevents duplicate entries in the journal history.
-            if (scanData == null) {
-              mealLog = MealLog.fromMap({...decoded['meal'], 'photoUrl': imageUrl, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
-            }
-          }
-
-          if (decoded['symptoms'] != null && decoded['symptoms'] is List) {
-            for (final s in decoded['symptoms']) {
-              if (s is Map<String, dynamic>) {
-                symptomLogs.add(SymptomLog.fromMap({...s, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat'));
-              } else if (s != null && s is String && s.isNotEmpty) {
-                // 🚀 Robust Fallback: Handle cases where AI returns a simple string list instead of objects
-                symptomLogs.add(SymptomLog(symptom: s, chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
-              }
-            }
-          }
-
-          if (decoded['swaps'] != null && decoded['swaps'] is List) {
-            swapsList = ModelUtils.parseModelList<ProductSwap>(decoded['swaps'], ProductSwap.fromMap);
-          }
-
-          if (decoded['metadata'] != null && decoded['metadata'] is Map<String, dynamic>) {
-            metadata.addAll(decoded['metadata']);
-          }
+          decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
         }
       } catch (e) {
         if (isFinal) AppLogger.warning('ProcessChatTagUseCase: Failed to parse unified data', error: e);
+      }
+    } else {
+      // 🚀 ROBUST FALLBACK: If no tags are found, attempt to parse the entire text as JSON.
+      // This handles cases where the AI is forced into JSON mode or ignores instructions.
+      try {
+        final jsonStr = ModelUtils.extractJson(text);
+        if (jsonStr != null) {
+          final rawDecoded = jsonDecode(jsonStr);
+          if (rawDecoded is Map<String, dynamic>) {
+            // Check if it's a flat scan object or a unified block
+            if (rawDecoded.containsKey('scan') || rawDecoded.containsKey('intent')) {
+              decoded = rawDecoded;
+            } else if (rawDecoded.containsKey('productName') || rawDecoded.containsKey('score')) {
+              // It's a flat scan object, wrap it for unified processing
+              decoded = {'scan': rawDecoded};
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (decoded != null) {
+      intent = decoded['intent']?.toString();
+      imageMode = decoded['image_mode']?.toString();
+
+      if (decoded['scan'] != null && decoded['scan'] is Map<String, dynamic>) {
+        final scanMap = Map<String, dynamic>.from(decoded['scan']);
+        if (decoded['menu'] != null) {
+          scanMap['menu'] = decoded['menu'];
+        }
+        // 🚀 Professional ID Mapping: Ensure the scanId used in Firestore (convention: msgId_scan)
+        // is attached to the model so hydration works correctly when viewing full reports.
+        // We also pass 'decoded' as rawData so all context (meal strategy, etc.) is preserved.
+        scanData = ScanResult.fromMap(
+          scanMap,
+        ).copyWith(source: imageMode ?? source, userImageUrl: imageUrl, chatMessageId: chatMessageId, scanId: chatMessageId != null ? '${chatMessageId}_scan' : null, rawData: decoded);
+      }
+
+      if (decoded['menu'] != null && decoded['menu'] is Map<String, dynamic>) {
+        menuData = decoded['menu'];
+      } else if (intent == 'menu_analysis' || source == 'menu') {
+        // Support unified format where menu items are in 'scan' and strategy is in 'meal'
+        menuData = decoded;
+      }
+
+      if (decoded['meal'] != null && decoded['meal'] is Map<String, dynamic>) {
+        // 🚀 Unified Data Strategy: If we have a 'scan' block, we treat the 'meal' info
+        // as part of the scan's rich context (rawData) rather than a separate loggable entity.
+        // This prevents duplicate entries in the journal history.
+        if (scanData == null) {
+          mealLog = MealLog.fromMap({...decoded['meal'], 'photoUrl': imageUrl, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
+        }
+      }
+
+      if (decoded['symptoms'] != null && decoded['symptoms'] is List) {
+        for (final s in decoded['symptoms']) {
+          if (s is Map<String, dynamic>) {
+            symptomLogs.add(SymptomLog.fromMap({...s, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat'));
+          } else if (s != null && s is String && s.isNotEmpty) {
+            // 🚀 Robust Fallback: Handle cases where AI returns a simple string list instead of objects
+            symptomLogs.add(SymptomLog(symptom: s, chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+          }
+        }
+      }
+
+      if (decoded['swaps'] != null && decoded['swaps'] is List) {
+        swapsList = ModelUtils.parseModelList<ProductSwap>(decoded['swaps'], ProductSwap.fromMap);
+      }
+
+      if (decoded['metadata'] != null && decoded['metadata'] is Map<String, dynamic>) {
+        metadata.addAll(decoded['metadata']);
       }
     }
 

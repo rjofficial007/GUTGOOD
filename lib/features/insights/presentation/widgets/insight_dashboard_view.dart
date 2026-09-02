@@ -12,10 +12,8 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/insight_ui_utils.dart';
-import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/gut_action_banner.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/insights/presentation/widgets/modern_gut_score_card.dart';
@@ -52,194 +50,78 @@ class InsightDashboardSliver extends StatelessWidget {
 
     return SliverToBoxAdapter(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+        padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Snapshot Hero (Modern Premium Style)
+            // Health Wallet Hero
             DashboardEntrance(
               delay: 50,
               child: ModernGutScoreCard(
+                description: data.topInsight?.description ?? '',
                 score: data.gutScore,
                 scoreDiff: data.scoreDiff,
+                showDetails: !isHistorical,
                 onTap: isHistorical
                     ? () {}
                     : () async {
-                        if (await QuotaGuard.check(context, type: QuotaType.premium)) {
-                          if (context.mounted) {
-                            unawaited(context.push(AppRoutes.weeklyRecap, extra: data));
-                          }
+                        if (context.mounted) {
+                          unawaited(context.push(AppRoutes.smartInsightDetail, extra: data.topInsight!));
                         }
                       },
               ),
             ),
-            Gap.h12,
 
-            // 2. Metrics Quick View
+            Gap.h16,
+
+            // Quick Metrics
             DashboardEntrance(
               delay: 100,
               child: InsightMetricGrid(data: data, notifier: notifier, streak: streak),
             ),
-            Gap.h12,
+            Gap.h16,
 
-            // 3. Strategic Summary (Redesigned Target & Watch List)
-            if (data.healingGoal != null || data.triggerSymptom != null)
+            if (data.healingGoal != null || data.triggerSymptom != null) ...[
               DashboardEntrance(
-                delay: 150,
-                child: Row(
+                delay: 180,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (data.healingGoal != null)
-                      Expanded(
-                        child: PhysicalGoalCard(
-                          title: data.healingGoal!.toUpperCase(),
-                          subtitle: 'CURRENT GOAL',
-                          label: AppStrings.primaryHealingObjective,
-                          icon: AppIcons.target,
-                          color: AppPalette.blue,
-                          progress: 0.50,
-                        ),
+                      PhysicalGoalCard(
+                        title: data.healingGoal!.toUpperCase(),
+                        subtitle: 'PRIMARY GOAL',
+                        label: AppStrings.primaryHealingObjective,
+                        icon: AppIcons.target,
+                        color: AppPalette.blue,
+                        progress: 0.50,
                       ),
-                    if (data.healingGoal != null && data.triggerSymptom != null) Gap.w12,
+                    if (data.healingGoal != null && data.triggerSymptom != null) Gap.h12,
                     if (data.triggerSymptom != null)
-                      Expanded(
-                        child: PhysicalGoalCard(
-                          title: data.triggerSymptom!.toUpperCase(),
-                          subtitle: 'WATCH LIST',
-                          label: AppStrings.symptomTrackedForPatterns,
-                          icon: AppIcons.activity,
-                          color: AppPalette.pink,
-                          progress: 0.45,
-                        ),
+                      PhysicalGoalCard(
+                        title: data.triggerSymptom!.toUpperCase(),
+                        subtitle: 'WATCH LIST',
+                        label: AppStrings.symptomTrackedForPatterns,
+                        icon: AppIcons.activity,
+                        color: AppPalette.pink,
+                        progress: 0.45,
                       ),
                   ],
                 ),
               ),
-            if (data.healingGoal != null || data.triggerSymptom != null) Gap.h12,
+              Gap.h16,
+            ],
 
-            // 4. Performance & Performance Highlights (Energy Section)
-            if (data.healingFoods.isNotEmpty || data.topHealing != null)
-              DashboardEntrance(
-                delay: 200,
-                child: BentoCard(
-                  padding: const EdgeInsets.all(12),
-                  height: 140.h,
-                  backgroundColor: AppPalette.greenPastel,
-                  child: Row(
-                    children: [
-                      // Left block: Healing Score/Count
-                      Container(
-                        width: 116.h,
-                        height: 116.h,
-                        decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
-                        child: Stack(
-                          children: [
-                            const Positioned(top: 10, left: 10, child: Icon(AppIcons.zap, size: 12, color: AppPalette.green)),
-                            Center(
-                              child: Text(
-                                '${data.healingFoods.length}',
-                                style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 56.sp, letterSpacing: -4),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 10,
-                              left: 10,
-                              right: 10,
-                              child: Text(
-                                'HEALING',
-                                textAlign: TextAlign.center,
-                                style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 8.sp),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Gap.w16,
-                      // Right info: Vertical Cycler
-                      Expanded(
-                        child: BentoFoodCycler(foods: data.healingFoods, title: AppStrings.betterEnergy, trend: data.healingTrend, isPositive: true),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            if (data.healingFoods.isNotEmpty || data.topHealing != null) Gap.h12,
+            if (data.healingFoods.isNotEmpty || data.triggerFoods.isNotEmpty) ...[
+              if (data.healingFoods.isNotEmpty) ...[BentoFoodCard(title: 'HEALING', foods: data.healingFoods, isPositive: true, icon: AppIcons.zap, trend: data.healingTrend), Gap.h12],
+              if (data.triggerFoods.isNotEmpty) ...[BentoFoodCard(title: 'TRIGGERS', foods: data.triggerFoods, isPositive: false, icon: AppIcons.alertTriangle, trend: data.triggerTrend), Gap.h12],
+              Gap.h4,
+            ],
 
-            // 4b. Potential Triggers Section
-            if (data.triggerFoods.isNotEmpty || data.topTrigger != null)
-              DashboardEntrance(
-                delay: 220,
-                child: BentoCard(
-                  padding: const EdgeInsets.all(12),
-                  height: 140.h,
-                  backgroundColor: context.appColorScheme.errorSubtle,
-                  child: Row(
-                    children: [
-                      // Left block: Trigger Count
-                      Container(
-                        width: 116.h,
-                        height: 116.h,
-                        decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
-                        child: Stack(
-                          children: [
-                            const Positioned(top: 10, left: 10, child: Icon(AppIcons.alertTriangle, size: 12, color: AppPalette.red)),
-                            Center(
-                              child: Text(
-                                '${data.triggerFoods.length}',
-                                style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 56.sp, letterSpacing: -4),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 10,
-                              left: 10,
-                              right: 10,
-                              child: Text(
-                                'TRIGGERS',
-                                textAlign: TextAlign.center,
-                                style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 8.sp),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Gap.w16,
-                      // Right info
-                      Expanded(
-                        child: BentoFoodCycler(foods: data.triggerFoods, title: AppStrings.bloating, trend: data.triggerTrend, isPositive: false),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            if (data.triggerFoods.isNotEmpty || data.topTrigger != null) Gap.h12,
+            if (displayPatterns.isNotEmpty) ...[..._buildPatternCards(context, displayPatterns)],
 
-            // 5. Individual Pattern Discoveries (Identity cards style)
-            ..._buildPatternCards(context, displayPatterns),
-
-            // 6. Recent Body Feedback (Bento Cycler)
-            if (data.foodImpacts.isNotEmpty) ...[BentoActivityCard(impacts: data.foodImpacts), Gap.h12],
-
-            // 7. AI Intelligence Card
-            if (data.topInsight != null) ...[DashboardEntrance(delay: 450, child: ModernSmartAlert(insight: data.topInsight!)), Gap.h24],
-
-            // 8. Action Banner
-            DashboardEntrance(
-              delay: 500,
-              child: GutActionBanner(
-                title: AppStrings.weeklySnapshot.toUpperCase(),
-                subtitle: AppStrings.last7DaysReady,
-                icon: AppIcons.salad,
-                backgroundColor: context.appColorScheme.textPrimary,
-                iconColor: context.appColorScheme.cardBackground,
-                onTap: () async {
-                  if (await QuotaGuard.check(context, type: QuotaType.premium)) {
-                    if (context.mounted) {
-                      unawaited(context.push(AppRoutes.weeklyRecap, extra: data));
-                    }
-                  }
-                },
-              ),
-            ),
-            Gap.h40,
+            if (data.foodImpacts.isNotEmpty) ...[BentoActivityCard(impacts: data.foodImpacts), Gap.h24],
           ],
         ),
       ),
@@ -250,6 +132,7 @@ class InsightDashboardSliver extends StatelessWidget {
     if (patterns.isEmpty) return [];
     final widgets = <Widget>[];
     final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Deduplicate patterns
     final seenPatterns = <String>{};
@@ -262,6 +145,8 @@ class InsightDashboardSliver extends StatelessWidget {
       }
     }
 
+    // 🏆 Dynamic Layout: First pattern is a "Hero Discovery" (Full width),
+    // others can be side-by-side or stylized differently.
     for (var i = 0; i < uniquePatterns.length; i++) {
       final p = uniquePatterns[i];
       final themeColor = InsightUiUtils.getPatternPastelColor(p.type);
@@ -276,25 +161,21 @@ class InsightDashboardSliver extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSizes.r24),
               child: BentoCard(
                 padding: const EdgeInsets.all(12),
-                height: 140.h,
-                backgroundColor: themeColor,
+                height: 160.h,
+                backgroundColor: scheme.cardBackground,
                 child: Row(
                   children: [
                     // Left Panel: Identity block
                     Container(
-                      width: 116.h,
-                      height: 116.h,
-                      decoration: BoxDecoration(color: scheme.cardBackground.withAlpha(204), borderRadius: BorderRadius.circular(16)),
+                      width: 136.h,
+                      height: 136.h,
+                      decoration: BoxDecoration(
+                        color: themeColor.withAlpha(isDark ? 40 : 200),
+                        borderRadius: BorderRadius.circular(16),
+                        // boxShadow: [BoxShadow(color: accentColor.withAlpha(isDark ? 40 : 20), blurRadius: 10, offset: const Offset(0, 4))],
+                      ),
                       child: Stack(
                         children: [
-                          Positioned(
-                            top: 10,
-                            left: 10,
-                            child: Text(
-                              'AI DISCOVERY',
-                              style: context.captionMicro.copyWith(color: accentColor, fontWeight: FontWeight.w900),
-                            ),
-                          ),
                           Center(
                             child: Icon(InsightUiUtils.getPatternTypeIcon(p.type), size: 36.sp, color: accentColor),
                           ),
@@ -302,14 +183,10 @@ class InsightDashboardSliver extends StatelessWidget {
                             bottom: 8,
                             left: 12,
                             right: 12,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: accentColor.withAlpha(26), borderRadius: BorderRadius.circular(100)),
-                              child: Text(
-                                '${p.confidence.toUpperCase()} CONFIDENCE',
-                                textAlign: TextAlign.center,
-                                style: context.captionMicro.copyWith(color: accentColor, fontSize: 7.sp, fontWeight: FontWeight.w900),
-                              ),
+                            child: Text(
+                              '${p.confidence.toUpperCase()} CONFIDENCE',
+                              textAlign: TextAlign.center,
+                              style: context.captionMicro.copyWith(color: accentColor, fontSize: 7.sp, fontWeight: FontWeight.w900),
                             ),
                           ),
                         ],
@@ -324,26 +201,26 @@ class InsightDashboardSliver extends StatelessWidget {
                         children: [
                           Text(
                             InsightUiUtils.getPatternName(p.type).toUpperCase(),
-                            style: context.captionBold.copyWith(color: AppPalette.black.withAlpha(153), fontSize: 9.sp),
+                            style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 9.sp, letterSpacing: 1.1),
                           ),
                           Gap.h4,
                           Text(
                             p.trigger,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: context.bodyBold.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 16.sp, letterSpacing: -0.5),
+                            style: context.headingSm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 14.sp, letterSpacing: -0.5),
                           ),
                           Gap.h4,
                           Text(
                             p.description,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: context.caption.copyWith(color: AppPalette.black.withAlpha(178), height: 1.3),
+                            style: context.caption.copyWith(color: scheme.textMuted, height: 1.3, fontSize: 11.sp),
                           ),
                         ],
                       ),
                     ),
-                    Icon(AppIcons.chevronRight, color: AppPalette.black.withAlpha(102), size: 16),
+                    Icon(AppIcons.chevronRight, color: scheme.textMuted, size: 16),
                   ],
                 ),
               ),
@@ -357,7 +234,7 @@ class InsightDashboardSliver extends StatelessWidget {
 }
 
 class PhysicalGoalCard extends StatelessWidget {
-  const PhysicalGoalCard({super.key, required this.title, required this.subtitle, required this.label, required this.icon, required this.color, this.progress = 0.65});
+  const PhysicalGoalCard({super.key, required this.title, required this.subtitle, required this.label, required this.icon, required this.color, this.progress = 0.65, this.onTap});
 
   final String title;
   final String subtitle;
@@ -365,6 +242,7 @@ class PhysicalGoalCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final double progress;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -372,61 +250,113 @@ class PhysicalGoalCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Adaptive Theme Colors
-    final cardBg = isDark ? AppPalette.darkCard : color.withAlpha(15);
-    final cardBorder = isDark ? AppPalette.white.withAlpha(20) : color.withAlpha(30);
-    final subtitleColor = isDark ? AppPalette.white.withAlpha(153) : scheme.textSecondary;
+    final cardBg = isDark ? AppPalette.darkCard : scheme.cardBackground;
+    final cardBorder = isDark ? AppPalette.white.withAlpha(20) : scheme.borderSubtle;
     final labelColor = isDark ? AppPalette.white.withAlpha(102) : scheme.textMuted;
 
-    return BentoCard(
-      padding: EdgeInsets.zero,
-      height: 140.h,
-      backgroundColor: cardBg,
-      borderColor: cardBorder,
-      child: Stack(
-        children: [
-          // 🌊 Large Icon with Liquid Fill effect
-          Positioned(
-            right: -20,
-            bottom: -20,
-            child: Opacity(
-              opacity: isDark ? 0.8 : 0.4,
-              child: ShaderMask(
-                blendMode: BlendMode.srcIn,
-                shaderCallback: (rect) => LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [color, color, color.withAlpha(isDark ? 40 : 80), color.withAlpha(isDark ? 40 : 80)],
-                  stops: [0.0, progress, progress, 1.0],
-                ).createShader(rect),
-                child: Icon(icon, size: 140.h),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: BentoCard(
+        padding: EdgeInsets.zero,
+        height: 140.h,
+        width: double.maxFinite,
+        backgroundColor: cardBg,
+        borderColor: cardBorder,
+        child: Stack(
+          children: [
+            // 🌊 Large Icon with Liquid Fill effect
+            Positioned(
+              right: -20,
+              bottom: -20,
+              child: Opacity(
+                opacity: isDark ? 0.8 : 0.4,
+                child: Icon(icon, size: 100.h, color: color.withValues(alpha: 0.5)),
               ),
             ),
-          ),
 
-          // 📝 Content
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.displayHero.copyWith(color: color, fontSize: 20.sp, letterSpacing: -1, fontWeight: FontWeight.w900),
-                ),
-                Text(subtitle, style: context.captionBold.copyWith(color: subtitleColor)),
-                const Spacer(),
-                Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.captionMicro.copyWith(color: labelColor, fontWeight: FontWeight.w600, height: 1.2),
-                ),
-              ],
+            // 📝 Content
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    subtitle,
+                    style: context.captionBold.copyWith(color: color, letterSpacing: 1.2, fontSize: 8.sp),
+                  ),
+                  Gap.h2,
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.displaySm.copyWith(color: scheme.textPrimary, fontSize: 22.sp, letterSpacing: -1.2, fontWeight: FontWeight.w900, height: 1.1),
+                  ),
+                  const Spacer(),
+                  Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.bodySm.copyWith(color: labelColor, fontWeight: FontWeight.w500, height: 1.2, fontSize: 13.sp),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class IntelligencePulseCard extends StatelessWidget {
+  const IntelligencePulseCard({super.key, required this.title, required this.description, this.index = 1, this.onTap, this.accentColor = AppPalette.blue});
+
+  final String title;
+  final String description;
+  final int index;
+  final VoidCallback? onTap;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: double.maxFinite,
+        constraints: BoxConstraints(minHeight: 180.h),
+        decoration: BoxDecoration(
+          color: AppPalette.black,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppPalette.white.withAlpha(20)),
+          gradient: RadialGradient(center: Alignment.topRight, radius: 1.4, colors: [accentColor.withAlpha(isDark ? 100 : 160), AppPalette.black], stops: const [0.0, 0.7]),
+        ),
+        child: Stack(
+          children: [
+            // 📝 Content (Bottom)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    title.toUpperCase(),
+                    style: context.displaySm.copyWith(color: AppPalette.white, fontSize: 32.sp, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -1.5),
+                  ),
+                  Gap.h16,
+                  Text(
+                    description,
+                    style: context.bodySm.copyWith(color: AppPalette.white.withAlpha(180), height: 1.4, fontSize: 13.sp),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

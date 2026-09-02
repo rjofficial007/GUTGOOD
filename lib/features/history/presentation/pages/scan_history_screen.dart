@@ -42,8 +42,6 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
       final notifier = context.read<HistoryNotifier>();
       if (notifier.currentFilter == HistoryFilter.all || notifier.currentFilter == HistoryFilter.scans) {
         notifier.loadMoreScans();
-      } else if (notifier.currentFilter == HistoryFilter.meals) {
-        notifier.loadMoreMeals();
       } else if (notifier.currentFilter == HistoryFilter.body) {
         notifier.loadMoreSymptoms();
       }
@@ -158,10 +156,7 @@ class _TimelineBody extends StatelessWidget {
           children: [
             Padding(
               padding: EdgeInsets.only(left: AppSizes.p16, top: AppSizes.p24, bottom: AppSizes.p16),
-              child: Text(
-                key,
-                style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary),
-              ),
+              child: Text(key, style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary)),
             ),
             ...groupEntries.asMap().entries.map((e) {
               final entryIndex = e.key;

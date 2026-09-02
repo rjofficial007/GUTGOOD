@@ -12,6 +12,7 @@ import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:shimmer/shimmer.dart';
 
 class PatternDetailScreen extends StatelessWidget {
@@ -82,26 +83,34 @@ class _SmartAlertHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = context.appColorScheme;
-    final bgColor = isDark ? accentColor.withAlpha(40) : accentColor.withAlpha(80);
+    final cardBg = isDark ? AppPalette.black : scheme.textPrimary;
+    final contentColor = AppPalette.white;
     final icon = InsightUiUtils.getPatternTypeIcon(pattern.type);
     final timeLabel = pattern.occurrences.isNotEmpty ? pattern.occurrences.first.timeAfter : '~2 HRS';
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: accentColor.withAlpha(isDark ? 60 : 30)),
-        boxShadow: [BoxShadow(color: scheme.surfaceSubtle, blurRadius: 15, offset: const Offset(0, 8))],
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [bgColor, bgColor.withAlpha(isDark ? 20 : 10)]),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return BentoCard(
+      padding: EdgeInsets.zero,
+      backgroundColor: cardBg,
+      borderColor: contentColor.withAlpha(isDark ? 20 : 15),
+      showShadow: true,
+      child: Stack(
         children: [
-          // Left Content: Text
-          Expanded(
-            flex: 3,
+          // 🌈 Vibrant Corner Glow
+          Positioned(
+            right: -60,
+            top: -60,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [accentColor.withAlpha(isDark ? 160 : 140), accentColor.withAlpha(40), Colors.transparent], stops: const [0.0, 0.4, 1.0]),
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -109,19 +118,15 @@ class _SmartAlertHero extends StatelessWidget {
                 // Badge
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppPalette.white.withAlpha(isDark ? 30 : 255),
-                    borderRadius: BorderRadius.circular(100),
-                    boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 4, offset: const Offset(0, 2))],
-                  ),
+                  decoration: BoxDecoration(color: contentColor.withAlpha(20), borderRadius: BorderRadius.circular(100)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(AppIcons.sparkles, size: 10, color: accentColor),
+                      Icon(AppIcons.salad, size: 10, color: accentColor),
                       Gap.w4,
                       Text(
                         'SMART ALERT',
-                        style: context.captionBold.copyWith(color: accentColor, fontSize: 8.sp, letterSpacing: 0.5),
+                        style: context.captionBold.copyWith(color: contentColor, fontSize: 8.sp, letterSpacing: 1.5, fontWeight: FontWeight.w900),
                       ),
                     ],
                   ),
@@ -129,95 +134,58 @@ class _SmartAlertHero extends StatelessWidget {
                 Gap.h16,
                 // Title
                 Text(
-                  pattern.trigger,
-                  style: context.displayHero.copyWith(fontSize: 28.sp, height: 1.0, color: isDark ? AppPalette.white : AppPalette.black, fontWeight: FontWeight.w900, letterSpacing: -1),
+                  pattern.trigger.toUpperCase(),
+                  style: context.displayHero.copyWith(fontSize: 22.sp, height: 1.0, color: contentColor, fontWeight: FontWeight.w900, letterSpacing: -1),
                 ),
                 Row(
                   children: [
-                    Icon(Icons.arrow_forward_rounded, color: isDark ? AppPalette.white : AppPalette.black, size: 24.sp),
-                    Gap.w8,
+                    Icon(Icons.arrow_forward_rounded, color: accentColor, size: 18.sp),
+                    Gap.w4,
                     Expanded(
                       child: Text(
-                        pattern.reaction,
-                        style: context.displayHero.copyWith(fontSize: 28.sp, height: 1.1, color: accentColor, fontWeight: FontWeight.w900, letterSpacing: -1),
+                        pattern.reaction.toUpperCase(),
+                        style: context.displayHero.copyWith(fontSize: 22.sp, height: 1.1, color: accentColor, fontWeight: FontWeight.w900, letterSpacing: -1),
                       ),
                     ),
                   ],
                 ),
-                Gap.h8,
+                Gap.h12,
                 // Description
-                Text(
-                  pattern.description,
-                  style: context.body.copyWith(color: isDark ? AppPalette.white.withAlpha(180) : AppPalette.black.withAlpha(150), height: 1.3, fontSize: 12.sp),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.55),
+                  child: Text(
+                    pattern.description,
+                    style: context.bodySm.copyWith(color: contentColor.withAlpha(150), height: 1.4),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 Gap.h16,
-                // Pill
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppPalette.white.withAlpha(20) : AppPalette.white,
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: accentColor.withAlpha(50)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.bar_chart_rounded, size: 12, color: accentColor),
-                      Gap.w6,
-                      Text(
-                        '${pattern.confidence.toUpperCase()} STRENGTH • ${pattern.frequency} OCCURRENCES',
-                        style: context.captionBold.copyWith(color: accentColor, fontSize: 8.sp),
+                // Status / Confidence
+                Row(
+                  children: [
+                    Text(
+                      '${pattern.confidence.toUpperCase()} STRENGTH',
+                      style: context.headingSm.copyWith(color: accentColor, fontWeight: FontWeight.bold, fontSize: 14.sp),
+                    ),
+                    Gap.w6,
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: accentColor.withAlpha(100), blurRadius: 4)],
                       ),
-                    ],
-                  ),
+                    ),
+                    Gap.w6,
+                    Text(
+                      '${pattern.frequency} OCCURRENCES',
+                      style: context.captionBold.copyWith(color: contentColor.withAlpha(120), fontSize: 10.sp),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ),
-
-          Gap.w12,
-
-          // Right Content: Diagram
-          Expanded(
-            flex: 2,
-            child: SizedBox(
-              height: 180.h,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Dashed Line
-                  CustomPaint(
-                    size: Size(2, 120.h),
-                    painter: DashedLinePainter(color: accentColor.withAlpha(100)),
-                  ),
-
-                  // Top Circle (Trigger Image)
-                  Positioned(
-                    top: 0,
-                    child: _CircleVisual(imageUrl: getDynamicImageUrl(pattern.trigger), size: 64.h, borderColor: AppPalette.white),
-                  ),
-
-                  // Middle Time Bubble
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: accentColor,
-                      borderRadius: BorderRadius.circular(100),
-                      boxShadow: [BoxShadow(color: accentColor.withAlpha(60), blurRadius: 8)],
-                    ),
-                    child: Text(
-                      timeLabel.toUpperCase(),
-                      style: context.captionBold.copyWith(color: AppPalette.white, fontSize: 7.sp),
-                    ),
-                  ),
-
-                  // Bottom Circle (Reaction Icon/Graphic)
-                  Positioned(
-                    bottom: 0,
-                    child: _CircleVisual(icon: icon, accentColor: accentColor, size: 64.h, borderColor: AppPalette.white, isIcon: true),
-                  ),
-                ],
-              ),
             ),
           ),
         ],

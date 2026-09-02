@@ -6,7 +6,6 @@ import 'package:gutgood/core/services/prompts/mode_prompts/image_classification_
 import 'package:gutgood/core/services/prompts/mode_prompts/ingredients_label_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/insights_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/intent_detection_prompt.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/meal_overview_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_planning_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_rating_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_swaps_prompt.dart';
@@ -103,7 +102,7 @@ CRITICAL: YOUR RESPONSE IS NOT COMPLETE UNTIL YOU EMIT THE [GUTGOOD_DATA] BLOCK.
 - You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
 - If an image was attached: You MUST populate BOTH the "scan" and "meal" objects in the data block. You MUST ESTIMATE high-fidelity details (nutrients, ingredients, novaGroup) for meals to ensure the user's scan result screen is fully grounded in data.
 - If 'Current Cycle Phase' is provided and not 'Not specified': You MUST populate the 'cycleInsight' object within the 'scan' block to explain how this food interacts with the user's current hormonal phase.
-- If the user is reporting a symptom: You MUST populate the "symptoms" array.
+- If the user is reporting a symptom or current feeling (e.g., energetic, bloated, tired): You MUST populate the "symptoms" array. Ensure "energyLevel" and "mood" are captured if mentioned.
 - If you recommended swaps: You MUST populate the "swaps" array.
 
 STRICT FORMAT: 

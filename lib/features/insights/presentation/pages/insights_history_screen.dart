@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_history_section.dart';
@@ -83,10 +85,55 @@ class _HistoryEmpty extends StatelessWidget {
   const _HistoryEmpty();
 
   @override
-  Widget build(BuildContext context) => const SliverFillRemaining(
-    hasScrollBody: false,
-    child: EmptyStateWidget(icon: AppIcons.history, title: AppStrings.yourGutHealthStory, description: AppStrings.gutHealthStoryDesc),
-  );
+  Widget build(BuildContext context) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Padding(
+        padding: EdgeInsets.all(AppSizes.p40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(AppSizes.p32),
+              decoration: BoxDecoration(
+                color: context.appColorScheme.aiResponseBackground,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: context.appColorScheme.textPrimary.withAlpha(10),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Icon(AppIcons.history, size: 56, color: context.appColorScheme.textPrimary),
+            ),
+            Gap.h32,
+            Text(
+              AppStrings.yourGutHealthStory,
+              style: context.headingMd.copyWith(
+                height: 1.1,
+                letterSpacing: -0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Gap.h16,
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p12),
+              child: Text(
+                AppStrings.gutHealthStoryDesc,
+                textAlign: TextAlign.center,
+                style: context.body.copyWith(
+                  color: context.appColorScheme.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _HistoryList extends StatelessWidget {

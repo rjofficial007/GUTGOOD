@@ -78,7 +78,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     final prompt = '${Prompts.productAnalysisPrompt(productData: productMap, userGoals: goals, userSensitivities: sensitivities, userLifestyle: lifestyle, cyclePhase: cyclePhase)}$alternativesText';
 
-    final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan');
+    final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan', mode: 'plain');
 
     final result = _processChatTagUseCase(aiResultStr, source: 'barcode');
 
@@ -126,6 +126,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
       ),
       prompt: 'Analyze this image and provide your full analysis followed by the [GUTGOOD_DATA] block. Intent: ${classification.intent}',
       usageType: 'scan',
+      mode: 'plain',
     );
 
     final result = _processChatTagUseCase(aiResultStr, source: classification.imageMode);

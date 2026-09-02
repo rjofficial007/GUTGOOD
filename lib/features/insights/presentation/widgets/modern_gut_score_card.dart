@@ -1,146 +1,182 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class ModernGutScoreCard extends StatelessWidget {
-  const ModernGutScoreCard({super.key, required this.score, this.scoreDiff, required this.onTap});
+  const ModernGutScoreCard({
+    super.key,
+    required this.score,
+    this.scoreDiff,
+    required this.onTap,
+    this.title = 'GUT SCORE',
+    this.status,
+    this.description = 'Great choices. Keep it up!',
+    this.showDetails = true,
+  });
 
   final int score;
   final String? scoreDiff;
   final VoidCallback onTap;
+  final String title;
+  final String? status;
+  final String description;
+  final bool showDetails;
 
   String get _status {
+    if (status != null) return status!;
     if (score >= 80) return 'Excellent';
     if (score >= 70) return 'Good';
     if (score >= 50) return 'Fair';
     return 'Poor';
   }
 
-  Color get _statusColor {
-    if (score >= 70) return AppPalette.green500;
+  Color get _accentColor {
+    if (score >= 70) return AppPalette.green;
     if (score >= 50) return AppPalette.orange;
     return AppPalette.red;
   }
 
+  Color _getBackgroundColor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (isDark) {
+      return _accentColor.withAlpha(30);
+    }
+    if (score >= 70) return AppPalette.greenSoft;
+    if (score >= 50) return AppPalette.orangeSoft;
+    return AppPalette.redSoft;
+  }
+
   @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(AppSizes.p16),
-    decoration: BoxDecoration(
-      color: const Color(0xFF0D1217),
-      borderRadius: BorderRadius.circular(AppSizes.r20),
-      boxShadow: [BoxShadow(color: Colors.black.withAlpha(40), blurRadius: 15, offset: const Offset(0, 8))],
-    ),
-    child: IntrinsicHeight(
-      child: Row(
-        children: [
-          // Left Content: Score & Stats
-          Expanded(
-            flex: 12,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(AppIcons.activity, size: 12, color: _statusColor),
-                    Gap.w8,
-                    Text(
-                      'GUT SCORE',
-                      style: context.captionBold.copyWith(color: Colors.white.withAlpha(120), letterSpacing: 1.1, fontSize: 9.sp),
-                    ),
-                  ],
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = context.appColorScheme;
+    final accentColor = _accentColor;
+
+    // We maintain the "Power Card" dark aesthetic in both modes for maximum impact,
+    // using the theme's primary text color as the background in light mode
+    // to provide a softer yet commanding contrast.
+    final cardBg = isDark ? AppPalette.black : scheme.textPrimary;
+    final contentColor = AppPalette.white;
+
+    return BentoCard(
+      padding: EdgeInsets.zero,
+      backgroundColor: cardBg,
+      borderColor: contentColor.withAlpha(isDark ? 20 : 15),
+      showShadow: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            // 🌈 Vibrant Corner Glow
+            Positioned(
+              right: -60,
+              top: -60,
+              child: Container(
+                width: 240,
+                height: 240,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(colors: [accentColor.withAlpha(isDark ? 160 : 140), accentColor.withAlpha(40), Colors.transparent], stops: const [0.0, 0.4, 1.0]),
                 ),
-                Gap.h12,
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '$score',
-                      style: context.displayHero.copyWith(color: Colors.white, fontSize: 64.sp, height: 0.9, letterSpacing: -2),
-                    ),
-                    if (scoreDiff != null) ...[
-                      Gap.w10,
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: _statusColor.withAlpha(30), borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+
+            // 🌊 Integrated Gauge positioned in the background/side
+            Positioned(
+              right: 16,
+              top: 20,
+              child: CustomPaint(
+                size: Size(120.h, 120.h),
+                painter: GaugePainter(score: score, color: accentColor),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title.toUpperCase(),
+                    style: context.captionBold.copyWith(color: contentColor.withAlpha(120), letterSpacing: 1.5, fontSize: 9.sp, fontWeight: FontWeight.w900),
+                  ),
+                  Gap.h8,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '$score',
+                        style: context.displayHero.copyWith(color: contentColor, fontSize: 64.sp, height: 0.9, letterSpacing: -2, fontWeight: FontWeight.w900),
+                      ),
+                      if (scoreDiff != null) ...[
+                        Gap.w10,
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
                           child: Row(
                             children: [
-                              Icon(Icons.arrow_upward, size: 10, color: _statusColor),
+                              Icon(Icons.arrow_upward, size: 10, color: accentColor),
                               Gap.w4,
                               Text(
                                 scoreDiff!,
-                                style: context.captionBold.copyWith(color: _statusColor, fontSize: 11.sp),
+                                style: context.captionBold.copyWith(color: accentColor, fontSize: 11.sp),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-                Gap.h4,
-                Row(
-                  children: [
-                    Text(
-                      _status,
-                      style: context.headingSm.copyWith(color: _statusColor, fontWeight: FontWeight.bold, fontSize: 20.sp),
-                    ),
-                    Gap.w6,
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: _statusColor,
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: _statusColor.withAlpha(100), blurRadius: 6)],
-                      ),
-                    ),
-                  ],
-                ),
-                Gap.h8,
-                Text('Great choices. Keep it up!', style: context.bodySm.copyWith(color: Colors.white.withAlpha(150))),
-                const Spacer(),
-                Gap.h16,
-                InkWell(
-                  onTap: onTap,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Detailed insights',
-                        style: context.captionBold.copyWith(color: Colors.white, fontSize: 12.sp),
-                      ),
-                      Gap.w4,
-                      const Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
+                      ],
                     ],
                   ),
-                ),
-              ],
+                  Gap.h4,
+                  Row(
+                    children: [
+                      Text(
+                        _status,
+                        style: context.headingSm.copyWith(color: accentColor, fontWeight: FontWeight.bold, fontSize: 20.sp),
+                      ),
+                      Gap.w6,
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: accentColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: accentColor.withAlpha(100), blurRadius: 6)],
+                        ),
+                      ),
+                    ],
+                  ),
+                  Gap.h8,
+                  Text(description, style: context.bodySm.copyWith(color: contentColor.withAlpha(150))),
+                  if (showDetails) ...[
+                    Gap.h16,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'DETAILED INSIGHTS',
+                          style: context.captionBold.copyWith(color: contentColor, fontSize: 11.sp, letterSpacing: 0.5, fontWeight: FontWeight.w900),
+                        ),
+                        Gap.w4,
+                        Icon(Icons.arrow_forward_rounded, size: 14, color: contentColor),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-          // Right Content: Integrated Gauge
-          Expanded(
-            flex: 8,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: Size(130.h, 130.h),
-                  painter: GaugePainter(score: score, color: _statusColor),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class GaugePainter extends CustomPainter {

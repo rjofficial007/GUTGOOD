@@ -8,6 +8,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_view.dart';
@@ -22,7 +23,7 @@ class InsightsScreen extends StatelessWidget {
     final colorScheme = context.appColorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.cardBackground,
+      backgroundColor: context.appColorScheme.cardBackground,
       body: Consumer<InsightsNotifier>(
         builder: (context, notifier, _) {
           final latestInsight = notifier.latestInsight;
@@ -105,23 +106,26 @@ class _NoInsightsState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: EdgeInsets.all(AppSizes.p24),
-              decoration: BoxDecoration(color: context.appColorScheme.aiResponseBackground, shape: BoxShape.circle),
-              child: Icon(icon, size: 48, color: context.appColorScheme.textPrimary),
-            ),
-            Gap.h24,
-            Text(
-              title,
-              style: AppTextStyles.title.copyWith(color: context.appColorScheme.textPrimary),
-              textAlign: TextAlign.center,
-            ),
-            Gap.h12,
-            Text(
-              description,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary),
+              padding: EdgeInsets.all(AppSizes.p32),
+              decoration: BoxDecoration(
+                color: context.appColorScheme.aiResponseBackground,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: context.appColorScheme.textPrimary.withAlpha(10), blurRadius: 20, offset: const Offset(0, 10))],
+              ),
+              child: Icon(icon, size: 56, color: context.appColorScheme.textPrimary),
             ),
             Gap.h32,
+            Text(title, style: context.headingMd.copyWith(height: 1.1, letterSpacing: -0.5), textAlign: TextAlign.center),
+            Gap.h16,
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p12),
+              child: Text(
+                description,
+                textAlign: TextAlign.center,
+                style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
+              ),
+            ),
+            Gap.h48,
             _ProgressIndicator(meals: meals, symptoms: symptoms, scans: scans),
           ],
         ),
@@ -145,13 +149,19 @@ class _ProgressIndicator extends StatelessWidget {
     return Column(
       children: [
         _ProgressRow(label: AppStrings.logs, progress: mealProgress, count: meals, total: 3),
-        Gap.h12,
+        Gap.h20,
         _ProgressRow(label: AppStrings.symptoms, progress: symptomProgress, count: symptoms, total: 1),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(
-            AppStrings.orContinueWith,
-            style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: context.appColorScheme.textSecondary),
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Row(
+            children: [
+              Expanded(child: Divider(color: context.appColorScheme.borderSubtle.withAlpha(100))),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(AppStrings.orContinueWith.toUpperCase(), style: context.captionBold.copyWith(letterSpacing: 1.2, color: context.appColorScheme.textMuted)),
+              ),
+              Expanded(child: Divider(color: context.appColorScheme.borderSubtle.withAlpha(100))),
+            ],
           ),
         ),
         _ProgressRow(label: AppStrings.aiScanHistory, progress: scanProgress, count: scans, total: 3),
@@ -173,22 +183,34 @@ class _ProgressRow extends StatelessWidget {
     children: [
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(label.toUpperCase(), style: AppTextStyles.eyebrow.copyWith(color: context.appColorScheme.textMuted)),
           Text(
-            '$count/$total',
-            style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.bold, color: context.appColorScheme.textSecondary),
+            label.toUpperCase(),
+            style: context.eyebrow.copyWith(fontSize: 9.sp, color: context.appColorScheme.textSecondary, fontWeight: FontWeight.w800),
+          ),
+          RichText(
+            text: TextSpan(
+              style: context.label.copyWith(color: context.appColorScheme.textSecondary),
+              children: [
+                TextSpan(
+                  text: '$count',
+                  style: context.labelBold.copyWith(color: context.appColorScheme.textPrimary),
+                ),
+                TextSpan(text: '/$total'),
+              ],
+            ),
           ),
         ],
       ),
-      Gap.h6,
+      Gap.h8,
       ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: LinearProgressIndicator(
           value: progress,
-          minHeight: 6,
-          backgroundColor: context.appColorScheme.borderSubtle,
-          valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
+          minHeight: 8,
+          backgroundColor: context.appColorScheme.borderSubtle.withAlpha(80),
+          valueColor: AlwaysStoppedAnimation<Color>(progress >= 1.0 ? context.appColorScheme.success : context.appColorScheme.textPrimary),
         ),
       ),
     ],

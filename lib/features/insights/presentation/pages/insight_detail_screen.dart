@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
@@ -22,7 +21,7 @@ class InsightDetailScreen extends StatelessWidget {
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
-          GutSliverAppBar(title: '${AppStrings.reportDate}${dateStr.toUpperCase()}', showBrandingIcon: false),
+          GutSliverAppBar(title: dateStr.toUpperCase(), centerTitle: true),
           InsightDashboardSliver(data: insight, streak: streak, isHistorical: true),
         ],
       ),

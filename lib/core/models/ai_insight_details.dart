@@ -73,33 +73,45 @@ class InsightSummary extends Equatable {
 }
 
 class HealingFood extends Equatable {
-  const HealingFood({required this.name, required this.effect, required this.emoji});
+  const HealingFood({required this.name, required this.effect, required this.emoji, this.imageUrl});
 
   factory HealingFood.fromMap(Map<String, dynamic> map) =>
-      HealingFood(name: (map['name'] ?? map['food'] ?? map['title'] ?? '').toString(), effect: (map['effect'] ?? map['effects'] ?? '').toString(), emoji: map['emoji']?.toString() ?? '🥗');
+      HealingFood(
+        name: (map['name'] ?? map['food'] ?? map['title'] ?? '').toString(), 
+        effect: (map['effect'] ?? map['effects'] ?? '').toString(), 
+        emoji: map['emoji']?.toString() ?? '🥗',
+        imageUrl: map['imageUrl']?.toString(),
+      );
   final String name;
   final String effect;
   final String emoji;
+  final String? imageUrl;
 
-  Map<String, dynamic> toMap() => {'name': name, 'effect': effect, 'emoji': emoji};
+  Map<String, dynamic> toMap() => {'name': name, 'effect': effect, 'emoji': emoji, 'imageUrl': imageUrl};
 
   @override
-  List<Object?> get props => [name, effect, emoji];
+  List<Object?> get props => [name, effect, emoji, imageUrl];
 }
 
 class TriggerFood extends Equatable {
-  const TriggerFood({required this.name, required this.effect, required this.emoji});
+  const TriggerFood({required this.name, required this.effect, required this.emoji, this.imageUrl});
 
   factory TriggerFood.fromMap(Map<String, dynamic> map) =>
-      TriggerFood(name: (map['name'] ?? map['food'] ?? map['title'] ?? '').toString(), effect: (map['effect'] ?? map['effects'] ?? '').toString(), emoji: map['emoji']?.toString() ?? '🍕');
+      TriggerFood(
+        name: (map['name'] ?? map['food'] ?? map['title'] ?? '').toString(), 
+        effect: (map['effect'] ?? map['effects'] ?? '').toString(), 
+        emoji: map['emoji']?.toString() ?? '🍕',
+        imageUrl: map['imageUrl']?.toString(),
+      );
   final String name;
   final String effect;
   final String emoji;
+  final String? imageUrl;
 
-  Map<String, dynamic> toMap() => {'name': name, 'effect': effect, 'emoji': emoji};
+  Map<String, dynamic> toMap() => {'name': name, 'effect': effect, 'emoji': emoji, 'imageUrl': imageUrl};
 
   @override
-  List<Object?> get props => [name, effect, emoji];
+  List<Object?> get props => [name, effect, emoji, imageUrl];
 }
 
 class DetectedPattern extends Equatable {
@@ -142,7 +154,7 @@ class TopHighlight extends Equatable {
 class FoodImpact extends Equatable {
   // 'negative' | 'positive'
 
-  const FoodImpact({required this.food, required this.dateLabel, required this.effect, required this.timeframeLabel, required this.emoji, required this.impactType});
+  const FoodImpact({required this.food, required this.dateLabel, required this.effect, required this.timeframeLabel, required this.emoji, required this.impactType, this.imageUrl});
 
   factory FoodImpact.fromMap(Map<String, dynamic> map) => FoodImpact(
     food: map['food']?.toString() ?? 'Unknown',
@@ -151,6 +163,7 @@ class FoodImpact extends Equatable {
     timeframeLabel: map['timeframeLabel']?.toString() ?? '',
     emoji: map['emoji']?.toString() ?? '🍽️',
     impactType: map['impactType']?.toString() ?? 'positive',
+    imageUrl: map['imageUrl']?.toString(),
   );
   final String food;
   final String dateLabel;
@@ -158,11 +171,12 @@ class FoodImpact extends Equatable {
   final String timeframeLabel;
   final String emoji;
   final String impactType;
+  final String? imageUrl;
 
-  Map<String, dynamic> toMap() => {'food': food, 'dateLabel': dateLabel, 'effect': effect, 'timeframeLabel': timeframeLabel, 'emoji': emoji, 'impactType': impactType};
+  Map<String, dynamic> toMap() => {'food': food, 'dateLabel': dateLabel, 'effect': effect, 'timeframeLabel': timeframeLabel, 'emoji': emoji, 'impactType': impactType, 'imageUrl': imageUrl};
 
   @override
-  List<Object?> get props => [food, dateLabel, effect, impactType];
+  List<Object?> get props => [food, dateLabel, effect, impactType, imageUrl];
 }
 
 class WeeklyRecap extends Equatable {

@@ -31,6 +31,8 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 10. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
     - Populate the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired").
     - Ensure the "energyLevel" and "mood" fields are populated if mentioned.
+    
+The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.

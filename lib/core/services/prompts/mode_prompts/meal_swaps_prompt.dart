@@ -38,7 +38,7 @@ STRUCTURE (MANDATORY ORDER):
 
 7. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
    - Populate the "meal" and "swaps" fields.
-   - If the user is reporting a symptom or physical feeling (e.g., bloating), you MUST also populate the "symptoms" array.
+   - If the user is reporting a symptom or physical feeling (e.g., bloating, feeling energetic), you MUST also populate the "symptoms" array. Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
 The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
 

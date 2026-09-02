@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -9,10 +10,12 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class ModernSmartAlert extends StatelessWidget {
@@ -23,7 +26,7 @@ class ModernSmartAlert extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppPalette.purple.withAlpha(26) : AppPalette.purplePastel;
+    final bgColor = isDark ? AppPalette.purple.withAlpha(26) : scheme.cardBackground;
     final contentColor = isDark ? scheme.textPrimary : AppPalette.black;
 
     return DashboardEntrance(
@@ -33,15 +36,15 @@ class ModernSmartAlert extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSizes.r24),
         child: BentoCard(
           padding: const EdgeInsets.all(12),
-          height: 140.h,
+          height: 160.h,
           backgroundColor: bgColor,
           borderColor: isDark ? AppPalette.purple.withAlpha(50) : AppPalette.purple.withAlpha(20),
           child: Row(
             children: [
               // Left block: AI Identity
               Container(
-                width: 116.h,
-                height: 116.h,
+                width: 136.h,
+                height: 136.h,
                 decoration: BoxDecoration(color: scheme.cardBackground.withAlpha(isDark ? 102 : 204), borderRadius: BorderRadius.circular(16)),
                 child: Stack(
                   children: [
@@ -133,8 +136,8 @@ class SmallInsightMetricCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Adaptive Theme Colors (Mirroring PhysicalGoalCard)
-    final cardBg = isDark ? AppPalette.darkCard : accentColor.withAlpha(15);
-    final cardBorder = isDark ? AppPalette.white.withAlpha(20) : accentColor.withAlpha(30);
+    final cardBg = isDark ? AppPalette.darkCard : scheme.cardBackground;
+    final cardBorder = isDark ? AppPalette.white.withAlpha(20) : scheme.borderSubtle;
     final unitColor = isDark ? AppPalette.white.withAlpha(153) : scheme.textSecondary;
     final labelColor = isDark ? AppPalette.white.withAlpha(102) : scheme.textMuted;
 
@@ -198,6 +201,104 @@ class SmallInsightMetricCard extends StatelessWidget {
   }
 }
 
+class BentoFoodCard extends StatefulWidget {
+  const BentoFoodCard({super.key, required this.foods, required this.title, required this.trend, required this.isPositive, required this.icon});
+  final List<dynamic> foods;
+  final String title;
+  final String? trend;
+  final bool isPositive;
+  final IconData icon;
+
+  @override
+  State<BentoFoodCard> createState() => _BentoFoodCardState();
+}
+
+class _BentoFoodCardState extends State<BentoFoodCard> {
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final color = widget.isPositive ? AppPalette.green : AppPalette.red;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final items = widget.foods.map((f) {
+      if (f is HealingFood || f is TriggerFood) {
+        final dynamic food = f;
+        return CyclerItemData(name: food.name, effect: food.effect, emoji: food.emoji, imageUrl: food.imageUrl);
+      } else if (f is FoodImpact) {
+        return CyclerItemData(name: f.food, effect: f.effect, emoji: f.emoji, imageUrl: f.imageUrl, dateLabel: f.dateLabel);
+      } else if (f is RecapHighlight) {
+        return CyclerItemData(name: f.text, effect: '', emoji: '💡');
+      }
+      return CyclerItemData(name: 'Unknown', effect: '', emoji: '🍽️');
+    }).toList();
+
+    final displayItems = items.isEmpty ? [CyclerItemData(name: 'STABLE HABITS', effect: 'Your gut is tracking well.', emoji: '✨')] : items;
+
+    return DashboardEntrance(
+      delay: 200,
+      child: BentoCard(
+        padding: const EdgeInsets.all(12),
+        height: 160.h,
+        backgroundColor: scheme.cardBackground,
+        child: Row(
+          children: [
+            // Left block: Visual Identity (Synced with scroll)
+            Container(
+              width: 136.h,
+              height: 136.h,
+              decoration: BoxDecoration(color: widget.isPositive ? AppPalette.green.withAlpha(20) : AppPalette.red.withAlpha(20), borderRadius: BorderRadius.circular(16)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  children: [
+                    if (displayItems.isNotEmpty && _currentIndex < displayItems.length)
+                      Positioned.fill(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 400),
+                          layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                            return Stack(
+                              children: <Widget>[
+                                ...previousChildren.map((child) => Positioned.fill(child: child)),
+                                if (currentChild != null) Positioned.fill(child: currentChild),
+                              ],
+                            );
+                          },
+                          child: CachedNetworkImage(
+                            key: ValueKey('${widget.title}_image_$_currentIndex'),
+                            imageUrl: displayItems[_currentIndex].imageUrl ?? getDynamicImageUrl(displayItems[_currentIndex].name),
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            placeholder: (context, url) => Shimmer.fromColors(
+                              baseColor: AppPalette.shimmerBase(context),
+                              highlightColor: AppPalette.shimmerHighlight(context),
+                              child: Container(color: AppPalette.white),
+                            ),
+                            errorWidget: (_, __, ___) => Center(
+                              child: Icon(widget.icon, size: 40.sp, color: color.withAlpha(153)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    Positioned(top: 10, left: 10, child: Icon(widget.icon, size: 14, color: displayItems.isNotEmpty ? AppPalette.white : color)),
+                  ],
+                ),
+              ),
+            ),
+            Gap.w16,
+            // Right info: Cycler
+            Expanded(
+              child: BentoItemCycler(items: displayItems, title: widget.title, trend: widget.trend, isPositive: widget.isPositive, onPageChanged: (index) => setState(() => _currentIndex = index)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class BentoFoodCycler extends StatelessWidget {
   const BentoFoodCycler({super.key, required this.foods, required this.title, required this.trend, required this.isPositive});
   final List<dynamic> foods;
@@ -210,25 +311,36 @@ class BentoFoodCycler extends StatelessWidget {
     title: title,
     trend: trend,
     isPositive: isPositive,
-    items: foods
-        .map((f) => CyclerItemData(name: f is HealingFood || f is TriggerFood ? f.name : (f is FoodImpact ? f.food : 'Unknown'), effect: f is FoodImpact ? f.effect : (f.effect ?? ''), emoji: f.emoji))
-        .toList(),
+    items: foods.map((f) {
+      if (f is HealingFood || f is TriggerFood) {
+        final dynamic food = f;
+        return CyclerItemData(name: food.name, effect: food.effect, emoji: food.emoji, imageUrl: food.imageUrl);
+      } else if (f is FoodImpact) {
+        return CyclerItemData(name: f.food, effect: f.effect, emoji: f.emoji, imageUrl: f.imageUrl);
+      } else if (f is RecapHighlight) {
+        return CyclerItemData(name: f.text, effect: '', emoji: '💡');
+      }
+      return CyclerItemData(name: 'Unknown', effect: '', emoji: '🍽️');
+    }).toList(),
   );
 }
 
 class CyclerItemData {
-  CyclerItemData({required this.name, required this.effect, required this.emoji});
+  CyclerItemData({required this.name, required this.effect, required this.emoji, this.imageUrl, this.dateLabel});
   final String name;
   final String effect;
   final String emoji;
+  final String? imageUrl;
+  final String? dateLabel;
 }
 
 class BentoItemCycler extends StatefulWidget {
-  const BentoItemCycler({super.key, required this.items, required this.title, required this.trend, required this.isPositive});
+  const BentoItemCycler({super.key, required this.items, required this.title, required this.trend, required this.isPositive, this.onPageChanged});
   final List<CyclerItemData> items;
   final String title;
   final String? trend;
   final bool isPositive;
+  final ValueChanged<int>? onPageChanged;
 
   @override
   State<BentoItemCycler> createState() => _BentoItemCyclerState();
@@ -246,9 +358,9 @@ class _BentoItemCyclerState extends State<BentoItemCycler> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final primaryColor = widget.isPositive ? AppPalette.black : scheme.textPrimary;
-    final secondaryColor = widget.isPositive ? AppPalette.black.withAlpha(153) : scheme.textSecondary;
-    final mutedColor = widget.isPositive ? AppPalette.black.withAlpha(102) : scheme.textMuted;
+    final primaryColor = scheme.textPrimary;
+    final secondaryColor = scheme.textSecondary;
+    final mutedColor = scheme.textMuted;
 
     final displayItems = widget.items.isEmpty ? [CyclerItemData(name: 'STABLE HABITS', effect: 'Your gut is tracking well.', emoji: '✨')] : widget.items;
 
@@ -262,30 +374,23 @@ class _BentoItemCyclerState extends State<BentoItemCycler> {
           children: [
             Expanded(
               child: SizedBox(
-                height: 70.h,
+                height: 90.h,
                 child: PageView.builder(
                   controller: _controller,
                   scrollDirection: Axis.vertical,
                   itemCount: displayItems.length,
+                  onPageChanged: widget.onPageChanged,
                   itemBuilder: (context, i) {
                     final item = displayItems[i];
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          children: [
-                            Text(item.emoji, style: TextStyle(fontSize: 18.sp)),
-                            Gap.w8,
-                            Expanded(
-                              child: Text(
-                                item.name.toUpperCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: context.bodyBold.copyWith(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 16.sp),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          item.name.toUpperCase(),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.bodyBold.copyWith(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 12.sp),
                         ),
                         Gap.h4,
                         Text(
@@ -294,6 +399,13 @@ class _BentoItemCyclerState extends State<BentoItemCycler> {
                           overflow: TextOverflow.ellipsis,
                           style: context.caption.copyWith(color: secondaryColor, height: 1.2),
                         ),
+                        if (item.dateLabel != null) ...[
+                          Gap.h2,
+                          Text(
+                            item.dateLabel!,
+                            style: context.captionTiny.copyWith(color: mutedColor, fontSize: 9.sp),
+                          ),
+                        ],
                       ],
                     );
                   },
@@ -331,50 +443,12 @@ class BentoActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    return DashboardEntrance(
-      delay: 250,
-      child: BentoCard(
-        padding: const EdgeInsets.all(12),
-        height: 140.h,
-        backgroundColor: scheme.surfaceSubtle,
-        child: Row(
-          children: [
-            // Left block: History Identity
-            Container(
-              width: 116.h,
-              height: 116.h,
-              decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
-              child: Stack(
-                children: [
-                  Positioned(top: 10, left: 10, child: Icon(AppIcons.history, size: 12, color: scheme.textPrimary)),
-                  Center(
-                    child: Text(
-                      '${impacts.length}',
-                      style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 56.sp, letterSpacing: -4),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 10,
-                    left: 10,
-                    right: 10,
-                    child: Text(
-                      'RECENT LOGS',
-                      textAlign: TextAlign.center,
-                      style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 8.sp),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Gap.w16,
-            // Right info: Vertical Cycler
-            Expanded(
-              child: BentoFoodCycler(foods: impacts, title: AppStrings.recentActivityTitle, trend: 'Last ${impacts.length} encounters recorded.', isPositive: false),
-            ),
-          ],
-        ),
-      ),
+    return BentoFoodCard(
+      foods: impacts,
+      title: 'RECENT LOGS',
+      trend: null, // Trend not needed for activity card
+      isPositive: true, // Defaulting to positive style for history
+      icon: AppIcons.history,
     );
   }
 }

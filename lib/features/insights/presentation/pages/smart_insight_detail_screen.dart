@@ -10,6 +10,7 @@ import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_view.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class SmartInsightDetailScreen extends StatelessWidget {
@@ -20,102 +21,60 @@ class SmartInsightDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: scheme.cardBackground,
+      backgroundColor: isDark ? scheme.cardBackground : AppPalette.gray50,
       body: CustomScrollView(
         slivers: [
-          const GutSliverAppBar(title: AppStrings.intelligenceDetail, showBrandingIcon: false),
+          const GutSliverAppBar(title: '', centerTitle: true),
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // 1. Intelligence Hero (Wallet Identity)
-                  DashboardEntrance(delay: 50, child: _InsightHeroCard(insight: insight)),
-                  Gap.h12,
+                  DashboardEntrance(
+                    delay: 50,
+                    child: IntelligencePulseCard(
+                      title: insight.title,
+                      description: insight.description,
+                      index: 1,
+                      onTap: () {}, // Already on detail screen
+                    ),
+                  ),
+                  Gap.h16,
 
                   // 2. Statistical Quick View
                   DashboardEntrance(delay: 100, child: _InsightDetailMetricGrid(insight: insight)),
-                  Gap.h12,
+                  Gap.h16,
 
-                  // 3. Detailed Observation & Action Plan Row
+                  // 3. Detailed Observation & Action Plan
                   DashboardEntrance(
                     delay: 150,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: BentoCard(
-                            height: 160.h,
-                            backgroundColor: AppPalette.purplePastel,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      AppStrings.whatWeNoticed.toUpperCase(),
-                                      style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 8.sp),
-                                    ),
-                                    Icon(AppIcons.brain, color: AppPalette.black.withAlpha(102), size: 12),
-                                  ],
-                                ),
-                                const Spacer(),
-                                Text(
-                                  insight.observation ?? insight.description,
-                                  maxLines: 4,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.2, fontWeight: FontWeight.w900, fontSize: 12.sp),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  AppStrings.detailedObservation.toUpperCase(),
-                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 7.sp),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Gap.w12,
-                        Expanded(
-                          child: BentoCard(
-                            height: 160.h,
-                            backgroundColor: AppPalette.greenPastel,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      AppStrings.actionPlan.toUpperCase(),
-                                      style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 8.sp),
-                                    ),
-                                    Icon(AppIcons.lightbulb, color: AppPalette.black.withAlpha(102), size: 12),
-                                  ],
-                                ),
-                                const Spacer(),
-                                Text(
-                                  insight.nextSteps.isNotEmpty ? insight.nextSteps.first : 'Keep monitoring how you feel.',
-                                  maxLines: 4,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: context.bodyBold.copyWith(color: AppPalette.black, height: 1.2, fontWeight: FontWeight.w900, fontSize: 12.sp),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  AppStrings.whatYouCanDo.toUpperCase(),
-                                  style: context.captionMicro.copyWith(color: AppPalette.black.withAlpha(153), fontWeight: FontWeight.w900, fontSize: 7.sp),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: PhysicalGoalCard(
+                      title: AppStrings.whatWeNoticed.toUpperCase(),
+                      subtitle: 'OBSERVATION',
+                      label: insight.observation ?? insight.description,
+                      icon: AppIcons.brain,
+                      color: AppPalette.purple,
+                      onTap: () {},
                     ),
                   ),
-                  Gap.h12,
+                  Gap.h16,
+                  DashboardEntrance(
+                    delay: 180,
+                    child: PhysicalGoalCard(
+                      title: AppStrings.actionPlan.toUpperCase(),
+                      subtitle: 'STRATEGY',
+                      label: insight.nextSteps.isNotEmpty ? insight.nextSteps.first : 'Keep monitoring how you feel.',
+                      icon: AppIcons.lightbulb,
+                      color: AppPalette.green,
+                      onTap: () {},
+                    ),
+                  ),
+                  Gap.h16,
 
                   // 4. Involved Foods
                   if (insight.involvedFoods.isNotEmpty) ...[
@@ -124,21 +83,25 @@ class SmartInsightDetailScreen extends StatelessWidget {
                       child: BentoCard(
                         padding: const EdgeInsets.all(12),
                         height: 140.h,
-                        backgroundColor: scheme.surfaceSubtle,
+                        backgroundColor: scheme.cardBackground,
                         child: Row(
                           children: [
                             // Left block: Count Identity
                             Container(
                               width: 116.h,
                               height: 116.h,
-                              decoration: BoxDecoration(color: AppPalette.white.withAlpha(204), borderRadius: BorderRadius.circular(16)),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceSubtle,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 10, offset: const Offset(0, 4))],
+                              ),
                               child: Stack(
                                 children: [
                                   Positioned(top: 10, left: 10, child: Icon(AppIcons.utensils, size: 12, color: scheme.textPrimary)),
                                   Center(
                                     child: Text(
                                       '${insight.involvedFoods.length}',
-                                      style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 56.sp, letterSpacing: -5),
+                                      style: context.displayHero.copyWith(color: scheme.textPrimary, fontSize: 56.sp, letterSpacing: -5),
                                     ),
                                   ),
                                   Positioned(
@@ -148,7 +111,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
                                     child: Text(
                                       'ITEMS',
                                       textAlign: TextAlign.center,
-                                      style: context.captionMicro.copyWith(color: AppPalette.black, fontWeight: FontWeight.w900, fontSize: 8.sp),
+                                      style: context.captionMicro.copyWith(color: scheme.textMuted, fontWeight: FontWeight.w900, fontSize: 8.sp, letterSpacing: 1.1),
                                     ),
                                   ),
                                 ],
@@ -168,87 +131,11 @@ class SmartInsightDetailScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Gap.h12,
+                    Gap.h16,
                   ],
                   Gap.h40,
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InsightHeroCard extends StatelessWidget {
-  const _InsightHeroCard({required this.insight});
-  final InsightSummary insight;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-
-    return BentoCard(
-      padding: const EdgeInsets.all(12),
-      height: 160.h,
-      backgroundColor: scheme.textPrimary,
-      child: Row(
-        children: [
-          // Left block: Focus Identity
-          Container(
-            width: 136.h,
-            height: 136.h,
-            decoration: BoxDecoration(color: scheme.cardBackground.withAlpha(204), borderRadius: BorderRadius.circular(16)),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Text(
-                    'AI PULSE',
-                    style: context.captionMicro.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 8.sp),
-                  ),
-                ),
-                Center(
-                  child: Icon(AppIcons.brain, size: 48.sp, color: scheme.textPrimary),
-                ),
-                Positioned(
-                  bottom: 10,
-                  left: 10,
-                  right: 10,
-                  child: Text(
-                    insight.strength?.toUpperCase() ?? 'MODERATE',
-                    textAlign: TextAlign.center,
-                    style: context.captionMicro.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 8.sp),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Gap.w16,
-          // Right info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(insight.type.toUpperCase(), style: context.captionBold.copyWith(color: scheme.cardBackground.withAlpha(153))),
-                Gap.h8,
-                Text(
-                  insight.title.toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.headingSm.copyWith(color: scheme.cardBackground, fontWeight: FontWeight.w900, fontSize: 18.sp, height: 1.1),
-                ),
-                Gap.h8,
-                Text(
-                  insight.description,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.caption.copyWith(color: scheme.cardBackground.withAlpha(204), height: 1.3),
-                ),
-              ],
             ),
           ),
         ],

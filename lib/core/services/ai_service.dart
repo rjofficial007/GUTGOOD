@@ -46,7 +46,7 @@ class AiAuthException implements Exception {
 abstract class AiService {
   Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream'});
 
-  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType});
+  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType, String mode = 'json'});
 
   Future<String> summarizeHistory(List<ChatMessage> history, {String? previousSummary});
 }
@@ -182,12 +182,12 @@ class AiServiceImpl implements AiService {
     if (lastError != null || response == null) {
       final e = lastError;
       await _analyticsService.logEvent(name: 'ai_stream_failed', parameters: {'error': e.toString(), 'type': images != null ? 'scan' : 'chat'});
-      
+
       if (e?.response != null) {
         final errorBody = await _readErrorBody(e!.response!.data as ResponseBody?);
         _throwForStatus(e.response!.statusCode ?? 500, errorBody);
       }
-      
+
       if (e != null) await _crashlyticsService.recordError(e, e.stackTrace, reason: 'AI Stream connection failed');
       throw AiServiceException(e?.message ?? 'Connection failed.', statusCode: e?.response?.statusCode);
     }
@@ -279,15 +279,15 @@ class AiServiceImpl implements AiService {
   }
 
   @override
-  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType = 'system'}) async {
-    AppLogger.ai('generating content (mode: json, usageType: $usageType)');
+  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType = 'system', String mode = 'json'}) async {
+    AppLogger.ai('generating content (mode: $mode, usageType: $usageType)');
     final startTime = DateTime.now();
 
     final idempotencyKey = const Uuid().v4();
     final headers = await _buildHeaders(idempotencyKey);
 
     final body = ModelUtils.safeJsonEncode({
-      'mode': 'json',
+      'mode': mode,
       'systemInstruction': systemInstruction,
       'prompt': prompt,
       if (imageBytes != null) 'images': [base64Encode(imageBytes)],
@@ -324,7 +324,7 @@ class AiServiceImpl implements AiService {
         return (decoded['text'] ?? '').toString();
       } on DioException catch (e, st) {
         AppLogger.error('content generation failed (attempt $attempts/$_maxRetries)', error: e, stackTrace: st);
-        
+
         if (attempts < _maxRetries && _isRetryable(e)) {
           await Future.delayed(Duration(seconds: attempts * 2));
           continue;
@@ -334,7 +334,7 @@ class AiServiceImpl implements AiService {
         if (e.response != null) {
           _throwForStatus(e.response!.statusCode ?? 500, e.response!.data?.toString() ?? '');
         }
-        
+
         throw AiServiceException(e.message ?? 'Connection failed.', statusCode: e.response?.statusCode);
       }
     }

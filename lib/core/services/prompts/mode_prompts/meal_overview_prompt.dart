@@ -45,7 +45,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
    - scan.category: "meal".
    - scan.score: 0-100.
    
-   Also populate the "meal" object.
+   Also populate the "meal" object and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
 The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
 
