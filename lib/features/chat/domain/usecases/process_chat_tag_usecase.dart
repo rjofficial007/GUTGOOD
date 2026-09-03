@@ -88,23 +88,38 @@ class ProcessChatTagUseCase {
         menuData = decoded;
       }
 
-      if (decoded['meal'] != null && decoded['meal'] is Map<String, dynamic>) {
-        // 🚀 Unified Data Strategy: If we have a 'scan' block, we treat the 'meal' info
-        // as part of the scan's rich context (rawData) rather than a separate loggable entity.
-        // This prevents duplicate entries in the journal history.
+      final resolvedMode = (imageMode ?? source ?? '').toUpperCase();
+      final resolvedIntent = (intent ?? '').toUpperCase();
+      final isLabelOrMenuScan =
+          resolvedMode.contains('LABEL') ||
+          resolvedMode.contains('MENU') ||
+          resolvedMode.contains('PACKAGED_PRODUCT') ||
+          resolvedIntent.contains('LABEL') ||
+          resolvedIntent.contains('MENU') ||
+          resolvedIntent.contains('INGREDIENT');
+
+      if (decoded['meal'] != null && decoded['meal'] is Map<String, dynamic> && !isLabelOrMenuScan) {
         if (scanData == null) {
           mealLog = MealLog.fromMap({...decoded['meal'], 'photoUrl': imageUrl, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat');
         }
       }
 
-      if (decoded['symptoms'] != null && decoded['symptoms'] is List) {
-        for (final s in decoded['symptoms']) {
-          if (s is Map<String, dynamic>) {
-            symptomLogs.add(SymptomLog.fromMap({...s, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat'));
-          } else if (s != null && s is String && s.isNotEmpty) {
-            // 🚀 Robust Fallback: Handle cases where AI returns a simple string list instead of objects
-            symptomLogs.add(SymptomLog(symptom: s, chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+      if (decoded['symptoms'] != null) {
+        final rawSymptoms = decoded['symptoms'];
+        if (rawSymptoms is List) {
+          for (final s in rawSymptoms) {
+            if (s is Map) {
+              final map = Map<String, dynamic>.from(s);
+              symptomLogs.add(SymptomLog.fromMap({...map, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat'));
+            } else if (s != null && s.toString().trim().isNotEmpty) {
+              symptomLogs.add(SymptomLog(symptom: s.toString().trim(), chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+            }
           }
+        } else if (rawSymptoms is Map) {
+          final map = Map<String, dynamic>.from(rawSymptoms);
+          symptomLogs.add(SymptomLog.fromMap({...map, 'chatMessageId': chatMessageId}).copyWith(source: source ?? 'chat'));
+        } else if (rawSymptoms is String && rawSymptoms.trim().isNotEmpty) {
+          symptomLogs.add(SymptomLog(symptom: rawSymptoms.trim(), chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
         }
       }
 
@@ -133,6 +148,9 @@ class ProcessChatTagUseCase {
               final decoded = jsonDecode(jsonStr);
               if (tag == 'INTENT' && decoded is Map) {
                 intent = decoded['category']?.toString();
+                if (decoded['confidence'] != null) {
+                  metadata['intentConfidence'] = (decoded['confidence'] as num).toDouble();
+                }
               } else if ((tag == 'SCAN' || tag == 'SCAN_CONTEXT') && decoded is Map) {
                 final scanMap = Map<String, dynamic>.from(decoded);
                 scanData = ScanResult.fromMap(
@@ -149,6 +167,76 @@ class ProcessChatTagUseCase {
           } catch (_) {}
         }
       }
+    }
+
+    // --- STEP 2.5: FALLBACK SYMPTOM EXTRACTION FROM USER TEXT ---
+    if (symptomLogs.isEmpty) {
+      final userTextLower = text.toLowerCase();
+
+      // 1. Energy
+      if (userTextLower.contains('energetic') ||
+          userTextLower.contains('feel energetic') ||
+          userTextLower.contains('feeling energetic') ||
+          userTextLower.contains('high energy') ||
+          userTextLower.contains('energized')) {
+        symptomLogs.add(SymptomLog(symptom: 'Energetic', energyLevel: 8, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+      } else if (userTextLower.contains('tired') ||
+          userTextLower.contains('fatigue') ||
+          userTextLower.contains('exhausted') ||
+          userTextLower.contains('low energy') ||
+          userTextLower.contains('sluggish') ||
+          userTextLower.contains('brain fog')) {
+        symptomLogs.add(SymptomLog(symptom: 'Fatigue', energyLevel: 2, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+      }
+      // 2. Bloating
+      else if (userTextLower.contains('bloat') || userTextLower.contains('bloated') || userTextLower.contains('bloating')) {
+        symptomLogs.add(SymptomLog(symptom: 'Bloating', severity: 5, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+      }
+      // 3. Headache
+      else if (userTextLower.contains('headache') || userTextLower.contains('migraine') || userTextLower.contains('head pain')) {
+        symptomLogs.add(SymptomLog(symptom: 'Headache', severity: 5, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+      }
+      // 4. Digestion
+      else if (userTextLower.contains('digest') ||
+          userTextLower.contains('indigestion') ||
+          userTextLower.contains('gas') ||
+          userTextLower.contains('constipat') ||
+          userTextLower.contains('diarrhea') ||
+          userTextLower.contains('reflux') ||
+          userTextLower.contains('heartburn')) {
+        symptomLogs.add(SymptomLog(symptom: 'Digestive Shift', severity: 5, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+      }
+      // 5. Fullness & Satiety
+      else if (userTextLower.contains('full') || userTextLower.contains('satiat') || userTextLower.contains('stuffed') || userTextLower.contains('hungry') || userTextLower.contains('hunger')) {
+        final isHungry = userTextLower.contains('hungry') || userTextLower.contains('hunger');
+        symptomLogs.add(
+          SymptomLog(symptom: isHungry ? 'Hunger' : 'Fullness', severity: 3, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'),
+        );
+      }
+      // 6. Sleep
+      else if (userTextLower.contains('sleep') || userTextLower.contains('insomnia') || userTextLower.contains('slept') || userTextLower.contains('rested')) {
+        final isPoor = userTextLower.contains('poor') || userTextLower.contains('bad') || userTextLower.contains("can't sleep") || userTextLower.contains('insomnia');
+        symptomLogs.add(
+          SymptomLog(symptom: 'Sleep Shift', sleep: isPoor ? 'Poor' : 'Good', notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'),
+        );
+      }
+      // Other physical reactions
+      else if (userTextLower.contains('nausea') || userTextLower.contains('nauseous')) {
+        symptomLogs.add(SymptomLog(symptom: 'Nausea', severity: 5, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+      } else if (userTextLower.contains('cramp') || userTextLower.contains('stomach pain') || userTextLower.contains('stomach ache')) {
+        symptomLogs.add(SymptomLog(symptom: 'Abdominal Pain', severity: 6, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+      }
+    }
+
+    // --- STEP 2.6: ENRICH SYMPTOMS WITH FOOD NAME AND IMAGE URL ---
+    final resolvedFoodName = scanData?.productName ?? (mealLog != null && mealLog.items.isNotEmpty ? mealLog.items.join(', ') : null);
+    final resolvedImageUrl = imageUrl ?? scanData?.userImageUrl ?? scanData?.imageUrl;
+
+    if (symptomLogs.isNotEmpty && (resolvedFoodName != null || resolvedImageUrl != null)) {
+      final enrichedSymptoms = symptomLogs.map((s) => s.copyWith(foodName: s.foodName ?? resolvedFoodName, imageUrl: s.imageUrl ?? resolvedImageUrl)).toList();
+      symptomLogs
+        ..clear()
+        ..addAll(enrichedSymptoms);
     }
 
     // --- STEP 3: UI STRIPPING ---

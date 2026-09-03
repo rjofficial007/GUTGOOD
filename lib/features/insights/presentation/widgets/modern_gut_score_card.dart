@@ -42,16 +42,6 @@ class ModernGutScoreCard extends StatelessWidget {
     return AppPalette.red;
   }
 
-  Color _getBackgroundColor(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (isDark) {
-      return _accentColor.withAlpha(30);
-    }
-    if (score >= 70) return AppPalette.greenSoft;
-    if (score >= 50) return AppPalette.orangeSoft;
-    return AppPalette.redSoft;
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -62,7 +52,7 @@ class ModernGutScoreCard extends StatelessWidget {
     // using the theme's primary text color as the background in light mode
     // to provide a softer yet commanding contrast.
     final cardBg = isDark ? AppPalette.black : scheme.textPrimary;
-    final contentColor = AppPalette.white;
+    const contentColor = AppPalette.white;
 
     return BentoCard(
       padding: EdgeInsets.zero,
@@ -165,7 +155,7 @@ class ModernGutScoreCard extends StatelessWidget {
                           style: context.captionBold.copyWith(color: contentColor, fontSize: 11.sp, letterSpacing: 0.5, fontWeight: FontWeight.w900),
                         ),
                         Gap.w4,
-                        Icon(Icons.arrow_forward_rounded, size: 14, color: contentColor),
+                        const Icon(Icons.arrow_forward_rounded, size: 14, color: contentColor),
                       ],
                     ),
                   ],

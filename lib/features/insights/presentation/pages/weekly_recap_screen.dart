@@ -15,6 +15,7 @@ import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_view.dart';
 import 'package:gutgood/features/insights/presentation/widgets/modern_gut_score_card.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 

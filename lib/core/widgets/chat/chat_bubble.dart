@@ -235,18 +235,19 @@ class ChatBubble extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildMarkdownContent(context),
-                              if (scanData != null) ...[
-                                Gap.h12,
-                                Divider(color: colorScheme.borderSubtle, height: 1),
-                                Gap.h16,
-                                ScanResultInlineCard(scanData: scanData!, isEmbedded: true, onViewFullReport: onViewFullReport),
-                              ],
                               if (swapData != null && swapData!.isNotEmpty) ...[
                                 Gap.h12,
                                 Divider(color: colorScheme.borderSubtle, height: 1),
                                 Gap.h16,
                                 SwapItContainer(swaps: swapData!, isEmbedded: true, onSeeMore: onSeeMoreSwaps),
                               ],
+                              if (scanData != null) ...[
+                                Gap.h12,
+                                Divider(color: colorScheme.borderSubtle, height: 1),
+                                Gap.h16,
+                                ScanResultInlineCard(scanData: scanData!, isEmbedded: true, onViewFullReport: onViewFullReport),
+                              ],
+
                               Gap.h12,
                               Row(
                                 children: [

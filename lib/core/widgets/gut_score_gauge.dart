@@ -25,11 +25,7 @@ class GutScoreGauge extends StatelessWidget {
             width: size,
             height: size / 1.5,
             child: CustomPaint(
-              painter: _GaugePainter(
-                score: animatedScore,
-                trackColor: context.appColorScheme.borderSubtle,
-                progressColor: context.appColorScheme.textPrimary,
-              ),
+              painter: _GaugePainter(score: animatedScore, trackColor: context.appColorScheme.borderSubtle, progressColor: context.appColorScheme.textPrimary),
               child: Stack(
                 alignment: Alignment.bottomCenter,
                 children: [
@@ -40,17 +36,8 @@ class GutScoreGauge extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          '$animatedScore',
-                          style: context.displayHero.copyWith(
-                            fontSize: 48.0.sp,
-                            height: 1,
-                          ),
-                        ),
-                        Text(
-                          'Gut Score',
-                          style: context.caption,
-                        ),
+                        Text('$animatedScore', style: context.displayHero.copyWith(fontSize: 48.0.sp, height: 1)),
+                        Text('Gut Score', style: context.caption),
                       ],
                     ),
                   ),
@@ -65,11 +52,7 @@ class GutScoreGauge extends StatelessWidget {
 }
 
 class _GaugePainter extends CustomPainter {
-  _GaugePainter({
-    required this.score,
-    required this.trackColor,
-    required this.progressColor,
-  });
+  _GaugePainter({required this.score, required this.trackColor, required this.progressColor});
   final int score;
   final Color trackColor;
   final Color progressColor;
@@ -97,14 +80,8 @@ class _GaugePainter extends CustomPainter {
       final innerRadius = radius - strokeWidth;
       final outerRadius = radius;
 
-      final p1 = Offset(
-        center.dx + innerRadius * cos(angle),
-        center.dy + innerRadius * sin(angle),
-      );
-      final p2 = Offset(
-        center.dx + outerRadius * cos(angle),
-        center.dy + outerRadius * sin(angle),
-      );
+      final p1 = Offset(center.dx + innerRadius * cos(angle), center.dy + innerRadius * sin(angle));
+      final p2 = Offset(center.dx + outerRadius * cos(angle), center.dy + outerRadius * sin(angle));
       canvas.drawLine(p1, p2, trackPaint);
     }
 
@@ -123,14 +100,8 @@ class _GaugePainter extends CustomPainter {
       final innerRadius = radius - strokeWidth - 4;
       final outerRadius = radius + 2;
 
-      final p1 = Offset(
-        center.dx + innerRadius * cos(angle),
-        center.dy + innerRadius * sin(angle),
-      );
-      final p2 = Offset(
-        center.dx + outerRadius * cos(angle),
-        center.dy + outerRadius * sin(angle),
-      );
+      final p1 = Offset(center.dx + innerRadius * cos(angle), center.dy + innerRadius * sin(angle));
+      final p2 = Offset(center.dx + outerRadius * cos(angle), center.dy + outerRadius * sin(angle));
       canvas.drawLine(p1, p2, progressPaint);
     }
 
@@ -141,10 +112,7 @@ class _GaugePainter extends CustomPainter {
 
     final needleAngle = startAngle + progressSweep;
     final needleRadius = radius + 15;
-    final needlePos = Offset(
-      center.dx + needleRadius * cos(needleAngle),
-      center.dy + needleRadius * sin(needleAngle),
-    );
+    final needlePos = Offset(center.dx + needleRadius * cos(needleAngle), center.dy + needleRadius * sin(needleAngle));
 
     canvas.drawCircle(needlePos, 4, needlePaint);
   }

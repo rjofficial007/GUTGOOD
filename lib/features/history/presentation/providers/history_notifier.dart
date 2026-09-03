@@ -98,6 +98,8 @@ class HistoryNotifier with ChangeNotifier {
   bool get scansLoading => _scansLoading || _labelScansLoading || _menuScansLoading;
   bool get scansLoadingMore => _scansLoadingMore;
   bool get scansHasMore => _scansHasMore;
+  bool get labelScansHasMore => _labelScansHasMore;
+  bool get menuScansHasMore => _menuScansHasMore;
 
   List<MealLog> get meals => List.unmodifiable(_meals);
   bool get mealsLoading => _mealsLoading;

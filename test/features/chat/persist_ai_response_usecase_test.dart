@@ -36,7 +36,7 @@ void main() {
     mockLogRepository = MockLogRepository();
     mockAppStateService = MockAppStateService();
     mockStreakService = MockStreakService();
-    useCase = PersistAiResponseUseCase(firestoreService: mockFirestoreService, logRepository: mockLogRepository, appStateService: mockAppStateService, streakService: mockStreakService);
+    useCase = PersistAiResponseUseCase(firestoreService: mockFirestoreService, appStateService: mockAppStateService, streakService: mockStreakService);
   });
 
   group('PersistAiResponseUseCase', () {
@@ -56,8 +56,8 @@ void main() {
           scanId: any(named: 'scanId'),
         ),
       ).thenAnswer((_) async => {});
-      when(() => mockLogRepository.logMeal(any())).thenAnswer((_) async => {});
-      when(() => mockLogRepository.logSymptom(any())).thenAnswer((_) async => {});
+      when(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'meal_id');
+      when(() => mockFirestoreService.logSymptom(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'symptom_id');
       when(() => mockStreakService.markActivityToday()).thenAnswer((_) async => {});
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
 
@@ -71,11 +71,8 @@ void main() {
           scanId: any(named: 'scanId'),
         ),
       ).called(1);
-      // Auto-log meal from scan happens if source/imageUrl suggests it's a food photo.
-      // In this test, we have BOTH a scan and a meal in the result.
-      // Our logic says: if meal is present AND !persistedTagBlocks.contains('__MEAL_LOGGED_IN_TURN__'), persist meal.
-      verify(() => mockLogRepository.logMeal(any())).called(1);
-      verify(() => mockLogRepository.logSymptom(any())).called(1);
+      verify(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId'))).called(1);
+      verify(() => mockFirestoreService.logSymptom(any(), docId: any(named: 'docId'))).called(1);
       verify(() => mockStreakService.markActivityToday()).called(1);
     });
 
@@ -86,7 +83,7 @@ void main() {
         symptoms: [SymptomLog(symptom: 'Bloating', severity: 2, createdAt: now)],
       );
 
-      when(() => mockLogRepository.logSymptom(any())).thenAnswer((_) async => {});
+      when(() => mockFirestoreService.logSymptom(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'symptom_id');
       when(() => mockStreakService.markActivityToday()).thenAnswer((_) async => {});
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
 
@@ -94,11 +91,30 @@ void main() {
 
       // First call
       await useCase.call(result, persistedTagBlocks: persistedTags);
-      verify(() => mockLogRepository.logSymptom(any())).called(1);
+      verify(() => mockFirestoreService.logSymptom(any(), docId: any(named: 'docId'))).called(1);
 
       // Second call with same tags
       await useCase.call(result, persistedTagBlocks: persistedTags);
-      verifyNever(() => mockLogRepository.logSymptom(any()));
+      verifyNever(() => mockFirestoreService.logSymptom(any(), docId: any(named: 'docId')));
+    });
+
+    test('should save label/menu scans ONLY to chat history and skip scan_history/journal_logs', () async {
+      final now = DateTime.now();
+      final labelResult = AiAnalysisResult(
+        text: 'Label Analysis',
+        intent: 'INGREDIENT_ANALYSIS',
+        scan: ScanResult(productName: 'Processed Snack', brand: 'Brand', score: 60, impactType: ImpactType.neutral, impact: 'Ok', category: 'label', createdAt: now),
+        meal: MealLog(items: const ['Processed Snack'], createdAt: now),
+      );
+
+      when(() => mockStreakService.markActivityToday()).thenAnswer((_) async => {});
+
+      final persistedTags = <String>{};
+      final output = await useCase.call(labelResult, source: 'label', persistedTagBlocks: persistedTags);
+
+      expect(output.meal, isNull);
+      verifyNever(() => mockFirestoreService.saveLabelScan(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
+      verifyNever(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId')));
     });
   });
 }

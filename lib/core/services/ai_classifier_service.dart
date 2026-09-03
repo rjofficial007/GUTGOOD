@@ -74,8 +74,27 @@ class AiClassifierServiceImpl implements AiClassifierService {
     AppLogger.ai('AiClassifier: Starting text intent detection');
 
     final normalizedText = userText.trim().toLowerCase();
+
+    // Fast-path client overrides for common user intent phrases
     if (normalizedText == 'what am i getting from this?' || normalizedText == 'what do you think of this meal?') {
       return 'COMPLETE_ANALYSIS';
+    }
+    if (normalizedText.contains('rate my') || normalizedText.contains('rate this') || normalizedText.contains('how did i do') || normalizedText.contains('give me a score')) {
+      return 'MEAL_RATING';
+    }
+    if (normalizedText.contains('is this healthy') || normalizedText.contains('is this balanced') || normalizedText.contains('is this good for me')) {
+      return 'HEALTH_ASSESSMENT';
+    }
+    if (normalizedText.contains('bloat') ||
+        normalizedText.contains('tired') ||
+        normalizedText.contains('symptom') ||
+        normalizedText.contains('how am i doing') ||
+        normalizedText.contains('stomach') ||
+        normalizedText.contains('feeling')) {
+      return 'SYMPTOM_ANALYSIS';
+    }
+    if (normalizedText.contains('what should i improve') || normalizedText.contains('suggest a swap') || normalizedText.contains('what to swap') || normalizedText.contains('make it healthier')) {
+      return 'SWAP_REQUEST';
     }
 
     final prompt = historySummary != null ? 'History Summary: $historySummary\n\nUser Message: "$userText"' : 'User Message: "$userText"';

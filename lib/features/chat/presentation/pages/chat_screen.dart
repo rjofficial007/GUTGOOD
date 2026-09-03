@@ -82,7 +82,6 @@ class ChatScreenState extends State<ChatScreen> {
   bool _hasScrolledToBottomInitially = false;
 
   ChatHistoryNotifier? _historyNotifier;
-  ChatComposerNotifier? _composerNotifier;
 
   Timer? _draftDebounce;
 
@@ -98,8 +97,6 @@ class ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
 
       _historyNotifier = context.read<ChatHistoryNotifier>();
-
-      _composerNotifier = context.read<ChatComposerNotifier>();
 
       _historyNotifier?.addListener(_handleHistoryLoaded);
 
@@ -217,22 +214,6 @@ class ChatScreenState extends State<ChatScreen> {
   // LATEST USER MESSAGE ANCHOR
   // ===========================================================================
 
-  /// Enables temporary space below the conversation.
-  ///
-  /// This is important.
-  ///
-  /// Without this, Flutter may not physically have enough scroll extent
-  /// to move the latest user message to 12% of the viewport.
-  void _enableAnchorSpace() {
-    if (_anchorSpaceEnabled) return;
-
-    _anchorSpaceEnabled = true;
-
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
   void _disableAnchorSpace() {
     if (!_anchorSpaceEnabled) return;
 
@@ -343,10 +324,6 @@ class ChatScreenState extends State<ChatScreen> {
 
     final viewport = RenderAbstractViewport.of(renderObject);
 
-    if (viewport == null) {
-      return;
-    }
-
     try {
       final reveal = viewport.getOffsetToReveal(renderObject, _userMessageAlignment);
 
@@ -419,10 +396,6 @@ class ChatScreenState extends State<ChatScreen> {
       }
 
       final viewport = RenderAbstractViewport.of(renderObject);
-
-      if (viewport == null) {
-        return;
-      }
 
       final reveal = viewport.getOffsetToReveal(renderObject, _userMessageAlignment);
 
@@ -890,8 +863,6 @@ class _MessageListView extends StatelessWidget {
         final allMessages = context.read<ChatHistoryNotifier>().messages;
 
         final messages = allMessages.where((m) => !m.isHidden).toList();
-
-        final messageCount = messages.length;
 
         final isLoading = context.select<ChatComposerNotifier, bool>((n) => n.isLoading);
 

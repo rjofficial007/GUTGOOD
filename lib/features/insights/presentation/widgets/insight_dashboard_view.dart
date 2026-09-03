@@ -15,9 +15,12 @@ import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/gut_trend_chart_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/insights/presentation/widgets/modern_gut_score_card.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:provider/provider.dart';
 
 /// A shared sliver component that builds the comprehensive insight dashboard layout.
 /// Used by both the main [InsightsScreen] (live) and [InsightDetailScreen] (historical).
@@ -33,9 +36,11 @@ class InsightDashboardSliver extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayPatterns = (patterns != null && patterns!.isNotEmpty) ? patterns! : data.detectedPatterns;
+    final profileNotifier = context.watch<ProfileNotifier>();
+    final currentScore = (profileNotifier.profile?.gutScore ?? 0) > 0 ? profileNotifier.profile!.gutScore : profileNotifier.avgFoodScore;
 
     debugPrint('--- InsightDashboardSliver: Building ---');
-    debugPrint('Gut Score: ${data.gutScore}');
+    debugPrint('Direct Profile Score: $currentScore');
     debugPrint('Healing Foods: ${data.healingFoods.length}');
     debugPrint('Trigger Foods: ${data.triggerFoods.length}');
     debugPrint('Detected Patterns (Model): ${data.detectedPatterns.length}');
@@ -59,17 +64,36 @@ class InsightDashboardSliver extends StatelessWidget {
             DashboardEntrance(
               delay: 50,
               child: ModernGutScoreCard(
-                description: data.topInsight?.description ?? '',
-                score: data.gutScore,
-                scoreDiff: data.scoreDiff,
+                description: data.topInsight?.description ?? 'Track your meals and body signals to discover personal patterns.',
+                score: currentScore,
                 showDetails: !isHistorical,
                 onTap: isHistorical
                     ? () {}
                     : () async {
-                        if (context.mounted) {
+                        if (context.mounted && data.topInsight != null) {
                           unawaited(context.push(AppRoutes.smartInsightDetail, extra: data.topInsight!));
                         }
                       },
+              ),
+            ),
+
+            Gap.h16,
+
+            // Oura-Inspired 7-Day Gut Trend Curve
+            DashboardEntrance(
+              delay: 80,
+              child: GutTrendChartCard(
+                currentScore: currentScore,
+                timeframeLabel: '7-DAY GUT TRAJECTORY',
+                dataPoints: const [
+                  ScoreDataPoint(dayLabel: 'M', score: 62),
+                  ScoreDataPoint(dayLabel: 'T', score: 65),
+                  ScoreDataPoint(dayLabel: 'W', score: 68),
+                  ScoreDataPoint(dayLabel: 'T', score: 70, hasSymptom: true),
+                  ScoreDataPoint(dayLabel: 'F', score: 72),
+                  ScoreDataPoint(dayLabel: 'S', score: 75),
+                  ScoreDataPoint(dayLabel: 'S', score: 78),
+                ],
               ),
             ),
 
@@ -109,6 +133,14 @@ class InsightDashboardSliver extends StatelessWidget {
                       ),
                   ],
                 ),
+              ),
+              Gap.h16,
+            ],
+
+            if (notifier != null && !notifier!.isSufficient) ...[
+              DashboardEntrance(
+                delay: 150,
+                child: TrackingInProgressCard(mealsLogged: notifier!.totalMeals, symptomsLogged: notifier!.totalSymptoms, scansDone: notifier!.totalScans),
               ),
               Gap.h16,
             ],
@@ -310,53 +342,161 @@ class PhysicalGoalCard extends StatelessWidget {
 }
 
 class IntelligencePulseCard extends StatelessWidget {
-  const IntelligencePulseCard({super.key, required this.title, required this.description, this.index = 1, this.onTap, this.accentColor = AppPalette.blue});
+  const IntelligencePulseCard({super.key, required this.title, required this.description, this.index = 1, this.icon, this.onTap, this.accentColor = const Color(0xFF0759E8)});
 
   final String title;
   final String description;
   final int index;
+  final IconData? icon;
   final VoidCallback? onTap;
   final Color accentColor;
 
   @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        width: double.maxFinite,
-        constraints: BoxConstraints(minHeight: 180.h),
-        decoration: BoxDecoration(
-          color: AppPalette.black,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppPalette.white.withAlpha(20)),
-          gradient: RadialGradient(center: Alignment.topRight, radius: 1.4, colors: [accentColor.withAlpha(isDark ? 100 : 160), AppPalette.black], stops: const [0.0, 0.7]),
-        ),
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    constraints: BoxConstraints(minHeight: 180.h),
+    decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: const Color(0xFF02050D)),
+    clipBehavior: Clip.antiAlias,
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            // 📝 Content (Bottom)
+            // 1. RADIAL GRADIENT BACKGROUND
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(1.0, -0.35),
+                    radius: 1.15,
+                    colors: [const Color(0xFF08A9FF), accentColor, const Color(0xFF03104C), const Color(0xFF02050D)],
+                    stops: const [0.0, 0.25, 0.52, 0.82],
+                  ),
+                ),
+              ),
+            ),
+
+            // 2. DARK OVERLAY
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Colors.black.withAlpha(64), Colors.transparent, Colors.black.withAlpha(46)]),
+                ),
+              ),
+            ),
+
+            // 3. BLUE GLOW TOP RIGHT
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 140.w,
+                height: 140.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(colors: [const Color(0xFF00B7FF).withAlpha(128), Colors.transparent]),
+                ),
+              ),
+            ),
+
+            // 4. ICON BADGE TOP LEFT
+            Positioned(
+              left: 18,
+              top: 18,
+              child: Container(
+                width: 34.sp,
+                height: 34.sp,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withAlpha(20),
+                  border: Border.all(color: Colors.white.withAlpha(64), width: 1),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon ?? AppIcons.salad, size: 16.sp, color: Colors.white),
+              ),
+            ),
+
+            // 5. CONTENT (Title & Description)
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+              padding: EdgeInsets.fromLTRB(20.w, 64.h, 20.w, 22.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     title.toUpperCase(),
-                    style: context.displaySm.copyWith(color: AppPalette.white, fontSize: 32.sp, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -1.5),
+                    style: TextStyle(color: Colors.white, fontSize: 22.sp, height: 1.1, fontWeight: FontWeight.w900, letterSpacing: -0.7),
                   ),
-                  Gap.h16,
+                  SizedBox(height: 12.h),
                   Text(
                     description,
-                    style: context.bodySm.copyWith(color: AppPalette.white.withAlpha(180), height: 1.4, fontSize: 13.sp),
+                    style: TextStyle(color: Colors.white.withAlpha(217), fontSize: 12.5.sp, height: 1.4, fontWeight: FontWeight.w400),
                   ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+class TrackingInProgressCard extends StatelessWidget {
+  const TrackingInProgressCard({super.key, required this.mealsLogged, required this.symptomsLogged, required this.scansDone});
+
+  final int mealsLogged;
+  final int symptomsLogged;
+  final int scansDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    const totalTarget = 4;
+    final currentProgress = (scansDone + mealsLogged + symptomsLogged).clamp(0, totalTarget);
+    final progressPercent = (currentProgress / totalTarget).clamp(0.0, 1.0);
+
+    return BentoCard(
+      padding: const EdgeInsets.all(20),
+      backgroundColor: isDark ? AppPalette.darkCard : scheme.cardBackground,
+      borderColor: AppPalette.purple.withAlpha(50),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppPalette.purple.withAlpha(26), shape: BoxShape.circle),
+                child: Icon(AppIcons.brain, size: 16.sp, color: AppPalette.purple),
+              ),
+              Gap.w10,
+              Text(
+                'PATTERN ENGINE INITIALIZING',
+                style: context.captionBold.copyWith(color: AppPalette.purple, letterSpacing: 1.2, fontSize: 9.sp, fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          Gap.h12,
+          Text(
+            'Keep Logging Your Meals & Feelings',
+            style: context.headingSm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900),
+          ),
+          Gap.h6,
+          Text(
+            'GutGood needs at least 3 meals and 1 feeling log to discover your unique body patterns. Progress: $currentProgress / $totalTarget items tracked.',
+            style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.3),
+          ),
+          Gap.h16,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(value: progressPercent, minHeight: 8.h, backgroundColor: scheme.borderSubtle, valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.purple)),
+          ),
+        ],
       ),
     );
   }

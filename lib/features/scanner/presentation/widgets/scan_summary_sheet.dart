@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -14,9 +13,9 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart';
 
 class ScanSummarySheet extends StatefulWidget {
   const ScanSummarySheet({super.key, required this.product, this.capturedImage});
@@ -30,16 +29,38 @@ class ScanSummarySheet extends StatefulWidget {
 class _ScanSummarySheetState extends State<ScanSummarySheet> {
   ScanResult? _analyzedResult;
 
+  ScanResult get _headerScanData {
+    if (_analyzedResult != null) return _analyzedResult!;
+
+    final p = widget.product;
+    final score = p.gutScore;
+    final impactType = score >= 70 ? ImpactType.positive : (score >= 40 ? ImpactType.neutral : ImpactType.negative);
+
+    return ScanResult(
+      productName: p.productName,
+      brand: p.brand ?? 'GutGood',
+      score: score,
+      impactType: impactType,
+      impact: 'Product from Open Food Facts Database',
+      category: p.categoryTag ?? 'food',
+      imageUrl: p.imageUrl,
+      nutriscore: p.nutriscore,
+      novaGroup: p.novaGroup?.toString(),
+      createdAt: DateTime.now(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     final isAnalyzed = _analyzedResult != null;
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.26,
-      minChildSize: 0.26,
-      maxChildSize: 0.9,
+      initialChildSize: 0.35,
+      minChildSize: 0.35,
+      maxChildSize: 0.92,
       snap: true,
+      shouldCloseOnMinExtent: false,
       expand: false,
       builder: (context, scrollController) => DecoratedBox(
         decoration: BoxDecoration(
@@ -49,52 +70,79 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
         ),
         child: Column(
           children: [
-            // Drag Handle
+            // Top Bar with Drag Handle & Close Button
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: scheme.borderSubtle, borderRadius: BorderRadius.circular(2)),
+              padding: const EdgeInsets.fromLTRB(16, 8, 12, 4),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Drag Handle Bar
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: scheme.borderSubtle, borderRadius: BorderRadius.circular(2)),
+                  ),
+
+                  // Explicit Close Button
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: IconButton(
+                      onPressed: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      icon: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: scheme.elevatedSurface,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: scheme.borderSubtle),
+                        ),
+                        child: Icon(Icons.close_rounded, size: 18.sp, color: scheme.textPrimary),
+                      ),
+                      tooltip: 'Close Summary',
+                      splashRadius: 20,
+                    ),
+                  ),
+                ],
               ),
             ),
 
             Expanded(
               child: ListView(
                 controller: scrollController,
-                padding: EdgeInsets.fromLTRB(AppSizes.p24, 0, AppSizes.p24, MediaQuery.of(context).padding.bottom + AppSizes.p24),
+                physics: const ClampingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, MediaQuery.of(context).padding.bottom + AppSizes.p24),
                 children: [
-                  // 1. Primary Minimal Header
-                  _buildMinimalHeader(context),
+                  // 1. Bento Image & Score Card Hero Header
+                  BentoImageCard(scanData: _headerScanData),
 
-                  Gap.h16,
-                  Divider(color: scheme.border.withAlpha(26)),
                   Gap.h16,
 
                   // 2. Intelligence Result
-                  if (isAnalyzed) ...[_buildAnalyzedContent(context), Gap.h24, Divider(color: scheme.border.withAlpha(26)), Gap.h16],
+                  if (isAnalyzed) ...[_buildAnalyzedContent(context), Gap.h16],
 
-                  // 3. Secondary Badges
+                  // 3. Nutri-Score & NOVA Badges
                   _buildGroundTruthBadges(context),
-                  Gap.h24,
-                  // 3. Negatives Section
+                  Gap.h20,
+
+                  // 4. Negatives Section
                   _buildFactorSection(context, title: AppStrings.negativesLabel, factors: _getNegatives(context)),
 
-                  Gap.h24,
+                  Gap.h20,
 
-                  // 4. Positives Section
+                  // 5. Positives Section
                   _buildFactorSection(context, title: AppStrings.positivesLabel, factors: _getPositives(context)),
 
+                  Gap.h20,
+
+                  // 6. Ingredients Section (Wrapped Bento Chips)
+                  _buildIngredientsChips(context),
+
                   Gap.h24,
 
-                  // 5. Ingredients Section (New Style)
-                  _buildFactorSection(context, title: AppStrings.ingredientsLabelText, factors: _getIngredients(context)),
-
-                  Gap.h24,
-                  Divider(color: scheme.border.withAlpha(26)),
-                  Gap.h32,
-
-                  // 7. Action Button
+                  // 7. Action CTA Button
                   _buildActionButton(context),
                 ],
               ),
@@ -102,70 +150,6 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildMinimalHeader(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final score = widget.product.gutScore;
-    final scoreColor = _getScoreColor(context, score);
-    final gradeLabel = _getGradeLabel(score);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 70.0.w,
-          height: 120.0.w,
-
-          child: widget.product.imageUrl != null && widget.product.imageUrl!.isNotEmpty
-              ? CachedNetworkImage(
-                  imageUrl: widget.product.imageUrl!,
-                  fit: BoxFit.contain,
-                  placeholder: (context, url) => Shimmer.fromColors(
-                    baseColor: scheme.elevatedSurface,
-                    highlightColor: scheme.border,
-                    child: Container(color: AppPalette.white),
-                  ),
-                  errorWidget: (_, _, _) => Icon(AppIcons.utensils, color: scheme.textMuted, size: 40),
-                )
-              : Icon(AppIcons.utensils, color: scheme.textMuted, size: 40),
-        ),
-        Gap.w20,
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.product.productName,
-                style: context.headingSm.copyWith(color: scheme.textPrimary),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Gap.h4,
-              Text(widget.product.brand ?? 'Unknown Brand', style: context.bodySm.copyWith(color: scheme.textSecondary)),
-              Gap.h16,
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(color: scoreColor, shape: BoxShape.circle),
-                  ),
-                  Gap.w12,
-                  Text('$score/100', style: context.headingSm.copyWith(fontWeight: FontWeight.w900)),
-                  Gap.w12,
-                  Text(
-                    gradeLabel,
-                    style: context.bodySm.copyWith(color: scheme.textMuted, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -177,37 +161,163 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
       children: [
         Text(
           title,
-          style: context.title.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w800),
+          style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w900),
         ),
-        Gap.h16,
+        Gap.h12,
         ...factors.asMap().entries.map((entry) {
           final isLast = entry.key == factors.length - 1;
-          return _FactorRow(factor: entry.value, isLast: isLast);
+          return Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 8.h),
+            child: _FactorRow(factor: entry.value),
+          );
         }),
       ],
     );
   }
 
-  Widget _buildGroundTruthBadges(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      if (widget.product.nutriscore != null) _FactBadge(label: 'NUTRI-SCORE', value: widget.product.nutriscore!.toUpperCase(), color: _getNutriScoreColor(widget.product.nutriscore!)),
-      if (widget.product.novaGroup != null) _FactBadge(label: 'NOVA GROUP', value: 'GROUP ${widget.product.novaGroup}', color: _getNovaColor(widget.product.novaGroup!)),
-    ],
-  );
+  Widget _buildIngredientsChips(BuildContext context) {
+    final ingredients = widget.product.ingredients;
+    if (ingredients == null || ingredients.isEmpty) return const SizedBox.shrink();
+
+    final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppStrings.ingredientsLabelText,
+          style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w900),
+        ),
+        Gap.h12,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: ingredients
+              .take(10)
+              .map(
+                (ing) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppPalette.white.withAlpha(12) : scheme.elevatedSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: scheme.borderSubtle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(AppIcons.leaf, size: 12.sp, color: scheme.textMuted),
+                      Gap.w6,
+                      Text(
+                        ing,
+                        style: context.captionBold.copyWith(color: scheme.textPrimary, fontSize: 11.sp),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGroundTruthBadges(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final nutriColor = _getNutriScoreColor(widget.product.nutriscore ?? '');
+    final novaColor = _getNovaColor(widget.product.novaGroup ?? 0);
+
+    return Row(
+      children: [
+        if (widget.product.nutriscore != null)
+          Expanded(
+            child: BentoCard(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              borderRadius: 16,
+              backgroundColor: isDark ? AppPalette.darkCard : scheme.cardBackground,
+              borderColor: nutriColor.withAlpha(50),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36.h,
+                    height: 36.h,
+                    decoration: BoxDecoration(color: nutriColor.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+                    child: Center(
+                      child: Text(
+                        widget.product.nutriscore!.toUpperCase(),
+                        style: context.headingSm.copyWith(color: nutriColor, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
+                  Gap.w12,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'NUTRI-SCORE',
+                        style: context.captionMicro.copyWith(color: scheme.textMuted, fontWeight: FontWeight.w900, fontSize: 8.sp),
+                      ),
+                      const SizedBox(height: 2),
+                      Text('Grade ${widget.product.nutriscore!.toUpperCase()}', style: context.captionBold.copyWith(color: scheme.textPrimary)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (widget.product.nutriscore != null && widget.product.novaGroup != null) Gap.w12,
+        if (widget.product.novaGroup != null)
+          Expanded(
+            child: BentoCard(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              borderRadius: 16,
+              backgroundColor: isDark ? AppPalette.darkCard : scheme.cardBackground,
+              borderColor: novaColor.withAlpha(50),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36.h,
+                    height: 36.h,
+                    decoration: BoxDecoration(color: novaColor.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+                    child: Center(
+                      child: Text(
+                        '${widget.product.novaGroup}',
+                        style: context.headingSm.copyWith(color: novaColor, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
+                  Gap.w12,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'NOVA GROUP',
+                        style: context.captionMicro.copyWith(color: scheme.textMuted, fontWeight: FontWeight.w900, fontSize: 8.sp),
+                      ),
+                      const SizedBox(height: 2),
+                      Text('Group ${widget.product.novaGroup}', style: context.captionBold.copyWith(color: scheme.textPrimary)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
   Widget _buildAnalyzedContent(BuildContext context) {
     final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final result = _analyzedResult!;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.successSubtle,
-        borderRadius: BorderRadius.circular(AppSizes.r20),
-        border: Border.all(color: scheme.success.withAlpha(26)),
-      ),
+    return BentoCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: 20,
+      backgroundColor: isDark ? scheme.success.withAlpha(20) : scheme.successSubtle,
+      borderColor: scheme.success.withAlpha(50),
       child: Column(
         children: [
           Row(
@@ -215,14 +325,17 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
             children: [
               Icon(AppIcons.sparkles, color: scheme.success, size: 18),
               Gap.w10,
-              Text(AppStrings.gutgoodHealthIntelligence, style: context.eyebrow.copyWith(color: scheme.success)),
+              Text(
+                AppStrings.gutgoodHealthIntelligence,
+                style: context.eyebrow.copyWith(color: scheme.success, fontWeight: FontWeight.w900),
+              ),
             ],
           ),
-          Gap.h12,
+          Gap.h10,
           Text(
             result.impact,
             textAlign: TextAlign.center,
-            style: context.body.copyWith(fontWeight: FontWeight.w600),
+            style: context.body.copyWith(fontWeight: FontWeight.w600, height: 1.3),
           ),
         ],
       ),
@@ -343,17 +456,6 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
     return items;
   }
 
-  List<_HealthFactor> _getIngredients(BuildContext context) {
-    final items = <_HealthFactor>[];
-    final ingredients = widget.product.ingredients;
-    if (ingredients != null && ingredients.isNotEmpty) {
-      for (final ing in ingredients.take(8)) {
-        items.add(_HealthFactor(label: ing, value: '', description: 'Product ingredient', color: AppPalette.gray400, icon: AppIcons.leaf));
-      }
-    }
-    return items;
-  }
-
   Color _getNutriScoreColor(String grade) {
     switch (grade.toUpperCase()) {
       case 'A':
@@ -385,20 +487,6 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
         return AppPalette.gray400;
     }
   }
-
-  Color _getScoreColor(BuildContext context, int score) {
-    if (score >= 70) return context.appColorScheme.success;
-    if (score >= 40) return AppPalette.purplePastel;
-    return context.appColorScheme.error;
-  }
-
-  String _getGradeLabel(int score) {
-    if (score >= 90) return AppStrings.excellent;
-    if (score >= 70) return AppStrings.great;
-    if (score >= 50) return AppStrings.good;
-    if (score >= 30) return AppStrings.fair;
-    return AppStrings.badLabel;
-  }
 }
 
 class _HealthFactor {
@@ -411,59 +499,55 @@ class _HealthFactor {
 }
 
 class _FactorRow extends StatelessWidget {
-  const _FactorRow({required this.factor, required this.isLast});
+  const _FactorRow({required this.factor});
   final _HealthFactor factor;
-  final bool isLast;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            Icon(factor.icon, size: 28, color: context.appColorScheme.textSecondary),
-            Gap.w16,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(factor.label, style: context.bodyBold),
-                  Text(factor.description, style: context.caption),
-                ],
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return BentoCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      borderRadius: 16,
+      backgroundColor: isDark ? AppPalette.darkCard : scheme.cardBackground,
+      borderColor: scheme.borderSubtle,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: factor.color.withAlpha(26), shape: BoxShape.circle),
+            child: Icon(factor.icon, size: 18.sp, color: factor.color),
+          ),
+          Gap.w14,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  factor.label,
+                  style: context.labelBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 2),
+                Text(factor.description, style: context.caption.copyWith(color: scheme.textSecondary, height: 1.2)),
+              ],
+            ),
+          ),
+          if (factor.value.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: factor.color.withAlpha(26),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: factor.color.withAlpha(60), width: 0.8),
+              ),
+              child: Text(
+                factor.value,
+                style: context.captionBold.copyWith(color: factor.color, fontWeight: FontWeight.w900, fontSize: 10.sp),
               ),
             ),
-            if (factor.value.isNotEmpty) Text(factor.value, style: context.caption.copyWith(fontWeight: FontWeight.bold)),
-            Gap.w12,
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(color: factor.color, shape: BoxShape.circle),
-            ),
-          ],
-        ),
+        ],
       ),
-      if (!isLast) Divider(color: context.appColorScheme.border.withAlpha(26), height: 1),
-    ],
-  );
-}
-
-class _FactBadge extends StatelessWidget {
-  const _FactBadge({required this.label, required this.value, required this.color});
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label, style: context.eyebrow),
-      Gap.h6,
-      Text(
-        value,
-        style: context.bodyBold.copyWith(color: color, fontWeight: FontWeight.w900),
-      ),
-    ],
-  );
+    );
+  }
 }

@@ -46,6 +46,28 @@ void main() {
       expect(result.metadata['intentConfidence'], 0.9);
     });
 
+    test('should fallback extract symptoms from user text for all 6 core categories', () {
+      final energetic = useCase.call('I feel energetic after eating this', isFinal: true);
+      expect(energetic.symptoms.first.symptom, 'Energetic');
+      expect(energetic.symptoms.first.energyLevel, 8);
+
+      final bloating = useCase.call('I am feeling bloated', isFinal: true);
+      expect(bloating.symptoms.first.symptom, 'Bloating');
+
+      final headache = useCase.call('I have a bad headache', isFinal: true);
+      expect(headache.symptoms.first.symptom, 'Headache');
+
+      final digestion = useCase.call('Having indigestion and gas', isFinal: true);
+      expect(digestion.symptoms.first.symptom, 'Digestive Shift');
+
+      final fullness = useCase.call('Feeling very full and stuffed', isFinal: true);
+      expect(fullness.symptoms.first.symptom, 'Fullness');
+
+      final sleep = useCase.call('Poor sleep last night', isFinal: true);
+      expect(sleep.symptoms.first.symptom, 'Sleep Shift');
+      expect(sleep.symptoms.first.sleep, 'Poor');
+    });
+
     test('should return original text if no tags are present', () {
       const text = 'Hello world';
       final result = useCase.call(text, isFinal: true);

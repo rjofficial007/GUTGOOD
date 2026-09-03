@@ -166,7 +166,7 @@ class ScannerNotifier with ChangeNotifier {
     }
   }
 
-  Future<ScanResult?> processImage(Uint8List bytes, {String? mode}) async {
+  Future<ScanResult?> processImage(Uint8List bytes, {String? mode, String? userText}) async {
     _isProcessing = true;
     notifyListeners();
 
@@ -185,15 +185,12 @@ class ScannerNotifier with ChangeNotifier {
         sensitivities: profile?.sensitivities ?? [],
         lifestyle: profile?.lifestyle ?? [],
         cyclePhase: cyclePhase,
+        userText: userText,
       );
 
       final scan = result.scan;
       if (scan != null) {
-        final finalScan = scan.copyWith(
-          source: result.imageMode ?? mode ?? 'unknown', 
-          userImageUrl: userImageUrl, 
-          scanId: scanId,
-        );
+        final finalScan = scan.copyWith(source: result.imageMode ?? mode ?? 'unknown', userImageUrl: userImageUrl, scanId: scanId);
         final finalResult = result.copyWith(scan: finalScan);
 
         AppLogger.info('ScannerNotifier: Saving image scan result for ${finalScan.productName} (detected: ${result.imageMode}, ID: $scanId)');

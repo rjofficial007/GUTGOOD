@@ -32,11 +32,10 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 
 9. Content: [Short summary of whether this product aligns with the user's current goals].
 
-10. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
-   - Populate the "scan" object with details from the ingredient label.
-   - If the user is reporting a symptom or physical feeling (e.g., feeling energetic), you MUST also populate the "symptoms" array. Ensure the "energyLevel" and "mood" fields are populated if mentioned.
-   
-The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
+10. TOKEN OPTIMIZATION (CRITICAL RULE):
+   - Do NOT emit a [GUTGOOD_DATA] JSON block for ingredient label scans.
+   - Provide ONLY your clean conversational Markdown analysis (steps 1 through 9).
+   - Do NOT generate JSON tags or structured blocks. This saves tokens and keeps the audit direct and fast.
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.

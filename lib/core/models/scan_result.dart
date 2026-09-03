@@ -110,8 +110,8 @@ class ScanResult extends Equatable {
     }
 
     return ScanResult(
-      productName: map['productName']?.toString() ?? map['restaurantName']?.toString() ?? map['menu']?['restaurantName']?.toString() ?? map['location']?.toString() ?? map['detectedText']?.toString() ?? 'Unknown',
-      brand: map['brand']?.toString() ?? map['restaurantName']?.toString() ?? 'Unknown',
+      productName: _extractProductName(map),
+      brand: map['brand']?.toString() ?? map['restaurantName']?.toString() ?? 'GutGood',
       category: category,
       imageUrl: map['imageUrl']?.toString(),
       score: score,
@@ -230,6 +230,54 @@ class ScanResult extends Equatable {
   /// Holds the raw JSON data from the AI for routing and specialized storage.
   final Map<String, dynamic>? rawData;
 
+  static String _extractProductName(Map<String, dynamic> map) {
+    final direct = map['productName']?.toString() ?? map['name']?.toString() ?? map['title']?.toString();
+    if (direct != null && direct.trim().isNotEmpty) {
+      final lower = direct.trim().toLowerCase();
+      if (lower != 'unknown' && lower != 'food' && lower != 'meal' && lower != 'product' && lower != 'item' && lower != 'food item') {
+        return direct.trim();
+      }
+    }
+
+    final mealBlock = map['meal'] is Map ? map['meal'] as Map : (map['rawData']?['meal'] is Map ? map['rawData']['meal'] as Map : null);
+    if (mealBlock != null) {
+      final items = mealBlock['items'];
+      if (items is List && items.isNotEmpty) {
+        final names = <String>[];
+        for (final item in items) {
+          if (item is Map && item['name'] != null && item['name'].toString().trim().isNotEmpty) {
+            names.add(item['name'].toString().trim());
+          } else if (item is String && item.trim().isNotEmpty) {
+            names.add(item.trim());
+          }
+        }
+        if (names.isNotEmpty) {
+          return names.join(' + ');
+        }
+      }
+      final summary = mealBlock['summary']?.toString();
+      if (summary != null && summary.trim().isNotEmpty) {
+        final s = summary.trim();
+        return s.length > 40 ? '${s.substring(0, 40)}...' : s;
+      }
+      final mealType = mealBlock['mealType']?.toString();
+      if (mealType != null && mealType.trim().isNotEmpty) {
+        return mealType.trim();
+      }
+    }
+
+    final restName = map['restaurantName']?.toString() ?? map['menu']?['restaurantName']?.toString() ?? map['location']?.toString() ?? map['detectedText']?.toString();
+    if (restName != null && restName.trim().isNotEmpty) {
+      return restName.trim();
+    }
+
+    if (direct != null && direct.trim().isNotEmpty) {
+      return direct.trim();
+    }
+
+    return 'Meal Scan';
+  }
+
   /// Returns true if this result represents a specific food product suitable for history.
   ///
   /// Filters out generic utility scans like "Restaurant Menus" or "Ingredient Labels"
@@ -241,23 +289,20 @@ class ScanResult extends Equatable {
     // 2. Explicit AI Category Check
     if (category != null) {
       final cat = category!.toLowerCase();
-      // 'food' and 'meal' are always loggable.
-      if (cat == 'food' || cat == 'meal' || cat == 'product') return true;
-
-      // If it's categorized as 'packaging' or 'label', only log if a specific
-      // product was successfully identified (not just generic "Label").
-      if ((cat == 'packaging' || cat == 'label') && !_isGenericName(productName)) {
-        return true;
-      }
+      // 'food', 'meal', 'product', 'packaging' are always loggable.
+      if (cat == 'food' || cat == 'meal' || cat == 'product' || cat == 'packaging') return true;
 
       // Explicitly non-loggable categories.
       if (cat == 'menu' || cat == 'non-food') return false;
     }
 
-    // 3. Source-based check: photo scans (food/meal source) are often products even with generic names
-    if (source == 'food' || source == 'meal') return true;
+    // 3. Source-based check: photo/vision scans are often products
+    if (source == 'food' || source == 'meal' || source == 'vision' || source == 'chat') return true;
 
-    // 4. Fallback Heuristics for older scans or missing category
+    // 4. Content check: has ingredients, nutrients, or meal items
+    if (ingredients.isNotEmpty || nutrients != null || rawData?['meal'] != null) return true;
+
+    // 5. Fallback Heuristics for older scans or missing category
     return !_isGenericName(productName);
   }
 

@@ -88,30 +88,6 @@ class ChatShimmerLoading extends StatelessWidget {
   }
 }
 
-class ChatPaginationLoader extends StatelessWidget {
-  const ChatPaginationLoader({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final baseColor = AppPalette.shimmerBase(context);
-    final highlightColor = AppPalette.shimmerHighlight(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      alignment: Alignment.center,
-      child: Shimmer.fromColors(
-        baseColor: baseColor,
-        highlightColor: highlightColor,
-        child: Container(
-          width: 120,
-          height: 32,
-          decoration: BoxDecoration(color: AppPalette.white, borderRadius: BorderRadius.circular(AppSizes.r16)),
-        ),
-      ),
-    );
-  }
-}
-
 class ChatEmptyState extends StatelessWidget {
   const ChatEmptyState({super.key});
 

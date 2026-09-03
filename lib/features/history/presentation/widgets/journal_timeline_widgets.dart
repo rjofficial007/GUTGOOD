@@ -66,10 +66,7 @@ class JournalTimelineEntry extends StatelessWidget {
           width: 72,
           child: Column(
             children: [
-              Text(
-                DateFormatter.formatTime(entry.createdAt),
-                style: context.label.copyWith(color: context.appColorScheme.textSecondary),
-              ),
+              Text(DateFormatter.formatTime(entry.createdAt), style: context.label.copyWith(color: context.appColorScheme.textSecondary)),
               Gap.h10,
               Expanded(
                 child: Stack(
@@ -328,21 +325,12 @@ class _ScoreBadge extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p4),
-      decoration: BoxDecoration(
-        color: color.withAlpha(26),
-        borderRadius: BorderRadius.circular(AppSizes.r8),
-      ),
+      decoration: BoxDecoration(color: color.withAlpha(26), borderRadius: BorderRadius.circular(AppSizes.r8)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            score.toString(),
-            style: context.bodyBold.copyWith(color: color),
-          ),
-          Text(
-            label,
-            style: context.captionBold.copyWith(color: color),
-          ),
+          Text(score.toString(), style: context.bodyBold.copyWith(color: color)),
+          Text(label, style: context.captionBold.copyWith(color: color)),
         ],
       ),
     );

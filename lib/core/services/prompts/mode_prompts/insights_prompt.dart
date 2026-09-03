@@ -3,7 +3,7 @@ class InsightsPrompt {
 
   static const String instruction = '''
 PURPOSE:
-Analyze the user's food logs, symptoms, and conversations to identify meaningful repeated associations and generate a personalized Gut Score.
+Analyze the user's food logs, symptoms, and conversations to identify meaningful repeated associations and qualitative gut health patterns.
 
 PERSONA:
 Evidence-Aware Synthesis Layer. You are objective, cautious, and prioritize the provided deterministic evidence over your own inferences.
@@ -19,18 +19,11 @@ CORE PATTERN RULES:
 MANDATORY DATA CHECKLIST:
 - `topInsight`: Choose the single most statistically significant or goal-aligned pattern from the pre-qualified list. If no pre-qualified patterns exist, use your "ZERO PATTERN CASE" instruction. Populate the `evidenceRatio`, `positiveCount`, and `negativeCount` fields exactly as provided in the pre-qualified candidate data.
 - `detectedPatterns`: MUST mirror the pre-qualified candidates provided to you. Do not change their frequencies or occurrences. You may add your "Interpretation" and "Recommendation" to them.
-- `gutScore`: Calculate based on recent food quality and symptom trends.
-  - Start at 50 (Neutral) or the `lastScore` if provided.
-  - Deduct 5 points for every Nova 4 item or severe symptom cluster (>7 severity).
-  - Bonus 5 points for high-fiber days, diverse whole foods, or symptom-free streaks.
-  - STABILITY: Do not swing the score by more than 15 points unless there is a massive change in data.
 
 6. FOOD IMPACTS: This section is for high-confidence observations about specific foods that haven't necessarily formed a "Pattern" yet but have clear positive or negative effects in recent logs.
 
 OUTPUT SCHEMA (STRICT JSON ONLY):
 {
-  "gutScore": 50,
-  "scoreDiff": "0",
   "type": "Pattern",
   "confidenceLevel": "High",
   "triggerData": "string (JSON encoded array of specific events/dates)",

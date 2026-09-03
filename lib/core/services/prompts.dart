@@ -8,6 +8,7 @@ import 'package:gutgood/core/services/prompts/mode_prompts/insights_prompt.dart'
 import 'package:gutgood/core/services/prompts/mode_prompts/intent_detection_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_planning_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_rating_prompt.dart';
+import 'package:gutgood/core/services/prompts/mode_prompts/meal_snap_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/meal_swaps_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/product_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/product_comparison_prompt.dart';
@@ -78,6 +79,29 @@ $historySummary
 
     final intentPrompt = _getPromptForIntent(intent);
 
+    final normalizedIntent = (intent ?? '').toUpperCase();
+    final normalizedMode = (mode ?? '').toUpperCase();
+    final isLabelOrMenu =
+        normalizedMode.contains('LABEL') ||
+        normalizedMode.contains('MENU') ||
+        normalizedMode.contains('PACKAGED_PRODUCT') ||
+        normalizedIntent.contains('LABEL') ||
+        normalizedIntent.contains('MENU') ||
+        normalizedIntent.contains('INGREDIENT');
+
+    final formatInstruction = isLabelOrMenu
+        ? '''
+STRICT FORMAT (TOKEN OPTIMIZATION FOR LABELS & MENUS):
+Provide ONLY your clean conversational Markdown response.
+CRITICAL: Do NOT output a [GUTGOOD_DATA] block or any JSON tags at all.
+'''
+        : '''
+STRICT FORMAT: 
+[Conversational Response in Markdown]
+
+${SchemaDefinitions.unifiedDataSchema}
+''';
+
     return '''
 $_identity
 
@@ -98,26 +122,7 @@ $intentPrompt
 Turn Context:
 ${mode != null ? 'ACTIVE MODE: $mode' : 'ACTIVE MODE: General Chat'}
 
-CRITICAL: YOUR RESPONSE IS NOT COMPLETE UNTIL YOU EMIT THE [GUTGOOD_DATA] BLOCK.
-- You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
-- If an image was attached: You MUST populate BOTH the "scan" and "meal" objects in the data block. You MUST ESTIMATE high-fidelity details (nutrients, ingredients, novaGroup) for meals to ensure the user's scan result screen is fully grounded in data.
-- If 'Current Cycle Phase' is provided and not 'Not specified': You MUST populate the 'cycleInsight' object within the 'scan' block to explain how this food interacts with the user's current hormonal phase.
-- If the user is reporting a symptom or current feeling (e.g., energetic, bloated, tired): You MUST populate the "symptoms" array. Ensure "energyLevel" and "mood" are captured if mentioned.
-- If you recommended swaps: You MUST populate the "swaps" array.
-
-STRICT FORMAT: 
-[Conversational Response in Markdown]
-
-[GUTGOOD_DATA]
-{
-  "intent": "...",
-  "scan": { ... },
-  "meal": { ... },
-  "symptoms": [ ... ],
-  "swaps": [ ... ],
-  "metadata": { ... }
-}
-[/GUTGOOD_DATA]
+$formatInstruction
 
 USER PROFILE
 
@@ -135,35 +140,28 @@ $cyclePhase
 
 $summaryText
 
-${SchemaDefinitions.unifiedDataSchema}
-${SchemaDefinitions.typeRules}
+${isLabelOrMenu ? '' : '${SchemaDefinitions.unifiedDataSchema}\n${SchemaDefinitions.typeRules}'}
 
 ${includePatternEngine ? '\n$_patternEngineRules' : ''}
 ''';
   }
 
   static String _getPromptForIntent(String? intent) {
-    // 🚀 Professional Default: Complete Analysis
-    // We default to a comprehensive breakdown unless a specific narrower intent is detected.
     if (intent == null) return FullAnalysisPrompt.instruction;
 
-    final normalized = intent.toUpperCase();
+    final normalized = intent.toUpperCase().trim();
 
-    // Check most specific intents first
-    if (normalized.contains('COMPLETE_ANALYSIS') || normalized.contains('FULL_ANALYSIS')) {
-      return FullAnalysisPrompt.instruction;
-    } else if (normalized.contains('MEAL_RATING')) {
+    // Route strictly to the proper intent-aware prompt
+    if (normalized.contains('MEAL_RATING') || normalized.contains('RATE_MEAL')) {
       return MealRatingPrompt.instruction;
-    } else if (normalized.contains('HEALTH_ASSESSMENT')) {
+    } else if (normalized.contains('HEALTH_ASSESSMENT') || normalized.contains('IS_HEALTHY')) {
       return HealthAssessmentPrompt.instruction;
-    } else if (normalized.contains('SWAP_REQUEST') || normalized.contains('MEAL_SWAPS') || normalized.contains('IMPROVEMENT_REQUEST')) {
+    } else if (normalized.contains('SWAP_REQUEST') || normalized.contains('MEAL_SWAPS') || normalized.contains('IMPROVEMENT_REQUEST') || normalized.contains('IMPROVE')) {
       return MealSwapsPrompt.instruction;
-    } else if (normalized.contains('MEAL_OVERVIEW') || normalized.contains('MEAL_RECOGNITION')) {
-      // 🚀 Professional Sync: Even if the AI detects a simple recognition intent,
-      // we now upgrade it to a Full Analysis to ensure the user gets the GutGood Rating.
-      return FullAnalysisPrompt.instruction;
-    } else if (normalized.contains('SYMPTOM_ANALYSIS')) {
+    } else if (normalized.contains('SYMPTOM_ANALYSIS') || normalized.contains('GENERAL_WELLNESS') || normalized.contains('SYMPTOM') || normalized.contains('FEELING')) {
       return SymptomAnalysisPrompt.instruction;
+    } else if (normalized.contains('MEAL_SNAP') || normalized.contains('MEAL_RECOGNITION') || normalized.contains('FOOD_SNAP')) {
+      return MealSnapPrompt.instruction;
     } else if (normalized.contains('PRODUCT_COMPARISON') || normalized.contains('NUTRITION_COMPARISON')) {
       return ProductComparisonPrompt.instruction;
     } else if (normalized.contains('MEAL_PLANNING')) {
@@ -172,11 +170,10 @@ ${includePatternEngine ? '\n$_patternEngineRules' : ''}
       return RestaurantMenuPrompt.instruction;
     } else if (normalized.contains('LABEL') || normalized.contains('INGREDIENT_ANALYSIS')) {
       return IngredientsLabelPrompt.instruction;
-    } else if (normalized.contains('FOOD') || normalized.contains('GALLERY') || normalized.contains('MEAL_SNAP')) {
+    } else if (normalized.contains('COMPLETE_ANALYSIS') || normalized.contains('FULL_ANALYSIS')) {
       return FullAnalysisPrompt.instruction;
     }
 
-    // Default to Full Analysis for unknown intents
     return FullAnalysisPrompt.instruction;
   }
 

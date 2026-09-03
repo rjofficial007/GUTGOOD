@@ -250,7 +250,7 @@ class DebugMockDataService {
       detectedPatterns: patterns,
       topHealing: const TopHighlight(food: 'Whey Protein Shake', effects: 'High Energy', timeframe: 'Morning', frequency: '8/10 days', emoji: '⚡'),
       topTrigger: const TopHighlight(food: 'Pepperoni Pizza', effects: 'Severe Bloating', timeframe: 'Dinner', frequency: '7/7 days', emoji: '🎈'),
-      foodImpacts: [
+      foodImpacts: const [
         FoodImpact(food: 'Oats', dateLabel: 'Daily', effect: 'Stable Energy', timeframeLabel: 'Morning', emoji: '🥣', impactType: 'positive'),
         FoodImpact(food: 'Salmon', dateLabel: 'Weekly', effect: 'Reduced Bloating', timeframeLabel: 'Dinner', emoji: '🐟', impactType: 'positive'),
         FoodImpact(food: 'Pizza', dateLabel: 'Weekly', effect: 'Inflammation', timeframeLabel: 'Evening', emoji: '🍕', impactType: 'negative'),

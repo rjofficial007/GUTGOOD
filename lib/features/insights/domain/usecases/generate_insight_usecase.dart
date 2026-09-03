@@ -168,10 +168,5 @@ class GenerateInsightUseCase {
     );
 
     unawaited(_notificationService.showInsightGeneratedNotification());
-
-    if (profile != null) {
-      final updatedProfile = profile.copyWith(gutScore: insight.gutScore, updatedAt: DateTime.now());
-      await _authFirestoreService.updateUserProfile(updatedProfile);
-    }
   }
 }

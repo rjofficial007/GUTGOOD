@@ -192,9 +192,6 @@ class AiServiceImpl implements AiService {
       throw AiServiceException(e?.message ?? 'Connection failed.', statusCode: e?.response?.statusCode);
     }
 
-    final status = response.statusCode ?? 500;
-    // Status is guaranteed 200 here if no exception was thrown by Dio
-
     final stream = response.data?.stream;
     if (stream == null) throw const AiServiceException('Empty response stream.');
 

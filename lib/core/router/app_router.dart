@@ -9,9 +9,7 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
-import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/router/route_codec.dart';
@@ -35,10 +33,6 @@ import 'package:gutgood/features/insights/presentation/pages/pattern_detail_scre
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
-import 'package:gutgood/features/product_details/presentation/pages/label_result_screen.dart';
-import 'package:gutgood/features/product_details/presentation/pages/meal_detail_screen.dart';
-import 'package:gutgood/features/product_details/presentation/pages/menu_result_screen.dart';
-import 'package:gutgood/features/product_details/presentation/pages/nutrition_facts_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/product_not_found_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/scan_result_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/symptom_detail_screen.dart';
@@ -198,29 +192,7 @@ class AppRouter {
                   return ScanResultScreen(scanData: args.scanData, heroTag: args.heroTag);
                 },
               ),
-              GoRoute(
-                path: AppRoutes.labelResult,
-                builder: (context, state) {
-                  final args = state.extra as ScanResultArgs;
-                  return LabelResultScreen(scanData: args.scanData, heroTag: args.heroTag);
-                },
-              ),
-              GoRoute(
-                path: AppRoutes.menuResult,
-                builder: (context, state) {
-                  final args = state.extra as ScanResultArgs;
-                  return MenuResultScreen(scanData: args.scanData, heroTag: args.heroTag);
-                },
-              ),
 
-              GoRoute(
-                path: AppRoutes.nutritionFacts,
-                builder: (context, state) => NutritionFactsScreen(scanData: state.extra as ScanResult),
-              ),
-              GoRoute(
-                path: AppRoutes.mealDetail,
-                builder: (context, state) => MealDetailScreen(meal: state.extra as MealLog),
-              ),
               GoRoute(
                 path: AppRoutes.symptomDetail,
                 builder: (context, state) => SymptomDetailScreen(symptom: state.extra as SymptomLog),

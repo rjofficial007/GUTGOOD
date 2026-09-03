@@ -20,6 +20,7 @@ abstract class ScannerRepository {
     required List<String> sensitivities,
     required List<String> lifestyle,
     required String cyclePhase,
+    String? userText,
   });
   Future<void> saveScanResult(AiAnalysisResult result, {String? userImageUrl, String? scanId});
 }

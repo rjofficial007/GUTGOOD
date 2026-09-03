@@ -35,12 +35,10 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 
 7. Content: [Short supportive summary of how to navigate this specific menu].
 
-8. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
-   - Set "intent": "menu_analysis".
-   - Populate the "scan" object with details from the menu (category: "menu").
-   - Populate the "menu" object (detailed below) with the restaurant name and recommended items.
-
-The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
+8. TOKEN OPTIMIZATION (CRITICAL RULE):
+   - Do NOT emit a [GUTGOOD_DATA] JSON block for restaurant menu scans.
+   - Provide ONLY your clean conversational Markdown response and top picks (steps 1 through 7).
+   - Do NOT generate JSON tags or structured blocks. This saves tokens and keeps menu recommendations fast and direct.
 
 FORMATTING RULES:
 - Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.

@@ -11,14 +11,7 @@ void initUseCaseDI() {
   sl
     ..registerLazySingleton(() => SendMessageStreamUseCase(sl()))
     ..registerLazySingleton(ProcessChatTagUseCase.new)
-    ..registerLazySingleton(
-      () => PersistAiResponseUseCase(
-        firestoreService: sl(),
-        logRepository: sl(),
-        appStateService: sl(),
-        streakService: sl(),
-      ),
-    )
+    ..registerLazySingleton(() => PersistAiResponseUseCase(firestoreService: sl(), appStateService: sl(), streakService: sl()))
     ..registerLazySingleton(() => const CheckInsightThresholdUseCase())
     ..registerLazySingleton(() => const BuildUnifiedJournalUseCase())
     ..registerLazySingleton(() => SummarizeJournalUseCase(aiService: sl()))

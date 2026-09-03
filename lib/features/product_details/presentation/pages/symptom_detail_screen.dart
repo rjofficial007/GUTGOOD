@@ -77,7 +77,7 @@ class _SymptomHeroSection extends StatelessWidget {
       backgroundColor: scheme.cardBackground,
       child: Row(
         children: [
-          // Left Panel: The "Wallet Card" aesthetic
+          // Left Panel: Image or Wallet Card
           Container(
             width: 176.h,
             height: 176.h,
@@ -86,28 +86,37 @@ class _SymptomHeroSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               child: Stack(
                 children: [
+                  if (symptom.imageUrl != null && symptom.imageUrl!.isNotEmpty)
+                    Positioned.fill(
+                      child: Image.network(
+                        symptom.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(color: severityColor),
+                      ),
+                    ),
                   Positioned(
                     top: 12,
                     left: 12,
-                    child: Text(AppStrings.severityLabel, style: context.captionTiny.copyWith(color: AppPalette.black.withAlpha(102))),
-                  ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
                     child: Container(
-                      width: 12,
-                      height: 12,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppPalette.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)],
+                        color: AppPalette.black.withAlpha(153),
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      child: Text(AppStrings.severityLabel.toUpperCase(), style: context.captionTiny.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   Positioned(
-                    bottom: -10,
-                    left: 8,
-                    child: Text('$severity', style: context.displayHero.copyWith(color: AppPalette.black, letterSpacing: -5)),
+                    bottom: 8,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppPalette.black.withAlpha(179),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text('$severity/10', style: context.labelBold.copyWith(color: AppPalette.white)),
+                    ),
                   ),
                 ],
               ),
@@ -128,6 +137,15 @@ class _SymptomHeroSection extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: context.headingSm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900),
                 ),
+                if (symptom.foodName != null && symptom.foodName!.isNotEmpty) ...[
+                  Gap.h4,
+                  Text(
+                    'After ${symptom.foodName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.captionBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w700),
+                  ),
+                ],
                 Gap.h8,
                 Text(DateFormatter.formatFull(symptom.createdAt), style: context.captionBold.copyWith(color: scheme.textSecondary)),
                 Gap.h12,
@@ -155,10 +173,11 @@ class _SymptomStatsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metrics = [
+      if (symptom.foodName != null && symptom.foodName!.isNotEmpty) _MetricData('Food', symptom.foodName!.toUpperCase(), 'MEAL'),
       if (symptom.energyLevel != null) _MetricData('Energy', '${symptom.energyLevel}/10', 'LEVEL'),
       if (symptom.mood != null) _MetricData('Mood', symptom.mood!.toUpperCase(), 'STATE'),
       if (symptom.sleep != null) _MetricData('Sleep', symptom.sleep!.toUpperCase(), 'QUALITY'),
-      _MetricData('Source', symptom.source?.toUpperCase() ?? AppStrings.manualLabel, 'ORIGIN'),
+      if (symptom.foodName == null || symptom.foodName!.isEmpty) _MetricData('Source', symptom.source?.toUpperCase() ?? AppStrings.manualLabel, 'ORIGIN'),
     ];
 
     return Row(

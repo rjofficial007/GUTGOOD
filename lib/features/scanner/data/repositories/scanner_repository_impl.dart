@@ -111,9 +111,14 @@ class ScannerRepositoryImpl implements ScannerRepository {
     required List<String> sensitivities,
     required List<String> lifestyle,
     required String cyclePhase,
+    String? userText,
   }) async {
     // 🟢 AI-BASED CLASSIFICATION: The visual content wins over the UI entry point.
-    final classification = await _aiClassifierService.classifyImage(imageBytes: imageBytes);
+    final classification = await _aiClassifierService.classifyImage(imageBytes: imageBytes, userText: userText);
+
+    final userPrompt = (userText != null && userText.trim().isNotEmpty)
+        ? 'Analyze this image and user message: "$userText". Provide your full analysis followed by the [GUTGOOD_DATA] block. Intent: ${classification.intent}'
+        : 'Analyze this image and provide your full analysis followed by the [GUTGOOD_DATA] block. Intent: ${classification.intent}';
 
     final aiResultStr = await _aiService.generateContent(
       imageBytes: imageBytes,
@@ -124,7 +129,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
         userLifestyle: lifestyle,
         cyclePhase: cyclePhase,
       ),
-      prompt: 'Analyze this image and provide your full analysis followed by the [GUTGOOD_DATA] block. Intent: ${classification.intent}',
+      prompt: userPrompt,
       usageType: 'scan',
       mode: 'plain',
     );
@@ -159,6 +164,10 @@ class ScannerRepositoryImpl implements ScannerRepository {
     AppLogger.info('ScannerRepository: Processing scan result persistence for: ${scan.productName}');
     final finalScanId = scanId ?? scan.scanId ?? const Uuid().v4();
 
+    final source = (scan.source ?? '').toUpperCase();
+    final category = (scan.category ?? '').toUpperCase();
+    final isLabelOrMenu = source.contains('LABEL') || category.contains('LABEL') || source.contains('MENU') || category.contains('MENU');
+
     // 🚀 Consistent UX: Use the AI's actual conversational text in the chat bubble
     final aiMsg = ChatMessage(
       localId: finalScanId,
@@ -166,6 +175,8 @@ class ScannerRepositoryImpl implements ScannerRepository {
       text: result.text.isEmpty ? 'I analyzed **${scan.productName}** for you. ✨' : result.text,
       scanData: scan.copyWith(scanId: finalScanId, userImageUrl: userImageUrl),
       imageUrl: userImageUrl,
+      symptomLogs: result.symptoms,
+      mealLogs: (!isLabelOrMenu && result.meal != null) ? [result.meal!] : const [],
       source: scan.source,
       createdAt: DateTime.now(),
     );
@@ -174,20 +185,32 @@ class ScannerRepositoryImpl implements ScannerRepository {
     await _streakService.markActivityToday();
     AppLogger.info('ScannerRepository: Chat message saved and activity marked');
 
-    // 🚀 Intent-Based Persistence Router
-    final source = (scan.source ?? '').toUpperCase();
-    final category = (scan.category ?? '').toUpperCase();
+    // 🚀 Persist Symptoms to journal_logs
+    if (result.symptoms.isNotEmpty) {
+      for (var i = 0; i < result.symptoms.length; i++) {
+        var symptom = result.symptoms[i];
+        final stableSymptomId = '${finalScanId}_symptom_$i';
+        symptom = symptom.copyWith(chatMessageId: finalScanId, foodName: symptom.foodName ?? scan.productName, imageUrl: symptom.imageUrl ?? userImageUrl ?? scan.imageUrl);
+        await _historyFirestoreService.logSymptom(symptom, docId: stableSymptomId);
+        AppLogger.info('ScannerRepository: Saved symptom ${symptom.symptom} (${symptom.foodName}) to journal_logs');
+      }
+    }
 
-    if (source.contains('LABEL') || category.contains('LABEL')) {
-      // 1. Label Intent - Save ONLY to chat_history and scan_history
-      await _historyFirestoreService.saveLabelScan(scan, userImageUrl: userImageUrl, scanId: finalScanId);
-      AppLogger.info('ScannerRepository: Routed label to scan_history');
-    } else if (source.contains('MENU') || category.contains('MENU')) {
-      // 2. Restaurant Menu Intent - Save ONLY to chat_history and scan_history
-      await _historyFirestoreService.saveMenuScan(scan, menuData: result.menu, userImageUrl: userImageUrl, scanId: finalScanId);
-      AppLogger.info('ScannerRepository: Routed menu to scan_history');
+    // 🚀 Persist Meal Log to journal_logs (ONLY for food/meal scans, NOT label or menu)
+    if (!isLabelOrMenu && result.meal != null) {
+      final stableMealId = '${finalScanId}_meal';
+      await _historyFirestoreService.logMeal(
+        result.meal!.copyWith(chatMessageId: finalScanId, source: scan.source),
+        docId: stableMealId,
+      );
+      AppLogger.info('ScannerRepository: Saved meal log to journal_logs');
+    }
+
+    // 🚀 Intent-Based Persistence Router: Label and Menu scans are saved ONLY to chat_history
+    if (isLabelOrMenu) {
+      AppLogger.info('ScannerRepository: Label/Menu scan - saved ONLY to chat_history');
     } else {
-      // 3. Normal Meal/Food Scan - Use existing scan_history
+      // Normal Meal/Food Scan - Save to scan_history
       if (scan.isLoggableProduct) {
         final updatedResult = scan.copyWith(scanId: finalScanId, chatMessageId: finalScanId);
         await _historyFirestoreService.saveToScanHistory(updatedResult, userImageUrl: userImageUrl, scanId: finalScanId);

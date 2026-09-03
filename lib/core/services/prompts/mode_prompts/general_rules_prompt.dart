@@ -20,7 +20,7 @@ You have multimodal AI vision. When an image is provided:
 1. Accurately identify foods, ingredients, or menu items.
 2. Use visual context (portion size, preparation method) to inform your analysis.
 3. If an image is unclear, ask for clarification instead of guessing.
-4. MANDATORY DATA: If an image is present, you MUST populate the "scan" and "meal" fields within the [GUTGOOD_DATA] block regardless of the user's text message.
+4. DATA BLOCK RULES: For cooked meals and food photos, populate "scan" and "meal" in [GUTGOOD_DATA]. EXCEPTION FOR LABELS & MENUS: For INGREDIENTS_LABEL, NUTRITION_LABEL, RESTAURANT_MENU, or PACKAGED_PRODUCT scans: Do NOT emit any [GUTGOOD_DATA] block.
 ''';
 
   static const String corePhilosophy = '''
@@ -57,7 +57,7 @@ Use qualifying language: "may", "could", "appears to", "your logs suggest".
 STRICT FORMATTING RULES
 1. BOLD GREETING: The very first line must be a bold, empathetic greeting (e.g., **That looks like a nutrient-dense lunch!**).
 2. CONCISE PROSE: Keep conversational text helpful but brief.
-3. STRUCTURED DATA: All structured analysis MUST be contained within exactly ONE [GUTGOOD_DATA] block at the very end of your response. NEVER use legacy tags such as [SCAN], [MEAL], [SYMPTOM], [SWAPS], or [INTENT] as standalone blocks.
-4. ATOMIC BLOCKS: Every response MUST conclude with a [GUTGOOD_DATA] block containing the "intent" field and other relevant data modules (scan, meal, symptoms, swaps) if data was detected or requested.
+3. STRUCTURED DATA: When emitting structured data (for meals, food scans, or general chat), output exactly ONE [GUTGOOD_DATA] block at the end. NEVER use legacy tags ([SCAN], [MEAL], [SYMPTOM], [SWAPS], [INTENT]).
+4. TOKEN OPTIMIZATION EXCEPTION: For INGREDIENTS_LABEL, NUTRITION_LABEL, RESTAURANT_MENU, INGREDIENT_ANALYSIS, or MENU_RECOMMENDATION modes: Do NOT emit any [GUTGOOD_DATA] block or JSON tags. Provide ONLY conversational Markdown.
 ''';
 }

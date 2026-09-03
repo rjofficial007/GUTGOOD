@@ -84,9 +84,7 @@ class _SmartAlertHero extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = context.appColorScheme;
     final cardBg = isDark ? AppPalette.black : scheme.textPrimary;
-    final contentColor = AppPalette.white;
-    final icon = InsightUiUtils.getPatternTypeIcon(pattern.type);
-    final timeLabel = pattern.occurrences.isNotEmpty ? pattern.occurrences.first.timeAfter : '~2 HRS';
+    const contentColor = AppPalette.white;
 
     return BentoCard(
       padding: EdgeInsets.zero,
@@ -189,43 +187,6 @@ class _SmartAlertHero extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CircleVisual extends StatelessWidget {
-  const _CircleVisual({this.imageUrl, this.icon, this.accentColor, required this.size, required this.borderColor, this.isIcon = false});
-  final String? imageUrl;
-  final IconData? icon;
-  final Color? accentColor;
-  final double size;
-  final Color borderColor;
-  final bool isIcon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isIcon ? (accentColor?.withAlpha(30) ?? Colors.white) : Colors.white,
-        border: Border.all(color: borderColor, width: 3),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(size),
-        child: isIcon
-            ? Center(
-                child: Icon(icon, size: size * 0.5, color: accentColor),
-              )
-            : CachedNetworkImage(
-                imageUrl: imageUrl!,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => Container(color: Colors.grey[200]),
-                errorWidget: (_, __, ___) => const Icon(Icons.error),
-              ),
       ),
     );
   }
@@ -342,7 +303,7 @@ class _MomentCard extends StatelessWidget {
                 child: Container(
                   width: 20,
                   height: 20,
-                  decoration: BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(color: AppPalette.white, shape: BoxShape.circle),
                   child: Center(
                     child: Text('$index', style: context.captionBold.copyWith(color: AppPalette.black, fontSize: 10)),
                   ),
@@ -431,8 +392,7 @@ class _WorthWatchingSection extends StatelessWidget {
     );
   }
 
-  Widget _buildBar(double height, Color color, {bool isDashed = false}) {
-    return Container(
+  Widget _buildBar(double height, Color color, {bool isDashed = false}) => Container(
       width: 12.w,
       height: height,
       decoration: BoxDecoration(
@@ -449,7 +409,6 @@ class _WorthWatchingSection extends StatelessWidget {
             )
           : null,
     );
-  }
 }
 
 class _NextStepsSection extends StatelessWidget {

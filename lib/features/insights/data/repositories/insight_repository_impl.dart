@@ -128,7 +128,7 @@ class InsightRepositoryImpl implements InsightRepository {
     final preComputedPatternCandidates = patternCandidates.isNotEmpty ? ModelUtils.safeJsonEncode(patternCandidates.map((p) => p.toMap()).toList()) : null;
 
     try {
-      AppLogger.insights('Generating insight. Last Score: $lastScore, History: $scoreHistory');
+      AppLogger.insights('Generating insight. History: $scoreHistory');
       final startTime = DateTime.now();
 
       final cleanJson = await _aiService.generateContent(
@@ -151,7 +151,7 @@ class InsightRepositoryImpl implements InsightRepository {
         throw Exception('InsightRepo: Could not parse AI insight result');
       }
 
-      final decoded = jsonDecode(jsonStr);
+      final decoded = Map<String, dynamic>.from(jsonDecode(jsonStr) as Map);
       final insight = AIInsight.fromMap(decoded);
 
       final duration = DateTime.now().difference(startTime).inSeconds;

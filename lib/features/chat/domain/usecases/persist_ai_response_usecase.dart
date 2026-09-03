@@ -1,14 +1,12 @@
 import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:gutgood/features/logs/domain/repositories/log_repository.dart';
 
 class PersistAiResponseUseCase {
-  PersistAiResponseUseCase({required HistoryFirestoreService firestoreService, required LogRepository logRepository, required AppStateService appStateService, required StreakService streakService})
+  PersistAiResponseUseCase({required HistoryFirestoreService firestoreService, required AppStateService appStateService, required StreakService streakService})
     : _firestoreService = firestoreService,
       _appStateService = appStateService,
       _streakService = streakService;
@@ -26,55 +24,18 @@ class PersistAiResponseUseCase {
     final resolvedCategory = (updatedResult.scan?.category ?? '').toUpperCase();
     final intent = (updatedResult.intent ?? '').toUpperCase();
 
-    // 1. Label Analysis
+    // 1. Label Analysis -> Saved ONLY to chat_history
     if (resolvedSource.contains('LABEL') || resolvedCategory.contains('LABEL') || intent.contains('LABEL') || intent.contains('INGREDIENT')) {
-      if (updatedResult.scan != null) {
-        final persistenceKey = 'LABEL_${updatedResult.scan!.productName}_$chatMessageId';
-        if (!persistedTagBlocks.contains(persistenceKey)) {
-          AppLogger.ai('PersistAiResponse: Routing label to scan_history');
-
-          final stableScanId = chatMessageId != null ? '${chatMessageId}_scan' : null;
-          await _firestoreService.saveLabelScan(updatedResult.scan!, userImageUrl: imageUrl, scanId: stableScanId);
-
-          updatedResult = updatedResult.copyWith(
-            scan: updatedResult.scan!.copyWith(scanId: stableScanId, userImageUrl: imageUrl),
-          );
-
-          persistedTagBlocks.add(persistenceKey);
-          hasPersistedAnything = true;
-        }
-      }
-      _notifyAndMark(hasPersistedAnything);
-      return updatedResult;
+      AppLogger.ai('PersistAiResponse: Label scan - saving ONLY to chat_history');
+      await _streakService.markActivityToday();
+      return updatedResult.copyWith(clearMeal: true, symptoms: const []);
     }
 
-    // 2. Restaurant Menu Analysis
+    // 2. Restaurant Menu Analysis -> Saved ONLY to chat_history
     if (resolvedSource.contains('MENU') || resolvedCategory.contains('MENU') || intent.contains('MENU')) {
-      if (updatedResult.scan != null || updatedResult.menu != null) {
-        final persistenceKey = 'MENU_${updatedResult.scan?.productName ?? updatedResult.menu?['restaurantName']}_$chatMessageId';
-        if (!persistedTagBlocks.contains(persistenceKey)) {
-          AppLogger.ai('PersistAiResponse: Routing menu to scan_history');
-
-          final stableScanId = chatMessageId != null ? '${chatMessageId}_scan' : null;
-          await _firestoreService.saveMenuScan(
-            updatedResult.scan ?? ScanResult(productName: 'Unknown', brand: 'Unknown', score: 0, impactType: ImpactType.neutral, impact: '', createdAt: DateTime.now()),
-            menuData: updatedResult.menu,
-            userImageUrl: imageUrl,
-            scanId: stableScanId,
-          );
-
-          if (updatedResult.scan != null) {
-            updatedResult = updatedResult.copyWith(
-              scan: updatedResult.scan!.copyWith(scanId: stableScanId, userImageUrl: imageUrl),
-            );
-          }
-
-          persistedTagBlocks.add(persistenceKey);
-          hasPersistedAnything = true;
-        }
-      }
-      _notifyAndMark(hasPersistedAnything);
-      return updatedResult;
+      AppLogger.ai('PersistAiResponse: Menu scan - saving ONLY to chat_history');
+      await _streakService.markActivityToday();
+      return updatedResult.copyWith(clearMeal: true, symptoms: const []);
     }
 
     // 3. Normal Meal/Food/Product Scan
@@ -108,6 +69,7 @@ class PersistAiResponseUseCase {
 
     // Persist Meal Log (Consumption)
     final isConsumptionIntent =
+        intent.isEmpty ||
         intent == 'LOG_MEAL' ||
         intent == 'MEAL_RATING' ||
         intent == 'MEAL_PHOTO' ||
@@ -149,7 +111,13 @@ class PersistAiResponseUseCase {
           // 🚀 PRD §13 & §14: Use indexed chatMessageId for multiple symptoms in one turn.
           final stableSymptomId = chatMessageId != null ? '${chatMessageId}_symptom_$i' : null;
 
-          final id = await _firestoreService.logSymptom(symptom.copyWith(chatMessageId: chatMessageId), docId: stableSymptomId);
+          final resolvedFood =
+              symptom.foodName ?? updatedResult.scan?.productName ?? (updatedResult.meal != null && updatedResult.meal!.items.isNotEmpty ? updatedResult.meal!.items.join(', ') : null);
+          final resolvedImage = symptom.imageUrl ?? imageUrl ?? updatedResult.scan?.userImageUrl ?? updatedResult.scan?.imageUrl;
+
+          symptom = symptom.copyWith(chatMessageId: chatMessageId, foodName: resolvedFood, imageUrl: resolvedImage);
+
+          final id = await _firestoreService.logSymptom(symptom, docId: stableSymptomId);
           if (id != null) {
             symptom = symptom.copyWith(firestoreId: id);
           }

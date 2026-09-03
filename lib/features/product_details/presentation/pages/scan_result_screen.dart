@@ -1,11 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -21,13 +19,14 @@ class ScanResultScreen extends StatefulWidget {
   const ScanResultScreen({super.key, required this.scanData, this.heroTag});
   final ScanResult scanData;
   final String? heroTag;
+
   @override
   State<ScanResultScreen> createState() => _ScanResultScreenState();
 }
 
 class _ScanResultScreenState extends State<ScanResultScreen> {
   late ScanResult _currentData;
-  bool _isLoading = false, _isRefreshing = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -43,14 +42,11 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
   Future<void> _refreshData() async {
     if (_currentData.scanId == null) return;
-    setState(() => _isRefreshing = true);
     try {
       final fullData = await sl<HistoryRepository>().getScanById(_currentData.scanId!);
       if (fullData != null && mounted) setState(() => _currentData = fullData);
     } catch (e) {
       AppLogger.error('ScanResultScreen: Hydration failed', error: e);
-    } finally {
-      if (mounted) setState(() => _isRefreshing = false);
     }
   }
 
@@ -94,56 +90,37 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                   padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
                   child: Column(
                     children: [
+                      // 1. Bento Image Card Hero Header
                       DashboardEntrance(
                         delay: 50,
                         child: BentoImageCard(scanData: _currentData, heroTag: widget.heroTag),
                       ),
                       Gap.h12,
-                      DashboardEntrance(delay: 100, child: DashboardMetricGrid(scanData: _currentData)),
+
+                      // 2. 4 Core Key Indicators Bar (Gut Impact, NOVA, Gut Barrier, Processing)
+                      DashboardEntrance(delay: 100, child: CoreMetricsGrid(scanData: _currentData)),
                       Gap.h12,
-                      DashboardEntrance(delay: 150, child: ExpertSummaryCard(scanData: _currentData)),
-                      if (_currentData.cycleInsight != null) ...[Gap.h12, DashboardEntrance(delay: 180, child: CycleInsightSection(insight: _currentData.cycleInsight!))],
+
+                      // 3. What works for you (Positives)
+                      DashboardEntrance(delay: 150, child: WhatWorksForYouSection(scanData: _currentData)),
                       Gap.h12,
-                      DashboardEntrance(
-                        delay: 200,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: ExpertStrategyCard(scanData: _currentData)),
-                            Gap.w12,
-                            Expanded(child: AdditivesSection(scanData: _currentData)),
-                          ],
-                        ),
-                      ),
+
+                      // 4. What to watch (Negatives & Additives Risk)
+                      DashboardEntrance(delay: 200, child: WhatToWatchSection(scanData: _currentData)),
                       Gap.h12,
-                      DashboardEntrance(
-                        delay: 300,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: MealBalanceCard(scanData: _currentData)),
-                            Gap.w12,
-                            Expanded(child: NutrientStatisticsCard(scanData: _currentData)),
-                          ],
-                        ),
-                      ),
+
+                      // 5. What this means for you (Synthesis Card with Persona Avatar)
+                      DashboardEntrance(delay: 250, child: WhatThisMeansForYouCard(scanData: _currentData)),
                       Gap.h12,
-                      DashboardEntrance(
-                        delay: 340,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: IngredientsSection(ingredients: _currentData.ingredients, scanData: _currentData),
-                            ),
-                            Gap.w12,
-                            Expanded(child: NutritionFactsSection(scanData: _currentData)),
-                          ],
-                        ),
-                      ),
-                      if (_currentData.swaps.isNotEmpty) ...[Gap.h12, DashboardEntrance(delay: 250, child: BetterSwapsCarousel(swaps: _currentData.swaps))],
-                      Gap.h12,
-                      DashboardEntrance(delay: 370, child: ProductMetadataSection(scanData: _currentData)),
+
+                      // 6. Cycle Insight (Hormonal Phase Advice if Enabled)
+                      if (_currentData.cycleInsight != null) ...[DashboardEntrance(delay: 280, child: CycleInsightSection(insight: _currentData.cycleInsight!)), Gap.h12],
+
+                      // 7. Better Swaps Carousel
+                      if (_currentData.swaps.isNotEmpty) ...[DashboardEntrance(delay: 320, child: BetterSwapsCarousel(swaps: _currentData.swaps)), Gap.h12],
+
+                      // 8. Product Metadata Footer
+                      DashboardEntrance(delay: 360, child: ProductMetadataSection(scanData: _currentData)),
                     ],
                   ),
                 ),

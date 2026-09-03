@@ -144,15 +144,15 @@ class ScanResultInlineCard extends StatelessWidget {
     final colorScheme = context.appColorScheme;
 
     // 🚀 Professional Sorting: Red (Triggers) -> Orange (Caution) -> Low (Neutral)
-    final sorted = List<Ingredient>.from(ingredients);
-    sorted.sort((a, b) {
-      int score(Ingredient i) => switch (i.colorName.toLowerCase()) {
-        'red' => 2,
-        'orange' => 1,
-        _ => 0,
-      };
-      return score(b).compareTo(score(a));
-    });
+    final sorted = List<Ingredient>.from(ingredients)
+      ..sort((a, b) {
+        int score(Ingredient i) => switch (i.colorName.toLowerCase()) {
+          'red' => 2,
+          'orange' => 1,
+          _ => 0,
+        };
+        return score(b).compareTo(score(a));
+      });
 
     return Padding(
       padding: EdgeInsets.fromLTRB(0, AppSizes.p10, 0, AppSizes.p20),
