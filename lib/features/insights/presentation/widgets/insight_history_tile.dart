@@ -4,7 +4,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/widgets/gut_score_list_tile.dart';
 import 'package:intl/intl.dart';
 
 class InsightHistoryTile extends StatelessWidget {
@@ -17,72 +17,22 @@ class InsightHistoryTile extends StatelessWidget {
     final type = insight.topInsight?.type ?? 'Insight';
     final effectColor = context.appColorScheme.textPrimary;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.only(bottom: AppSizes.p12),
-        padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          color: context.appColorScheme.elevatedSurface,
-          borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: context.appColorScheme.borderSubtle),
-        ),
-        child: Row(
-          children: [
-            // 1. Icon Container
-            Container(
-              width: AppSizes.w52,
-              height: AppSizes.w52,
-              decoration: BoxDecoration(color: context.appColorScheme.border.withAlpha(51), borderRadius: BorderRadius.circular(AppSizes.r12)),
-              child: Icon(_getIconForType(type), color: effectColor, size: AppSizes.icon24),
-            ),
-            Gap.w16,
-            // 2. Info (Title, Type, Time)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    insight.topInsight?.title ?? AppStrings.analysisCompleteLabel,
-                    style: context.labelBold,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Gap.h4,
-                  Text(
-                    '${type.toUpperCase()} • ${DateFormat('h:mm a').format(insight.updatedAt)}',
-                    style: context.captionBold.copyWith(color: context.appColorScheme.textMuted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Gap.w12,
-            // 3. Score Badge (Circular Progress)
-            SizedBox(
-              width: AppSizes.w52,
-              height: AppSizes.w52,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    value: insight.gutScore / 100,
-                    strokeWidth: 5,
-                    strokeCap: StrokeCap.round,
-                    backgroundColor: context.appColorScheme.borderSubtle,
-                    valueColor: AlwaysStoppedAnimation<Color>(effectColor),
-                  ),
-                  Text(
-                    '${insight.gutScore}',
-                    style: context.labelBold,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    final leadingWidget = Container(
+      width: AppSizes.w52,
+      height: AppSizes.w52,
+      decoration: BoxDecoration(
+        color: context.appColorScheme.border.withAlpha(51),
+        borderRadius: BorderRadius.circular(AppSizes.r12),
       ),
+      child: Icon(_getIconForType(type), color: effectColor, size: AppSizes.icon24),
+    );
+
+    return GutScoreListTile(
+      leading: leadingWidget,
+      title: insight.topInsight?.title ?? AppStrings.analysisCompleteLabel,
+      subtitle: '${type.toUpperCase()} • ${DateFormat('h:mm a').format(insight.updatedAt)}',
+      score: insight.gutScore,
+      onTap: onTap,
     );
   }
 

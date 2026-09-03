@@ -4,8 +4,10 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
+import 'package:gutgood/core/models/nova_group.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -165,7 +167,7 @@ class BentoImageCard extends StatelessWidget {
     final displayImageUrl = scanData.userImageUrl ?? scanData.imageUrl;
 
     // Premium Score Colors (Vibrant yet premium)
-    final scoreColor = scanData.score >= 70 ? AppPalette.greenPastel : (scanData.score >= 40 ? AppPalette.purplePastel : AppPalette.red);
+    final scoreColor = GutScoreBand.fromScore(scanData.score).color;
 
     // Adaptive Theme Colors
     final cardBg = isDark ? AppPalette.darkCard : scheme.cardBackground;
@@ -280,9 +282,10 @@ class CoreMetricsGrid extends StatelessWidget {
     final scheme = context.appColorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final novaVal = scanData.novaGroup ?? '1';
-    final gutBarrierVal = scanData.score >= 50 ? 'Positive' : 'Trigger';
-    final processingVal = novaVal == '1' ? 'Minimally Processed' : (novaVal == '4' ? 'Ultra-Processed' : 'Moderately Processed');
+    final nova = NovaGroup.fromGroup(scanData.novaGroup);
+    final gutBand = GutScoreBand.fromScore(scanData.score);
+    final gutBarrierVal = gutBand.label;
+    final processingVal = nova?.label ?? 'Unprocessed';
 
     return BentoCard(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
@@ -293,7 +296,7 @@ class CoreMetricsGrid extends StatelessWidget {
         children: [
           _IndicatorCell(icon: AppIcons.activity, iconColor: scheme.success, title: '${scanData.score}/100', subtitle: 'Gut Impact'),
           _vDivider(scheme),
-          _IndicatorCell(icon: AppIcons.sparkles, iconColor: AppPalette.purplePastel, title: 'NOVA', subtitle: 'Group $novaVal'),
+          _IndicatorCell(icon: AppIcons.sparkles, iconColor: AppPalette.purplePastel, title: 'NOVA', subtitle: 'Group ${nova?.group ?? scanData.novaGroup ?? '1'}'),
           _vDivider(scheme),
           _IndicatorCell(icon: AppIcons.shield, iconColor: AppPalette.orange, title: 'Gut Barrier', subtitle: gutBarrierVal),
           _vDivider(scheme),

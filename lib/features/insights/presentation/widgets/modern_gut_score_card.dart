@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
@@ -30,16 +31,11 @@ class ModernGutScoreCard extends StatelessWidget {
 
   String get _status {
     if (status != null) return status!;
-    if (score >= 80) return 'Excellent';
-    if (score >= 70) return 'Good';
-    if (score >= 50) return 'Fair';
-    return 'Poor';
+    return GutScoreBand.fromScore(score).label;
   }
 
   Color get _accentColor {
-    if (score >= 70) return AppPalette.green;
-    if (score >= 50) return AppPalette.orange;
-    return AppPalette.red;
+    return GutScoreBand.fromScore(score).color;
   }
 
   @override

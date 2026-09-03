@@ -15,7 +15,6 @@ import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/insights/presentation/widgets/gut_trend_chart_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/insights/presentation/widgets/modern_gut_score_card.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
@@ -74,26 +73,6 @@ class InsightDashboardSliver extends StatelessWidget {
                           unawaited(context.push(AppRoutes.smartInsightDetail, extra: data.topInsight!));
                         }
                       },
-              ),
-            ),
-
-            Gap.h16,
-
-            // Oura-Inspired 7-Day Gut Trend Curve
-            DashboardEntrance(
-              delay: 80,
-              child: GutTrendChartCard(
-                currentScore: currentScore,
-                timeframeLabel: '7-DAY GUT TRAJECTORY',
-                dataPoints: const [
-                  ScoreDataPoint(dayLabel: 'M', score: 62),
-                  ScoreDataPoint(dayLabel: 'T', score: 65),
-                  ScoreDataPoint(dayLabel: 'W', score: 68),
-                  ScoreDataPoint(dayLabel: 'T', score: 70, hasSymptom: true),
-                  ScoreDataPoint(dayLabel: 'F', score: 72),
-                  ScoreDataPoint(dayLabel: 'S', score: 75),
-                  ScoreDataPoint(dayLabel: 'S', score: 78),
-                ],
               ),
             ),
 

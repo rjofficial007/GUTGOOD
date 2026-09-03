@@ -13,6 +13,25 @@ import 'package:gutgood/core/widgets/widgets.dart';
 class BottomSheetHelper {
   const BottomSheetHelper._();
 
+  static Future<T?> showGutSheet<T>({
+    required BuildContext context,
+    required Widget child,
+    bool isScrollControlled = true,
+    Color? backgroundColor,
+  }) =>
+      showModalBottomSheet<T>(
+        context: context,
+        isScrollControlled: isScrollControlled,
+        backgroundColor: backgroundColor ?? AppPalette.transparent,
+        builder: (context) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(child: child),
+        ),
+      );
+
   static Future<T?> showGutBottomSheet<T>({
     required BuildContext context,
     required String title,

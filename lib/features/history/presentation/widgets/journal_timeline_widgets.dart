@@ -8,6 +8,7 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
+import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/features/history/presentation/providers/history_notifier.dart';
 
 class JournalFilterBar extends StatelessWidget {
@@ -303,34 +304,16 @@ class _ScoreBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var color = AppPalette.green;
-    var label = 'Great';
-
-    if (score >= 90) {
-      color = AppPalette.green;
-      label = AppStrings.excellent;
-    } else if (score >= 70) {
-      color = AppPalette.green500;
-      label = AppStrings.great;
-    } else if (score >= 50) {
-      color = AppPalette.yellow;
-      label = AppStrings.good;
-    } else if (score >= 30) {
-      color = AppPalette.orange;
-      label = AppStrings.fair;
-    } else {
-      color = AppPalette.red;
-      label = AppStrings.trigger;
-    }
+    final band = GutScoreBand.fromScore(score);
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: AppSizes.p4),
-      decoration: BoxDecoration(color: color.withAlpha(26), borderRadius: BorderRadius.circular(AppSizes.r8)),
+      decoration: BoxDecoration(color: band.color.withAlpha(26), borderRadius: BorderRadius.circular(AppSizes.r8)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(score.toString(), style: context.bodyBold.copyWith(color: color)),
-          Text(label, style: context.captionBold.copyWith(color: color)),
+          Text(score.toString(), style: context.bodyBold.copyWith(color: band.color)),
+          Text(band.label, style: context.captionBold.copyWith(color: band.color)),
         ],
       ),
     );

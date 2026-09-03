@@ -322,9 +322,9 @@ class ChatBubble extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        FeedbackTag(icon: AppIcons.thumbsUp, label: AppStrings.helpful, onTap: () => onFeedback!(AppStrings.labelHelpful), isSelected: feedback == AppStrings.labelHelpful),
-        FeedbackTag(icon: AppIcons.thumbsDown, label: AppStrings.notHelpful, onTap: () => onFeedback!(AppStrings.labelNotHelpful), isSelected: feedback == AppStrings.labelNotHelpful),
-        FeedbackTag(icon: AppIcons.refreshCcw, label: AppStrings.tellMeMore, onTap: () => onFeedback!(AppStrings.labelTellMeMore)),
+        GutChip(icon: AppIcons.thumbsUp, label: AppStrings.helpful, onTap: () => onFeedback!(AppStrings.labelHelpful), isSelected: feedback == AppStrings.labelHelpful),
+        GutChip(icon: AppIcons.thumbsDown, label: AppStrings.notHelpful, onTap: () => onFeedback!(AppStrings.labelNotHelpful), isSelected: feedback == AppStrings.labelNotHelpful),
+        GutChip(icon: AppIcons.refreshCcw, label: AppStrings.tellMeMore, onTap: () => onFeedback!(AppStrings.labelTellMeMore), isSelected: false),
       ],
     ),
   );

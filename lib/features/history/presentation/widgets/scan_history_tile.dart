@@ -6,8 +6,8 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
-import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
+import 'package:gutgood/core/widgets/gut_score_list_tile.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ScanHistoryTile extends StatelessWidget {
@@ -21,81 +21,39 @@ class ScanHistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayImageUrl = userImageUrl ?? scanResult.userImageUrl ?? scanResult.imageUrl;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.only(bottom: AppSizes.p12),
-        padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          color: context.appColorScheme.elevatedSurface,
-          borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: context.appColorScheme.borderSubtle),
-        ),
-        child: Row(
-          children: [
-            // 1. Product Image
-            Container(
-              width: AppSizes.w52,
-              height: AppSizes.w52,
-              decoration: BoxDecoration(color: context.appColorScheme.cardBackground, borderRadius: BorderRadius.circular(AppSizes.r12)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppSizes.r12),
-                child: displayImageUrl != null
-                    ? Hero(
-                        tag: 'scan_image_${scanResult.barcode ?? scanResult.productName}_${createdAt?.millisecondsSinceEpoch}',
-                        child: CachedNetworkImage(
-                          imageUrl: displayImageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Shimmer.fromColors(
-                            baseColor: AppPalette.shimmerBase(context),
-                            highlightColor: AppPalette.shimmerHighlight(context),
-                            child: Container(color: AppPalette.white),
-                          ),
-                          errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
-                        ),
-                      )
-                    : Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
-              ),
-            ),
-            Gap.w16,
-            // 2. Info (Name, Brand, Time)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(scanResult.productName, style: context.labelBold, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Gap.h4,
-                  Text(
-                    '${scanResult.brand} • ${createdAt != null ? DateFormatter.formatTime(createdAt!) : AppStrings.labelSavedItem}',
-                    style: context.captionBold.copyWith(color: context.appColorScheme.textMuted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Gap.w12,
-            // 3. Score Badge (Circular Progress)
-            SizedBox(
-              width: AppSizes.w52,
-              height: AppSizes.w52,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    value: scanResult.score / 100,
-                    strokeWidth: 5,
-                    strokeCap: StrokeCap.round,
-                    backgroundColor: context.appColorScheme.textPrimary.withAlpha(26),
-                    valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
-                  ),
-                  Text('${scanResult.score}', style: context.labelBold),
-                ],
-              ),
-            ),
-          ],
-        ),
+    final leadingWidget = Container(
+      width: AppSizes.w52,
+      height: AppSizes.w52,
+      decoration: BoxDecoration(
+        color: context.appColorScheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppSizes.r12),
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSizes.r12),
+        child: displayImageUrl != null
+            ? Hero(
+                tag: 'scan_image_${scanResult.barcode ?? scanResult.productName}_${createdAt?.millisecondsSinceEpoch}',
+                child: CachedNetworkImage(
+                  imageUrl: displayImageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Shimmer.fromColors(
+                    baseColor: AppPalette.shimmerBase(context),
+                    highlightColor: AppPalette.shimmerHighlight(context),
+                    child: Container(color: AppPalette.white),
+                  ),
+                  errorWidget: (_, _, _) => Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
+                ),
+              )
+            : Icon(AppIcons.package, size: AppSizes.icon24, color: context.appColorScheme.textMuted),
+      ),
+    );
+
+    return GutScoreListTile(
+      leading: leadingWidget,
+      title: scanResult.productName,
+      subtitle: '${scanResult.brand} • ${createdAt != null ? DateFormatter.formatTime(createdAt!) : AppStrings.labelSavedItem}',
+      score: scanResult.score,
+      onTap: onTap,
     );
   }
 }

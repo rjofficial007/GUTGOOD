@@ -8,6 +8,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -34,7 +35,10 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
 
     final p = widget.product;
     final score = p.gutScore;
-    final impactType = score >= 70 ? ImpactType.positive : (score >= 40 ? ImpactType.neutral : ImpactType.negative);
+    final band = GutScoreBand.fromScore(score);
+    final impactType = (band == GutScoreBand.excellent || band == GutScoreBand.great)
+        ? ImpactType.positive
+        : (band == GutScoreBand.good || band == GutScoreBand.fair ? ImpactType.neutral : ImpactType.negative);
 
     return ScanResult(
       productName: p.productName,

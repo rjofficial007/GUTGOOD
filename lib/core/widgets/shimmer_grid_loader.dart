@@ -18,8 +18,8 @@ class ShimmerGridLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = context.appColorScheme.border.withAlpha(51);
-    final highlightColor = context.appColorScheme.border.withAlpha(26);
+    final baseColor = AppPalette.shimmerBase(context);
+    final highlightColor = AppPalette.shimmerHighlight(context);
 
     if (variant == ShimmerVariant.recap || variant == ShimmerVariant.scanResult) {
       return Shimmer.fromColors(
