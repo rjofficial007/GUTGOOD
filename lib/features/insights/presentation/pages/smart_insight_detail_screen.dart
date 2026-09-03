@@ -6,6 +6,7 @@ import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
+import 'package:gutgood/core/widgets/super_card.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_view.dart';
@@ -45,7 +46,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
                   // 3. WHAT IS CONTRIBUTING (Involved Foods & Observation)
                   DashboardEntrance(
                     delay: 150,
-                    child: PhysicalGoalCard(
+                    child: SuperPhysicalGoalCard(
                       title: AppStrings.whatWeNoticed.toUpperCase(),
                       subtitle: 'WHAT IS HAPPENING',
                       label: insight.observation ?? insight.description,
@@ -74,7 +75,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
                   // 4. WHAT TO DO NEXT (Action Strategy)
                   DashboardEntrance(
                     delay: 210,
-                    child: PhysicalGoalCard(
+                    child: SuperPhysicalGoalCard(
                       title: AppStrings.actionPlan.toUpperCase(),
                       subtitle: 'WHAT TO DO NEXT',
                       label: insight.nextSteps.isNotEmpty ? insight.nextSteps.first : 'Keep monitoring how you feel after meals.',

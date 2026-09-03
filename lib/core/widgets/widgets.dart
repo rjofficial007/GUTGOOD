@@ -22,5 +22,6 @@ export 'gut_shimmer_skeleton.dart';
 export 'selection_wrap.dart';
 export 'shimmer_grid_loader.dart';
 export 'streak_celebration_overlay.dart';
+export 'super_card.dart';
 export 'swap_card.dart';
 export 'swap_it_container.dart';

@@ -14,6 +14,7 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
+import 'package:gutgood/core/widgets/super_card.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -874,252 +875,94 @@ class CycleInsightSection extends StatelessWidget {
   }
 }
 
-class BentoFoodCard extends StatefulWidget {
-  const BentoFoodCard({super.key, required this.foods, required this.title, required this.trend, required this.isPositive, required this.icon});
+class BentoFoodCard extends StatelessWidget {
+  const BentoFoodCard({
+    super.key,
+    required this.foods,
+    required this.title,
+    required this.trend,
+    required this.isPositive,
+    required this.icon,
+    this.score,
+    this.highlight,
+  });
   final List<dynamic> foods;
   final String title;
   final String? trend;
   final bool isPositive;
   final IconData icon;
-
-  @override
-  State<BentoFoodCard> createState() => _BentoFoodCardState();
-}
-
-class _BentoFoodCardState extends State<BentoFoodCard> {
-  int _currentIndex = 0;
+  final int? score;
+  final TopHighlight? highlight;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final color = widget.isPositive ? AppPalette.green : AppPalette.red;
-
-    final items = widget.foods.map((f) {
+    final items = foods.map((f) {
       if (f is HealingFood || f is TriggerFood) {
         final dynamic food = f;
-        return CyclerItemData(name: food.name, effect: food.effect, emoji: food.emoji, imageUrl: food.imageUrl);
+        return SuperCyclerItemData(name: food.name, effect: food.effect, imageUrl: food.imageUrl);
       } else if (f is FoodImpact) {
-        return CyclerItemData(name: f.food, effect: f.effect, emoji: f.emoji, imageUrl: f.imageUrl, dateLabel: f.dateLabel);
+        return SuperCyclerItemData(name: f.food, effect: f.effect, imageUrl: f.imageUrl);
       } else if (f is ProductSwap) {
-        return CyclerItemData(name: f.title, effect: f.subtitle, emoji: '🔄', imageUrl: f.imageUrl ?? getDynamicImageUrl(f.imageKeyword.isNotEmpty ? f.imageKeyword : f.title));
+        return SuperCyclerItemData(name: f.title, effect: f.subtitle, imageUrl: f.imageUrl ?? getDynamicImageUrl(f.imageKeyword.isNotEmpty ? f.imageKeyword : f.title));
       } else if (f is RecapHighlight) {
-        return CyclerItemData(name: f.text, effect: '', emoji: '💡');
+        return SuperCyclerItemData(name: f.text, effect: '');
       }
-      return CyclerItemData(name: 'Unknown', effect: '', emoji: '🍽️');
+      return SuperCyclerItemData(name: 'Unknown', effect: '');
     }).toList();
 
-    final displayItems = items.isEmpty ? [CyclerItemData(name: 'STABLE HABITS', effect: 'Your gut is tracking well.', emoji: '✨')] : items;
+    if (title.toUpperCase() == 'HEALING' || title.toUpperCase() == 'TRIGGERS' || title.toUpperCase() == 'RECENT LOGS') {
+      final displayScore = score ?? (isPositive ? 75 : 25);
+      Color statusColor = isPositive ? const Color(0xFF27F15B) : const Color(0xFFE9579A);
+      
+      if (title.toUpperCase() == 'RECENT LOGS') {
+        statusColor = const Color(0xFF0759E8); // Premium Blue for History
+      }
+
+      return DashboardEntrance(
+        delay: 200,
+        child: SuperFoodGaugeCard(
+          title: title,
+          label: highlight?.timeframe.toUpperCase() ?? (title.toUpperCase() == 'RECENT LOGS' ? 'HISTORY' : (isPositive ? 'POSITIVE PATTERNS' : 'NEGATIVE PATTERNS')),
+          score: displayScore,
+          statusColor: statusColor,
+          foods: items,
+        ),
+      );
+    }
 
     return DashboardEntrance(
       delay: 200,
-      child: BentoCard(
-        padding: const EdgeInsets.all(12),
-        height: 160.h,
-        backgroundColor: scheme.cardBackground,
-        child: Row(
-          children: [
-            // Left block: Visual Identity (Synced with scroll)
-            Container(
-              width: 136.h,
-              height: 136.h,
-              decoration: BoxDecoration(color: widget.isPositive ? AppPalette.green.withAlpha(20) : AppPalette.red.withAlpha(20), borderRadius: BorderRadius.circular(16)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Stack(
-                  children: [
-                    if (displayItems.isNotEmpty && _currentIndex < displayItems.length)
-                      Positioned.fill(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) => Stack(
-                            children: <Widget>[
-                              ...previousChildren.map((child) => Positioned.fill(child: child)),
-                              if (currentChild != null) Positioned.fill(child: currentChild),
-                            ],
-                          ),
-                          child: CachedNetworkImage(
-                            key: ValueKey('${widget.title}_image_$_currentIndex'),
-                            imageUrl: displayItems[_currentIndex].imageUrl ?? getDynamicImageUrl(displayItems[_currentIndex].name),
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            placeholder: (context, url) => Shimmer.fromColors(
-                              baseColor: AppPalette.shimmerBase(context),
-                              highlightColor: AppPalette.shimmerHighlight(context),
-                              child: Container(color: AppPalette.white),
-                            ),
-                            errorWidget: (_, _, _) => Center(
-                              child: Icon(widget.icon, size: 40.sp, color: color.withAlpha(153)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    Positioned(top: 10, left: 10, child: Icon(widget.icon, size: 14, color: displayItems.isNotEmpty ? AppPalette.white : color)),
-                  ],
-                ),
-              ),
-            ),
-            Gap.w16,
-            // Right info: Cycler
-            Expanded(
-              child: BentoItemCycler(items: displayItems, title: widget.title, trend: widget.trend, isPositive: widget.isPositive, onPageChanged: (index) => setState(() => _currentIndex = index)),
-            ),
-          ],
-        ),
+      child: SuperFoodCyclerCard(
+        items: items,
+        title: title,
+        trend: trend,
+        isPositive: isPositive,
+        icon: icon,
       ),
     );
   }
-}
 
-class BentoFoodCycler extends StatelessWidget {
-  const BentoFoodCycler({super.key, required this.foods, required this.title, required this.trend, required this.isPositive});
-  final List<dynamic> foods;
-  final String title;
-  final String? trend;
-  final bool isPositive;
-
-  @override
-  Widget build(BuildContext context) => BentoItemCycler(
-    title: title,
-    trend: trend,
-    isPositive: isPositive,
-    items: foods.map((f) {
-      if (f is HealingFood || f is TriggerFood) {
-        final dynamic food = f;
-        return CyclerItemData(name: food.name, effect: food.effect, emoji: food.emoji, imageUrl: food.imageUrl);
-      } else if (f is FoodImpact) {
-        return CyclerItemData(name: f.food, effect: f.effect, emoji: f.emoji, imageUrl: f.imageUrl);
-      } else if (f is RecapHighlight) {
-        return CyclerItemData(name: f.text, effect: '', emoji: '💡');
-      }
-      return CyclerItemData(name: 'Unknown', effect: '', emoji: '🍽️');
-    }).toList(),
-  );
-}
-
-class CyclerItemData {
-  CyclerItemData({required this.name, required this.effect, required this.emoji, this.imageUrl, this.dateLabel});
-  final String name;
-  final String effect;
-  final String emoji;
-  final String? imageUrl;
-  final String? dateLabel;
-}
-
-class BentoItemCycler extends StatefulWidget {
-  const BentoItemCycler({super.key, required this.items, required this.title, required this.trend, required this.isPositive, this.onPageChanged});
-  final List<CyclerItemData> items;
-  final String title;
-  final String? trend;
-  final bool isPositive;
-  final ValueChanged<int>? onPageChanged;
-
-  @override
-  State<BentoItemCycler> createState() => _BentoItemCyclerState();
-}
-
-class _BentoItemCyclerState extends State<BentoItemCycler> {
-  final _controller = PageController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final primaryColor = scheme.textPrimary;
-    final secondaryColor = scheme.textSecondary;
-    final mutedColor = scheme.textMuted;
-
-    final displayItems = widget.items.isEmpty ? [CyclerItemData(name: 'STABLE HABITS', effect: 'Your gut is tracking well.', emoji: '✨')] : widget.items;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(widget.title.toUpperCase(), style: context.captionBold.copyWith(color: mutedColor)),
-        Gap.h8,
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 90.h,
-                child: PageView.builder(
-                  controller: _controller,
-                  scrollDirection: Axis.vertical,
-                  itemCount: displayItems.length,
-                  onPageChanged: widget.onPageChanged,
-                  itemBuilder: (context, i) {
-                    final item = displayItems[i];
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          item.name.toUpperCase(),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.bodyBold.copyWith(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 12.sp),
-                        ),
-                        Gap.h4,
-                        Text(
-                          item.effect,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.caption.copyWith(color: secondaryColor, height: 1.2),
-                        ),
-                        if (item.dateLabel != null) ...[
-                          Gap.h2,
-                          Text(
-                            item.dateLabel!,
-                            style: context.captionTiny.copyWith(color: mutedColor, fontSize: 9.sp),
-                          ),
-                        ],
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
-            if (displayItems.length > 1) ...[
-              Gap.w8,
-              RotatedBox(
-                quarterTurns: 1,
-                child: SmoothPageIndicator(
-                  controller: _controller,
-                  count: displayItems.length,
-                  effect: ScrollingDotsEffect(activeDotColor: primaryColor, dotColor: primaryColor.withAlpha(51), dotHeight: 4, dotWidth: 4, spacing: 4),
-                ),
-              ),
-            ],
-          ],
-        ),
-        Gap.h8,
-        Text(
-          widget.trend ?? (widget.isPositive ? 'Body performance is improving.' : 'Tracking body reactions.'),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: context.captionMicro.copyWith(color: mutedColor, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
+  String _getFoodName(dynamic f) {
+    if (f is HealingFood || f is TriggerFood) return f.name;
+    if (f is FoodImpact) return f.food;
+    if (f is ProductSwap) return f.title;
+    return 'Unknown';
   }
 }
 
 class BentoActivityCard extends StatelessWidget {
-  const BentoActivityCard({super.key, required this.impacts});
+  const BentoActivityCard({super.key, required this.impacts, this.score});
   final List<FoodImpact> impacts;
+  final int? score;
 
   @override
   Widget build(BuildContext context) => BentoFoodCard(
     foods: impacts,
     title: 'RECENT LOGS',
-    trend: null, // Trend not needed for activity card
-    isPositive: true, // Defaulting to positive style for history
+    trend: null,
+    isPositive: true, 
     icon: AppIcons.history,
+    score: score,
   );
 }
 

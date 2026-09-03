@@ -131,7 +131,7 @@ class SmallInsightMetricCard extends StatelessWidget {
     final scheme = context.appColorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Adaptive Theme Colors (Mirroring PhysicalGoalCard)
+    // Adaptive Theme Colors (Mirroring SuperPhysicalGoalCard style)
     final cardBg = isDark ? AppPalette.darkCard : scheme.cardBackground;
     final cardBorder = isDark ? AppPalette.white.withAlpha(20) : scheme.borderSubtle;
     final unitColor = isDark ? AppPalette.white.withAlpha(153) : scheme.textSecondary;
