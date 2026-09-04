@@ -13,6 +13,7 @@ import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
 class ScanResultScreen extends StatefulWidget {
@@ -59,6 +60,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
+    final profileNotifier = context.watch<ProfileNotifier>();
+    final cycleSyncEnabled = profileNotifier.profile?.cycleSyncEnabled ?? false;
+
     return Consumer<SavedFoodsProvider>(
       builder: (context, savedProvider, _) {
         final isSaved = savedProvider.isSaved(_currentData.productName, barcode: _currentData.barcode);
@@ -114,7 +118,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       Gap.h12,
 
                       // 6. Cycle Insight (Hormonal Phase Advice if Enabled)
-                      if (_currentData.cycleInsight != null) ...[DashboardEntrance(delay: 280, child: CycleInsightSection(insight: _currentData.cycleInsight!)), Gap.h12],
+                      if (_currentData.cycleInsight != null && cycleSyncEnabled) ...[DashboardEntrance(delay: 280, child: CycleInsightSection(insight: _currentData.cycleInsight!)), Gap.h12],
 
                       // 7. Better Swaps Carousel
                       if (_currentData.swaps.isNotEmpty) ...[DashboardEntrance(delay: 320, child: BetterSwapsCarousel(swaps: _currentData.swaps)), Gap.h12],

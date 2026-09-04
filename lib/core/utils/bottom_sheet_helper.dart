@@ -150,6 +150,61 @@ class BottomSheetHelper {
     );
   }
 
+  /// Prompts the user to re-authenticate before a destructive operation
+  /// (currently: account deletion) that Firebase has rejected with
+  /// `requires-recent-login`.
+  ///
+  /// - When [isPasswordProvider] is true, collects a password and invokes
+  ///   [onConfirmPassword] with it.
+  /// - Otherwise (Google/Apple), shows a single "Sign In Again" button that
+  ///   invokes [onConfirmProvider], which should re-run the native sign-in
+  ///   flow for that provider.
+  static Future<void> showReauthenticateSheet({
+    required BuildContext context,
+    required bool isPasswordProvider,
+    Future<void> Function(String password)? onConfirmPassword,
+    Future<void> Function()? onConfirmProvider,
+  }) async {
+    final passwordController = TextEditingController();
+
+    await showGutBottomSheet(
+      context: context,
+      title: AppStrings.reauthenticateTitle,
+      children: [
+        Container(
+          padding: EdgeInsets.all(Responsive.w(16.0)),
+          decoration: BoxDecoration(color: context.appColorScheme.border.withAlpha(51), shape: BoxShape.circle),
+          child: Icon(AppIcons.alertTriangle, color: context.appColorScheme.textPrimary, size: 32.0.w),
+        ),
+        Gap.h20,
+        Text(
+          isPasswordProvider ? AppStrings.reauthenticateMessage : AppStrings.reauthenticateSocialMessage,
+          textAlign: TextAlign.center,
+          style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
+        ),
+        Gap.h24,
+        if (isPasswordProvider) ...[
+          GutTextField(controller: passwordController, hintText: AppStrings.passwordHint, obscureText: true, prefixIcon: AppIcons.lock),
+          Gap.h20,
+        ],
+        GutButton(
+          label: isPasswordProvider ? AppStrings.confirmAndDelete : AppStrings.signInAgain,
+          onTap: () {
+            context.pop();
+            if (isPasswordProvider) {
+              onConfirmPassword?.call(passwordController.text);
+            } else {
+              onConfirmProvider?.call();
+            }
+          },
+        ),
+        Gap.h12,
+        GutButton(label: AppStrings.cancel, isOutlined: true, onTap: () => context.pop()),
+        Gap.h24,
+      ],
+    );
+  }
+
   static Future<void> showMedicalDisclaimer(BuildContext context) async {
     await showGutBottomSheet(
       context: context,

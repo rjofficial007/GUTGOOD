@@ -73,6 +73,12 @@ class ProfileStrings {
   static const String premiumPlanName = 'GutGood Premium';
   static const String activeStatus = 'Active';
   static const String deleteAccountLabel = 'Delete Account';
+  static const String reauthenticateTitle = 'Confirm It\'s You';
+  static const String reauthenticateMessage = 'For your security, please confirm your password before we permanently delete your account.';
+  static const String reauthenticateSocialMessage = 'For your security, please sign in again before we permanently delete your account.';
+  static const String passwordHint = 'Enter your password';
+  static const String confirmAndDelete = 'Confirm & Delete';
+  static const String signInAgain = 'Sign In Again';
   static const String shareWithFriends = 'Share with Friends';
   static const String contactUs = 'Contact Us';
   static const String labelFeedbackSubject = 'I have some feedback regarding GutGood:';

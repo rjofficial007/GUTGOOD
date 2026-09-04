@@ -506,6 +506,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> deleteAccount() async {
     final user = _firebaseAuth.currentUser;
     if (user == null) return;
+
+    // 🟢 Fix: Firebase requires a "recent" sign-in for this destructive
+    // operation. Checking this BEFORE tearing down app state/streams means a
+    // stale session fails fast with a clear, catchable error instead of
+    // leaving the user half-signed-out with a confusing native exception.
+    final currentProvider = user.providerData.isNotEmpty ? user.providerData.first.providerId : null;
+
     _appStateService
       ..setLoggingOut(true)
       ..resetSession(); // 🟢 Trigger early to cancel Firestore streams
@@ -538,12 +545,56 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // 5. Force auth state change
       await _firebaseAuth.signOut();
+    } on firebase.FirebaseAuthException catch (e) {
+      AppLogger.auth('Delete account failed', error: e);
+      if (e.code == 'requires-recent-login') {
+        throw ReauthenticationRequiredException(provider: currentProvider);
+      }
+      rethrow;
     } catch (e) {
       AppLogger.auth('Delete account failed', error: e);
       rethrow;
     } finally {
       _appStateService.setLoggingOut(false);
     }
+  }
+
+  @override
+  Future<void> reauthenticateWithPassword(String password) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null || user.email == null) {
+      throw StateError('AuthRepo: reauthenticateWithPassword requires a signed-in email/password user.');
+    }
+    final credential = firebase.EmailAuthProvider.credential(email: user.email!, password: password);
+    await user.reauthenticateWithCredential(credential);
+    AppLogger.auth('Re-authentication with password succeeded.');
+  }
+
+  @override
+  Future<void> reauthenticateWithProvider(String providerId) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw StateError('AuthRepo: reauthenticateWithProvider requires an active session.');
+    }
+
+    firebase.AuthCredential credential;
+    if (providerId == 'google.com') {
+      await _ensureGoogleSignInInitialized();
+      final googleUser = await _googleSignIn.authenticate();
+      final googleAuth = googleUser.authentication;
+      credential = firebase.GoogleAuthProvider.credential(idToken: googleAuth.idToken);
+    } else if (providerId == 'apple.com') {
+      if (!await SignInWithApple.isAvailable()) {
+        throw firebase.FirebaseAuthException(code: 'operation-not-allowed', message: 'Apple Sign In not available.');
+      }
+      final (_, appleFirebaseCredential) = await _requestAppleCredential();
+      credential = appleFirebaseCredential;
+    } else {
+      throw ArgumentError('AuthRepo: Unsupported reauthentication provider "$providerId". Use reauthenticateWithPassword for email/password accounts.');
+    }
+
+    await user.reauthenticateWithCredential(credential);
+    AppLogger.auth('Re-authentication with $providerId succeeded.');
   }
 
   Future<void> _clearUserSessionData() async {

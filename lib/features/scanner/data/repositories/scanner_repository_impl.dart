@@ -134,7 +134,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
       mode: 'plain',
     );
 
-    final result = _processChatTagUseCase(aiResultStr, source: classification.imageMode);
+    final result = _processChatTagUseCase(aiResultStr, userText: userText, source: classification.imageMode);
 
     // Add classification info to result
     final finalResult = result.copyWith(imageMode: classification.imageMode, intent: classification.intent);

@@ -105,6 +105,17 @@ class GutAuthNotifier with ChangeNotifier {
 
   Future<void> deleteAccount() => _withLoading(_repository.deleteAccount);
 
+  Future<void> reauthenticateWithPassword(String password) =>
+      _withLoading(() => _repository.reauthenticateWithPassword(password));
+
+  Future<void> reauthenticateWithProvider(String providerId) =>
+      _withLoading(() => _repository.reauthenticateWithProvider(providerId));
+
+  /// The provider id (`google.com`, `apple.com`, `password`, ...) the
+  /// current user last signed in with, used to decide which re-auth flow
+  /// to present when [deleteAccount] throws [ReauthenticationRequiredException].
+  String? get currentAuthProvider => _repository.currentUser?.authProvider;
+
   @override
   void notifyListeners() {
     // Guard against notifying during build if needed, though usually handled by ChangeNotifier

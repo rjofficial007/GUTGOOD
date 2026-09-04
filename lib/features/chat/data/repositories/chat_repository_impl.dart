@@ -41,6 +41,6 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images}) =>
-      _aiService.sendMessageStream(systemInstruction: systemInstruction, history: history, userText: userText, images: images);
+  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String? intent}) =>
+      _aiService.sendMessageStream(systemInstruction: systemInstruction, history: history, userText: userText, images: images, intent: intent);
 }

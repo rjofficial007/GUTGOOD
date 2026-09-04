@@ -31,6 +31,21 @@ class InsightUiUtils {
     };
   }
 
+  /// Maps a symptom name to a relevant [IconData].
+  static IconData getSymptomIcon(String? symptom) {
+    if (symptom == null) return AppIcons.activity;
+    final s = symptom.toLowerCase();
+    if (s.contains('bloat')) return AppIcons.frown;
+    if (s.contains('gas')) return AppIcons.wind;
+    if (s.contains('energy')) return AppIcons.zap;
+    if (s.contains('fatigue')) return AppIcons.batteryLow;
+    if (s.contains('headache')) return AppIcons.brain;
+    if (s.contains('pain') || s.contains('cramp')) return AppIcons.alertTriangle;
+    if (s.contains('skin')) return AppIcons.sparkles;
+    if (s.contains('mood')) return AppIcons.smile;
+    return AppIcons.activity;
+  }
+
   static IconData getPatternTypeIcon(String type) => switch (type) {
     BodyPattern.typeBloating => AppIcons.wind,
     BodyPattern.typeEnergy => AppIcons.zap,

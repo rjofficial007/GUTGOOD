@@ -39,6 +39,7 @@ import {
   OPENAI_API_KEY,
   OPENAI_CHAT_URL,
   REGION,
+  resolveMaxTokens,
 } from './config';
 import { checkAndConsume, isPremiumUser } from './usage';
 
@@ -58,6 +59,7 @@ interface ProxyRequest {
   usageType?: string;
   idempotencyKey?: string;
   timezoneOffset?: number;
+  intent?: string;
 }
 
 function setCors(res: functions.Response): void {
@@ -198,7 +200,10 @@ export const aiProxy = functions
       model: (body.model ?? DEFAULT_MODEL).slice(0, 64),
       messages,
       stream: mode === 'stream' || mode === 'stream-json',
-      max_tokens: images.length > 0 ? 4096 : 2048, // Higher limit for full responses and vision analysis
+      // Per-intent token budget (audit §C.5 / §O item 11): short-by-design
+      // replies (ratings, swaps, comparisons) get a tighter ceiling than
+      // full-analysis turns; vision turns always keep the larger budget.
+      max_tokens: resolveMaxTokens(body.intent, images.length > 0),
       temperature: 0.2, // Increased consistency for JSON responses
     };
     if (mode === 'json' || mode === 'stream-json') {

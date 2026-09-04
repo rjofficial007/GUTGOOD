@@ -7,5 +7,5 @@ abstract class ChatRepository {
   Future<List<ChatMessage>> getOlderMessages({required int limit, required DateTime before});
   Future<void> deleteMessage(ChatMessage message);
   Future<void> updateMessageFeedback(ChatMessage message, String feedback);
-  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images});
+  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String? intent});
 }

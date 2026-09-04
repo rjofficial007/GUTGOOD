@@ -39,5 +39,62 @@ export const LIMITS = {
 
 export type UsageType = 'chat' | 'scan' | 'system';
 
+// ---------------------------------------------------------------------------
+// Per-intent token budgets (audit §C.5 / §O item 11).
+//
+// Previously a single flat ceiling (2048 text / 4096 vision) was applied to
+// every request regardless of intent, even though the app already knows the
+// user's intent before calling the model. Short-by-design replies (a rating,
+// a swap suggestion, a head-to-head comparison) don't need the same ceiling
+// as a full breakdown — right-sizing saves cost with no quality loss.
+//
+// Vision turns (images present) always keep the larger budget: the model
+// needs room to describe what it sees *and* emit the full [GUTGOOD_DATA]
+// block, regardless of the conversational intent of that turn.
+// ---------------------------------------------------------------------------
+const DEFAULT_TEXT_MAX_TOKENS = 2048;
+const VISION_MAX_TOKENS = 4096;
+
+const SHORT_INTENTS = new Set([
+  'MEAL_RATING',
+  'RATE_MEAL',
+  'SWAP_REQUEST',
+  'MEAL_SWAPS',
+  'IMPROVEMENT_REQUEST',
+  'IMPROVE',
+  'NUTRITION_COMPARISON',
+  'PRODUCT_COMPARISON',
+  'GENERAL_CHAT',
+]);
+const SHORT_INTENT_MAX_TOKENS = 900;
+
+const MEDIUM_INTENTS = new Set([
+  'HEALTH_ASSESSMENT',
+  'IS_HEALTHY',
+  'SYMPTOM_ANALYSIS',
+  'GENERAL_WELLNESS',
+  'GENERAL_FOOD_QUESTION',
+  'NUTRITION_ANALYSIS',
+  'MEAL_RECOGNITION',
+]);
+const MEDIUM_INTENT_MAX_TOKENS = 1536;
+
+/**
+ * Resolve the `max_tokens` ceiling for a single OpenAI request.
+ * `intent` is the free-form intent string forwarded by the client (already
+ * classified before the model call); unknown/absent intents fall back to the
+ * previous flat behavior so this is purely additive for recognized intents.
+ */
+export function resolveMaxTokens(intent: string | undefined | null, hasImages: boolean): number {
+  if (hasImages) return VISION_MAX_TOKENS;
+
+  const normalized = (intent ?? '').toUpperCase().trim();
+  if (!normalized) return DEFAULT_TEXT_MAX_TOKENS;
+
+  if (SHORT_INTENTS.has(normalized)) return SHORT_INTENT_MAX_TOKENS;
+  if (MEDIUM_INTENTS.has(normalized)) return MEDIUM_INTENT_MAX_TOKENS;
+  return DEFAULT_TEXT_MAX_TOKENS;
+}
+
 // How long an idempotency key stays deduplicated inside the daily usage doc.
 export const IDEMPOTENCY_KEY_RETENTION = 25;

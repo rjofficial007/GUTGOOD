@@ -22,10 +22,14 @@ MANDATORY DATA CHECKLIST:
 
 6. FOOD IMPACTS: This section is for high-confidence observations about specific foods that haven't necessarily formed a "Pattern" yet but have clear positive or negative effects in recent logs.
 
+MANDATORY SCORE RULE:
+- `gutScore`: REQUIRED integer 0-100 representing the user's overall gut health for this period. Base it on the frequency/severity of symptoms, the quality of recent meals/scans, and the provided `scoreHistory` (use it as your anchor point and only move it gradually, e.g. +/-1 to 10 points, unless the evidence is overwhelming). Never omit this field and never return null, NaN, or a value outside 0-100.
+
 OUTPUT SCHEMA (STRICT JSON ONLY):
 {
   "type": "Pattern",
   "confidenceLevel": "High",
+  "gutScore": 0,
   "triggerData": "string (JSON encoded array of specific events/dates)",
   "topInsight": {
     "title": "string",

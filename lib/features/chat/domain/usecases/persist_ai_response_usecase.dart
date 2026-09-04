@@ -1,3 +1,4 @@
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -18,6 +19,18 @@ class PersistAiResponseUseCase {
   Future<AiAnalysisResult> call(AiAnalysisResult result, {String? chatMessageId, String? imageUrl, String? source, required Set<String> persistedTagBlocks}) async {
     var hasPersistedAnything = false;
     var updatedResult = result;
+
+    // 🚀 Confidence Gate: if the AI explicitly reported low confidence in the
+    // data it extracted (metadata.confidence < threshold), don't silently
+    // write it into permanent history as confirmed fact. The turn's text is
+    // still shown to the user in chat as-is; we only skip auto-persistence.
+    // Responses that don't report a confidence at all (legacy prompts, older
+    // cached turns) are left untouched to avoid regressing existing writes.
+    final reportedConfidence = updatedResult.confidence;
+    if (reportedConfidence != null && reportedConfidence < AiConfidenceThresholds.minPersistenceConfidence) {
+      AppLogger.ai('PersistAiResponse: Skipping persistence - low AI confidence ($reportedConfidence < ${AiConfidenceThresholds.minPersistenceConfidence})');
+      return updatedResult;
+    }
 
     // 🚀 Intent-Based Persistence Router
     final resolvedSource = (source ?? updatedResult.scan?.source ?? '').toUpperCase();
@@ -68,13 +81,18 @@ class PersistAiResponseUseCase {
     }
 
     // Persist Meal Log (Consumption)
+    // 🚀 Fix: previously checked against 'LOG_MEAL' / 'MEAL_PHOTO' /
+    // 'FOOD_RECOMMENDATION', none of which are values any prompt or
+    // classifier in this app actually produces (see UserIntent.all in
+    // ai_constants.dart, the single source of truth for intent strings).
+    // Those checks were silent dead code; real meal-photo/rating turns were
+    // only ever caught by the `intent.isEmpty` fallback or the
+    // resolvedSource+'ANALYSIS' heuristic below.
     final isConsumptionIntent =
         intent.isEmpty ||
-        intent == 'LOG_MEAL' ||
-        intent == 'MEAL_RATING' ||
-        intent == 'MEAL_PHOTO' ||
-        intent == 'MEAL_RECOGNITION' ||
-        intent == 'FOOD_RECOMMENDATION' ||
+        intent == UserIntent.mealRating ||
+        intent == UserIntent.mealRecognition ||
+        intent == UserIntent.completeAnalysis ||
         (resolvedSource.contains('FOOD') && intent.contains('ANALYSIS'));
 
     if (updatedResult.meal != null && isConsumptionIntent) {

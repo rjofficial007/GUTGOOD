@@ -1,3 +1,5 @@
+import 'package:gutgood/core/constants/ai_constants.dart';
+
 /// Canonical JSON schema definitions shared by EVERY prompt builder.
 ///
 /// Why this file exists:
@@ -12,6 +14,12 @@
 ///
 /// Single source of truth from now on: every prompt builder interpolates
 /// these constants instead of writing its own JSON example.
+///
+/// `image_mode` and `intent` enum values below are generated from
+/// [ImageMode.all] / [UserIntent.all] (`ai_constants.dart`) rather than
+/// hand-typed, so this schema, the image classification prompt, and the
+/// intent detection prompt can never drift into three different vocabularies
+/// again.
 class SchemaDefinitions {
   SchemaDefinitions._();
 
@@ -29,8 +37,8 @@ class SchemaDefinitions {
       '''
 [GUTGOOD_DATA]
 {
-  "image_mode": "FOOD|RESTAURANT_MENU|PRODUCT_BARCODE|INGREDIENTS_LABEL|NUTRITION_LABEL|PACKAGED_PRODUCT|FOOD_RECIPE|OTHER|UNKNOWN",
-  "intent": "MEAL_RECOGNITION|HEALTH_ASSESSMENT|MEAL_RATING|SWAP_REQUEST|COMPLETE_ANALYSIS|INGREDIENT_ANALYSIS|PRODUCT_IDENTIFICATION|NUTRITION_COMPARISON|FOOD_RECOMMENDATION|GENERAL_IMAGE_ANALYSIS|SYMPTOM_ANALYSIS|GENERAL_CHAT",
+  "image_mode": "${ImageMode.all.join('|')}",
+  "intent": "${UserIntent.all.join('|')}",
   "scan": {
     "productName": "string|null",
     "brand": "string|null",
@@ -42,6 +50,7 @@ class SchemaDefinitions {
     "impactType": "positive|neutral|negative",
     "nutriscore": "A|B|C|D|E|null",
     "novaGroup": 1,
+    "nutritionEstimated": false,
     "nutrientLevels": {
       "sugars": "low|moderate|high|unknown",
       "salt": "low|moderate|high|unknown",
@@ -132,10 +141,11 @@ $ingredientSchema
 }
 [/GUTGOOD_DATA]''';
 
-  static const String typeRules = '''
+  static String get typeRules =>
+      '''
 SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
-- image_mode: one of "FOOD", "RESTAURANT_MENU", "PRODUCT_BARCODE", "INGREDIENTS_LABEL", "NUTRITION_LABEL", "PACKAGED_PRODUCT", "FOOD_RECIPE", "OTHER", "UNKNOWN".
-- intent: one of "MEAL_RECOGNITION", "HEALTH_ASSESSMENT", "MEAL_RATING", "SWAP_REQUEST", "COMPLETE_ANALYSIS", "INGREDIENT_ANALYSIS", "PRODUCT_IDENTIFICATION", "NUTRITION_COMPARISON", "FOOD_RECOMMENDATION", "GENERAL_IMAGE_ANALYSIS", "SYMPTOM_ANALYSIS", "GENERAL_CHAT".
+- image_mode: one of ${ImageMode.all.map((v) => '"$v"').join(', ')}.
+- intent: one of ${UserIntent.all.map((v) => '"$v"').join(', ')}.
 - category: "food", "meal", "menu", "label", "packaging", or "non-food".
 - novaGroup: integer 1-4, or JSON null.
 - score: integer 0-100. Never null. For meals or unidentified products, you MUST ESTIMATE a score based on metabolic balance, processing levels, and ingredients.
@@ -144,5 +154,7 @@ SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - symptoms: ALWAYS an array of OBJECTS (not strings). Each object MUST have at minimum a "symptom" field.
 - Any value you cannot determine uses JSON null (or [] for arrays).
 - To prevent response truncation, limit ingredients to top 10 items.
+- metadata.confidence: REQUIRED float 0.0-1.0 representing how confident you are in the scan/meal/symptom data you extracted (not the conversational text). Use LOW confidence (below 0.6) when the image is blurry/ambiguous, the product could not be identified, or you are guessing at nutrition/ingredients without real evidence. The app will NOT silently save low-confidence data as confirmed history, so err on the side of an honest, lower number rather than inflating it.
+- scan.nutritionEstimated: REQUIRED boolean. Set this to `true` whenever the "nutrients"/"nutrientLevels"/"novaGroup" fields are a visually-grounded APPROXIMATION rather than a label-sourced/barcode-sourced fact (this is the normal case for any home-cooked or unpackaged meal identified from a photo — see the estimation exception above). Set it to `false` only when those values came from an actual product label, barcode lookup, or menu nutrition data. The app uses this flag to visually label estimated macros as "Estimated" instead of presenting them with the same authority as a scanned fact.
 ''';
 }

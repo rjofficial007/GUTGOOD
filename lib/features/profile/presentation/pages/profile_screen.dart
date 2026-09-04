@@ -14,6 +14,7 @@ import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/data/utils/auth_error_handler.dart';
+import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/profile/presentation/widgets/profile_sections.dart';
@@ -125,15 +126,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final profileNotifier = context.read<ProfileNotifier>();
     await BottomSheetHelper.showDeleteAccountSheet(
       context: context,
-      onConfirm: () async {
+      onConfirm: () => _attemptDeleteAccount(authNotifier, profileNotifier),
+    );
+  }
+
+  Future<void> _attemptDeleteAccount(GutAuthNotifier authNotifier, ProfileNotifier profileNotifier) async {
+    try {
+      await authNotifier.deleteAccount();
+    } on ReauthenticationRequiredException catch (e) {
+      if (!mounted) return;
+      await _showReauthAndRetryDelete(authNotifier, profileNotifier, provider: e.provider);
+    } catch (e) {
+      if (mounted) {
+        final message = AuthErrorHandler.mapException(e);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, backgroundColor: context.appColorScheme.error));
+
+        unawaited(profileNotifier.refresh());
+      }
+    }
+  }
+
+  Future<void> _showReauthAndRetryDelete(GutAuthNotifier authNotifier, ProfileNotifier profileNotifier, {String? provider}) async {
+    final isPasswordProvider = provider == 'password' || provider == null;
+
+    await BottomSheetHelper.showReauthenticateSheet(
+      context: context,
+      isPasswordProvider: isPasswordProvider,
+      onConfirmPassword: (password) async {
         try {
-          await authNotifier.deleteAccount();
+          await authNotifier.reauthenticateWithPassword(password);
+          await _attemptDeleteAccount(authNotifier, profileNotifier);
         } catch (e) {
           if (mounted) {
             final message = AuthErrorHandler.mapException(e);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, backgroundColor: context.appColorScheme.error));
-
-            unawaited(profileNotifier.refresh());
+          }
+        }
+      },
+      onConfirmProvider: () async {
+        try {
+          await authNotifier.reauthenticateWithProvider(provider!);
+          await _attemptDeleteAccount(authNotifier, profileNotifier);
+        } catch (e) {
+          if (mounted) {
+            final message = AuthErrorHandler.mapException(e);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, backgroundColor: context.appColorScheme.error));
           }
         }
       },

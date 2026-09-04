@@ -9,7 +9,7 @@ class ModePrompts {
   ModePrompts._();
 
   /// Shared safety and evidence rules used by all vision modes.
-  static const String _sharedRules = VisionSafetyPrompt.instruction;
+  static String get _sharedRules => VisionSafetyPrompt.instruction;
 
   /// 📸 MEAL SNAP MODE
   static String mealSnapInstruction({required List<String> goals, required List<String> sensitivities, required List<String> lifestyle, required String phase}) {

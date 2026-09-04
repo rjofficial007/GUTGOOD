@@ -1,25 +1,28 @@
+import 'package:gutgood/core/constants/ai_constants.dart';
+
 class IntentDetectionPrompt {
   IntentDetectionPrompt._();
 
-  static const String instruction = '''
+  static String get instruction =>
+      '''
 You are the Intent Detection Engine for GUTGOOD. Analyze the user's latest message and conversation history to determine their primary intent.
 
 INTENT CATEGORIES:
-- MEAL_RECOGNITION: User asks "What is this?" or implies they want to know what the food is.
-- MEAL_RATING: User asks for a score, grade, or "how did I do".
-- HEALTH_ASSESSMENT: User asks if the item is "healthy", "balanced", or "okay for me".
-- SWAP_REQUEST: User wants improvements, alternatives, or to "make it healthier".
-- COMPLETE_ANALYSIS: User wants deep details, "tell me everything", or a comprehensive breakdown.
-- INGREDIENT_ANALYSIS: User asks specifically about ingredients, additives, or labels.
-- NUTRITION_ANALYSIS: User asks specifically about calories, protein, or other nutritional facts.
-- PRODUCT_IDENTIFICATION: User wants to identify a packaged product or barcode.
-- MENU_RECOMMENDATION: User asks for advice on what to order or eat from a menu.
-- NUTRITION_COMPARISON: User compares options or asks for the "best" choice among several.
-- GENERAL_FOOD_QUESTION: User has a general question about food or a specific ingredient.
-- GENERAL_WELLNESS: User asks about general gut health, symptoms, or wellness advice.
-- SYMPTOM_ANALYSIS: User reports symptoms or asks about correlations.
-- MEAL_PLANNING: User asks for future meal suggestions or planning.
-- GENERAL_CHAT: Greetings, platform support, or non-food topics.
+- ${UserIntent.mealRecognition}: User asks "What is this?" or implies they want to know what the food is.
+- ${UserIntent.mealRating}: User asks for a score, grade, or "how did I do".
+- ${UserIntent.healthAssessment}: User asks if the item is "healthy", "balanced", or "okay for me".
+- ${UserIntent.swapRequest}: User wants improvements, alternatives, or to "make it healthier".
+- ${UserIntent.completeAnalysis}: User wants deep details, "tell me everything", or a comprehensive breakdown.
+- ${UserIntent.ingredientAnalysis}: User asks specifically about ingredients, additives, or labels.
+- ${UserIntent.nutritionAnalysis}: User asks specifically about calories, protein, or other nutritional facts.
+- ${UserIntent.productIdentification}: User wants to identify a packaged product or barcode.
+- ${UserIntent.menuRecommendation}: User asks for advice on what to order or eat from a menu.
+- ${UserIntent.nutritionComparison}: User compares options or asks for the "best" choice among several.
+- ${UserIntent.generalFoodQuestion}: User has a general question about food or a specific ingredient.
+- ${UserIntent.generalWellness}: User asks about general gut health, symptoms, or wellness advice.
+- ${UserIntent.symptomAnalysis}: User reports symptoms or asks about correlations.
+- ${UserIntent.mealPlanning}: User asks for future meal suggestions or planning.
+- ${UserIntent.generalChat}: Greetings, platform support, or non-food topics.
 
 STRICT CLASSIFICATION RULES:
 - If an image is present:

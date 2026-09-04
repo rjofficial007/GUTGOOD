@@ -101,6 +101,7 @@ void main() {
         when(() => mockUser.email).thenReturn(null);
         when(() => mockUser.isAnonymous).thenReturn(true);
         when(() => mockUser.displayName).thenReturn(null);
+        when(() => mockUser.providerData).thenReturn(const []);
         when(() => mockCredential.user).thenReturn(mockUser);
 
         firebase.User? currentUser;

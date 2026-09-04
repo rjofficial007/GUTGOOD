@@ -252,7 +252,20 @@ class ChatMessage extends Equatable {
     'mealLogs': mealLogs.map((e) => e.toMap()).toList(),
     'symptomLogs': symptomLogs.map((e) => e.toMap()).toList(),
     'swapData': swapData?.map((e) => e.toMap()).toList(),
-    'analysisResult': analysisResult?.toMap(),
+    // 🚀 Fix: `analysisResult.scan` embeds `rawData`, which is the ENTIRE
+    // decoded [GUTGOOD_DATA] JSON block the scan/meal/symptoms/swaps above
+    // were already parsed FROM. Persisting it meant every scan-carrying chat
+    // message stored the same product/meal data three times over
+    // (`scanPreview`, `analysisResult.scan`, and `analysisResult.scan.rawData`)
+    // for no functional benefit: by the time a message reaches `toMap()`,
+    // anything genuinely useful from rawData (menu items, meal strategy) has
+    // already been lifted into `analysisResult.menu` / `.meal` / `.intent`,
+    // and the durable copies of scan/meal/symptom data live in
+    // scan_history/journal_logs via PersistAiResponseUseCase, not this doc.
+    // We drop it only at the persistence boundary — the in-memory
+    // `analysisResult`/`scanData` used during the live turn (e.g. building
+    // `scanPreview.intent` above) are untouched.
+    'analysisResult': _analysisResultMapForPersistence(),
     'isSwap': isSwap,
     'feedback': feedback,
     'source': source,
@@ -261,6 +274,15 @@ class ChatMessage extends Equatable {
     'isHidden': isHidden,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
   };
+
+  Map<String, dynamic>? _analysisResultMapForPersistence() {
+    final map = analysisResult?.toMap();
+    final scanMap = map?['scan'];
+    if (scanMap is Map<String, dynamic>) {
+      scanMap.remove('rawData');
+    }
+    return map;
+  }
 
   Map<String, String> toAiMap() {
     final role = this.role == 'user' ? 'user' : 'assistant';

@@ -739,6 +739,12 @@ class AppStrings {
   static const String premiumPlanName = ProfileStrings.premiumPlanName;
   static const String activeStatus = ProfileStrings.activeStatus;
   static const String deleteAccountLabel = ProfileStrings.deleteAccountLabel;
+  static const String reauthenticateTitle = ProfileStrings.reauthenticateTitle;
+  static const String reauthenticateMessage = ProfileStrings.reauthenticateMessage;
+  static const String reauthenticateSocialMessage = ProfileStrings.reauthenticateSocialMessage;
+  static const String passwordHint = ProfileStrings.passwordHint;
+  static const String confirmAndDelete = ProfileStrings.confirmAndDelete;
+  static const String signInAgain = ProfileStrings.signInAgain;
   static const String shareWithFriends = ProfileStrings.shareWithFriends;
   static const String contactUs = ProfileStrings.contactUs;
   static const String labelFeedbackSubject = ProfileStrings.labelFeedbackSubject;

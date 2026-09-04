@@ -49,6 +49,23 @@ class AuthAlreadySignedInException implements Exception {
       '${currentEmail ?? currentUid}; blocked new "$attemptedProvider" sign-in attempt.';
 }
 
+/// Thrown by [AuthRepository.deleteAccount] when Firebase rejects the
+/// destructive operation because the user's sign-in is not "recent" enough
+/// (`requires-recent-login`). The UI layer should catch this and prompt the
+/// user to re-authenticate (e.g. via [AuthRepository.reauthenticateWithPassword]
+/// or [AuthRepository.reauthenticateWithProvider]) before retrying the delete.
+class ReauthenticationRequiredException implements Exception {
+  ReauthenticationRequiredException({this.provider});
+
+  /// The provider id (e.g. `google.com`, `apple.com`, `password`) the user
+  /// originally signed in with, if known, so the UI can decide which
+  /// re-authentication flow to present.
+  final String? provider;
+
+  @override
+  String toString() => 'ReauthenticationRequiredException(provider: $provider)';
+}
+
 abstract class AuthRepository {
   Stream<AuthUser?> get authStateChanges;
   Stream<bool> get isMerging;
@@ -66,6 +83,28 @@ abstract class AuthRepository {
   Future<void> confirmMerge(String anonymousUid, String permanentUid);
   Future<void> abandonMerge();
   Future<void> signOut();
+
+  /// Deletes the current user's account.
+  ///
+  /// Firebase requires a "recent" sign-in for this destructive operation. If
+  /// the current session is stale, this throws [ReauthenticationRequiredException]
+  /// instead of silently failing (or, in providers where `delete()` doesn't
+  /// enforce this, leaving the Firestore/Storage cleanup 3-4 steps ahead of an
+  /// auth deletion that never actually happened). Callers should catch that
+  /// exception, prompt for re-authentication via [reauthenticateWithPassword]
+  /// or [reauthenticateWithProvider], then call [deleteAccount] again.
   Future<void> deleteAccount();
+
+  /// Re-authenticates the current user with their email/password credential.
+  /// Required before [deleteAccount] can succeed if the provider is `password`
+  /// and the session is stale.
+  Future<void> reauthenticateWithPassword(String password);
+
+  /// Re-authenticates the current user with a fresh Google or Apple
+  /// credential (re-runs the native sign-in flow). Required before
+  /// [deleteAccount] can succeed if the provider is `google.com`/`apple.com`
+  /// and the session is stale.
+  Future<void> reauthenticateWithProvider(String providerId);
+
   Future<void> updateDisplayName(String name);
 }

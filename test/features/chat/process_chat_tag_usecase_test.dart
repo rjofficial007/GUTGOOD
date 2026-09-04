@@ -46,26 +46,27 @@ void main() {
       expect(result.metadata['intentConfidence'], 0.9);
     });
 
-    test('should fallback extract symptoms from user text for all 6 core categories', () {
-      final energetic = useCase.call('I feel energetic after eating this', isFinal: true);
+    test('should fallback extract symptoms from userText for core categories', () {
+      final energetic = useCase.call('AI Response', userText: 'I feel energetic after eating this', isFinal: true);
       expect(energetic.symptoms.first.symptom, 'Energetic');
       expect(energetic.symptoms.first.energyLevel, 8);
 
-      final bloating = useCase.call('I am feeling bloated', isFinal: true);
+      final bloating = useCase.call('AI Response', userText: 'I am feeling bloated', isFinal: true);
       expect(bloating.symptoms.first.symptom, 'Bloating');
 
-      final headache = useCase.call('I have a bad headache', isFinal: true);
+      final headache = useCase.call('AI Response', userText: 'I have a bad headache', isFinal: true);
       expect(headache.symptoms.first.symptom, 'Headache');
+    });
 
-      final digestion = useCase.call('Having indigestion and gas', isFinal: true);
-      expect(digestion.symptoms.first.symptom, 'Digestive Shift');
+    test('should NOT extract symptoms from AI text to prevent hallucinations', () {
+      final result = useCase.call('This meal will make you feel energetic!', isFinal: true);
+      expect(result.symptoms, isEmpty);
+    });
 
-      final fullness = useCase.call('Feeling very full and stuffed', isFinal: true);
-      expect(fullness.symptoms.first.symptom, 'Fullness');
-
-      final sleep = useCase.call('Poor sleep last night', isFinal: true);
-      expect(sleep.symptoms.first.symptom, 'Sleep Shift');
-      expect(sleep.symptoms.first.sleep, 'Poor');
+    test('should still extract symptoms from structured [SYMPTOM] tag in AI text even if userText is null', () {
+      const text = 'Logged. [SYMPTOM]{"symptom": "Bloating", "severity": 3}[/SYMPTOM]';
+      final result = useCase.call(text, userText: null, isFinal: true);
+      expect(result.symptoms.first.symptom, 'Bloating');
     });
 
     test('should return original text if no tags are present', () {

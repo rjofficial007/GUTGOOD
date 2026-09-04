@@ -1,3 +1,5 @@
+import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rules.dart';
+
 class HealthAssessmentPrompt {
   HealthAssessmentPrompt._();
 
@@ -24,22 +26,22 @@ STRICT LIMITATIONS:
 
 STRUCTURE (MANDATORY ORDER):
 1. Greeting: **[A bold, high-energy personalized greeting praising the meal's look]**. [Single relevant emoji]
-   (STRICT RULE: The greeting MUST be wrapped in double asterisks to be bold).
+   ${PromptFormattingRules.boldGreeting}
 
 2. Identification: I’m seeing **[Item 1] + [Item 2] + [Item 3]**.
 
 3. Header: **GutHealth Assessment**
-   (STRICT RULE: Use exactly this text as the header. No "###" or other markdown headers).
+   ${PromptFormattingRules.exactHeaderNoMarkdown}
 
 4. Content: [A conversational evaluation].
 
 5. Header: **Key Considerations**
-   (STRICT RULE: Use exactly this text as the header).
+   ${PromptFormattingRules.exactHeader}
 
 6. Content: [Single Emoji matching the item] **[Item]**: [Description].
 
 7. Header: **The GutGood take:**
-   (STRICT RULE: Use exactly this text as the header).
+   ${PromptFormattingRules.exactHeader}
 
 8. Content: [Short supportive summary].
 
@@ -55,14 +57,13 @@ STRUCTURE (MANDATORY ORDER):
    
    Also populate the "meal" object for the daily journal and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
-The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
+${PromptFormattingRules.gutGoodDataBlockRequired}
 
 FORMATTING RULES:
-- Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.
-- STRICT RULE: Never use more than ONE emoji per line.
+${PromptFormattingRules.sharedHeader}
 - The emoji MUST exactly represent the food item being discussed (e.g. 🍗 for Chicken, 🥦 for Broccoli).
 - Identification MUST use the " + " separator between bolded items.
-- NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
+${PromptFormattingRules.noListsRule}
 - NEVER provide a numeric GutGood Rating in this mode.
 ''';
 }

@@ -184,8 +184,19 @@ export const onInsightCreated = functions
     const data = snapshot.data();
     if (!data) return;
 
-    const gutScore = Math.round(Number(data.gutScore));
-    if (isNaN(gutScore)) return;
+    const rawGutScore = Number(data.gutScore);
+    if (!Number.isFinite(rawGutScore)) {
+      functions.logger.warn(`onInsightCreated: Ignoring non-numeric gutScore for ${uid}`, { rawGutScore: data.gutScore });
+      return;
+    }
+
+    // Guard against out-of-range values (e.g. a hallucinated 0, a negative
+    // number, or something > 100) silently overwriting the user's real
+    // profile score. Clamp instead of trusting the AI output verbatim.
+    const gutScore = Math.round(Math.min(100, Math.max(0, rawGutScore)));
+    if (rawGutScore < 0 || rawGutScore > 100) {
+      functions.logger.warn(`onInsightCreated: Clamped out-of-range gutScore ${rawGutScore} to ${gutScore} for ${uid}`);
+    }
 
     const db = admin.firestore();
     const userRef = db.doc(`user_profiles/${uid}`);

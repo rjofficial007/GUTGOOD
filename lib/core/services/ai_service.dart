@@ -44,7 +44,7 @@ class AiAuthException implements Exception {
 }
 
 abstract class AiService {
-  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream'});
+  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream', String? intent});
 
   Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType, String mode = 'json'});
 
@@ -128,7 +128,14 @@ class AiServiceImpl implements AiService {
   }
 
   @override
-  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream'}) async* {
+  Stream<String> sendMessageStream({
+    required String systemInstruction,
+    required List<ChatMessage> history,
+    required String userText,
+    List<Uint8List>? images,
+    String mode = 'stream',
+    String? intent,
+  }) async* {
     final idempotencyKey = const Uuid().v4();
     final headers = await _buildHeaders(idempotencyKey);
 
@@ -142,6 +149,7 @@ class AiServiceImpl implements AiService {
       'usageType': (images != null && images.isNotEmpty) ? 'scan' : 'chat',
       'idempotencyKey': idempotencyKey,
       'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
+      if (intent != null) 'intent': intent,
     });
 
     AppLogger.ai('streaming via proxy (history: ${history.length}, images: ${images?.length ?? 0})');

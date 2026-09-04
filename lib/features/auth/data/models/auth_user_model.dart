@@ -7,6 +7,7 @@ class AuthUserModel extends AuthUser {
     super.email,
     super.displayName,
     required super.isAnonymous,
+    super.authProvider,
   });
 
   factory AuthUserModel.fromFirebase(firebase.User user) => AuthUserModel(
@@ -14,5 +15,6 @@ class AuthUserModel extends AuthUser {
     email: user.email,
     displayName: user.displayName,
     isAnonymous: user.isAnonymous,
+    authProvider: user.providerData.isNotEmpty ? user.providerData.first.providerId : null,
   );
 }

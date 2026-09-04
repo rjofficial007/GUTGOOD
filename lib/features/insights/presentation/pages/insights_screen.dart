@@ -210,7 +210,7 @@ class _ProgressRow extends StatelessWidget {
           value: progress,
           minHeight: 8,
           backgroundColor: context.appColorScheme.borderSubtle.withAlpha(80),
-          valueColor: AlwaysStoppedAnimation<Color>(progress >= 1.0 ? context.appColorScheme.success : context.appColorScheme.textPrimary),
+          valueColor: AlwaysStoppedAnimation<Color>(context.appColorScheme.textPrimary),
         ),
       ),
     ],

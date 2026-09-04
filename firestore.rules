@@ -42,6 +42,42 @@ service cloud.firestore {
     }
 
     /**
+     * Validates a single deterministic "body pattern" entry (see
+     * BodyPattern.toMap() in the Dart client). These are written by the
+     * on-device PatternEngineService and, unlike most user data, are later
+     * read back by the server-side (and AI) insight generation pipeline as
+     * trusted evidence for health narratives — so a garbage/malformed entry
+     * here can silently corrupt an AI insight. Firestore rules can't iterate
+     * a list generically, so we spot-check the first and last entries (any
+     * single malformed write is still bounded by the 512KB doc size cap).
+     */
+    function isValidBodyPattern(p) {
+      return p is map
+        && p.get('type', '') is string
+        && p.get('trigger', '') is string
+        && p.get('reaction', '') is string
+        && p.get('frequency', 0) is number
+        && p.get('confidence', '') is string
+        && p.get('evidenceRatio', 0) is number
+        && p.get('evidenceRatio', 0) >= 0
+        && p.get('evidenceRatio', 0) <= 1
+        && p.get('positiveCount', 0) is number
+        && p.get('positiveCount', 0) >= 0
+        && p.get('negativeCount', 0) is number
+        && p.get('negativeCount', 0) >= 0;
+    }
+
+    /** Enforces structure for pattern_data documents (see savePatternData). */
+    function isValidPatternData() {
+      let data = request.resource.data;
+      let patterns = data.get('patterns', []);
+      return patterns is list
+        && patterns.size() <= 50
+        && (patterns.size() == 0 || isValidBodyPattern(patterns[0]))
+        && (patterns.size() <= 1 || isValidBodyPattern(patterns[patterns.size() - 1]));
+    }
+
+    /**
      * Validates chat messages to prevent oversized documents or garbage data injection.
      * Prevents cost blowups and ensures UI rendering consistency.
      */
@@ -116,7 +152,7 @@ service cloud.firestore {
       /** Pattern Engine state: latest analysis evidence. */
       match /pattern_data/{docId} {
         allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
+        allow write: if isOwner(userId) && request.resource.size() < 512 * 1024 && isValidPatternData();
       }
 
       /** Health Alerts: Surfaced alerts for UPFs or cycle-specific sensitivities. */

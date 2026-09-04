@@ -6,9 +6,37 @@
 // ChatGPT-style chat interaction model.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/models/scan_result.dart';
 
 void main() {
+  group('ChatMessage persistence dedup (rawData)', () {
+    test('toMap() strips analysisResult.scan.rawData to avoid triple-storing the same scan data', () {
+      final rawData = {'intent': 'MEAL_RECOGNITION', 'scan': 'duplicated-nested-blob'};
+      final scan = ScanResult(productName: 'Salad', brand: 'GutGood', score: 80, impactType: ImpactType.positive, impact: 'Good', category: 'food', createdAt: DateTime(2026), rawData: rawData);
+      final msg = ChatMessage(
+        localId: 'x',
+        role: 'ai',
+        text: 'Analysis',
+        scanData: scan,
+        analysisResult: AiAnalysisResult(text: 'Analysis', scan: scan),
+        createdAt: DateTime(2026),
+      );
+
+      final map = msg.toMap();
+      final analysisResultMap = map['analysisResult'] as Map<String, dynamic>;
+      final scanMap = analysisResultMap['scan'] as Map<String, dynamic>;
+
+      expect(scanMap.containsKey('rawData'), isFalse, reason: 'rawData duplicates data already captured in scanPreview and the parsed scan/meal/symptoms fields; persisting it 3x wastes storage for no benefit.');
+      // The in-memory model (used during the live turn, e.g. to resolve
+      // scanPreview.intent) must be untouched by the persistence-time strip.
+      expect(msg.analysisResult!.scan!.rawData, rawData);
+      // scanPreview.intent must still resolve correctly from the live model.
+      expect(map['scanPreview']['intent'], 'MEAL_RECOGNITION');
+    });
+  });
+
   group('ChatMessage image handling (multi-image turns)', () {
     test('imageUrl mirrors the first entry of imageUrls', () {
       final msg = ChatMessage(localId: 'a', role: 'user', text: '', imageUrls: const ['u1', 'u2'], createdAt: DateTime(2026));

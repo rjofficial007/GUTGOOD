@@ -7,17 +7,15 @@ import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/nova_group.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
-import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/super_card.dart';
 import 'package:intl/intl.dart';
-import 'package:shimmer/shimmer.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class BentoCard extends StatelessWidget {
   const BentoCard({super.key, required this.child, this.backgroundColor, this.borderColor, this.padding, this.borderRadius, this.height, this.width, this.showShadow = true});
@@ -691,7 +689,7 @@ class WhatToWatchSection extends StatelessWidget {
     return BentoCard(
       padding: const EdgeInsets.all(16),
       borderRadius: 20,
-      backgroundColor: isDark ? scheme.error.withAlpha(12) : AppPalette.orangeLight,
+      backgroundColor: isDark ? scheme.error.withAlpha(12) : AppPalette.orangeLight.withAlpha(20),
       borderColor: scheme.warning.withAlpha(40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -765,7 +763,6 @@ class WhatToWatchSection extends StatelessWidget {
               decoration: BoxDecoration(color: item.badgeColor ?? AppPalette.orange, shape: BoxShape.circle),
             ),
             Gap.w4,
-            Icon(item.isUpArrow ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: scheme.textMuted, size: 16.sp),
           ] else if (item.trailingWidget != null)
             item.trailingWidget!,
         ],
@@ -802,12 +799,12 @@ class WhatThisMeansForYouCard extends StatelessWidget {
     return BentoCard(
       padding: const EdgeInsets.all(18),
       borderRadius: 20,
-      backgroundColor: isDark ? AppPalette.purple.withAlpha(26) : AppPalette.purplePastel,
+      backgroundColor: isDark ? AppPalette.purple.withAlpha(26) : AppPalette.purplePastel.withAlpha(26),
       borderColor: AppPalette.purple.withAlpha(40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const BentoCardHeader(title: 'WHAT THIS MEANS FOR YOU', icon: AppIcons.sparkles, textColor: AppPalette.purple, iconColor: AppPalette.purple),
+          const BentoCardHeader(title: 'WHAT THIS MEANS FOR YOU', icon: AppIcons.salad, textColor: AppPalette.purple, iconColor: AppPalette.purple),
           Gap.h12,
           Text(
             impactText,
@@ -818,7 +815,6 @@ class WhatThisMeansForYouCard extends StatelessWidget {
     );
   }
 }
-
 
 /// 🌟 Cycle Insight Section
 class CycleInsightSection extends StatelessWidget {
@@ -876,16 +872,7 @@ class CycleInsightSection extends StatelessWidget {
 }
 
 class BentoFoodCard extends StatelessWidget {
-  const BentoFoodCard({
-    super.key,
-    required this.foods,
-    required this.title,
-    required this.trend,
-    required this.isPositive,
-    required this.icon,
-    this.score,
-    this.highlight,
-  });
+  const BentoFoodCard({super.key, required this.foods, required this.title, required this.trend, required this.isPositive, required this.icon, this.score, this.highlight});
   final List<dynamic> foods;
   final String title;
   final String? trend;
@@ -896,6 +883,19 @@ class BentoFoodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (title.toUpperCase() == 'RECENT LOGS') {
+      debugPrint('--- BentoFoodCard: RECENT LOGS DATA DEBUG ---');
+      debugPrint('Foods list length: ${foods.length}');
+      for (var i = 0; i < foods.length; i++) {
+        debugPrint('Item $i type: ${foods[i].runtimeType}');
+        if (foods[i] is FoodImpact) {
+          final fi = foods[i] as FoodImpact;
+          debugPrint('  FoodImpact: ${fi.food}, ImageUrl: ${fi.imageUrl}');
+        }
+      }
+      debugPrint('----------------------------------------------');
+    }
+
     final items = foods.map((f) {
       if (f is HealingFood || f is TriggerFood) {
         final dynamic food = f;
@@ -910,10 +910,10 @@ class BentoFoodCard extends StatelessWidget {
       return SuperCyclerItemData(name: 'Unknown', effect: '');
     }).toList();
 
-    if (title.toUpperCase() == 'HEALING' || title.toUpperCase() == 'TRIGGERS' || title.toUpperCase() == 'RECENT LOGS') {
-      final displayScore = score ?? (isPositive ? 75 : 25);
+    if (title.toUpperCase() == 'HEALING' || title.toUpperCase() == 'TRIGGERS' || title.toUpperCase() == 'RECENT LOGS' || title.toUpperCase() == 'BETTER SWAPS') {
+      final displayScore = score ?? (isPositive ? 85 : 25);
       Color statusColor = isPositive ? const Color(0xFF27F15B) : const Color(0xFFE9579A);
-      
+
       if (title.toUpperCase() == 'RECENT LOGS') {
         statusColor = const Color(0xFF0759E8); // Premium Blue for History
       }
@@ -922,7 +922,9 @@ class BentoFoodCard extends StatelessWidget {
         delay: 200,
         child: SuperFoodGaugeCard(
           title: title,
-          label: highlight?.timeframe.toUpperCase() ?? (title.toUpperCase() == 'RECENT LOGS' ? 'HISTORY' : (isPositive ? 'POSITIVE PATTERNS' : 'NEGATIVE PATTERNS')),
+          label:
+              highlight?.timeframe.toUpperCase() ??
+              (title.toUpperCase() == 'RECENT LOGS' ? 'HISTORY' : (title.toUpperCase() == 'BETTER SWAPS' ? 'RECOMMENDED' : (isPositive ? 'POSITIVE PATTERNS' : 'NEGATIVE PATTERNS'))),
           score: displayScore,
           statusColor: statusColor,
           foods: items,
@@ -932,13 +934,7 @@ class BentoFoodCard extends StatelessWidget {
 
     return DashboardEntrance(
       delay: 200,
-      child: SuperFoodCyclerCard(
-        items: items,
-        title: title,
-        trend: trend,
-        isPositive: isPositive,
-        icon: icon,
-      ),
+      child: SuperFoodCyclerCard(items: items, title: title, trend: trend, isPositive: isPositive, icon: icon),
     );
   }
 
@@ -956,14 +952,7 @@ class BentoActivityCard extends StatelessWidget {
   final int? score;
 
   @override
-  Widget build(BuildContext context) => BentoFoodCard(
-    foods: impacts,
-    title: 'RECENT LOGS',
-    trend: null,
-    isPositive: true, 
-    icon: AppIcons.history,
-    score: score,
-  );
+  Widget build(BuildContext context) => BentoFoodCard(foods: impacts, title: 'RECENT LOGS', trend: null, isPositive: true, icon: AppIcons.history, score: score);
 }
 
 /// 🌟 Better Swaps Card in BentoFoodCard Style
@@ -1028,9 +1017,6 @@ class MealBalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();
 }
-
-
-
 
 /// 🌟 Metadata Section
 class ProductMetadataSection extends StatelessWidget {

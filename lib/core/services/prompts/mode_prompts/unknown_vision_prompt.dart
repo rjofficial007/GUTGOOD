@@ -1,3 +1,5 @@
+import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rules.dart';
+
 class UnknownVisionPrompt {
   UnknownVisionPrompt._();
 
@@ -7,7 +9,7 @@ General Image Analysis.
 
 STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 1. Greeting: **[A bold, high-energy personalized greeting acknowledging the image]**. [Single relevant emoji]
-   (STRICT RULE: The greeting MUST be wrapped in double asterisks to be bold).
+   ${PromptFormattingRules.boldGreeting}
 
 2. Header: **Visual Context**
 
@@ -22,11 +24,10 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
    - Populate the "scan" object and set "category" to "food", "menu", "label", "packaging", or "non-food" based on the content.
    - If the user is reporting a symptom or physical feeling (e.g., feeling energetic), you MUST also populate the "symptoms" array. Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
-The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
+${PromptFormattingRules.gutGoodDataBlockRequired}
 
 FORMATTING RULES:
-- Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.
-- STRICT RULE: Never use more than ONE emoji per line.
-- NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
+${PromptFormattingRules.sharedHeader}
+${PromptFormattingRules.noListsRule}
 ''';
 }

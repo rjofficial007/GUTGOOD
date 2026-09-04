@@ -9,6 +9,9 @@ class AuthErrorHandler {
     if (e is AuthAlreadySignedInException) {
       return 'You\'re already signed in as ${e.currentEmail ?? 'another account'}. Sign out first to switch accounts.';
     }
+    if (e is ReauthenticationRequiredException) {
+      return 'For your security, please sign in again to confirm this action.';
+    }
     if (e is FirebaseAuthException) {
       switch (e.code) {
         case 'network-request-failed':

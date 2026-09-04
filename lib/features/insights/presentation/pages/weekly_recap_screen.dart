@@ -12,10 +12,6 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
-import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_view.dart';
-import 'package:gutgood/features/insights/presentation/widgets/modern_gut_score_card.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -37,10 +33,10 @@ class WeeklyRecapScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark ? context.appColorScheme.cardBackground : AppPalette.gray50,
+      backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         slivers: [
-          const GutSliverAppBar(title: AppStrings.weeklyRecap, showBrandingIcon: false),
+          const GutSliverAppBar(title: AppStrings.weeklyRecap, centerTitle: true),
           _MainDashboardSliver(data: insight!, highlights: highlights),
         ],
       ),
@@ -65,57 +61,54 @@ class _MainDashboardSliver extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 1. Weekly Average Hero (Modern Style)
+            // 1. Weekly Average Hero (Super Style)
             DashboardEntrance(
               delay: 50,
-              child: ModernGutScoreCard(
+              child: SuperGutScoreCard(
                 score: recap?.avgScore ?? 0,
-                title: 'WEEKLY AVERAGE',
-                showDetails: false,
-                description: recap?.dateRange ?? 'Last 7 Days',
-                onTap: () {}, // Static view
+                streak: streak,
+                loggedCount: recap?.foodsLogged ?? 0,
+                onTap: () {}, // Static view for recap
               ),
             ),
             Gap.h16,
 
-            // 2. Weekly Metrics Grid
-            DashboardEntrance(
-              delay: 100,
-              child: InsightMetricGrid(data: data, streak: streak),
-            ),
-            Gap.h16,
-
-            // 3. Weekly Pulse (AI Intelligence) - Hero Style
+            // 2. Weekly Pulse (Super Autopilot style)
             DashboardEntrance(
               delay: 150,
-              child: IntelligencePulseCard(
-                title: AppStrings.weeklyPulse,
+              child: SuperAutopilotCard(
                 description: '${AppStrings.weeklyRecapNarrative}$streak${AppStrings.narrativeDaysAndGut}${data.healingTrend ?? AppStrings.optimizing}${AppStrings.narrativeBasedOnLogs}',
-                index: 1,
+                healingCount: data.healingFoods.length,
+                triggerCount: data.triggerFoods.length,
                 onTap: () {}, // Static for recap
               ),
             ),
             Gap.h16,
 
-            // 4. Performance & Discovery (Unified UI/UX)
+            // 3. Performance & Discovery (Super Style)
             if (recap != null) ...[
-              BentoFoodCard(
-                title: AppStrings.performanceHighlights.toUpperCase(),
-                foods: [HealingFood(name: '${recap.foodsLogged} FOODS LOGGED', effect: 'Best: ${recap.bestDay}', emoji: '⭐')],
-                isPositive: true,
-                icon: AppIcons.star,
-                trend: data.healingTrend ?? 'Stable weekly trend.',
+              DashboardEntrance(
+                delay: 200,
+                child: SuperPhysicalGoalCard(
+                  title: AppStrings.performanceHighlights.toUpperCase(),
+                  subtitle: 'WEEKLY PERFORMANCE',
+                  label: '${recap.foodsLogged} foods logged this week. Best day: ${recap.bestDay}.',
+                  icon: AppIcons.star,
+                  color: AppPalette.green500,
+                ),
               ),
-              Gap.h12,
-              BentoFoodCard(
-                title: AppStrings.discovery.toUpperCase(),
-                foods: highlights,
-                isPositive: true,
-                icon: AppIcons.lightbulb,
-                trend: highlights.isNotEmpty ? 'AI identified ${highlights.length} patterns.' : 'Keep logging for new patterns.',
+              Gap.h16,
+              DashboardEntrance(
+                delay: 250,
+                child: SuperPhysicalGoalCard(
+                  title: AppStrings.discovery.toUpperCase(),
+                  subtitle: 'AI DISCOVERY',
+                  label: highlights.isNotEmpty ? highlights.map((h) => h.text).join(' • ') : 'Keep logging for new patterns.',
+                  icon: AppIcons.lightbulb,
+                  color: AppPalette.purple,
+                ),
               ),
             ],
-            Gap.h40,
           ],
         ),
       ),

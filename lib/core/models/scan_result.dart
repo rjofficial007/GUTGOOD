@@ -43,6 +43,7 @@ class ScanResult extends Equatable {
     this.servingSize,
     required this.createdAt,
     this.rawData,
+    this.nutritionEstimated = false,
   });
 
   factory ScanResult.fromMap(Map<String, dynamic> map) {
@@ -143,6 +144,16 @@ class ScanResult extends Equatable {
       servingSize: map['servingSize']?.toString(),
       createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['timestamp'] ?? map['time']),
       rawData: resolvedRaw,
+      // 🚀 audit §F.2/§O item 6: the AI is explicitly instructed to
+      // APPROXIMATE nutrition fields for home-cooked/unpackaged meals
+      // (VisionSafetyPrompt's estimation exception) rather than leave them
+      // null. `nutritionEstimated` lets the UI honestly label those
+      // approximated macros instead of presenting them with the same visual
+      // authority as a barcode-scanned fact. Default to `true` for
+      // meal/food/menu categories even if the model omits the flag, since
+      // those categories are estimated by prompt design; packaged/labeled
+      // products default to `false` (label-sourced facts).
+      nutritionEstimated: map['nutritionEstimated'] != null ? ModelUtils.parseBool(map['nutritionEstimated']) : (category == 'meal' || category == 'food' || category == 'menu'),
     );
   }
 
@@ -229,6 +240,13 @@ class ScanResult extends Equatable {
 
   /// Holds the raw JSON data from the AI for routing and specialized storage.
   final Map<String, dynamic>? rawData;
+
+  /// Whether [nutrients]/[nutrientLevels]/[novaGroup] are a visually-grounded
+  /// AI APPROXIMATION (typical for home-cooked/unpackaged meals) rather than
+  /// a label-sourced or barcode-sourced fact. The UI must label estimated
+  /// macros as "Estimated" instead of presenting them with the same visual
+  /// authority as scanned data (audit §F.2 / §O item 6).
+  final bool nutritionEstimated;
 
   static String _extractProductName(Map<String, dynamic> map) {
     final direct = map['productName']?.toString() ?? map['name']?.toString() ?? map['title']?.toString();
@@ -346,6 +364,7 @@ class ScanResult extends Equatable {
     String? servingSize,
     DateTime? createdAt,
     Map<String, dynamic>? rawData,
+    bool? nutritionEstimated,
   }) => ScanResult(
     productName: productName ?? this.productName,
     brand: brand ?? this.brand,
@@ -375,6 +394,7 @@ class ScanResult extends Equatable {
     servingSize: servingSize ?? this.servingSize,
     createdAt: createdAt ?? this.createdAt,
     rawData: rawData ?? this.rawData,
+    nutritionEstimated: nutritionEstimated ?? this.nutritionEstimated,
   );
 
   Map<String, dynamic> toMap() => {
@@ -406,6 +426,7 @@ class ScanResult extends Equatable {
     'servingSize': servingSize,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
     'rawData': rawData,
+    'nutritionEstimated': nutritionEstimated,
   };
 
   /// Optimized Map for AI context to prevent 502/payload-too-large errors.
@@ -421,7 +442,7 @@ class ScanResult extends Equatable {
   };
 
   @override
-  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved, scanId, chatMessageId, servingSize, createdAt, rawData];
+  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved, scanId, chatMessageId, servingSize, createdAt, rawData, nutritionEstimated];
 
   /// 🚀 Professional Routing: Determines which screen should be used to display
   /// the full details of this specific scan.

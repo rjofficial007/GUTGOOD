@@ -11,7 +11,7 @@ import 'package:gutgood/core/utils/model_utils.dart';
 class ProcessChatTagUseCase {
   ProcessChatTagUseCase();
 
-  AiAnalysisResult call(String text, {String? imageUrl, String? source, String? chatMessageId, bool isFinal = false}) {
+  AiAnalysisResult call(String text, {String? userText, String? imageUrl, String? source, String? chatMessageId, bool isFinal = false}) {
     var displayOutput = text;
     String? intent;
     String? imageMode;
@@ -170,8 +170,14 @@ class ProcessChatTagUseCase {
     }
 
     // --- STEP 2.5: FALLBACK SYMPTOM EXTRACTION FROM USER TEXT ---
-    if (symptomLogs.isEmpty) {
-      final userTextLower = text.toLowerCase();
+    // NOTE: this crude keyword-regex path only runs when the AI did not return a
+    // structured `symptoms` entry in [GUTGOOD_DATA] (or the legacy [SYMPTOM] tag).
+    // CRITICAL FIX: We now scan the ORIGINAL userText instead of the AI reply 'text'
+    // to prevent hallucinated symptoms (e.g. AI mentioning "fullness" in a reply
+    // shouldn't trigger a symptom log if the user didn't say it).
+    if (symptomLogs.isEmpty && userText != null && userText.trim().isNotEmpty) {
+      final userTextLower = userText.toLowerCase();
+      final fallbackSymptomCountBefore = symptomLogs.length;
 
       // 1. Energy
       if (userTextLower.contains('energetic') ||
@@ -226,6 +232,14 @@ class ProcessChatTagUseCase {
       } else if (userTextLower.contains('cramp') || userTextLower.contains('stomach pain') || userTextLower.contains('stomach ache')) {
         symptomLogs.add(SymptomLog(symptom: 'Abdominal Pain', severity: 6, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
       }
+
+      if (symptomLogs.length > fallbackSymptomCountBefore) {
+        AppLogger.warning(
+          'ProcessChatTagUseCase: keyword-regex symptom fallback fired '
+          '(AI did not return a structured symptoms entry) — extracted '
+          '"${symptomLogs.last.symptom}" from user text.',
+        );
+      }
     }
 
     // --- STEP 2.6: ENRICH SYMPTOMS WITH FOOD NAME AND IMAGE URL ---
@@ -256,6 +270,19 @@ class ProcessChatTagUseCase {
       scanData = scanData.copyWith(swaps: swapsList);
     }
 
-    return AiAnalysisResult(text: displayOutput, intent: intent, imageMode: imageMode, scan: scanData, meal: mealLog, symptoms: symptomLogs, swaps: swapsList, menu: menuData, metadata: metadata);
+    final confidence = (metadata['confidence'] as num?)?.toDouble();
+
+    return AiAnalysisResult(
+      text: displayOutput,
+      intent: intent,
+      imageMode: imageMode,
+      scan: scanData,
+      meal: mealLog,
+      symptoms: symptomLogs,
+      swaps: swapsList,
+      menu: menuData,
+      metadata: metadata,
+      confidence: confidence,
+    );
   }
 }

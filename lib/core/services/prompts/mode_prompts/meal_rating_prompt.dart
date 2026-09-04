@@ -1,3 +1,5 @@
+import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rules.dart';
+
 class MealRatingPrompt {
   MealRatingPrompt._();
 
@@ -18,7 +20,7 @@ STRICT LIMITATIONS:
 
 STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 1. Greeting: **[A bold, high-energy personalized greeting praising the meal's look]**. [Single relevant emoji]
-   (STRICT RULE: The greeting MUST be wrapped in double asterisks to be bold).
+   ${PromptFormattingRules.boldGreeting}
 
 2. Rating: **GutGood Rating: X.X/10**
    (STRICT RULE: Use exactly "GutGood Rating: " followed by the score).
@@ -27,17 +29,17 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
    (STRICT RULE: You MUST identify the food items before providing reasoning).
 
 4. Header: **Reasoning**
-   (STRICT RULE: Use exactly this text as the header. No "###" or other markdown headers).
+   ${PromptFormattingRules.exactHeaderNoMarkdown}
 
 5. Content: [Short explanation of why this score was given].
 
 6. Header: **Strengths & Weaknesses**
-   (STRICT RULE: Use exactly this text as the header).
+   ${PromptFormattingRules.exactHeader}
 
 7. Content: [Single Emoji matching the item] **[Item]**: [Description].
 
 8. Header: **The GutGood take:**
-   (STRICT RULE: Use exactly this text as the header).
+   ${PromptFormattingRules.exactHeader}
 
 9. Content: [Short supportive summary].
 
@@ -53,14 +55,13 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
    
    Also populate the "meal" object, "swaps" if applicable, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
-The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
+${PromptFormattingRules.gutGoodDataBlockRequired}
 
 FORMATTING RULES:
-- Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.
-- STRICT RULE: Never use more than ONE emoji per line.
+${PromptFormattingRules.sharedHeader}
 - The emoji MUST exactly represent the food item being discussed (e.g. 🥩 for Steak).
 - Identification MUST use the " + " separator between bolded items.
-- NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
+${PromptFormattingRules.noListsRule}
 - NEVER use horizontal rules (---) between greeting and rating.
 ''';
 }

@@ -23,6 +23,7 @@ class GutTextField extends StatelessWidget {
     this.borderRadius = 12.0,
     this.contentPadding,
     this.textCapitalization = TextCapitalization.none,
+    this.obscureText = false,
   });
   final TextEditingController? controller;
   final String? hintText;
@@ -39,6 +40,7 @@ class GutTextField extends StatelessWidget {
   final double borderRadius;
   final EdgeInsetsGeometry? contentPadding;
   final TextCapitalization textCapitalization;
+  final bool obscureText;
 
   @override
   Widget build(BuildContext context) {
@@ -49,54 +51,29 @@ class GutTextField extends StatelessWidget {
       autofocus: autofocus,
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
-      maxLines: maxLines,
-      minLines: minLines,
+      maxLines: obscureText ? 1 : maxLines,
+      minLines: obscureText ? null : minLines,
+      obscureText: obscureText,
       enabled: enabled,
       onChanged: onChanged,
       onSubmitted: (_) => onSubmitted?.call(),
       style: inputStyle,
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: inputStyle.copyWith(
-          color: context.appColorScheme.textDisabled,
-        ),
-        prefixIcon: prefixIcon != null
-            ? Icon(
-                prefixIcon,
-                size: AppSizes.icon18,
-                color: context.appColorScheme.textMuted,
-              )
-            : null,
+        hintStyle: inputStyle.copyWith(color: context.appColorScheme.textDisabled),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: AppSizes.icon18, color: context.appColorScheme.textMuted) : null,
         filled: !borderless,
-        fillColor: borderless
-            ? AppPalette.transparent
-            : context.appColorScheme.elevatedSurface,
-        contentPadding:
-            contentPadding ??
-            EdgeInsets.symmetric(
-              vertical: AppSizes.p16,
-              horizontal: AppSizes.p16,
-            ),
+        fillColor: borderless ? AppPalette.transparent : context.appColorScheme.elevatedSurface,
+        contentPadding: contentPadding ?? EdgeInsets.symmetric(vertical: AppSizes.p16, horizontal: AppSizes.p16),
         border: _buildBorder(context, AppPalette.transparent),
         enabledBorder: _buildBorder(context, context.appColorScheme.border),
-        focusedBorder: _buildBorder(
-          context,
-          context.appColorScheme.textPrimary,
-          width: 1.5,
-        ),
-        disabledBorder: _buildBorder(
-          context,
-          context.appColorScheme.borderSubtle,
-        ),
+        focusedBorder: _buildBorder(context, context.appColorScheme.textPrimary, width: 1.5),
+        disabledBorder: _buildBorder(context, context.appColorScheme.borderSubtle),
       ),
     );
   }
 
-  InputBorder _buildBorder(
-    BuildContext context,
-    Color color, {
-    double width = 1.0,
-  }) {
+  InputBorder _buildBorder(BuildContext context, Color color, {double width = 1.0}) {
     if (borderless) return InputBorder.none;
 
     return OutlineInputBorder(

@@ -83,6 +83,18 @@ class ChatComposerNotifier with ChangeNotifier {
   bool _generationCancelled = false;
   final Set<String> _persistedTags = {};
   bool _persistTagsForActiveTurn = true;
+  String? _findUserTextForAiMessage(String aiLocalId) {
+    final messages = _historyNotifier.messages;
+    final index = messages.indexWhere((m) => m.localId == aiLocalId);
+    if (index == -1) return null;
+    for (var i = index + 1; i < messages.length; i++) {
+      if (messages[i].role == 'user') {
+        return messages[i].text;
+      }
+    }
+    return null;
+  }
+
   String? _pendingHiddenContext;
 
   // Last request
@@ -445,6 +457,7 @@ class ChatComposerNotifier with ChangeNotifier {
         history: _buildHistory(),
         userText: userText,
         images: images,
+        intent: intent,
       );
 
       var hapticTriggered = false;
@@ -490,7 +503,8 @@ class ChatComposerNotifier with ChangeNotifier {
     _fullAiText += _chunkBuffer;
     _chunkBuffer = '';
 
-    final result = _processChatTagUseCase(_fullAiText, imageUrl: imageUrl, source: source, chatMessageId: aiLocalId, isFinal: false);
+    final userText = _findUserTextForAiMessage(aiLocalId);
+    final result = _processChatTagUseCase(_fullAiText, userText: userText, imageUrl: imageUrl, source: source, chatMessageId: aiLocalId, isFinal: false);
 
     var finalToDisplay = _applySafetyGuardrails(result.text);
     if (finalToDisplay.isEmpty && (result.scan != null || result.swaps.isNotEmpty)) {
@@ -541,7 +555,8 @@ class ChatComposerNotifier with ChangeNotifier {
     if (_chunkBuffer.isNotEmpty || _fullAiText.isNotEmpty) {
       _fullAiText += _chunkBuffer;
       _chunkBuffer = '';
-      final result = _processChatTagUseCase(_fullAiText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, chatMessageId: aiLocalId, isFinal: true);
+      final userText = _findUserTextForAiMessage(aiLocalId);
+      final result = _processChatTagUseCase(_fullAiText, userText: userText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, chatMessageId: aiLocalId, isFinal: true);
       final finalMsg = currentMsg.copyWith(
         text: _applySafetyGuardrails(result.text),
         scanData: result.scan,
@@ -597,7 +612,8 @@ class ChatComposerNotifier with ChangeNotifier {
 
     _fullAiText += _chunkBuffer;
     _chunkBuffer = '';
-    final result = _processChatTagUseCase(_fullAiText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, chatMessageId: aiLocalId, isFinal: true);
+    final userText = _findUserTextForAiMessage(aiLocalId);
+    final result = _processChatTagUseCase(_fullAiText, userText: userText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, chatMessageId: aiLocalId, isFinal: true);
 
     final finalMsg = currentMsg.copyWith(
       text: _applySafetyGuardrails(result.text),
@@ -724,6 +740,7 @@ class ChatComposerNotifier with ChangeNotifier {
         ),
         history: _buildHistory(),
         userText: groundedSwaps != null ? '${userMsg.text}\n\n(REAL PRODUCT DATA FOR SUGGESTIONS: ${groundedSwaps.map((s) => s.title).join(', ')})' : userMsg.text,
+        intent: 'meal_swaps',
       );
 
       final aiLocalId = aiPlaceholder.localId;
@@ -732,7 +749,7 @@ class ChatComposerNotifier with ChangeNotifier {
 
       await for (final chunk in stream) {
         fullTextBuffer.write(chunk);
-        final result = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', chatMessageId: aiLocalId, isFinal: false);
+        final result = _processChatTagUseCase(fullTextBuffer.toString(), userText: userMsg.text, source: 'chat', chatMessageId: aiLocalId, isFinal: false);
 
         var finalToDisplay = result.text;
         if (finalToDisplay.isEmpty && result.swaps.isNotEmpty) {
@@ -758,7 +775,7 @@ class ChatComposerNotifier with ChangeNotifier {
       }
 
       // Atomic persistence for See More Swaps
-      final finalResult = _processChatTagUseCase(fullTextBuffer.toString(), source: 'chat', chatMessageId: aiLocalId, isFinal: true);
+      final finalResult = _processChatTagUseCase(fullTextBuffer.toString(), userText: userMsg.text, source: 'chat', chatMessageId: aiLocalId, isFinal: true);
       final hydratedResult = await _persistAiResponseUseCase(finalResult, chatMessageId: aiLocalId, source: 'chat', persistedTagBlocks: persistedTags);
 
       final finalAi = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);

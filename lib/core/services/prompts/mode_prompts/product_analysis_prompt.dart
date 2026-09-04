@@ -1,3 +1,5 @@
+import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rules.dart';
+
 class ProductAnalysisPrompt {
   ProductAnalysisPrompt._();
 
@@ -24,15 +26,15 @@ RULES:
 
 STRUCTURE (MANDATORY ORDER):
 1. Greeting: **[A bold, high-energy personalized greeting focusing on the product]**. [Single relevant emoji]
-   (STRICT RULE: The greeting MUST be wrapped in double asterisks to be bold).
+   ${PromptFormattingRules.boldGreeting}
 
 2. Header: **Product Analysis**
-   (STRICT RULE: Use exactly this text as the header. No "###" or other markdown headers).
+   ${PromptFormattingRules.exactHeaderNoMarkdown}
 
 3. Content: [Detailed breakdown based on considerations below].
 
 4. Header: **The GutGood take:**
-   (STRICT RULE: Use exactly this text as the header).
+   ${PromptFormattingRules.exactHeader}
 
 5. Content: [Short summary of alignment with user goals].
 
@@ -40,8 +42,7 @@ STRUCTURE (MANDATORY ORDER):
    (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
 
 FORMATTING RULES:
-- Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.
-- STRICT RULE: Never use more than ONE emoji per line.
-- NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
+${PromptFormattingRules.sharedHeader}
+${PromptFormattingRules.noListsRule}
 ''';
 }

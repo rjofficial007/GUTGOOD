@@ -64,11 +64,11 @@ class JournalTimelineEntry extends StatelessWidget {
       children: [
         // Timeline Column
         SizedBox(
-          width: 72,
+          width: 60,
           child: Column(
             children: [
-              Text(DateFormatter.formatTime(entry.createdAt), style: context.label.copyWith(color: context.appColorScheme.textSecondary)),
-              Gap.h10,
+              Text(DateFormatter.formatTime(entry.createdAt), style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary)),
+              Gap.h14,
               Expanded(
                 child: Stack(
                   alignment: Alignment.topCenter,
@@ -286,14 +286,22 @@ class JournalTimelineEntry extends StatelessWidget {
   String _getSymptomEmoji(String? symptom) {
     if (symptom == null) return '😐';
     final s = symptom.toLowerCase();
+
+    // Key Pattern Symptoms
     if (s.contains('bloat')) return '😫';
-    if (s.contains('gas')) return '💨';
-    if (s.contains('energy')) return '⚡';
-    if (s.contains('fatigue')) return '😴';
+    if (s.contains('energ')) return '⚡';
     if (s.contains('headache')) return '🤕';
+    if (s.contains('digest')) return '🔄';
+    if (s.contains('full')) return '🫃';
+    if (s.contains('sleep')) return '😴';
+
+    // Additional Triggers & Symptoms
+    if (s.contains('gas')) return '💨';
+    if (s.contains('fatigue')) return '🪫';
     if (s.contains('pain') || s.contains('cramp')) return '😣';
     if (s.contains('skin')) return '✨';
     if (s.contains('mood')) return '😊';
+
     return '😐';
   }
 }

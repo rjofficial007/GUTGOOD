@@ -12,12 +12,10 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/super_card.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_sections.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
@@ -70,8 +68,8 @@ class InsightDashboardSliver extends StatelessWidget {
                 onTap: isHistorical
                     ? () {}
                     : () async {
-                        if (context.mounted && data.topInsight != null) {
-                          unawaited(context.push(AppRoutes.smartInsightDetail, extra: data.topInsight!));
+                        if (context.mounted) {
+                          unawaited(context.push(AppRoutes.weeklyRecap, extra: data));
                         }
                       },
               ),
@@ -96,18 +94,6 @@ class InsightDashboardSliver extends StatelessWidget {
             ),
             Gap.h16,
 
-            // 4. Super Gut Breakdown Card (from super_card.dart)
-            DashboardEntrance(
-              delay: 140,
-              child: SuperGutBreakdownCard(
-                healingCount: data.healingFoods.length,
-                triggerCount: data.triggerFoods.length,
-              ),
-            ),
-            Gap.h16,
-
-
-
             if (data.healingGoal != null || data.triggerSymptom != null) ...[
               DashboardEntrance(
                 delay: 180,
@@ -115,13 +101,7 @@ class InsightDashboardSliver extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (data.healingGoal != null)
-                      SuperPhysicalGoalCard(
-                        title: data.healingGoal!.toUpperCase(),
-                        subtitle: 'PRIMARY GOAL',
-                        label: AppStrings.primaryHealingObjective,
-                        icon: AppIcons.target,
-                        color: AppPalette.blue,
-                      ),
+                      SuperPhysicalGoalCard(title: data.healingGoal!.toUpperCase(), subtitle: 'PRIMARY GOAL', label: AppStrings.primaryHealingObjective, icon: AppIcons.target, color: AppPalette.blue),
                     if (data.healingGoal != null && data.triggerSymptom != null) Gap.h12,
                     if (data.triggerSymptom != null)
                       SuperPhysicalGoalCard(
@@ -144,6 +124,8 @@ class InsightDashboardSliver extends StatelessWidget {
               ),
               Gap.h16,
             ],
+
+            if (displayPatterns.isNotEmpty) ...[..._buildPatternCards(context, displayPatterns)],
 
             if (data.healingFoods.isNotEmpty || data.triggerFoods.isNotEmpty) ...[
               if (data.healingFoods.isNotEmpty) ...[
@@ -170,12 +152,21 @@ class InsightDashboardSliver extends StatelessWidget {
                 ),
                 Gap.h12,
               ],
-              Gap.h4,
             ],
 
-            if (displayPatterns.isNotEmpty) ...[..._buildPatternCards(context, displayPatterns)],
-
-            if (data.foodImpacts.isNotEmpty) ...[BentoActivityCard(impacts: data.foodImpacts, score: currentScore), Gap.h24],
+            if (data.foodImpacts.isNotEmpty) ...[
+              Builder(
+                builder: (context) {
+                  debugPrint('--- InsightDashboardSliver: RECENT LOGS (FoodImpacts) Data ---');
+                  for (var impact in data.foodImpacts) {
+                    debugPrint('Impact: food=${impact.food}, impactType=${impact.impactType}, imageUrl=${impact.imageUrl}');
+                  }
+                  debugPrint('-----------------------------------------------------------');
+                  return BentoActivityCard(impacts: data.foodImpacts, score: currentScore);
+                },
+              ),
+              Gap.h24,
+            ],
           ],
         ),
       ),

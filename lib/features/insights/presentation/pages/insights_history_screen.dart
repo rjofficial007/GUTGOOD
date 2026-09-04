@@ -98,35 +98,19 @@ class _HistoryEmpty extends StatelessWidget {
               decoration: BoxDecoration(
                 color: context.appColorScheme.aiResponseBackground,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: context.appColorScheme.textPrimary.withAlpha(10),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: context.appColorScheme.textPrimary.withAlpha(10), blurRadius: 20, offset: const Offset(0, 10))],
               ),
               child: Icon(AppIcons.history, size: 56, color: context.appColorScheme.textPrimary),
             ),
             Gap.h32,
-            Text(
-              AppStrings.yourGutHealthStory,
-              style: context.headingMd.copyWith(
-                height: 1.1,
-                letterSpacing: -0.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text(AppStrings.yourGutHealthStory, style: context.headingMd.copyWith(height: 1.1, letterSpacing: -0.5), textAlign: TextAlign.center),
             Gap.h16,
             Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSizes.p12),
               child: Text(
                 AppStrings.gutHealthStoryDesc,
                 textAlign: TextAlign.center,
-                style: context.body.copyWith(
-                  color: context.appColorScheme.textSecondary,
-                  height: 1.5,
-                ),
+                style: context.body.copyWith(color: context.appColorScheme.textSecondary, height: 1.5),
               ),
             ),
           ],

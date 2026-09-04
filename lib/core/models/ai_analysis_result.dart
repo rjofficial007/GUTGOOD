@@ -7,7 +7,7 @@ import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Represents the unified structured output from an AI analysis turn.
 class AiAnalysisResult extends Equatable {
-  const AiAnalysisResult({required this.text, this.intent, this.imageMode, this.scan, this.meal, this.symptoms = const [], this.swaps = const [], this.menu, this.metadata = const {}});
+  const AiAnalysisResult({required this.text, this.intent, this.imageMode, this.scan, this.meal, this.symptoms = const [], this.swaps = const [], this.menu, this.metadata = const {}, this.confidence});
 
   factory AiAnalysisResult.fromMap(Map<String, dynamic> map) {
     final swapsList = ModelUtils.parseModelList<ProductSwap>(map['swaps'], ProductSwap.fromMap);
@@ -19,6 +19,8 @@ class AiAnalysisResult extends Equatable {
       scanData = scanData.copyWith(swaps: swapsList);
     }
 
+    final metadata = ModelUtils.parseMap(map['metadata']);
+
     return AiAnalysisResult(
       text: map['text'] as String? ?? '',
       intent: map['intent'] as String?,
@@ -28,7 +30,8 @@ class AiAnalysisResult extends Equatable {
       symptoms: ModelUtils.parseModelList<SymptomLog>(map['symptoms'], SymptomLog.fromMap),
       swaps: swapsList,
       menu: ModelUtils.parseMap(map['menu']),
-      metadata: ModelUtils.parseMap(map['metadata']),
+      metadata: metadata,
+      confidence: (metadata['confidence'] as num?)?.toDouble(),
     );
   }
 
@@ -41,6 +44,13 @@ class AiAnalysisResult extends Equatable {
   final List<ProductSwap> swaps;
   final Map<String, dynamic>? menu;
   final Map<String, dynamic> metadata;
+
+  /// AI's self-reported confidence (0.0-1.0) in the extracted scan/meal/
+  /// symptom data (as opposed to the conversational `text`). Sourced from
+  /// `metadata.confidence` in the [GUTGOOD_DATA] block. `null` means the
+  /// model did not report a confidence value (treated as unknown/untrusted
+  /// by callers that gate persistence on it).
+  final double? confidence;
 
   Map<String, dynamic> toMap() => {
     'text': text,
@@ -65,6 +75,7 @@ class AiAnalysisResult extends Equatable {
     List<ProductSwap>? swaps,
     Map<String, dynamic>? menu,
     Map<String, dynamic>? metadata,
+    double? confidence,
   }) => AiAnalysisResult(
     text: text ?? this.text,
     intent: intent ?? this.intent,
@@ -75,8 +86,9 @@ class AiAnalysisResult extends Equatable {
     swaps: swaps ?? this.swaps,
     menu: menu ?? this.menu,
     metadata: metadata ?? this.metadata,
+    confidence: confidence ?? this.confidence,
   );
 
   @override
-  List<Object?> get props => [text, intent, imageMode, scan, meal, symptoms, swaps, menu, metadata];
+  List<Object?> get props => [text, intent, imageMode, scan, meal, symptoms, swaps, menu, metadata, confidence];
 }

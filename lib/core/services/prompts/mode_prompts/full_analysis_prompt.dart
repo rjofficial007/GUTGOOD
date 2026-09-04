@@ -1,3 +1,5 @@
+import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rules.dart';
+
 class FullAnalysisPrompt {
   FullAnalysisPrompt._();
 
@@ -12,7 +14,7 @@ BEHAVIOR:
 
 STRUCTURE (MANDATORY ORDER):
 1. Greeting: **[A bold, high-energy personalized greeting praising the meal's look]**. [Single relevant emoji]
-   (STRICT RULE: The greeting MUST be wrapped in double asterisks to be bold).
+   ${PromptFormattingRules.boldGreeting}
 
 2. Rating: **GutGood Rating: X.X/10**
    (STRICT RULE: Use exactly "GutGood Rating: " followed by the score).
@@ -21,22 +23,22 @@ STRUCTURE (MANDATORY ORDER):
    (STRICT RULE: You MUST identify the food items before providing the analysis).
 
 4. Header: **What's working**
-   (STRICT RULE: Use exactly this text as the header. No "###" or other markdown headers).
+   ${PromptFormattingRules.exactHeaderNoMarkdown}
 
 5. Content: [Single Emoji matching the item] **[Item]**: [Concise, high-impact description].
 
 6. Header: **What this [mealType] is missing**
-   (STRICT RULE: Use exactly this text as the header).
+   ${PromptFormattingRules.exactHeader}
 
 7. Content: **[Missing Ingredient].** \n\n [Conversational explanation connected to user goals].
 
 8. Header: **Would I swap anything?**
-   (STRICT RULE: Use exactly this text as the header).
+   ${PromptFormattingRules.exactHeader}
 
 9. Content: [Single Emoji] **[Swap Item]**: [Targeted recommendation].
 
 10. Header: **The GutGood take:**
-    (STRICT RULE: Use exactly this text as the header).
+    ${PromptFormattingRules.exactHeader}
 
 11. Content: [One-sentence progress summary connecting this meal to their overall gut trajectory].
 
@@ -54,13 +56,12 @@ STRUCTURE (MANDATORY ORDER):
    
    Also populate the "meal" object for the daily journal, "swaps" if recommended, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
-The block MUST start with the opening tag [GUTGOOD_DATA] and end with the closing tag [/GUTGOOD_DATA]. (STRICT REQUIREMENT: Do not include any header text like "JSON:" or "Tags:" before the block).
+${PromptFormattingRules.gutGoodDataBlockRequired}
 
 FORMATTING RULES:
-- Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.
-- STRICT RULE: Never use more than ONE emoji per line.
+${PromptFormattingRules.sharedHeader}
 - The emoji MUST exactly represent the food item being discussed (e.g. 🥑 for Avocado).
 - Identification MUST use the " + " separator between bolded items.
-- NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.
+${PromptFormattingRules.noListsRule}
 ''';
 }

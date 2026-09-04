@@ -11,11 +11,9 @@ import 'package:gutgood/core/utils/logger_service.dart';
 
 /// Service to generate pattern-rich mock data for testing.
 class DebugMockDataService {
-  DebugMockDataService({
-    required HistoryFirestoreService historyFirestoreService,
-    required InsightFirestoreService insightFirestoreService,
-  }) : _historyFirestoreService = historyFirestoreService,
-       _insightFirestoreService = insightFirestoreService;
+  DebugMockDataService({required HistoryFirestoreService historyFirestoreService, required InsightFirestoreService insightFirestoreService})
+    : _historyFirestoreService = historyFirestoreService,
+      _insightFirestoreService = insightFirestoreService;
 
   final HistoryFirestoreService _historyFirestoreService;
   final InsightFirestoreService _insightFirestoreService;
@@ -40,6 +38,7 @@ class DebugMockDataService {
       final isDigestionDay = i % 7 == 0; // Digestion every 7 days
       final isFullnessDay = i % 2 == 0; // Fullness every 2 days
       final isSleepDay = i % 3 == 0 && i > 0; // Poor sleep linked to late eating
+      final isDairyDay = i % 6 == 0; // Skin Flare-up linked to Dairy
 
       // --- LOG MEALS ---
       // Breakfast
@@ -55,23 +54,19 @@ class DebugMockDataService {
       // Mid-Morning (Pattern triggers)
       if (isEnergyDay) {
         final time = DateTime(date.year, date.month, date.day, 10, 30);
-        await _historyFirestoreService.logMeal(
-          MealLog(items: const ['Whey Protein Shake', 'Banana'], mealType: 'snack', createdAt: time, source: 'debug'),
-        );
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Whey Protein Shake', 'Banana'], mealType: 'snack', createdAt: time, source: 'debug'));
         energyOccurrences.add(PatternOccurrence(date: dateStr, mealName: 'Whey Protein Shake', reaction: 'High Energy', timeAfter: '1.5h'));
       }
       if (isHeadacheDay) {
         final time = DateTime(date.year, date.month, date.day, 9, 0);
-        await _historyFirestoreService.logMeal(
-          MealLog(items: const ['Double Espresso', 'Sugar Packet'], mealType: 'snack', createdAt: time, source: 'debug'),
-        );
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Double Espresso', 'Sugar Packet'], mealType: 'snack', createdAt: time, source: 'debug'));
         headacheOccurrences.add(PatternOccurrence(date: dateStr, mealName: 'Double Espresso', reaction: 'Headache', timeAfter: '2h'));
       }
 
       // Lunch
       await _historyFirestoreService.logMeal(
         MealLog(
-          items: isDigestionDay ? const ['Spicy Street Tacos', 'Jalapeños'] : const ['Grilled Chicken Salad', 'Vinaigrette'],
+          items: isDigestionDay ? const ['Spicy Street Tacos', 'Jalapeños', 'Corn Tortilla'] : const ['Grilled Chicken Salad', 'Vinaigrette', 'Avocado'],
           mealType: 'lunch',
           createdAt: DateTime(date.year, date.month, date.day, 13, 0),
           source: 'debug',
@@ -81,10 +76,12 @@ class DebugMockDataService {
       // Dinner
       if (isPizzaDay) {
         final time = DateTime(date.year, date.month, date.day, 19, 0);
-        await _historyFirestoreService.logMeal(
-          MealLog(items: const ['Pepperoni Pizza', 'Garlic Bread', 'Soda'], mealType: 'dinner', createdAt: time, source: 'debug'),
-        );
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Pepperoni Pizza', 'Garlic Bread', 'Soda'], mealType: 'dinner', createdAt: time, source: 'debug'));
         pizzaOccurrences.add(PatternOccurrence(date: dateStr, mealName: 'Pepperoni Pizza', reaction: 'Severe Bloating', timeAfter: '2.5h'));
+      } else if (isDairyDay) {
+        await _historyFirestoreService.logMeal(
+          MealLog(items: const ['Creamy Pasta Carbonara', 'Parmesan Cheese'], mealType: 'dinner', createdAt: DateTime(date.year, date.month, date.day, 19, 30), source: 'debug'),
+        );
       } else {
         await _historyFirestoreService.logMeal(
           MealLog(items: const ['Steamed Salmon', 'Broccoli', 'Brown Rice'], mealType: 'dinner', createdAt: DateTime(date.year, date.month, date.day, 19, 0), source: 'debug'),
@@ -101,21 +98,29 @@ class DebugMockDataService {
       // Morning Fullness Check
       if (isFullnessDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Sustained Fullness', severity: 1, notes: 'Feeling satisfied long after breakfast.', createdAt: DateTime(date.year, date.month, date.day, 11, 30), source: 'debug'),
+          SymptomLog(
+            symptom: 'Sustained Fullness',
+            severity: 1,
+            energyLevel: 6,
+            mood: 'Content',
+            notes: 'Feeling satisfied long after breakfast.',
+            createdAt: DateTime(date.year, date.month, date.day, 11, 30),
+            source: 'debug',
+          ),
         );
       }
 
       // Energy Spike
       if (isEnergyDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'High Energy', energyLevel: 9, notes: 'Feeling very productive.', createdAt: DateTime(date.year, date.month, date.day, 12, 0), source: 'debug'),
+          SymptomLog(symptom: 'High Energy', energyLevel: 9, mood: 'Productive', notes: 'Feeling very productive.', createdAt: DateTime(date.year, date.month, date.day, 12, 0), source: 'debug'),
         );
       }
 
       // Headache Check
       if (isHeadacheDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Headache', severity: 6, notes: 'Dull ache behind eyes.', createdAt: DateTime(date.year, date.month, date.day, 11, 0), source: 'debug'),
+          SymptomLog(symptom: 'Headache', severity: 6, mood: 'Irritable', notes: 'Dull ache behind eyes.', createdAt: DateTime(date.year, date.month, date.day, 11, 0), source: 'debug'),
         );
       }
 
@@ -129,7 +134,21 @@ class DebugMockDataService {
       // Bloating Check
       if (isPizzaDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Severe Bloating', severity: 8, notes: 'Stomach feels like a balloon.', createdAt: DateTime(date.year, date.month, date.day, 21, 30), source: 'debug'),
+          SymptomLog(
+            symptom: 'Severe Bloating',
+            severity: 8,
+            mood: 'Uncomfortable',
+            notes: 'Stomach feels like a balloon.',
+            createdAt: DateTime(date.year, date.month, date.day, 21, 30),
+            source: 'debug',
+          ),
+        );
+      }
+
+      // Skin Check
+      if (isDairyDay) {
+        await _historyFirestoreService.logSymptom(
+          SymptomLog(symptom: 'Skin Flare-up', severity: 4, notes: 'Redness on cheeks noted.', createdAt: DateTime(date.year, date.month, date.day, 22, 30), source: 'debug'),
         );
       }
 
@@ -152,6 +171,9 @@ class DebugMockDataService {
       {'name': 'Diet Soda', 'brand': 'Coca-Cola', 'score': 35, 'nutri': 'D', 'nova': 4, 'cat': 'food'},
       {'name': 'Whole Grain Bread', 'brand': 'Ezekiel 4:9', 'score': 95, 'nutri': 'A', 'nova': 1, 'cat': 'label'},
       {'name': 'Gastro Pub Menu', 'brand': 'The Local', 'score': 65, 'nutri': 'C', 'nova': 2, 'cat': 'menu'},
+      {'name': 'Skyr Icelandic Yogurt', 'brand': 'Siggi\'s', 'score': 88, 'nutri': 'A', 'nova': 1, 'cat': 'food'},
+      {'name': 'Oat Milk Creamer', 'brand': 'Chobani', 'score': 45, 'nutri': 'D', 'nova': 3, 'cat': 'food'},
+      {'name': 'Organic Sauerkraut', 'brand': 'Wildbrine', 'score': 96, 'nutri': 'A', 'nova': 1, 'cat': 'food'},
     ];
 
     for (var i = 0; i < scanProducts.length; i++) {
@@ -166,9 +188,9 @@ class DebugMockDataService {
           nutriscore: p['nutri'] as String,
           novaGroup: (p['nova'] as int).toString(),
           category: p['cat'] as String,
-          createdAt: now.subtract(Duration(hours: i * 12)),
+          createdAt: now.subtract(Duration(hours: i * 8)), // More frequent scans
           source: p['cat'] == 'food' ? 'barcode' : p['cat'] as String,
-          isSaved: i < 3, // Save the first 3 items
+          isSaved: i < 5, // Save more items
         ),
       );
     }
@@ -189,7 +211,10 @@ class DebugMockDataService {
         evidenceRatio: 1.0,
         positiveCount: pizzaOccurrences.length,
         totalSimilarMeals: pizzaOccurrences.length,
-        commonFactors: const [CommonFactor(label: 'Late Night', icon: 'moon'), CommonFactor(label: 'Processed Meat', icon: 'beef')],
+        commonFactors: const [
+          CommonFactor(label: 'Late Night', icon: 'moon'),
+          CommonFactor(label: 'Processed Meat', icon: 'beef'),
+        ],
       ),
       BodyPattern(
         type: BodyPattern.typeEnergy,
@@ -206,6 +231,21 @@ class DebugMockDataService {
         positiveCount: energyOccurrences.length,
         totalSimilarMeals: energyOccurrences.length + 2,
         commonFactors: const [CommonFactor(label: 'Morning', icon: 'sun')],
+      ),
+      BodyPattern(
+        type: 'sensitivity',
+        trigger: 'Dairy & Aged Cheese',
+        reaction: 'Skin Flare-up',
+        frequency: 5,
+        confidence: BodyPattern.confidenceModerate,
+        description: 'We noticed periodic skin flare-ups following meals high in dairy or aged cheese.',
+        involvedFoods: const ['Creamy Pasta Carbonara', 'Parmesan Cheese'],
+        recommendation: 'Monitor your skin closely after dairy intake or try a 1-week elimination.',
+        updatedAt: now.toIso8601String(),
+        evidenceRatio: 0.8,
+        positiveCount: 5,
+        totalSimilarMeals: 6,
+        commonFactors: const [CommonFactor(label: 'Dairy', icon: 'cheese')],
       ),
       BodyPattern(
         type: BodyPattern.typeHeadache,
@@ -228,44 +268,44 @@ class DebugMockDataService {
     await _insightFirestoreService.savePatternData(patterns);
 
     final latestInsight = AIInsight(
-      gutScore: 78,
-      scoreDiff: '+5',
+      gutScore: 82,
+      scoreDiff: '+4',
       updatedAt: now,
       topInsight: const InsightSummary(
-        title: 'Morning Momentum',
-        description: 'Your morning protein shakes are fueling high-productivity days. Keep it up!',
-        type: 'Positive Pattern',
+        title: 'Luteal Phase Support',
+        description: 'You are currently in your Luteal phase. Focusing on complex carbs like your Morning Oats will help stabilize energy levels.',
+        type: 'Cycle Syncing',
         strength: 'High',
       ),
       healingFoods: const [
-        HealingFood(name: 'Steel Cut Oats', effect: 'Sustained Fullness', emoji: '🥣'),
-        HealingFood(name: 'Whey Protein', effect: 'Energy Boost', emoji: '🥤'),
-        HealingFood(name: 'Salmon', effect: 'Anti-inflammatory', emoji: '🐟'),
+        HealingFood(name: 'Steel Cut Oats', effect: 'Stable Energy', emoji: '🥣'),
+        HealingFood(name: 'Whey Protein', effect: 'Muscle Recovery', emoji: '🥤'),
+        HealingFood(name: 'Sauerkraut', effect: 'Probiotic Boost', emoji: '🥬'),
       ],
       triggerFoods: const [
         TriggerFood(name: 'Pepperoni Pizza', effect: 'Severe Bloating', emoji: '🍕'),
-        TriggerFood(name: 'Double Espresso', effect: 'Headache Trigger', emoji: '☕'),
-        TriggerFood(name: 'Spicy Tacos', effect: 'Indigestion', emoji: '🌮'),
+        TriggerFood(name: 'Carbonara', effect: 'Skin Reaction', emoji: '🍝'),
+        TriggerFood(name: 'Diet Soda', effect: 'Gut Disruption', emoji: '🥤'),
       ],
       detectedPatterns: patterns,
-      topHealing: const TopHighlight(food: 'Whey Protein Shake', effects: 'High Energy', timeframe: 'Morning', frequency: '8/10 days', emoji: '⚡'),
+      topHealing: const TopHighlight(food: 'Steel Cut Oats', effects: 'Sustained Fullness', timeframe: 'Morning', frequency: '12/15 days', emoji: '🥣'),
       topTrigger: const TopHighlight(food: 'Pepperoni Pizza', effects: 'Severe Bloating', timeframe: 'Dinner', frequency: '7/7 days', emoji: '🎈'),
       foodImpacts: const [
         FoodImpact(food: 'Oats', dateLabel: 'Daily', effect: 'Stable Energy', timeframeLabel: 'Morning', emoji: '🥣', impactType: 'positive'),
-        FoodImpact(food: 'Salmon', dateLabel: 'Weekly', effect: 'Reduced Bloating', timeframeLabel: 'Dinner', emoji: '🐟', impactType: 'positive'),
-        FoodImpact(food: 'Pizza', dateLabel: 'Weekly', effect: 'Inflammation', timeframeLabel: 'Evening', emoji: '🍕', impactType: 'negative'),
+        FoodImpact(food: 'Sauerkraut', dateLabel: 'Weekly', effect: 'Digestion Aid', timeframeLabel: 'Lunch', emoji: '🥬', impactType: 'positive'),
+        FoodImpact(food: 'Carbonara', dateLabel: 'Weekly', effect: 'Skin Flare-up', timeframeLabel: 'Evening', emoji: '🍝', impactType: 'negative'),
       ],
       weeklyRecap: const WeeklyRecap(
         dateRange: 'Oct 24 - Oct 31',
-        avgScore: 78,
-        scoreSub: 'Up from 73 last week',
-        bestDay: 'Wednesday',
-        foodsLogged: 24,
-        loggedSub: 'Consistent tracking!',
+        avgScore: 82,
+        scoreSub: 'Up from 78 last week',
+        bestDay: 'Thursday',
+        foodsLogged: 28,
+        loggedSub: 'Excellent consistency!',
         highlights: [
-          RecapHighlight(icon: 'zap', text: '3 High Energy Days', color: 'green'),
+          RecapHighlight(icon: 'sparkles', text: 'Improved skin clarity on non-dairy days', color: 'green'),
+          RecapHighlight(icon: 'zap', text: 'Stable energy throughout Luteal phase', color: 'blue'),
           RecapHighlight(icon: 'alert-triangle', text: 'Pizza identified as major trigger', color: 'red'),
-          RecapHighlight(icon: 'moon', text: 'Improved sleep on Salmon days', color: 'blue'),
         ],
       ),
     );

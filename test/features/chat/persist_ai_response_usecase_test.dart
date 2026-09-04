@@ -116,5 +116,55 @@ void main() {
       verifyNever(() => mockFirestoreService.saveLabelScan(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
       verifyNever(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId')));
     });
+
+    test('should skip persistence entirely when AI reports low confidence', () async {
+      final now = DateTime.now();
+      final lowConfidenceResult = AiAnalysisResult(
+        text: 'Analysis',
+        scan: ScanResult(productName: 'Blurry Food', brand: 'Brand', score: 80, impactType: ImpactType.positive, impact: 'Good', category: 'food', createdAt: now),
+        meal: MealLog(items: const ['Blurry Food'], createdAt: now),
+        symptoms: [SymptomLog(symptom: 'Bloating', severity: 2, createdAt: now)],
+        confidence: 0.3,
+      );
+
+      final persistedTags = <String>{};
+      final output = await useCase.call(lowConfidenceResult, persistedTagBlocks: persistedTags);
+
+      expect(output, equals(lowConfidenceResult));
+      verifyNever(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
+      verifyNever(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId')));
+      verifyNever(() => mockFirestoreService.logSymptom(any(), docId: any(named: 'docId')));
+      verifyNever(() => mockStreakService.markActivityToday());
+    });
+
+    test('should persist as normal when AI confidence is above threshold', () async {
+      final now = DateTime.now();
+      final highConfidenceResult = AiAnalysisResult(
+        text: 'Analysis',
+        scan: ScanResult(productName: 'Clear Food', brand: 'Brand', score: 80, impactType: ImpactType.positive, impact: 'Good', category: 'food', createdAt: now),
+        confidence: 0.9,
+      );
+
+      when(
+        () => mockFirestoreService.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      ).thenAnswer((_) async => {});
+      when(() => mockStreakService.markActivityToday()).thenAnswer((_) async => {});
+      when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
+
+      final persistedTags = <String>{};
+      await useCase.call(highConfidenceResult, persistedTagBlocks: persistedTags);
+
+      verify(
+        () => mockFirestoreService.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      ).called(1);
+    });
   });
 }
