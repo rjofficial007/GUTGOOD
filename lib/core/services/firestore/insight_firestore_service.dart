@@ -6,7 +6,7 @@ import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class InsightFirestoreService {
-  Future<String?> saveInsights(AIInsight insight);
+  Future<String?> saveInsights(AIInsight insight, {bool useServerTimestamp = true});
   Future<AIInsight?> getLatestInsights();
   Stream<AIInsight?> getLatestInsightsStream();
   Future<List<AIInsight>> getInsightsHistory();
@@ -32,12 +32,12 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
   }
 
   @override
-  Future<String?> saveInsights(AIInsight insight) async {
+  Future<String?> saveInsights(AIInsight insight, {bool useServerTimestamp = true}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return null;
       final docRef = doc.collection('insights').doc();
-      final data = {...insight.toMap(), 'firestoreId': docRef.id, 'updatedAt': FieldValue.serverTimestamp()};
+      final data = {...insight.toMap(), 'firestoreId': docRef.id, 'updatedAt': useServerTimestamp ? FieldValue.serverTimestamp() : Timestamp.fromDate(insight.updatedAt)};
       await docRef.set(data);
       return docRef.id;
     } catch (e) {

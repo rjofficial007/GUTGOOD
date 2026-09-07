@@ -152,12 +152,19 @@ class InsightRepositoryImpl implements InsightRepository {
       }
 
       final decoded = Map<String, dynamic>.from(jsonDecode(jsonStr) as Map);
+      // Deterministic score delta (drives the "↑ 6 from last week" pill). The
+      // repo already receives lastScore — previously it was never used.
+      if (lastScore != null) {
+        final newScore = (decoded['gutScore'] as num?)?.toInt() ?? 0;
+        final diff = newScore - lastScore;
+        decoded['scoreDiff'] = diff >= 0 ? '+$diff' : '$diff';
+      }
       final insight = AIInsight.fromMap(decoded);
 
       final duration = DateTime.now().difference(startTime).inSeconds;
       await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
 
-      await _prefs.setString(StorageKeys.gutgoodInsightsCache, cleanJson);
+      await _prefs.setString(StorageKeys.gutgoodInsightsCache, jsonEncode(decoded));
       return insight;
     } catch (e, st) {
       AppLogger.error('InsightRepo: AI Analysis failed', error: e);

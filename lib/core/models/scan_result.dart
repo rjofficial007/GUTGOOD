@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -27,6 +28,7 @@ class ScanResult extends Equatable {
     this.novaGroup,
     this.allergens,
     this.additives,
+    this.additiveItems = const [],
     this.ingredients = const [],
     this.nutrients,
     this.nutrientLevels,
@@ -123,6 +125,7 @@ class ScanResult extends Equatable {
       novaGroup: normalizedNova,
       allergens: ModelUtils.parseString(map['allergens']),
       additives: ModelUtils.parseString(map['additives']),
+      additiveItems: _additiveItemsFrom(map),
       ingredients: ModelUtils.parseModelList<Ingredient>(map['ingredients'], Ingredient.fromMap),
       nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
       nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'], NutrientLevels.fromMap),
@@ -192,6 +195,14 @@ class ScanResult extends Equatable {
 
   /// Summary of detected additives or ultra-processed components.
   final String? additives;
+
+  /// Per-additive items (E-codes / names, e.g. ['E621', 'E631', 'Palm Oil']).
+  /// Parsed from the legacy [additives] summary when absent, so old scans
+  /// still get per-additive detail views and concern-based scoring.
+  final List<String> additiveItems;
+
+  /// Resolved concern profiles for [additiveItems], de-duplicated.
+  List<AdditiveConcern> get additiveConcerns => AdditiveConcernDb.resolveAll(additiveItems);
 
   /// List of identified ingredients with their individual risk levels.
   final List<Ingredient> ingredients;
@@ -348,6 +359,7 @@ class ScanResult extends Equatable {
     String? novaGroup,
     String? allergens,
     String? additives,
+    List<String>? additiveItems,
     List<Ingredient>? ingredients,
     NutrientData? nutrients,
     NutrientLevels? nutrientLevels,
@@ -378,6 +390,7 @@ class ScanResult extends Equatable {
     novaGroup: novaGroup ?? this.novaGroup,
     allergens: allergens ?? this.allergens,
     additives: additives ?? this.additives,
+    additiveItems: additiveItems ?? this.additiveItems,
     ingredients: ingredients ?? this.ingredients,
     nutrients: nutrients ?? this.nutrients,
     nutrientLevels: nutrientLevels ?? this.nutrientLevels,
@@ -410,6 +423,7 @@ class ScanResult extends Equatable {
     'novaGroup': novaGroup,
     'allergens': allergens,
     'additives': additives,
+    'additiveItems': additiveItems,
     'ingredients': ingredients.map((e) => e.toMap()).toList(),
     'nutrients': nutrients?.toMap(),
     'nutrientLevels': nutrientLevels?.toMap(),
@@ -442,7 +456,32 @@ class ScanResult extends Equatable {
   };
 
   @override
-  List<Object?> get props => [productName, brand, category, score, impactType, impact, barcode, userImageUrl, flaggedIngredients, isSaved, scanId, chatMessageId, servingSize, createdAt, rawData, nutritionEstimated];
+  List<Object?> get props => [
+    productName,
+    brand,
+    category,
+    score,
+    impactType,
+    impact,
+    barcode,
+    userImageUrl,
+    flaggedIngredients,
+    isSaved,
+    scanId,
+    chatMessageId,
+    servingSize,
+    createdAt,
+    rawData,
+    nutritionEstimated,
+    additiveItems,
+  ];
+
+  /// Stored per-additive list, or parsed from the legacy summary string.
+  static List<String> _additiveItemsFrom(Map<String, dynamic> map) {
+    final stored = ModelUtils.parseList<String>(map['additiveItems']);
+    if (stored.isNotEmpty) return stored;
+    return AdditiveConcernDb.parseItems(ModelUtils.parseString(map['additives']));
+  }
 
   /// 🚀 Professional Routing: Determines which screen should be used to display
   /// the full details of this specific scan.

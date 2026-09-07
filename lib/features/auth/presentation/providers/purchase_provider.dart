@@ -103,6 +103,7 @@ class PurchaseProvider extends ChangeNotifier {
     _isPurchasing = true;
     _purchaseResult = null;
     _actionType = PurchaseActionType.purchase;
+    _errorMessage = null;
     notifyListeners();
 
     await _analyticsService.logEvent(name: 'purchase_started', parameters: {'package_id': package.identifier, 'price': package.storeProduct.price});
@@ -116,7 +117,7 @@ class PurchaseProvider extends ChangeNotifier {
     } catch (e) {
       AppLogger.error('PurchaseProvider: Purchase failed', error: e);
       _purchaseResult = false;
-      return false;
+      rethrow;
     } finally {
       _isPurchasing = false;
       notifyListeners();
@@ -127,6 +128,9 @@ class PurchaseProvider extends ChangeNotifier {
     _isPurchasing = true;
     _purchaseResult = null;
     _actionType = PurchaseActionType.restore;
+    // A new action supersedes any previous fetch error, so loading and
+    // error states are never shown at the same time.
+    _errorMessage = null;
     _appStateService.setRestoringPurchases(true);
     notifyListeners();
 

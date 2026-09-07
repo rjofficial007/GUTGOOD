@@ -53,6 +53,7 @@ class AppIcons {
   static const batteryLow = LucideIcons.batteryLow;
   static const brain = LucideIcons.brain;
   static const heartPulse = LucideIcons.heartPulse;
+  static const heart = LucideIcons.heart;
   static const search = LucideIcons.search;
   static const camera = LucideIcons.camera;
   static const image = LucideIcons.image;

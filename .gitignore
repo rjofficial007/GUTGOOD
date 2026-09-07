@@ -9,7 +9,6 @@
 .buildlog/
 .history
 .svn/
-.gitignore
 
 # IntelliJ related
 *.iml
@@ -145,7 +144,6 @@ build/
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 .flutter-plugins-dependencies
 firebase_options.dart
-.gitignore
 flutter_export_environment.sh
 generated_plugin_registrant.dart
 .fvm/

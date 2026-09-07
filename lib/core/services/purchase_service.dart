@@ -163,10 +163,11 @@ class PurchaseServiceImpl implements PurchaseService {
       return purchase.customerInfo.entitlements.active.isNotEmpty;
     } on PlatformException catch (e) {
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
-      if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
-        AppLogger.error('PurchaseService: Purchase failed', error: e);
+      if (errorCode == PurchasesErrorCode.purchaseCancelledError) {
+        return false;
       }
-      return false;
+      AppLogger.error('PurchaseService: Purchase failed', error: e);
+      rethrow;
     }
   }
 

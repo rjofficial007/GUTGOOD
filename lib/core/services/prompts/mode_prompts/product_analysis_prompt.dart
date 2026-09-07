@@ -21,6 +21,7 @@ RULES:
 - Focus on practical, educational interpretation.
 - Prefer addition/context over restriction.
 - Do NOT compute the numeric "score" field — set it to 50 as a placeholder.
+- List EVERY additive from PRODUCT DATA as separate short labels in "additiveItems" (E-codes first, e.g. "E621", else names like "Palm Oil"); [] if none.
 - Do not diagnose allergies or intolerances.
 - Do not use fear-based language or call products "toxic".
 

@@ -24,6 +24,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     required this.aiResponseBackground,
     required this.borderSubtle,
     required this.surfaceSubtle,
+    required this.screenBackground,
     required this.textDisabled,
     required this.successSubtle,
     required this.errorSubtle,
@@ -50,6 +51,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color aiResponseBackground;
   final Color borderSubtle;
   final Color surfaceSubtle;
+  final Color screenBackground;
   final Color textDisabled;
   final Color successSubtle;
   final Color errorSubtle;
@@ -77,6 +79,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? aiResponseBackground,
     Color? borderSubtle,
     Color? surfaceSubtle,
+    Color? screenBackground,
     Color? textDisabled,
     Color? successSubtle,
     Color? errorSubtle,
@@ -102,6 +105,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     aiResponseBackground: aiResponseBackground ?? this.aiResponseBackground,
     borderSubtle: borderSubtle ?? this.borderSubtle,
     surfaceSubtle: surfaceSubtle ?? this.surfaceSubtle,
+    screenBackground: screenBackground ?? this.screenBackground,
     textDisabled: textDisabled ?? this.textDisabled,
     successSubtle: successSubtle ?? this.successSubtle,
     errorSubtle: errorSubtle ?? this.errorSubtle,
@@ -132,6 +136,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       aiResponseBackground: Color.lerp(aiResponseBackground, other.aiResponseBackground, t)!,
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
       surfaceSubtle: Color.lerp(surfaceSubtle, other.surfaceSubtle, t)!,
+    screenBackground: Color.lerp(screenBackground, other.screenBackground, t)!,
       textDisabled: Color.lerp(textDisabled, other.textDisabled, t)!,
       successSubtle: Color.lerp(successSubtle, other.successSubtle, t)!,
       errorSubtle: Color.lerp(errorSubtle, other.errorSubtle, t)!,
@@ -160,6 +165,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     aiResponseBackground: AppPalette.aiResponseBackground,
     borderSubtle: Color(0x80E4E4E8),
     surfaceSubtle: Color(0x080A0A0A),
+    screenBackground: Color(0xFFF4F5F7),
     textDisabled: Color(0x806E7280),
     successSubtle: Color(0x0D1F7A3D),
     errorSubtle: Color(0x14C4302B),
@@ -187,6 +193,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     aiResponseBackground: AppPalette.darkElevated,
     borderSubtle: Color(0x801F1F1F),
     surfaceSubtle: Color(0x08F5F7FA),
+    screenBackground: Color(0xFF000000),
     textDisabled: Color(0x808D96A5),
     successSubtle: Color(0x1A22C55E),
     errorSubtle: Color(0x26C4302B),

@@ -102,4 +102,37 @@ class ScannerStrings {
   static const String alert = 'ALERT';
   static const String caution = 'CAUTION';
   static String analyzedPer(String size) => 'Analyzed per $size';
+
+  // Scan Results rebuild: demo sections, score explainability, additive details.
+  static const String gutScoreLabel = 'GUT SCORE';
+  static const String whyThisScore = 'Why this score';
+  static const String scoreFootnote = 'Score starts at 50, then food facts move it up or down.';
+  static const String seeAll = 'See all';
+  static const String perServing = 'Per serving';
+  static const String gutImpact = 'Gut Impact';
+  static const String gutBarrier = 'Gut Barrier';
+  static const String processing = 'Processing';
+  static const String analyzedOn = 'Analyzed on';
+  static const String servingSizeRow = 'Serving size';
+  static const String sourceRow = 'Source';
+  static const String barcodeSource = 'Barcode scan';
+  static const String photoSource = 'Photo scan';
+  static const String menuSource = 'Menu scan';
+  static const String labelSource = 'Label scan';
+  static const String standardServing = 'Standard serving';
+  static const String ingredientsTitle = 'Ingredients';
+  static const String noAdditivesDetected = 'No additives detected';
+  static const String cleanLabelNote = 'Nothing artificial on this label';
+  static const String aboutThisAdditive = 'About this additive';
+  static const String whatItIs = 'What it is';
+  static const String whyItsUsed = "Why it's used";
+  static const String whyFlagged = "Why it's flagged";
+  static const String concernLevel = 'Concern level';
+  static const String allAdditives = 'All additives';
+  static const String allergenInfo = 'Allergen information';
+  static const String allergenCaution = 'Recipes change — always double-check the pack if you react to these.';
+  static const String addLabel = 'Add';
+  static String swapLogged(String name) => '$name logged to your journal';
+  static const String scanFooterTitle = 'Food is information';
+  static const String scanFooterBody = 'Every scan helps you understand your gut a little better.';
 }

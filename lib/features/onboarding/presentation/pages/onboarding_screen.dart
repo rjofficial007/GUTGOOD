@@ -136,7 +136,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         AppLogger.info('OnboardingScreen: Showing paywall...');
         // 🟢 Show the paywall while STILL on the Onboarding screen context.
         // This works now because the AppRouter hasn't redirected us to /home/chat yet.
-        await showPaywallBottomSheet(context, onProceedWithLimited: () {});
+        await showPaywallScreen(context, onProceedWithLimited: () {});
 
         AppLogger.info('OnboardingScreen: Marking onboarding as complete...');
         // 🟢 Finally mark onboarding as officially complete.

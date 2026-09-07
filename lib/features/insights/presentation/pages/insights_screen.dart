@@ -11,8 +11,7 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/insights/presentation/widgets/insight_dashboard_view.dart';
-import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_discover_view.dart';
 import 'package:provider/provider.dart';
 
 class InsightsScreen extends StatelessWidget {
@@ -29,7 +28,6 @@ class InsightsScreen extends StatelessWidget {
           final latestInsight = notifier.latestInsight;
           final prioritizedPatterns = notifier.prioritizedPatterns;
           final isLoading = notifier.isLoading;
-          final profile = context.watch<ProfileNotifier>();
 
           debugPrint('--- InsightsScreen: Rendering ---');
           debugPrint('Is Loading: $isLoading');
@@ -44,6 +42,7 @@ class InsightsScreen extends StatelessWidget {
           debugPrint('---------------------------------');
 
           return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
             slivers: [
               GutSliverAppBar(
                 title: AppStrings.insights,
@@ -60,7 +59,7 @@ class InsightsScreen extends StatelessWidget {
               else if (latestInsight == null)
                 const _NoInsightsState()
               else
-                InsightDashboardSliver(data: latestInsight, streak: profile.streak, notifier: notifier, patterns: prioritizedPatterns),
+                InsightDiscoverSliver(data: latestInsight, notifier: notifier, patterns: prioritizedPatterns),
             ],
           );
         },

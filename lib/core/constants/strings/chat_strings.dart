@@ -91,4 +91,6 @@ class ChatStrings {
   static const String suggestIsThisHealthy = 'Is this healthy?';
   static const String suggestMealPlan = 'What should I eat next?';
   static const String suggestExplainIngredients = 'Explain these ingredients';
+
+  static const String jumpToLatest = 'Jump to latest';
 }

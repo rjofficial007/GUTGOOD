@@ -60,6 +60,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final profileNotifier = context.watch<ProfileNotifier>();
     final cycleSyncEnabled = profileNotifier.profile?.cycleSyncEnabled ?? false;
 
@@ -67,7 +68,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       builder: (context, savedProvider, _) {
         final isSaved = savedProvider.isSaved(_currentData.productName, barcode: _currentData.barcode);
         return Scaffold(
-          backgroundColor: scheme.cardBackground,
+          backgroundColor: isDark ? scheme.cardBackground : const Color(0xFFFCFCFD),
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -94,37 +95,54 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                   padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
                   child: Column(
                     children: [
-                      // 1. Bento Image Card Hero Header
-                      DashboardEntrance(
-                        delay: 50,
-                        child: BentoImageCard(scanData: _currentData, heroTag: widget.heroTag),
-                      ),
+                      // 1. Food identity header (photo + brand + name + summary)
+                      DashboardEntrance(delay: 50, child: ScanScoreHeader(scanData: _currentData)),
                       Gap.h12,
 
-                      // 2. 4 Core Key Indicators Bar (Gut Impact, NOVA, Gut Barrier, Processing)
-                      DashboardEntrance(delay: 100, child: CoreMetricsGrid(scanData: _currentData)),
+                      // 2. Score gauge + band + "here's why" + expandable breakdown
+                      DashboardEntrance(delay: 100, child: ScanScoreSection(scanData: _currentData)),
                       Gap.h12,
 
-                      // 3. What works for you (Positives)
-                      DashboardEntrance(delay: 150, child: WhatWorksForYouSection(scanData: _currentData)),
+                      // 3. Quick-signal metric cards (Gut Impact, NOVA, Gut Barrier, Processing)
+                      DashboardEntrance(delay: 150, child: ScanMetricsRow(scanData: _currentData)),
                       Gap.h12,
 
-                      // 4. What to watch (Negatives & Additives Risk)
-                      DashboardEntrance(delay: 200, child: WhatToWatchSection(scanData: _currentData)),
+                      // 4. What works for you (Positives)
+                      DashboardEntrance(delay: 200, child: ScanWorkingSection(scanData: _currentData)),
                       Gap.h12,
 
-                      // 5. What this means for you (Synthesis Card with Persona Avatar)
-                      DashboardEntrance(delay: 250, child: WhatThisMeansForYouCard(scanData: _currentData)),
+                      // 5. What to watch (Negatives + tappable additives/allergens)
+                      DashboardEntrance(delay: 250, child: ScanWatchSection(scanData: _currentData)),
                       Gap.h12,
 
-                      // 6. Cycle Insight (Hormonal Phase Advice if Enabled)
-                      if (_currentData.cycleInsight != null && cycleSyncEnabled) ...[DashboardEntrance(delay: 280, child: CycleInsightSection(insight: _currentData.cycleInsight!)), Gap.h12],
+                      // 6. What this means for you (hidden when the AI gave no narrative)
+                      if (_currentData.impact.isNotEmpty) ...[DashboardEntrance(delay: 300, child: ScanMeaningCard(scanData: _currentData)), Gap.h12],
 
-                      // 7. Better Swaps Carousel
-                      if (_currentData.swaps.isNotEmpty) ...[DashboardEntrance(delay: 320, child: BetterSwapsCarousel(swaps: _currentData.swaps)), Gap.h12],
+                      // 7. Cycle Insight (Hormonal Phase Advice if Enabled)
+                      if (_currentData.cycleInsight != null && cycleSyncEnabled) ...[DashboardEntrance(delay: 320, child: CycleInsightSection(insight: _currentData.cycleInsight!)), Gap.h12],
 
-                      // 8. Product Metadata Footer
-                      DashboardEntrance(delay: 360, child: ProductMetadataSection(scanData: _currentData)),
+                      // 8. Better Swaps (tappable cards + working "+ Add")
+                      if (_currentData.swaps.isNotEmpty) ...[DashboardEntrance(delay: 340, child: ScanSwapsSection(swaps: _currentData.swaps)), Gap.h12],
+
+                      // 9. Additives (tappable rows → additive detail)
+                      DashboardEntrance(delay: 360, child: ScanAdditivesSection(scanData: _currentData)),
+                      Gap.h12,
+
+                      // 10. Ingredients card (tappable → ingredient list)
+                      DashboardEntrance(delay: 380, child: ScanIngredientsCard(scanData: _currentData)),
+                      Gap.h12,
+
+                      // 11. Allergens card (tappable → allergen list)
+                      DashboardEntrance(delay: 400, child: ScanAllergensCard(scanData: _currentData)),
+                      Gap.h12,
+
+                      // 12. Scan details (provenance footer)
+                      DashboardEntrance(delay: 420, child: ScanDetailsCard(scanData: _currentData)),
+                      Gap.h12,
+
+                      // 13. Footer nudge into chat
+                      const DashboardEntrance(delay: 440, child: ScanFooterCard()),
+                      Gap.h24,
                     ],
                   ),
                 ),

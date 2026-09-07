@@ -15,7 +15,7 @@ export 'gut_score_list_tile.dart';
 export 'gut_section.dart';
 export 'gut_text_field.dart';
 export 'onboarding_header.dart';
-export 'paywall_bottom_sheet.dart';
+export 'paywall_screen.dart';
 export 'premium_badge.dart';
 export 'scan_result_inline_card.dart';
 export 'gut_shimmer_skeleton.dart';

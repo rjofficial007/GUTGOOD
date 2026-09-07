@@ -69,6 +69,7 @@ class SchemaDefinitions {
     },
     "allergens": "summary string",
     "additives": "summary string",
+    "additiveItems": ["E-code or additive name per item, e.g. E621, E150d, Palm Oil"],
     "impacts": ["string"],
     "ingredients": [
 $ingredientSchema
@@ -154,6 +155,7 @@ SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - symptoms: ALWAYS an array of OBJECTS (not strings). Each object MUST have at minimum a "symptom" field.
 - Any value you cannot determine uses JSON null (or [] for arrays).
 - To prevent response truncation, limit ingredients to top 10 items.
+- scan.additiveItems: array of short labels, ONE per additive found (prefer E-codes/INS numbers like "E621" when known, else plain names like "Palm Oil"). Use [] when none are detected. This powers per-additive detail screens, so never merge items into one string.
 - metadata.confidence: REQUIRED float 0.0-1.0 representing how confident you are in the scan/meal/symptom data you extracted (not the conversational text). Use LOW confidence (below 0.6) when the image is blurry/ambiguous, the product could not be identified, or you are guessing at nutrition/ingredients without real evidence. The app will NOT silently save low-confidence data as confirmed history, so err on the side of an honest, lower number rather than inflating it.
 - scan.nutritionEstimated: REQUIRED boolean. Set this to `true` whenever the "nutrients"/"nutrientLevels"/"novaGroup" fields are a visually-grounded APPROXIMATION rather than a label-sourced/barcode-sourced fact (this is the normal case for any home-cooked or unpackaged meal identified from a photo — see the estimation exception above). Set it to `false` only when those values came from an actual product label, barcode lookup, or menu nutrition data. The app uses this flag to visually label estimated macros as "Estimated" instead of presenting them with the same authority as a scanned fact.
 ''';

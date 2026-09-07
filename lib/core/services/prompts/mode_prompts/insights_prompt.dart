@@ -45,11 +45,11 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
     "negativeCount": 0
   },
   "healingGoal": "string",
-  "healingTrend": "string",
-  "healingFoods": [{"name": "string", "effect": "string", "emoji": "string"}],
+  "healingTrend": "string (ONE sentence under 140 chars, e.g. More fiber this week settled your digestion.)",
+  "healingFoods": [{"name": "string", "effect": "string (short phrase)", "emoji": "string (REQUIRED single food emoji)"}],
   "triggerSymptom": "string",
-  "triggerTrend": "string",
-  "triggerFoods": [{"name": "string", "effect": "string", "emoji": "string"}],
+  "triggerTrend": "string (ONE sentence under 140 chars, e.g. Late salty dinners lined up with your bloating.)",
+  "triggerFoods": [{"name": "string", "effect": "string (short phrase)", "emoji": "string (REQUIRED single food emoji)"}],
   "detectedPatterns": [
     {
       "type": "bloating|energy|headache|digestion|fullness|sleep",
@@ -74,18 +74,18 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
       ]
     }
   ],
-  "foodImpacts": [{"food": "string", "dateLabel": "string", "effect": "string", "timeframeLabel": "string", "emoji": "string", "impactType": "positive|negative", "imageUrl": "string (URL)"}],
+  "foodImpacts": [{"food": "string", "dateLabel": "string", "effect": "string", "timeframeLabel": "string", "emoji": "string", "impactType": "positive|negative", "imageUrl": "ALWAYS empty string - never invent image URLs"}],
   "weeklyRecap": {
     "dateRange": "string",
     "avgScore": 0,
-    "scoreSub": "Stable|Improving|Declining",
+    "scoreSub": "string (ONE short encouraging sentence about the score trend, e.g. You are making progress. Keep scanning to get a clearer picture.)",
     "bestDay": "string",
     "foodsLogged": 0,
     "loggedSub": "string",
     "highlights": [{"icon": "string", "text": "string", "color": "string"}]
   },
-  "topHealing": { "food": "", "effects": "", "timeframe": "", "frequency": "", "emoji": "" },
-  "topTrigger": { "food": "", "effects": "", "timeframe": "", "frequency": "", "emoji": "" }
+  "topHealing": { "food": "", "effects": "short phrase", "timeframe": "this week", "frequency": "REQUIRED format Nx this week, e.g. 4x this week", "emoji": "REQUIRED single food emoji" },
+  "topTrigger": { "food": "", "effects": "short phrase", "timeframe": "this week", "frequency": "REQUIRED format Nx this week, e.g. 3x this week", "emoji": "REQUIRED single food emoji" },
 }
 
 CRITICAL: Return ONLY the JSON object. No Markdown, no preamble.

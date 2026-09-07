@@ -33,7 +33,13 @@ import 'package:gutgood/features/insights/presentation/pages/pattern_detail_scre
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
+import 'package:gutgood/core/data/additive_concern_db.dart';
+import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/features/product_details/presentation/pages/additive_detail_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/product_not_found_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/scan_list_detail_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/swap_detail_screen.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/product_details/presentation/pages/scan_result_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/symptom_detail_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/cycle_phase_screen.dart';
@@ -197,6 +203,15 @@ class AppRouter {
                 path: AppRoutes.symptomDetail,
                 builder: (context, state) => SymptomDetailScreen(symptom: state.extra as SymptomLog),
               ),
+              GoRoute(
+                path: AppRoutes.additiveDetail,
+                builder: (context, state) => AdditiveDetailScreen(concern: state.extra as AdditiveConcern),
+              ),
+              GoRoute(
+                path: AppRoutes.scanListDetail,
+                builder: (context, state) => ScanListDetailScreen(args: state.extra as ScanListDetailArgs),
+              ),
+              GoRoute(path: AppRoutes.swapDetail, builder: (context, state) => SwapDetailScreen(swap: state.extra as ProductSwap)),
             ],
           ),
           StatefulShellBranch(

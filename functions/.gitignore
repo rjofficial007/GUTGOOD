@@ -1,0 +1,6 @@
+# Firebase Functions dependencies and build artifacts
+node_modules/
+lib/
+*.log
+.runtimeconfig.json
+.DS_Store

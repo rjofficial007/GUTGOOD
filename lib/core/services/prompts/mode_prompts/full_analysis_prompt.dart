@@ -52,7 +52,7 @@ STRUCTURE (MANDATORY ORDER):
    - scan.productName: The name of the overall dish.
    - scan.brand: Use "GutGood" for non-packaged meals.
    - scan.category: Use "meal".
-   - scan.score: Calculate the GutGood 0-100 score.
+   - scan.score: Calculate the GutGood 0-100 score. Penalize additives by CONCERN (one higher-concern additive outweighs several low-concern ones); never let calories alone dominate the score.
    
    Also populate the "meal" object for the daily journal, "swaps" if recommended, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    

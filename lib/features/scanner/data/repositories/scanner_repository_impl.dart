@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/off_product.dart';
@@ -84,6 +85,10 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     if (result.scan != null) {
       final scan = result.scan!;
+      // Merge OFF additive tags (ground-truth E-codes) with AI-extracted items
+      // so per-additive detail + concern-based scoring always have data.
+      final mergedAdditives = <String>{...scan.additiveItems, ...?product.additives};
+      final additiveConcerns = AdditiveConcernDb.resolveAll(mergedAdditives);
       final deterministicScore = ModelUtils.computeDeterministicScore(
         nutriscore: product.nutriscore,
         novaGroup: int.tryParse(product.novaGroup?.toString() ?? ''),
@@ -92,9 +97,16 @@ class ScannerRepositoryImpl implements ScannerRepository {
         sugarG: product.nutrients?.sugars,
         saltG: product.nutrients?.salt,
         saturatedFatG: product.nutrients?.saturatedFat,
+        additiveConcerns: additiveConcerns,
       );
 
-      final updatedScan = scan.copyWith(score: deterministicScore, barcode: product.barcode, imageUrl: product.imageUrl, createdAt: DateTime.now());
+      final updatedScan = scan.copyWith(
+        score: deterministicScore,
+        barcode: product.barcode,
+        imageUrl: product.imageUrl,
+        additiveItems: mergedAdditives.toList(),
+        createdAt: DateTime.now(),
+      );
 
       await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'barcode', 'product_name': updatedScan.productName, 'score': updatedScan.score});
       return result.copyWith(scan: updatedScan);

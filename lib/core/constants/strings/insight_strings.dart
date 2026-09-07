@@ -230,4 +230,28 @@ class InsightStrings {
   static const String commonFactorsLabel = 'COMMON FACTORS';
   static const String whatToDoNextLabel = 'WHAT TO DO NEXT';
   static const String intelligenceDetail = 'INTELLIGENCE DETAIL';
+
+  // --- Discover Feed ---
+  static const String yourGutGoodScore = 'Your GutGood Score';
+  static const String fromLastWeek = 'from last week';
+  static const String scoreUpChip = 'Your score is up!';
+  static const String patternWeNoticed = 'PATTERN WE NOTICED';
+  static const String exploreThisPattern = 'Explore this pattern';
+  static const String whatsImproving = "What's improving";
+  static const String somethingToWatch = 'Something to watch';
+  static const String whatsWorking = "What's working";
+  static const String topFoodsThisWeek = 'Top Foods This Week';
+  static const String positiveLabel = 'Positive';
+  static const String watchLabel = 'Watch';
+  static const String restSleepTitle = 'Better sleep days';
+  static const String restEnergyTitle = 'Better energy days';
+
+  static String patternFrequencyTimes(int times, int days) {
+    final period = days == 7 ? 'week' : (days % 7 == 0 && days > 0 ? '${days ~/ 7} weeks' : '$days days');
+    return '$times times in the past $period.';
+  }
+  static String scansCount(int count) => '$count scans';
+  static String foodIsHelping(String food) => '$food is helping';
+  static String youAteMoreThisWeek(String food) => 'You ate more $food this week';
+  static String patternHeadline(String trigger, String reaction) => '$trigger shows up on days you report $reaction.';
 }

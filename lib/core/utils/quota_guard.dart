@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
-import 'package:gutgood/core/widgets/paywall_bottom_sheet.dart';
+import 'package:gutgood/core/widgets/paywall_screen.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +16,7 @@ enum QuotaType { chat, scan, premium }
 /// It automatically handles:
 /// 1. Checking [UsageService] for limits.
 /// 2. Providing haptic feedback on blocks.
-/// 3. Showing [showAuthBottomSheet] for guests or [showPaywallBottomSheet] for registered users.
+/// 3. Showing [showAuthBottomSheet] for guests or [showPaywallScreen] for registered users.
 class QuotaGuard {
   const QuotaGuard._();
 
@@ -54,7 +54,7 @@ class QuotaGuard {
     if (authNotifier.isAnonymous) {
       unawaited(showAuthBottomSheet(context, onSuccess: onAuthSuccess));
     } else {
-      unawaited(showPaywallBottomSheet(context, onProceedWithLimited: onProceedWithLimited ?? () {}));
+      unawaited(showPaywallScreen(context, onProceedWithLimited: onProceedWithLimited ?? () {}));
     }
 
     return false;

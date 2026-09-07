@@ -29,6 +29,9 @@ class AppRoutes {
   static const String nutritionFacts = '/nutrition-facts';
   static const String mealDetail = '/meal-detail';
   static const String symptomDetail = '/symptom-detail';
+  static const String additiveDetail = '/additive-detail';
+  static const String scanListDetail = '/scan-list-detail';
+  static const String swapDetail = '/swap-detail';
 
   // Profile Sub-routes
   static const String goals = '/goals';

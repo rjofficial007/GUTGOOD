@@ -10,11 +10,7 @@ enum GutScoreBand {
   fair(minScore: 30, label: 'Fair', color: AppPalette.orange),
   trigger(minScore: 0, label: 'Trigger', color: AppPalette.red);
 
-  const GutScoreBand({
-    required this.minScore,
-    required this.label,
-    required this.color,
-  });
+  const GutScoreBand({required this.minScore, required this.label, required this.color});
 
   final int minScore;
   final String label;

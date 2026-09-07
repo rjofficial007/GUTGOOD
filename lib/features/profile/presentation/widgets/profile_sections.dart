@@ -235,7 +235,7 @@ class AccountSection extends StatelessWidget {
               subtitle: isPremium ? AppStrings.activeStatus : AppStrings.freeTrial,
               onTap: () {
                 if (!isPremium) {
-                  unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {}));
+                  unawaited(showPaywallScreen(context, onProceedWithLimited: () {}));
                 }
               },
             ),
@@ -441,7 +441,7 @@ class AIUsageCard extends StatelessWidget {
                 ],
               ),
               GestureDetector(
-                onTap: () => unawaited(showPaywallBottomSheet(context, onProceedWithLimited: () {})),
+                onTap: () => unawaited(showPaywallScreen(context, onProceedWithLimited: () {})),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(color: textColor, borderRadius: BorderRadius.circular(100)),

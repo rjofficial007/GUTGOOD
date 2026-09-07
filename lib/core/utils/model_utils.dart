@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gutgood/core/data/additive_concern_db.dart';
 
 class ModelUtils {
   /// 🟢 NEW: Global safe JSON encoder that handles Firestore Timestamps and DateTimes.
@@ -130,7 +132,7 @@ class ModelUtils {
   static int parseScore(dynamic value, {int fallback = 0, int min = 0, int max = 100}) {
     final n = (value is num) ? value.toInt() : int.tryParse(value?.toString() ?? '');
     if (n == null) return fallback;
-    return n.clamp(min, max);
+    return n.clamp(min, max).toInt();
   }
 
   /// Safely parses a list of nested models.
@@ -280,52 +282,138 @@ class ModelUtils {
   /// Deterministic calculation for the Gut Score based on factual product data.
   ///
   /// This formula is the "Ground Truth" engine that translates Nutri-Score,
-  /// NOVA processing group, and fiber/protein/sugar/salt levels into a 0-100 score.
-  static int computeDeterministicScore({String? nutriscore, int? novaGroup, num? fiberG, num? proteinG, num? sugarG, num? saltG, num? saturatedFatG}) {
-    var score = 50;
+  /// NOVA processing group, fiber/protein/sugar/salt levels, and additive
+  /// concern levels into a 0-100 score.
+  ///
+  /// Design guarantees:
+  /// - Additives are penalized by CONCERN (low/moderate/higher), never by count.
+  /// - Calories are intentionally NOT an input: energy alone says nothing about
+  ///   gut impact, and penalizing it would punish wholesome calorie-dense foods.
+  /// - All nutrient inputs are per-100g concentrations, so the score is
+  ///   inherently serving-size normalized.
+  static int computeDeterministicScore({String? nutriscore, int? novaGroup, num? fiberG, num? proteinG, num? sugarG, num? saltG, num? saturatedFatG, List<AdditiveConcern>? additiveConcerns}) {
+    final factors = explainDeterministicScore(
+      nutriscore: nutriscore,
+      novaGroup: novaGroup,
+      fiberG: fiberG,
+      proteinG: proteinG,
+      sugarG: sugarG,
+      saltG: saltG,
+      saturatedFatG: saturatedFatG,
+      additiveConcerns: additiveConcerns,
+    );
+    return (50 + factors.fold(0, (sum, f) => sum + f.delta)).clamp(0, 100).toInt();
+  }
+
+  /// Same formula as [computeDeterministicScore], but returns the individual
+  /// factors so the UI can explain *why* a score is what it is.
+  static List<ScoreFactor> explainDeterministicScore({
+    String? nutriscore,
+    int? novaGroup,
+    num? fiberG,
+    num? proteinG,
+    num? sugarG,
+    num? saltG,
+    num? saturatedFatG,
+    List<AdditiveConcern>? additiveConcerns,
+  }) {
+    final factors = <ScoreFactor>[];
 
     switch (nutriscore?.toUpperCase()) {
       case 'A':
-        score += 25;
+        factors.add(const ScoreFactor(label: 'Nutri-Score A', delta: 25, phrase: 'an excellent Nutri-Score of A'));
       case 'B':
-        score += 15;
+        factors.add(const ScoreFactor(label: 'Nutri-Score B', delta: 15, phrase: 'a good Nutri-Score of B'));
       case 'C':
         break;
       case 'D':
-        score -= 15;
+        factors.add(const ScoreFactor(label: 'Nutri-Score D', delta: -15, phrase: 'a poor Nutri-Score of D'));
       case 'E':
-        score -= 25;
+        factors.add(const ScoreFactor(label: 'Nutri-Score E', delta: -25, phrase: 'a very poor Nutri-Score of E'));
     }
 
     switch (novaGroup) {
       case 1:
-        score += 10;
+        factors.add(const ScoreFactor(label: 'NOVA 1 · Unprocessed', delta: 10, phrase: 'minimal processing'));
       case 2:
-        score += 5;
+        factors.add(const ScoreFactor(label: 'NOVA 2 · Lightly processed', delta: 5, phrase: 'light processing'));
       case 3:
         break;
       case 4:
-        score -= 10;
+        factors.add(const ScoreFactor(label: 'NOVA 4 · Ultra-processed', delta: -10, phrase: 'ultra-processing (NOVA 4)'));
     }
 
     // Conservative nudges from raw nutrient values (per 100g)
-    if (fiberG != null && fiberG >= 5) score += 5;
-    if (proteinG != null && proteinG >= 10) score += 3;
-    if (sugarG != null && sugarG >= 20) score -= 5;
-    if (saltG != null && saltG >= 1.5) score -= 5;
-    if (saturatedFatG != null && saturatedFatG >= 5) score -= 3;
+    if (fiberG != null && fiberG >= 5) factors.add(ScoreFactor(label: 'Fiber ${_fmtG(fiberG)} / 100g', delta: 5, phrase: 'good fiber'));
+    if (proteinG != null && proteinG >= 10) factors.add(ScoreFactor(label: 'Protein ${_fmtG(proteinG)} / 100g', delta: 3, phrase: 'solid protein'));
+    if (sugarG != null && sugarG >= 20) factors.add(ScoreFactor(label: 'Sugars ${_fmtG(sugarG)} / 100g', delta: -5, phrase: 'high sugar'));
+    if (saltG != null && saltG >= 1.5) factors.add(ScoreFactor(label: 'Salt ${_fmtG(saltG)} / 100g', delta: -5, phrase: 'high sodium'));
+    if (saturatedFatG != null && saturatedFatG >= 5) {
+      factors.add(ScoreFactor(label: 'Saturated fat ${_fmtG(saturatedFatG)} / 100g', delta: -3, phrase: 'high saturated fat'));
+    }
 
-    return score.clamp(0, 100);
+    // Concern-based additive penalties (never count-based), each band capped.
+    if (additiveConcerns != null && additiveConcerns.isNotEmpty) {
+      var low = 0, moderate = 0, higher = 0;
+      for (final c in additiveConcerns) {
+        switch (c.level) {
+          case AdditiveConcernLevel.low:
+          case AdditiveConcernLevel.unknown:
+            low++;
+          case AdditiveConcernLevel.moderate:
+            moderate++;
+          case AdditiveConcernLevel.higher:
+            higher++;
+        }
+      }
+      final lowPenalty = min(low, 3);
+      if (lowPenalty > 0) {
+        factors.add(ScoreFactor(label: 'Low-concern additives ×$low', delta: -lowPenalty, phrase: low == 1 ? 'a low-concern additive' : 'a few low-concern additives'));
+      }
+      final moderatePenalty = min(moderate * 3, 12);
+      if (moderatePenalty > 0) {
+        factors.add(
+          ScoreFactor(label: 'Moderate-concern additives ×$moderate', delta: -moderatePenalty, phrase: moderate == 1 ? '1 moderate-concern additive' : '$moderate moderate-concern additives'),
+        );
+      }
+      final higherPenalty = min(higher * 8, 24);
+      if (higherPenalty > 0) {
+        factors.add(ScoreFactor(label: 'Higher-concern additives ×$higher', delta: -higherPenalty, phrase: higher == 1 ? '1 higher-concern additive' : '$higher higher-concern additives'));
+      }
+    }
+
+    return factors;
   }
+
+  /// Builds the personalized "here's why" sentence from score [factors].
+  ///
+  /// Examples:
+  /// - "Good fiber and a good Nutri-Score of B, but ultra-processing (NOVA 4)
+  ///   and 2 higher-concern additives pull the score down."
+  /// - "Minimal processing and solid protein lift this score."
+  /// - "High sugar and high sodium pull this score down."
+  static String scoreExplanationSentence(List<ScoreFactor> factors) {
+    final positives = factors.where((f) => f.isPositive).toList()..sort((a, b) => b.delta.compareTo(a.delta));
+    final negatives = factors.where((f) => !f.isPositive).toList()..sort((a, b) => a.delta.compareTo(b.delta));
+    final posPhrases = positives.take(2).map((f) => f.phrase).toList();
+    final negPhrases = negatives.take(2).map((f) => f.phrase).toList();
+
+    String join(List<String> parts) => parts.length == 2 ? '${parts[0]} and ${parts[1]}' : parts.join(', ');
+    String cap(String s) => s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+
+    if (posPhrases.isNotEmpty && negPhrases.isNotEmpty) {
+      return '${cap(join(posPhrases))}, but ${join(negPhrases)} pull the score down.';
+    }
+    if (posPhrases.isNotEmpty) return '${cap(join(posPhrases))} lift${posPhrases.length == 1 ? 's' : ''} this score.';
+    if (negPhrases.isNotEmpty) return '${cap(join(negPhrases))} pull${negPhrases.length == 1 ? 's' : ''} this score down.';
+    return 'An average mix with no standout strengths or concerns.';
+  }
+
+  static String _fmtG(num v) => v == v.toInt() ? '${v.toInt()}g' : '${v.toStringAsFixed(1)}g';
 
   /// 🟢 NEW: Heuristic calculation for Meal Scores based on AI balance and processing.
   /// Used as a fallback when AI returns 0 for a meal scan.
-  static int computeMealScore({
-    int? novaGroup,
-    Map<String, dynamic>? balance,
-    Map<String, dynamic>? nutrientLevels,
-    String? impactType,
-  }) {
+  static int computeMealScore({int? novaGroup, Map<String, dynamic>? balance, Map<String, dynamic>? nutrientLevels, String? impactType}) {
     // Base score for a standard meal
     var score = 60;
 
@@ -365,6 +453,22 @@ class ModelUtils {
     if (impactType == 'positive' || impactType == 'healing') score += 10;
     if (impactType == 'negative' || impactType == 'trigger') score -= 20;
 
-    return score.clamp(1, 100);
+    return score.clamp(1, 100).toInt();
   }
+}
+
+/// One explainable input to the deterministic gut score.
+class ScoreFactor {
+  const ScoreFactor({required this.label, required this.delta, required this.phrase});
+
+  /// Row display, e.g. 'Fiber 6g / 100g' or 'Higher-concern additives ×2'.
+  final String label;
+
+  /// Signed point contribution, e.g. +5 or -16.
+  final int delta;
+
+  /// Sentence fragment for the "here's why" summary, e.g. 'good fiber'.
+  final String phrase;
+
+  bool get isPositive => delta > 0;
 }
