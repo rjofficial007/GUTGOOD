@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
+import 'package:gutgood/core/models/scan_insight.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
+import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
@@ -46,6 +49,7 @@ class ScanResult extends Equatable {
     required this.createdAt,
     this.rawData,
     this.nutritionEstimated = false,
+    this.insight,
   });
 
   factory ScanResult.fromMap(Map<String, dynamic> map) {
@@ -157,6 +161,9 @@ class ScanResult extends Equatable {
       // those categories are estimated by prompt design; packaged/labeled
       // products default to `false` (label-sourced facts).
       nutritionEstimated: map['nutritionEstimated'] != null ? ModelUtils.parseBool(map['nutritionEstimated']) : (category == 'meal' || category == 'food' || category == 'menu'),
+      insight: map['insight'] is Map
+          ? ScanInsight.fromMap(Map<String, dynamic>.from(map['insight'] as Map))
+          : (resolvedRaw['insight'] is Map ? ScanInsight.fromMap(Map<String, dynamic>.from(resolvedRaw['insight'] as Map)) : null),
     );
   }
 
@@ -258,6 +265,14 @@ class ScanResult extends Equatable {
   /// macros as "Estimated" instead of presenting them with the same visual
   /// authority as scanned data (audit §F.2 / §O item 6).
   final bool nutritionEstimated;
+
+  /// Layered insight (positives / ranked concerns / nutrition / personalised /
+  /// warnings) plus the engine-authored score explanation. Null for scans
+  /// produced before this field existed.
+  final ScanInsight? insight;
+
+  /// Returns the theme-appropriate color for the scan's score impact.
+  Color get impactColor => GutScoreUtils.getScoreColor(score);
 
   static String _extractProductName(Map<String, dynamic> map) {
     final direct = map['productName']?.toString() ?? map['name']?.toString() ?? map['title']?.toString();
@@ -377,6 +392,7 @@ class ScanResult extends Equatable {
     DateTime? createdAt,
     Map<String, dynamic>? rawData,
     bool? nutritionEstimated,
+    ScanInsight? insight,
   }) => ScanResult(
     productName: productName ?? this.productName,
     brand: brand ?? this.brand,
@@ -408,6 +424,7 @@ class ScanResult extends Equatable {
     createdAt: createdAt ?? this.createdAt,
     rawData: rawData ?? this.rawData,
     nutritionEstimated: nutritionEstimated ?? this.nutritionEstimated,
+    insight: insight ?? this.insight,
   );
 
   Map<String, dynamic> toMap() => {
@@ -441,6 +458,7 @@ class ScanResult extends Equatable {
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
     'rawData': rawData,
     'nutritionEstimated': nutritionEstimated,
+    if (insight != null) 'insight': insight!.toMap(),
   };
 
   /// Optimized Map for AI context to prevent 502/payload-too-large errors.
@@ -474,6 +492,7 @@ class ScanResult extends Equatable {
     rawData,
     nutritionEstimated,
     additiveItems,
+    insight,
   ];
 
   /// Stored per-additive list, or parsed from the legacy summary string.

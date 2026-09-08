@@ -78,6 +78,35 @@ GutGood uses a centralized, unified component architecture to ensure UI consiste
 
 ---
 
+## 🚀 Getting Started
+
+```bash
+# 1. Dependencies
+flutter pub get
+
+# 2. Firebase wiring — generates lib/firebase_options.dart
+dart pub global activate flutterfire_cli
+flutterfire configure            # select the Firebase project / platforms
+
+# 3. Backend
+cd functions
+npm ci
+firebase functions:secrets:set OPENAI_API_KEY   # never shipped to devices
+firebase deploy --only functions
+firebase deploy --only firestore:rules,firestore:indexes,storage
+cd ..
+
+# 4. Verify
+flutter analyze && flutter test
+```
+
+**Notes**
+
+- `lib/firebase_options.dart` is generated and git-ignored. **Without it the project and the test suite will not compile** — step 2 is mandatory on a fresh clone.
+- Remote Config keys (defaults are safe if unset): `openai_model` (`gpt-4o-mini`), `ai_proxy_url`, `is_force_update`.
+- The OpenAI key lives in Secret Manager only; all AI traffic goes through the `aiProxy` Cloud Function.
+- Daily free-tier limits are enforced server-side (`functions/src/config.ts`).
+
 ## 📂 Project Structure
 
 ```text

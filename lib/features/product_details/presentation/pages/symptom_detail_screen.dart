@@ -99,11 +99,11 @@ class _SymptomHeroSection extends StatelessWidget {
                     left: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppPalette.black.withAlpha(153),
-                        borderRadius: BorderRadius.circular(8),
+                      decoration: BoxDecoration(color: AppPalette.black.withAlpha(153), borderRadius: BorderRadius.circular(8)),
+                      child: Text(
+                        AppStrings.severityLabel.toUpperCase(),
+                        style: context.captionTiny.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold),
                       ),
-                      child: Text(AppStrings.severityLabel.toUpperCase(), style: context.captionTiny.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   Positioned(
@@ -111,10 +111,7 @@ class _SymptomHeroSection extends StatelessWidget {
                     right: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppPalette.black.withAlpha(179),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      decoration: BoxDecoration(color: AppPalette.black.withAlpha(179), borderRadius: BorderRadius.circular(12)),
                       child: Text('$severity/10', style: context.labelBold.copyWith(color: AppPalette.white)),
                     ),
                   ),
@@ -224,7 +221,7 @@ class _SmallMetricCard extends StatelessWidget {
     final scheme = context.appColorScheme;
     return BentoCard(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      borderRadius: 20,
+      borderRadius: 10,
       height: 100.h,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,

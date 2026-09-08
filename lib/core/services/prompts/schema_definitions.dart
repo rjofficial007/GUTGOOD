@@ -25,12 +25,16 @@ class SchemaDefinitions {
 
   /// Canonical ingredient shape. `colorName` MUST always be present so the
   /// UI can key off it consistently regardless of which mode produced it.
+  /// `quantity` is optional but important: dose is what separates a meaningful
+  /// concern from a trace ingredient, and it is the single most common
+  /// complaint about competing scanners (they flag presence, ignore amount).
   static const String ingredientSchema = '''
     {
       "name": "string",
       "impact": "string",
       "colorName": "red|orange|low",
-      "confidence": 0.0
+      "confidence": 0.0,
+      "quantity": "string|null"
     }''';
 
   static String get unifiedDataSchema =>
@@ -67,6 +71,9 @@ class SchemaDefinitions {
       "proteins": null,
       "salt": null
     },
+    "servingSize": "string|null",
+    "servingsPerPack": "number|null",
+    "portionEaten": "string|null",
     "allergens": "summary string",
     "additives": "summary string",
     "additiveItems": ["E-code or additive name per item, e.g. E621, E150d, Palm Oil"],
@@ -135,6 +142,26 @@ $ingredientSchema
       "isBlackBadge": true
     }
   ],
+  "insight": {
+    "summary": "ONE sentence: the single most useful thing to know about this food",
+    "positives": [
+      {"title": "short label", "detail": "why it is genuinely good here, grounded in the detected data"}
+    ],
+    "concerns": [
+      {
+        "title": "short label",
+        "detail": "what the concern is and how significant it is in THIS portion",
+        "severity": "minor|moderate|important|higher"
+      }
+    ],
+    "nutritionInsights": [
+      {"nutrient": "e.g. Sodium", "observation": "what the data shows", "whyItMatters": "plain-language relevance"}
+    ],
+    "personalizedInsights": [
+      {"observation": "what this means for this user", "basedOn": "the exact profile fact or past scan it relies on"}
+    ],
+    "warnings": ["medical/allergen cautions only — empty array when none apply"]
+  },
   "metadata": {
     "confidence": 0.0,
     "requiresPersistence": true
@@ -157,6 +184,14 @@ SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - To prevent response truncation, limit ingredients to top 10 items.
 - scan.additiveItems: array of short labels, ONE per additive found (prefer E-codes/INS numbers like "E621" when known, else plain names like "Palm Oil"). Use [] when none are detected. This powers per-additive detail screens, so never merge items into one string.
 - metadata.confidence: REQUIRED float 0.0-1.0 representing how confident you are in the scan/meal/symptom data you extracted (not the conversational text). Use LOW confidence (below 0.6) when the image is blurry/ambiguous, the product could not be identified, or you are guessing at nutrition/ingredients without real evidence. The app will NOT silently save low-confidence data as confirmed history, so err on the side of an honest, lower number rather than inflating it.
+- scan.servingSize: the label's serving (e.g. "40 g"). scan.servingsPerPack: number of servings in the pack when shown. scan.portionEaten: how much the user actually appears to be eating, when the photo makes it clear (e.g. "1 of 4 cookies"). Use JSON null when unknown — NEVER invent a portion.
+- ingredients[].quantity: amount when the label or image shows it (e.g. "12 g added sugar per serving", "trace"). Use JSON null when unknown. Judge significance against the amount, not mere presence.
+- insight.positives: at most 3, and only factors that are genuinely notable for THIS product. An empty array is acceptable; filler is not.
+- insight.concerns: at most 3, ordered most-significant first, each with a severity of exactly "minor", "moderate", "important" or "higher". "minor" is for things not worth changing behaviour over; reserve "important"/"higher" for factors that would matter to most people at this portion size. Do not pad the list.
+- insight.nutritionInsights: only nutrients where the value is actually notable (high, low, or unusual for the category). No generic restatements of the nutrition panel.
+- insight.personalizedInsights: ONLY when the user profile or scan history supplied in context genuinely supports it, and "basedOn" must quote that supporting fact. If there is no supporting data, return an empty array — never infer goals, preferences, history, or values that were not provided.
+- insight.warnings: allergy, medical or safety cautions only. Empty array when none apply.
+- insight.scoreFactors and insight.scoreExplanation are computed by GutGood's scoring engine after your response. Do NOT emit them and do NOT state a numeric GutGood score.
 - scan.nutritionEstimated: REQUIRED boolean. Set this to `true` whenever the "nutrients"/"nutrientLevels"/"novaGroup" fields are a visually-grounded APPROXIMATION rather than a label-sourced/barcode-sourced fact (this is the normal case for any home-cooked or unpackaged meal identified from a photo — see the estimation exception above). Set it to `false` only when those values came from an actual product label, barcode lookup, or menu nutrition data. The app uses this flag to visually label estimated macros as "Estimated" instead of presenting them with the same authority as a scanned fact.
 ''';
 }

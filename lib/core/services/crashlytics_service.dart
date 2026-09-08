@@ -1,5 +1,6 @@
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class CrashlyticsService {
   Future<void> recordError(
@@ -25,7 +26,7 @@ class CrashlyticsServiceImpl implements CrashlyticsService {
     bool fatal = false,
   }) async {
     if (kDebugMode) {
-      print('Crashlytics [Error]: $exception, reason: $reason, fatal: $fatal');
+      AppLogger.debug('Crashlytics [Error]: $exception, reason: $reason, fatal: $fatal');
     }
     await _crashlytics.recordError(
       exception,
@@ -38,7 +39,7 @@ class CrashlyticsServiceImpl implements CrashlyticsService {
   @override
   Future<void> log(String message) async {
     if (kDebugMode) {
-      print('Crashlytics [Log]: $message');
+      AppLogger.debug('Crashlytics [Log]: $message');
     }
     await _crashlytics.log(message);
   }

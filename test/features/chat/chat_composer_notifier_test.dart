@@ -101,7 +101,7 @@ void main() {
   group('ChatComposerNotifier - Attachments', () {
     test('addAttachment compresses and adds image', () async {
       final bytes = Uint8List(10);
-      when(() => storageService.compressImage(any())).thenAnswer((_) async => bytes);
+      when(() => storageService.compressForAi(any())).thenAnswer((_) async => bytes);
       when(
         () => analyticsService.logEvent(
           name: any(named: 'name'),
@@ -113,12 +113,15 @@ void main() {
 
       expect(result, true);
       expect(notifier.pendingAttachments.length, 1);
-      verify(() => storageService.compressImage(bytes)).called(1);
+      // Vision input must use the AI profile (~1280 px), not the 320 px
+      // Storage thumbnail profile.
+      verify(() => storageService.compressForAi(bytes)).called(1);
+      verifyNever(() => storageService.compressImage(any()));
     });
 
     test('removeAttachment removes specific id', () async {
       final bytes = Uint8List(10);
-      when(() => storageService.compressImage(any())).thenAnswer((_) async => bytes);
+      when(() => storageService.compressForAi(any())).thenAnswer((_) async => bytes);
       when(
         () => analyticsService.logEvent(
           name: any(named: 'name'),

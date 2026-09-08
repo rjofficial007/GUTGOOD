@@ -34,6 +34,7 @@ class ChatBubble extends StatelessWidget {
     this.showFeedback = false,
     this.feedback,
     this.onFeedback,
+    this.onReport,
     this.showAvatar = true,
     this.showActions = false,
     this.onRegenerate,
@@ -59,6 +60,10 @@ class ChatBubble extends StatelessWidget {
   final bool showFeedback;
   final String? feedback;
   final Function(String)? onFeedback;
+
+  /// Files a report about this response. Shown alongside the feedback chips so
+  /// users never have to leave the app to reach it.
+  final VoidCallback? onReport;
   final bool showAvatar;
   final bool showActions;
   final VoidCallback? onRegenerate;
@@ -325,6 +330,13 @@ class ChatBubble extends StatelessWidget {
         GutChip(icon: AppIcons.thumbsUp, label: AppStrings.helpful, onTap: () => onFeedback!(AppStrings.labelHelpful), isSelected: feedback == AppStrings.labelHelpful),
         GutChip(icon: AppIcons.thumbsDown, label: AppStrings.notHelpful, onTap: () => onFeedback!(AppStrings.labelNotHelpful), isSelected: feedback == AppStrings.labelNotHelpful),
         GutChip(icon: AppIcons.refreshCcw, label: AppStrings.tellMeMore, onTap: () => onFeedback!(AppStrings.labelTellMeMore), isSelected: false),
+        if (onReport != null)
+          GutChip(
+            icon: AppIcons.alertTriangle,
+            label: ChatStrings.reportResponse,
+            onTap: onReport!,
+            isSelected: false,
+          ),
       ],
     ),
   );

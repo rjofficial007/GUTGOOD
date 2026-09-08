@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gutgood/core/models/ai_report.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -10,6 +11,9 @@ abstract class ChatFirestoreService {
   Future<List<ChatMessage>> getMessages({int? limit, DateTime? since});
   Future<List<ChatMessage>> getOlderMessages({required int limit, required DateTime before});
   Future<void> updateMessageFeedback(String messageId, String feedback);
+
+  /// Files a user report about an AI response (Play generative-AI policy).
+  Future<void> submitAiReport(AiReport report);
   Future<void> deleteMessage(String messageId);
 }
 
@@ -107,6 +111,31 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
     } catch (e) {
       AppLogger.firestore('Error getting older messages', error: e);
       return [];
+    }
+  }
+
+  @override
+  Future<void> submitAiReport(AiReport report) async {
+    final uid = _uid;
+    if (uid == null) {
+      AppLogger.firestore('Cannot submit AI report: no signed-in user');
+      return;
+    }
+    if (!report.isValidReason) {
+      // Fail loudly in logs but never throw into the UI — a reporting flow that
+      // crashes is worse than one that silently no-ops.
+      AppLogger.firestore('Refusing AI report with unknown reason: ${report.reason}');
+      return;
+    }
+
+    try {
+      await _db.collection('ai_reports').add(
+        report.copyWith(reportedBy: uid).toMap(),
+      );
+      AppLogger.firestore('AI report filed (${report.reason})');
+    } catch (e) {
+      // A blocked report must never surface as a crash to the user.
+      AppLogger.firestore('Error submitting AI report', error: e);
     }
   }
 

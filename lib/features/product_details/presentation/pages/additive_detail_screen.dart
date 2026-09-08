@@ -42,7 +42,11 @@ class AdditiveDetailScreen extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                              ),
                               Gap.w8,
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -55,9 +59,15 @@ class AdditiveDetailScreen extends StatelessWidget {
                             ],
                           ),
                           Gap.h12,
-                          Text(concern.displayTitle, style: context.headingSm.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w900, height: 1.2)),
+                          Text(
+                            concern.displayTitle,
+                            style: context.headingSm.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w900, height: 1.2),
+                          ),
                           Gap.h10,
-                          Text(concern.explanation, style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.6, fontSize: 13.5.sp)),
+                          Text(
+                            concern.explanation,
+                            style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.6, fontSize: 13.5.sp),
+                          ),
                         ],
                       ),
                     ),
@@ -97,7 +107,12 @@ class AdditiveDetailScreen extends StatelessWidget {
                             child: Icon(Icons.info_outline_rounded, size: 16.sp, color: color),
                           ),
                           Gap.w12,
-                          Expanded(child: Text(_scoreNote, style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp, height: 1.5))),
+                          Expanded(
+                            child: Text(
+                              _scoreNote,
+                              style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp, height: 1.5),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -138,9 +153,15 @@ class _InfoRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: context.captionBold.copyWith(color: scheme.textMuted, fontSize: 10.sp, letterSpacing: 1.0)),
+        Text(
+          label.toUpperCase(),
+          style: context.captionBold.copyWith(color: scheme.textMuted, fontSize: 10.sp, letterSpacing: 1.0),
+        ),
         Gap.h6,
-        Text(body, style: context.bodySm.copyWith(color: bodyColor ?? scheme.textPrimary, height: 1.5, fontSize: 13.5.sp, fontWeight: FontWeight.w500)),
+        Text(
+          body,
+          style: context.bodySm.copyWith(color: bodyColor ?? scheme.textPrimary, height: 1.5, fontSize: 13.5.sp, fontWeight: FontWeight.w500),
+        ),
       ],
     );
   }

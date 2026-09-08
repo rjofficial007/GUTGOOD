@@ -26,37 +26,8 @@ enum GutScoreBand {
 }
 
 class GutScoreUtils {
-  /// Calculates a deterministic Gut Score (0-100) based on Nutri-Score and NOVA group.
-  static int calculateGutScore(String? nutriscore, int? novaGroup) {
-    var base = 50;
-
-    if (nutriscore != null) {
-      switch (nutriscore.toLowerCase()) {
-        case 'a':
-          base = 90;
-          break;
-        case 'b':
-          base = 75;
-          break;
-        case 'c':
-          base = 50;
-          break;
-        case 'd':
-          base = 30;
-          break;
-        case 'e':
-          base = 15;
-          break;
-      }
-    }
-
-    if (novaGroup != null) {
-      if (novaGroup == 4) base -= 20;
-      if (novaGroup == 1) base += 10;
-    }
-
-    return base.clamp(0, 100);
-  }
+  // Product scoring lives in `yuka_score.dart` (Yuka-style 60/30/10).
+  // This file keeps only the band/label helpers.
 
   static String getStatus(int score) => GutScoreBand.fromScore(score).label;
 

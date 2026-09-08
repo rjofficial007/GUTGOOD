@@ -879,6 +879,7 @@ class AppStrings {
   static const String gutScoreLabel = ScannerStrings.gutScoreLabel;
   static const String whyThisScore = ScannerStrings.whyThisScore;
   static const String scoreFootnote = ScannerStrings.scoreFootnote;
+  static const String topThingsToKnow = ScannerStrings.topThingsToKnow;
   static const String gutBarrier = ScannerStrings.gutBarrier;
   static const String processing = ScannerStrings.processing;
   static const String analyzedOn = ScannerStrings.analyzedOn;

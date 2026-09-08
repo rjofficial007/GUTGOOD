@@ -20,9 +20,7 @@ class SwapDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final imageUrl = (swap.imageUrl != null && swap.imageUrl!.isNotEmpty)
-        ? swap.imageUrl!
-        : getDynamicImageUrl(swap.imageKeyword.isNotEmpty ? swap.imageKeyword : swap.title);
+    final imageUrl = (swap.imageUrl != null && swap.imageUrl!.isNotEmpty) ? swap.imageUrl! : getDynamicImageUrl(swap.imageKeyword.isNotEmpty ? swap.imageKeyword : swap.title);
 
     return Scaffold(
       backgroundColor: scheme.cardBackground,
@@ -49,12 +47,21 @@ class SwapDetailScreen extends StatelessWidget {
                             child: CachedNetworkImage(imageUrl: imageUrl, height: 200.h, width: double.infinity, fit: BoxFit.cover),
                           ),
                           Gap.h12,
-                          Text(swap.tag.toUpperCase(), style: context.captionBold.copyWith(color: scheme.success, fontSize: 10.sp, letterSpacing: 1.0)),
+                          Text(
+                            swap.tag.toUpperCase(),
+                            style: context.captionBold.copyWith(color: scheme.success, fontSize: 10.sp, letterSpacing: 1.0),
+                          ),
                           Gap.h4,
-                          Text(swap.title, style: context.headingSm.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w900)),
+                          Text(
+                            swap.title,
+                            style: context.headingSm.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w900),
+                          ),
                           if (swap.subtitle.isNotEmpty) ...[
                             Gap.h6,
-                            Text(swap.subtitle, style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.5, fontSize: 13.5.sp)),
+                            Text(
+                              swap.subtitle,
+                              style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.5, fontSize: 13.5.sp),
+                            ),
                           ],
                         ],
                       ),
@@ -73,14 +80,22 @@ class SwapDetailScreen extends StatelessWidget {
                           children: [
                             Icon(AppIcons.plus, size: 16.sp, color: const Color(0xFFFFFFFF)),
                             Gap.w6,
-                            Text('Log to journal', style: context.labelBold.copyWith(color: const Color(0xFFFFFFFF), fontSize: 14.sp)),
+                            Text(
+                              'Log to journal',
+                              style: context.labelBold.copyWith(color: const Color(0xFFFFFFFF), fontSize: 14.sp),
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
                   Gap.h8,
-                  Center(child: Text('Logged as a snack in your journal.', style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.sp))),
+                  Center(
+                    child: Text(
+                      'Logged as a snack in your journal.',
+                      style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.sp),
+                    ),
+                  ),
                   Gap.h40,
                 ],
               ),

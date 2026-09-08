@@ -1,4 +1,5 @@
 import 'package:gutgood/core/services/prompts/mode_prompts/barcode_analysis_prompt.dart';
+import 'package:gutgood/core/services/prompts/mode_prompts/general_rules_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/full_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/ingredients_label_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/restaurant_menu_prompt.dart';
@@ -9,7 +10,7 @@ class ModePrompts {
   ModePrompts._();
 
   /// Shared safety and evidence rules used by all vision modes.
-  static String get _sharedRules => VisionSafetyPrompt.instruction;
+  static String get _sharedRules => '${VisionSafetyPrompt.instruction}\n${GeneralRulesPrompt.analysisDiscipline}';
 
   /// 📸 MEAL SNAP MODE
   static String mealSnapInstruction({required List<String> goals, required List<String> sensitivities, required List<String> lifestyle, required String phase}) {

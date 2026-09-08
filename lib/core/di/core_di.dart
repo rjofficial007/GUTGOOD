@@ -10,6 +10,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:gutgood/core/constants/api_constants.dart';
 import 'package:gutgood/core/di/di_instance.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -51,6 +52,12 @@ Future<void> initCoreDI() async {
     ..registerLazySingleton(() => FirebaseRemoteConfig.instance)
     ..registerLazySingleton(() => GoogleSignIn.instance)
     ..registerLazySingleton(DeviceInfoPlugin.new)
-    ..registerLazySingleton(() => Dio(BaseOptions(connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 15))))
+    ..registerLazySingleton(() => Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {'User-Agent': ApiConstants.userAgent},
+      ),
+    ))
     ..registerLazySingleton(FlutterLocalNotificationsPlugin.new);
 }

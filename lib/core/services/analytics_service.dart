@@ -1,5 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class AnalyticsService {
   Future<void> logEvent({
@@ -21,7 +22,7 @@ class AnalyticsServiceImpl implements AnalyticsService {
     Map<String, Object?>? parameters,
   }) async {
     if (kDebugMode) {
-      print('Analytics [Event]: $name, params: $parameters');
+      AppLogger.debug('Analytics [Event]: $name, params: $parameters');
     }
 
     Map<String, Object>? cleanParams;
@@ -49,7 +50,7 @@ class AnalyticsServiceImpl implements AnalyticsService {
     String? screenClass,
   }) async {
     if (kDebugMode) {
-      print('Analytics [Screen]: $screenName, class: $screenClass');
+      AppLogger.debug('Analytics [Screen]: $screenName, class: $screenClass');
     }
     await _analytics.logScreenView(
       screenName: screenName,

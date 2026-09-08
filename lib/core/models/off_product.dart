@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
+import 'package:gutgood/core/utils/yuka_score.dart';
 
 class OffProduct extends Equatable {
   const OffProduct({
@@ -12,6 +14,8 @@ class OffProduct extends Equatable {
     this.status,
     this.statusColor,
     this.nutriscore,
+    this.nutriscoreScore,
+    this.isOrganic,
     this.novaGroup,
     this.ecoscore,
     this.ingredientsText,
@@ -27,6 +31,7 @@ class OffProduct extends Equatable {
     this.nutrientLevels,
     this.nutrients,
     this.impacts,
+    this.miscTags,
   });
 
   factory OffProduct.fromMap(Map<String, dynamic> map) => OffProduct(
@@ -38,6 +43,8 @@ class OffProduct extends Equatable {
     status: map['status'],
     statusColor: map['statusColor'],
     nutriscore: map['nutriscore'],
+    nutriscoreScore: map['nutriscoreScore'] is int ? map['nutriscoreScore'] as int : int.tryParse(map['nutriscoreScore']?.toString() ?? ''),
+    isOrganic: map['isOrganic'] == true || (map['isOrganic'] is String && (map['isOrganic'] as String).toLowerCase() == 'true'),
     novaGroup: map['novaGroup'] as int?,
     ecoscore: map['ecoscore'],
     ingredientsText: map['ingredientsText'],
@@ -53,18 +60,29 @@ class OffProduct extends Equatable {
     nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'], NutrientLevels.fromMap),
     nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
     impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
+    miscTags: ModelUtils.parseList<String>(map['miscTags'] ?? map['misc_tags']),
   );
 
-  /// Returns the deterministically calculated Gut Score (0-100) for this product.
-  int get gutScore => ModelUtils.computeDeterministicScore(
+  /// Additive concerns resolved from [additives] (E-codes / additive names).
+  List<AdditiveConcern> get additiveConcerns => AdditiveConcernDb.resolveAll(additives ?? const []);
+
+  /// Returns the full explainable breakdown of the gut score.
+  YukaScoreBreakdown get yukaBreakdown => YukaScore.evaluate(
     nutriscore: nutriscore,
-    novaGroup: novaGroup,
+    nutriscoreScore: nutriscoreScore,
+    energyKcal: nutrients?.calories,
     fiberG: nutrients?.fiber,
     proteinG: nutrients?.proteins,
     sugarG: nutrients?.sugars,
     saltG: nutrients?.salt,
     saturatedFatG: nutrients?.saturatedFat,
+    additiveConcerns: additiveConcerns,
+    isOrganic: isOrganic,
   );
+
+  /// Returns the deterministically calculated Gut Score (0-100) for this
+  /// product, using the Yuka-style engine.
+  int get gutScore => yukaBreakdown.score;
 
   final String productName;
   final String? brand;
@@ -74,6 +92,15 @@ class OffProduct extends Equatable {
   final String? status;
   final String? statusColor;
   final String? nutriscore;
+
+  /// Raw Nutri-Score points from Open Food Facts (`nutriscore_score`).
+  /// Lets the engine place a product *within* its Nutri-Score band instead of
+  /// falling back to a representative value for the letter.
+  final int? nutriscoreScore;
+
+  /// Certified organic (from OFF labels) — worth 10% of the score.
+  final bool? isOrganic;
+
   final int? novaGroup;
   final String? ecoscore;
   final String? ingredientsText;
@@ -90,6 +117,23 @@ class OffProduct extends Equatable {
   final NutrientData? nutrients;
   final List<ImpactDetail>? impacts;
 
+  /// Raw Open Food Facts `misc_tags`.
+  ///
+  /// These explain *why* a Nutri-Score could not be computed — for example
+  /// `en:nutriscore-missing-nutrition-data-sodium` or
+  /// `en:nutriscore-missing-category`. Without them an unscorable product just
+  /// looks unscored, and the user is left guessing whether the app is broken.
+  final List<String>? miscTags;
+
+  /// Why this product has no Nutri-Score, in plain English — or `null` when
+  /// Open Food Facts doesn't say (or the product scored fine).
+  ///
+  /// Turns a bare "we couldn't score this" into an actionable answer, and
+  /// nudges the user towards contributing the missing data back to OFF.
+  /// Implementation lives in [ModelUtils.unscorableReason] so the scanner can
+  /// reuse it without constructing an [OffProduct].
+  String? get unscorableReason => ModelUtils.unscorableReason(miscTags);
+
   Map<String, dynamic> toMap() => {
     'productName': productName,
     'brand': brand,
@@ -99,6 +143,8 @@ class OffProduct extends Equatable {
     'status': status,
     'statusColor': statusColor,
     'nutriscore': nutriscore,
+    'nutriscoreScore': nutriscoreScore,
+    'isOrganic': isOrganic,
     'novaGroup': novaGroup,
     'ecoscore': ecoscore,
     'ingredientsText': ingredientsText,
@@ -114,8 +160,34 @@ class OffProduct extends Equatable {
     'nutrientLevels': nutrientLevels?.toMap(),
     'nutrients': nutrients?.toMap(),
     'impacts': impacts?.map((e) => e.toMap()).toList(),
+    'miscTags': miscTags,
   };
 
   @override
-  List<Object?> get props => [productName, barcode, score];
+  List<Object?> get props => [
+    productName,
+    barcode,
+    score,
+    brand,
+    imageUrl,
+    nutriscore,
+    nutriscoreScore,
+    isOrganic,
+    novaGroup,
+    ecoscore,
+    ingredientsText,
+    ingredients,
+    additivesCount,
+    additives,
+    allergens,
+    allergensText,
+    labels,
+    category,
+    categoryTag,
+    servingSize,
+    nutrientLevels,
+    nutrients,
+    impacts,
+    miscTags,
+  ];
 }

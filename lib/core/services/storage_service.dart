@@ -6,7 +6,11 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class StorageService {
+  /// Thumbnail profile (~320 px) for Storage uploads and history tiles.
   Future<Uint8List> compressImage(Uint8List bytes);
+
+  /// Vision profile (~1280 px short edge) for anything sent to the AI proxy.
+  Future<Uint8List> compressForAi(Uint8List bytes);
   Future<String?> uploadFoodImage(Uint8List bytes);
   Future<String?> uploadProfilePicture(Uint8List bytes);
   Future<void> deleteImage(String url);
@@ -38,6 +42,52 @@ class StorageServiceImpl implements StorageService {
       return compressedBytes;
     } catch (e, st) {
       AppLogger.error('StorageService: Compression plugin failure', error: e, stackTrace: st);
+      return bytes;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // AI vision profile
+  // ---------------------------------------------------------------------------
+
+  /// Short-edge target for images sent to the vision model.
+  ///
+  /// 320 px (the thumbnail profile above) is unreadable for the two features
+  /// that depend on OCR-like reading — ingredient labels and restaurant menus.
+  static const int _aiMinEdge = 1280;
+
+  /// Quality ladder walked until the result fits [_aiTargetBytes].
+  static const List<int> _aiQualityLadder = [78, 70, 60, 50];
+
+  /// Comfortably under the proxy's MAX_IMAGE_BASE64_CHARS (1.6M chars ≈ 1.2 MB
+  /// decoded). Images above that cap are rejected by the proxy.
+  static const int _aiTargetBytes = 400 * 1024;
+
+  @override
+  Future<Uint8List> compressForAi(Uint8List bytes) async {
+    if (bytes.isEmpty) return bytes;
+    try {
+      var best = bytes;
+      for (final quality in _aiQualityLadder) {
+        best = await FlutterImageCompress.compressWithList(
+          bytes,
+          minWidth: _aiMinEdge,
+          minHeight: _aiMinEdge,
+          quality: quality,
+          format: CompressFormat.jpeg,
+          autoCorrectionAngle: true,
+          keepExif: false,
+        );
+        if (best.lengthInBytes <= _aiTargetBytes) break;
+      }
+
+      AppLogger.info(
+        'StorageService: AI image ${(bytes.lengthInBytes / 1024).toStringAsFixed(0)}KB -> ${(best.lengthInBytes / 1024).toStringAsFixed(0)}KB',
+      );
+      return best;
+    } catch (e, st) {
+      // Never block a scan on a compression failure — send the original bytes.
+      AppLogger.error('StorageService: AI compression failure', error: e, stackTrace: st);
       return bytes;
     }
   }

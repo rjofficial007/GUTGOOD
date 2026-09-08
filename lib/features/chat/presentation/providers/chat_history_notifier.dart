@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
+import 'package:gutgood/core/models/ai_report.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -281,6 +282,12 @@ class ChatHistoryNotifier with ChangeNotifier {
     }
     await _repository.updateMessageFeedback(msg, type);
   }
+
+  /// Files a user report about an AI response (Play generative-AI policy).
+  ///
+  /// The service swallows its own errors so a blocked write can never surface
+  /// as a crash — the UI acknowledges the report either way.
+  Future<void> submitAiReport(AiReport report) => _chatFirestoreService.submitAiReport(report);
 
   Future<void> precomputeSummary() async {
     if (_isSummarizing || messages.length <= 6) return;

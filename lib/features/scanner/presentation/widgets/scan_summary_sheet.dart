@@ -5,17 +5,19 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 class ScanSummarySheet extends StatefulWidget {
@@ -119,34 +121,25 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
                 physics: const ClampingScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(AppSizes.p20, 0, AppSizes.p20, MediaQuery.of(context).padding.bottom + AppSizes.p24),
                 children: [
-                  // 1. Bento Image & Score Card Hero Header
-                  BentoImageCard(scanData: _headerScanData),
+                  // 1. Header (Image + Name + Score)
+                  _buildHeader(context),
 
-                  Gap.h16,
+                  Gap.h24,
 
                   // 2. Intelligence Result
-                  if (isAnalyzed) ...[_buildAnalyzedContent(context), Gap.h16],
+                  if (isAnalyzed) ...[_buildAnalyzedContent(context), Gap.h24],
 
-                  // 3. Nutri-Score & NOVA Badges
-                  _buildGroundTruthBadges(context),
-                  Gap.h20,
+                  // 3. Positives Section
+                  _buildFactorSection(context, title: AppStrings.positivesLabel, subtitle: 'per serving (${widget.product.servingSize ?? '100g'})', factors: _getPositives(context)),
+
+                  Gap.h24,
 
                   // 4. Negatives Section
                   _buildFactorSection(context, title: AppStrings.negativesLabel, factors: _getNegatives(context)),
 
-                  Gap.h20,
-
-                  // 5. Positives Section
-                  _buildFactorSection(context, title: AppStrings.positivesLabel, factors: _getPositives(context)),
-
-                  Gap.h20,
-
-                  // 6. Ingredients Section (Wrapped Bento Chips)
-                  _buildIngredientsChips(context),
-
                   Gap.h24,
 
-                  // 7. Action CTA Button
+                  // 5. Action CTA Button
                   _buildActionButton(context),
                 ],
               ),
@@ -157,24 +150,146 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
     );
   }
 
-  Widget _buildFactorSection(BuildContext context, {required String title, required List<_HealthFactor> factors}) {
+  Widget _buildHeader(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final scanData = _headerScanData;
+    final band = GutScoreBand.fromScore(scanData.score);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Product Image
+        Hero(
+          tag: 'product_image_${scanData.productName}',
+          child: Container(
+            width: 80.w,
+            height: 120.h,
+            decoration: BoxDecoration(color: scheme.elevatedSurface, borderRadius: BorderRadius.circular(12)),
+            child: widget.product.imageUrl != null
+                ? Image.network(
+                    widget.product.imageUrl!,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(AppIcons.package, size: 32.sp, color: scheme.textMuted),
+                  )
+                : Icon(AppIcons.package, size: 32.sp, color: scheme.textMuted),
+          ),
+        ),
+        Gap.w20,
+        // Product Info
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                scanData.productName,
+                style: context.title.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w600, height: 1.2, letterSpacing: -0.5),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                scanData.brand,
+                style: context.body.copyWith(color: scheme.textSecondary, fontSize: 15.sp, fontWeight: FontWeight.w500),
+              ),
+              Gap.h12,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(top: 2.h),
+                    width: 12.sp,
+                    height: 12.sp,
+                    decoration: BoxDecoration(color: scanData.impactColor, shape: BoxShape.circle),
+                  ),
+                  Gap.w12,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${scanData.score}/100',
+                        style: context.title.copyWith(fontSize: 19.sp, fontWeight: FontWeight.w700, height: 1.0),
+                      ),
+                      Text(
+                        band.label,
+                        style: context.body.copyWith(color: scheme.textMuted, fontSize: 15.sp, fontWeight: FontWeight.w500, height: 1.3),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFactorSection(BuildContext context, {required String title, String? subtitle, required List<_HealthFactor> factors}) {
     if (factors.isEmpty) return const SizedBox.shrink();
+
+    final scheme = context.appColorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w900),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              title,
+              style: context.title.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w900),
+            ),
+            const Spacer(),
+            if (subtitle != null) Text(subtitle, style: context.caption.copyWith(color: scheme.textMuted)),
+          ],
         ),
         Gap.h12,
-        ...factors.asMap().entries.map((entry) {
-          final isLast = entry.key == factors.length - 1;
-          return Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : 8.h),
-            child: _FactorRow(factor: entry.value),
-          );
-        }),
+        ...factors.map((factor) => _FactorRow(factor: factor)),
+      ],
+    );
+  }
+
+  Widget _buildGroupedOptions(BuildContext context, {String? title, required List<_GroupedItem> items}) {
+    final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title != null) ...[
+          Text(
+            title,
+            style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w900, color: scheme.textSecondary),
+          ),
+          Gap.h12,
+        ],
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppPalette.darkCard : scheme.cardBackground,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: scheme.borderSubtle),
+          ),
+          child: Column(
+            children: items.asMap().entries.map((entry) {
+              final isLast = entry.key == items.length - 1;
+              final item = entry.value;
+
+              return Column(
+                children: [
+                  ListTile(
+                    onTap: () {},
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    leading: Icon(item.icon, size: 20.sp, color: scheme.textPrimary),
+                    title: Text(item.label, style: context.body.copyWith(fontWeight: FontWeight.w600)),
+                    trailing: Icon(AppIcons.chevronRight, size: 18.sp, color: scheme.textMuted),
+                  ),
+                  if (!isLast) Divider(height: 1, indent: 60, endIndent: 20, color: scheme.borderSubtle),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }
@@ -314,32 +429,32 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
 
   Widget _buildAnalyzedContent(BuildContext context) {
     final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final result = _analyzedResult!;
 
-    return BentoCard(
-      padding: const EdgeInsets.all(16),
-      borderRadius: 20,
-      backgroundColor: isDark ? scheme.success.withAlpha(20) : scheme.successSubtle,
-      borderColor: scheme.success.withAlpha(50),
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: scheme.lavender,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: scheme.borderSubtle),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(AppIcons.sparkles, color: scheme.success, size: 18),
+              Icon(AppIcons.salad, color: scheme.info, size: 16.sp),
               Gap.w10,
               Text(
-                AppStrings.gutgoodHealthIntelligence,
-                style: context.eyebrow.copyWith(color: scheme.success, fontWeight: FontWeight.w900),
+                'HEALTH INTELLIGENCE',
+                style: context.captionBold.copyWith(color: scheme.info, fontSize: 10.sp, letterSpacing: 1.2, fontWeight: FontWeight.w900),
               ),
             ],
           ),
-          Gap.h10,
+          Gap.h12,
           Text(
             result.impact,
-            textAlign: TextAlign.center,
-            style: context.body.copyWith(fontWeight: FontWeight.w600, height: 1.3),
+            style: context.body.copyWith(fontWeight: FontWeight.w600, fontSize: 15.sp, height: 1.4, color: scheme.textPrimary),
           ),
         ],
       ),
@@ -379,55 +494,113 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
     final items = <_HealthFactor>[];
     final n = widget.product.nutrients;
     final scheme = context.appColorScheme;
+    final breakdown = widget.product.yukaBreakdown;
+    final pts = breakdown.nutriScorePoints;
 
-    final additivesCount = widget.product.additivesCount ?? 0;
-    if (additivesCount > 0) {
+    // 1. Processing (NOVA 3/4)
+    final nova = widget.product.novaGroup;
+    if (nova != null && nova >= 3) {
       items.add(
         _HealthFactor(
-          label: 'Additives',
-          value: additivesCount.toString(),
-          description: additivesCount > 3 ? 'Contains additives to avoid' : 'Few additives detected',
-          color: additivesCount > 3 ? scheme.error : scheme.warning,
-          icon: AppIcons.flaskConical,
+          label: 'Processing',
+          value: 'NOVA $nova',
+          description: nova == 4 ? 'Ultra-processed food' : 'Processed food',
+          color: nova == 4 ? scheme.error : scheme.warning,
+          icon: AppIcons.package,
+          isPositive: false,
         ),
       );
     }
 
-    final salt = n?.salt;
-    if (salt != null && salt > 0.3) {
+    // 2. Saturated Fat (High)
+    final pSatFat = pts['saturatedFat'] ?? 0;
+    final valSatFat = n?.saturatedFat;
+    if (pSatFat > 0 && valSatFat != null) {
       items.add(
         _HealthFactor(
-          label: 'Sodium',
-          value: '${(salt * 400).toInt()}mg',
-          description: salt > 1.5 ? 'Too salty' : 'A bit salty',
-          color: salt > 1.5 ? scheme.error : scheme.warning,
-          icon: AppIcons.scale,
+          label: 'Saturated fat',
+          value: '${valSatFat.toStringAsFixed(1)}g',
+          description: pSatFat >= 5 ? 'High in saturated fat' : 'Significant saturated fat',
+          color: pSatFat >= 5 ? scheme.error : scheme.warning,
+          icon: AppIcons.droplet,
+          isPositive: false,
+          points: pSatFat,
         ),
       );
     }
 
-    final cal = n?.calories;
-    if (cal != null && cal > 160) {
-      items.add(
-        _HealthFactor(
-          label: 'Calories',
-          value: '${cal.toInt()} Cal',
-          description: cal > 360 ? 'Very caloric' : 'A bit too caloric',
-          color: cal > 360 ? scheme.error : scheme.warning,
-          icon: AppIcons.flame,
-        ),
-      );
-    }
-
-    final sugar = n?.sugars;
-    if (sugar != null && sugar > 15) {
+    // 3. Sugar (High)
+    final pSugar = pts['sugar'] ?? 0;
+    final valSugar = n?.sugars;
+    if (pSugar > 0 && valSugar != null) {
       items.add(
         _HealthFactor(
           label: 'Sugar',
-          value: '${sugar.toInt()}g',
-          description: sugar > 22.5 ? 'Too much sugar' : 'High in sugar',
-          color: sugar > 22.5 ? scheme.error : scheme.warning,
-          icon: AppIcons.candy,
+          value: '${valSugar.toInt()}g',
+          description: pSugar >= 5 ? 'Too much sugar' : 'High in sugar',
+          color: pSugar >= 5 ? scheme.error : scheme.warning,
+          icon: LucideIcons.box,
+          isPositive: false,
+          points: pSugar,
+        ),
+      );
+    }
+
+    // 4. Calories (High)
+    final pEnergy = pts['energy'] ?? 0;
+    final valCal = n?.calories;
+    if (pEnergy > 0 && valCal != null) {
+      items.add(
+        _HealthFactor(
+          label: 'Calories',
+          value: '${valCal.toInt()} kcal',
+          description: pEnergy >= 5 ? 'Very caloric' : 'High calorie density',
+          color: pEnergy >= 5 ? scheme.error : scheme.warning,
+          icon: AppIcons.flame,
+          isPositive: false,
+          points: pEnergy,
+        ),
+      );
+    }
+
+    // 5. Sodium (Salt)
+    final pSodium = pts['sodium'] ?? 0;
+    final valSalt = n?.salt;
+    if (pSodium > 0 && valSalt != null) {
+      items.add(
+        _HealthFactor(
+          label: 'Sodium',
+          value: '${(valSalt * 400).toInt()}mg',
+          description: pSodium >= 5 ? 'Too salty' : 'Significant sodium',
+          color: pSodium >= 5 ? scheme.error : scheme.warning,
+          icon: AppIcons.scale,
+          isPositive: false,
+          points: pSodium,
+        ),
+      );
+    }
+
+    // 6. Intelligence Warnings (if analyzed)
+    if (_analyzedResult?.insight?.warnings.isNotEmpty ?? false) {
+      for (final warning in _analyzedResult!.insight!.warnings) {
+        items.add(_HealthFactor(label: 'Caution', value: 'Alert', description: warning, color: scheme.error, icon: AppIcons.alertTriangle, isPositive: false));
+      }
+    }
+
+    // 7. Risky Additives
+    final riskyAdditives = widget.product.additiveConcerns.where((a) => a.level == AdditiveConcernLevel.higher || a.level == AdditiveConcernLevel.moderate).toList();
+    if (riskyAdditives.isNotEmpty) {
+      final names = riskyAdditives.map((a) => a.code.isNotEmpty ? a.code : a.name).join(', ');
+      final hasHigher = riskyAdditives.any((a) => a.level == AdditiveConcernLevel.higher);
+      items.add(
+        _HealthFactor(
+          label: 'Additives',
+          value: widget.product.additivesCount?.toString() ?? riskyAdditives.length.toString(),
+          description: '${hasHigher ? 'Avoid' : 'Limit'}: $names',
+          color: hasHigher ? scheme.error : scheme.warning,
+          icon: AppIcons.flaskConical,
+          details: widget.product.additives ?? [],
+          isPositive: false,
         ),
       );
     }
@@ -439,22 +612,137 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
     final items = <_HealthFactor>[];
     final n = widget.product.nutrients;
     final scheme = context.appColorScheme;
+    final breakdown = widget.product.yukaBreakdown;
+    final pts = breakdown.nutriScorePoints;
 
-    final prot = n?.proteins;
-    if (prot != null && prot >= 4) {
+    // 1. Personalized Insights (if analyzed)
+    if (_analyzedResult?.insight?.personalizedInsights.isNotEmpty ?? false) {
+      for (final insight in _analyzedResult!.insight!.personalizedInsights) {
+        items.add(_HealthFactor(label: 'For You', value: 'Personal', description: insight.observation, color: scheme.info, icon: AppIcons.userCheck, isPositive: true));
+      }
+    }
+
+    // 2. Calories (Low/Zero)
+    final pEnergy = pts['energy'] ?? 10;
+    final valCal = n?.calories;
+    if (pEnergy <= 1 && valCal != null) {
       items.add(
-        _HealthFactor(label: 'Protein', value: '${prot.toInt()}g', description: prot >= 8 ? 'Excellent amount of protein' : 'Good source of protein', color: scheme.success, icon: AppIcons.dumbbell),
+        _HealthFactor(
+          label: 'Calories',
+          value: '${valCal.toInt()} kcal',
+          description: valCal < 10 ? 'Zero calories' : 'Low calories',
+          color: scheme.success,
+          icon: AppIcons.flame,
+          isPositive: true,
+          points: pEnergy,
+        ),
       );
     }
 
-    final fib = n?.fiber;
-    if (fib != null && fib >= 1.5) {
-      items.add(_HealthFactor(label: 'Fiber', value: '${fib.toStringAsFixed(1)}g', description: fib >= 3 ? 'High fiber' : 'Some fiber', color: scheme.success, icon: AppIcons.wheat));
+    // 3. Saturated Fat (Low/Zero)
+    final pSatFat = pts['saturatedFat'] ?? 10;
+    final valSatFat = n?.saturatedFat;
+    if (pSatFat <= 1 && valSatFat != null) {
+      items.add(
+        _HealthFactor(
+          label: 'Saturated fat',
+          value: '${valSatFat.toStringAsFixed(1)}g',
+          description: valSatFat == 0 ? 'No saturated fat' : 'Low saturated fat',
+          color: scheme.success,
+          icon: AppIcons.droplet,
+          isPositive: true,
+          points: pSatFat,
+        ),
+      );
     }
 
-    final sugar = n?.sugars;
-    if (sugar != null && sugar <= 5) {
-      items.add(_HealthFactor(label: 'Sugar', value: '${sugar.toInt()}g', description: sugar == 0 ? 'No sugar' : 'Low sugar', color: scheme.success, icon: AppIcons.candy));
+    // 4. Sugar (Low/Zero)
+    final pSugar = pts['sugar'] ?? 10;
+    final valSugar = n?.sugars;
+    if (pSugar <= 1 && valSugar != null) {
+      items.add(
+        _HealthFactor(
+          label: 'Sugar',
+          value: '${valSugar.toInt()}g',
+          description: valSugar == 0 ? 'No sugar' : 'Low sugar',
+          color: scheme.success,
+          icon: LucideIcons.box,
+          isPositive: true,
+          points: pSugar,
+        ),
+      );
+    }
+
+    // 5. Nutrients (Fiber, Protein)
+    final pFiber = pts['fiber'] ?? 0;
+    final valFib = n?.fiber;
+    if (pFiber < 0 && valFib != null) {
+      items.add(
+        _HealthFactor(
+          label: 'Fiber',
+          value: '${valFib.toStringAsFixed(1)}g',
+          description: pFiber <= -3 ? 'High fiber' : 'Source of fiber',
+          color: scheme.success,
+          icon: AppIcons.wheat,
+          isPositive: true,
+          points: pFiber,
+        ),
+      );
+    }
+
+    final pProt = pts['protein'] ?? 0;
+    final valProt = n?.proteins;
+    if (pProt < 0 && valProt != null) {
+      items.add(
+        _HealthFactor(
+          label: 'Protein',
+          value: '${valProt.toInt()}g',
+          description: pProt <= -3 ? 'Excellent amount of protein' : 'Good source of protein',
+          color: scheme.success,
+          icon: AppIcons.dumbbell,
+          isPositive: true,
+          points: pProt,
+        ),
+      );
+    }
+
+    // 6. Organic Bonus
+    if (widget.product.isOrganic == true) {
+      items.add(_HealthFactor(label: 'Organic', value: '', description: 'Certified organic product', color: scheme.success, icon: AppIcons.leaf, isPositive: true, useTick: true, expandable: false));
+    }
+
+    // 7. Processing (NOVA 1/2)
+    final nova = widget.product.novaGroup;
+    if (nova != null && nova <= 2) {
+      items.add(
+        _HealthFactor(
+          label: 'Processing',
+          value: 'NOVA $nova',
+          description: nova == 1 ? 'Minimally processed' : 'Culinary ingredient',
+          color: scheme.success,
+          icon: AppIcons.utensils,
+          isPositive: true,
+        ),
+      );
+    }
+
+    // 8. Additives (No Risky ones)
+    final riskyAdditives = widget.product.additiveConcerns.where((a) => a.level == AdditiveConcernLevel.higher || a.level == AdditiveConcernLevel.moderate).toList();
+    if (riskyAdditives.isEmpty) {
+      final totalCount = widget.product.additivesCount ?? 0;
+      items.add(
+        _HealthFactor(
+          label: totalCount == 0 ? 'No additives' : 'Additives',
+          value: totalCount == 0 ? '' : totalCount.toString(),
+          description: totalCount == 0 ? 'Pure product with no industrial additives' : 'Safe additives only',
+          color: scheme.success,
+          icon: totalCount == 0 ? AppIcons.shieldCheck : AppIcons.flaskConical,
+          details: widget.product.additives ?? [],
+          isPositive: true,
+          useTick: totalCount == 0,
+          expandable: totalCount > 0,
+        ),
+      );
     }
 
     return items;
@@ -493,65 +781,172 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
   }
 }
 
+class _GroupedItem {
+  final String label;
+  final IconData icon;
+  _GroupedItem({required this.label, required this.icon});
+}
+
 class _HealthFactor {
-  _HealthFactor({required this.label, required this.value, required this.description, required this.color, required this.icon});
+  _HealthFactor({
+    required this.label,
+    required this.value,
+    required this.description,
+    required this.color,
+    required this.icon,
+    this.details = const [],
+    this.isPositive = true,
+    this.points = 0,
+    this.useTick = false,
+    this.expandable = true,
+  });
   final String label;
   final String value;
   final String description;
   final Color color;
   final IconData icon;
+  final List<String> details;
+  final bool isPositive;
+  final int points;
+  final bool useTick;
+  final bool expandable;
+
+  String get longDescription {
+    if (details.isNotEmpty) return '';
+    final impact = isPositive ? 'positive' : 'negative';
+    final action = isPositive ? 'supports' : 'can disrupt';
+    final absPoints = points.abs();
+    final pointNote = absPoints > 2 ? ' (Impact: -$absPoints points)' : '';
+
+    // Narrative logic based on label
+    switch (label.toLowerCase()) {
+      case 'calories':
+        return isPositive
+            ? 'A low energy density supports metabolic efficiency and helps maintain a healthy weight without overloading the system.'
+            : 'Higher calorie density can lead to unwanted weight gain and metabolic stress if not balanced with physical activity.$pointNote';
+      case 'saturated fat':
+        return isPositive
+            ? 'Absence of saturated fats helps maintain low levels of systemic inflammation and supports vascular health.'
+            : 'High intake of saturated fats is linked to increased systemic inflammation and can negatively alter gut microbiota diversity.$pointNote';
+      case 'sugar':
+        return isPositive
+            ? 'Zero or low sugar content prevents rapid glucose spikes, supporting stable energy levels and protecting the gut barrier.'
+            : 'High sugar intake can trigger rapid insulin spikes and feed non-beneficial gut bacteria, potentially leading to dysbiosis.$pointNote';
+      case 'sodium':
+        return 'Significant sodium intake can affect blood pressure and may influence the gut-immune axis, potentially increasing inflammatory signals.$pointNote';
+      case 'fiber':
+        return 'High fiber content is essential for gut motility and acts as a prebiotic, feeding the beneficial bacteria that produce short-chain fatty acids.';
+      case 'protein':
+        return 'A good source of protein provides the essential amino acids needed for tissue repair and the maintenance of the intestinal lining.';
+      case 'processing':
+        return isPositive
+            ? 'Minimally processed foods retain their natural structure and micronutrients, which are more easily recognized and utilized by your gut.'
+            : 'Ultra-processing often strips natural fiber and adds industrial markers that can interfere with normal satiety signals and gut health.';
+      case 'organic':
+        return 'Certified organic products are produced without synthetic pesticides, reducing the chemical load on your microbiome.';
+      default:
+        return 'This property has a $impact impact on your gut health score. Maintaining optimal levels $action your long-term wellness goals.';
+    }
+  }
 }
 
-class _FactorRow extends StatelessWidget {
+class _FactorRow extends StatefulWidget {
   const _FactorRow({required this.factor});
   final _HealthFactor factor;
 
   @override
+  State<_FactorRow> createState() => _FactorRowState();
+}
+
+class _FactorRowState extends State<_FactorRow> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final factor = widget.factor;
+    final hasDetails = factor.details.isNotEmpty;
 
-    return BentoCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      borderRadius: 16,
-      backgroundColor: isDark ? AppPalette.darkCard : scheme.cardBackground,
-      borderColor: scheme.borderSubtle,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: factor.color.withAlpha(26), shape: BoxShape.circle),
-            child: Icon(factor.icon, size: 18.sp, color: factor.color),
-          ),
-          Gap.w14,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        InkWell(
+          onTap: factor.expandable ? () => setState(() => _isExpanded = !_isExpanded) : null,
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 12.h),
+            child: Row(
               children: [
-                Text(
-                  factor.label,
-                  style: context.labelBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w800),
+                Icon(factor.icon, size: 24.sp, color: scheme.textPrimary.withAlpha(200)),
+                Gap.w16,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        factor.label,
+                        style: context.body.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary),
+                      ),
+                      Text(factor.description, style: context.caption.copyWith(color: scheme.textSecondary)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 2),
-                Text(factor.description, style: context.caption.copyWith(color: scheme.textSecondary, height: 1.2)),
+                if (factor.value.isNotEmpty) Text(factor.value, style: context.captionBold.copyWith(color: scheme.textSecondary)),
+                Gap.w12,
+                if (factor.useTick)
+                  Icon(AppIcons.check, size: 16.sp, color: factor.color)
+                else
+                  Container(
+                    width: 12.sp,
+                    height: 12.sp,
+                    decoration: BoxDecoration(color: factor.color, shape: BoxShape.circle),
+                  ),
+                if (factor.expandable) ...[Gap.w8, Icon(_isExpanded ? AppIcons.chevronUp : AppIcons.chevronDown, size: 16.sp, color: scheme.textMuted)],
               ],
             ),
           ),
-          if (factor.value.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: factor.color.withAlpha(26),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: factor.color.withAlpha(60), width: 0.8),
-              ),
-              child: Text(
-                factor.value,
-                style: context.captionBold.copyWith(color: factor.color, fontWeight: FontWeight.w900, fontSize: 10.sp),
-              ),
-            ),
-        ],
-      ),
+        ),
+        if (_isExpanded)
+          Padding(
+            padding: EdgeInsets.only(left: 40.w, bottom: 12.h),
+            child: factor.details.isNotEmpty
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: factor.details.map((detail) {
+                      final concern = AdditiveConcernDb.resolve(detail);
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 6.h),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(color: _getConcernColor(concern.level, scheme), shape: BoxShape.circle),
+                            ),
+                            Gap.w10,
+                            Expanded(
+                              child: Text(concern.displayTitle, style: context.caption.copyWith(color: scheme.textPrimary)),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  )
+                : Text(factor.longDescription, style: context.caption.copyWith(color: scheme.textSecondary, height: 1.4)),
+          ),
+      ],
     );
+  }
+
+  Color _getConcernColor(AdditiveConcernLevel level, AppColorScheme scheme) {
+    switch (level) {
+      case AdditiveConcernLevel.higher:
+        return scheme.error;
+      case AdditiveConcernLevel.moderate:
+        return scheme.warning;
+      case AdditiveConcernLevel.low:
+        return scheme.success;
+      case AdditiveConcernLevel.unknown:
+      default:
+        return scheme.textMuted;
+    }
   }
 }

@@ -158,7 +158,10 @@ class ChatComposerNotifier with ChangeNotifier {
   Future<bool> addAttachment(Uint8List bytes, {String source = 'gallery'}) async {
     if (_isLoading) return false;
     _attachments.clear();
-    final compressed = await _storageService.compressImage(bytes);
+    // Vision input, not a Storage thumbnail: the AI needs legible text for
+    // labels/menus, so this uses compressForAi() (~1280 px) instead of the
+    // ~320 px profile that compressImage() was written for.
+    final compressed = await _storageService.compressForAi(bytes);
     _attachments.add(ChatAttachment(id: const Uuid().v4(), bytes: compressed, source: source));
     await _analyticsService.logEvent(name: 'attachment_added', parameters: {'source': source});
     notifyListeners();

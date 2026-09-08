@@ -65,5 +65,72 @@ void main() {
 
       expect(result, 'COMPLETE_ANALYSIS');
     });
+
+    test('classifyTextIntent parses the JSON object the prompt asks for', () async {
+      // The intent prompt requests {"intent": "CATEGORY_NAME"} and the request
+      // runs in JSON mode, so this is the real production shape. Returning the
+      // raw JSON string silently broke the server-side per-intent max_tokens
+      // budget (resolveMaxTokens does an exact-match lookup).
+      when(
+        () => mockAiService.generateContent(
+          systemInstruction: any(named: 'systemInstruction'),
+          prompt: any(named: 'prompt'),
+          usageType: 'system',
+        ),
+      ).thenAnswer((_) async => '{"intent": "MEAL_RATING"}');
+
+      // Deliberately does not match any fast-path keyword, so the JSON branch runs.
+      final result = await classifierService.classifyTextIntent(userText: 'So, thoughts on that lunch?');
+
+      expect(result, 'MEAL_RATING');
+    });
+
+    test('classifyTextIntent normalises a canonical token from prose', () async {
+      when(
+        () => mockAiService.generateContent(
+          systemInstruction: any(named: 'systemInstruction'),
+          prompt: any(named: 'prompt'),
+          usageType: 'system',
+        ),
+      ).thenAnswer((_) async => 'The best match is SWAP_REQUEST here.');
+
+      final result = await classifierService.classifyTextIntent(userText: 'Make it healthier');
+
+      expect(result, 'SWAP_REQUEST');
+    });
+
+    test('classifyTextIntent resolves common phrasings on-device without a model call', () async {
+      // Otherwise every text turn pays a round trip before the reply can stream.
+      final result = await classifierService.classifyTextIntent(userText: 'How many calories are in this?');
+
+      expect(result, 'NUTRITION_ANALYSIS');
+      verifyNever(
+        () => mockAiService.generateContent(
+          systemInstruction: any(named: 'systemInstruction'),
+          prompt: any(named: 'prompt'),
+          usageType: any(named: 'usageType'),
+        ),
+      );
+    });
+
+    test('classifyTextIntent fast-path is case and whitespace tolerant', () async {
+      final result = await classifierService.classifyTextIntent(userText: '  Is This Healthy?  ');
+
+      expect(result, 'HEALTH_ASSESSMENT');
+    });
+
+    test('classifyTextIntent falls back to COMPLETE_ANALYSIS for an unknown intent', () async {
+      when(
+        () => mockAiService.generateContent(
+          systemInstruction: any(named: 'systemInstruction'),
+          prompt: any(named: 'prompt'),
+          usageType: 'system',
+        ),
+      ).thenAnswer((_) async => '{"intent": "FLY_TO_THE_MOON"}');
+
+      final result = await classifierService.classifyTextIntent(userText: 'Hello');
+
+      expect(result, 'COMPLETE_ANALYSIS');
+    });
   });
 }

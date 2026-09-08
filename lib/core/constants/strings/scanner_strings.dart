@@ -107,6 +107,7 @@ class ScannerStrings {
   static const String gutScoreLabel = 'GUT SCORE';
   static const String whyThisScore = 'Why this score';
   static const String scoreFootnote = 'Score starts at 50, then food facts move it up or down.';
+  static const String topThingsToKnow = 'Top things to know';
   static const String seeAll = 'See all';
   static const String perServing = 'Per serving';
   static const String gutImpact = 'Gut Impact';

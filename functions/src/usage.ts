@@ -18,6 +18,8 @@ export interface UsageCheckResult {
   count: number;
   limit: number;
   alreadyCounted: boolean;
+  /** Why a request was rejected ('quota' = daily/lifetime action limit). */
+  reason: 'ok' | 'quota';
 }
 
 function todayKey(timezoneOffsetMinutes: number = 0): string {
@@ -119,6 +121,7 @@ export async function checkAndConsume(
         count: (data[field] as number) ?? 0,
         limit: isPremium ? Number.MAX_SAFE_INTEGER : limit,
         alreadyCounted: true,
+        reason: 'ok',
       };
     }
 
@@ -130,12 +133,15 @@ export async function checkAndConsume(
         // 🟢 LIFETIME GUEST CHECK: PRD §4 requires guests to sign up after 2 actions total.
         const lifetimeCount = (userData[`${field}_lifetime`] as number) ?? 0;
         if (lifetimeCount >= limit) {
-          return { allowed: false, premium: false, count: lifetimeCount, limit, alreadyCounted: false };
+          return { allowed: false, premium: false, count: lifetimeCount, limit, alreadyCounted: false, reason: 'quota' };
         }
       } else if (dailyCount >= limit) {
-        return { allowed: false, premium: false, count: dailyCount, limit, alreadyCounted: false };
+        return { allowed: false, premium: false, count: dailyCount, limit, alreadyCounted: false, reason: 'quota' };
       }
     }
+
+    // NOTE: token counters (tokens_in / tokens_out) are recorded for cost
+    // visibility only — they are deliberately NOT used to gate requests.
 
     // 3. Prepare Updates
     const nextIds = idempotencyKey
@@ -173,8 +179,90 @@ export async function checkAndConsume(
       count: isAnonymous ? ((userData[`${field}_lifetime`] as number ?? 0) + 1) : (dailyCount + 1),
       limit: isPremium ? Number.MAX_SAFE_INTEGER : limit,
       alreadyCounted: false,
+      reason: 'ok',
     };
   });
+}
+
+/**
+ * Gives a credit back when the request was counted but the model never
+ * produced anything usable (upstream 5xx, empty content, dropped stream).
+ *
+ * The README promises "usage counters only increment on confirmed successful
+ * operations"; without this a failed AI call still costs the user a chat/scan.
+ * Only requests we actually counted (identified by their idempotency key) are
+ * refunded, and removing the key means a legitimate retry is counted afresh.
+ */
+export async function refund(
+  uid: string,
+  isAnonymous: boolean,
+  type: UsageType,
+  idempotencyKey?: string,
+  timezoneOffsetMinutes: number = 0,
+): Promise<void> {
+  if (!idempotencyKey) return;
+
+  const field = fieldFor(type);
+  const today = todayKey(timezoneOffsetMinutes);
+  const ref = admin.firestore().doc(`user_profiles/${uid}/daily_usage/${today}`);
+  const userRef = admin.firestore().doc(`user_profiles/${uid}`);
+
+  try {
+    await admin.firestore().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.data() ?? {};
+      const recentIds: string[] = Array.isArray(data.recentIds) ? data.recentIds : [];
+
+      if (!recentIds.includes(idempotencyKey)) return; // not counted, or already refunded
+
+      tx.set(
+        ref,
+        {
+          [field]: admin.firestore.FieldValue.increment(-1),
+          recentIds: recentIds.filter((id) => id !== idempotencyKey),
+        },
+        { merge: true },
+      );
+
+      if (isAnonymous) {
+        tx.set(userRef, { [`${field}_lifetime`]: admin.firestore.FieldValue.increment(-1) }, { merge: true });
+      }
+    });
+  } catch (e) {
+    console.error('refund failed', e);
+  }
+}
+
+/**
+ * Records real token consumption on the (client-write-protected) usage doc.
+ *
+ * Without this there is no cost attribution at all: analytics logs latency and
+ * failures, but nothing answers "what does this user cost per day?" or flags a
+ * single account burning an outlier number of tokens.
+ */
+export async function recordTokens(
+  uid: string,
+  timezoneOffsetMinutes: number,
+  inputTokens: number,
+  outputTokens: number,
+): Promise<void> {
+  if (!Number.isFinite(inputTokens) && !Number.isFinite(outputTokens)) return;
+
+  const today = todayKey(timezoneOffsetMinutes);
+  const ref = admin.firestore().doc(`user_profiles/${uid}/daily_usage/${today}`);
+
+  try {
+    await ref.set(
+      {
+        tokens_in: admin.firestore.FieldValue.increment(Math.max(0, Math.round(inputTokens) || 0)),
+        tokens_out: admin.firestore.FieldValue.increment(Math.max(0, Math.round(outputTokens) || 0)),
+        requests: admin.firestore.FieldValue.increment(1),
+      },
+      { merge: true },
+    );
+  } catch (e) {
+    console.error('recordTokens failed', e);
+  }
 }
 
 /**

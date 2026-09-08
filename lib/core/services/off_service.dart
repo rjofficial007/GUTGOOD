@@ -1,18 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:gutgood/core/constants/api_constants.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
+import 'package:gutgood/core/utils/yuka_score.dart';
 
 abstract class OffService {
   Future<OffProduct?> getProduct(String barcode);
-  Future<List<OffProduct>> getBetterAlternatives(
-    String? category,
-    String? currentGrade,
-  );
+  Future<List<OffProduct>> getBetterAlternatives(String? category, String? currentGrade);
 }
 
 class OffServiceImpl implements OffService {
@@ -22,12 +21,14 @@ class OffServiceImpl implements OffService {
   @override
   Future<OffProduct?> getProduct(String barcode) async {
     try {
-      final response = await _dio.get(
-        '${ApiConstants.offBaseUrl}${ApiConstants.productEndpoint}/$barcode.json',
-      );
+      final response = await _dio.get('${ApiConstants.offBaseUrl}${ApiConstants.productEndpoint}/$barcode', queryParameters: {'fields': ApiConstants.offProductFields});
       final data = response.data as Map<String, dynamic>;
       if (data.isNotEmpty && data['status'] == 1) {
-        return _mapProductData(data['product'] as Map<String, dynamic>);
+        final productData = data['product'] as Map<String, dynamic>;
+        AppLogger.data('OFF_RAW_RESPONSE', productData);
+        final mappedProduct = _mapProductData(productData);
+        AppLogger.data('OFF_MAPPED_PRODUCT', mappedProduct.toMap());
+        return mappedProduct;
       }
     } catch (e) {
       AppLogger.error('OffService: Error fetching product: $e');
@@ -42,50 +43,41 @@ class OffServiceImpl implements OffService {
 
     // Nutri-Score & NOVA
     final nutriscore = (product['nutriscore_grade'] as String?)?.toLowerCase();
-    final novaGroup = product['nova_group'] is int
-        ? product['nova_group'] as int
-        : null;
+    // Prefer the ORIGINAL-algorithm score. Yuka (and therefore our engine) uses
+    // the original Nutri-Score, and OFF's top-level `nutriscore_score` may move
+    // to the 2023 revision when it completes its migration. `nutriscore_data`
+    // keeps the original FSA score, so it is the stable choice.
+    final nutriscoreData = product['nutriscore_data'];
+    final nutriscoreScore =
+        (nutriscoreData is Map ? (nutriscoreData['score'] as num?)?.toInt() : null) ??
+        (product['nutriscore_score'] is int ? product['nutriscore_score'] as int : int.tryParse(product['nutriscore_score']?.toString() ?? ''));
+    final novaGroup = product['nova_group'] is int ? product['nova_group'] as int : null;
     final ecoscore = (product['ecoscore_grade'] as String?)?.toLowerCase();
 
     // Ingredients & Additives
-    final ingredientsText =
-        product['ingredients_text'] ?? product['ingredients_text_en'];
-    final ingredientsList = ModelUtils.parseList<Map<String, dynamic>>(
-      product['ingredients'],
-    ).map((i) => i['text']?.toString() ?? '').toList();
+    final ingredientsText = product['ingredients_text'] ?? product['ingredients_text_en'];
+    final ingredientsList = ModelUtils.parseList<Map<String, dynamic>>(product['ingredients']).map((i) => i['text']?.toString() ?? '').toList();
 
-    final additivesCount = product['additives_n'] is int
-        ? product['additives_n'] as int
-        : null;
-    final additivesTags = ModelUtils.parseList<dynamic>(
-      product['additives_tags'],
-    ).map((a) => a.toString().replaceAll('en:', '').toUpperCase()).toList();
+    final additivesCount = product['additives_n'] is int ? product['additives_n'] as int : null;
+    final additivesTags = ModelUtils.parseList<dynamic>(product['additives_tags']).map((a) => a.toString().replaceAll('en:', '').toUpperCase()).toList();
+
+    // 🚀 Robust Additive Detection: If OFF tags are empty/incomplete, parse from text.
+    final additivesFromText = AdditiveConcernDb.parseItems(ingredientsText);
+    final combinedAdditives = {...additivesTags, ...additivesFromText}.toList();
 
     // Allergens
-    final allergensTags =
-        ModelUtils.parseList<dynamic>(product['allergens_tags'])
-            .map(
-              (a) => a.toString().replaceAll('en:', '').replaceAll('fr:', ''),
-            )
-            .toList();
+    final allergensTags = ModelUtils.parseList<dynamic>(product['allergens_tags']).map((a) => a.toString().replaceAll('en:', '').replaceAll('fr:', '')).toList();
     final allergensText = product['allergens'];
 
     // Labels & Categories
-    final labels = ModelUtils.parseList<dynamic>(
-      product['labels_tags'],
-    ).map((l) => l.toString().replaceAll('en:', '')).toList();
+    final labels = ModelUtils.parseList<dynamic>(product['labels_tags']).map((l) => l.toString().replaceAll('en:', '')).toList();
     final category = product['categories_en'] ?? product['categories'];
-    final categoriesTags = ModelUtils.parseList<dynamic>(
-      product['categories_tags'],
-    );
-    final categoryTag = categoriesTags.isNotEmpty
-        ? categoriesTags.last.toString()
-        : null;
+    final categoriesTags = ModelUtils.parseList<dynamic>(product['categories_tags']);
+    final categoryTag = categoriesTags.isNotEmpty ? categoriesTags.last.toString() : null;
 
     // Nutrition
     final nutrientsRaw = product['nutriments'] as Map<String, dynamic>? ?? {};
-    final nutrientLevelsRaw =
-        product['nutrient_levels'] as Map<String, dynamic>? ?? {};
+    final nutrientLevelsRaw = product['nutrient_levels'] as Map<String, dynamic>? ?? {};
 
     final nutrients = NutrientData(
       calories: nutrientsRaw['energy-kcal_100g'],
@@ -105,11 +97,22 @@ class OffServiceImpl implements OffService {
       saturatedFat: nutrientLevelsRaw['saturated-fat']?.toString() ?? 'unknown',
     );
 
-    // Calculate Score (0-100) using the unified GutScoreUtils
-    int? score;
-    if (nutriscore != null || novaGroup != null) {
-      score = GutScoreUtils.calculateGutScore(nutriscore, novaGroup);
-    }
+    // Score (0-100) from the one scoring engine (`yuka_score.dart`), so a
+    // product shows the same number everywhere: search results, alternatives
+    // and the scan result screen.
+    final breakdown = YukaScore.evaluate(
+      nutriscore: nutriscore,
+      nutriscoreScore: nutriscoreScore,
+      energyKcal: nutrients.calories,
+      fiberG: nutrients.fiber,
+      proteinG: nutrients.proteins,
+      sugarG: nutrients.sugars,
+      saltG: nutrients.salt,
+      saturatedFatG: nutrients.saturatedFat,
+      additiveConcerns: AdditiveConcernDb.resolveAll(combinedAdditives),
+      isOrganic: YukaScore.detectOrganic(labels),
+    );
+    final score = breakdown.hasData ? breakdown.score : null;
 
     return OffProduct(
       productName: name ?? 'Unknown Product',
@@ -120,77 +123,50 @@ class OffServiceImpl implements OffService {
       status: score != null ? GutScoreUtils.getStatus(score) : null,
       statusColor: score != null ? GutScoreUtils.getStatusColor(score) : null,
       nutriscore: nutriscore,
+      nutriscoreScore: nutriscoreScore,
+      isOrganic: YukaScore.detectOrganic(labels),
       novaGroup: novaGroup,
       ecoscore: ecoscore,
       ingredientsText: ingredientsText,
       ingredients: ingredientsList,
-      additivesCount: additivesCount,
-      additives: additivesTags,
+      additivesCount: combinedAdditives.length,
+      additives: combinedAdditives,
       allergens: allergensTags,
       allergensText: allergensText,
       labels: labels,
       category: category,
       categoryTag: categoryTag,
+      servingSize: product['serving_size']?.toString(),
       nutrientLevels: nutrientLevels,
       nutrients: nutrients,
       impacts: _generateImpacts(nutriscore, novaGroup, ingredientsText ?? ''),
+      miscTags: ModelUtils.parseList<String>(product['misc_tags']),
     );
   }
 
-  List<ImpactDetail> _generateImpacts(
-    String? nutriscore,
-    dynamic nova,
-    String ingredients,
-  ) {
+  List<ImpactDetail> _generateImpacts(String? nutriscore, dynamic nova, String ingredients) {
     final impacts = <ImpactDetail>[];
 
     if (nova == 1) {
-      impacts.add(
-        const ImpactDetail(
-          title: AppStrings.minimallyProcessed,
-          level: 'Positive',
-          color: 'green',
-        ),
-      );
+      impacts.add(const ImpactDetail(title: AppStrings.minimallyProcessed, level: 'Positive', color: 'green'));
     } else if (nova == 4) {
-      impacts.add(
-        const ImpactDetail(
-          title: AppStrings.ultraProcessed,
-          level: 'Negative',
-          color: 'red',
-        ),
-      );
+      impacts.add(const ImpactDetail(title: AppStrings.ultraProcessed, level: 'Negative', color: 'red'));
     }
 
     final lowerIng = ingredients.toLowerCase();
     if (lowerIng.contains('sugar') || lowerIng.contains('syrup')) {
-      impacts.add(
-        const ImpactDetail(
-          title: AppStrings.addedSugars,
-          level: 'Negative',
-          color: 'orange',
-        ),
-      );
+      impacts.add(const ImpactDetail(title: AppStrings.addedSugars, level: 'Negative', color: 'orange'));
     }
 
     if (nutriscore == 'a' || nutriscore == 'b') {
-      impacts.add(
-        const ImpactDetail(
-          title: AppStrings.nutrientDense,
-          level: 'Positive',
-          color: 'green',
-        ),
-      );
+      impacts.add(const ImpactDetail(title: AppStrings.nutrientDense, level: 'Positive', color: 'green'));
     }
 
     return impacts;
   }
 
   @override
-  Future<List<OffProduct>> getBetterAlternatives(
-    String? category,
-    String? currentGrade,
-  ) async {
+  Future<List<OffProduct>> getBetterAlternatives(String? category, String? currentGrade) async {
     if (category == null || category.isEmpty) return [];
 
     // Determine target grades
@@ -212,19 +188,12 @@ class OffServiceImpl implements OffService {
 
     // Try Search-a-licious (Modern, more stable for search)
     try {
-      final gradesFilter = targetGrades
-          .map((g) => 'nutrition_grades:$g')
-          .join(' OR ');
+      final gradesFilter = targetGrades.map((g) => 'nutrition_grades:$g').join(' OR ');
       final categoryFilter = category.contains(':') ? category : 'en:$category';
 
       // Search-a-licious URL
       const url = 'https://search.openfoodfacts.org/search';
-      final params = {
-        'q': 'categories_tags:$categoryFilter AND ($gradesFilter)',
-        'sort_by': 'nutriscore_score',
-        'fields': 'product_name,brands,image_front_url,nutrition_grades,code',
-        'size': 5,
-      };
+      final params = {'q': 'categories_tags:$categoryFilter AND ($gradesFilter)', 'sort_by': 'nutriscore_score', 'fields': 'product_name,brands,image_front_url,nutrition_grades,code', 'size': 5};
 
       final response = await _dio.get(url, queryParameters: params);
 
@@ -238,18 +207,13 @@ class OffServiceImpl implements OffService {
             brand: product['brands'] ?? 'Unknown Brand',
             imageUrl: product['image_front_url'],
             nutriscore: (product['nutrition_grades'] as String?)?.toLowerCase(),
-            score: GutScoreUtils.calculateGutScore(
-              (product['nutrition_grades'] as String?)?.toLowerCase(),
-              null,
-            ),
+            score: YukaScore.evaluate(nutriscore: (product['nutrition_grades'] as String?)?.toLowerCase()).score,
             barcode: product['code'],
           );
         }).toList();
       }
     } catch (e) {
-      AppLogger.error(
-        'OffService: Search-a-licious failed, falling back to v2: $e',
-      );
+      AppLogger.error('OffService: Search-a-licious failed, falling back to v2: $e');
 
       // Fallback to v2 API (Legacy, might be 503 but better than nothing)
       try {
@@ -268,18 +232,14 @@ class OffServiceImpl implements OffService {
               productName: product['product_name'] ?? 'Unknown Product',
               brand: product['brands'] ?? 'Unknown Brand',
               imageUrl: product['image_front_url'],
-              nutriscore: (product['nutrition_grades'] as String?)
-                  ?.toLowerCase(),
-              score: GutScoreUtils.calculateGutScore(
-                (product['nutrition_grades'] as String?)?.toLowerCase(),
-                null,
-              ),
+              nutriscore: (product['nutrition_grades'] as String?)?.toLowerCase(),
+              score: YukaScore.evaluate(nutriscore: (product['nutrition_grades'] as String?)?.toLowerCase()).score,
               barcode: product['code'],
             );
           }).toList();
         }
       } catch (e2) {
-      AppLogger.scanner('V2 Fallback also failed: $e2');
+        AppLogger.scanner('V2 Fallback also failed: $e2');
       }
     }
     return [];

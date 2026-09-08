@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/strings/chat_strings.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
@@ -22,6 +23,7 @@ import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart'
 import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:gutgood/features/chat/presentation/widgets/chat_components.dart';
+import 'package:gutgood/features/chat/presentation/widgets/report_ai_response_sheet.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
@@ -954,6 +956,28 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                       onQuotaPressed: () => unawaited(showPaywallScreen(context, onProceedWithLimited: () {})),
                       showFeedback: isLatestAi && !isStreaming && msg.text.isNotEmpty && msg.scanData == null && msg.swapData == null && msg.errorKind == ChatErrorKind.none,
                       feedback: msg.feedback,
+                      onReport: () async {
+                        HapticHelper.light();
+
+                        final report = await showReportAiResponseSheet(
+                          ctx,
+                          messageText: msg.text,
+                          messageId: msg.localId,
+                        );
+
+                        if (report == null) return;
+
+                        await historyNotifier.submitAiReport(report);
+
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(
+                              content: Text(ChatStrings.reportThanks),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
                       onFeedback: (type) async {
                         if (msg.feedback != null && type != AppStrings.labelTellMeMore) {
                           return;

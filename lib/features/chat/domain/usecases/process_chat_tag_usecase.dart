@@ -73,6 +73,12 @@ class ProcessChatTagUseCase {
         if (decoded['menu'] != null) {
           scanMap['menu'] = decoded['menu'];
         }
+        // The layered insight (positives / ranked concerns / nutrition /
+        // personalised / warnings) lives as a sibling of "scan" in the unified
+        // block, so fold it in here — the scan model can't see it otherwise.
+        if (decoded['insight'] != null) {
+          scanMap['insight'] = decoded['insight'];
+        }
         // 🚀 Professional ID Mapping: Ensure the scanId used in Firestore (convention: msgId_scan)
         // is attached to the model so hydration works correctly when viewing full reports.
         // We also pass 'decoded' as rawData so all context (meal strategy, etc.) is preserved.

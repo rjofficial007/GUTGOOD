@@ -105,7 +105,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
                       // 3. Quick-signal metric cards (Gut Impact, NOVA, Gut Barrier, Processing)
                       DashboardEntrance(delay: 150, child: ScanMetricsRow(scanData: _currentData)),
-                      Gap.h12,
+                      Gap.h16,
 
                       // 4. What works for you (Positives)
                       DashboardEntrance(delay: 200, child: ScanWorkingSection(scanData: _currentData)),
@@ -116,7 +116,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       Gap.h12,
 
                       // 6. What this means for you (hidden when the AI gave no narrative)
-                      if (_currentData.impact.isNotEmpty) ...[DashboardEntrance(delay: 300, child: ScanMeaningCard(scanData: _currentData)), Gap.h12],
+                      if (_currentData.impact.isNotEmpty) ...[DashboardEntrance(delay: 300, child: ScanTopInsightsCard(scanData: _currentData)), Gap.h12],
 
                       // 7. Cycle Insight (Hormonal Phase Advice if Enabled)
                       if (_currentData.cycleInsight != null && cycleSyncEnabled) ...[DashboardEntrance(delay: 320, child: CycleInsightSection(insight: _currentData.cycleInsight!)), Gap.h12],
@@ -128,12 +128,12 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       DashboardEntrance(delay: 360, child: ScanAdditivesSection(scanData: _currentData)),
                       Gap.h12,
 
-                      // 10. Ingredients card (tappable → ingredient list)
-                      DashboardEntrance(delay: 380, child: ScanIngredientsCard(scanData: _currentData)),
+                      // 10. Ingredients section (modern cards → ingredient list)
+                      DashboardEntrance(delay: 380, child: ScanIngredientsSection(scanData: _currentData)),
                       Gap.h12,
 
-                      // 11. Allergens card (tappable → allergen list)
-                      DashboardEntrance(delay: 400, child: ScanAllergensCard(scanData: _currentData)),
+                      // 11. Allergens section (modern cards → allergen list)
+                      DashboardEntrance(delay: 400, child: ScanAllergensSection(scanData: _currentData)),
                       Gap.h12,
 
                       // 12. Scan details (provenance footer)
@@ -142,7 +142,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
                       // 13. Footer nudge into chat
                       const DashboardEntrance(delay: 440, child: ScanFooterCard()),
-                      Gap.h24,
                     ],
                   ),
                 ),

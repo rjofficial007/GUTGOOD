@@ -30,15 +30,7 @@ enum AdditiveConcernLevel {
 }
 
 class AdditiveConcern {
-  const AdditiveConcern({
-    required this.code,
-    required this.name,
-    required this.whatItIs,
-    required this.whyUsed,
-    required this.level,
-    required this.whyFlagged,
-    required this.explanation,
-  });
+  const AdditiveConcern({required this.code, required this.name, required this.whatItIs, required this.whyUsed, required this.level, required this.whyFlagged, required this.explanation});
 
   /// Display code, e.g. 'E621'. Empty for name-only entries like 'Palm Oil'.
   final String code;
@@ -692,8 +684,7 @@ class AdditiveConcernDb {
     whyUsed: 'Leavens cakes, biscuits and batters.',
     level: AdditiveConcernLevel.low,
     whyFlagged: '',
-    explanation:
-        'Kitchen-cupboard stuff for centuries. Adds a little sodium, nothing else to think about.',
+    explanation: 'Kitchen-cupboard stuff for centuries. Adds a little sodium, nothing else to think about.',
   );
 
   static const AdditiveConcern _palmOil = AdditiveConcern(
@@ -1119,6 +1110,5 @@ class AdditiveConcernDb {
     return found;
   }
 
-  static String _titleCase(String input) =>
-      input.toLowerCase().split(' ').map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+  static String _titleCase(String input) => input.toLowerCase().split(' ').map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
 }

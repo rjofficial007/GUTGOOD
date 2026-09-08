@@ -175,11 +175,17 @@ class ScannerNotifier with ChangeNotifier {
     try {
       final userImageUrl = await _storageService.uploadFoodImage(bytes);
 
+      // Compress ONCE for the vision pipeline and reuse these bytes for both
+      // the classifier and the analysis call. Previously the raw camera/gallery
+      // bytes (1.5-5 MB) were sent twice: the proxy silently dropped images
+      // above ~1.2 MB, so the model analysed nothing and the scan still failed.
+      final aiBytes = await _storageService.compressForAi(bytes);
+
       final profile = await _authFirestoreService.getUserMetadata();
       final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
 
       final result = await _repository.analyzeImageWithAi(
-        imageBytes: bytes,
+        imageBytes: aiBytes,
         mode: mode ?? 'unknown',
         goals: profile?.goals ?? [],
         sensitivities: profile?.sensitivities ?? [],

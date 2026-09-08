@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/models/scan_insight.dart';
+import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
@@ -17,6 +19,7 @@ import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
+import 'package:gutgood/core/utils/yuka_score.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:uuid/uuid.dart';
@@ -57,6 +60,84 @@ class ScannerRepositoryImpl implements ScannerRepository {
   @override
   Future<OffProduct?> getProductByBarcode(String barcode) async => _offService.getProduct(barcode);
 
+  /// Runs the deterministic scoring engine and attaches an ENGINE-AUTHORED
+  /// score + explanation to the scan's insight.
+  ///
+  /// Product requirement §7 asks for `Data → Scoring Engine → Score → AI
+  /// Explanation` rather than `Data → LLM → arbitrary score`. The model
+  /// supplies the structured inputs; it never authors the number, and the
+  /// "why" is composed from the engine's own signed factors so the text can
+  /// never contradict the number.
+  ///
+  /// When [nutriscore]/[novaGroup]/[nutrients] are supplied by a trusted source
+  /// (Open Food Facts) they win over the model's estimates.
+  ScanResult _applyEngineScore(
+    ScanResult scan, {
+    String? nutriscore,
+    int? nutriscoreScore,
+    int? novaGroup,
+    num? energyKcal,
+    num? fiberG,
+    num? proteinG,
+    num? sugarG,
+    num? saltG,
+    num? saturatedFatG,
+    List<String>? additiveItems,
+    bool? isOrganic,
+    bool deferToModelWhenNoData = false,
+    List<String>? miscTags,
+  }) {
+    final resolvedAdditives = <String>{...?additiveItems, ...scan.additiveItems};
+    final additiveConcerns = AdditiveConcernDb.resolveAll(resolvedAdditives);
+
+    final breakdown = YukaScore.evaluate(
+      nutriscore: nutriscore ?? scan.nutriscore,
+      nutriscoreScore: nutriscoreScore,
+      energyKcal: energyKcal ?? scan.nutrients?.calories,
+      fiberG: fiberG ?? scan.nutrients?.fiber,
+      proteinG: proteinG ?? scan.nutrients?.proteins,
+      sugarG: sugarG ?? scan.nutrients?.sugars,
+      saltG: saltG ?? scan.nutrients?.salt,
+      saturatedFatG: saturatedFatG ?? scan.nutrients?.saturatedFat,
+      additiveConcerns: additiveConcerns,
+      isOrganic: isOrganic,
+    );
+
+    // SAFEGUARD: for a *photo* scan the model has usually reasoned about the
+    // food even where it cannot estimate grams. Overriding its score with a
+    // data-less engine result would make every photo scan look identical, so
+    // when the engine has nothing to go on, callers that opt in keep the
+    // model's score instead.
+    if (!breakdown.hasData && deferToModelWhenNoData) {
+      AppLogger.ai('ScannerRepository: engine had no usable inputs — keeping model score ${scan.score}');
+      return scan;
+    }
+
+    // No signal at all and no model score to defer to: stay neutral — but say
+    // WHY. A bare neutral 50 reads as "the app is broken"; Open Food Facts
+    // usually tells us exactly what is missing, so pass that through.
+    if (!breakdown.hasData) {
+      final reason = ModelUtils.unscorableReason(miscTags);
+      return scan.copyWith(
+        score: 50,
+        insight: reason == null
+            ? scan.insight
+            : (scan.insight ?? const ScanInsight()).copyWith(scoreExplanation: reason),
+      );
+    }
+
+    final score = breakdown.score;
+    AppLogger.ai('ScannerRepository: engine score $score (nutrition ${breakdown.nutritionSubscore}, additives ${breakdown.additiveSubscore}, organic ${breakdown.organicSubscore})');
+
+    return scan.copyWith(
+      score: score,
+      insight: (scan.insight ?? const ScanInsight()).copyWith(
+        scoreFactors: breakdown.factors,
+        scoreExplanation: breakdown.explanation,
+      ),
+    );
+  }
+
   @override
   Future<AiAnalysisResult> analyzeProductWithAi({
     required OffProduct product,
@@ -88,24 +169,22 @@ class ScannerRepositoryImpl implements ScannerRepository {
       // Merge OFF additive tags (ground-truth E-codes) with AI-extracted items
       // so per-additive detail + concern-based scoring always have data.
       final mergedAdditives = <String>{...scan.additiveItems, ...?product.additives};
-      final additiveConcerns = AdditiveConcernDb.resolveAll(mergedAdditives);
-      final deterministicScore = ModelUtils.computeDeterministicScore(
+
+      // OFF label data is ground truth, so it drives the score (not the model).
+      final updatedScan = _applyEngineScore(
+        scan.copyWith(barcode: product.barcode, imageUrl: product.imageUrl, additiveItems: mergedAdditives.toList(), createdAt: DateTime.now()),
         nutriscore: product.nutriscore,
+        nutriscoreScore: product.nutriscoreScore,
         novaGroup: int.tryParse(product.novaGroup?.toString() ?? ''),
+        energyKcal: product.nutrients?.calories,
         fiberG: product.nutrients?.fiber,
         proteinG: product.nutrients?.proteins,
         sugarG: product.nutrients?.sugars,
         saltG: product.nutrients?.salt,
         saturatedFatG: product.nutrients?.saturatedFat,
-        additiveConcerns: additiveConcerns,
-      );
-
-      final updatedScan = scan.copyWith(
-        score: deterministicScore,
-        barcode: product.barcode,
-        imageUrl: product.imageUrl,
         additiveItems: mergedAdditives.toList(),
-        createdAt: DateTime.now(),
+        isOrganic: product.isOrganic,
+        miscTags: product.miscTags,
       );
 
       await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'barcode', 'product_name': updatedScan.productName, 'score': updatedScan.score});
@@ -146,7 +225,16 @@ class ScannerRepositoryImpl implements ScannerRepository {
       mode: 'plain',
     );
 
-    final result = _processChatTagUseCase(aiResultStr, userText: userText, source: classification.imageMode);
+    var result = _processChatTagUseCase(aiResultStr, userText: userText, source: classification.imageMode);
+
+    // Photo scans used to take whatever score the model invented. Run the same
+    // deterministic engine used for barcode scans over the model's structured
+    // extraction instead, and attach the engine's factors as the explanation.
+    // (Values are estimates here — `nutritionEstimated` already tells the UI.)
+    final visionScan = result.scan;
+    if (visionScan != null) {
+      result = result.copyWith(scan: _applyEngineScore(visionScan, deferToModelWhenNoData: true));
+    }
 
     // Add classification info to result
     final finalResult = result.copyWith(imageMode: classification.imageMode, intent: classification.intent);

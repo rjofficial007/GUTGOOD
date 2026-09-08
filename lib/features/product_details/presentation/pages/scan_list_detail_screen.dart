@@ -38,14 +38,19 @@ class ScanListDetailScreen extends StatelessWidget {
                       delay: 50,
                       child: BentoCard(
                         padding: const EdgeInsets.all(16),
-                        borderRadius: 16,
+                        borderRadius: 20,
                         backgroundColor: scheme.error.withAlpha(14),
                         borderColor: scheme.error.withAlpha(50),
                         child: Row(
                           children: [
                             Icon(Icons.warning_amber_rounded, size: 18.sp, color: scheme.error),
                             Gap.w10,
-                            Expanded(child: Text(AppStrings.allergenCaution, style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp, height: 1.5))),
+                            Expanded(
+                              child: Text(
+                                AppStrings.allergenCaution,
+                                style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp, height: 1.5),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -53,7 +58,11 @@ class ScanListDetailScreen extends StatelessWidget {
                   if (args.kind == ScanListKind.allergens) Gap.h12,
                   DashboardEntrance(
                     delay: 100,
-                    child: BentoCard(padding: const EdgeInsets.all(16), borderRadius: 20, child: Column(children: _rows(context))),
+                    child: BentoCard(
+                      padding: const EdgeInsets.all(16),
+                      borderRadius: 20,
+                      child: Column(children: _rows(context)),
+                    ),
                   ),
                   Gap.h40,
                 ],
@@ -116,14 +125,25 @@ class _IngredientRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
           Gap.w12,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: context.labelBold.copyWith(fontWeight: FontWeight.w800, fontSize: 13.sp)),
-                if (impact.isNotEmpty) Text(impact, style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.5.sp, height: 1.4)),
+                Text(
+                  name,
+                  style: context.labelBold.copyWith(fontWeight: FontWeight.w800, fontSize: 13.sp),
+                ),
+                if (impact.isNotEmpty)
+                  Text(
+                    impact,
+                    style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.5.sp, height: 1.4),
+                  ),
               ],
             ),
           ),
@@ -150,7 +170,12 @@ class _AllergenRow extends StatelessWidget {
             child: Icon(Icons.warning_amber_rounded, size: 15.sp, color: scheme.error),
           ),
           Gap.w12,
-          Expanded(child: Text(name, style: context.labelBold.copyWith(fontWeight: FontWeight.w800, fontSize: 13.sp))),
+          Expanded(
+            child: Text(
+              name,
+              style: context.labelBold.copyWith(fontWeight: FontWeight.w800, fontSize: 13.sp),
+            ),
+          ),
         ],
       ),
     );
@@ -173,14 +198,26 @@ class _ConcernRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
             Gap.w12,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(concern.displayTitle, style: context.labelBold.copyWith(fontWeight: FontWeight.w800, fontSize: 13.sp)),
-                  Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.5.sp)),
+                  Text(
+                    concern.displayTitle,
+                    style: context.labelBold.copyWith(fontWeight: FontWeight.w800, fontSize: 13.sp),
+                  ),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.5.sp),
+                  ),
                 ],
               ),
             ),
@@ -188,7 +225,10 @@ class _ConcernRow extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(color: color.withAlpha(22), borderRadius: BorderRadius.circular(6)),
-              child: Text(concern.level.label, style: context.captionBold.copyWith(color: color, fontSize: 10.sp)),
+              child: Text(
+                concern.level.label,
+                style: context.captionBold.copyWith(color: color, fontSize: 10.sp),
+              ),
             ),
             Gap.w4,
             Icon(AppIcons.chevronRight, size: 18.sp, color: scheme.textMuted),

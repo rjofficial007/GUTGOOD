@@ -23,78 +23,54 @@ export const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 
 export const DEFAULT_MODEL = 'gpt-4o-mini';
 
+/**
+ * Model allowlist.
+ *
+ * The client sends `model` (currently via Remote Config). Forwarding an
+ * arbitrary string means a tampered client — or a typo in Remote Config — can
+ * silently move every user onto an expensive model. Unknown values fall back to
+ * [DEFAULT_MODEL] instead of reaching OpenAI.
+ */
+const ALLOWED_MODELS = new Set(['gpt-4o-mini', 'gpt-4o']);
+
+export function resolveModel(requested: string | undefined | null): string {
+  const model = (requested ?? '').trim();
+  return ALLOWED_MODELS.has(model) ? model : DEFAULT_MODEL;
+}
+
 // Safety rails (mirror client-side validation; client can never raise these).
 export const MAX_IMAGES_PER_REQUEST = 4;
 export const MAX_IMAGE_BASE64_CHARS = 1_600_000; // ≈1.2 MB decoded
 export const MAX_HISTORY_MESSAGES = 30;
-export const MAX_TEXT_CHARS = 8_000;
-export const MAX_SYSTEM_CHARS = 16_000;
+export const MAX_TEXT_CHARS = 8_000;   // per-turn user text
+export const MAX_PROMPT_CHARS = 32_000; // one-shot prompts (insights, analysis)
+// The chat system instruction measures 15.9k chars for a light profile and
+// 16.4k for a power user, so 16k truncated real requests mid-instruction.
+// Keep this above the worst case and log whenever it is hit (see ai_proxy).
+export const MAX_SYSTEM_CHARS = 24_000;
 
 // Free-tier limits, enforced server-side (PRD §10: 3-5 chats/day, 3 scans/day;
 // guests get 1-2 free actions before being asked to create an account - PRD §4).
+// `tokens` is a daily backstop on total tokens for non-premium users.
 export const LIMITS = {
-  registered: { chat: 5, scan: 3, system: 20 },
-  guest: { chat: 2, scan: 2, system: 10 },
+  registered: { chat: 5, scan: 3, system: 20, tokens: 120_000 },
+  guest: { chat: 2, scan: 2, system: 10, tokens: 40_000 },
 } as const;
 
 export type UsageType = 'chat' | 'scan' | 'system';
 
 // ---------------------------------------------------------------------------
-// Per-intent token budgets (audit §C.5 / §O item 11).
+// Response ceiling.
 //
-// Previously a single flat ceiling (2048 text / 4096 vision) was applied to
-// every request regardless of intent, even though the app already knows the
-// user's intent before calling the model. Short-by-design replies (a rating,
-// a swap suggestion, a head-to-head comparison) don't need the same ceiling
-// as a full breakdown — right-sizing saves cost with no quality loss.
+// Policy: NO artificial limit on the AI's reply. Per-intent budgets (900 / 1536
+// / 2048 tokens) were tried and removed — they silently cut good answers off
+// mid-sentence, and unfinished JSON breaks [GUTGOOD_DATA] parsing outright.
+// Unused headroom costs nothing: you are only billed for tokens generated.
 //
-// Vision turns (images present) always keep the larger budget: the model
-// needs room to describe what it sees *and* emit the full [GUTGOOD_DATA]
-// block, regardless of the conversational intent of that turn.
+// This is the model's own output ceiling (gpt-4o-mini / gpt-4o), used purely as
+// a guard against a runaway generation.
 // ---------------------------------------------------------------------------
-const DEFAULT_TEXT_MAX_TOKENS = 2048;
-const VISION_MAX_TOKENS = 4096;
-
-const SHORT_INTENTS = new Set([
-  'MEAL_RATING',
-  'RATE_MEAL',
-  'SWAP_REQUEST',
-  'MEAL_SWAPS',
-  'IMPROVEMENT_REQUEST',
-  'IMPROVE',
-  'NUTRITION_COMPARISON',
-  'PRODUCT_COMPARISON',
-  'GENERAL_CHAT',
-]);
-const SHORT_INTENT_MAX_TOKENS = 900;
-
-const MEDIUM_INTENTS = new Set([
-  'HEALTH_ASSESSMENT',
-  'IS_HEALTHY',
-  'SYMPTOM_ANALYSIS',
-  'GENERAL_WELLNESS',
-  'GENERAL_FOOD_QUESTION',
-  'NUTRITION_ANALYSIS',
-  'MEAL_RECOGNITION',
-]);
-const MEDIUM_INTENT_MAX_TOKENS = 1536;
-
-/**
- * Resolve the `max_tokens` ceiling for a single OpenAI request.
- * `intent` is the free-form intent string forwarded by the client (already
- * classified before the model call); unknown/absent intents fall back to the
- * previous flat behavior so this is purely additive for recognized intents.
- */
-export function resolveMaxTokens(intent: string | undefined | null, hasImages: boolean): number {
-  if (hasImages) return VISION_MAX_TOKENS;
-
-  const normalized = (intent ?? '').toUpperCase().trim();
-  if (!normalized) return DEFAULT_TEXT_MAX_TOKENS;
-
-  if (SHORT_INTENTS.has(normalized)) return SHORT_INTENT_MAX_TOKENS;
-  if (MEDIUM_INTENTS.has(normalized)) return MEDIUM_INTENT_MAX_TOKENS;
-  return DEFAULT_TEXT_MAX_TOKENS;
-}
+export const MAX_OUTPUT_TOKENS = 16_384;
 
 // How long an idempotency key stays deduplicated inside the daily usage doc.
 export const IDEMPOTENCY_KEY_RETENTION = 25;

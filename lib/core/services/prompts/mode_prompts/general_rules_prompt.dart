@@ -53,6 +53,29 @@ NEVER populate a high-confidence module within the [GUTGOOD_DATA] block with les
 Use qualifying language: "may", "could", "appears to", "your logs suggest".
 ''';
 
+  /// How the model must reason about what it detected.
+  ///
+  /// Added to close the gap between "here are the nutrition facts" and "here is
+  /// what this means for you". These rules are the difference between a
+  /// competitor-grade generic report and a judgement the user trusts — and they
+  /// double as the safety rails (no fear language, no unsupported claims, no
+  /// invented personalisation).
+  static const String analysisDiscipline = '''
+ANALYSIS DISCIPLINE (applies to every insight you produce)
+1. GROUND EVERY CLAIM in the data you were given. If it is not in the data, do not say it.
+2. RANK, DON'T LIST: name the few factors that would actually change a decision. Never 10-15 equal-weight points.
+3. SEVERITY IS NOT BINARY: separate minor consideration / moderate concern / important concern / higher concern. Most flagged items are minor — say so plainly.
+4. DOSE AND PORTION MATTER: a trace ingredient, or a food eaten in a small serving, is usually a MINOR consideration. Judge significance in context, not by mere presence.
+5. SEPARATE FACT FROM INTERPRETATION: "the label lists 1.2 g salt per serving" is a fact; "that is high for a snack" is your reading.
+6. NO UNSUPPORTED HEALTH CLAIMS: never say a food cures, treats, or causes a disease. Never diagnose.
+7. NO FEAR LANGUAGE: "higher concern" does not mean "dangerous". Avoid alarming wording about additives or ingredients.
+8. STATE UNCERTAINTY when data is missing, blurry, or estimated — say what you could not determine and why.
+9. PERSONALIZE ONLY WITH EVIDENCE: use the profile and scan history actually supplied, and cite the supporting fact. Never invent goals, preferences, or past scans.
+10. BE CONSISTENT: the same product data should produce the same judgement on every turn.
+11. QUALITY OVER LENGTH: three sharp, specific points beat a page of generic nutrition commentary.
+12. END WITH ACTION: say what to do differently. If nothing needs to change, say so plainly.
+''';
+
   static const String strictFormattingRules = '''
 STRICT FORMATTING RULES
 1. BOLD GREETING: The very first line must be a bold, empathetic greeting (e.g., **That looks like a nutrient-dense lunch!**).

@@ -37,6 +37,10 @@ class EmptyStateWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
+    // Scrollable so the empty state degrades gracefully in a short container
+    // (small devices, landscape, or large accessibility text) instead of
+    // overflowing with the black/yellow striped error.
+    child: SingleChildScrollView(
     child: Padding(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? AppSizes.p16 : AppSizes.p40,
@@ -81,6 +85,7 @@ class EmptyStateWidget extends StatelessWidget {
           ],
         ],
       ),
+    ),
     ),
   );
 }

@@ -31,6 +31,7 @@ class Prompts {
   static String get _safetyRules => GeneralRulesPrompt.safetyRules;
   static String get _patternEngineRules => GeneralRulesPrompt.patternEngineRules;
   static String get _strictFormattingRules => GeneralRulesPrompt.strictFormattingRules;
+  static String get _analysisDiscipline => GeneralRulesPrompt.analysisDiscipline;
 
   // ---------------------------------------------------------------------------
   // IMAGE CLASSIFICATION
@@ -89,6 +90,12 @@ $historySummary
         normalizedIntent.contains('MENU') ||
         normalizedIntent.contains('INGREDIENT');
 
+    // The schema body is emitted ONCE (see the static block below). It used to
+    // be interpolated a second time inside `formatInstruction`, which cost
+    // ~790 tokens on every single turn and made the model see the same
+    // contract twice.
+    final includeSchema = includeStructuredSchemas && !isLabelOrMenu;
+
     final formatInstruction = isLabelOrMenu
         ? '''
 STRICT FORMAT (TOKEN OPTIMIZATION FOR LABELS & MENUS):
@@ -96,19 +103,25 @@ Provide ONLY your clean conversational Markdown response.
 CRITICAL: Do NOT output a [GUTGOOD_DATA] block or any JSON tags at all.
 '''
         : '''
-STRICT FORMAT: 
+STRICT FORMAT:
 [Conversational Response in Markdown]
-
-${SchemaDefinitions.unifiedDataSchema}
+${includeSchema ? '\nThen emit exactly ONE [GUTGOOD_DATA] block matching the JSON schema defined above.' : '\nEmit no [GUTGOOD_DATA] block for this turn.'}
 ''';
 
+    // -------------------------------------------------------------------------
+    // ORDERING CONTRACT (cost + cacheability) — please don't reshuffle blindly.
+    //
+    // OpenAI prompt caching only discounts the longest *identical prefix* of a
+    // request (minimum ~1024 tokens). Everything above the DYNAMIC CONTEXT
+    // marker is byte-identical for a given turn shape, so it is cacheable;
+    // everything that varies per user or per request (time, profile, cycle
+    // phase, rolling summary) is deliberately placed AFTER it. Injecting
+    // dynamic values above this line silently disables caching for the whole
+    // ~2.4k-token schema/rules block.
+    // -------------------------------------------------------------------------
     return '''
 $_identity
 
-COMMUNICATION STYLE
-$communicationStyle
-
-$timeContext
 $_visionCapability
 
 $_corePhilosophy
@@ -117,13 +130,23 @@ $_safetyRules
 
 $_strictFormattingRules
 
+$_analysisDiscipline
+
+${includeSchema ? '${SchemaDefinitions.unifiedDataSchema}\n${SchemaDefinitions.typeRules}\n' : ''}${includePatternEngine ? '\n$_patternEngineRules' : ''}
+
+$formatInstruction
+
 $intentPrompt
+
+=================== DYNAMIC CONTEXT (not cacheable) ===================
+
+COMMUNICATION STYLE
+$communicationStyle
 
 Turn Context:
 ${mode != null ? 'ACTIVE MODE: $mode' : 'ACTIVE MODE: General Chat'}
 
-$formatInstruction
-
+$timeContext
 USER PROFILE
 
 Health Goals:
@@ -139,10 +162,6 @@ Current Cycle Phase:
 $cyclePhase
 
 $summaryText
-
-${isLabelOrMenu ? '' : '${SchemaDefinitions.unifiedDataSchema}\n${SchemaDefinitions.typeRules}'}
-
-${includePatternEngine ? '\n$_patternEngineRules' : ''}
 ''';
   }
 
@@ -297,12 +316,27 @@ Current Cycle Phase: $cyclePhase
     final sensitivities = _formatList(userSensitivities, fallback: 'None specified');
     final lifestyle = _formatList(userLifestyle, fallback: 'None specified');
 
+    // 🟢 Defensive caps. `ai_proxy` slices `prompt` to MAX_TEXT_CHARS and keeps
+    // the HEAD — and the tail of this template is what carries the deterministic
+    // evidence (score history + pre-qualified pattern candidates) that the
+    // insights engine is built on. Trimming each stream here, predictably, keeps
+    // that evidence inside the request for heavy users instead of letting the
+    // server silently cut it off.
+    final cappedChat = _cap(historyJson, 8000, 'chat history');
+    final cappedHistorical = _cap(historicalJournalSummary, 2000, 'historical journal summary', fallback: '');
+    final cappedJournal = _cap(recentJournalText, 10000, 'recent journal', fallback: 'No recent journal data yet.');
+    final cappedScores = _cap(scoreHistory, 1500, 'score history', fallback: 'No historical scores yet.');
+    final cappedPatterns = _cap(preComputedPatternCandidates, 4000, 'pattern candidates', fallback: '');
+
     return """
 ${InsightsPrompt.instruction}
 
 YOUR JOB
 Analyze the user's logged food, symptoms, conversations, scans, and scores to
 identify meaningful repeated associations.
+
+OUTPUT RULE: Return ONLY the JSON object described above. No Markdown, no
+preamble — this applies even if the data sections below are truncated.
 
 USER PROFILE
 Health Goals: $goals
@@ -314,19 +348,19 @@ DATA STREAMS
 1. CHAT HISTORY
 ${historySummary != null ? 'LONG-TERM CHAT SUMMARY:\n$historySummary\n' : ''}
 RECENT CHAT LOGS:
-$historyJson
+$cappedChat
 
 2. BODY JOURNAL (Tiered Context)
-${historicalJournalSummary != null ? 'HISTORICAL TRENDS (Days 8-30):\n$historicalJournalSummary\n' : ''}
+${cappedHistorical.isNotEmpty ? 'HISTORICAL TRENDS (Days 8-30):\n$cappedHistorical\n' : ''}
 HIGH-FIDELITY RECENT EVENTS (Last 7 Days):
-${recentJournalText ?? 'No recent journal data yet.'}
+$cappedJournal
 
 5. PREVIOUS GUT SCORES
-${scoreHistory ?? 'No historical scores yet.'}
-${preComputedPatternCandidates != null ? '''
+$cappedScores
+${cappedPatterns.isNotEmpty ? '''
 
 6. PRE-QUALIFIED PATTERN CANDIDATES:
-$preComputedPatternCandidates
+$cappedPatterns
 ''' : ''}
 
 The final response must contain ONLY the JSON object.
@@ -342,6 +376,16 @@ The final response must contain ONLY the JSON object.
   // ---------------------------------------------------------------------------
   // HELPERS
   // ---------------------------------------------------------------------------
+
+  /// Trims an unbounded data stream so the assembled prompt stays predictable.
+  ///
+  /// Truncation keeps the HEAD and leaves an explicit marker, so the model can
+  /// see that data was trimmed rather than assuming the user logged nothing.
+  static String _cap(String? value, int maxChars, String label, {String fallback = 'None provided.'}) {
+    if (value == null || value.trim().isEmpty) return fallback;
+    if (value.length <= maxChars) return value;
+    return '${value.substring(0, maxChars)}\n...[$label truncated to $maxChars chars]';
+  }
 
   static String _formatList(List<String> values, {required String fallback}) {
     final cleaned = values.map((value) => value.trim()).where((value) => value.isNotEmpty).toList();

@@ -12,6 +12,7 @@ import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
+import 'package:gutgood/core/utils/yuka_score.dart';
 
 /// Service to generate pattern-rich mock data for testing.
 class DebugMockDataService {
@@ -416,20 +417,21 @@ class DebugMockDataService {
   /// score breakdown, metric cards, working/watch rows, meaning card, swaps
   /// with + Add, tappable additives, ingredients, allergens and scan details.
   ///
-  /// Scores come from the real deterministic formula and sum to 100 (28 + 72),
-  /// so the 11-scan screenshot-story average stays exactly 50.
+  /// Scores come from the real scoring engine (`yuka_score.dart`), so the
+  /// breakdown shown in the UI matches what a live scan would produce.
   Future<void> _seedShowcaseScans(DateTime now) async {
-    int scoreFor({String? nutriscore, int? novaGroup, required NutrientData n, required List<String> items}) {
-      return ModelUtils.computeDeterministicScore(
+    int scoreFor({String? nutriscore, int? novaGroup, required NutrientData n, required List<String> items, bool organic = false}) {
+      return YukaScore.evaluate(
         nutriscore: nutriscore,
-        novaGroup: novaGroup,
+        energyKcal: n.calories,
         fiberG: n.fiber,
         proteinG: n.proteins,
         sugarG: n.sugars,
         saltG: n.salt,
         saturatedFatG: n.saturatedFat,
         additiveConcerns: AdditiveConcernDb.resolveAll(items),
-      );
+        isOrganic: organic,
+      ).score;
     }
 
     // --- SHOWCASE 1: instant noodles (ultra-processed, additive-heavy) -> 28 ---

@@ -19,6 +19,22 @@ class ChatStrings {
   static const String gutFriendlySwaps = '\n\nHere are some gut-friendly swaps you\'ll actually enjoy 👇';
   static const String errorConnectionFailed = '\n\n`[Error: Connection failed.]`';
   static const String thanksFeedback = 'Thanks for your feedback!';
+
+  // --- AI response reporting (Google Play generative-AI policy) ---
+  static const String reportResponse = 'Report';
+  static const String reportResponseTitle = 'Report this response';
+  static const String reportResponseSubtitle =
+      'Tell us what went wrong. Your report goes straight to our team and helps improve GutGood’s answers — you won’t leave the app.';
+  static const String reasonInaccurate = 'It’s inaccurate';
+  static const String reasonUnsafe = 'The advice seems unsafe';
+  static const String reasonOffensive = 'It’s offensive or inappropriate';
+  static const String reasonOffTopic = 'It didn’t answer my question';
+  static const String reasonOther = 'Something else';
+  static const String reportDetailsHint = 'Add details (optional)';
+  static const String submitReport = 'Submit report';
+  static const String reportThanks = 'Thanks — we’ve received your report.';
+  static const String reportFailed = 'We couldn’t send that report. Please try again.';
+
   static const String chipBloated = 'Why do I feel bloated? 🤔';
   static const String chipBloatedPrompt = 'Why do I feel bloated after this?';
   static const String chipHealthy = 'Is this healthy? 🥗';
