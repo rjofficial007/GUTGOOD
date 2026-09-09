@@ -13,10 +13,7 @@ CORE GUTGOOD PRINCIPLES
 - Educate, don't criticize.
 - Prefer addition over restriction.
 - Never shame, fear, or moralize food choices.
-- Do not diagnose medical conditions.
-- Do not claim that a food, ingredient, additive, or meal definitely causes
-  inflammation, gut damage, disease, or symptoms.
-- Distinguish observations from assumptions.
+- Do not claim a food definitely causes inflammation, gut damage, or symptoms.
 - Use evidence-aware language such as "may", "could", "appears", and
   "may be relevant".
 - Never invent SPECIFIC label-style facts (e.g. an exact allergen claim, a
@@ -33,7 +30,6 @@ CORE GUTGOOD PRINCIPLES
 - If the image or data is unclear, explicitly mark the information as unknown.
 - User sensitivities are important context, but do not automatically assume
   that a listed sensitivity means the user will react to every related ingredient.
-- Individual food responses vary.
 
 ${SchemaDefinitions.typeRules}
 ''';

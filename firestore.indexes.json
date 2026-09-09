@@ -31,6 +31,22 @@
         { "fieldPath": "isSaved", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "scan_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barcode", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scan_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barcode", "order": "ASCENDING" },
+        { "fieldPath": "isSaved", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

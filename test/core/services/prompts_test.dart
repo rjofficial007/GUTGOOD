@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/services/prompts.dart';
+import 'package:gutgood/core/services/prompts/mode_prompts/image_classification_prompt.dart';
+import 'package:gutgood/core/services/prompts/mode_prompts/insights_prompt.dart';
+import 'package:gutgood/core/services/prompts/mode_prompts/intent_detection_prompt.dart';
 
 void main() {
   group('Prompts.chatSystemInstruction', () {
@@ -22,6 +26,26 @@ void main() {
       final instruction = Prompts.chatSystemInstruction(userGoals: const [], userSensitivities: const [], intent: 'INGREDIENT_ANALYSIS', mode: 'INGREDIENTS_LABEL');
 
       expect(instruction.contains('cycleInsight'), isFalse);
+    });
+
+    test('renders pinned entities in the dynamic section; omits the block when empty', () {
+      final withPins = Prompts.chatSystemInstruction(
+        userGoals: const [],
+        userSensitivities: const [],
+        intent: 'COMPLETE_ANALYSIS',
+        mode: 'FOOD',
+        historySummary: 'old news',
+        pinnedEntities: 'foods: Pizza',
+      );
+
+      expect(withPins, contains('PINNED ENTITIES'));
+      expect(withPins, contains('foods: Pizza'));
+      // After the dynamic-context marker (cacheable prefix untouched).
+      expect(withPins.indexOf('PINNED ENTITIES'), greaterThan(withPins.indexOf('DYNAMIC CONTEXT')));
+
+      final withoutPins = Prompts.chatSystemInstruction(userGoals: const [], userSensitivities: const [], intent: 'COMPLETE_ANALYSIS', mode: 'FOOD');
+
+      expect(withoutPins, isNot(contains('PINNED ENTITIES')));
     });
   });
 
@@ -73,6 +97,53 @@ void main() {
       for (final leak in const ['CURRENT TIME', 'Health Goals', 'Current Cycle Phase', 'RECENT HISTORY SUMMARY']) {
         expect(staticPrefix.contains(leak), isFalse, reason: '"$leak" is dynamic and must not appear above the cacheable prefix.');
       }
+    });
+  });
+
+  group('Classifier vocabulary consistency', () {
+    test('intent detection prompt lists every canonical UserIntent token', () {
+      final instruction = IntentDetectionPrompt.instruction;
+      for (final intent in UserIntent.all) {
+        expect(instruction.contains(intent), isTrue, reason: 'Intent "$intent" must be a documented category so the classifier can return it.');
+      }
+    });
+
+    test('intent detection rules never recommend an invalid (non-vocabulary) token', () {
+      final instruction = IntentDetectionPrompt.instruction;
+      // Historical failure: the STRICT RULES ordered the model to return tokens
+      // outside UserIntent.all, which _canonicalIntent silently downgraded to
+      // COMPLETE_ANALYSIS. The rules may cite them as INVALID examples, but must
+      // never present one as the token to use/return.
+      for (final recommendation in const ['use `meal_overview`', 'use `menu`', 'use `full_analysis`', 'use `health_assessment`', 'return `meal_overview`', 'return `menu`', 'return `full_analysis`']) {
+        expect(instruction.contains(recommendation), isFalse, reason: '"$recommendation" is not a UserIntent token and must not be recommended.');
+      }
+    });
+
+    test('image classification prompt covers every canonical UserIntent token', () {
+      final instruction = ImageClassificationPrompt.instruction;
+      for (final intent in UserIntent.all) {
+        expect(instruction.contains(intent), isTrue, reason: 'Intent "$intent" must be classifiable from photo turns too (e.g. symptom photos).');
+      }
+    });
+
+    test('image classification prompt covers every canonical ImageMode token', () {
+      final instruction = ImageClassificationPrompt.instruction;
+      for (final mode in ImageMode.all) {
+        expect(instruction.contains(mode), isTrue, reason: 'ImageMode "$mode" must be a documented category.');
+      }
+    });
+
+    test('insights prompt defines the ZERO PATTERN CASE it references', () {
+      const instruction = InsightsPrompt.instruction;
+      expect(instruction.contains('ZERO PATTERN CASE'), isTrue, reason: 'The checklist references a ZERO PATTERN CASE; without a definition the model invents patterns from thin data.');
+      expect(instruction.contains('Not enough data yet'), isTrue, reason: 'The zero-pattern case must produce an explicit insufficient-data state, not a generic insight.');
+    });
+
+    test('insights prompt v2 asks for data only (P2-10: Dart owns presentation)', () {
+      const instruction = InsightsPrompt.instruction;
+      expect(instruction.contains('REQUIRED single food emoji'), isFalse, reason: 'Emoji is write-only busywork; the model must not emit it.');
+      expect(instruction.contains('NO PRESENTATION'), isTrue, reason: 'The schema must carry an explicit no-emoji/no-icon/no-color rule.');
+      expect(instruction.contains('High|Medium|Low'), isTrue, reason: 'Pattern confidence must mirror the engine vocabulary.');
     });
   });
 }

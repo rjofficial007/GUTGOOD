@@ -11,6 +11,11 @@ abstract class UsageService {
   Future<bool> isPremium();
   Future<bool> canChat();
   Future<bool> canScan();
+
+  /// Whether a background summary may spend system quota (K-6/P2-5).
+  /// Summaries share the daily `system` budget with classification and lose
+  /// the tiebreak — this reserves the last units for intent routing.
+  Future<bool> canSummarize();
   Future<void> resetLimitsForTesting();
   Future<void> setPremiumForTesting(bool isPremium);
 }
@@ -45,6 +50,12 @@ class UsageServiceImpl implements UsageService {
   static const int maxFreeScans = 3;
   static const int maxGuestChats = 2;
   static const int maxGuestScans = 2;
+  static const int maxSystemRegistered = 20;
+  static const int maxSystemGuest = 10;
+
+  /// System-quota units never spent on summaries (K-6): classification shares
+  /// the budget and must keep working for heavy chatters.
+  static const int systemSummaryReserve = 2;
 
   String? get _uid => _authRepository.currentUser?.uid;
 
@@ -111,6 +122,24 @@ class UsageServiceImpl implements UsageService {
     final usage = await _getTodayUsage();
     final allowed = usage.scanCount < maxFreeScans;
     AppLogger.debug('UsageService: canScan? $allowed (daily free: ${usage.scanCount}/$maxFreeScans)');
+    return allowed;
+  }
+
+  @override
+  Future<bool> canSummarize() async {
+    if (await isPremium()) return true;
+    final isAnon = _authRepository.currentUser?.isAnonymous != false;
+
+    if (isAnon) {
+      final usage = await _usageFirestoreService.getLifetimeUsage();
+      final allowed = usage.systemCount < maxSystemGuest - systemSummaryReserve;
+      AppLogger.debug('UsageService: canSummarize? $allowed (lifetime guest system: ${usage.systemCount}/$maxSystemGuest)');
+      return allowed;
+    }
+
+    final usage = await _getTodayUsage();
+    final allowed = usage.systemCount < maxSystemRegistered - systemSummaryReserve;
+    AppLogger.debug('UsageService: canSummarize? $allowed (daily free system: ${usage.systemCount}/$maxSystemRegistered)');
     return allowed;
   }
 

@@ -30,7 +30,7 @@ enum AdditiveConcernLevel {
 }
 
 class AdditiveConcern {
-  const AdditiveConcern({required this.code, required this.name, required this.whatItIs, required this.whyUsed, required this.level, required this.whyFlagged, required this.explanation});
+  const AdditiveConcern({required this.code, required this.name, required this.whatItIs, required this.whyUsed, required this.level, required this.whyFlagged, required this.explanation, this.category = '', this.carefulFor = '', this.tip = ''});
 
   /// Display code, e.g. 'E621'. Empty for name-only entries like 'Palm Oil'.
   final String code;
@@ -52,8 +52,71 @@ class AdditiveConcern {
   /// 2-3 plain-language sentences for the detail screen.
   final String explanation;
 
+  /// Functional category shown on list/detail screens, e.g. 'Preservative'.
+  final String category;
+
+  /// Who should be careful with this additive (detail screen). Empty means
+  /// the UI falls back to level-based guidance.
+  final String carefulFor;
+
+  /// Practical tip for avoiding or handling it. Empty → level fallback.
+  final String tip;
+
+  /// Pill label for list rows: 'High concern' / 'Limited concern' /
+  /// 'Low concern' / 'Limited data'.
+  String get concernLabel => switch (level) {
+    AdditiveConcernLevel.higher => 'High concern',
+    AdditiveConcernLevel.moderate => 'Limited concern',
+    AdditiveConcernLevel.low => 'Low concern',
+    AdditiveConcernLevel.unknown => 'Limited data',
+  };
+
+  /// Pill label for the detail header: 'High-risk' / 'Moderate risk' /
+  /// 'Low risk' / 'Limited data'.
+  String get riskLabel => switch (level) {
+    AdditiveConcernLevel.higher => 'High-risk',
+    AdditiveConcernLevel.moderate => 'Moderate risk',
+    AdditiveConcernLevel.low => 'Low risk',
+    AdditiveConcernLevel.unknown => 'Limited data',
+  };
+
+  /// Points this additive costs on the displayed score: the engine's
+  /// 30%-weighted contribution (25/10/2 subscore pts → 8/3/1).
+  int get scoreImpactPts => switch (level) {
+    AdditiveConcernLevel.higher => 8,
+    AdditiveConcernLevel.moderate => 3,
+    AdditiveConcernLevel.low => 1,
+    AdditiveConcernLevel.unknown => 1,
+  };
+
   /// Title shown in rows: 'E621 · Monosodium Glutamate' or just the name.
   String get displayTitle => code.isEmpty ? name : '$code · $name';
+
+  Map<String, dynamic> toMap() => {
+    'code': code,
+    'name': name,
+    'whatItIs': whatItIs,
+    'whyUsed': whyUsed,
+    'level': level.name,
+    'whyFlagged': whyFlagged,
+    'explanation': explanation,
+    'category': category,
+    'carefulFor': carefulFor,
+    'tip': tip,
+  };
+
+  factory AdditiveConcern.fromMap(Map<String, dynamic> map) => AdditiveConcern(
+    code: map['code']?.toString() ?? '',
+    name: map['name']?.toString() ?? '',
+    whatItIs: map['whatItIs']?.toString() ?? '',
+    whyUsed: map['whyUsed']?.toString() ?? '',
+    level: AdditiveConcernLevel.values.firstWhere((l) => l.name == map['level']?.toString(), orElse: () => AdditiveConcernLevel.unknown),
+    whyFlagged: map['whyFlagged']?.toString() ?? '',
+    explanation: map['explanation']?.toString() ?? '',
+    category: map['category']?.toString() ?? '',
+    carefulFor: map['carefulFor']?.toString() ?? '',
+    tip: map['tip']?.toString() ?? '',
+  );
 
   /// Fallback for items not in the database. Penalized like low.
   factory AdditiveConcern.unknown(String rawLabel) {
@@ -79,6 +142,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _msg = AdditiveConcern(
     code: 'E621',
+    category: 'Flavor enhancer',
+    carefulFor: 'MSG-sensitive people — headaches or flushing after savory snacks is the tell.',
+    tip: 'Cook savory food with mushrooms, tomato or parmesan for natural umami.',
     name: 'Monosodium Glutamate (MSG)',
     whatItIs: 'The sodium salt of glutamic acid, an amino acid found naturally in tomatoes and cheese.',
     whyUsed: 'Boosts savory (umami) flavor so products taste richer with less real food.',
@@ -91,6 +157,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _e631 = AdditiveConcern(
     code: 'E631',
+    category: 'Flavor enhancer',
     name: 'Disodium Inosinate',
     whatItIs: 'A flavor enhancer made from inosinic acid, often paired with MSG.',
     whyUsed: 'Multiplies MSG\'s savory effect so a pinch flavors a whole pack.',
@@ -103,6 +170,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _e627 = AdditiveConcern(
     code: 'E627',
+    category: 'Flavor enhancer',
     name: 'Disodium Guanylate',
     whatItIs: 'A flavor enhancer made from guanylic acid, MSG\'s usual partner.',
     whyUsed: 'Works with MSG and E631 to create intense savory flavor cheaply.',
@@ -115,6 +183,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _caramel4 = AdditiveConcern(
     code: 'E150d',
+    category: 'Food coloring',
     name: 'Caramel Colour IV (Sulphite Ammonia)',
     whatItIs: 'A dark brown color made by heating sugars with sulphite and ammonia compounds.',
     whyUsed: 'Gives colas, sauces and gravies their dark appetizing color.',
@@ -127,6 +196,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _tartrazine = AdditiveConcern(
     code: 'E102',
+    category: 'Food coloring',
+    carefulFor: 'Children, and people sensitive to aspirin or dyes.',
     name: 'Tartrazine',
     whatItIs: 'A synthetic lemon-yellow azo dye.',
     whyUsed: 'Makes sweets, drinks and noodles look bright yellow.',
@@ -139,6 +210,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _sunsetYellow = AdditiveConcern(
     code: 'E110',
+    category: 'Food coloring',
+    carefulFor: 'Children, and people sensitive to aspirin or dyes.',
     name: 'Sunset Yellow',
     whatItIs: 'A synthetic orange-yellow azo dye.',
     whyUsed: 'Colors sweets, syrups, instant noodles and snacks orange.',
@@ -151,6 +224,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _azorubine = AdditiveConcern(
     code: 'E122',
+    category: 'Food coloring',
+    carefulFor: 'Children, and people sensitive to aspirin or dyes.',
     name: 'Azorubine (Carmoisine)',
     whatItIs: 'A synthetic red azo dye.',
     whyUsed: 'Colors jellies, sweets and drinks red or pink.',
@@ -163,6 +238,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _ponceau = AdditiveConcern(
     code: 'E124',
+    category: 'Food coloring',
+    carefulFor: 'Children, and people sensitive to aspirin or dyes.',
     name: 'Ponceau 4R',
     whatItIs: 'A synthetic red azo dye.',
     whyUsed: 'Colors sweets, desserts and drinks a stable red.',
@@ -175,6 +252,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _allura = AdditiveConcern(
     code: 'E129',
+    category: 'Food coloring',
+    carefulFor: 'Children, and people sensitive to aspirin or dyes.',
     name: 'Allura Red',
     whatItIs: 'A synthetic red azo dye.',
     whyUsed: 'The go-to red for candy, soft drinks and cereals.',
@@ -187,6 +266,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _brilliantBlue = AdditiveConcern(
     code: 'E133',
+    category: 'Food coloring',
     name: 'Brilliant Blue',
     whatItIs: 'A synthetic blue dye (also used to make greens with yellow dyes).',
     whyUsed: 'Colors candy, frostings, drinks and ice cream blue or green.',
@@ -199,6 +279,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _aspartame = AdditiveConcern(
     code: 'E951',
+    category: 'Sweetener',
+    carefulFor: 'Anyone with PKU must avoid it entirely; others may notice gut or glucose effects.',
+    tip: 'Water, fruit or stevia-sweetened options avoid the issue entirely.',
     name: 'Aspartame',
     whatItIs: 'An artificial sweetener ~200x sweeter than sugar.',
     whyUsed: 'Sweetens diet sodas, gums and "sugar-free" products without calories.',
@@ -211,6 +294,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _acesulfame = AdditiveConcern(
     code: 'E950',
+    category: 'Sweetener',
+    tip: 'Water, fruit or stevia-sweetened options avoid the issue entirely.',
     name: 'Acesulfame Potassium (Ace-K)',
     whatItIs: 'A calorie-free artificial sweetener, often blended with aspartame or sucralose.',
     whyUsed: 'Sweetens diet drinks, protein powders and sugar-free gum.',
@@ -223,6 +308,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _sucralose = AdditiveConcern(
     code: 'E955',
+    category: 'Sweetener',
+    tip: 'Water, fruit or stevia-sweetened options avoid the issue entirely.',
     name: 'Sucralose',
     whatItIs: 'An artificial sweetener made by chlorinating sugar (~600x sweeter).',
     whyUsed: 'Sweetens diet products, protein bars and "zero sugar" snacks.',
@@ -235,6 +322,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _saccharin = AdditiveConcern(
     code: 'E954',
+    category: 'Sweetener',
+    tip: 'Water, fruit or stevia-sweetened options avoid the issue entirely.',
     name: 'Saccharin',
     whatItIs: 'The oldest artificial sweetener (~300x sweeter than sugar).',
     whyUsed: 'Sweetens diet drinks, mouthwash-flavored products and tabletop sweeteners.',
@@ -247,6 +336,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _stevia = AdditiveConcern(
     code: 'E960',
+    category: 'Sweetener',
     name: 'Steviol Glycosides (Stevia)',
     whatItIs: 'Sweet compounds extracted from the stevia leaf.',
     whyUsed: 'A plant-derived way to sweeten drinks and snacks without sugar.',
@@ -259,6 +349,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _carrageenan = AdditiveConcern(
     code: 'E407',
+    category: 'Thickener',
+    carefulFor: 'People with IBS or IBD — the gut-inflammation evidence matters most here.',
+    tip: 'Check plant milks and yogurts — carrageenan-free versions exist for everything.',
     name: 'Carrageenan',
     whatItIs: 'A thickener extracted from red seaweed.',
     whyUsed: 'Thickens plant milks, ice cream, yogurts and deli meats.',
@@ -271,6 +364,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _cmc = AdditiveConcern(
     code: 'E466',
+    category: 'Thickener',
     name: 'Carboxymethyl Cellulose (CMC)',
     whatItIs: 'A chemically modified plant-fiber thickener and emulsifier.',
     whyUsed: 'Keeps ice cream smooth, sauces stable and gluten-free bread soft.',
@@ -283,6 +377,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _methylcellulose = AdditiveConcern(
     code: 'E461',
+    category: 'Thickener',
     name: 'Methyl Cellulose',
     whatItIs: 'A modified plant-fiber binder and thickener.',
     whyUsed: 'Binds plant-based burgers and thickens sauces and ice cream.',
@@ -295,6 +390,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _polysorbate = AdditiveConcern(
     code: 'E433',
+    category: 'Emulsifier',
     name: 'Polysorbate 80',
     whatItIs: 'A synthetic emulsifier that forces oil and water to mix.',
     whyUsed: 'Stabilizes ice cream, sauces, baked goods and supplements.',
@@ -307,6 +403,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _e471 = AdditiveConcern(
     code: 'E471',
+    category: 'Emulsifier',
     name: 'Mono- and Diglycerides',
     whatItIs: 'Emulsifiers usually made from vegetable fats.',
     whyUsed: 'Keeps bread soft, ice cream creamy and spreads spreadable.',
@@ -319,6 +416,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _e472e = AdditiveConcern(
     code: 'E472e',
+    category: 'Emulsifier',
     name: 'DATEM (Mono- and Diacetyl Tartaric Esters)',
     whatItIs: 'A synthetic dough-conditioning emulsifier.',
     whyUsed: 'Gives industrial bread big volume and a soft, springy crumb.',
@@ -331,6 +429,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _e476 = AdditiveConcern(
     code: 'E476',
+    category: 'Emulsifier',
     name: 'Polyglycerol Polyricinoleate (PGPR)',
     whatItIs: 'An emulsifier made from castor-bean oil.',
     whyUsed: 'Lets chocolate makers use less cocoa butter while keeping flow.',
@@ -343,6 +442,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _lecithin = AdditiveConcern(
     code: 'E322',
+    category: 'Emulsifier',
     name: 'Lecithins',
     whatItIs: 'Natural emulsifiers from soy, sunflower or egg yolk.',
     whyUsed: 'Blends chocolate smoothly and keeps baked goods uniform.',
@@ -355,6 +455,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _citricAcid = AdditiveConcern(
     code: 'E330',
+    category: 'Acidity regulator',
     name: 'Citric Acid',
     whatItIs: 'The sour acid of lemons, made industrially by fermenting sugars.',
     whyUsed: 'Adds tang and preserves soft drinks, sweets and canned food.',
@@ -367,6 +468,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _sodiumCitrate = AdditiveConcern(
     code: 'E331',
+    category: 'Acidity regulator',
     name: 'Sodium Citrates',
     whatItIs: 'The sodium salts of citric acid.',
     whyUsed: 'Controls acidity and keeps processed cheese melty.',
@@ -379,6 +481,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _malicAcid = AdditiveConcern(
     code: 'E296',
+    category: 'Acidity regulator',
     name: 'Malic Acid',
     whatItIs: 'The tart acid of apples.',
     whyUsed: 'Gives sour candy, drinks and gum their sharp tang.',
@@ -391,6 +494,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _lacticAcid = AdditiveConcern(
     code: 'E270',
+    category: 'Acidity regulator',
     name: 'Lactic Acid',
     whatItIs: 'The mild acid of yogurt and fermented foods.',
     whyUsed: 'Adds tang and preserves bread, pickles and drinks.',
@@ -403,6 +507,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _phosphoricAcid = AdditiveConcern(
     code: 'E338',
+    category: 'Acidity regulator',
+    carefulFor: 'Daily cola drinkers — bones and kidneys feel it over time.',
     name: 'Phosphoric Acid',
     whatItIs: 'A sharp mineral acid — the bite in cola.',
     whyUsed: 'Gives colas their tang and stops bacteria and mold.',
@@ -415,6 +521,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _phosphates = AdditiveConcern(
     code: 'E339–E452',
+    category: 'Emulsifier',
+    carefulFor: 'People with kidney issues should be strictest.',
+    tip: 'Whole foods beat processed ones here — phosphates hide in everything packaged.',
     name: 'Phosphate Additives',
     whatItIs: 'A family of phosphorus salts (E339, E340, E450, E451, E452...) used across processed food.',
     whyUsed: 'Retains moisture in meats, melts cheese, leavens baked goods, stabilizes drinks.',
@@ -427,6 +536,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _sorbate = AdditiveConcern(
     code: 'E202',
+    category: 'Preservative',
     name: 'Potassium Sorbate',
     whatItIs: 'A mold- and yeast-inhibiting preservative.',
     whyUsed: 'Keeps cheese, baked goods, wine and syrups from going moldy.',
@@ -439,6 +549,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _benzoate = AdditiveConcern(
     code: 'E211',
+    category: 'Preservative',
+    carefulFor: 'Sensitive individuals, especially with vitamin-C-rich drinks.',
     name: 'Sodium Benzoate',
     whatItIs: 'A preservative that stops yeast, bacteria and mold in acidic foods.',
     whyUsed: 'Preserves soft drinks, pickles, sauces and jams.',
@@ -451,6 +563,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _sulphites = AdditiveConcern(
     code: 'E220–E228',
+    category: 'Preservative',
+    carefulFor: 'People with asthma or sulphite sensitivity — wine and dried fruit are the classic triggers.',
+    tip: 'Dried fruit without sulphites looks brown but tastes the same.',
     name: 'Sulphites',
     whatItIs: 'Sulphur-based preservatives (E220–E228) used in wine, dried fruit and juices.',
     whyUsed: 'Prevents browning and spoilage in wine, dried apricots, juices and sausages.',
@@ -463,6 +578,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _nitrite = AdditiveConcern(
     code: 'E250',
+    category: 'Preservative',
+    carefulFor: 'Anyone eating cured meats often — risk grows with frequency.',
+    tip: 'Look for uncured meats, and avoid frying bacon crisp.',
     name: 'Sodium Nitrite',
     whatItIs: 'The curing salt that keeps bacon pink and botulism away.',
     whyUsed: 'Cures ham, bacon, sausages and deli meats; fixes the pink color.',
@@ -475,6 +593,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _nitrate = AdditiveConcern(
     code: 'E251',
+    category: 'Preservative',
+    carefulFor: 'Anyone eating cured meats often — risk grows with frequency.',
     name: 'Sodium Nitrate',
     whatItIs: 'A curing salt that slowly converts to nitrite in meat.',
     whyUsed: 'Long-cures salami, hams and fermented sausages.',
@@ -487,6 +607,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _propionate = AdditiveConcern(
     code: 'E282',
+    category: 'Preservative',
+    carefulFor: 'People watching blood sugar — effects show up even after one meal.',
     name: 'Calcium Propionate',
     whatItIs: 'A mold inhibitor sprayed on and baked into bread.',
     whyUsed: 'Keeps packaged bread mold-free for a week or more.',
@@ -499,6 +621,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _tbhq = AdditiveConcern(
     code: 'E319',
+    category: 'Antioxidant',
+    carefulFor: 'Frequent instant-noodle eaters — the dose makes the concern.',
+    tip: 'If a noodle pack lists TBHQ, the frying oil is the problem — drain it well or switch brands.',
     name: 'TBHQ',
     whatItIs: 'A synthetic antioxidant that stops fats going rancid.',
     whyUsed: 'Preserves instant noodles, chips, frozen foods and frying oils.',
@@ -511,6 +636,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _bha = AdditiveConcern(
     code: 'E320',
+    category: 'Antioxidant',
+    carefulFor: 'Children and pregnant people — endocrine signals deserve extra caution.',
+    tip: 'Choose brands preserved with vitamin E (tocopherols) instead.',
     name: 'BHA (Butylated Hydroxyanisole)',
     whatItIs: 'A synthetic antioxidant for fats and oils.',
     whyUsed: 'Keeps chips, cereals, gum and instant foods from going stale.',
@@ -523,6 +651,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _bht = AdditiveConcern(
     code: 'E321',
+    category: 'Antioxidant',
+    carefulFor: 'Children and pregnant people — endocrine signals deserve extra caution.',
+    tip: 'Choose brands preserved with vitamin E (tocopherols) instead.',
     name: 'BHT (Butylated Hydroxytoluene)',
     whatItIs: 'BHA\'s chemical cousin, a synthetic fat antioxidant.',
     whyUsed: 'Preserves cereals, chips, packaging liners and chewing gum.',
@@ -535,6 +666,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _titanium = AdditiveConcern(
     code: 'E171',
+    category: 'Food coloring',
+    carefulFor: 'Children — bright white candy is the main exposure.',
+    tip: 'Skip bright-white candy shells and icings — color adds nothing.',
     name: 'Titanium Dioxide',
     whatItIs: 'A mineral whitening powder (nanoparticles included).',
     whyUsed: 'Makes gum, candy shells, icing and sauces bright white.',
@@ -547,6 +681,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _xanthan = AdditiveConcern(
     code: 'E415',
+    category: 'Thickener',
     name: 'Xanthan Gum',
     whatItIs: 'A thickener made by fermenting sugars with bacteria.',
     whyUsed: 'Thickens gluten-free baking, sauces and salad dressings.',
@@ -559,6 +694,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _guar = AdditiveConcern(
     code: 'E412',
+    category: 'Thickener',
     name: 'Guar Gum',
     whatItIs: 'A fiber thickener ground from guar beans.',
     whyUsed: 'Thickens ice cream, yogurts, sauces and gluten-free flour.',
@@ -571,6 +707,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _locust = AdditiveConcern(
     code: 'E410',
+    category: 'Thickener',
     name: 'Locust Bean Gum (Carob Gum)',
     whatItIs: 'A thickener ground from carob seeds.',
     whyUsed: 'Gives ice cream and cream cheese a smooth, stable body.',
@@ -583,6 +720,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _pectin = AdditiveConcern(
     code: 'E440',
+    category: 'Thickener',
     name: 'Pectin',
     whatItIs: 'The gelling fiber of apples and citrus peels.',
     whyUsed: 'Sets jams, yogurts and gummies.',
@@ -595,6 +733,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _annatto = AdditiveConcern(
     code: 'E160b',
+    category: 'Food coloring',
     name: 'Annatto',
     whatItIs: 'An orange-red color from achiote seeds.',
     whyUsed: 'Colors cheddar, butter, snacks and noodles naturally.',
@@ -607,6 +746,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _carotenes = AdditiveConcern(
     code: 'E160a',
+    category: 'Food coloring',
     name: 'Carotenes',
     whatItIs: 'Orange pigments from carrots, palm or algae (pro-vitamin A).',
     whyUsed: 'Colors margarine, juices and dairy a natural orange.',
@@ -619,6 +759,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _paprika = AdditiveConcern(
     code: 'E160c',
+    category: 'Food coloring',
     name: 'Paprika Extract',
     whatItIs: 'Red-orange color extracted from paprika peppers.',
     whyUsed: 'Colors sausages, snacks, sauces and noodles.',
@@ -631,6 +772,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _curcumin = AdditiveConcern(
     code: 'E100',
+    category: 'Food coloring',
     name: 'Curcumin',
     whatItIs: 'The yellow pigment of turmeric.',
     whyUsed: 'Colors mustards, drinks and sweets naturally yellow.',
@@ -643,6 +785,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _chlorophyll = AdditiveConcern(
     code: 'E140–E141',
+    category: 'Food coloring',
     name: 'Chlorophylls',
     whatItIs: 'Green pigments from plants (E141 is the copper-stabilized form).',
     whyUsed: 'Colors pasta, sweets and drinks green.',
@@ -655,6 +798,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _ascorbic = AdditiveConcern(
     code: 'E300',
+    category: 'Antioxidant',
     name: 'Ascorbic Acid (Vitamin C)',
     whatItIs: 'Vitamin C used as an antioxidant preservative.',
     whyUsed: 'Stops browning in juices and dough, protects cured-meat color.',
@@ -667,6 +811,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _tocopherols = AdditiveConcern(
     code: 'E306–E309',
+    category: 'Antioxidant',
     name: 'Tocopherols (Vitamin E)',
     whatItIs: 'Vitamin E compounds from vegetable oils.',
     whyUsed: 'The safe antioxidant that stops oils and cereals going rancid.',
@@ -679,6 +824,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _bakingSoda = AdditiveConcern(
     code: 'E500',
+    category: 'Texturizing agent',
     name: 'Sodium Carbonates (Baking Soda)',
     whatItIs: 'Good old baking soda and its cousins.',
     whyUsed: 'Leavens cakes, biscuits and batters.',
@@ -689,6 +835,9 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _palmOil = AdditiveConcern(
     code: '',
+    category: 'Fat',
+    carefulFor: 'Anyone eating a lot of ultra-processed snacks — saturated fat adds up.',
+    tip: 'Check biscuit and noodle labels — sunflower or rice-bran oil versions exist.',
     name: 'Palm Oil',
     whatItIs: 'A cheap semi-solid vegetable oil, ~50% saturated fat.',
     whyUsed: 'Gives instant noodles, biscuits and spreads richness without butter.',
@@ -701,6 +850,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _glucoseSyrup = AdditiveConcern(
     code: '',
+    category: 'Sweetener',
     name: 'Glucose Syrup',
     whatItIs: 'A syrup of glucose made by breaking down starch.',
     whyUsed: 'Sweetens and thickens sweets, sauces, drinks and baked goods cheaply.',
@@ -713,6 +863,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _invertSugar = AdditiveConcern(
     code: '',
+    category: 'Sweetener',
     name: 'Invert Sugar',
     whatItIs: 'Sugar pre-split into glucose and fructose.',
     whyUsed: 'Keeps sweets moist and sweet with a smoother texture.',
@@ -725,6 +876,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _maltodextrin = AdditiveConcern(
     code: '',
+    category: 'Thickener',
+    carefulFor: 'People with blood-sugar issues or sensitive guts.',
     name: 'Maltodextrin',
     whatItIs: 'A bland starch-derived powder (high glycemic index).',
     whyUsed: 'Bulks up snacks, sweeteners and "light" products; carries flavors.',
@@ -737,6 +890,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _modifiedStarch = AdditiveConcern(
     code: '',
+    category: 'Thickener',
     name: 'Modified Starch',
     whatItIs: 'Starch chemically or physically altered for stability.',
     whyUsed: 'Thickens soups, sauces and ready meals so they survive factories and freezers.',
@@ -749,6 +903,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _yeastExtract = AdditiveConcern(
     code: '',
+    category: 'Flavor enhancer',
     name: 'Yeast Extract',
     whatItIs: 'Concentrated savory compounds from yeast (natural glutamates).',
     whyUsed: 'Adds umami depth to soups, snacks and sauces without "MSG" on the label.',
@@ -761,6 +916,8 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _hvp = AdditiveConcern(
     code: '',
+    category: 'Flavor enhancer',
+    carefulFor: 'MSG-sensitive people — treat it exactly like MSG.',
     name: 'Hydrolyzed Vegetable Protein (HVP)',
     whatItIs: 'Vegetable protein acid-boiled into savory fragments (free glutamates).',
     whyUsed: 'A cheap umami booster behind "no added MSG" claims.',
@@ -773,6 +930,7 @@ class AdditiveConcernDb {
 
   static const AdditiveConcern _naturalFlavour = AdditiveConcern(
     code: '',
+    category: 'Flavoring',
     name: 'Natural Flavouring',
     whatItIs: 'A proprietary blend of flavor chemicals derived from natural sources.',
     whyUsed: 'Makes every pack taste identical, batch after batch.',
@@ -1111,4 +1269,32 @@ class AdditiveConcernDb {
   }
 
   static String _titleCase(String input) => input.toLowerCase().split(' ').map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+
+  /// Every distinct concern profile in the database (aliases collapsed).
+  static List<AdditiveConcern> get allConcerns {
+    final seen = <AdditiveConcern>{};
+    for (final concern in _byKey.values) {
+      seen.add(concern);
+    }
+    return seen.toList();
+  }
+
+  static int _rankLevel(AdditiveConcernLevel level) => switch (level) {
+    AdditiveConcernLevel.higher => 3,
+    AdditiveConcernLevel.moderate => 2,
+    AdditiveConcernLevel.low => 1,
+    AdditiveConcernLevel.unknown => 0,
+  };
+
+  /// Same-category additives for the "Related" section, concern-first.
+  /// Empty when the category is unknown (nothing honest to relate).
+  static List<AdditiveConcern> relatedTo(AdditiveConcern concern, {int limit = 4}) {
+    if (concern.category.isEmpty) return const [];
+    final items = allConcerns.where((c) => c.category == concern.category && c.displayTitle != concern.displayTitle).toList()
+      ..sort((a, b) {
+        final rank = _rankLevel(b.level).compareTo(_rankLevel(a.level));
+        return rank != 0 ? rank : a.name.compareTo(b.name);
+      });
+    return items.take(limit).toList();
+  }
 }

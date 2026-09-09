@@ -18,8 +18,21 @@ class OffServiceImpl implements OffService {
   OffServiceImpl({required Dio dio}) : _dio = dio;
   final Dio _dio;
 
+  /// Session memo for OFF lookups (P0-3): label facts don't change mid-session,
+  /// so repeat fetches of the same barcode (preview → analyze, batch mode,
+  /// retries) skip the network. scan_history is the durable cross-session
+  /// cache for analyzed products; this only dedupes raw OFF fetches.
+  static const _productTtl = Duration(minutes: 30);
+  static const _productCacheCap = 200;
+  final _productCache = <String, _CachedProduct>{};
+
   @override
   Future<OffProduct?> getProduct(String barcode) async {
+    final hit = _productCache[barcode];
+    if (hit != null) {
+      if (DateTime.now().difference(hit.fetchedAt) < _productTtl) return hit.product;
+      _productCache.remove(barcode);
+    }
     try {
       final response = await _dio.get('${ApiConstants.offBaseUrl}${ApiConstants.productEndpoint}/$barcode', queryParameters: {'fields': ApiConstants.offProductFields});
       final data = response.data as Map<String, dynamic>;
@@ -28,12 +41,22 @@ class OffServiceImpl implements OffService {
         AppLogger.data('OFF_RAW_RESPONSE', productData);
         final mappedProduct = _mapProductData(productData);
         AppLogger.data('OFF_MAPPED_PRODUCT', mappedProduct.toMap());
+        _rememberProduct(barcode, mappedProduct);
         return mappedProduct;
       }
     } catch (e) {
       AppLogger.error('OffService: Error fetching product: $e');
     }
     return null;
+  }
+
+  void _rememberProduct(String barcode, OffProduct product) {
+    // Null results are NOT cached: "not found" may flip to found (fresh OFF
+    // entry) and must never poison the session.
+    if (_productCache.length >= _productCacheCap) {
+      _productCache.remove(_productCache.keys.first);
+    }
+    _productCache[barcode] = _CachedProduct(product, DateTime.now());
   }
 
   OffProduct _mapProductData(Map<String, dynamic> product) {
@@ -244,4 +267,10 @@ class OffServiceImpl implements OffService {
     }
     return [];
   }
+}
+
+class _CachedProduct {
+  const _CachedProduct(this.product, this.fetchedAt);
+  final OffProduct product;
+  final DateTime fetchedAt;
 }

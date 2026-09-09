@@ -29,12 +29,4 @@ class AppLoggerStrings {
   static const String logMock = '🧪 MOCK_DATA:';
 
   // --- Common Action Statuses ---
-  static const String statusFetching = '📥 Fetching...';
-  static const String statusSaving = '💾 Saving...';
-  static const String statusUpdating = '🔄 Updating...';
-  static const String statusDeleting = '🗑️ Deleting...';
-  static const String statusStreaming = '📡 Streaming...';
-  static const String statusAnalyzing = '🧠 Analyzing...';
-  static const String statusComplete = '✨ Complete';
-  static const String statusFailed = '🚫 Failed';
 }

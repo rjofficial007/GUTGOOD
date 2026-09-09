@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gutgood/core/models/ai_report.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -12,8 +11,14 @@ abstract class ChatFirestoreService {
   Future<List<ChatMessage>> getOlderMessages({required int limit, required DateTime before});
   Future<void> updateMessageFeedback(String messageId, String feedback);
 
-  /// Files a user report about an AI response (Play generative-AI policy).
-  Future<void> submitAiReport(AiReport report);
+  /// Direct URL patch for restart-recovered uploads whose message isn't in
+  /// memory. Doc id == localId, so no query is needed.
+  Future<void> patchMessageImageUrls({required String localId, required List<String> imageUrls});
+
+  /// Registry-hash twin of [patchMessageImageUrls] — same parallel array
+  /// the message model persists, so unlink-on-delete needs no URL parsing.
+  Future<void> patchMessageImageHashes({required String localId, required List<String> imageHashes});
+
   Future<void> deleteMessage(String messageId);
 }
 
@@ -115,31 +120,6 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
   }
 
   @override
-  Future<void> submitAiReport(AiReport report) async {
-    final uid = _uid;
-    if (uid == null) {
-      AppLogger.firestore('Cannot submit AI report: no signed-in user');
-      return;
-    }
-    if (!report.isValidReason) {
-      // Fail loudly in logs but never throw into the UI — a reporting flow that
-      // crashes is worse than one that silently no-ops.
-      AppLogger.firestore('Refusing AI report with unknown reason: ${report.reason}');
-      return;
-    }
-
-    try {
-      await _db.collection('ai_reports').add(
-        report.copyWith(reportedBy: uid).toMap(),
-      );
-      AppLogger.firestore('AI report filed (${report.reason})');
-    } catch (e) {
-      // A blocked report must never surface as a crash to the user.
-      AppLogger.firestore('Error submitting AI report', error: e);
-    }
-  }
-
-  @override
   Future<void> deleteMessage(String messageId) async {
     try {
       final doc = _userDoc;
@@ -158,6 +138,30 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       await doc.collection('chat_history').doc(messageId).update({'feedback': feedback});
     } catch (e) {
       AppLogger.firestore('Error updating message feedback', error: e);
+    }
+  }
+
+  @override
+  Future<void> patchMessageImageUrls({required String localId, required List<String> imageUrls}) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null || imageUrls.isEmpty) return;
+      // update(), not set(merge): if the message was deleted while the
+      // upload was pending, this throws instead of resurrecting a stub.
+      await doc.collection('chat_history').doc(localId).update({'imageUrls': imageUrls, 'imageUrl': imageUrls.first});
+    } catch (e) {
+      AppLogger.firestore('Error patching message image URLs', error: e);
+    }
+  }
+
+  @override
+  Future<void> patchMessageImageHashes({required String localId, required List<String> imageHashes}) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null || imageHashes.isEmpty) return;
+      await doc.collection('chat_history').doc(localId).update({'imageHashes': imageHashes});
+    } catch (e) {
+      AppLogger.firestore('Error patching message image hashes', error: e);
     }
   }
 }

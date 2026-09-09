@@ -7,7 +7,20 @@ import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Represents the unified structured output from an AI analysis turn.
 class AiAnalysisResult extends Equatable {
-  const AiAnalysisResult({required this.text, this.intent, this.imageMode, this.scan, this.meal, this.symptoms = const [], this.swaps = const [], this.menu, this.metadata = const {}, this.confidence});
+  const AiAnalysisResult({
+    required this.text,
+    this.intent,
+    this.imageMode,
+    this.scan,
+    this.meal,
+    this.symptoms = const [],
+    this.swaps = const [],
+    this.menu,
+    this.metadata = const {},
+    this.confidence,
+    this.schemaVersion,
+    this.verdict,
+  });
 
   factory AiAnalysisResult.fromMap(Map<String, dynamic> map) {
     final swapsList = ModelUtils.parseModelList<ProductSwap>(map['swaps'], ProductSwap.fromMap);
@@ -32,6 +45,8 @@ class AiAnalysisResult extends Equatable {
       menu: ModelUtils.parseMap(map['menu']),
       metadata: metadata,
       confidence: (metadata['confidence'] as num?)?.toDouble(),
+      schemaVersion: (map['v'] as num?)?.toInt(),
+      verdict: map['verdict'] as String?,
     );
   }
 
@@ -52,6 +67,14 @@ class AiAnalysisResult extends Equatable {
   /// by callers that gate persistence on it).
   final double? confidence;
 
+  /// Envelope version from the data block's `v` field (§F/§17). Null when the
+  /// prompt didn't request it (legacy output — assumed current shape).
+  final int? schemaVersion;
+
+  /// Content verdict from the data block's `verdict` field (§F). Null when
+  /// absent (legacy output — allowed through, unlike explicit `non_food`).
+  final String? verdict;
+
   Map<String, dynamic> toMap() => {
     'text': text,
     'intent': intent,
@@ -62,6 +85,8 @@ class AiAnalysisResult extends Equatable {
     'swaps': swaps.map((e) => e.toMap()).toList(),
     'menu': menu,
     'metadata': metadata,
+    if (schemaVersion != null) 'v': schemaVersion,
+    if (verdict != null) 'verdict': verdict,
   };
 
   AiAnalysisResult copyWith({
@@ -76,6 +101,8 @@ class AiAnalysisResult extends Equatable {
     Map<String, dynamic>? menu,
     Map<String, dynamic>? metadata,
     double? confidence,
+    int? schemaVersion,
+    String? verdict,
   }) => AiAnalysisResult(
     text: text ?? this.text,
     intent: intent ?? this.intent,
@@ -87,8 +114,10 @@ class AiAnalysisResult extends Equatable {
     menu: menu ?? this.menu,
     metadata: metadata ?? this.metadata,
     confidence: confidence ?? this.confidence,
+    schemaVersion: schemaVersion ?? this.schemaVersion,
+    verdict: verdict ?? this.verdict,
   );
 
   @override
-  List<Object?> get props => [text, intent, imageMode, scan, meal, symptoms, swaps, menu, metadata, confidence];
+  List<Object?> get props => [text, intent, imageMode, scan, meal, symptoms, swaps, menu, metadata, confidence, schemaVersion, verdict];
 }

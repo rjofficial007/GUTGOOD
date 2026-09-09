@@ -12,13 +12,10 @@ abstract class AuthFirestoreService {
   Future<void> updateUserProfile(UserProfile profile);
   Future<UserProfile?> getUserMetadata();
   Stream<UserProfile?> getUserMetadataStream();
-  Future<void> updateOnboardingStatus(bool onboarded);
   Future<void> updatePremiumStatus(bool isPremium);
   Future<void> saveNotificationPreferences(NotificationPreferences prefs);
   Future<void> saveFcmToken(String token);
   Future<void> clearFcmToken();
-  Future<void> mergeData(String fromUid, String toUid);
-  Future<void> deleteAllUserData(String uid);
   Future<String?> uploadProfilePicture(File imageFile);
 }
 
@@ -96,16 +93,6 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
         });
   }
 
-  @override
-  Future<void> updateOnboardingStatus(bool onboarded) async {
-    try {
-      final doc = _userDoc;
-      if (doc == null) return;
-      await doc.set({'onboarded': onboarded}, SetOptions(merge: true));
-    } catch (e) {
-      AppLogger.error('AuthFirestoreService: Error updating onboarding status', error: e);
-    }
-  }
 
   @override
   Future<void> updatePremiumStatus(bool isPremium) async {
@@ -151,15 +138,7 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
     }
   }
 
-  @override
-  Future<void> mergeData(String fromUid, String toUid) async {
-    AppLogger.firestore('Data migration should be handled by Cloud Function');
-  }
 
-  @override
-  Future<void> deleteAllUserData(String uid) async {
-    AppLogger.firestore('User data deletion triggered by Auth onDelete');
-  }
 
   @override
   Future<String?> uploadProfilePicture(File imageFile) async {

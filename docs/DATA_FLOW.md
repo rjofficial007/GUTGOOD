@@ -96,3 +96,38 @@ graph TD
 - **Write Path:** All Firestore writes (`set`, `update`, `delete`) are handled by the Firestore SDK, which queues them locally if the device is offline.
 - **Read Path:** Snapshots are served from the local cache first, then merged with server updates.
 - **Optimistic UI:** Feature Notifiers (like `ChatNotifier`) maintain a `Set<String> optimisticIds` to keep locally-created messages visible while Firestore background sync completes.
+
+---
+
+## 6. AI Turn Persistence Pipeline (Phase 2)
+
+Both the chat path (`PersistAiResponseUseCase`) and the scanner path
+(`ScannerRepositoryImpl.saveScanResult`) persist records through one shared
+router, so their policies can no longer diverge:
+
+```mermaid
+graph TD
+    T[Parsed AI Turn] --> V[AiResponseValidator]
+    V -->|confidence < 0.6, non-food/uncertain verdict,<br/>unsupported envelope, model declined| CO[Chat-only: message renders,<br/>no history records]
+    V -->|valid| P[DomainEventPersister]
+    P -->|label/menu turn| CO
+    P -->|scan + loggable| SH[(scan_history)]
+    P -->|meal + consumption intent| JL[(journal_logs)]
+    P -->|symptoms| JL
+    P --> O[PersistOutcome:<br/>hydrated IDs + flags]
+    O --> ChatBubble[Chat bubble embeds<br/>hydrated result]
+```
+
+- **Chat-only is a first-class outcome**, not an error: low-confidence,
+  non-food, and label/menu turns render in chat but write no records.
+- **Consumption gate:** a meal block is logged as EATEN only when the turn
+  intent describes consumption (`MEAL_RATING`, `MEAL_RECOGNITION`,
+  `COMPLETE_ANALYSIS`, legacy empty intent). Questions *about* food
+  ("is this healthy?") show the meal in chat without creating a log.
+- **Clock split:** writes stamp `createdAt` = log time (ordering clock);
+  AI `time` estimates land in `occurredAt` + `occurredAtProvenance`.
+  Readers display/correlate on `eventTime` (occurredAt ?? createdAt).
+- **Prompt contract:** the model is asked for `"v": 1` and
+  `"verdict": "food|non_food|uncertain"` on every `[GUTGOOD_DATA]` block
+  (see `schema_definitions.dart`); missing fields are tolerated for
+  backward compatibility.

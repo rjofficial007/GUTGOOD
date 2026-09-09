@@ -97,17 +97,8 @@ class _SavedFoodsList extends StatelessWidget {
         return ScanHistoryTile(
           scanResult: scanResult,
           onTap: () {
-            final source = scanResult.source?.toLowerCase() ?? '';
-            final category = scanResult.category?.toLowerCase() ?? '';
-
-            var route = AppRoutes.scanResult;
-            if (source == 'label' || category == 'label') {
-              route = AppRoutes.labelResult;
-            } else if (source == 'menu' || category == 'menu') {
-              route = AppRoutes.menuResult;
-            }
-
-            unawaited(context.push(route, extra: ScanResultArgs(scanData: scanResult)));
+            // All scan types render in the unified scan result screen.
+            unawaited(context.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: scanResult)));
           },
         );
       }, childCount: savedFoods.length),

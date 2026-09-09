@@ -40,6 +40,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await NotificationService.showBackgroundNotification(message);
 }
 
+/// True for the known-benign `cancel` echo on disposed Firestore
+/// transaction channels (see the onError wiring in [main]): the framework
+/// reports it when cloud_firestore has already torn down the channel after
+/// delivering the transaction result.
+bool _isBenignTransactionTeardown(FlutterErrorDetails details) {
+  final e = details.exception;
+  return e is MissingPluginException && (e.message?.contains('firebase_firestore/transaction') ?? false) && (e.message?.contains('cancel') ?? false);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppLogger.info('App starting...');
@@ -51,7 +60,17 @@ void main() async {
 
   // Crashlytics: capture Flutter framework errors and uncaught async errors in all modes.
   await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  FlutterError.onError = (details) {
+    // Skip the benign Firestore transaction-cancel echo (see above): it
+    // fires after the transaction already completed. Genuine failures still
+    // surface via the services' own try/catch (AppLogger -> Crashlytics)
+    // with their real error, never with this signature.
+    if (_isBenignTransactionTeardown(details)) {
+      AppLogger.debug('Crashlytics: filtered benign Firestore transaction-cancel echo');
+      return;
+    }
+    FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+  };
   PlatformDispatcher.instance.onError = (error, stack) {
     unawaited(FirebaseCrashlytics.instance.recordError(error, stack, fatal: true));
     return true;

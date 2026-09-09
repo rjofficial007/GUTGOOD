@@ -181,7 +181,10 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       if (mounted) _showSummarySheet(product, capturedImage);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.productNotFound), behavior: SnackBarBehavior.floating));
+        // A null product offline means "couldn't reach the database", not
+        // "product doesn't exist" — say so.
+        final message = notifier.lastErrorWasOffline ? AppStrings.offlineMessage : AppStrings.productNotFound;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
       }
     }
   }

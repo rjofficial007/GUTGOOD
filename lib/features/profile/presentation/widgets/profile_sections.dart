@@ -139,6 +139,17 @@ class AppSettingsSection extends StatelessWidget {
       children: [
         AppTile(icon: AppIcons.bookmark, title: AppStrings.savedFoods, onTap: () => unawaited(context.push(AppRoutes.savedFoods))),
         AppTile(icon: AppIcons.bell, title: AppStrings.notificationPreferences, onTap: () => unawaited(context.push(AppRoutes.notifications))),
+        // C-4: per-user kill switch for server insight generation.
+        Selector<ProfileNotifier, bool>(
+          selector: (_, n) => n.profile?.insightsDisabled ?? false,
+          builder: (context, disabled, _) => AppSwitchTile(
+            icon: AppIcons.sparkles,
+            title: AppStrings.dailyInsights,
+            desc: AppStrings.dailyInsightsSubtitle,
+            value: !disabled,
+            onChanged: (val) => unawaited(context.read<ProfileNotifier>().updateInsightsDisabled(!val)),
+          ),
+        ),
         Selector<ThemeNotifier, ThemeMode>(
           selector: (_, n) => n.themeMode,
           builder: (context, mode, _) => AppTile(

@@ -7,6 +7,6 @@ class SendMessageStreamUseCase {
   SendMessageStreamUseCase(this._repository);
   final ChatRepository _repository;
 
-  Stream<String> call({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String? intent}) =>
-      _repository.sendMessageStream(systemInstruction: systemInstruction, history: history, userText: userText, images: images, intent: intent);
+  Stream<String> call({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String? intent, int? promptVersion}) =>
+      _repository.sendMessageStream(systemInstruction: systemInstruction, history: history, userText: userText, images: images, intent: intent, promptVersion: promptVersion);
 }

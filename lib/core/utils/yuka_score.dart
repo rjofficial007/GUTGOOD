@@ -114,7 +114,6 @@ class YukaScoreBreakdown {
   /// Engine-authored "why this score", in plain language.
   final String explanation;
 
-  bool get wasCapped => scoreBeforeCap != null;
 }
 
 class _Band {

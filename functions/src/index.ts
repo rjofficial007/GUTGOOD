@@ -5,6 +5,8 @@
  *   mergeAnonymousAccount Callable Atomic + idempotent guest→account data migration
  *   onUserDeleted         Trigger  Guaranteed cascade delete (Firestore + Storage)
  *   cleanupAnonymousUsers Cron     Purges abandoned guest accounts after 14 days
+ *   generateFoodThumb     Storage  1024px original -> 320px thumb + registry backfill
+ *   sweepUnlinkedFoodImages Cron    Deletes unlinked food images after 30d grace
  *
  * NOTE: Premium is managed CLIENT-SIDE with the RevenueCat SDK
  * (purchases_flutter). The app mirrors the entitlement into
@@ -19,4 +21,5 @@ export { aiProxy } from './ai_proxy';
 export { mergeAnonymousAccount } from './merge';
 export { onProfileWritten, onUserDeleted, cleanupAnonymousUsers } from './lifecycle';
 export { sendCustomMagicLink } from './auth';
-export { onScanCreated, onJournalEntryCreated, onSymptomCreated, onInsightCreated } from './triggers';
+export { onScanCreated, onScanDeleted, onJournalEntryCreated, onJournalEntryDeleted, onInsightCreated } from './triggers';
+export { generateFoodThumb, sweepUnlinkedFoodImages } from './food_images';

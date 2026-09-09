@@ -161,7 +161,6 @@ class InsightStrings {
   static const String performanceHighs = 'Performance Highs';
   static const String bioStats = 'BIO-STATS';
   static const String criticalTrigger = 'Critical Trigger';
-  static const String analyzingProductInfo = 'Analyzing product...';
   static const String analysisBasedOnLogs = 'Analysis based on recent logs';
 
   // --- Insight Dashboard & Detail Strings ---
@@ -245,6 +244,10 @@ class InsightStrings {
   static const String watchLabel = 'Watch';
   static const String restSleepTitle = 'Better sleep days';
   static const String restEnergyTitle = 'Better energy days';
+  static const String healingFoodsTitle = 'Healing foods';
+  static const String triggerFoodsTitle = 'Trigger foods';
+  static const String nextStepsTitle = 'Next steps';
+  static const String bestDayLabel = 'Best day';
 
   static String patternFrequencyTimes(int times, int days) {
     final period = days == 7 ? 'week' : (days % 7 == 0 && days > 0 ? '${days ~/ 7} weeks' : '$days days');
@@ -254,4 +257,5 @@ class InsightStrings {
   static String foodIsHelping(String food) => '$food is helping';
   static String youAteMoreThisWeek(String food) => 'You ate more $food this week';
   static String patternHeadline(String trigger, String reaction) => '$trigger shows up on days you report $reaction.';
+  static String evidenceTimes(int positive, int total) => '$positive of $total times';
 }

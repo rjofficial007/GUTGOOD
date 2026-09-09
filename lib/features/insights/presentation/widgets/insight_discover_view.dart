@@ -17,6 +17,7 @@ import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_data_cards.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -51,6 +52,10 @@ class InsightDiscoverSliver extends StatelessWidget {
               delay: 0,
               child: _ScoreHeader(data: data, notifier: notifier),
             ),
+            if (data.healingGoal?.trim().isNotEmpty ?? false) ...[
+              Gap.h12,
+              DashboardEntrance(delay: 60, child: InsightGoalCard(data: data)),
+            ],
             if (hero != null) ...[Gap.h12, DashboardEntrance(delay: 80, child: _PatternHero(pattern: hero))],
             if (quads.isNotEmpty) ...[
               GridView.count(
@@ -63,9 +68,25 @@ class InsightDiscoverSliver extends StatelessWidget {
                 children: [for (var i = 0; i < quads.length; i++) DashboardEntrance(delay: 120 + i * 60, child: quads[i])],
               ),
             ],
+            if (data.topInsight != null) ...[
+              Gap.h12,
+              DashboardEntrance(delay: 280, child: InsightEvidenceCard(data: data)),
+            ],
+            if (data.healingFoods.isNotEmpty || data.triggerFoods.isNotEmpty) ...[
+              Gap.h12,
+              DashboardEntrance(delay: 320, child: InsightFoodsCard(data: data)),
+            ],
+            if (data.weeklyRecap != null) ...[
+              Gap.h12,
+              DashboardEntrance(delay: 360, child: InsightRecapCard(data: data)),
+            ],
+            if (patterns.length > 1) ...[
+              Gap.h12,
+              DashboardEntrance(delay: 400, child: InsightPatternsSection(patterns: patterns)),
+            ],
             Gap.h12,
             DashboardEntrance(
-              delay: 220,
+              delay: 440,
               child: _TopFoodsSection(data: data, patterns: patterns),
             ),
           ],

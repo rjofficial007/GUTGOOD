@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
@@ -20,10 +21,18 @@ class MealLog extends Equatable {
     this.source,
     this.foodTags = const [],
     required this.createdAt,
+    this.occurredAt,
+    this.occurredAtProvenance,
+    this.schemaVersion = AiVersions.schemaVersion,
+    this.promptVersion,
+    this.model,
   });
 
   factory MealLog.fromMap(Map<String, dynamic> map) {
     final rawId = map['id'] ?? map['firestoreId'];
+    // P1-2: the AI's `time` estimate becomes a provenance-tagged occurrence,
+    // never the ordering clock (createdAt below is log time only).
+    final (occurredAt, occurredAtProvenance) = DateTimeUtils.occurredAtFromMap(map);
 
     final rawItems = map['items'];
     var items = <String>[];
@@ -52,7 +61,12 @@ class MealLog extends Equatable {
       analysisResult: map['analysisResult'],
       source: map['source'],
       foodTags: ModelUtils.parseList<String>(map['foodTags']),
-      createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['time']),
+      createdAt: DateTimeUtils.parse(map['createdAt']),
+      occurredAt: occurredAt,
+      occurredAtProvenance: occurredAtProvenance,
+      schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
+      promptVersion: (map['promptVersion'] as num?)?.toInt(),
+      model: map['model'] as String?,
     );
   }
 
@@ -89,8 +103,28 @@ class MealLog extends Equatable {
   /// Custom descriptive tags for the food (e.g., #highprotein).
   final List<String> foodTags;
 
-  /// Exact timestamp of record creation.
+  /// Log time: when this record was written. The ordering/filtering clock for
+  /// queries and pagination. Never an AI estimate (those live in [occurredAt]).
   final DateTime createdAt;
+
+  /// Event time: when the meal was actually eaten, when known. Null means
+  /// unknown — display and correlation fall back to [createdAt] via [eventTime].
+  final DateTime? occurredAt;
+
+  /// Where [occurredAt] came from ([OccurrenceProvenance]). Null when unknown.
+  final String? occurredAtProvenance;
+
+  /// Durable-doc schema version (§17), stamped as `v`.
+  final int schemaVersion;
+
+  /// J-4 §17: chat-prompt version that extracted this meal. Null on legacy docs.
+  final int? promptVersion;
+
+  /// J-4 §17: serving model id echoed by the proxy for this extraction.
+  final String? model;
+
+  /// Best-known moment of the meal for display + correlation windows.
+  DateTime get eventTime => occurredAt ?? createdAt;
 
   MealLog copyWith({
     int? id,
@@ -105,6 +139,11 @@ class MealLog extends Equatable {
     String? source,
     List<String>? foodTags,
     DateTime? createdAt,
+    DateTime? occurredAt,
+    String? occurredAtProvenance,
+    int? schemaVersion,
+    int? promptVersion,
+    String? model,
   }) => MealLog(
     id: id ?? this.id,
     firestoreId: firestoreId ?? this.firestoreId,
@@ -118,9 +157,17 @@ class MealLog extends Equatable {
     source: source ?? this.source,
     foodTags: foodTags ?? this.foodTags,
     createdAt: createdAt ?? this.createdAt,
+    occurredAt: occurredAt ?? this.occurredAt,
+    occurredAtProvenance: occurredAtProvenance ?? this.occurredAtProvenance,
+    schemaVersion: schemaVersion ?? this.schemaVersion,
+    promptVersion: promptVersion ?? this.promptVersion,
+    model: model ?? this.model,
   );
 
   Map<String, dynamic> toMap() => {
+    'v': schemaVersion,
+    'promptVersion': promptVersion,
+    'model': model,
     'firestoreId': firestoreId,
     'chatMessageId': chatMessageId,
     'items': items,
@@ -131,6 +178,8 @@ class MealLog extends Equatable {
     'source': source,
     'foodTags': foodTags,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
+    'occurredAt': DateTimeUtils.toNullableTimestamp(occurredAt),
+    'occurredAtProvenance': occurredAtProvenance,
   };
 
   /// Optimized map for AI context (no Firestore [Timestamp] objects).
@@ -143,8 +192,10 @@ class MealLog extends Equatable {
     'source': source,
     'foodTags': foodTags,
     'createdAt': createdAt.toIso8601String(),
+    if (occurredAt != null) 'occurredAt': occurredAt!.toIso8601String(),
+    if (occurredAtProvenance != null) 'occurredAtProvenance': occurredAtProvenance,
   };
 
   @override
-  List<Object?> get props => [id, firestoreId, chatMessageId, items, createdAt, source];
+  List<Object?> get props => [id, firestoreId, chatMessageId, items, createdAt, occurredAt, occurredAtProvenance, source];
 }

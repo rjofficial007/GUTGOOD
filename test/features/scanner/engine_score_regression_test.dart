@@ -11,6 +11,7 @@ import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/domain_event_persister.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
@@ -58,6 +59,7 @@ ScannerRepositoryImpl buildRepository({
       analyticsService: analytics,
       streakService: MockStreakService(),
       processChatTagUseCase: tagUseCase,
+      eventPersister: DomainEventPersister(historyFirestoreService: MockHistoryFirestoreService()),
     );
 
 ScanResult bareScan({int score = 50, ScanInsight? insight}) => ScanResult(
@@ -89,13 +91,15 @@ void main() {
     mockAnalytics = MockAnalyticsService();
 
     when(() => mockAnalytics.logEvent(name: any(named: 'name'), parameters: any(named: 'parameters'))).thenAnswer((_) async {});
+    when(() => mockAiService.lastPromptVersion).thenReturn(null);
+    when(() => mockAiService.lastServedModel).thenReturn(null);
   });
 
   group('Vision path — engine must not flatten photo scans to a neutral 50', () {
     Future<ScanResult?> runVision(ScanResult modelScan) async {
       final repo = buildRepository(ai: mockAiService, classifier: mockClassifier, tagUseCase: mockTagUseCase, analytics: mockAnalytics);
 
-      when(() => mockClassifier.classifyImage(imageBytes: any(named: 'imageBytes'), userText: any(named: 'userText')))
+      when(() => mockClassifier.classifyImage(imageBytes: any(named: 'imageBytes'), userText: any(named: 'userText'), modeHint: any(named: 'modeHint')))
           .thenAnswer((_) async => const AiClassificationResult(imageMode: 'FOOD', intent: 'COMPLETE_ANALYSIS', confidence: 1.0));
       when(() => mockAiService.generateContent(
             prompt: any(named: 'prompt'),
@@ -103,8 +107,9 @@ void main() {
             imageBytes: any(named: 'imageBytes'),
             usageType: any(named: 'usageType'),
             mode: any(named: 'mode'),
+            promptVersion: any(named: 'promptVersion'),
           )).thenAnswer((_) async => 'analysis text');
-      when(() => mockTagUseCase(any(), userText: any(named: 'userText'), source: any(named: 'source')))
+      when(() => mockTagUseCase(any(), userText: any(named: 'userText'), source: any(named: 'source'), promptVersion: any(named: 'promptVersion'), servedModel: any(named: 'servedModel')))
           .thenReturn(AiAnalysisResult(text: 'analysis text', scan: modelScan));
 
       final result = await repo.analyzeImageWithAi(
@@ -167,8 +172,9 @@ void main() {
             imageBytes: any(named: 'imageBytes'),
             usageType: any(named: 'usageType'),
             mode: any(named: 'mode'),
+            promptVersion: any(named: 'promptVersion'),
           )).thenAnswer((_) async => 'analysis text');
-      when(() => mockTagUseCase(any(), source: any(named: 'source'))).thenReturn(AiAnalysisResult(text: 'analysis text', scan: modelScan));
+      when(() => mockTagUseCase(any(), source: any(named: 'source'), promptVersion: any(named: 'promptVersion'), servedModel: any(named: 'servedModel'))).thenReturn(AiAnalysisResult(text: 'analysis text', scan: modelScan));
 
       final result = await repo.analyzeProductWithAi(
         product: product,

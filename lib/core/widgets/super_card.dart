@@ -10,62 +10,6 @@ import 'package:gutgood/core/utils/insight_ui_utils.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
-/// ---------------------------------------------------------------------------
-/// WEEK SELECTOR
-/// ---------------------------------------------------------------------------
-class GutWeekSelector extends StatelessWidget {
-  const GutWeekSelector({super.key, this.selectedDayIndex, this.activeDays = const {0: Colors.green, 1: Colors.pink, 2: Colors.green}, this.onDaySelected});
-
-  final int? selectedDayIndex;
-  final Map<int, Color> activeDays;
-  final ValueChanged<int>? onDaySelected;
-
-  @override
-  Widget build(BuildContext context) {
-    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    final todayIndex = selectedDayIndex ?? (DateTime.now().weekday - 1);
-
-    return SizedBox(
-      height: 54,
-      child: Row(
-        children: List.generate(days.length, (index) {
-          final isSelected = index == todayIndex;
-          final dotColor = activeDays[index] ?? Colors.transparent;
-
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onDaySelected?.call(index),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                children: [
-                  Text(
-                    days[index],
-                    style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF666666), fontSize: 11, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 9),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    width: isSelected ? 8 : 7,
-                    height: isSelected ? 8 : 7,
-                    decoration: BoxDecoration(
-                      color: isSelected && dotColor == Colors.transparent ? const Color(0xFF2CFF52) : dotColor,
-                      shape: BoxShape.circle,
-                      boxShadow: isSelected ? [BoxShadow(color: (dotColor == Colors.transparent ? const Color(0xFF2CFF52) : dotColor).withAlpha(115), blurRadius: 8)] : null,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-/// ---------------------------------------------------------------------------
-/// SUPER GUT SCORE CARD
-/// ---------------------------------------------------------------------------
 class SuperGutScoreCard extends StatelessWidget {
   const SuperGutScoreCard({super.key, required this.score, this.streak = 0, this.qualityScore, this.loggedCount = 0, this.onTap});
 
@@ -529,15 +473,6 @@ class _SuperFoodGaugeCardState extends State<SuperFoodGaugeCard> {
   }
 }
 
-class SuperMetricData {
-  const SuperMetricData({required this.title, required this.value});
-  final String title;
-  final String value;
-}
-
-/// ---------------------------------------------------------------------------
-/// SUPER AUTOPILOT RECAP CARD
-/// ---------------------------------------------------------------------------
 class SuperAutopilotCard extends StatelessWidget {
   const SuperAutopilotCard({super.key, this.title = 'GUTGOOD RECAP', this.description, this.healingCount = 0, this.triggerCount = 0, this.onTap});
 
@@ -1064,95 +999,6 @@ class SuperCyclerItemData {
   final String? imageUrl;
 }
 
-/// ---------------------------------------------------------------------------
-/// SUPER HISTORY TILE
-/// ---------------------------------------------------------------------------
-class SuperHistoryTile extends StatelessWidget {
-  const SuperHistoryTile({super.key, required this.title, required this.subtitle, required this.score, required this.onTap, required this.icon});
-
-  final String title;
-  final String subtitle;
-  final int score;
-  final VoidCallback onTap;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final band = GutScoreBand.fromScore(score);
-    final statusColor = band.color;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1E1F24), Color(0xFF121214)]),
-          border: Border.all(color: Colors.white.withAlpha(8)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              const SizedBox(width: 14),
-              // Icon Badge
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(color: Colors.white.withAlpha(12), shape: BoxShape.circle),
-                child: Icon(icon, color: Colors.white.withAlpha(200), size: 18),
-              ),
-              const SizedBox(width: 16),
-              // Info
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFFF4F4F4), fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.2),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 11, fontWeight: FontWeight.w400),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Score
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '$score',
-                      style: TextStyle(color: statusColor, fontSize: 22, fontWeight: FontWeight.w300, letterSpacing: -0.5),
-                    ),
-                    Text(
-                      'SCORE',
-                      style: TextStyle(color: Colors.white.withAlpha(60), fontSize: 8, fontWeight: FontWeight.w700, letterSpacing: 0.5),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// ---------------------------------------------------------------------------
-/// CUSTOM TICK ARC GAUGE PAINTER
-/// ---------------------------------------------------------------------------
 class GutTickGaugePainter extends CustomPainter {
   GutTickGaugePainter({required this.progress});
 
@@ -1197,34 +1043,3 @@ class GutTickGaugePainter extends CustomPainter {
   bool shouldRepaint(covariant GutTickGaugePainter oldDelegate) => oldDelegate.progress != progress;
 }
 
-/// ---------------------------------------------------------------------------
-/// SPARKLE PAINTER
-/// ---------------------------------------------------------------------------
-class SparklePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF7EA2FF)
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-
-    path.moveTo(cx, 0);
-    path.quadraticBezierTo(cx + 2, cy - 4, size.width, cy);
-    path.quadraticBezierTo(cx + 2, cy + 4, cx, size.height);
-    path.quadraticBezierTo(cx - 2, cy + 4, 0, cy);
-    path.quadraticBezierTo(cx - 2, cy - 4, cx, 0);
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// Legacy alias for backward compatibility
-typedef SleepScoreCard = SuperGutScoreCard;
-typedef AutopilotCard = SuperAutopilotCard;
-typedef SleepGaugePainter = GutTickGaugePainter;

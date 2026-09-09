@@ -81,3 +81,73 @@ class UserIntent {
     generalChat,
   ];
 }
+
+/// Schema/envelope versioning (§17). Every AI-produced durable doc stamps
+/// [schemaVersion] as `v` (tolerant readers ignore unknown fields; future
+/// writers bump this when a shape changes). The [GUTGOOD_DATA] envelope may
+/// also carry `v`; [AiResponseValidator] rejects envelopes newer than this.
+class AiVersions {
+  AiVersions._();
+
+  static const int schemaVersion = 1;
+
+  /// Insights-prompt version, stamped on insight docs (P2-9/P2-10).
+  /// 2 = de-presented schema: the LLM emits data only, Dart owns visuals.
+  static const int insightPromptVersion = 2;
+
+  /// J-4 §17: chat builder (`Prompts.chatSystemInstruction`) version, stamped
+  /// on ChatMessage + the scan/meal/symptom records extracted from chat turns.
+  /// 1 = first versioned baseline (post-J-3 dedupe). Bump on any wording change.
+  static const int chatPromptVersion = 1;
+
+  /// J-4 §17: one-shot analysis builders (`visionAnalysisSystemInstruction`,
+  /// `barcodeAnalysisSystemInstruction`, `productAnalysisPrompt`) version,
+  /// stamped on ScanResults from the scanner flows. Builder identity comes
+  /// from `ScanResult.source` ('chat' vs image-mode/barcode values).
+  static const int visionPromptVersion = 1;
+
+  // NOTE: the classifier (`imageClassificationInstruction`,
+  // `intentDetectionInstruction`) and summarizer builders are intentionally
+  // unversioned — routing-only / rolling summary, no versioned artifact.
+}
+
+/// §F envelope verdict: what the analyzed content fundamentally IS.
+/// `non_food` (and explicit `uncertain`) blocks record persistence — the turn
+/// stays chat-only. Absent verdict = legacy prompt output, allowed through.
+class Verdict {
+  Verdict._();
+
+  static const String food = 'food';
+  static const String nonFood = 'non_food';
+  static const String uncertain = 'uncertain';
+
+  static const List<String> all = [food, nonFood, uncertain];
+}
+
+/// Provenance of a journal log's [occurredAt] event time (P1-2).
+/// Separate from [RecordProvenance]: this says where the TIME came from.
+class OccurrenceProvenance {
+  OccurrenceProvenance._();
+
+  /// The user stated or picked the time.
+  static const String user = 'user';
+
+  /// The AI estimated the time from context ("last night", "at lunch").
+  static const String aiEstimated = 'ai_estimated';
+}
+
+/// Provenance of a symptom record itself (P2-4): how it was detected.
+/// `keyword_fallback` records are excluded from pattern corroboration until a
+/// confirmation flow exists; they still render in chat/history.
+class RecordProvenance {
+  RecordProvenance._();
+
+  /// Manually entered by the user.
+  static const String user = 'user';
+
+  /// Extracted from a structured AI data block.
+  static const String aiExtracted = 'ai_extracted';
+
+  /// Guessed by keyword-regex over user text (no structured AI entry).
+  static const String keywordFallback = 'keyword_fallback';
+}

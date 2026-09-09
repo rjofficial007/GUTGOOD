@@ -14,18 +14,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   final FirebaseAuth _auth;
   final AuthFirestoreService _firestoreService;
 
-  @override
-  Future<UserProfile?> getProfile() async {
-    if (_auth.currentUser != null) {
-      return _firestoreService.getUserMetadata();
-    }
-    return null;
-  }
 
-  @override
-  Future<void> saveProfile(UserProfile profile) async {
-    await _firestoreService.saveUserProfile(profile);
-  }
 
   @override
   Future<String?> uploadProfilePicture(File file) async =>

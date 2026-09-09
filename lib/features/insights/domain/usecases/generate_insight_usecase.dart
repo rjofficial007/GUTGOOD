@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/insight_evidence.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/health_alert.dart';
 import 'package:gutgood/core/models/meal_log.dart';
@@ -11,6 +14,7 @@ import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/pattern_engine_service.dart';
+import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
@@ -79,6 +83,12 @@ class GenerateInsightUseCase {
     }
 
     final profile = await _authFirestoreService.getUserMetadata();
+    // Client-owned cadence: honor the per-user disable toggle here (the
+    // retired server pipeline used to enforce it).
+    if (profile?.insightsDisabled ?? false) {
+      AppLogger.debug('GenerateInsightUseCase: insights disabled in profile. Skipping.');
+      return;
+    }
     final userGoals = profile?.goals ?? _prefs.getStringList(StorageKeys.userGoals) ?? [];
     final userSensitivities = profile?.sensitivities ?? _prefs.getStringList('user_sensitivities') ?? [];
     final userLifestyle = profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
@@ -113,12 +123,12 @@ class GenerateInsightUseCase {
     final freshPatterns = await _patternEngineService.runAnalysis();
 
     // 🟢 TIERED JOURNALING: Split into High-Fidelity (7d) and Historical (8-30d)
-    final recentMeals = allMeals.where((m) => m.createdAt.isAfter(sevenDaysAgo)).toList();
-    final recentSymptoms = allSymptoms.where((s) => s.createdAt.isAfter(sevenDaysAgo)).toList();
+    final recentMeals = allMeals.where((m) => m.eventTime.isAfter(sevenDaysAgo)).toList();
+    final recentSymptoms = allSymptoms.where((s) => s.eventTime.isAfter(sevenDaysAgo)).toList();
     final recentScans = allScans.where((s) => s.createdAt.isAfter(sevenDaysAgo)).toList();
 
-    final historicalMeals = allMeals.where((m) => m.createdAt.isBefore(sevenDaysAgo)).toList();
-    final historicalSymptoms = allSymptoms.where((s) => s.createdAt.isBefore(sevenDaysAgo)).toList();
+    final historicalMeals = allMeals.where((m) => m.eventTime.isBefore(sevenDaysAgo)).toList();
+    final historicalSymptoms = allSymptoms.where((s) => s.eventTime.isBefore(sevenDaysAgo)).toList();
     final historicalScans = allScans.where((s) => s.createdAt.isBefore(sevenDaysAgo)).toList();
 
     final recentJournalText = _buildJournal.execute(meals: recentMeals, symptoms: recentSymptoms, scans: recentScans);
@@ -129,8 +139,9 @@ class GenerateInsightUseCase {
       historicalJournalSummary = await _summarizeJournal.execute(historicalJournalText);
     }
 
-    // 🟢 CHAT HYGIENE: Limit raw recent chat to last 10 messages
-    final recentChat = allChat.length > 10 ? allChat.sublist(allChat.length - 10) : allChat;
+    // 🟢 CHAT HYGIENE: Limit raw recent chat to last 10 messages (C-4: the
+    // list arrives newest-first, so the head — not the tail — is "recent").
+    final recentChat = takeRecentChat(allChat);
 
     final scoreList = history.take(6).toList().reversed.toList();
     final scoreHistoryString = scoreList.map((i) => i.gutScore).join(', ');
@@ -150,9 +161,21 @@ class GenerateInsightUseCase {
       lastScore: lastScore,
     );
 
+    // P2-10 v2 envelope (period/evidence/provenance/status) at the write edge.
+    final stamped = stampInsightEnvelope(
+      insight,
+      candidates: freshPatterns,
+      periodFrom: thirtyDaysAgo,
+      periodTo: nowUtc,
+      sampleSizes: SampleSizes(meals: allMeals.length, symptoms: allSymptoms.length, scans: allScans.length),
+      model: RemoteConfigService.instance.openAIModel,
+      promptVersion: AiVersions.insightPromptVersion,
+      expiresAt: DateTime.now().add(const Duration(hours: 48)),
+    );
+
     // Side Effects
     await _prefs.setString(StorageKeys.lastInsightRun, DateTime.now().toUtc().toIso8601String());
-    await _insightRepository.saveInsight(insight);
+    await _insightRepository.saveInsight(stamped);
 
     unawaited(
       _insightRepository.saveHealthAlert(
@@ -170,3 +193,34 @@ class GenerateInsightUseCase {
     unawaited(_notificationService.showInsightGeneratedNotification());
   }
 }
+
+/// P2-10: pure v2-envelope stamp. Status honors the minimum-evidence doctrine
+/// (§H): no candidates, or a data span under 7 days, yields
+/// [AIInsight.statusInsufficientData] — a score-trend digest with zero pattern
+/// claims and an explicit "not enough data yet" state downstream.
+AIInsight stampInsightEnvelope(
+  AIInsight insight, {
+  required List<BodyPattern> candidates,
+  required DateTime periodFrom,
+  required DateTime periodTo,
+  required SampleSizes sampleSizes,
+  required String model,
+  required int promptVersion,
+  required DateTime expiresAt,
+}) {
+  final spanDays = candidates.isEmpty ? 0 : candidates.first.timeframeDays;
+  return insight.copyWith(
+    periodFrom: periodFrom,
+    periodTo: periodTo,
+    evidence: InsightEvidence.fromPatterns(candidates, sampleSizes: sampleSizes),
+    status: (candidates.isEmpty || spanDays < 7) ? AIInsight.statusInsufficientData : AIInsight.statusReady,
+    actions: insight.topInsight?.nextSteps ?? const [],
+    model: model,
+    promptVersion: promptVersion,
+    expiresAt: expiresAt,
+    origin: AIInsight.originClient,
+  );
+}
+
+/// C-4: takes the [limit] most recent messages from a newest-first list.
+List<ChatMessage> takeRecentChat(List<ChatMessage> newestFirst, [int limit = 10]) => newestFirst.length > limit ? newestFirst.sublist(0, limit) : newestFirst;

@@ -7,6 +7,7 @@ import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/domain_event_persister.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
@@ -77,6 +78,7 @@ void main() {
       analyticsService: mockAnalyticsService,
       streakService: mockStreakService,
       processChatTagUseCase: mockProcessChatTagUseCase,
+      eventPersister: DomainEventPersister(historyFirestoreService: mockHistoryFirestoreService),
     );
   });
 

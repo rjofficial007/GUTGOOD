@@ -113,7 +113,7 @@ void main() {
       final output = await useCase.call(labelResult, source: 'label', persistedTagBlocks: persistedTags);
 
       expect(output.meal, isNull);
-      verifyNever(() => mockFirestoreService.saveLabelScan(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
+      verifyNever(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
       verifyNever(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId')));
     });
 

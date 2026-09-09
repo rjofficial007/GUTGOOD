@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/models/pattern_occurrence.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
@@ -20,6 +21,7 @@ class BodyPattern extends Equatable {
     this.evidenceRatio = 0.0,
     this.positiveCount = 0,
     this.negativeCount = 0,
+    this.schemaVersion = AiVersions.schemaVersion,
   });
 
   factory BodyPattern.fromMap(Map<String, dynamic> map) => BodyPattern(
@@ -39,6 +41,7 @@ class BodyPattern extends Equatable {
     evidenceRatio: (map['evidenceRatio'] as num?)?.toDouble() ?? 0.0,
     positiveCount: (map['positiveCount'] as num?)?.toInt() ?? 0,
     negativeCount: (map['negativeCount'] as num?)?.toInt() ?? 0,
+    schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
   );
 
   final String type;
@@ -62,6 +65,9 @@ class BodyPattern extends Equatable {
   final int positiveCount; // symptomatic occurrences
   final int negativeCount; // asymptomatic occurrences
 
+  /// Durable-doc schema version (§17), stamped as `v`.
+  final int schemaVersion;
+
   // Insight Categories
   static const String typeBloating = 'bloating';
   static const String typeEnergy = 'energy';
@@ -77,6 +83,7 @@ class BodyPattern extends Equatable {
   static const String confidenceHigh = 'High';
 
   Map<String, dynamic> toMap() => {
+    'v': schemaVersion,
     'type': type,
     'trigger': trigger,
     'reaction': reaction,

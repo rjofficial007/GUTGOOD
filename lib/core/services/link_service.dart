@@ -13,7 +13,6 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 abstract class LinkService {
   Future<void> init();
-  Future<void> checkOnResume();
   void dispose();
 }
 
@@ -215,10 +214,6 @@ class LinkServiceImpl implements LinkService {
     }
   }
 
-  @override
-  Future<void> checkOnResume() async {
-    await _checkAppleCredentialState();
-  }
 
   @override
   void dispose() {

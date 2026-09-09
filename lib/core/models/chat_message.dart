@@ -26,6 +26,7 @@ class ChatMessage extends Equatable {
     required this.text,
     String? imageUrl,
     this.imageUrls = const [],
+    this.imageHashes = const [],
     this.localImages,
     this.scanData,
     this.mealLogs = const [],
@@ -36,11 +37,15 @@ class ChatMessage extends Equatable {
     this.feedback,
     this.isSending = false,
     this.sendFailed = false,
+    this.isQueued = false,
     this.errorKind = ChatErrorKind.none,
     this.source,
     this.foodMentions = const [],
     this.symptomMentions = const [],
     this.isHidden = false,
+    this.wasTruncated = false,
+    this.promptVersion,
+    this.model,
     required this.createdAt,
   }) : _imageUrl = imageUrl;
 
@@ -64,6 +69,7 @@ class ChatMessage extends Equatable {
       text: map['text'] ?? '',
       imageUrl: resolvedImageUrls.isNotEmpty ? resolvedImageUrls.first : legacyImageUrl,
       imageUrls: resolvedImageUrls,
+      imageHashes: ModelUtils.parseList<String>(map['imageHashes']),
       // 🚀 Professional Parsing: Support both embedded data and reference previews
       scanData:
           analysisResult?.scan ??
@@ -81,6 +87,9 @@ class ChatMessage extends Equatable {
       foodMentions: ModelUtils.parseList<String>(map['foodMentions']),
       symptomMentions: ModelUtils.parseList<String>(map['symptomMentions']),
       isHidden: ModelUtils.parseBool(map['isHidden'] ?? false),
+      wasTruncated: ModelUtils.parseBool(map['wasTruncated'] ?? false),
+      promptVersion: (map['promptVersion'] as num?)?.toInt(),
+      model: map['model'] as String?,
       createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['time']),
     );
   }
@@ -115,6 +124,12 @@ class ChatMessage extends Equatable {
   /// multi-image turns). Order matches the order the user attached them.
   final List<String> imageUrls;
 
+  /// Registry identity per attachment, parallel to [imageUrls] (§E): the
+  /// `sha256_16` hash of the stored bytes. Persisted so delete/relink can
+  /// find the registry docs without reverse-parsing URLs. May be shorter
+  /// than [imageUrls] for legacy or partially-uploaded turns.
+  final List<String> imageHashes;
+
   /// Raw bytes for local image previews before upload completes.
   final List<Uint8List>? localImages;
 
@@ -146,6 +161,11 @@ class ChatMessage extends Equatable {
   /// a retry affordance until the user retries or dismisses it.
   final bool sendFailed;
 
+  /// Whether this message is parked in the offline outbox, awaiting
+  /// auto-send on reconnect. Local-only like [isSending]/[sendFailed]:
+  /// never written to Firestore (fromMap always reads false).
+  final bool isQueued;
+
   /// Categorized failure for AI turns (never persisted to Firestore).
   final ChatErrorKind errorKind;
 
@@ -161,11 +181,19 @@ class ChatMessage extends Equatable {
   /// Whether this message is hidden from the UI (but still used for context).
   final bool isHidden;
 
+  /// P3-4: the proxy truncated this turn (long input cut, or the reply hit
+  /// `finish_reason: length`). Rendered as a caption — never fed back to AI.
+  final bool wasTruncated;
+
+  /// J-4 §17: chat-prompt version that produced this turn (echoed by proxy).
+  final int? promptVersion;
+
+  /// J-4 §17: serving model id echoed by the proxy for this turn.
+  final String? model;
+
   /// The exact time the message was created or received.
   final DateTime createdAt;
 
-  /// Back-compat getter for single-image widgets.
-  Uint8List? get localImageBytes => (localImages != null && localImages!.isNotEmpty) ? localImages!.first : null;
 
   ChatMessage copyWith({
     int? id,
@@ -176,6 +204,7 @@ class ChatMessage extends Equatable {
     String? text,
     String? imageUrl,
     List<String>? imageUrls,
+    List<String>? imageHashes,
     List<Uint8List>? localImages,
     ScanResult? scanData,
     List<MealLog>? mealLogs,
@@ -186,11 +215,15 @@ class ChatMessage extends Equatable {
     String? feedback,
     bool? isSending,
     bool? sendFailed,
+    bool? isQueued,
     ChatErrorKind? errorKind,
     String? source,
     List<String>? foodMentions,
     List<String>? symptomMentions,
     bool? isHidden,
+    bool? wasTruncated,
+    int? promptVersion,
+    String? model,
     DateTime? createdAt,
     bool clearLocalImages = false,
   }) {
@@ -204,6 +237,7 @@ class ChatMessage extends Equatable {
       text: text ?? this.text,
       imageUrl: imageUrl ?? (nextImageUrls.isNotEmpty ? nextImageUrls.first : this.imageUrl),
       imageUrls: nextImageUrls,
+      imageHashes: imageHashes ?? this.imageHashes,
       localImages: clearLocalImages ? null : (localImages ?? this.localImages),
       scanData: scanData ?? this.scanData,
       mealLogs: mealLogs ?? this.mealLogs,
@@ -214,11 +248,15 @@ class ChatMessage extends Equatable {
       feedback: feedback ?? this.feedback,
       isSending: isSending ?? this.isSending,
       sendFailed: sendFailed ?? this.sendFailed,
+      isQueued: isQueued ?? this.isQueued,
       errorKind: errorKind ?? this.errorKind,
       source: source ?? this.source,
       foodMentions: foodMentions ?? this.foodMentions,
       symptomMentions: symptomMentions ?? this.symptomMentions,
       isHidden: isHidden ?? this.isHidden,
+      wasTruncated: wasTruncated ?? this.wasTruncated,
+      promptVersion: promptVersion ?? this.promptVersion,
+      model: model ?? this.model,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -232,6 +270,7 @@ class ChatMessage extends Equatable {
     'text': text,
     'imageUrl': imageUrl,
     'imageUrls': imageUrls,
+    'imageHashes': imageHashes,
     // 🚀 Deduplication: Store IDs and minimal preview metadata only
     'scanId': scanData?.scanId,
     'scanPreview': scanData != null
@@ -249,40 +288,27 @@ class ChatMessage extends Equatable {
           }
         : null,
     'journalEntryIds': [...mealLogs.map((e) => e.firestoreId).whereType<String>(), ...symptomLogs.map((e) => e.firestoreId).whereType<String>()],
-    'mealLogs': mealLogs.map((e) => e.toMap()).toList(),
+    // P2-1 slim docs: NO `mealLogs` (nothing renders them; the AI keeps text
+    // + foodMentions + the rolling summary) and NO `analysisResult` (zero
+    // readers — it re-stored scan+meal+symptoms+swaps a third time).
+    // Kept: `symptomLogs` (small, and cross-turn symptom reasoning is the
+    // core loop), `swapData` (rendered swap cards), `scanPreview`+`scanId`
+    // (inline card renders from preview fields; detail re-hydrates by id).
+    // fromMap still parses the dropped keys, so legacy fat docs hydrate
+    // unchanged — new writes are slim, history is never rewritten (§L-5).
     'symptomLogs': symptomLogs.map((e) => e.toMap()).toList(),
     'swapData': swapData?.map((e) => e.toMap()).toList(),
-    // 🚀 Fix: `analysisResult.scan` embeds `rawData`, which is the ENTIRE
-    // decoded [GUTGOOD_DATA] JSON block the scan/meal/symptoms/swaps above
-    // were already parsed FROM. Persisting it meant every scan-carrying chat
-    // message stored the same product/meal data three times over
-    // (`scanPreview`, `analysisResult.scan`, and `analysisResult.scan.rawData`)
-    // for no functional benefit: by the time a message reaches `toMap()`,
-    // anything genuinely useful from rawData (menu items, meal strategy) has
-    // already been lifted into `analysisResult.menu` / `.meal` / `.intent`,
-    // and the durable copies of scan/meal/symptom data live in
-    // scan_history/journal_logs via PersistAiResponseUseCase, not this doc.
-    // We drop it only at the persistence boundary — the in-memory
-    // `analysisResult`/`scanData` used during the live turn (e.g. building
-    // `scanPreview.intent` above) are untouched.
-    'analysisResult': _analysisResultMapForPersistence(),
     'isSwap': isSwap,
     'feedback': feedback,
     'source': source,
     'foodMentions': foodMentions,
     'symptomMentions': symptomMentions,
     'isHidden': isHidden,
+    'wasTruncated': wasTruncated,
+    'promptVersion': promptVersion,
+    'model': model,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
   };
-
-  Map<String, dynamic>? _analysisResultMapForPersistence() {
-    final map = analysisResult?.toMap();
-    final scanMap = map?['scan'];
-    if (scanMap is Map<String, dynamic>) {
-      scanMap.remove('rawData');
-    }
-    return map;
-  }
 
   Map<String, String> toAiMap() {
     final role = this.role == 'user' ? 'user' : 'assistant';
@@ -320,6 +346,7 @@ class ChatMessage extends Equatable {
     text,
     imageUrl,
     imageUrls,
+    imageHashes,
     scanData,
     mealLogs,
     symptomLogs,
@@ -329,8 +356,10 @@ class ChatMessage extends Equatable {
     feedback,
     isSending,
     sendFailed,
+    isQueued,
     errorKind,
     isHidden,
+    wasTruncated,
     createdAt,
   ];
 }

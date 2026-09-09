@@ -117,7 +117,6 @@ class ProfileNotifier with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   bool get showStreakCelebration => _showStreakCelebration;
-  String get quickInsight => _quickInsight;
 
   // Streak getters from localized service (offline-first)
   int get streak => _streakService.currentStreak;
@@ -212,6 +211,18 @@ class ProfileNotifier with ChangeNotifier {
 
     await _analyticsService.logEvent(name: 'cycle_sync_toggled', parameters: {'enabled': enabled});
     final updatedProfile = _profile!.copyWith(cycleSyncEnabled: enabled, updatedAt: DateTime.now());
+
+    await _firestoreService.updateUserProfile(updatedProfile);
+    _profile = updatedProfile;
+    notifyListeners();
+  }
+
+  /// C-4: per-user kill switch for server insight generation.
+  Future<void> updateInsightsDisabled(bool disabled) async {
+    if (_profile == null) return;
+
+    await _analyticsService.logEvent(name: 'insights_toggled', parameters: {'disabled': disabled});
+    final updatedProfile = _profile!.copyWith(insightsDisabled: disabled, updatedAt: DateTime.now());
 
     await _firestoreService.updateUserProfile(updatedProfile);
     _profile = updatedProfile;

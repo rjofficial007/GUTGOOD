@@ -31,7 +31,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 9. Content: [Short supportive summary of how this meal fits into the user's long-term gut-health strategy].
 
 10. REQUIRED LOGGING: If you are recommending a specific dish that the user can track, you MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
-    - Populate the "swaps" array with the recommendation.
+    - Populate the "swaps" array with exactly 3 dish recommendations.
     - If the user is reporting a symptom or current feeling (e.g., feeling energetic), you MUST also populate the "symptoms" array. Ensure the "energyLevel" and "mood" fields are populated if mentioned.
     
 ${PromptFormattingRules.gutGoodDataBlockRequired}

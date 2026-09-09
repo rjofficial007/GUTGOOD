@@ -24,13 +24,10 @@ class AppRoutes {
   static const String savedFoods = '/saved-foods';
   static const String allScans = '/all-scans';
   static const String scanResult = '/scan-result';
-  static const String labelResult = '/label-result';
-  static const String menuResult = '/menu-result';
-  static const String nutritionFacts = '/nutrition-facts';
-  static const String mealDetail = '/meal-detail';
   static const String symptomDetail = '/symptom-detail';
   static const String additiveDetail = '/additive-detail';
   static const String scanListDetail = '/scan-list-detail';
+  static const String additivesList = '/additives-list';
   static const String swapDetail = '/swap-detail';
 
   // Profile Sub-routes

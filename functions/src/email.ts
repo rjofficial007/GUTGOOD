@@ -5,7 +5,7 @@ import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } from './config'
 /**
  * Creates a Nodemailer transporter using secrets.
  */
-function getTransporter() {
+export function getTransporter() {
   return nodemailer.createTransport({
     host: SMTP_HOST.value(),
     port: parseInt(SMTP_PORT.value()),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat_message.dart';
@@ -11,6 +12,7 @@ import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/domain_event_persister.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
@@ -36,6 +38,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     required AnalyticsService analyticsService,
     required StreakService streakService,
     required ProcessChatTagUseCase processChatTagUseCase,
+    required DomainEventPersister eventPersister,
   }) : _offService = offService,
        _aiService = aiService,
        _aiClassifierService = aiClassifierService,
@@ -45,7 +48,8 @@ class ScannerRepositoryImpl implements ScannerRepository {
        _appStateService = appStateService,
        _analyticsService = analyticsService,
        _streakService = streakService,
-       _processChatTagUseCase = processChatTagUseCase;
+       _processChatTagUseCase = processChatTagUseCase,
+       _persister = eventPersister;
   final OffService _offService;
   final AiService _aiService;
   final AiClassifierService _aiClassifierService;
@@ -56,9 +60,67 @@ class ScannerRepositoryImpl implements ScannerRepository {
   final AnalyticsService _analyticsService;
   final StreakService _streakService;
   final ProcessChatTagUseCase _processChatTagUseCase;
+  final DomainEventPersister _persister;
 
   @override
   Future<OffProduct?> getProductByBarcode(String barcode) async => _offService.getProduct(barcode);
+
+  @override
+  Future<ScanResult?> getCachedBarcodeScan({required String barcode, required List<String> sensitivities}) async {
+    if (barcode.isEmpty) return null;
+    try {
+      final cached = await _historyFirestoreService.getLatestScanByBarcode(barcode);
+      if (cached == null) return null;
+      if (DateTime.now().difference(cached.createdAt) > ScannerRepository.barcodeCacheMaxAge) {
+        AppLogger.ai('ScannerRepository: barcode cache stale for $barcode — running full analysis');
+        return null;
+      }
+
+      // Engine inputs are persisted verbatim and the engine is deterministic,
+      // so a zero-arg re-run reproduces the original score exactly while the
+      // explanation is recomposed fresh from the same factors.
+      final rescored = _applyEngineScore(cached);
+      final turnId = const Uuid().v4();
+      final view = rescored.copyWith(
+        flaggedIngredients: _reflagWithSensitivities(rescored, sensitivities),
+        // Fresh IDs: this is a new turn viewing an old result. The stored doc
+        // is untouched (no counter bump, no history duplicate).
+        scanId: const Uuid().v4(),
+        chatMessageId: turnId,
+        createdAt: DateTime.now(),
+      );
+
+      await _chatFirestoreService.saveMessage(
+        ChatMessage(localId: turnId, role: 'ai', text: 'Welcome back — **${view.productName}**, from your scan history with a fresh score ✨', scanData: view, source: view.source, createdAt: DateTime.now()),
+      );
+      _appStateService.notifyChatUpdated();
+      await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'barcode_cache', 'product_name': view.productName, 'score': view.score});
+      AppLogger.ai('ScannerRepository: barcode cache HIT for ${view.productName} — skipped OFF + AI');
+      return view;
+    } catch (e) {
+      // The cache must never break scanning — any failure falls through.
+      AppLogger.error('ScannerRepository: barcode cache lookup failed', error: e);
+      return null;
+    }
+  }
+
+  /// Merges the AI's stored flags with deterministic matches against the
+  /// CURRENT sensitivities. Union semantics are deliberate: entries are only
+  /// ever added, so a newly added sensitivity can surface a warning the old
+  /// analysis predates, while stale AI flags are never hidden (substring
+  /// matching can't reproduce the model's synonym knowledge — e.g. "dairy" vs
+  /// "whey" — so removal would risk dropping a real warning).
+  List<String> _reflagWithSensitivities(ScanResult scan, List<String> sensitivities) {
+    final flags = <String>{...scan.flaggedIngredients};
+    if (sensitivities.isEmpty) return flags.toList();
+    final haystacks = [...scan.ingredients.map((i) => i.name), ...scan.additiveItems, if (scan.allergens != null) scan.allergens!].map((s) => s.toLowerCase()).toList();
+    for (final term in sensitivities) {
+      final needle = term.toLowerCase().trim();
+      if (needle.isEmpty) continue;
+      if (haystacks.any((h) => h.contains(needle))) flags.add(term);
+    }
+    return flags.toList();
+  }
 
   /// Runs the deterministic scoring engine and attaches an ENGINE-AUTHORED
   /// score + explanation to the scan's insight.
@@ -92,7 +154,9 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     final breakdown = YukaScore.evaluate(
       nutriscore: nutriscore ?? scan.nutriscore,
-      nutriscoreScore: nutriscoreScore,
+      // Scan fallbacks let barcode-cache hits re-run the engine with zero
+      // explicit args and still reproduce the original score bit-for-bit.
+      nutriscoreScore: nutriscoreScore ?? scan.nutriscoreScore,
       energyKcal: energyKcal ?? scan.nutrients?.calories,
       fiberG: fiberG ?? scan.nutrients?.fiber,
       proteinG: proteinG ?? scan.nutrients?.proteins,
@@ -100,7 +164,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
       saltG: saltG ?? scan.nutrients?.salt,
       saturatedFatG: saturatedFatG ?? scan.nutrients?.saturatedFat,
       additiveConcerns: additiveConcerns,
-      isOrganic: isOrganic,
+      isOrganic: isOrganic ?? scan.isOrganic,
     );
 
     // SAFEGUARD: for a *photo* scan the model has usually reasoned about the
@@ -160,9 +224,9 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     final prompt = '${Prompts.productAnalysisPrompt(productData: productMap, userGoals: goals, userSensitivities: sensitivities, userLifestyle: lifestyle, cyclePhase: cyclePhase)}$alternativesText';
 
-    final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan', mode: 'plain');
+    final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan', mode: 'plain', promptVersion: AiVersions.visionPromptVersion);
 
-    final result = _processChatTagUseCase(aiResultStr, source: 'barcode');
+    final result = _processChatTagUseCase(aiResultStr, source: 'barcode', promptVersion: _aiService.lastPromptVersion ?? AiVersions.visionPromptVersion, servedModel: _aiService.lastServedModel);
 
     if (result.scan != null) {
       final scan = result.scan!;
@@ -172,7 +236,16 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
       // OFF label data is ground truth, so it drives the score (not the model).
       final updatedScan = _applyEngineScore(
-        scan.copyWith(barcode: product.barcode, imageUrl: product.imageUrl, additiveItems: mergedAdditives.toList(), createdAt: DateTime.now()),
+        // Persist OFF's numeric score + organic flag so future cache hits
+        // re-run the engine on identical inputs (P0-3).
+        scan.copyWith(
+          barcode: product.barcode,
+          imageUrl: product.imageUrl,
+          additiveItems: mergedAdditives.toList(),
+          nutriscoreScore: product.nutriscoreScore,
+          isOrganic: product.isOrganic,
+          createdAt: DateTime.now(),
+        ),
         nutriscore: product.nutriscore,
         nutriscoreScore: product.nutriscoreScore,
         novaGroup: int.tryParse(product.novaGroup?.toString() ?? ''),
@@ -204,8 +277,11 @@ class ScannerRepositoryImpl implements ScannerRepository {
     required String cyclePhase,
     String? userText,
   }) async {
-    // 🟢 AI-BASED CLASSIFICATION: The visual content wins over the UI entry point.
-    final classification = await _aiClassifierService.classifyImage(imageBytes: imageBytes, userText: userText);
+    // K-3: the UI entry point wins — a dedicated scanner mode already knows what
+    // the bytes are, so the classifier skips its vision round-trip (the old
+    // "visual content wins" behavior doubled vision bytes on every scan).
+    // Unknown modes still fall back to full vision classification inside.
+    final classification = await _aiClassifierService.classifyImage(imageBytes: imageBytes, userText: userText, modeHint: mode);
 
     final userPrompt = (userText != null && userText.trim().isNotEmpty)
         ? 'Analyze this image and user message: "$userText". Provide your full analysis followed by the [GUTGOOD_DATA] block. Intent: ${classification.intent}'
@@ -223,9 +299,10 @@ class ScannerRepositoryImpl implements ScannerRepository {
       prompt: userPrompt,
       usageType: 'scan',
       mode: 'plain',
+      promptVersion: AiVersions.visionPromptVersion,
     );
 
-    var result = _processChatTagUseCase(aiResultStr, userText: userText, source: classification.imageMode);
+    var result = _processChatTagUseCase(aiResultStr, userText: userText, source: classification.imageMode, promptVersion: _aiService.lastPromptVersion ?? AiVersions.visionPromptVersion, servedModel: _aiService.lastServedModel);
 
     // Photo scans used to take whatever score the model invented. Run the same
     // deterministic engine used for barcode scans over the model's structured
@@ -264,19 +341,24 @@ class ScannerRepositoryImpl implements ScannerRepository {
     AppLogger.info('ScannerRepository: Processing scan result persistence for: ${scan.productName}');
     final finalScanId = scanId ?? scan.scanId ?? const Uuid().v4();
 
-    final source = (scan.source ?? '').toUpperCase();
-    final category = (scan.category ?? '').toUpperCase();
-    final isLabelOrMenu = source.contains('LABEL') || category.contains('LABEL') || source.contains('MENU') || category.contains('MENU');
+    // P1-4: record writes go through the shared persister — same validation,
+    // label/menu gating, consumption gating, and stable IDs as the chat path
+    // (this also fixes phantom meal logs on "is this healthy?" scans and
+    // missing confidence gating here). The returned result carries hydrated
+    // IDs, and cleared records for chat-only turns, which the bubble embeds.
+    final outcome = await _persister.persist(result, chatMessageId: finalScanId, imageUrl: userImageUrl, source: scan.source);
+    final hydrated = outcome.result;
+    final hydratedScan = hydrated.scan ?? scan;
 
     // 🚀 Consistent UX: Use the AI's actual conversational text in the chat bubble
     final aiMsg = ChatMessage(
       localId: finalScanId,
       role: 'ai',
-      text: result.text.isEmpty ? 'I analyzed **${scan.productName}** for you. ✨' : result.text,
-      scanData: scan.copyWith(scanId: finalScanId, userImageUrl: userImageUrl),
+      text: hydrated.text.isEmpty ? 'I analyzed **${hydratedScan.productName}** for you. ✨' : hydrated.text,
+      scanData: hydratedScan,
       imageUrl: userImageUrl,
-      symptomLogs: result.symptoms,
-      mealLogs: (!isLabelOrMenu && result.meal != null) ? [result.meal!] : const [],
+      symptomLogs: hydrated.symptoms,
+      mealLogs: hydrated.meal != null ? [hydrated.meal!] : const [],
       source: scan.source,
       createdAt: DateTime.now(),
     );
@@ -284,41 +366,6 @@ class ScannerRepositoryImpl implements ScannerRepository {
     await _chatFirestoreService.saveMessage(aiMsg);
     await _streakService.markActivityToday();
     AppLogger.info('ScannerRepository: Chat message saved and activity marked');
-
-    // 🚀 Persist Symptoms to journal_logs
-    if (result.symptoms.isNotEmpty) {
-      for (var i = 0; i < result.symptoms.length; i++) {
-        var symptom = result.symptoms[i];
-        final stableSymptomId = '${finalScanId}_symptom_$i';
-        symptom = symptom.copyWith(chatMessageId: finalScanId, foodName: symptom.foodName ?? scan.productName, imageUrl: symptom.imageUrl ?? userImageUrl ?? scan.imageUrl);
-        await _historyFirestoreService.logSymptom(symptom, docId: stableSymptomId);
-        AppLogger.info('ScannerRepository: Saved symptom ${symptom.symptom} (${symptom.foodName}) to journal_logs');
-      }
-    }
-
-    // 🚀 Persist Meal Log to journal_logs (ONLY for food/meal scans, NOT label or menu)
-    if (!isLabelOrMenu && result.meal != null) {
-      final stableMealId = '${finalScanId}_meal';
-      await _historyFirestoreService.logMeal(
-        result.meal!.copyWith(chatMessageId: finalScanId, source: scan.source),
-        docId: stableMealId,
-      );
-      AppLogger.info('ScannerRepository: Saved meal log to journal_logs');
-    }
-
-    // 🚀 Intent-Based Persistence Router: Label and Menu scans are saved ONLY to chat_history
-    if (isLabelOrMenu) {
-      AppLogger.info('ScannerRepository: Label/Menu scan - saved ONLY to chat_history');
-    } else {
-      // Normal Meal/Food Scan - Save to scan_history
-      if (scan.isLoggableProduct) {
-        final updatedResult = scan.copyWith(scanId: finalScanId, chatMessageId: finalScanId);
-        await _historyFirestoreService.saveToScanHistory(updatedResult, userImageUrl: userImageUrl, scanId: finalScanId);
-        AppLogger.info('ScannerRepository: Routed product to scan_history');
-      } else {
-        AppLogger.info('ScannerRepository: Non-product scan skipped for history collection');
-      }
-    }
 
     _appStateService.notifyChatUpdated();
     unawaited(_notificationService.scheduleNoMealLoggedReminder());

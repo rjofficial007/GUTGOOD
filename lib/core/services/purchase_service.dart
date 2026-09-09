@@ -9,7 +9,6 @@ abstract class PurchaseService {
   Future<void> initialize();
   bool get isPremium;
   Stream<bool> get premiumStatusStream;
-  bool get isConfigured;
   Future<List<Package>> fetchOffers();
   Future<bool> purchasePackage(Package package);
   Future<bool> restorePurchases();
@@ -30,8 +29,6 @@ class PurchaseServiceImpl implements PurchaseService {
   @override
   Stream<bool> get premiumStatusStream => _premiumStatusController.stream;
 
-  @override
-  bool get isConfigured => _isConfigured;
 
   static const String _googleApiKey = '';
   static const String _appleApiKey = 'appl_NQQoVWhHEKFUOXvpiOFeDCBezCm';

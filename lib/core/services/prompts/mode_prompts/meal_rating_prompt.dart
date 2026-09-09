@@ -53,7 +53,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
    - scan.category: "meal".
    - scan.score: 0-100.
    
-   Also populate the "meal" object, "swaps" if applicable, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
+   Also populate the "meal" object, "swaps" (exactly 3 items) if applicable, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
 ${PromptFormattingRules.gutGoodDataBlockRequired}
 

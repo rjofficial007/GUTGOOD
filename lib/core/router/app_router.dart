@@ -36,6 +36,7 @@ import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen
 import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/features/product_details/presentation/pages/additive_detail_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/additives_list_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/product_not_found_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/scan_list_detail_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/swap_detail_screen.dart';
@@ -210,6 +211,10 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.scanListDetail,
                 builder: (context, state) => ScanListDetailScreen(args: state.extra as ScanListDetailArgs),
+              ),
+              GoRoute(
+                path: AppRoutes.additivesList,
+                builder: (context, state) => AdditivesListScreen(args: state.extra as AdditiveListArgs),
               ),
               GoRoute(path: AppRoutes.swapDetail, builder: (context, state) => SwapDetailScreen(swap: state.extra as ProductSwap)),
             ],

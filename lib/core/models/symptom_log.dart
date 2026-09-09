@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
@@ -22,11 +23,20 @@ class SymptomLog extends Equatable {
     this.foodName,
     this.imageUrl,
     this.source,
+    this.provenance,
     required this.createdAt,
+    this.occurredAt,
+    this.occurredAtProvenance,
+    this.schemaVersion = AiVersions.schemaVersion,
+    this.promptVersion,
+    this.model,
   });
 
   factory SymptomLog.fromMap(Map<String, dynamic> map) {
     final rawId = map['id'] ?? map['firestoreId'];
+    // P1-2: the AI's `time` estimate becomes a provenance-tagged occurrence,
+    // never the ordering clock (createdAt below is log time only).
+    final (occurredAt, occurredAtProvenance) = DateTimeUtils.occurredAtFromMap(map);
 
     var symptomName = map['symptom']?.toString() ??
         map['name']?.toString() ??
@@ -34,7 +44,7 @@ class SymptomLog extends Equatable {
         map['title']?.toString() ??
         map['type']?.toString();
 
-    var energyLevel = int.tryParse(map['energyLevel']?.toString() ?? '');
+    final energyLevel = int.tryParse(map['energyLevel']?.toString() ?? '');
 
     if (symptomName == null || symptomName.trim().isEmpty || symptomName == 'Unknown') {
       if (energyLevel != null && energyLevel >= 7) {
@@ -50,15 +60,10 @@ class SymptomLog extends Equatable {
 
     symptomName = symptomName.trim();
 
-    // Auto-infer energy level if not set
-    if (energyLevel == null) {
-      final lower = symptomName.toLowerCase();
-      if (lower.contains('energetic') || lower.contains('high energy') || lower.contains('vitality') || lower.contains('focused')) {
-        energyLevel = 8;
-      } else if (lower.contains('tired') || lower.contains('fatigue') || lower.contains('low energy') || lower.contains('sluggish')) {
-        energyLevel = 2;
-      }
-    }
+    // P2-4: no number invention. An absent energyLevel used to be inferred
+    // from the symptom name (Fatigue → 2, Energetic → 8), manufacturing
+    // clinical-looking data the user never gave. Null now stays null; the
+    // pattern engine only corroborates explicitly reported numbers.
 
     final parsedImageUrl = ModelUtils.parseString(map['imageUrl']) ??
         ModelUtils.parseString(map['userImageUrl']) ??
@@ -81,7 +86,13 @@ class SymptomLog extends Equatable {
       foodName: map['foodName']?.toString() ?? map['lastMealName']?.toString() ?? map['mealName']?.toString() ?? map['food']?.toString(),
       imageUrl: parsedImageUrl,
       source: map['source']?.toString(),
-      createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['time']),
+      provenance: map['provenance']?.toString(),
+      createdAt: DateTimeUtils.parse(map['createdAt']),
+      occurredAt: occurredAt,
+      occurredAtProvenance: occurredAtProvenance,
+      schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
+      promptVersion: (map['promptVersion'] as num?)?.toInt(),
+      model: map['model'] as String?,
     );
   }
 
@@ -127,8 +138,33 @@ class SymptomLog extends Equatable {
   /// Origin of the log entry ('chat', 'manual').
   final String? source;
 
-  /// Exact timestamp of record creation.
+  /// How this record was detected ([RecordProvenance]). `keyword_fallback`
+  /// records are excluded from pattern corroboration. Null on legacy docs
+  /// (treated as confirmed — provenance can't be reconstructed retroactively).
+  final String? provenance;
+
+  /// Log time: when this record was written. The ordering/filtering clock for
+  /// queries and pagination. Never an AI estimate (those live in [occurredAt]).
   final DateTime createdAt;
+
+  /// Event time: when the symptom actually occurred, when known. Null means
+  /// unknown — display and correlation fall back to [createdAt] via [eventTime].
+  final DateTime? occurredAt;
+
+  /// Where [occurredAt] came from ([OccurrenceProvenance]). Null when unknown.
+  final String? occurredAtProvenance;
+
+  /// Durable-doc schema version (§17), stamped as `v`.
+  final int schemaVersion;
+
+  /// J-4 §17: chat-prompt version that extracted this symptom. Null on legacy docs.
+  final int? promptVersion;
+
+  /// J-4 §17: serving model id echoed by the proxy for this extraction.
+  final String? model;
+
+  /// Best-known moment of the symptom for display + correlation windows.
+  DateTime get eventTime => occurredAt ?? createdAt;
 
   SymptomLog copyWith({
     int? id,
@@ -145,26 +181,45 @@ class SymptomLog extends Equatable {
     String? foodName,
     String? imageUrl,
     String? source,
+    String? provenance,
     DateTime? createdAt,
+    DateTime? occurredAt,
+    String? occurredAtProvenance,
+    int? schemaVersion,
+    int? promptVersion,
+    String? model,
+    // Explicit clears: plain `?? this.x` params cannot null a field, but the
+    // validator must be able to void insane numbers (out-of-range severity).
+    bool clearSeverity = false,
+    bool clearEnergyLevel = false,
   }) => SymptomLog(
     id: id ?? this.id,
     firestoreId: firestoreId ?? this.firestoreId,
     uid: uid ?? this.uid,
     chatMessageId: chatMessageId ?? this.chatMessageId,
     symptom: symptom ?? this.symptom,
-    severity: severity ?? this.severity,
+    severity: clearSeverity ? null : (severity ?? this.severity),
     notes: notes ?? this.notes,
-    energyLevel: energyLevel ?? this.energyLevel,
+    energyLevel: clearEnergyLevel ? null : (energyLevel ?? this.energyLevel),
     mood: mood ?? this.mood,
     sleep: sleep ?? this.sleep,
     lastMealFirestoreId: lastMealFirestoreId ?? this.lastMealFirestoreId,
     foodName: foodName ?? this.foodName,
     imageUrl: imageUrl ?? this.imageUrl,
     source: source ?? this.source,
+    provenance: provenance ?? this.provenance,
     createdAt: createdAt ?? this.createdAt,
+    occurredAt: occurredAt ?? this.occurredAt,
+    occurredAtProvenance: occurredAtProvenance ?? this.occurredAtProvenance,
+    schemaVersion: schemaVersion ?? this.schemaVersion,
+    promptVersion: promptVersion ?? this.promptVersion,
+    model: model ?? this.model,
   );
 
   Map<String, dynamic> toMap() => {
+    'v': schemaVersion,
+    'promptVersion': promptVersion,
+    'model': model,
     'firestoreId': firestoreId,
     'chatMessageId': chatMessageId,
     'symptom': symptom,
@@ -177,8 +232,16 @@ class SymptomLog extends Equatable {
     'foodName': foodName,
     'imageUrl': imageUrl,
     'source': source,
+    'provenance': provenance,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
+    'occurredAt': DateTimeUtils.toNullableTimestamp(occurredAt),
+    'occurredAtProvenance': occurredAtProvenance,
   };
+
+  /// JSON-safe variant of [toMap] for navigation extras (route codec):
+  /// identical but with ISO-8601 dates instead of Firestore Timestamps.
+  /// Round-trips through [SymptomLog.fromMap].
+  Map<String, dynamic> toJsonMap() => {...toMap(), 'createdAt': createdAt.toIso8601String(), 'occurredAt': occurredAt?.toIso8601String()};
 
   /// Optimized map for AI context (no Firestore [Timestamp] objects).
   Map<String, dynamic> toAiMap() => {
@@ -193,8 +256,11 @@ class SymptomLog extends Equatable {
     'imageUrl': imageUrl,
     'source': source,
     'createdAt': createdAt.toIso8601String(),
+    if (provenance != null) 'provenance': provenance,
+    if (occurredAt != null) 'occurredAt': occurredAt!.toIso8601String(),
+    if (occurredAtProvenance != null) 'occurredAtProvenance': occurredAtProvenance,
   };
 
   @override
-  List<Object?> get props => [id, firestoreId, chatMessageId, symptom, severity, createdAt, energyLevel, lastMealFirestoreId, foodName, imageUrl];
+  List<Object?> get props => [id, firestoreId, chatMessageId, symptom, severity, createdAt, occurredAt, occurredAtProvenance, energyLevel, lastMealFirestoreId, foodName, imageUrl, provenance];
 }

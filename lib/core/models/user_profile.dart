@@ -25,6 +25,7 @@ class UserProfile extends Equatable {
     this.lifestyle = const [],
     this.cycleSyncEnabled = false,
     this.cyclePhase,
+    this.insightsDisabled = false,
     this.notificationPreferences = const {},
     this.chatSummary,
     this.gutScore = 0,
@@ -51,6 +52,7 @@ class UserProfile extends Equatable {
     lifestyle: map['lifestyle'] is String ? List<String>.from(jsonDecode(map['lifestyle'])) : List<String>.from(map['lifestyle'] ?? []),
     cycleSyncEnabled: ModelUtils.parseBool(map['cycleSyncEnabled']),
     cyclePhase: map['cyclePhase'],
+    insightsDisabled: ModelUtils.parseBool(map['insightsDisabled']),
     notificationPreferences: map['notificationPreferences'] is String ? jsonDecode(map['notificationPreferences']) : Map<String, dynamic>.from(map['notificationPreferences'] ?? {}),
     chatSummary: map['chatSummary'],
     gutScore: map['gutScore'] ?? 0,
@@ -102,6 +104,10 @@ class UserProfile extends Equatable {
   /// The current phase of the hormonal cycle if [cycleSyncEnabled] is true.
   final String? cyclePhase;
 
+  /// C-4: per-user kill switch for server insight generation (scheduled runs
+  /// and manual refresh both honor it). False/absent = enabled.
+  final bool insightsDisabled;
+
   /// User-defined notification settings.
   final Map<String, dynamic> notificationPreferences;
 
@@ -146,6 +152,7 @@ class UserProfile extends Equatable {
     List<String>? lifestyle,
     bool? cycleSyncEnabled,
     String? cyclePhase,
+    bool? insightsDisabled,
     Map<String, dynamic>? notificationPreferences,
     String? chatSummary,
     int? gutScore,
@@ -170,6 +177,7 @@ class UserProfile extends Equatable {
     lifestyle: lifestyle ?? this.lifestyle,
     cycleSyncEnabled: cycleSyncEnabled ?? this.cycleSyncEnabled,
     cyclePhase: cyclePhase ?? this.cyclePhase,
+    insightsDisabled: insightsDisabled ?? this.insightsDisabled,
     notificationPreferences: notificationPreferences ?? this.notificationPreferences,
     chatSummary: chatSummary ?? this.chatSummary,
     gutScore: gutScore ?? this.gutScore,
@@ -196,6 +204,7 @@ class UserProfile extends Equatable {
     'lifestyle': lifestyle,
     'cycleSyncEnabled': cycleSyncEnabled,
     'cyclePhase': cyclePhase,
+    'insightsDisabled': insightsDisabled,
     'notificationPreferences': notificationPreferences,
     'chatSummary': chatSummary,
     'gutScore': gutScore,
@@ -223,6 +232,7 @@ class UserProfile extends Equatable {
     'lifestyle': lifestyle,
     'cycleSyncEnabled': cycleSyncEnabled,
     'cyclePhase': cyclePhase,
+    'insightsDisabled': insightsDisabled,
     'notificationPreferences': notificationPreferences,
     'chatSummary': chatSummary,
     'timezoneOffset': timezoneOffset,

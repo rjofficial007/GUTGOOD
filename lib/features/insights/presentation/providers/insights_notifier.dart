@@ -8,6 +8,7 @@ import 'package:gutgood/core/models/insights_dashboard_state.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/core/utils/network_error_classifier.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
 import 'package:gutgood/features/insights/domain/usecases/generate_insight_usecase.dart';
@@ -16,6 +17,8 @@ import 'package:rxdart/rxdart.dart';
 class InsightsNotifier with ChangeNotifier {
   InsightsNotifier(this._repository, this._appStateService, this._authRepository, this._analyticsService, this._generateInsightUseCase) {
     _initDashboardStream();
+    // Client-owned cadence: regenerate (debounced) whenever chat or profile
+    // data changes; the dashboard stream below only renders stored state.
     _appStateService.chatUpdated.addListener(_onDataUpdated);
     _appStateService.profileUpdated.addListener(_onDataUpdated);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -41,6 +44,7 @@ class InsightsNotifier with ChangeNotifier {
 
   bool _isLoading = false;
   bool _isGenerating = false;
+  bool _bootstrapAttempted = false;
   Timer? _generationDebounce;
   StreamSubscription<InsightsDashboardState>? _dashboardSub;
 
@@ -59,32 +63,21 @@ class InsightsNotifier with ChangeNotifier {
             final oldInsight = _state.latestInsight;
             _state = newState;
 
-            debugPrint('--- InsightsNotifier: New State Received ---');
-            debugPrint('Total Meals: ${_state.totalMeals}');
-            debugPrint('Total Symptoms: ${_state.totalSymptoms}');
-            debugPrint('Total Scans: ${_state.totalScans}');
-            debugPrint('Latest Insight Firestore ID: ${_state.latestInsight?.firestoreId}');
-            if (_state.latestInsight != null) {
-              debugPrint('Insight Gut Score: ${_state.latestInsight!.gutScore}');
-              debugPrint('Insight Healing Foods: ${_state.latestInsight!.healingFoods.length}');
-              debugPrint('Insight Trigger Foods: ${_state.latestInsight!.triggerFoods.length}');
-              debugPrint('Insight Detected Patterns: ${_state.latestInsight!.detectedPatterns.length}');
-            }
-            debugPrint('Global Body Patterns Count: ${_state.patterns.length}');
-            if (_state.patterns.isNotEmpty) {
-              for (var i = 0; i < _state.patterns.length; i++) {
-                final p = _state.patterns[i];
-                debugPrint('Global Pattern [$i]: ${p.trigger} -> ${p.type} (${p.confidence})');
-              }
-            }
-            debugPrint('Health Alerts Count: ${_state.alerts.length}');
-            debugPrint('Is Sufficient for generation: $isSufficient');
-            debugPrint('--------------------------------------------');
+            // Release-gated single-line state summary (replaces the old debugPrint
+            // dump, which also ran in production builds).
+            AppLogger.debug(
+              'Insights state: meals=${_state.totalMeals} symptoms=${_state.totalSymptoms} '
+              'scans=${_state.totalScans} patterns=${_state.patterns.length} '
+              'alerts=${_state.alerts.length} sufficient=$isSufficient',
+            );
 
             _appStateService.setInsightsData(_state.latestInsight);
 
-            // 🟢 Fix: Only auto-generate if we have enough data to actually succeed
-            if (_state.latestInsight == null && !_isGenerating && isSufficient) {
+            // One-shot bootstrap for users who crossed the threshold but have
+            // no insight yet (reactive listeners cover steady state; this just
+            // shortens first-run latency). Session-flagged, never loops.
+            if (_state.latestInsight == null && !_isGenerating && isSufficient && !_bootstrapAttempted) {
+              _bootstrapAttempted = true;
               generateNewInsight();
             }
 
@@ -115,7 +108,6 @@ class InsightsNotifier with ChangeNotifier {
 
   AIInsight? get latestInsight => _state.latestInsight;
   List<AIInsight> get insightHistory => _insightHistory;
-  List<BodyPattern> get bodyPatterns => _state.patterns;
 
   /// Returns 3-5 most meaningful insights prioritized by confidence and frequency.
   /// 🟢 NEW: Deduplicates patterns by trigger and type before returning.
@@ -129,9 +121,10 @@ class InsightsNotifier with ChangeNotifier {
         if (a.evidenceRatio != b.evidenceRatio) {
           return b.evidenceRatio.compareTo(a.evidenceRatio);
         }
-        // 2. Statistical Confidence
+        // 2. Statistical Confidence (rank map: High > Medium > Low — P1-7)
         if (a.confidence != b.confidence) {
-          return a.confidence == BodyPattern.confidenceHigh ? -1 : 1;
+          int rank(String c) => c == BodyPattern.confidenceHigh ? 0 : (c == BodyPattern.confidenceMedium ? 1 : 2);
+          return rank(a.confidence).compareTo(rank(b.confidence));
         }
         // 3. Frequency
         if (a.frequency != b.frequency) {
@@ -159,7 +152,6 @@ class InsightsNotifier with ChangeNotifier {
   bool get isSufficient => _state.totalScans >= 3 || (_state.totalMeals >= 3 && _state.totalSymptoms >= 1);
 
   bool get isLoading => _isLoading;
-  bool get isGenerating => _isGenerating;
 
   Future<void> markAllAlertsAsRead() async {
     final unreadIds = _state.alerts.where((a) => !a.isRead).map((a) => a.id).toList();
@@ -187,6 +179,34 @@ class InsightsNotifier with ChangeNotifier {
     super.dispose();
   }
 
+  /// Runs the on-device pipeline (24h cadence + threshold gates inside the
+  /// use case). Called debounced from data listeners, once from bootstrap,
+  /// and directly for manual refresh.
+  Future<void> generateNewInsight() async {
+    if (_isGenerating) return;
+    _isGenerating = true;
+    notifyListeners();
+
+    AppLogger.insights('InsightsNotifier: generation started');
+    await _analyticsService.logEvent(name: 'insight_generation_requested');
+
+    try {
+      await _generateInsightUseCase.execute();
+      AppLogger.insights('InsightsNotifier: generation successful');
+    } catch (e) {
+      // Background-only generation: the UI keeps showing the cached
+      // dashboard. Classify so offline failures read as offline in logs.
+      if (isOfflineError(e)) {
+        AppLogger.insights('InsightsNotifier: generation skipped (offline); cached dashboard kept');
+      } else {
+        AppLogger.error('InsightsNotifier: generation failed', error: e);
+      }
+    } finally {
+      _isGenerating = false;
+      notifyListeners();
+    }
+  }
+
   void _onDataUpdated() {
     _generationDebounce?.cancel();
     _generationDebounce = Timer(const Duration(seconds: 5), () {
@@ -196,27 +216,9 @@ class InsightsNotifier with ChangeNotifier {
     });
   }
 
-  Future<void> generateNewInsight() async {
-    if (_isGenerating) return;
-    _isGenerating = true;
-    notifyListeners();
-
-    debugPrint('--- InsightsNotifier: Generation Started ---');
-    await _analyticsService.logEvent(name: 'insight_generation_requested');
-
-    try {
-      await _generateInsightUseCase.execute();
-      debugPrint('--- InsightsNotifier: Generation Successful ---');
-    } catch (e) {
-      debugPrint('--- InsightsNotifier: Generation FAILED: $e ---');
-    } finally {
-      _isGenerating = false;
-      notifyListeners();
-    }
-  }
-
   void _onSessionReset() {
     _generationDebounce?.cancel();
+    _bootstrapAttempted = false;
     _state = const InsightsDashboardState();
     _insightHistory = [];
     _dashboardSub?.cancel();

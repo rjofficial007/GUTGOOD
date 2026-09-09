@@ -41,5 +41,4 @@ class ThemeNotifier extends ChangeNotifier {
     await _prefs.setString(_themeKey, themeStr);
   }
 
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
 }

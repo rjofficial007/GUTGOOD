@@ -36,8 +36,6 @@ class CommonStrings {
   static const String labelScorePrefix = 'Score: ';
   static const String labelGramSuffix = 'g';
   static const String severity = 'Severity';
-  static const String nutrientStats = 'Power stats';
-  static const String mealBalance = 'Nutritional Balance';
   static const String alert = 'Alert';
   static const String noEntriesFound = 'No entries found';
   static const String emptyHistoryDesc = 'Log meals or scan products to see them here.';
@@ -96,7 +94,6 @@ class CommonStrings {
   static const String potentialContributingFactor = 'Potential contributing factor';
   static const String actionPlan = 'ACTION PLAN';
   static const String recommendation = 'RECOMMENDATION';
-  static const String verification = 'VERIFICATION';
   static const String keyFinding = 'Key Finding';
   static const String smartAlert = 'SMART ALERT';
   static const String whatWeNoticed = 'WHAT WE NOTICED';
@@ -105,13 +102,7 @@ class CommonStrings {
   static const String linkedToInsight = 'Linked to this insight';
   static const String whatYouCanDo = 'WHAT YOU CAN DO';
   static const String askGutGood = 'ASK GUTGOOD';
-  static const String analysis = 'ANALYSIS';
-  static const String foodAnalysis = 'FOOD ANALYSIS';
-  static const String personalizedInsight = 'What this means for you';
-  static const String menuRecommendations = 'Menu recommendations';
   static const String cycleInsight = 'Cycle insight';
-  static const String safetyAudit = 'What to watch';
-  static const String betterChoice = 'BETTER CHOICE';
   static const String scientificDistribution = 'Scientific distribution';
   static const String technicalVerification = 'Technical verification';
   static const String severityLabel = 'SEVERITY';
@@ -126,7 +117,6 @@ class CommonStrings {
   static const String improving = 'Improving';
   static const String declining = 'Declining';
   static const String analysisComplete = 'Analysis Complete';
-  static const String highRisk = 'High risk';
   static const String moderateLabel = 'Moderate';
   static const String cleanLabel = 'Clean';
   static const String termsOfService = 'Terms of Service';
@@ -214,13 +204,6 @@ class CommonStrings {
   static const String weeklySnapshot = 'Weekly Snapshot';
   static const String spillingGutTea = 'Spilling the gut tea...';
   static const String mealLog = 'MEAL LOG';
-  static const String mealDetails = 'MEAL DETAILS';
-  static const String unnamedMeal = 'UNNAMED MEAL';
-  static const String visualEvidence = 'VISUAL EVIDENCE';
-  static const String components = 'COMPONENTS';
-  static const String verifiedItems = 'VERIFIED ITEMS';
-  static const String personalMemo = 'PERSONAL MEMO';
-  static const String userNotes = 'USER NOTES';
   static const String labelAudit = 'Label Audit';
   static const String menuGuide = 'Menu Guide';
   static const String barcodeScan = 'Barcode Scan';
@@ -236,14 +219,15 @@ class CommonStrings {
   static const String negatives = 'Negatives';
   static const String positives = 'Positives';
   static const String ingredientsLabel = 'Ingredients';
-  static const String bad = 'Bad';
   static const String viewFullReportLabel = 'VIEW FULL REPORT';
   static const String getPersonalizedInsights = 'GET PERSONALIZED INSIGHTS';
 
   // Labels
   static const String labelSending = 'Sending...';
   static const String labelFailed = 'Failed';
+  static const String labelQueued = 'Queued — sends when online';
   static const String tapToRetry = 'Tap to retry';
+  static const String tapToSendNow = 'Tap to send now';
   static const String upgrade = 'Upgrade';
   static const String labelReady = 'Ready.';
 

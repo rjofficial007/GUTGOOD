@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
@@ -8,13 +9,37 @@ import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
+/// Swap cards shown per recommendation (SwapItContainer). The prompts demand
+/// exactly this many; [normalizeSwapCards] enforces the cap and backfills
+/// from grounded OFF alternatives when the model emits fewer.
+const int kSwapCardCount = 3;
+
+/// Normalizes parsed swaps to exactly [kSwapCardCount] cards: extras are
+/// trimmed; shortfalls are backfilled from [fallback] (real OFF products,
+/// skipping barcode dupes). With no fallback the model output is only
+/// trimmed — the parser never invents products.
+List<ProductSwap> normalizeSwapCards(List<ProductSwap> swaps, List<ProductSwap> fallback) {
+  final kept = swaps.take(kSwapCardCount).toList();
+  if (kept.length >= kSwapCardCount || fallback.isEmpty) return kept;
+  final seen = <String>{for (final s in kept) if (s.barcode != null && s.barcode!.isNotEmpty) s.barcode!};
+  for (final alt in fallback) {
+    if (kept.length >= kSwapCardCount) break;
+    final code = alt.barcode;
+    if (code != null && code.isNotEmpty && !seen.add(code)) continue;
+    kept.add(alt);
+  }
+  return kept;
+}
+
 class ProcessChatTagUseCase {
   ProcessChatTagUseCase();
 
-  AiAnalysisResult call(String text, {String? userText, String? imageUrl, String? source, String? chatMessageId, bool isFinal = false}) {
+  AiAnalysisResult call(String text, {String? userText, String? imageUrl, String? source, String? chatMessageId, bool isFinal = false, int? promptVersion, String? servedModel, List<ProductSwap> fallbackSwaps = const []}) {
     var displayOutput = text;
     String? intent;
     String? imageMode;
+    int? schemaVersion;
+    String? verdict;
     ScanResult? scanData;
     MealLog? mealLog;
     final symptomLogs = <SymptomLog>[];
@@ -67,6 +92,8 @@ class ProcessChatTagUseCase {
     if (decoded != null) {
       intent = decoded['intent']?.toString();
       imageMode = decoded['image_mode']?.toString();
+      schemaVersion = (decoded['v'] as num?)?.toInt();
+      verdict = decoded['verdict']?.toString();
 
       if (decoded['scan'] != null && decoded['scan'] is Map<String, dynamic>) {
         final scanMap = Map<String, dynamic>.from(decoded['scan']);
@@ -181,9 +208,24 @@ class ProcessChatTagUseCase {
     // CRITICAL FIX: We now scan the ORIGINAL userText instead of the AI reply 'text'
     // to prevent hallucinated symptoms (e.g. AI mentioning "fullness" in a reply
     // shouldn't trigger a symptom log if the user didn't say it).
+    // P2-4: fallback records NEVER carry numbers the user didn't give — no
+    // invented severity/energy — and are tagged `keyword_fallback` so the
+    // pattern engine can exclude them from corroboration. The symptom NAME is
+    // still extracted (the user did say the word); only the quantification
+    // and the silent "confirmed log" status are withheld.
     if (symptomLogs.isEmpty && userText != null && userText.trim().isNotEmpty) {
       final userTextLower = userText.toLowerCase();
       final fallbackSymptomCountBefore = symptomLogs.length;
+
+      SymptomLog fallbackSymptom(String symptom, {String? sleep}) => SymptomLog(
+        symptom: symptom,
+        sleep: sleep,
+        notes: 'Extracted from user message',
+        chatMessageId: chatMessageId,
+        createdAt: DateTime.now(),
+        source: source ?? 'chat',
+        provenance: RecordProvenance.keywordFallback,
+      );
 
       // 1. Energy
       if (userTextLower.contains('energetic') ||
@@ -191,22 +233,22 @@ class ProcessChatTagUseCase {
           userTextLower.contains('feeling energetic') ||
           userTextLower.contains('high energy') ||
           userTextLower.contains('energized')) {
-        symptomLogs.add(SymptomLog(symptom: 'Energetic', energyLevel: 8, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+        symptomLogs.add(fallbackSymptom('Energetic'));
       } else if (userTextLower.contains('tired') ||
           userTextLower.contains('fatigue') ||
           userTextLower.contains('exhausted') ||
           userTextLower.contains('low energy') ||
           userTextLower.contains('sluggish') ||
           userTextLower.contains('brain fog')) {
-        symptomLogs.add(SymptomLog(symptom: 'Fatigue', energyLevel: 2, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+        symptomLogs.add(fallbackSymptom('Fatigue'));
       }
       // 2. Bloating
       else if (userTextLower.contains('bloat') || userTextLower.contains('bloated') || userTextLower.contains('bloating')) {
-        symptomLogs.add(SymptomLog(symptom: 'Bloating', severity: 5, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+        symptomLogs.add(fallbackSymptom('Bloating'));
       }
       // 3. Headache
       else if (userTextLower.contains('headache') || userTextLower.contains('migraine') || userTextLower.contains('head pain')) {
-        symptomLogs.add(SymptomLog(symptom: 'Headache', severity: 5, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+        symptomLogs.add(fallbackSymptom('Headache'));
       }
       // 4. Digestion
       else if (userTextLower.contains('digest') ||
@@ -216,27 +258,23 @@ class ProcessChatTagUseCase {
           userTextLower.contains('diarrhea') ||
           userTextLower.contains('reflux') ||
           userTextLower.contains('heartburn')) {
-        symptomLogs.add(SymptomLog(symptom: 'Digestive Shift', severity: 5, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+        symptomLogs.add(fallbackSymptom('Digestive Shift'));
       }
       // 5. Fullness & Satiety
       else if (userTextLower.contains('full') || userTextLower.contains('satiat') || userTextLower.contains('stuffed') || userTextLower.contains('hungry') || userTextLower.contains('hunger')) {
         final isHungry = userTextLower.contains('hungry') || userTextLower.contains('hunger');
-        symptomLogs.add(
-          SymptomLog(symptom: isHungry ? 'Hunger' : 'Fullness', severity: 3, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'),
-        );
+        symptomLogs.add(fallbackSymptom(isHungry ? 'Hunger' : 'Fullness'));
       }
       // 6. Sleep
       else if (userTextLower.contains('sleep') || userTextLower.contains('insomnia') || userTextLower.contains('slept') || userTextLower.contains('rested')) {
         final isPoor = userTextLower.contains('poor') || userTextLower.contains('bad') || userTextLower.contains("can't sleep") || userTextLower.contains('insomnia');
-        symptomLogs.add(
-          SymptomLog(symptom: 'Sleep Shift', sleep: isPoor ? 'Poor' : 'Good', notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'),
-        );
+        symptomLogs.add(fallbackSymptom('Sleep Shift', sleep: isPoor ? 'Poor' : 'Good'));
       }
       // Other physical reactions
       else if (userTextLower.contains('nausea') || userTextLower.contains('nauseous')) {
-        symptomLogs.add(SymptomLog(symptom: 'Nausea', severity: 5, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+        symptomLogs.add(fallbackSymptom('Nausea'));
       } else if (userTextLower.contains('cramp') || userTextLower.contains('stomach pain') || userTextLower.contains('stomach ache')) {
-        symptomLogs.add(SymptomLog(symptom: 'Abdominal Pain', severity: 6, notes: 'Extracted from user message', chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat'));
+        symptomLogs.add(fallbackSymptom('Abdominal Pain'));
       }
 
       if (symptomLogs.length > fallbackSymptomCountBefore) {
@@ -271,12 +309,31 @@ class ProcessChatTagUseCase {
       displayOutput = text.substring(0, startIndex).trim();
     }
 
+    // Better-swaps guarantee: exactly [kSwapCardCount] cards whenever swaps
+    // are emitted — trimmed, and backfilled from grounded OFF alternatives
+    // (see-more path) when the model emits fewer.
+    swapsList = normalizeSwapCards(swapsList, fallbackSwaps);
+
     // 🚀 Professional Sync: Ensure swaps are attached to scanData for consistent UI & persistence.
     if (scanData != null && swapsList.isNotEmpty && scanData.swaps.isEmpty) {
       scanData = scanData.copyWith(swaps: swapsList);
     }
 
     final confidence = (metadata['confidence'] as num?)?.toDouble();
+
+    // J-4 §17: stamp every extracted record with the serving prompt/model.
+    // Versions ride the sub-objects (the persisted artifacts); the carrier
+    // result stays lean.
+    if (promptVersion != null || servedModel != null) {
+      scanData = scanData?.copyWith(promptVersion: promptVersion, model: servedModel);
+      mealLog = mealLog?.copyWith(promptVersion: promptVersion, model: servedModel);
+      for (var i = 0; i < symptomLogs.length; i++) {
+        // Keyword fallbacks are regex-detected from the user's own text, not
+        // extracted by the prompt — stamping them would misattribute provenance.
+        if (symptomLogs[i].provenance == RecordProvenance.keywordFallback) continue;
+        symptomLogs[i] = symptomLogs[i].copyWith(promptVersion: promptVersion, model: servedModel);
+      }
+    }
 
     return AiAnalysisResult(
       text: displayOutput,
@@ -289,6 +346,8 @@ class ProcessChatTagUseCase {
       menu: menuData,
       metadata: metadata,
       confidence: confidence,
+      schemaVersion: schemaVersion,
+      verdict: verdict,
     );
   }
 }

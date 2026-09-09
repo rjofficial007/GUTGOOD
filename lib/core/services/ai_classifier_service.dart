@@ -28,7 +28,12 @@ class AiClassificationResult {
 }
 
 abstract class AiClassifierService {
-  Future<AiClassificationResult> classifyImage({required Uint8List imageBytes, String? userText});
+  /// Classifies an image turn. [modeHint] is the UI entry point
+  /// (`ScannerMode.name` / attachment source): when it names a known mode,
+  /// the vision round-trip is skipped and only the text intent resolves
+  /// (keyword fast-path first, model only on miss). Null/unknown hints —
+  /// gallery, legacy callers — still run the full vision classification.
+  Future<AiClassificationResult> classifyImage({required Uint8List imageBytes, String? userText, String? modeHint});
   Future<String> classifyTextIntent({required String userText, String? historySummary});
 }
 
@@ -36,8 +41,20 @@ class AiClassifierServiceImpl implements AiClassifierService {
   AiClassifierServiceImpl({required AiService aiService}) : _aiService = aiService;
   final AiService _aiService;
 
+  /// UI entry-point → image-mode map (K-3/P2-3). The scanner's dedicated
+  /// modes already know what the bytes are — re-detecting that with a vision
+  /// call doubles vision bytes/tokens on the turn. Anything unmapped (gallery,
+  /// unknown, legacy) returns null and keeps the vision classification.
+  static String? _imageModeForHint(String? hint) => switch (hint?.trim().toLowerCase()) {
+    'food' => ImageMode.food,
+    'menu' => ImageMode.restaurantMenu,
+    'label' => ImageMode.ingredientsLabel,
+    'barcode' => ImageMode.productBarcode,
+    _ => null,
+  };
+
   @override
-  Future<AiClassificationResult> classifyImage({required Uint8List imageBytes, String? userText}) async {
+  Future<AiClassificationResult> classifyImage({required Uint8List imageBytes, String? userText, String? modeHint}) async {
     AppLogger.ai('AiClassifier: Starting image classification');
 
     // 🚀 Professional Override: If the user sends the default gallery/food prompt,
@@ -46,6 +63,17 @@ class AiClassifierServiceImpl implements AiClassifierService {
     if (normalizedText == 'what am i getting from this?' || normalizedText == 'what do you think of this meal?') {
       AppLogger.ai('AiClassifier: Detected default food/gallery prompt. Forcing COMPLETE_ANALYSIS.');
       return const AiClassificationResult(imageMode: 'FOOD', intent: 'COMPLETE_ANALYSIS', confidence: 1.0);
+    }
+
+    // K-3: trust the UI mode hint. Intent still resolves from text (free
+    // keyword fast-path, model only on miss), but the vision round-trip —
+    // the blocking, token-heavy half of the old call — is gone.
+    final hintedMode = _imageModeForHint(modeHint);
+    if (hintedMode != null) {
+      final trimmed = userText?.trim() ?? '';
+      final intent = trimmed.isEmpty ? UserIntent.completeAnalysis : await classifyTextIntent(userText: userText!);
+      AppLogger.ai('AiClassifier: UI hint "$modeHint" → $hintedMode (vision call skipped).');
+      return AiClassificationResult(imageMode: hintedMode, intent: intent, confidence: 1.0, reason: 'ui-hint');
     }
 
     final prompt = userText != null && userText.isNotEmpty ? 'Analyze this image. User message: "$userText"' : 'Analyze this image.';

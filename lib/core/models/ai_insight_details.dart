@@ -1,6 +1,13 @@
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/utils/insight_presentation.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
+
+/// P2-10: keeps a stored emoji when present (legacy docs, tolerated LLM
+/// output); otherwise derives it from the food name. Empty strings count as
+/// missing — they previously persisted as invisible UI.
+String _resolveEmoji(String? stored, String foodName) =>
+    (stored == null || stored.isEmpty) ? InsightPresentation.emojiForFood(foodName) : stored;
 
 class InsightSummary extends Equatable {
   const InsightSummary({
@@ -56,17 +63,6 @@ class InsightSummary extends Equatable {
     'negativeCount': negativeCount,
   };
 
-  BodyPattern toBodyPattern() => BodyPattern(
-    type: type,
-    trigger: title,
-    reaction: description,
-    frequency: frequency ?? 1,
-    confidence: strength ?? 'Moderate',
-    description: observation ?? description,
-    involvedFoods: involvedFoods,
-    recommendation: nextSteps.isNotEmpty ? nextSteps.first : null,
-    updatedAt: DateTime.now().toIso8601String(),
-  );
 
   @override
   List<Object?> get props => [title, description, type, observation, strength, frequency];
@@ -75,13 +71,17 @@ class InsightSummary extends Equatable {
 class HealingFood extends Equatable {
   const HealingFood({required this.name, required this.effect, required this.emoji, this.imageUrl});
 
-  factory HealingFood.fromMap(Map<String, dynamic> map) =>
-      HealingFood(
-        name: (map['name'] ?? map['food'] ?? map['title'] ?? '').toString(), 
-        effect: (map['effect'] ?? map['effects'] ?? '').toString(), 
-        emoji: map['emoji']?.toString() ?? '🥗',
-        imageUrl: map['imageUrl']?.toString(),
-      );
+  factory HealingFood.fromMap(Map<String, dynamic> map) {
+    final name = (map['name'] ?? map['food'] ?? map['title'] ?? '').toString();
+    return HealingFood(
+      name: name,
+      effect: (map['effect'] ?? map['effects'] ?? '').toString(),
+      // P2-10: visuals resolve Dart-side; stored/LLM emoji is kept when
+      // present, otherwise derived from the food name.
+      emoji: _resolveEmoji(map['emoji']?.toString(), name),
+      imageUrl: map['imageUrl']?.toString(),
+    );
+  }
   final String name;
   final String effect;
   final String emoji;
@@ -96,13 +96,16 @@ class HealingFood extends Equatable {
 class TriggerFood extends Equatable {
   const TriggerFood({required this.name, required this.effect, required this.emoji, this.imageUrl});
 
-  factory TriggerFood.fromMap(Map<String, dynamic> map) =>
-      TriggerFood(
-        name: (map['name'] ?? map['food'] ?? map['title'] ?? '').toString(), 
-        effect: (map['effect'] ?? map['effects'] ?? '').toString(), 
-        emoji: map['emoji']?.toString() ?? '🍕',
-        imageUrl: map['imageUrl']?.toString(),
-      );
+  factory TriggerFood.fromMap(Map<String, dynamic> map) {
+    final name = (map['name'] ?? map['food'] ?? map['title'] ?? '').toString();
+    return TriggerFood(
+      name: name,
+      effect: (map['effect'] ?? map['effects'] ?? '').toString(),
+      // P2-10: visuals resolve Dart-side (see HealingFood).
+      emoji: _resolveEmoji(map['emoji']?.toString(), name),
+      imageUrl: map['imageUrl']?.toString(),
+    );
+  }
   final String name;
   final String effect;
   final String emoji;
@@ -132,13 +135,17 @@ class DetectedPattern extends Equatable {
 class TopHighlight extends Equatable {
   const TopHighlight({required this.food, required this.effects, required this.timeframe, required this.frequency, required this.emoji});
 
-  factory TopHighlight.fromMap(Map<String, dynamic> map) => TopHighlight(
-    food: map['food']?.toString() ?? '',
-    effects: map['effects']?.toString() ?? '',
-    timeframe: map['timeframe']?.toString() ?? '',
-    frequency: map['frequency']?.toString() ?? '',
-    emoji: map['emoji']?.toString() ?? '🍽️',
-  );
+  factory TopHighlight.fromMap(Map<String, dynamic> map) {
+    final food = map['food']?.toString() ?? '';
+    return TopHighlight(
+      food: food,
+      effects: map['effects']?.toString() ?? '',
+      timeframe: map['timeframe']?.toString() ?? '',
+      frequency: map['frequency']?.toString() ?? '',
+      // P2-10: visuals resolve Dart-side (see HealingFood).
+      emoji: _resolveEmoji(map['emoji']?.toString(), food),
+    );
+  }
   final String food;
   final String effects;
   final String timeframe;
@@ -156,15 +163,19 @@ class FoodImpact extends Equatable {
 
   const FoodImpact({required this.food, required this.dateLabel, required this.effect, required this.timeframeLabel, required this.emoji, required this.impactType, this.imageUrl});
 
-  factory FoodImpact.fromMap(Map<String, dynamic> map) => FoodImpact(
-    food: map['food']?.toString() ?? 'Unknown',
-    dateLabel: map['dateLabel']?.toString() ?? '',
-    effect: map['effect']?.toString() ?? 'Stable',
-    timeframeLabel: map['timeframeLabel']?.toString() ?? '',
-    emoji: map['emoji']?.toString() ?? '🍽️',
-    impactType: map['impactType']?.toString() ?? 'positive',
-    imageUrl: map['imageUrl']?.toString(),
-  );
+  factory FoodImpact.fromMap(Map<String, dynamic> map) {
+    final food = map['food']?.toString() ?? 'Unknown';
+    return FoodImpact(
+      food: food,
+      dateLabel: map['dateLabel']?.toString() ?? '',
+      effect: map['effect']?.toString() ?? 'Stable',
+      timeframeLabel: map['timeframeLabel']?.toString() ?? '',
+      // P2-10: visuals resolve Dart-side (see HealingFood).
+      emoji: _resolveEmoji(map['emoji']?.toString(), food),
+      impactType: map['impactType']?.toString() ?? 'positive',
+      imageUrl: map['imageUrl']?.toString(),
+    );
+  }
   final String food;
   final String dateLabel;
   final String effect;

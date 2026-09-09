@@ -44,11 +44,24 @@ class AiAuthException implements Exception {
 }
 
 abstract class AiService {
-  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream', String? intent});
+  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream', String? intent, int? promptVersion});
 
-  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType, String mode = 'json'});
+  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType, String mode = 'json', int? promptVersion});
 
   Future<String> summarizeHistory(List<ChatMessage> history, {String? previousSummary});
+
+  /// P3-4: whether the most recently completed call was truncated
+  /// (middle-out input cut, or a `finish_reason: length` output cut).
+  bool get lastResponseTruncated;
+
+
+  /// J-4 §17: proxy echo of the sent `promptVersion` (null when the caller
+  /// didn't send one, or the stream broke before the meta frame).
+  int? get lastPromptVersion;
+
+  /// J-4 §17: serving model id echoed by the proxy (may differ from the
+  /// requested model when the allowlist substitutes).
+  String? get lastServedModel;
 }
 
 /// Secure OpenAI client talking exclusively to the `aiProxy` Cloud Function.
@@ -72,6 +85,21 @@ class AiServiceImpl implements AiService {
   final CrashlyticsService _crashlyticsService;
 
   static const int _maxRetries = 2;
+
+  bool _lastResponseTruncated = false;
+  String? _lastTruncationKind;
+  int? _lastPromptVersion;
+  String? _lastServedModel;
+
+  @override
+  bool get lastResponseTruncated => _lastResponseTruncated;
+
+
+  @override
+  int? get lastPromptVersion => _lastPromptVersion;
+
+  @override
+  String? get lastServedModel => _lastServedModel;
 
   Future<Map<String, String>> _buildHeaders(String idempotencyKey) async {
     final user = _auth.currentUser;
@@ -135,7 +163,12 @@ class AiServiceImpl implements AiService {
     List<Uint8List>? images,
     String mode = 'stream',
     String? intent,
+    int? promptVersion,
   }) async* {
+    _lastResponseTruncated = false;
+    _lastTruncationKind = null;
+    _lastPromptVersion = null;
+    _lastServedModel = null;
     final idempotencyKey = const Uuid().v4();
     final headers = await _buildHeaders(idempotencyKey);
 
@@ -150,6 +183,7 @@ class AiServiceImpl implements AiService {
       'idempotencyKey': idempotencyKey,
       'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
       if (intent != null) 'intent': intent,
+      if (promptVersion != null) 'promptVersion': promptVersion,
     });
 
     AppLogger.ai('streaming via proxy (history: ${history.length}, images: ${images?.length ?? 0})');
@@ -234,6 +268,15 @@ class AiServiceImpl implements AiService {
           if (decoded['error'] != null) {
             throw AiServiceException(decoded['error'].toString());
           }
+          if (decoded['truncated'] == true) {
+            _lastResponseTruncated = true;
+            _lastTruncationKind = decoded['truncation'] as String?;
+          }
+          // J-4: version echo rides the meta frame (sent on every response).
+          final echoedVersion = decoded['promptVersion'];
+          if (echoedVersion is int) _lastPromptVersion = echoedVersion;
+          final served = decoded['model'];
+          if (served is String && served.isNotEmpty) _lastServedModel = served;
           final delta = decoded['d'];
           if (delta is String && delta.isNotEmpty) {
             fullResponseBuffer.write(delta); // 🟢 Accumulate for log
@@ -258,6 +301,14 @@ class AiServiceImpl implements AiService {
         try {
           final decoded = jsonDecode(data) as Map<String, dynamic>;
           if (decoded['error'] != null) throw AiServiceException(decoded['error'].toString());
+          if (decoded['truncated'] == true) {
+            _lastResponseTruncated = true;
+            _lastTruncationKind = decoded['truncation'] as String?;
+          }
+          final echoedVersion = decoded['promptVersion'];
+          if (echoedVersion is int) _lastPromptVersion = echoedVersion;
+          final served = decoded['model'];
+          if (served is String && served.isNotEmpty) _lastServedModel = served;
           final delta = decoded['d'];
           if (delta is String && delta.isNotEmpty) {
             fullResponseBuffer.write(delta);
@@ -284,7 +335,11 @@ class AiServiceImpl implements AiService {
   }
 
   @override
-  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType = 'system', String mode = 'json'}) async {
+  Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType = 'system', String mode = 'json', int? promptVersion}) async {
+    _lastResponseTruncated = false;
+    _lastTruncationKind = null;
+    _lastPromptVersion = null;
+    _lastServedModel = null;
     AppLogger.ai('generating content (mode: $mode, usageType: $usageType)');
     final startTime = DateTime.now();
 
@@ -300,6 +355,7 @@ class AiServiceImpl implements AiService {
       'usageType': usageType,
       'idempotencyKey': idempotencyKey,
       'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
+      if (promptVersion != null) 'promptVersion': promptVersion,
     });
 
     var attempts = 0;
@@ -325,6 +381,21 @@ class AiServiceImpl implements AiService {
 
         // 🟢 Log the JSON response for debugging
         AppLogger.data('AI_JSON_RESULT ($usageType)', decoded);
+
+        // P3-4: one-shot callers are system calls (insights/summaries) with no
+        // user-visible surface — log + meter so truncation stays observable.
+        _lastResponseTruncated = decoded['truncated'] == true;
+        _lastTruncationKind = decoded['truncation'] as String?;
+        if (_lastResponseTruncated) {
+          AppLogger.ai('proxy truncated this response (kind: $_lastTruncationKind, usageType: $usageType)');
+          unawaited(_analyticsService.logEvent(name: 'ai_response_truncated', parameters: {'kind': _lastTruncationKind ?? 'unknown', 'usage_type': usageType}));
+        }
+
+        // J-4: version echo for artifact stamping (§17).
+        final echoedVersion = decoded['promptVersion'];
+        if (echoedVersion is int) _lastPromptVersion = echoedVersion;
+        final served = decoded['model'];
+        if (served is String && served.isNotEmpty) _lastServedModel = served;
 
         return (decoded['text'] ?? '').toString();
       } on DioException catch (e, st) {

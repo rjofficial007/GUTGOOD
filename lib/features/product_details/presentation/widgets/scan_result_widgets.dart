@@ -9,6 +9,7 @@ import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/nova_group.dart';
+import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_insight.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
@@ -162,131 +163,19 @@ class _GaugePainter extends CustomPainter {
   bool shouldRepaint(covariant _GaugePainter oldDelegate) => oldDelegate.score != score;
 }
 
-/// 🌟 BentoImageCard with Wallet Panel Score Gauge & Photo/Narrative
-class BentoImageCard extends StatelessWidget {
-  const BentoImageCard({super.key, required this.scanData, this.heroTag});
-  final ScanResult scanData;
-  final String? heroTag;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final displayImageUrl = scanData.userImageUrl ?? scanData.imageUrl;
-
-    // Premium Score Colors (Vibrant yet premium)
-    final scoreColor = GutScoreBand.fromScore(scanData.score).color;
-
-    // Adaptive Theme Colors
-    final cardBg = isDark ? AppPalette.darkCard : scheme.cardBackground;
-    final cardBorder = isDark ? AppPalette.white.withAlpha(20) : scheme.borderSubtle;
-    final scoreTextColor = (scoreColor == AppPalette.green500 || scoreColor == AppPalette.orange) ? AppPalette.black : AppPalette.white;
-
-    return BentoCard(
-      padding: const EdgeInsets.all(12),
-      height: 200.h,
-      backgroundColor: cardBg,
-      borderColor: cardBorder,
-      child: Row(
-        children: [
-          // Left Panel: The "Wallet Card" aesthetic with Integrated Score Gauge
-          Container(
-            width: 176.h,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              color: scoreColor,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: scoreColor.withAlpha(isDark ? 40 : 60), blurRadius: 12, offset: const Offset(0, 4))],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // 🎨 Animated Gauge Indicator (White Shade for depth)
-                  TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: scanData.score.toDouble()),
-                    duration: const Duration(milliseconds: 1500),
-                    curve: Curves.easeOutQuart,
-                    builder: (context, value, _) => SizedBox(
-                      width: 120.h,
-                      height: 120.h,
-                      child: CustomPaint(
-                        painter: _GaugePainter(score: value.toInt(), color: scoreTextColor.withAlpha(200)),
-                      ),
-                    ),
-                  ),
-
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: scoreTextColor.withAlpha(230),
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: AppPalette.black.withAlpha(26), blurRadius: 4)],
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${scanData.score}',
-                    style: context.displayHero.copyWith(color: AppPalette.black, fontSize: 48.sp, letterSpacing: -2, fontWeight: FontWeight.w900),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Gap.w16,
-          // Right Panel: Narrative & Identity
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (displayImageUrl != null && displayImageUrl.isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(height: 44.h, width: 44.h, imageUrl: displayImageUrl, fit: BoxFit.cover),
-                  ),
-                  Gap.h4,
-                ],
-                Text(
-                  scanData.brand.toUpperCase(),
-                  style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 9.sp, letterSpacing: 1.1),
-                ),
-                Gap.h4,
-                Text(
-                  scanData.productName.toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.bodyBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 16.sp, height: 1.1, letterSpacing: -0.4),
-                ),
-                Gap.h6,
-                Text(
-                  scanData.impact,
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.caption.copyWith(color: scheme.textSecondary, height: 1.3, fontSize: 11.sp),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Args for the generic scan list detail screen (ingredients / allergens / additives).
 enum ScanListKind { ingredients, allergens, additives }
 
 class ScanListDetailArgs {
   const ScanListDetailArgs({required this.kind, required this.scan});
   final ScanListKind kind;
   final ScanResult scan;
+
+  factory ScanListDetailArgs.fromMap(Map<String, dynamic> map) => ScanListDetailArgs(
+    kind: ScanListKind.values.firstWhere((k) => k.name == map['kind']?.toString(), orElse: () => ScanListKind.ingredients),
+    scan: ScanResult.fromMap(map['scan'] as Map<String, dynamic>),
+  );
+
+  Map<String, dynamic> toMap() => {'kind': kind.name, 'scan': scan.toMap()};
 }
 
 /// Concern level → UI color.
@@ -738,6 +627,7 @@ Widget _buildModernFactorCard(BuildContext context, _ScanFactor item, {required 
           children: [
             Text(
               item.title,
+              maxLines: 1,
               style: context.body.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary, fontSize: 14.5.sp),
             ),
             const SizedBox(height: 1),
@@ -773,10 +663,10 @@ Widget _buildModernFactorCard(BuildContext context, _ScanFactor item, {required 
       color: Colors.transparent,
       child: InkWell(
         onTap: item.onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-          decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(20)),
+          decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
           child: content,
         ),
       ),
@@ -1102,38 +992,6 @@ class ScanWatchSection extends StatelessWidget {
   }
 }
 
-/// 🌟 Section 6: "What this means for you" (hidden when the AI gave no narrative).
-class ScanMeaningCard extends StatelessWidget {
-  const ScanMeaningCard({super.key, required this.scanData});
-  final ScanResult scanData;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (scanData.impact.isEmpty) return const SizedBox.shrink();
-
-    return BentoCard(
-      padding: const EdgeInsets.all(18),
-      borderRadius: 20,
-      backgroundColor: isDark ? AppPalette.purple.withAlpha(26) : AppPalette.purplePastel.withAlpha(26),
-      borderColor: AppPalette.purple.withAlpha(40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const BentoCardHeader(title: 'WHAT THIS MEANS FOR YOU', icon: AppIcons.salad, textColor: AppPalette.purple, iconColor: AppPalette.purple),
-          Gap.h12,
-          Text(
-            scanData.impact,
-            style: context.bodySm.copyWith(color: isDark ? scheme.textSecondary : AppPalette.black.withAlpha(200), height: 1.5, fontWeight: FontWeight.w500, fontSize: 13.sp),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 🌟 Section 7: Better swaps (horizontal cards with working "+ Add" + detail tap).
 class ScanSwapsSection extends StatelessWidget {
   const ScanSwapsSection({super.key, required this.swaps});
   final List<ProductSwap> swaps;
@@ -1290,11 +1148,11 @@ class ScanAdditivesSection extends StatelessWidget {
                           style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: scheme.textPrimary),
                         ),
                       ),
-                      if (sorted.length > 3)
+                      if (sorted.length > 0)
                         InkWell(
                           onTap: () => context.push(
-                            AppRoutes.scanListDetail,
-                            extra: ScanListDetailArgs(kind: ScanListKind.additives, scan: scanData),
+                            AppRoutes.additivesList,
+                            extra: AdditiveListArgs(items: sorted, title: AppStrings.additivesLabel, subtitle: AppStrings.additivesSubtitle),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -1732,13 +1590,6 @@ class BentoFoodCard extends StatelessWidget {
       delay: 200,
       child: SuperFoodCyclerCard(items: items, title: title, trend: trend, isPositive: isPositive, icon: icon),
     );
-  }
-
-  String _getFoodName(dynamic f) {
-    if (f is HealingFood || f is TriggerFood) return f.name;
-    if (f is FoodImpact) return f.food;
-    if (f is ProductSwap) return f.title;
-    return 'Unknown';
   }
 }
 

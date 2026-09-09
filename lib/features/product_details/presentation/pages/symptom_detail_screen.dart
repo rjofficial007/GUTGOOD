@@ -144,7 +144,7 @@ class _SymptomHeroSection extends StatelessWidget {
                   ),
                 ],
                 Gap.h8,
-                Text(DateFormatter.formatFull(symptom.createdAt), style: context.captionBold.copyWith(color: scheme.textSecondary)),
+                Text(DateFormatter.formatFull(symptom.eventTime), style: context.captionBold.copyWith(color: scheme.textSecondary)),
                 Gap.h12,
                 Row(
                   children: [

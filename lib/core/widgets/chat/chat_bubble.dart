@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -14,6 +13,7 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
+import 'package:gutgood/core/widgets/chat/registry_thumb_image.dart';
 import 'package:gutgood/core/widgets/chat/thinking_indicator.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
@@ -25,16 +25,18 @@ class ChatBubble extends StatelessWidget {
     required this.createdAt,
     this.isLoading = false,
     this.imageUrls = const [],
+    this.imageHashes = const [],
     this.localImages,
     this.isSending = false,
     this.sendFailed = false,
+    this.isQueued = false,
     this.isStreaming = false,
     this.errorKind = ChatErrorKind.none,
+    this.wasTruncated = false,
     required this.screenWidth,
     this.showFeedback = false,
     this.feedback,
     this.onFeedback,
-    this.onReport,
     this.showAvatar = true,
     this.showActions = false,
     this.onRegenerate,
@@ -51,19 +53,22 @@ class ChatBubble extends StatelessWidget {
   final DateTime createdAt;
   final bool isLoading;
   final List<String> imageUrls;
+
+  /// Registry hashes parallel to [imageUrls] (§E thumb lookups). Empty for
+  /// legacy turns — the strip then renders full URLs as before.
+  final List<String> imageHashes;
   final List<Uint8List>? localImages;
   final bool isSending;
   final bool sendFailed;
+  final bool isQueued;
   final bool isStreaming;
   final ChatErrorKind errorKind;
+  final bool wasTruncated;
   final double screenWidth;
   final bool showFeedback;
   final String? feedback;
   final Function(String)? onFeedback;
 
-  /// Files a report about this response. Shown alongside the feedback chips so
-  /// users never have to leave the app to reach it.
-  final VoidCallback? onReport;
   final bool showAvatar;
   final bool showActions;
   final VoidCallback? onRegenerate;
@@ -161,7 +166,7 @@ class ChatBubble extends StatelessWidget {
               ),
             ),
           ),
-          if (sendFailed && onRetry != null) _buildRetryButton(context),
+          if ((sendFailed || isQueued) && onRetry != null) _buildRetryButton(context, isQueued ? AppStrings.tapToSendNow : AppStrings.tapToRetry),
         ],
       ),
     ),
@@ -179,15 +184,22 @@ class ChatBubble extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(right: 4.0),
           child: Icon(AppIcons.alertCircle, size: 11, color: context.appColorScheme.cardBackground),
+        )
+      else if (isQueued)
+        Padding(
+          padding: const EdgeInsets.only(right: 4.0),
+          child: Icon(AppIcons.clock, size: 11, color: context.appColorScheme.cardBackground),
         ),
       Text(
-        isSending ? AppStrings.labelSending : (sendFailed ? AppStrings.labelFailed : '$formattedTime ✓✓'),
+        isSending
+            ? AppStrings.labelSending
+            : (sendFailed ? AppStrings.labelFailed : (isQueued ? AppStrings.labelQueued : '$formattedTime ✓✓')),
         style: context.captionTiny.copyWith(color: context.appColorScheme.cardBackground.withAlpha(138), fontWeight: FontWeight.bold),
       ),
     ],
   );
 
-  Widget _buildRetryButton(BuildContext context) => Padding(
+  Widget _buildRetryButton(BuildContext context, String label) => Padding(
     padding: EdgeInsets.only(bottom: AppSizes.p12),
     child: GestureDetector(
       onTap: onRetry,
@@ -197,7 +209,7 @@ class ChatBubble extends StatelessWidget {
           Icon(AppIcons.rotateCcw, size: 13, color: context.appColorScheme.error),
           Gap.w4,
           Text(
-            AppStrings.tapToRetry,
+            label,
             style: context.caption.copyWith(color: context.appColorScheme.error, fontWeight: FontWeight.w700),
           ),
         ],
@@ -253,6 +265,10 @@ class ChatBubble extends StatelessWidget {
                                 ScanResultInlineCard(scanData: scanData!, isEmbedded: true, onViewFullReport: onViewFullReport),
                               ],
 
+                              if (wasTruncated) ...[
+                                Gap.h12,
+                                _buildTrimmedRow(context),
+                              ],
                               Gap.h12,
                               Row(
                                 children: [
@@ -330,13 +346,6 @@ class ChatBubble extends StatelessWidget {
         GutChip(icon: AppIcons.thumbsUp, label: AppStrings.helpful, onTap: () => onFeedback!(AppStrings.labelHelpful), isSelected: feedback == AppStrings.labelHelpful),
         GutChip(icon: AppIcons.thumbsDown, label: AppStrings.notHelpful, onTap: () => onFeedback!(AppStrings.labelNotHelpful), isSelected: feedback == AppStrings.labelNotHelpful),
         GutChip(icon: AppIcons.refreshCcw, label: AppStrings.tellMeMore, onTap: () => onFeedback!(AppStrings.labelTellMeMore), isSelected: false),
-        if (onReport != null)
-          GutChip(
-            icon: AppIcons.alertTriangle,
-            label: ChatStrings.reportResponse,
-            onTap: onReport!,
-            isSelected: false,
-          ),
       ],
     ),
   );
@@ -355,20 +364,7 @@ class ChatBubble extends StatelessWidget {
 
         final image = (local != null && local.isNotEmpty)
             ? Image.memory(local[i], height: size, width: size, fit: BoxFit.cover, gaplessPlayback: true)
-            : CachedNetworkImage(
-                imageUrl: imageUrls[i],
-                height: size,
-                width: size,
-                fit: BoxFit.cover,
-                memCacheWidth: (size * 2).round(),
-                placeholder: (_, _) => Container(height: size, width: size, color: dark ? AppPalette.white15 : context.appColorScheme.elevatedSurface),
-                errorWidget: (_, _, _) => Container(
-                  height: size,
-                  width: size,
-                  color: context.appColorScheme.elevatedSurface,
-                  child: Icon(AppIcons.image, color: context.appColorScheme.textMuted),
-                ),
-              );
+            : RegistryThumbImage(fullUrl: imageUrls[i], hash: i < imageHashes.length ? imageHashes[i] : null, size: size, dark: dark);
 
         return GestureDetector(
           onTap: () => _showFullScreenImage(context, i, heroTag),
@@ -400,6 +396,20 @@ class ChatBubble extends StatelessWidget {
       Text(
         AppStrings.responseInterrupted,
         style: context.caption.copyWith(color: context.appColorScheme.warning, fontWeight: FontWeight.w600),
+      ),
+    ],
+  );
+
+  Widget _buildTrimmedRow(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(AppIcons.alertTriangle, size: 13, color: context.appColorScheme.warning),
+      Gap.w8,
+      Flexible(
+        child: Text(
+          AppStrings.responseTrimmedNotice,
+          style: context.caption.copyWith(color: context.appColorScheme.warning, fontWeight: FontWeight.w600),
+        ),
       ),
     ],
   );

@@ -24,7 +24,6 @@ class NotificationIds {
   static const int scanReminder = 106;
   static const int restaurantReminder = 107;
   static const int insightGenerated = 108;
-  static const int processedFoodWarning = 109;
   static const int streakSaver = 110;
   static const int firebaseBackground = 111;
 }

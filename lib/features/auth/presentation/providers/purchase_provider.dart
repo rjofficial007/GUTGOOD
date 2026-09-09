@@ -63,7 +63,6 @@ class PurchaseProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get selectedPackageIdentifier => _selectedPackageIdentifier;
   bool get isPurchasing => _isPurchasing;
-  bool? get purchaseResult => _purchaseResult;
   PurchaseActionType? get actionType => _actionType;
   bool get isPremium => _isPremium;
 
@@ -162,14 +161,6 @@ class PurchaseProvider extends ChangeNotifier {
     await fetchOfferings();
   }
 
-  Future<void> syncWithAuth(String? uid) async {
-    if (uid != null) {
-      await _purchaseService.login(uid);
-    } else {
-      await _purchaseService.logout();
-    }
-    await _updatePremiumStatusFromService();
-  }
 
   Future<void> _updatePremiumStatusFromService() async {
     final active = _purchaseService.isPremium;

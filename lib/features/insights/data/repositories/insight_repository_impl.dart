@@ -6,6 +6,7 @@ import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/health_alert.dart';
+import 'package:gutgood/core/models/history_counts.dart';
 import 'package:gutgood/core/models/insights_dashboard_state.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
@@ -80,15 +81,14 @@ class InsightRepositoryImpl implements InsightRepository {
   }
 
   @override
-  Stream<InsightsDashboardState> getDashboardStateStream() => Rx.combineLatest6(
+  Stream<InsightsDashboardState> getDashboardStateStream() => Rx.combineLatest4(
     _insightFirestoreService.getLatestInsightsStream(),
     _insightFirestoreService.getPatternDataStream(),
     _insightFirestoreService.getHealthAlertsStream(),
-    _historyFirestoreService.getTotalMealLogsCountStream(),
-    _historyFirestoreService.getTotalSymptomsCountStream(),
-    _historyFirestoreService.getTotalScansCountStream(),
-    (AIInsight? latestInsight, List<BodyPattern> patterns, List<HealthAlert> alerts, int meals, int symptoms, int scans) =>
-        InsightsDashboardState(latestInsight: latestInsight, patterns: patterns, alerts: alerts, totalMeals: meals, totalSymptoms: symptoms, totalScans: scans),
+    // Single-doc counters read replaces three full-collection live snapshots.
+    _historyFirestoreService.watchHistoryCounts(),
+    (AIInsight? latestInsight, List<BodyPattern> patterns, List<HealthAlert> alerts, HistoryCounts counts) =>
+        InsightsDashboardState(latestInsight: latestInsight, patterns: patterns, alerts: alerts, totalMeals: counts.meals, totalSymptoms: counts.symptoms, totalScans: counts.scans),
   ).distinct();
 
   @override

@@ -150,7 +150,6 @@ void main() {
       );
 
       expect(breakdown.score, 49);
-      expect(breakdown.wasCapped, isTrue);
       expect(breakdown.scoreBeforeCap, greaterThan(49));
       expect(breakdown.explanation, contains('49'));
     });
@@ -162,7 +161,7 @@ void main() {
       );
 
       expect(breakdown.score, lessThanOrEqualTo(49));
-      expect(breakdown.wasCapped, isFalse, reason: 'The product scored below the cap anyway.');
+      expect(breakdown.scoreBeforeCap, isNull, reason: 'The product scored below the cap anyway.');
     });
   });
 

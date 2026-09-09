@@ -250,182 +250,8 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
     );
   }
 
-  Widget _buildGroupedOptions(BuildContext context, {String? title, required List<_GroupedItem> items}) {
-    final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (title != null) ...[
-          Text(
-            title,
-            style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w900, color: scheme.textSecondary),
-          ),
-          Gap.h12,
-        ],
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppPalette.darkCard : scheme.cardBackground,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: scheme.borderSubtle),
-          ),
-          child: Column(
-            children: items.asMap().entries.map((entry) {
-              final isLast = entry.key == items.length - 1;
-              final item = entry.value;
 
-              return Column(
-                children: [
-                  ListTile(
-                    onTap: () {},
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                    leading: Icon(item.icon, size: 20.sp, color: scheme.textPrimary),
-                    title: Text(item.label, style: context.body.copyWith(fontWeight: FontWeight.w600)),
-                    trailing: Icon(AppIcons.chevronRight, size: 18.sp, color: scheme.textMuted),
-                  ),
-                  if (!isLast) Divider(height: 1, indent: 60, endIndent: 20, color: scheme.borderSubtle),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildIngredientsChips(BuildContext context) {
-    final ingredients = widget.product.ingredients;
-    if (ingredients == null || ingredients.isEmpty) return const SizedBox.shrink();
-
-    final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppStrings.ingredientsLabelText,
-          style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w900),
-        ),
-        Gap.h12,
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: ingredients
-              .take(10)
-              .map(
-                (ing) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppPalette.white.withAlpha(12) : scheme.elevatedSurface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: scheme.borderSubtle),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(AppIcons.leaf, size: 12.sp, color: scheme.textMuted),
-                      Gap.w6,
-                      Text(
-                        ing,
-                        style: context.captionBold.copyWith(color: scheme.textPrimary, fontSize: 11.sp),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGroundTruthBadges(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final nutriColor = _getNutriScoreColor(widget.product.nutriscore ?? '');
-    final novaColor = _getNovaColor(widget.product.novaGroup ?? 0);
-
-    return Row(
-      children: [
-        if (widget.product.nutriscore != null)
-          Expanded(
-            child: BentoCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              borderRadius: 16,
-              backgroundColor: isDark ? AppPalette.darkCard : scheme.cardBackground,
-              borderColor: nutriColor.withAlpha(50),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36.h,
-                    height: 36.h,
-                    decoration: BoxDecoration(color: nutriColor.withAlpha(30), borderRadius: BorderRadius.circular(10)),
-                    child: Center(
-                      child: Text(
-                        widget.product.nutriscore!.toUpperCase(),
-                        style: context.headingSm.copyWith(color: nutriColor, fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                  ),
-                  Gap.w12,
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'NUTRI-SCORE',
-                        style: context.captionMicro.copyWith(color: scheme.textMuted, fontWeight: FontWeight.w900, fontSize: 8.sp),
-                      ),
-                      const SizedBox(height: 2),
-                      Text('Grade ${widget.product.nutriscore!.toUpperCase()}', style: context.captionBold.copyWith(color: scheme.textPrimary)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        if (widget.product.nutriscore != null && widget.product.novaGroup != null) Gap.w12,
-        if (widget.product.novaGroup != null)
-          Expanded(
-            child: BentoCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              borderRadius: 16,
-              backgroundColor: isDark ? AppPalette.darkCard : scheme.cardBackground,
-              borderColor: novaColor.withAlpha(50),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36.h,
-                    height: 36.h,
-                    decoration: BoxDecoration(color: novaColor.withAlpha(30), borderRadius: BorderRadius.circular(10)),
-                    child: Center(
-                      child: Text(
-                        '${widget.product.novaGroup}',
-                        style: context.headingSm.copyWith(color: novaColor, fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                  ),
-                  Gap.w12,
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'NOVA GROUP',
-                        style: context.captionMicro.copyWith(color: scheme.textMuted, fontWeight: FontWeight.w900, fontSize: 8.sp),
-                      ),
-                      const SizedBox(height: 2),
-                      Text('Group ${widget.product.novaGroup}', style: context.captionBold.copyWith(color: scheme.textPrimary)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
 
   Widget _buildAnalyzedContent(BuildContext context) {
     final scheme = context.appColorScheme;
@@ -483,8 +309,13 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
       isLoading: notifier.isAnalyzing,
       onTap: () async {
         final result = await notifier.analyzeBarcodeProduct(widget.product, capturedImage: widget.capturedImage);
-        if (result != null && mounted) {
+        if (!mounted) return;
+        if (result != null) {
           setState(() => _analyzedResult = result);
+        } else {
+          // Previously silent: the button just stopped spinning. Say why.
+          final message = notifier.lastErrorWasOffline ? AppStrings.offlineMessage : AppStrings.failedToAnalyzeProduct;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
         }
       },
     );
@@ -748,44 +579,9 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
     return items;
   }
 
-  Color _getNutriScoreColor(String grade) {
-    switch (grade.toUpperCase()) {
-      case 'A':
-        return AppPalette.nutriGreen;
-      case 'B':
-        return AppPalette.nutriLightGreen;
-      case 'C':
-        return AppPalette.nutriYellow;
-      case 'D':
-        return AppPalette.nutriOrange;
-      case 'E':
-        return AppPalette.nutriRed;
-      default:
-        return AppPalette.gray400;
-    }
-  }
 
-  Color _getNovaColor(int group) {
-    switch (group) {
-      case 1:
-        return AppPalette.nutriGreen;
-      case 2:
-        return AppPalette.nutriYellow;
-      case 3:
-        return AppPalette.nutriOrange;
-      case 4:
-        return AppPalette.nutriRed;
-      default:
-        return AppPalette.gray400;
-    }
-  }
 }
 
-class _GroupedItem {
-  final String label;
-  final IconData icon;
-  _GroupedItem({required this.label, required this.icon});
-}
 
 class _HealthFactor {
   _HealthFactor({

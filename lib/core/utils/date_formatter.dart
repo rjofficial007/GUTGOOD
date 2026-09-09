@@ -26,19 +26,4 @@ class DateFormatter {
 
   static String formatFull(DateTime dateTime) => '${formatDate(dateTime)} • ${formatTime(dateTime)}';
 
-  static String formatRelative(DateTime dateTime) {
-    final local = dateTime.toLocal();
-    final now = DateTime.now();
-    final difference = now.difference(local);
-
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else {
-      return formatDate(dateTime);
-    }
-  }
 }

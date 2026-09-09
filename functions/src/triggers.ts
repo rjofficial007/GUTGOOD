@@ -3,11 +3,14 @@
  *
  * onScanCreated: watches for new scan history entries and triggers warnings
  * if multiple ultra-processed foods (NOVA 3/4) are scanned within a short window.
+ * Also maintains history counters (see counters.ts), as do onScanDeleted,
+ * onJournalEntryCreated, and onJournalEntryDeleted.
  */
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { REGION } from './config';
 import { calculateStreakUpdate, getLocalDate } from './usage';
+import { onScanWrite, onScanRemoved, onJournalWrite, onJournalRemoved } from './counters';
 
 /**
  * Shared helper to update user streak based on activity time.
@@ -56,6 +59,11 @@ export const onScanCreated = functions
 
     // 1. Update Streak
     await handleActivityStreak(uid, scanData.createdAt);
+
+    // 1b. Bump history counters (dashboard + gating + profile average).
+    // Runs for every scan, including non-processed ones (the NOVA guard below
+    // returns early — counters must not).
+    await onScanWrite(uid, scanData);
 
     // 2. Process warnings (existing logic)
     const novaGroup = (scanData.novaGroup || '').toString();
@@ -170,7 +178,31 @@ export const onJournalEntryCreated = functions
     const data = snapshot.data();
     if (data) {
       await handleActivityStreak(uid, data.createdAt);
+      await onJournalWrite(uid, data);
     }
+  });
+
+/**
+ * onScanDeleted: Decrement history counters when a scan is removed
+ * (e.g. chat message deletion cascades via deleteLogsForMessage).
+ */
+export const onScanDeleted = functions
+  .region(REGION)
+  .firestore.document('user_profiles/{uid}/scan_history/{docId}')
+  .onDelete(async (snapshot, context) => {
+    const { uid } = context.params;
+    await onScanRemoved(uid, snapshot.data());
+  });
+
+/**
+ * onJournalEntryDeleted: Decrement history counters when a journal entry is removed.
+ */
+export const onJournalEntryDeleted = functions
+  .region(REGION)
+  .firestore.document('user_profiles/{uid}/journal_logs/{docId}')
+  .onDelete(async (snapshot, context) => {
+    const { uid } = context.params;
+    await onJournalRemoved(uid, snapshot.data());
   });
 
 /**
@@ -209,21 +241,6 @@ export const onInsightCreated = functions
       functions.logger.info(`Updated gutScore for ${uid} to ${gutScore}`);
     } catch (e) {
       functions.logger.error(`Failed to update gutScore for ${uid}`, e);
-    }
-  });
-
-/**
- * onSymptomCreated: Update streak when a manual symptom check-in is performed.
- * @deprecated Use onJournalEntryCreated
- */
-export const onSymptomCreated = functions
-  .region(REGION)
-  .firestore.document('user_profiles/{uid}/symptom_logs/{docId}')
-  .onCreate(async (snapshot, context) => {
-    const { uid } = context.params;
-    const data = snapshot.data();
-    if (data) {
-      await handleActivityStreak(uid, data.createdAt);
     }
   });
 

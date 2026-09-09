@@ -43,6 +43,8 @@ class SchemaDefinitions {
 {
   "image_mode": "${ImageMode.all.join('|')}",
   "intent": "${UserIntent.all.join('|')}",
+  "v": 1,
+  "verdict": "food|non_food|uncertain",
   "scan": {
     "productName": "string|null",
     "brand": "string|null",
@@ -174,6 +176,8 @@ $ingredientSchema
 SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - image_mode: one of ${ImageMode.all.map((v) => '"$v"').join(', ')}.
 - intent: one of ${UserIntent.all.map((v) => '"$v"').join(', ')}.
+- v: envelope version, always the integer 1 for now.
+- verdict: "food" when the analyzed content is food/drink/supplement, "non_food" when it is definitively something else (cosmetics, medicine packaging, random objects), "uncertain" when you cannot tell. non_food/uncertain turns are shown in chat but never saved to history — answer honestly.
 - category: "food", "meal", "menu", "label", "packaging", or "non-food".
 - novaGroup: integer 1-4, or JSON null.
 - score: integer 0-100. Never null. For meals or unidentified products, you MUST ESTIMATE a score based on metabolic balance, processing levels, and ingredients.

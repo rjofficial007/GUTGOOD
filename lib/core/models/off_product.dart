@@ -191,3 +191,19 @@ class OffProduct extends Equatable {
     miscTags,
   ];
 }
+
+/// P2-11: maps OFF alternatives to grounded swap cards. Lives here (not on
+/// [ProductSwap]) because off_product already depends on scan_result_details
+/// and the reverse edge would be a needless import cycle.
+extension OffProductSwapX on OffProduct {
+  ProductSwap toSwap() => ProductSwap(
+    title: productName,
+    subtitle: brand ?? 'Better Alternative',
+    tag: 'BETTER CHOICE',
+    imageKeyword: productName,
+    imageUrl: imageUrl,
+    isBlackBadge: true,
+    barcode: barcode,
+    nutriscore: nutriscore,
+  );
+}

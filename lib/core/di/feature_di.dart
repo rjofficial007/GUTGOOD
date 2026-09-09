@@ -48,10 +48,10 @@ void initFeatureDI() {
     ..registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()))
     ..registerLazySingleton(() => UsageNotifier(sl(), sl()))
     // --- Chat ---
-    ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl(), streakService: sl()))
+    ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl(), streakService: sl(), foodImages: sl()))
     ..registerLazySingleton(
       () =>
-          ChatHistoryNotifier(repository: sl(), chatFirestoreService: sl(), authFirestoreService: sl(), historyFirestoreService: sl(), aiService: sl(), appStateService: sl(), prefs: sl(), auth: sl()),
+          ChatHistoryNotifier(repository: sl(), chatFirestoreService: sl(), authFirestoreService: sl(), historyFirestoreService: sl(), aiService: sl(), appStateService: sl(), prefs: sl(), auth: sl(), usageService: sl()),
     )
     ..registerLazySingleton(
       () => ChatComposerNotifier(
@@ -67,6 +67,9 @@ void initFeatureDI() {
         persistAiResponseUseCase: sl(),
         analyticsService: sl(),
         appStateService: sl(),
+        outboxService: sl(),
+        uploadOutbox: sl(),
+        foodImages: sl(),
       ),
     )
     // --- Insights ---
@@ -95,6 +98,7 @@ void initFeatureDI() {
         analyticsService: sl(),
         streakService: sl(),
         processChatTagUseCase: sl(),
+        eventPersister: sl(),
       ),
     )
     ..registerLazySingleton(() => ScannerNotifier(repository: sl(), authFirestoreService: sl(), offService: sl(), storageService: sl()))

@@ -1,12 +1,16 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:crypto/crypto.dart';
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/scan_insight.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
-import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Categorizes the directional impact of a product on gut health.
@@ -29,6 +33,8 @@ class ScanResult extends Equatable {
     this.badge,
     this.nutriscore,
     this.novaGroup,
+    this.nutriscoreScore,
+    this.isOrganic,
     this.allergens,
     this.additives,
     this.additiveItems = const [],
@@ -50,6 +56,9 @@ class ScanResult extends Equatable {
     this.rawData,
     this.nutritionEstimated = false,
     this.insight,
+    this.schemaVersion = AiVersions.schemaVersion,
+    this.promptVersion,
+    this.model,
   });
 
   factory ScanResult.fromMap(Map<String, dynamic> map) {
@@ -127,6 +136,10 @@ class ScanResult extends Equatable {
       badge: map['badge']?.toString(),
       nutriscore: normalizedNutriscore,
       novaGroup: normalizedNova,
+      nutriscoreScore: (map['nutriscoreScore'] as num?)?.toInt(),
+      // Null-preserving: unknown organic status must survive the round-trip
+      // (parseBool would collapse it to false).
+      isOrganic: map['isOrganic'] is bool ? map['isOrganic'] as bool : null,
       allergens: ModelUtils.parseString(map['allergens']),
       additives: ModelUtils.parseString(map['additives']),
       additiveItems: _additiveItemsFrom(map),
@@ -164,6 +177,9 @@ class ScanResult extends Equatable {
       insight: map['insight'] is Map
           ? ScanInsight.fromMap(Map<String, dynamic>.from(map['insight'] as Map))
           : (resolvedRaw['insight'] is Map ? ScanInsight.fromMap(Map<String, dynamic>.from(resolvedRaw['insight'] as Map)) : null),
+      schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
+      promptVersion: (map['promptVersion'] as num?)?.toInt(),
+      model: map['model'] as String?,
     );
   }
 
@@ -196,6 +212,14 @@ class ScanResult extends Equatable {
 
   /// NOVA processing group (1-4).
   final String? novaGroup;
+
+  /// Original-algorithm Nutri-Score FSA points (OFF `nutriscore_data.score`).
+  /// Persisted so barcode-cache hits re-run the engine on identical inputs.
+  final int? nutriscoreScore;
+
+  /// Whether the product carries an organic label (OFF `labels_tags`).
+  /// Persisted for the same cache-rescore reason as [nutriscoreScore].
+  final bool? isOrganic;
 
   /// Summary of detected allergens based on user profile.
   final String? allergens;
@@ -241,7 +265,9 @@ class ScanResult extends Equatable {
   /// List of names for ingredients flagged as risky during analysis.
   final List<String> flaggedIngredients;
 
-  /// Whether this product is saved as a favorite.
+  /// Whether this product is saved as a favorite. Legacy on scan_history docs
+  /// (P2-6 moved saved state to the `saved_foods` collection; the flag is
+  /// only still read by the lazy migration, never by the UI).
   final bool isSaved;
 
   /// Unique identifier for this specific scan event.
@@ -270,6 +296,16 @@ class ScanResult extends Equatable {
   /// warnings) plus the engine-authored score explanation. Null for scans
   /// produced before this field existed.
   final ScanInsight? insight;
+
+  /// Durable-doc schema version (§17), stamped as `v`.
+  final int schemaVersion;
+
+  /// J-4 §17: prompt version that produced this scan (chat vs one-shot
+  /// builders disambiguated by [source]). Null on legacy docs.
+  final int? promptVersion;
+
+  /// J-4 §17: serving model id echoed by the proxy for this scan.
+  final String? model;
 
   /// Returns the theme-appropriate color for the scan's score impact.
   Color get impactColor => GutScoreUtils.getScoreColor(score);
@@ -343,7 +379,9 @@ class ScanResult extends Equatable {
     // 3. Source-based check: photo/vision scans are often products
     if (source == 'food' || source == 'meal' || source == 'vision' || source == 'chat') return true;
 
-    // 4. Content check: has ingredients, nutrients, or meal items
+    // 4. Content check: has ingredients, nutrients, or meal items. The rawData
+    // meal check only fires for legacy docs — new docs strip the blob at
+    // persistence (see toPersistenceMap), so only pre-strip scans qualify here.
     if (ingredients.isNotEmpty || nutrients != null || rawData?['meal'] != null) return true;
 
     // 5. Fallback Heuristics for older scans or missing category
@@ -372,6 +410,8 @@ class ScanResult extends Equatable {
     String? badge,
     String? nutriscore,
     String? novaGroup,
+    int? nutriscoreScore,
+    bool? isOrganic,
     String? allergens,
     String? additives,
     List<String>? additiveItems,
@@ -393,6 +433,9 @@ class ScanResult extends Equatable {
     Map<String, dynamic>? rawData,
     bool? nutritionEstimated,
     ScanInsight? insight,
+    int? schemaVersion,
+    int? promptVersion,
+    String? model,
   }) => ScanResult(
     productName: productName ?? this.productName,
     brand: brand ?? this.brand,
@@ -404,6 +447,8 @@ class ScanResult extends Equatable {
     badge: badge ?? this.badge,
     nutriscore: nutriscore ?? this.nutriscore,
     novaGroup: novaGroup ?? this.novaGroup,
+    nutriscoreScore: nutriscoreScore ?? this.nutriscoreScore,
+    isOrganic: isOrganic ?? this.isOrganic,
     allergens: allergens ?? this.allergens,
     additives: additives ?? this.additives,
     additiveItems: additiveItems ?? this.additiveItems,
@@ -425,9 +470,15 @@ class ScanResult extends Equatable {
     rawData: rawData ?? this.rawData,
     nutritionEstimated: nutritionEstimated ?? this.nutritionEstimated,
     insight: insight ?? this.insight,
+    schemaVersion: schemaVersion ?? this.schemaVersion,
+    promptVersion: promptVersion ?? this.promptVersion,
+    model: model ?? this.model,
   );
 
   Map<String, dynamic> toMap() => {
+    'v': schemaVersion,
+    'promptVersion': promptVersion,
+    'model': model,
     'productName': productName,
     'brand': brand,
     'category': category,
@@ -438,6 +489,8 @@ class ScanResult extends Equatable {
     'badge': badge,
     'nutriscore': nutriscore,
     'novaGroup': novaGroup,
+    'nutriscoreScore': nutriscoreScore,
+    'isOrganic': isOrganic,
     'allergens': allergens,
     'additives': additives,
     'additiveItems': additiveItems,
@@ -460,6 +513,32 @@ class ScanResult extends Equatable {
     'nutritionEstimated': nutritionEstimated,
     if (insight != null) 'insight': insight!.toMap(),
   };
+
+  /// Stable fingerprint of the decoded AI payload, kept so identical analyses
+  /// stay recognizable after the blob itself is stripped at persistence.
+  /// Null when there is no raw payload (or it can't be encoded).
+  String? get rawDataHash {
+    final raw = rawData;
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return sha256.convert(utf8.encode(jsonEncode(raw))).toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Firestore-bound map. Identical to [toMap] except the `rawData` blob —
+  /// the entire decoded `[GUTGOOD_DATA]` block the scan was already parsed
+  /// from — is replaced by its [rawDataHash]. Persisting the blob meant every
+  /// scan doc carried the full AI payload toward the 1 MB cap and taxed every
+  /// history/insight read; the durable facts all live in top-level fields.
+  /// In-memory `rawData` (used during the live turn) is untouched.
+  Map<String, dynamic> toPersistenceMap() {
+    final map = toMap();
+    map.remove('rawData');
+    map['rawDataHash'] = rawDataHash;
+    return map;
+  }
 
   /// Optimized Map for AI context to prevent 502/payload-too-large errors.
   /// Excludes large fields like full ingredients, nutrients, and swaps.
@@ -502,55 +581,9 @@ class ScanResult extends Equatable {
     return AdditiveConcernDb.parseItems(ModelUtils.parseString(map['additives']));
   }
 
-  /// 🚀 Professional Routing: Determines which screen should be used to display
-  /// the full details of this specific scan.
-  String get detailRoute {
-    final s = source?.toLowerCase() ?? '';
-    final c = category?.toLowerCase() ?? '';
-    final n = productName.toLowerCase();
-
-    // Unpack intent from rawData if available
-    final intent = (rawData?['intent'] ?? '').toString().toLowerCase();
-
-    AppLogger.info('ScanResult: Calculating detailRoute. ProductName: $productName, Intent: $intent, Category: $c, Source: $s');
-
-    // 🚀 Priority 1: Explicit Intent
-    // If the AI says it's a meal analysis, we use the Scan Result screen (with score/swaps).
-    if (intent == 'meal_analysis' || intent == 'meal_rating' || intent == 'food_analysis') {
-      return '/scan-result';
-    }
-    if (intent == 'menu_analysis' || intent == 'menu') {
-      return '/menu-result';
-    }
-    if (intent == 'label_analysis' || intent == 'label') {
-      return '/label-result';
-    }
-
-    // 🍴 Priority 2: Explicit Source/Category
-    if (s == 'menu' || c == 'menu') return '/menu-result';
-    if (s == 'label' || c == 'label') return '/label-result';
-
-    // 🔍 Priority 3: Name-based Heuristics (Venue vs Product)
-    // We check for venue-suggesting words.
-    final isVenue = n.contains('cafe') || n.contains('restaurant') || n.contains('kitchen') || n.contains('dining') || n.contains('bakery') || n.contains('bistro');
-    final hasMenuWord = n.contains('menu');
-    final hasItemsWord = n.contains('items') || n.contains('selection') || n.contains('dishes');
-
-    if (isVenue || hasMenuWord) {
-      // If it's a venue name, it's likely a menu unless it explicitly looks like a meal log
-      if (!hasItemsWord || intent == 'menu_analysis') {
-        return '/menu-result';
-      }
-
-      // Fallback: If it has "Menu" and "Items", it might be a venue analysis that identified dishes
-      if (hasMenuWord && isVenue) return '/menu-result';
-    }
-
-    if (n.contains('label') || n.contains('ingredients') || n.contains('nutrition facts') || n == 'ingredients list' || n == 'nutrition') {
-      return '/label-result';
-    }
-
-    // 🍎 Default: Standard Product/Meal Scan
-    return '/scan-result';
-  }
+  /// Professional Routing: every scan type renders in the unified scan
+  /// result screen. (The legacy per-type result destinations were removed
+  /// during the result-screen consolidation, so this getter no longer
+  /// branches on intent/source/category.)
+  String get detailRoute => AppRoutes.scanResult;
 }

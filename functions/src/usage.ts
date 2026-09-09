@@ -266,25 +266,6 @@ export async function recordTokens(
 }
 
 /**
- * Read-only usage peek (used by tests / diagnostics; not a gate).
- */
-export async function getUsage(uid: string, timezoneOffsetMinutes: number = 0): Promise<Record<string, number>> {
-  const today = todayKey(timezoneOffsetMinutes);
-  const snap = await admin.firestore().doc(`user_profiles/${uid}/daily_usage/${today}`).get();
-  const data = snap.data() ?? {};
-  return {
-    chat_count: (data.chat_count as number) ?? 0,
-    scan_count: (data.scan_count as number) ?? 0,
-    system_count: (data.system_count as number) ?? 0,
-  };
-}
-
-/** Merges usage counters during an anonymous→permanent account merge. */
-export function usageFieldFor(type: UsageType): string {
-  return fieldFor(type);
-}
-
-/**
  * Shared streak calculation logic.
  * Returns an update object if the streak needs to be updated, or null.
  */

@@ -26,6 +26,13 @@
  * Stream responses are `text/event-stream` with frames:
  *   data: {"d":"delta"}\n\n  ...      data: [DONE]\n\n
  * Fatal errors are reported as the last frame: data: {"error":"..."}\n\n
+ * P3-4: when the input was middle-out truncated or the output hit
+ * `finish_reason: length`, a meta frame precedes [DONE]:
+ * data: {"truncated":true,"truncation":"input"|"output"|"both"}\n\n
+ * (`json`/`plain` modes return the same two fields alongside `text`.)
+ * J-4: every response also echoes `promptVersion` (as sent) and the serving
+ * `model` in the same meta frame / JSON body, for artifact stamping (§17).
+
  */
 import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
@@ -68,6 +75,7 @@ interface ProxyRequest {
   idempotencyKey?: string;
   timezoneOffset?: number;
   intent?: string;
+  promptVersion?: number;
 }
 
 function setCors(res: functions.Response): void {
@@ -84,35 +92,62 @@ type OpenAIMessage =
   | { role: 'system' | 'assistant'; content: string }
   | { role: 'user'; content: string | Array<Record<string, unknown>> };
 
-function buildOpenAIMessages(body: ProxyRequest): OpenAIMessage[] {
+/**
+ * P3-4 middle-out truncation: keeps a head slice plus the tail that fits,
+ * joined by a marker. A plain `slice(0, cap)` drops the tail — which for
+ * system prompts carries SCHEMA TYPE RULES and for chat carries the user's
+ * actual question — so cut prompts produced malformed JSON / confused
+ * replies with only a server-side warning. Callers report `truncated` to
+ * the client (meta frame / JSON field) for a user-visible notice.
+ */
+function truncateMiddle(text: string, cap: number): { text: string; truncated: boolean; dropped: number } {
+  if (text.length <= cap) return { text, truncated: false, dropped: 0 };
+  const marker = '\n\n[\u2026trimmed for length\u2026]\n\n';
+  const headKeep = Math.min(1000, Math.floor(cap / 4));
+  const tailKeep = cap - headKeep - marker.length;
+  if (tailKeep <= 0) return { text: text.slice(0, cap), truncated: true, dropped: text.length - cap };
+  return {
+    text: text.slice(0, headKeep) + marker + text.slice(text.length - tailKeep),
+    truncated: true,
+    dropped: text.length - cap,
+  };
+}
+
+function buildOpenAIMessages(body: ProxyRequest): { messages: OpenAIMessage[]; inputTruncated: boolean } {
   const messages: OpenAIMessage[] = [];
 
-  // Truncation is silent by default, which is how oversized prompts went
-  // unnoticed: the tail carries SCHEMA TYPE RULES / the insights pattern
-  // evidence, so a cut prompt produces malformed JSON with no error anywhere.
+  // P3-4: middle-out (head + tail preserved) and REPORTED — it used to
+  // silently slice(0, cap), dropping the tail that carries SCHEMA TYPE
+  // RULES / the insights pattern evidence, yielding malformed JSON with no
+  // error anywhere.
   const rawSystem = body.systemInstruction ?? '';
-  const system = rawSystem.slice(0, MAX_SYSTEM_CHARS);
-  if (rawSystem.length > MAX_SYSTEM_CHARS) {
+  const systemCut = truncateMiddle(rawSystem, MAX_SYSTEM_CHARS);
+  const system = systemCut.text;
+  if (systemCut.truncated) {
     functions.logger.warn(
-      `systemInstruction truncated ${rawSystem.length} -> ${MAX_SYSTEM_CHARS} chars. Shrink the prompt or raise MAX_SYSTEM_CHARS.`,
+      `systemInstruction truncated ${rawSystem.length} -> ${MAX_SYSTEM_CHARS} chars (middle-out, dropped ${systemCut.dropped}). Shrink the prompt or raise MAX_SYSTEM_CHARS.`,
     );
   }
   if (system) messages.push({ role: 'system', content: system });
 
   const history = Array.isArray(body.messages) ? body.messages.slice(-MAX_HISTORY_MESSAGES) : [];
+  let historyTruncated = false;
   for (const m of history) {
     if (!m || typeof m.content !== 'string' || m.content.length === 0) continue;
-    if (m.role === 'user') messages.push({ role: 'user', content: m.content.slice(0, MAX_TEXT_CHARS) });
-    else messages.push({ role: 'assistant', content: m.content.slice(0, MAX_TEXT_CHARS) });
+    const cut = truncateMiddle(m.content, MAX_TEXT_CHARS);
+    if (cut.truncated) historyTruncated = true;
+    if (m.role === 'user') messages.push({ role: 'user', content: cut.text });
+    else messages.push({ role: 'assistant', content: cut.text });
   }
 
   // One-shot prompts (insights / product analysis) legitimately exceed the
   // per-turn user-text cap, so they get their own (larger) ceiling.
   const rawPrompt = body.userText ?? body.prompt ?? '';
   const promptCap = body.userText ? MAX_TEXT_CHARS : MAX_PROMPT_CHARS;
-  const userText = rawPrompt.slice(0, promptCap);
-  if (rawPrompt.length > promptCap) {
-    functions.logger.warn(`prompt truncated ${rawPrompt.length} -> ${promptCap} chars; the tail (often the pattern evidence) was dropped.`);
+  const promptCut = truncateMiddle(rawPrompt, promptCap);
+  const userText = promptCut.text;
+  if (promptCut.truncated) {
+    functions.logger.warn(`prompt truncated ${rawPrompt.length} -> ${promptCap} chars (middle-out, dropped ${promptCut.dropped}).`);
   }
   const images = Array.isArray(body.images) ? body.images.slice(0, MAX_IMAGES_PER_REQUEST) : [];
 
@@ -130,7 +165,7 @@ function buildOpenAIMessages(body: ProxyRequest): OpenAIMessage[] {
     }
   }
 
-  return messages;
+  return { messages, inputTruncated: systemCut.truncated || historyTruncated || promptCut.truncated };
 }
 
 async function authenticate(req: functions.Request): Promise<{ uid: string; isAnonymous: boolean } | null> {
@@ -148,11 +183,7 @@ async function authenticate(req: functions.Request): Promise<{ uid: string; isAn
 export const aiProxy = functions
   .region(REGION)
   // Cold-start sensitivity: this endpoint is on the chat latency path.
-  // minInstances: 1 ensures the first AI interaction is always fast.
-  // minInstances: 1 keeps an instance warm for the chat latency path (the
-  // comment above promised this; the config never had it). Costs a small
-  // always-on fee — remove it if the project is cost- over latency-sensitive.
-  .runWith({ timeoutSeconds: 300, memory: '512MB', minInstances: 1, secrets: [OPENAI_API_KEY]})
+  .runWith({ timeoutSeconds: 300, memory: '512MB', secrets: [OPENAI_API_KEY]})
   .https.onRequest(async (req, res) => {
     setCors(res);
     if (req.method === 'OPTIONS') {
@@ -242,7 +273,7 @@ export const aiProxy = functions
       }
     }
 
-    const messages = buildOpenAIMessages(body);
+    const { messages, inputTruncated } = buildOpenAIMessages(body);
     if (messages.length === 0) {
       fail(res, 400, 'invalid_argument', { message: 'Empty message payload.' });
       return;
@@ -250,10 +281,13 @@ export const aiProxy = functions
 
     const streaming = mode === 'stream' || mode === 'stream-json';
 
+    // J-4: hoisted so the echo below reports the model that actually served
+    // (the allowlist may substitute the client's request).
+    const servedModel = resolveModel(body.model);
     const payload: Record<string, unknown> = {
       // Allowlisted: the client's model (Remote Config) can no longer select an
       // expensive model by accident or by tampering.
-      model: resolveModel(body.model),
+      model: servedModel,
       messages,
       stream: streaming,
       // No per-intent budget: replies are never cut short (see config.ts).
@@ -301,10 +335,11 @@ export const aiProxy = functions
     if (mode === 'json' || mode === 'plain') {
       try {
         const json = (await upstream.json()) as {
-          choices?: Array<{ message?: { content?: string } }>;
+          choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
           usage?: { prompt_tokens?: number; completion_tokens?: number };
         };
         const text = json.choices?.[0]?.message?.content ?? '';
+        const outputTruncated = json.choices?.[0]?.finish_reason === 'length';
         if (!text) {
           functions.logger.error('OpenAI returned empty content');
           await giveCreditBack();
@@ -317,7 +352,18 @@ export const aiProxy = functions
           json.usage?.prompt_tokens ?? 0,
           json.usage?.completion_tokens ?? 0,
         );
-        res.status(200).json({ text });
+        let truncationKind: string | null = null;
+        if (inputTruncated && outputTruncated) truncationKind = 'both';
+        else if (inputTruncated) truncationKind = 'input';
+        else if (outputTruncated) truncationKind = 'output';
+        // J-4: echo the builder's prompt version + serving model so writers
+        // can stamp the artifact (§17).
+        res.status(200).json({
+          text,
+          promptVersion: body.promptVersion ?? null,
+          model: servedModel,
+          ...(truncationKind ? { truncated: true, truncation: truncationKind } : {}),
+        });
       } catch (e) {
         functions.logger.error('Failed to parse OpenAI response', e);
         await giveCreditBack();
@@ -343,6 +389,8 @@ export const aiProxy = functions
     // Holder object: TypeScript can't see assignments made inside the SSE
     // callback, so a plain `let` would be narrowed to `null` at the read site.
     const usageBox: { value: TokenUsage | null } = { value: null };
+    // P3-4: `finish_reason: length` on any chunk means the reply was cut short.
+    const outputCut: { value: boolean } = { value: false };
 
     try {
       const reader = (upstream.body as unknown as ReadableStream<Uint8Array>).getReader();
@@ -357,9 +405,10 @@ export const aiProxy = functions
         if (data === '[DONE]') return { done: true };
         try {
           const event = JSON.parse(data) as {
-            choices?: Array<{ delta?: { content?: string } }>;
+            choices?: Array<{ delta?: { content?: string }; finish_reason?: string }>;
             usage?: { prompt_tokens?: number; completion_tokens?: number };
           };
+          if (event.choices?.[0]?.finish_reason === 'length') outputCut.value = true;
           if (event.usage) usageBox.value = event.usage;
           const delta = event.choices?.[0]?.delta?.content ?? '';
           if (delta) {
@@ -401,6 +450,16 @@ export const aiProxy = functions
       } else if (usageBox.value) {
         await recordTokens(auth.uid, timezoneOffset, usageBox.value.prompt_tokens ?? 0, usageBox.value.completion_tokens ?? 0);
       }
+      // J-4: version echo on EVERY response (plus P3-4 truncation keys when cut).
+      const meta: Record<string, unknown> = { promptVersion: body.promptVersion ?? null, model: servedModel };
+      if (inputTruncated || outputCut.value) {
+        let truncationKind = 'output';
+        if (inputTruncated && outputCut.value) truncationKind = 'both';
+        else if (inputTruncated) truncationKind = 'input';
+        meta['truncated'] = true;
+        meta['truncation'] = truncationKind;
+      }
+      send(meta);
       res.write('data: [DONE]\n\n');
       res.end();
     } catch (e) {

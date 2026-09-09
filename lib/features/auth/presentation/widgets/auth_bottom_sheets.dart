@@ -36,34 +36,6 @@ Future<AuthUser?> showAuthBottomSheet(BuildContext context, {String? customMessa
   builder: (context) => _LoginSheet(customMessage: customMessage, onSuccess: onSuccess),
 );
 
-/// Shows a prompt to encourage guest users to create an account.
-Future<bool?> showRegistrationPrompt(BuildContext context) => BottomSheetHelper.showGutBottomSheet<bool>(
-  context: context,
-  title: AppStrings.saveProfileTitle,
-  children: [
-    Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        border: Border.all(color: context.appColorScheme.border),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(AppIcons.shieldCheck, color: context.appColorScheme.textPrimary, size: AppSizes.icon32),
-    ),
-    Gap.h24,
-    Text(
-      AppStrings.saveProfileSubtitle,
-      textAlign: TextAlign.center,
-      style: context.body.copyWith(color: context.appColorScheme.textSecondary),
-    ),
-    Gap.h32,
-    GutButton(label: AppStrings.createAccountPrimary, onTap: () => context.pop(true)),
-    Gap.h16,
-    GutButton(label: AppStrings.skipForNow, isOutlined: true, onTap: () => context.pop(false)),
-    Gap.h12,
-  ],
-);
 
 /// Shows a confirmation sheet when an existing account is found.
 Future<bool?> showMergeConfirmationSheet(BuildContext context, String email) => BottomSheetHelper.showGutBottomSheet<bool>(

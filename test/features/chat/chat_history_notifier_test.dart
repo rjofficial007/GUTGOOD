@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,7 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
+import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:mocktail/mocktail.dart';
@@ -32,6 +34,8 @@ class MockFirebaseAuth extends Mock implements FirebaseAuth {}
 
 class MockUser extends Mock implements User {}
 
+class MockUsageService extends Mock implements UsageService {}
+
 void main() {
   late ChatHistoryNotifier notifier;
   late MockChatRepository repository;
@@ -42,6 +46,7 @@ void main() {
   late MockAppStateService appStateService;
   late MockSharedPreferences prefs;
   late MockFirebaseAuth auth;
+  late MockUsageService usageService;
   late StreamController<List<ChatMessage>> controller;
 
   setUp(() {
@@ -53,6 +58,7 @@ void main() {
     appStateService = MockAppStateService();
     prefs = MockSharedPreferences();
     auth = MockFirebaseAuth();
+    usageService = MockUsageService();
     controller = StreamController<List<ChatMessage>>.broadcast();
 
     // Default stubs
@@ -65,6 +71,7 @@ void main() {
     when(() => prefs.getBool(any())).thenReturn(null);
     when(() => prefs.getString(any())).thenReturn(null);
     when(() => chatFirestoreService.getMessagesStream(limit: any(named: 'limit'))).thenAnswer((_) => controller.stream);
+    when(() => usageService.canSummarize()).thenAnswer((_) async => true);
 
     notifier = ChatHistoryNotifier(
       repository: repository,
@@ -75,6 +82,7 @@ void main() {
       appStateService: appStateService,
       prefs: prefs,
       auth: auth,
+      usageService: usageService,
     );
   });
 
@@ -127,6 +135,75 @@ void main() {
 
       expect(notifier.messages.length, 1);
       expect(notifier.messages.first.firestoreId, 'cloud_123');
+    });
+
+    test('Server echo of an image turn keeps local bytes until URLs hydrate', () async {
+      final bytes = Uint8List.fromList([1, 2, 3, 4]);
+      final msg = ChatMessage(localId: 'img1', role: 'user', text: '', localImages: [bytes], isSending: true, createdAt: DateTime.now());
+      notifier.addOptimisticMessage(msg);
+
+      // Server confirms the save before the Storage upload finishes: no URLs yet.
+      controller.add([msg.copyWith(firestoreId: 'cloud_img1', clearLocalImages: true, isSending: false)]);
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      final shown = notifier.messages.first;
+      expect(shown.firestoreId, 'cloud_img1');
+      expect(shown.localImages, [bytes]);
+      expect(shown.isSending, isTrue);
+
+      // Once remote URLs land, the server version wins and local bytes drop.
+      controller.add([msg.copyWith(firestoreId: 'cloud_img1', imageUrls: ['https://x/y.jpg'], clearLocalImages: true, isSending: false)]);
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      final hydrated = notifier.messages.first;
+      expect(hydrated.imageUrls, ['https://x/y.jpg']);
+      expect(hydrated.localImages, isNull);
+    });
+  });
+
+  group('ChatHistoryNotifier - Summary batching (K-6)', () {
+    ChatMessage msg(String id) => ChatMessage(localId: id, role: 'user', text: 'text $id', createdAt: DateTime.now());
+
+    test('skips the AI call when fewer than 4 messages newly aged out', () async {
+      for (var i = 0; i < 7; i++) {
+        notifier.addOptimisticMessage(msg('m$i'));
+      }
+
+      await notifier.precomputeSummary();
+
+      verifyNever(() => aiService.summarizeHistory(any(), previousSummary: any(named: 'previousSummary')));
+      expect(notifier.cachedSummary, isNull);
+    });
+
+    test('summarizes at 4+ newly aged out, then waits for 4 more', () async {
+      when(() => aiService.summarizeHistory(any(), previousSummary: any(named: 'previousSummary'))).thenAnswer((_) async => 's1');
+      for (var i = 0; i < 10; i++) {
+        notifier.addOptimisticMessage(msg('m$i'));
+      }
+
+      await notifier.precomputeSummary();
+
+      verify(() => aiService.summarizeHistory(any(), previousSummary: any(named: 'previousSummary'))).called(1);
+      expect(notifier.cachedSummary, 's1');
+
+      // Two more turns age out — below the batch threshold, no second call.
+      notifier.addOptimisticMessage(msg('m10'));
+      notifier.addOptimisticMessage(msg('m11'));
+      await notifier.precomputeSummary();
+
+      verifyNever(() => aiService.summarizeHistory(any(), previousSummary: 's1'));
+    });
+
+    test('skips the AI call when system quota is reserved for classification', () async {
+      when(() => usageService.canSummarize()).thenAnswer((_) async => false);
+      for (var i = 0; i < 10; i++) {
+        notifier.addOptimisticMessage(msg('m$i'));
+      }
+
+      await notifier.precomputeSummary();
+
+      verifyNever(() => aiService.summarizeHistory(any(), previousSummary: any(named: 'previousSummary')));
+      expect(notifier.cachedSummary, isNull);
     });
   });
 }

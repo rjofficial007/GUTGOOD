@@ -25,12 +25,12 @@ INTENT CATEGORIES:
 - ${UserIntent.generalChat}: Greetings, platform support, or non-food topics.
 
 STRICT CLASSIFICATION RULES:
-- If an image is present:
-    - If the user asks "What is this?", use `meal_overview`.
-    - If the user asks "Is this healthy?", use `health_assessment`.
-    - If no text is provided, use the camera mode (e.g., if mode is 'menu', use `menu`).
-- Prioritize Action: If a user says "Is this healthy? Tell me everything," use `full_analysis`.
-- Explicit Phrase: If the user says "What am I getting from this?", you MUST return `COMPLETE_ANALYSIS`.
+- If the user asks "What is this?", use `${UserIntent.mealRecognition}`.
+- If the user asks "Is this healthy?", use `${UserIntent.healthAssessment}`.
+- If no text is provided, fall back to the capture mode: 'menu' → `${UserIntent.menuRecommendation}`, 'label' → `${UserIntent.ingredientAnalysis}`, anything else → `${UserIntent.completeAnalysis}`.
+- Prioritize Action: If a user says "Is this healthy? Tell me everything," use `${UserIntent.completeAnalysis}`.
+- Explicit Phrase: If the user says "What am I getting from this?", you MUST return `${UserIntent.completeAnalysis}`.
+- Return ONLY a token from the INTENT CATEGORIES list above. Never invent, abbreviate, or lowercase a token (e.g. `meal_overview`, `menu`, `full_analysis` are INVALID and will be rejected).
 
 OUTPUT FORMAT:
 Return ONLY a JSON object with the following structure:

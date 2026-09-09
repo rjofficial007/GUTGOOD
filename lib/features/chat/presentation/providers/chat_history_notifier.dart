@@ -4,13 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
-import 'package:gutgood/core/models/ai_report.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
+import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +26,7 @@ class ChatHistoryNotifier with ChangeNotifier {
     required AppStateService appStateService,
     required SharedPreferences prefs,
     required FirebaseAuth auth,
+    required UsageService usageService,
   }) : _repository = repository,
        _chatFirestoreService = chatFirestoreService,
        _authFirestoreService = authFirestoreService,
@@ -33,7 +34,8 @@ class ChatHistoryNotifier with ChangeNotifier {
        _aiService = aiService,
        _appStateService = appStateService,
        _prefs = prefs,
-       _auth = auth {
+       _auth = auth,
+       _usageService = usageService {
     _initChatStream();
     _appStateService.chatUpdated.addListener(refreshHistory);
     _appStateService.profileUpdated.addListener(_onProfileUpdated);
@@ -56,6 +58,7 @@ class ChatHistoryNotifier with ChangeNotifier {
   final AppStateService _appStateService;
   final SharedPreferences _prefs;
   final FirebaseAuth _auth;
+  final UsageService _usageService;
 
   final List<ChatMessage> _streamedMessages = [];
   final List<ChatMessage> _paginatedMessages = [];
@@ -89,8 +92,6 @@ class ChatHistoryNotifier with ChangeNotifier {
   }
 
   bool get historyLoading => _historyLoading;
-  bool get isPaginationLoading => _isPaginationLoading;
-  bool get hasMoreMessages => _hasMoreMessages;
   String? get cachedSummary => _cachedSummary;
 
   // Context getters for Composer
@@ -124,10 +125,24 @@ class ChatHistoryNotifier with ChangeNotifier {
             // Keep optimistic messages the server hasn't confirmed yet.
             final pending = _streamedMessages.where((m) => _optimisticIds.contains(m.localId) && !serverLocalIds.contains(m.localId)).toList();
 
+            // Image turns: the server echo lands ~instantly after save, long
+            // before the Storage upload hydrates imageUrls. Without this the
+            // echo wipes the in-memory bytes and the photo drops out of the
+            // bubble for the whole upload. Carry local-only state across
+            // until remote URLs exist (upload hydration clears it then).
+            final inMemory = <String, ChatMessage>{for (final m in _streamedMessages) m.localId: m};
+            final merged = serverMessages.map((srv) {
+              final existing = inMemory[srv.localId];
+              if (existing != null && existing.localImages?.isNotEmpty == true && srv.imageUrls.isEmpty) {
+                return srv.copyWith(localImages: existing.localImages, isSending: existing.isSending);
+              }
+              return srv;
+            }).toList();
+
             _streamedMessages
               ..clear()
               ..addAll(pending)
-              ..addAll(serverMessages);
+              ..addAll(merged);
 
             _optimisticIds.removeAll(serverLocalIds);
 
@@ -286,8 +301,11 @@ class ChatHistoryNotifier with ChangeNotifier {
   /// Files a user report about an AI response (Play generative-AI policy).
   ///
   /// The service swallows its own errors so a blocked write can never surface
-  /// as a crash — the UI acknowledges the report either way.
-  Future<void> submitAiReport(AiReport report) => _chatFirestoreService.submitAiReport(report);
+
+  /// Newly-aged-out messages required before a summary run (K-6/P2-5): without
+  /// batching, every turn past the 6-message window spent an AI call + 2
+  /// writes from the same 20/day `system` budget classification uses.
+  static const int _minNewMessagesForSummary = 4;
 
   Future<void> precomputeSummary() async {
     if (_isSummarizing || messages.length <= 6) return;
@@ -300,11 +318,21 @@ class ChatHistoryNotifier with ChangeNotifier {
 
       final agedOut = chronological.sublist(0, chronological.length - maxContextMessages);
 
-      final newlyAgedOut = _summarizedThroughMessageId == null
-          ? agedOut
-          : agedOut.skipWhile((m) => m.firestoreId?.toString() != _summarizedThroughMessageId && m.localId != _summarizedThroughMessageId).toList();
+      // Everything strictly after the marker: the old skipWhile re-included
+      // the marker message itself, re-summarizing 1 stale message per run.
+      final List<ChatMessage> newlyAgedOut;
+      if (_summarizedThroughMessageId == null) {
+        newlyAgedOut = agedOut;
+      } else {
+        final idx = agedOut.indexWhere((m) => m.firestoreId?.toString() == _summarizedThroughMessageId || m.localId == _summarizedThroughMessageId);
+        newlyAgedOut = idx == -1 ? const [] : agedOut.sublist(idx + 1);
+      }
 
-      if (newlyAgedOut.isEmpty) return;
+      if (newlyAgedOut.length < _minNewMessagesForSummary) return;
+      if (!await _usageService.canSummarize()) {
+        AppLogger.ai('Summary skipped: system quota reserved for classification.');
+        return;
+      }
 
       AppLogger.ai('Summarizing ${newlyAgedOut.length} messages.');
       _cachedSummary = await _aiService.summarizeHistory(newlyAgedOut, previousSummary: _cachedSummary);

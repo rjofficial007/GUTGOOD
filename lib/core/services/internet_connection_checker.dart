@@ -27,6 +27,9 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
     if (_subscription != null) return;
 
     AppLogger.network('Starting connectivity listener');
+    // Probe immediately so a cold start without connectivity resolves in
+    // seconds instead of after two poll cycles (~20s+ of false "online").
+    unawaited(checkConnection());
     _subscription = _checker.onStatusChange.listen((status) {
       final connected = (status == InternetConnectionStatus.connected);
 
@@ -56,10 +59,20 @@ class InternetConnectionCheckerImpl implements InternetConnectionChecker {
 
   @override
   Future<void> checkConnection() async {
-    final hasConn = await _checker.hasConnection;
-    if (hasConn) {
+    if (await _checker.hasConnection) {
       _failureCount = 0;
       isInternetAvailable.value = true;
+      return;
+    }
+    // One retry before declaring loss: a single failed probe (e.g. on app
+    // resume) is often a waking radio, not a dead network.
+    await Future<void>.delayed(const Duration(seconds: 2));
+    if (await _checker.hasConnection) {
+      _failureCount = 0;
+      isInternetAvailable.value = true;
+    } else {
+      _failureCount = _maxFailuresBeforeOffline;
+      isInternetAvailable.value = false;
     }
   }
 }
@@ -93,17 +106,23 @@ class _InternalChecker {
   }
 
   Future<bool> _isReachable(InternetAddress addr) async {
-    try {
-      final socket = await Socket.connect(
-        addr,
-        53,
-        timeout: const Duration(seconds: 4),
-      );
-      socket.destroy();
-      return true;
-    } catch (_) {
-      return false;
+    // Port 53 first (fast DNS-port probe), then 443: some networks filter
+    // outbound DNS while passing HTTPS — a 53-only check misreports those
+    // as offline.
+    for (final port in const [53, 443]) {
+      try {
+        final socket = await Socket.connect(
+          addr,
+          port,
+          timeout: const Duration(seconds: 3),
+        );
+        socket.destroy();
+        return true;
+      } catch (_) {
+        // Try the next port.
+      }
     }
+    return false;
   }
 
   InternetConnectionStatus? _lastStatus;

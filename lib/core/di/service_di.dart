@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
@@ -11,6 +13,7 @@ import 'package:gutgood/core/services/debug_mock_data_service.dart';
 import 'package:gutgood/core/services/device_info_services.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/usage_firestore_service.dart';
@@ -25,6 +28,8 @@ import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
+import 'package:gutgood/features/chat/data/services/chat_outbox_service.dart';
+import 'package:gutgood/features/chat/data/services/image_upload_outbox.dart';
 
 void initServiceDI() {
   sl
@@ -39,11 +44,18 @@ void initServiceDI() {
     ..registerLazySingleton<AiService>(() => AiServiceImpl(dio: sl(), auth: sl(), config: sl(), analyticsService: sl(), crashlyticsService: sl()))
     ..registerLazySingleton<AiClassifierService>(() => AiClassifierServiceImpl(aiService: sl()))
     ..registerLazySingleton<OffService>(() => OffServiceImpl(dio: sl()))
-    ..registerLazySingleton<StorageService>(() => StorageServiceImpl(auth: sl(), storage: sl()))
+    ..registerLazySingleton<FoodImageService>(() => FoodImageServiceImpl(auth: sl(), db: sl(), prefs: sl()))
+    ..registerLazySingleton<StorageService>(() => StorageServiceImpl(auth: sl(), storage: sl(), prefs: sl(), foodImages: sl()))
     ..registerLazySingleton<StreakService>(() => StreakServiceImpl(prefs: sl()))
+    ..registerLazySingleton<ChatOutboxService>(() => ChatOutboxServiceImpl(prefs: sl()))
+    // Pending bytes live in the cache dir (expendable by design): if the OS
+    // purges them, the outbox drops those entries gracefully on flush.
+    ..registerLazySingleton<ImageUploadOutbox>(
+      () => ImageUploadOutboxImpl(prefs: sl(), storageService: sl(), baseDir: Directory('${Directory.systemTemp.path}/pending_uploads')),
+    )
     ..registerLazySingleton<AuthFirestoreService>(() => AuthFirestoreServiceImpl(auth: sl(), db: sl(), storageService: sl()))
     ..registerLazySingleton<ChatFirestoreService>(() => ChatFirestoreServiceImpl(auth: sl(), db: sl()))
-    ..registerLazySingleton<HistoryFirestoreService>(() => HistoryFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<HistoryFirestoreService>(() => HistoryFirestoreServiceImpl(auth: sl(), db: sl(), foodImages: sl()))
     ..registerLazySingleton<InsightFirestoreService>(() => InsightFirestoreServiceImpl(auth: sl(), db: sl()))
     ..registerLazySingleton<UsageFirestoreService>(() => UsageFirestoreServiceImpl(auth: sl(), db: sl()))
     ..registerLazySingleton<NotificationService>(() => NotificationServiceImpl(notifications: sl(), authFirestoreService: sl(), historyFirestoreService: sl(), prefs: sl()))

@@ -23,7 +23,6 @@ import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart'
 import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:gutgood/features/chat/presentation/widgets/chat_components.dart';
-import 'package:gutgood/features/chat/presentation/widgets/report_ai_response_sheet.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
@@ -613,10 +612,10 @@ class ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    // The send never reached streaming (offline/empty/busy, or the upload
-    // failed first): no completion will ever arrive, so drop the turn's
-    // scroll scaffolding immediately. (The upload-failed path also ends the
-    // turn internally via _finishTurn, making this idempotent.)
+    // The send never reached streaming (offline/empty/busy, queued, or the
+    // upload failed first): no completion will ever arrive, so drop the
+    // turn's scroll scaffolding immediately. (The upload-failed path also
+    // ends the turn internally via _finishTurn, making this idempotent.)
     _endTurn(turnSeq);
 
     switch (error) {
@@ -625,6 +624,13 @@ class ChatScreenState extends State<ChatScreen> {
 
       case ChatSendError.uploadFailed:
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.connectionError), behavior: SnackBarBehavior.floating));
+
+      case ChatSendError.queued:
+        // Accepted into the outbox: clear the composer like a send. The
+        // queued bubble (same localId as the turn anchor) is already visible.
+        _controller.clear();
+        _clearDraft();
+        composerNotifier.clearPendingHiddenContext();
 
       case ChatSendError.busy:
       case ChatSendError.empty:
@@ -935,49 +941,50 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                       createdAt: msg.createdAt,
                       isLoading: msg.role == 'ai' && (msg.text.isEmpty || msg.text == AppStrings.findingSwaps) && msg.errorKind == ChatErrorKind.none && msg.scanData == null && msg.swapData == null,
                       imageUrls: msg.imageUrls,
+                      imageHashes: msg.imageHashes,
                       localImages: msg.localImages,
                       isSending: msg.isSending,
                       sendFailed: msg.sendFailed,
+                      isQueued: msg.isQueued,
                       isStreaming: isStreaming && isLatestAi,
                       errorKind: msg.errorKind,
+                      wasTruncated: msg.wasTruncated,
                       screenWidth: MediaQuery.sizeOf(context).width,
                       showAvatar: showAvatar,
                       showActions: isLatestAi && msg.text.isNotEmpty && !isLoading,
                       onRegenerate: composerNotifier.canRegenerate
-                          ? () {
+                          ? () async {
                               HapticHelper.light();
 
-                              unawaited(composerNotifier.regenerateLastResponse());
+                              final messenger = ScaffoldMessenger.of(context);
+                              final error = await composerNotifier.regenerateLastResponse();
+                              if (error == ChatSendError.offline) {
+                                messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+                              }
                             }
                           : null,
-                      onRetry: msg.sendFailed
-                          ? () => unawaited(composerNotifier.retryMessage(msg))
-                          : (msg.errorKind == ChatErrorKind.connection ? () => unawaited(composerNotifier.regenerateLastResponse()) : null),
+                      onRetry: msg.isQueued
+                          ? () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final error = await composerNotifier.flushOutbox();
+                              if (error == ChatSendError.offline) {
+                                messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+                              }
+                            }
+                          : (msg.sendFailed
+                                ? () => unawaited(composerNotifier.retryMessage(msg))
+                                : (msg.errorKind == ChatErrorKind.connection
+                                ? () async {
+                                    final messenger = ScaffoldMessenger.of(context);
+                                    final error = await composerNotifier.regenerateLastResponse();
+                                    if (error == ChatSendError.offline) {
+                                      messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+                                    }
+                                  }
+                                : null)),
                       onQuotaPressed: () => unawaited(showPaywallScreen(context, onProceedWithLimited: () {})),
                       showFeedback: isLatestAi && !isStreaming && msg.text.isNotEmpty && msg.scanData == null && msg.swapData == null && msg.errorKind == ChatErrorKind.none,
                       feedback: msg.feedback,
-                      onReport: () async {
-                        HapticHelper.light();
-
-                        final report = await showReportAiResponseSheet(
-                          ctx,
-                          messageText: msg.text,
-                          messageId: msg.localId,
-                        );
-
-                        if (report == null) return;
-
-                        await historyNotifier.submitAiReport(report);
-
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            const SnackBar(
-                              content: Text(ChatStrings.reportThanks),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      },
                       onFeedback: (type) async {
                         if (msg.feedback != null && type != AppStrings.labelTellMeMore) {
                           return;
@@ -1001,27 +1008,17 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                       },
                       scanData: msg.scanData,
                       swapData: msg.swapData,
-                      onSeeMoreSwaps: () => composerNotifier.handleSeeMoreSwaps(msg.text, i),
+                      onSeeMoreSwaps: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final error = await composerNotifier.handleSeeMoreSwaps(msg.text, msg.scanData);
+                        if (error == ChatSendError.offline) {
+                          messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+                        }
+                      },
                       onViewFullReport: msg.scanData != null
                           ? () {
-                              final scan = msg.scanData!;
-                              final cat = scan.category?.toLowerCase() ?? '';
-                              final src = scan.source?.toLowerCase() ?? '';
-                              final name = scan.productName.toLowerCase();
-
-                              // 🚀 Smart Routing: Select screen based on scan type
-                              if (cat == 'menu' || src == 'menu' || name.contains('menu')) {
-                                if (msg.mealLogs.isNotEmpty) {
-                                  unawaited(context.push(AppRoutes.mealDetail, extra: msg.mealLogs.first));
-                                } else {
-                                  // Fallback to menu result if no structured meal log is attached
-                                  unawaited(context.push(AppRoutes.menuResult, extra: ScanResultArgs(scanData: scan)));
-                                }
-                              } else if (cat == 'label' || src == 'label' || name.contains('label') || name.contains('ingredients')) {
-                                unawaited(context.push(AppRoutes.labelResult, extra: ScanResultArgs(scanData: scan)));
-                              } else {
-                                unawaited(context.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: scan)));
-                              }
+                              // Every scan type renders in the unified result screen.
+                              unawaited(context.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: msg.scanData!)));
                             }
                           : null,
                     ),

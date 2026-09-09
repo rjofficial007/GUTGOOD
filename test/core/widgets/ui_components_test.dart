@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/empty_state_widget.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
-import 'package:gutgood/core/widgets/gut_shimmer_skeleton.dart';
 
 void main() {
   Widget createTestWidget(Widget child) {
@@ -59,22 +58,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(actionClicked, isTrue);
-    });
-  });
-
-  group('GutShimmerSkeleton Tests', () {
-    testWidgets('renders shimmer container with specified dimensions', (tester) async {
-      await tester.pumpWidget(
-        createTestWidget(
-          const GutShimmerSkeleton(
-            width: 200,
-            height: 100,
-            borderRadius: 16,
-          ),
-        ),
-      );
-
-      expect(find.byType(GutShimmerSkeleton), findsOneWidget);
     });
   });
 }

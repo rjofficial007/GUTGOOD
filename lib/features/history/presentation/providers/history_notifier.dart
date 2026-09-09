@@ -75,8 +75,6 @@ class HistoryNotifier with ChangeNotifier {
   static const int _pageSize = 20;
 
   List<ScanResult> get scans => List.unmodifiable(_scans);
-  List<ScanResult> get labelScans => List.unmodifiable(_labelScans);
-  List<ScanResult> get menuScans => List.unmodifiable(_menuScans);
 
   /// Combined list of all scans (Product, Label, and Menu) sorted by date.
   List<ScanResult> get allScans {
@@ -97,19 +95,12 @@ class HistoryNotifier with ChangeNotifier {
 
   bool get scansLoading => _scansLoading || _labelScansLoading || _menuScansLoading;
   bool get scansLoadingMore => _scansLoadingMore;
-  bool get scansHasMore => _scansHasMore;
-  bool get labelScansHasMore => _labelScansHasMore;
-  bool get menuScansHasMore => _menuScansHasMore;
 
   List<MealLog> get meals => List.unmodifiable(_meals);
-  bool get mealsLoading => _mealsLoading;
   bool get mealsLoadingMore => _mealsLoadingMore;
-  bool get mealsHasMore => _mealsHasMore;
 
   List<SymptomLog> get symptoms => List.unmodifiable(_symptoms);
-  bool get symptomsLoading => _symptomsLoading;
   bool get symptomsLoadingMore => _symptomsLoadingMore;
-  bool get symptomsHasMore => _symptomsHasMore;
 
   List<JournalEntry> get filteredEntries {
     final entriesMap = <String, JournalEntry>{};
@@ -134,14 +125,14 @@ class HistoryNotifier with ChangeNotifier {
     if (_currentFilter == HistoryFilter.all) {
       for (final m in _meals) {
         final id = m.firestoreId ?? m.id?.toString() ?? 'meal_${m.createdAt.millisecondsSinceEpoch}';
-        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.meal, createdAt: m.createdAt, meal: m);
+        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.meal, createdAt: m.eventTime, meal: m);
       }
     }
 
     if (_currentFilter == HistoryFilter.all || _currentFilter == HistoryFilter.body) {
       for (final s in _symptoms) {
         final id = s.firestoreId ?? s.id?.toString() ?? 'symptom_${s.createdAt.millisecondsSinceEpoch}';
-        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.symptom, createdAt: s.createdAt, symptom: s);
+        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.symptom, createdAt: s.eventTime, symptom: s);
       }
     }
 
@@ -277,22 +268,6 @@ class HistoryNotifier with ChangeNotifier {
     }
   }
 
-  Future<void> loadMoreMeals() async {
-    if (_mealsLoadingMore || !_mealsHasMore || _meals.isEmpty) return;
-
-    _mealsLoadingMore = true;
-    notifyListeners();
-
-    try {
-      final results = await _repository.getRecentMealLogs(limit: _pageSize, before: _meals.last.createdAt);
-
-      if (results.length < _pageSize) _mealsHasMore = false;
-      _meals.addAll(results);
-    } finally {
-      _mealsLoadingMore = false;
-      notifyListeners();
-    }
-  }
 
   Future<void> refreshSymptoms() async {
     _symptomsLoading = true;

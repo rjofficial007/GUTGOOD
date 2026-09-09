@@ -32,6 +32,9 @@ USER INTENTS:
 - ${UserIntent.nutritionComparison}: User compares options or asks for the "best" choice among several.
 - ${UserIntent.generalFoodQuestion}: User has a general question about food or a specific ingredient.
 - ${UserIntent.generalWellness}: User asks about general gut health, symptoms, or wellness advice.
+- ${UserIntent.symptomAnalysis}: User reports symptoms or asks about food-symptom correlations.
+- ${UserIntent.mealPlanning}: User asks for future meal suggestions or planning.
+- ${UserIntent.generalChat}: Greetings, platform support, or non-food topics.
 - ${UserIntent.generalImageAnalysis}: DEFAULT for non-food images without a specific question or ambiguous intent.
 
 OUTPUT FORMAT:

@@ -196,6 +196,8 @@ class ProductSwap extends Equatable {
     required this.tag,
     this.badge,
     this.isBlackBadge = false,
+    this.barcode,
+    this.nutriscore,
   });
 
   factory ProductSwap.fromMap(Map<String, dynamic> map) => ProductSwap(
@@ -206,6 +208,10 @@ class ProductSwap extends Equatable {
     tag: map['tag']?.toString() ?? 'GOOD OPTION',
     badge: map['badge']?.toString(),
     isBlackBadge: ModelUtils.parseBool(map['isBlackBadge']),
+    // P2-11: absent on legacy docs and LLM-invented swaps; present when the
+    // swap round-trips OFF grounding (echoed barcode + grade).
+    barcode: map['barcode']?.toString(),
+    nutriscore: map['nutriscore']?.toString(),
   );
   final String title;
   final String subtitle;
@@ -214,6 +220,10 @@ class ProductSwap extends Equatable {
   final String tag;
   final String? badge;
   final bool isBlackBadge;
+  /// OFF barcode when the swap is grounded (enables dedupe, rescore, scan links).
+  final String? barcode;
+  /// OFF Nutri-Score grade (a-e, lowercase) when the swap is grounded.
+  final String? nutriscore;
 
   Map<String, dynamic> toMap() => {
     'title': title,
@@ -223,8 +233,10 @@ class ProductSwap extends Equatable {
     'tag': tag,
     'badge': badge,
     'isBlackBadge': isBlackBadge ? 1 : 0,
+    'barcode': barcode,
+    'nutriscore': nutriscore,
   };
 
   @override
-  List<Object?> get props => [title, subtitle, tag, badge, imageUrl];
+  List<Object?> get props => [title, subtitle, tag, badge, imageUrl, barcode, nutriscore];
 }

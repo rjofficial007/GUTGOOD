@@ -70,4 +70,5 @@ class RemoteConfigServiceImpl implements RemoteConfigService {
     if (kDebugMode) return false;
     return _remoteConfig.getBool('is_force_update');
   }
+
 }

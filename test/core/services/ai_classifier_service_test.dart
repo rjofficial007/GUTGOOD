@@ -133,4 +133,61 @@ void main() {
       expect(result, 'COMPLETE_ANALYSIS');
     });
   });
+
+  group('classifyImage UI-hint fast path (K-3)', () {
+    test('known hints resolve the mode with zero model calls', () async {
+      const hints = {'food': 'FOOD', 'menu': 'RESTAURANT_MENU', 'label': 'INGREDIENTS_LABEL', 'barcode': 'PRODUCT_BARCODE'};
+      for (final entry in hints.entries) {
+        final result = await classifierService.classifyImage(imageBytes: Uint8List(0), modeHint: entry.key);
+
+        expect(result.imageMode, entry.value);
+        expect(result.intent, 'COMPLETE_ANALYSIS');
+        expect(result.confidence, 1.0);
+        expect(result.reason, 'ui-hint');
+      }
+      verifyZeroInteractions(mockAiService);
+    });
+
+    test('hinted intent resolves from text without vision bytes', () async {
+      final result = await classifierService.classifyImage(imageBytes: Uint8List(0), userText: 'How many calories?', modeHint: 'food');
+
+      expect(result.imageMode, 'FOOD');
+      expect(result.intent, 'NUTRITION_ANALYSIS');
+      verifyZeroInteractions(mockAiService);
+    });
+
+    test('hints are case and whitespace tolerant', () async {
+      final result = await classifierService.classifyImage(imageBytes: Uint8List(0), modeHint: '  Menu ');
+
+      expect(result.imageMode, 'RESTAURANT_MENU');
+      verifyZeroInteractions(mockAiService);
+    });
+
+    test('gallery and unknown hints fall through to vision classification', () async {
+      const jsonResponse = '{"image_mode": "PACKAGED_PRODUCT", "intent": "COMPLETE_ANALYSIS", "confidence": 0.8}';
+      when(
+        () => mockAiService.generateContent(
+          imageBytes: any(named: 'imageBytes'),
+          systemInstruction: any(named: 'systemInstruction'),
+          prompt: any(named: 'prompt'),
+          usageType: 'system',
+        ),
+      ).thenAnswer((_) async => jsonResponse);
+
+      for (final hint in ['gallery', 'unknown', null]) {
+        final result = await classifierService.classifyImage(imageBytes: Uint8List(0), modeHint: hint);
+
+        expect(result.imageMode, 'PACKAGED_PRODUCT');
+        expect(result.reason, isNull);
+      }
+      verify(
+        () => mockAiService.generateContent(
+          imageBytes: any(named: 'imageBytes'),
+          systemInstruction: any(named: 'systemInstruction'),
+          prompt: any(named: 'prompt'),
+          usageType: 'system',
+        ),
+      ).called(3);
+    });
+  });
 }

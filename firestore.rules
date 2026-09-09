@@ -45,9 +45,9 @@ service cloud.firestore {
      * Validates a single deterministic "body pattern" entry (see
      * BodyPattern.toMap() in the Dart client). These are written by the
      * on-device PatternEngineService and, unlike most user data, are later
-     * read back by the server-side (and AI) insight generation pipeline as
-     * trusted evidence for health narratives — so a garbage/malformed entry
-     * here can silently corrupt an AI insight. Firestore rules can't iterate
+     * read back by the on-device insight generation pipeline as trusted
+     * evidence for health narratives — so a garbage/malformed entry here
+     * can silently corrupt an AI insight. Firestore rules can't iterate
      * a list generically, so we spot-check the first and last entries (any
      * single malformed write is still bounded by the 512KB doc size cap).
      */
@@ -90,25 +90,6 @@ service cloud.firestore {
         && request.resource.size() < 512 * 1024; // Strict 512KB cap
     }
 
-
-    /**
-     * Validates a user-submitted AI response report.
-     *
-     * The allowed `reason` values must stay in sync with
-     * AiReport.allowedReasons in Dart — a test asserts this, because a mismatch
-     * would make every report fail silently in production.
-     */
-    function isValidAiReport(uid) {
-      let data = request.resource.data;
-      return data.keys().hasOnly(['reason', 'messageExcerpt', 'details', 'messageId', 'reportedBy', 'createdAt'])
-        && data.get('reportedBy', '') == uid
-        && data.get('reason', '') in ['inaccurate', 'unsafe', 'offensive', 'off_topic', 'other']
-        && data.get('details', '') is string
-        && data.get('details', '').size() <= 1000
-        && data.get('messageExcerpt', '') is string
-        && data.get('messageExcerpt', '').size() <= 2000
-        && data.get('createdAt', request.time) is timestamp;
-    }
 
     // --- COLLECTION RULES ---
 
@@ -153,6 +134,29 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
 
+      /**
+       * Food-image registry (§E): one doc per uploaded photo, keyed by
+       * sha256_16. Clients create the record, add/remove links, and read
+       * thumb URLs; only server workers delete (30d sweep) — clients never
+       * need to, since unlinking (not deleting) is the lifecycle.
+       */
+      match /food_images/{hash} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && request.resource.size() < 64 * 1024;
+      }
+
+      /**
+       * Saved foods (P2-6): one doc per product, keyed by barcode or name
+       * hash. The full scan map is embedded so the list renders without
+       * joins; clients create/delete on toggle, so delete is owner-allowed
+       * here (unlike food_images, which only the server sweeps).
+       */
+      match /saved_foods/{key} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwner(userId);
+      }
+
       /** AI Insights: Generated patterns and health trends. */
       match /insights/{docId} {
         allow read: if isOwner(userId);
@@ -175,6 +179,16 @@ service cloud.firestore {
         allow write: if isOwner(userId) && request.resource.size() < 512 * 1024 && isValidPatternData();
       }
 
+      /**
+       * History counters (totals + food-score aggregates).
+       * Maintained by Cloud Functions triggers; clients read for the
+       * dashboard, insight gating, and the profile average — never write.
+       */
+      match /counters/{docId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
       /** Health Alerts: Surfaced alerts for UPFs or cycle-specific sensitivities. */
       match /health_alerts/{docId} {
         allow read: if isOwner(userId);
@@ -187,25 +201,6 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow write: if false;
       }
-    }
-
-    /**
-     * AI response reports — required by Google Play's generative-AI policy
-     * ("in-app user reporting or flagging ... without needing to exit the app").
-     *
-     * Create-only and owner-stamped: users must never be able to read, edit or
-     * delete a report, not even their own. Moderation reads these via the Admin
-     * SDK / console.
-     *
-     * Deliberately top-level rather than a user_profiles subcollection so
-     * reports survive account deletion and can be reviewed as one queue.
-     */
-    match /ai_reports/{reportId} {
-      allow create: if request.auth != null
-        && isValidAiReport(request.auth.uid)
-        && request.resource.size() < 64 * 1024;
-
-      allow read, update, delete: if false;
     }
 
     // --- DEFAULT DENY ---

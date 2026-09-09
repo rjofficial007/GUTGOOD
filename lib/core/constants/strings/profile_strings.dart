@@ -26,6 +26,8 @@ class ProfileStrings {
   static const String language = 'Language';
   static const String appearance = 'Appearance';
   static const String backupAndSync = 'Backup & Sync';
+  static const String dailyInsights = 'Daily Insights';
+  static const String dailyInsightsSubtitle = 'Automatically analyze your logs every day';
   static const String helpAndSupport = 'Help & Support';
   static const String personalizeAiExperience = 'Personalize your experience';
   static const String personalizeAiDesc = 'Customize how GutGood helps you on your gut health journey.';
@@ -90,12 +92,6 @@ class ProfileStrings {
   static const String limitsReset = 'Limits reset!';
   static const String semanticsAppearancePrefix = 'Select ';
   static const String semanticsAppearanceSuffix = ' appearance';
-  static const String personalizedTipsLabel = 'Personalized Tips';
-  static const String personalizedTipsDesc = 'Get personalized tips based on your data';
-  static const String mealSuggestionsLabel = 'Meal Suggestions';
-  static const String mealSuggestionsDesc = 'Personalized meal ideas';
-  static const String symptomAnalysisLabel = 'Symptom Analysis';
-  static const String symptomAnalysisDesc = 'Health insights from symptoms';
   static const String friendlySupportive = 'Friendly & Supportive';
   static const String friendlySupportiveDesc = 'Encouraging and positive';
   static const String clinicalDirect = 'Clinical & Direct';

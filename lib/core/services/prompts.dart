@@ -59,6 +59,7 @@ class Prompts {
     String cyclePhase = 'Not specified',
     String communicationStyle = 'Friendly & Supportive',
     String? historySummary,
+    String? pinnedEntities,
     String? currentTime,
     String? mode,
     String? intent,
@@ -77,6 +78,16 @@ RECENT HISTORY SUMMARY
 $historySummary
 '''
         : 'No recent history summary is available.';
+
+    // K-4: entity names from turns outside the context window. Rendered in
+    // the dynamic (non-cacheable) section alongside the summary.
+    final pinsText = pinnedEntities != null && pinnedEntities.trim().isNotEmpty
+        ? '''
+
+PINNED ENTITIES (names from earlier in this conversation; no detail)
+$pinnedEntities
+'''
+        : '';
 
     final intentPrompt = _getPromptForIntent(intent);
 
@@ -161,7 +172,7 @@ $lifestyle
 Current Cycle Phase:
 $cyclePhase
 
-$summaryText
+$summaryText$pinsText
 ''';
   }
 

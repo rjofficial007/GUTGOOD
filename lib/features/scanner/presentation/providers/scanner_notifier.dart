@@ -10,6 +10,7 @@ import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/core/utils/network_error_classifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
 import 'package:uuid/uuid.dart';
@@ -28,19 +29,26 @@ class ScannerNotifier with ChangeNotifier {
   bool _isProcessing = false;
   ScanResult? _lastResult;
   bool _isAnalyzing = false;
+  bool _lastErrorWasOffline = false;
 
   bool get isProcessing => _isProcessing;
   bool get isAnalyzing => _isAnalyzing;
-  ScanResult? get lastResult => _lastResult;
+
+  /// True when the most recent scan op failed from a reachability error.
+  /// Scan methods return null on ANY failure, erasing the cause — consult
+  /// this to show "you're offline" instead of "product not found".
+  bool get lastErrorWasOffline => _lastErrorWasOffline;
 
   /// Fetches ground-truth data from Open Food Facts without performing AI analysis.
   Future<OffProduct?> fetchBarcodeProduct(String barcode) async {
     _isProcessing = true;
+    _lastErrorWasOffline = false;
     notifyListeners();
     try {
       final product = await _repository.getProductByBarcode(barcode);
       return product;
     } catch (e) {
+      _lastErrorWasOffline = isOfflineError(e);
       AppLogger.error('ScannerNotifier: Failed to fetch product data', error: e);
       return null;
     } finally {
@@ -52,21 +60,30 @@ class ScannerNotifier with ChangeNotifier {
   /// Performs AI orchestration and deterministic scoring for a fetched product.
   Future<ScanResult?> analyzeBarcodeProduct(OffProduct product, {Uint8List? capturedImage}) async {
     _isAnalyzing = true;
+    _lastErrorWasOffline = false;
     notifyListeners();
 
     final scanId = const Uuid().v4();
 
     try {
-      String? userImageUrl;
-      if (capturedImage != null) {
-        userImageUrl = await _storageService.uploadFoodImage(capturedImage);
-      }
-
       final profile = await _authFirestoreService.getUserMetadata();
       final goals = profile?.goals ?? [];
       final sensitivities = profile?.sensitivities ?? [];
       final lifestyle = profile?.lifestyle ?? [];
       final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
+
+      // P0-3: OFF was already fetched to render the preview, but a fresh
+      // personal scan still short-circuits the AI call + upload + new docs.
+      final cached = await _repository.getCachedBarcodeScan(barcode: product.barcode ?? '', sensitivities: sensitivities);
+      if (cached != null) {
+        _lastResult = cached;
+        return cached;
+      }
+
+      String? userImageUrl;
+      if (capturedImage != null) {
+        userImageUrl = await _storageService.uploadFoodImage(capturedImage);
+      }
 
       List<OffProduct>? alternatives;
       try {
@@ -94,6 +111,7 @@ class ScannerNotifier with ChangeNotifier {
       }
       return null;
     } catch (e, st) {
+      _lastErrorWasOffline = isOfflineError(e);
       AppLogger.error('ScannerNotifier: AI analysis failed for product ${product.productName}', error: e, stackTrace: st);
       return null;
     } finally {
@@ -102,72 +120,10 @@ class ScannerNotifier with ChangeNotifier {
     }
   }
 
-  /// Free-tier accounting: the AI call itself is counted server-side by the
-  /// aiProxy (type = 'scan'). The client must not double-increment.
-  Future<ScanResult?> processBarcode(String barcode, {Uint8List? capturedImage}) async {
-    _isProcessing = true;
-    notifyListeners();
-
-    final scanId = const Uuid().v4();
-
-    try {
-      final product = await _repository.getProductByBarcode(barcode);
-      if (product == null) return null;
-
-      String? userImageUrl;
-      if (capturedImage != null) {
-        userImageUrl = await _storageService.uploadFoodImage(capturedImage);
-      }
-
-      final profile = await _authFirestoreService.getUserMetadata();
-      final goals = profile?.goals ?? [];
-      final sensitivities = profile?.sensitivities ?? [];
-      final lifestyle = profile?.lifestyle ?? [];
-      final cyclePhase = (profile?.cycleSyncEnabled == true) ? (profile?.cyclePhase ?? 'Luteal Phase') : 'Not specified';
-
-      List<OffProduct>? alternatives;
-      try {
-        alternatives = await _offService.getBetterAlternatives(product.categoryTag, product.nutriscore);
-      } catch (e) {
-        AppLogger.warning('ScannerNotifier: Alternatives fetch failed');
-      }
-
-      try {
-        final result = await _repository.analyzeProductWithAi(product: product, goals: goals, sensitivities: sensitivities, lifestyle: lifestyle, cyclePhase: cyclePhase, alternatives: alternatives);
-
-        final scan = result.scan;
-        if (scan != null) {
-          final finalScan = scan.copyWith(source: 'barcode', userImageUrl: userImageUrl, scanId: scanId);
-          final finalResult = result.copyWith(scan: finalScan);
-
-          AppLogger.info('ScannerNotifier: Saving barcode scan result for ${finalScan.productName} (ID: $scanId)');
-          await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
-
-          _lastResult = finalScan;
-
-          // 🟢 Trigger streak celebration if one is pending (Scan finished)
-          sl<ProfileNotifier>().triggerPendingCelebration();
-
-          return finalScan;
-        }
-        return null;
-      } catch (e, st) {
-        AppLogger.error('ScannerNotifier: AI analysis failed for known product ${product.productName}', error: e, stackTrace: st);
-        throw ScanAnalysisException(product);
-      }
-    } on ScanAnalysisException {
-      rethrow;
-    } catch (e) {
-      AppLogger.error('ScannerNotifier: Barcode processing failed', error: e);
-      return null;
-    } finally {
-      _isProcessing = false;
-      notifyListeners();
-    }
-  }
 
   Future<ScanResult?> processImage(Uint8List bytes, {String? mode, String? userText}) async {
     _isProcessing = true;
+    _lastErrorWasOffline = false;
     notifyListeners();
 
     final scanId = const Uuid().v4();
@@ -211,6 +167,7 @@ class ScannerNotifier with ChangeNotifier {
       }
       return null;
     } catch (e) {
+      _lastErrorWasOffline = isOfflineError(e);
       AppLogger.error('ScannerNotifier: Image processing failed', error: e);
       return null;
     } finally {
@@ -219,56 +176,6 @@ class ScannerNotifier with ChangeNotifier {
     }
   }
 
-  /// Orchestrates barcode scan handling including fallback to vision if allowed.
-  Future<void> handleBarcodeScan(
-    String barcode, {
-    Uint8List? capturedImage,
-    required String mode,
-    required bool isBatchMode,
-    required VoidCallback onScanStart,
-    required Function(ScanResult result) onSuccess,
-    required VoidCallback onProductNotFound,
-    required Function(String message) onError,
-    required Function(String message) onInfo,
-    required VoidCallback onHaptic,
-  }) async {
-    _isProcessing = true;
-    notifyListeners();
-    onHaptic();
-
-    if (!isBatchMode) {
-      onScanStart();
-    }
-
-    try {
-      final result = await processBarcode(barcode, capturedImage: capturedImage);
-
-      if (result != null) {
-        onSuccess(result);
-      } else {
-        // Fallback to image processing if product not in DB but image is available
-        if (capturedImage != null) {
-          onInfo(AppStrings.productNotFoundAnalyzing);
-          final aiResult = await processImage(capturedImage, mode: mode);
-          if (aiResult != null) {
-            onSuccess(aiResult);
-          } else {
-            onError(AppStrings.couldNotAnalyzeVision);
-          }
-        } else {
-          onProductNotFound();
-        }
-      }
-    } on ScanAnalysisException {
-      onError(AppStrings.productFoundAiFailed);
-    } catch (e) {
-      AppLogger.error('ScannerNotifier: handleBarcodeScan error', error: e);
-      onError(AppStrings.failedToAnalyzeProduct);
-    } finally {
-      _isProcessing = false;
-      notifyListeners();
-    }
-  }
 
   /// Handles photo capture logic, detecting barcodes if in barcode mode or proceeding with vision.
   Future<void> handlePhotoCapture({
