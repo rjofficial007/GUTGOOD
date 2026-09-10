@@ -47,6 +47,7 @@ dependencies:
 
   # Networking & HTTP
   dio: ^5.11.0
+  openfoodfacts: ^3.30.2
 
   # Images & Media Handling
   cached_network_image: ^3.4.1

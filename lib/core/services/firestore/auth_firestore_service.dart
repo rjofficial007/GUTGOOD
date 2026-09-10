@@ -99,6 +99,10 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
+      // Client-side premium model (intentional): these fields are
+      // client-writable per firestore.rules and are the value the backend quota
+      // check trusts. This is a soft paywall, NOT a security boundary — any
+      // client can self-grant premium; see docs/ACCEPTED_RISKS.md R1.
       await doc.set({'isPremium': isPremium, 'subscriptionStatus': isPremium ? 'premium' : 'free', 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
     } catch (e) {
       AppLogger.error('AuthFirestoreService: Error updating premium status', error: e);

@@ -210,6 +210,10 @@ export const aiProxy = functions
 
     const images = Array.isArray(body.images) ? body.images : [];
     const usageType = (body.usageType ?? (images.length > 0 ? 'scan' : 'chat')).toString();
+    // Accepted risk R2 (docs/ACCEPTED_RISKS.md): the offset is client-supplied
+    // and intentionally NOT range-validated. An extreme offset mints a fresh
+    // daily_usage doc (zero counter) — daily limits are refillable by design
+    // choice; clamp to ±840 here and in usage.ts if this is ever revisited.
     const timezoneOffset = Number(body.timezoneOffset ?? 0);
 
     // Whitelist usageType and reject unknown.

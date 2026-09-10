@@ -25,6 +25,8 @@ export interface UsageCheckResult {
 function todayKey(timezoneOffsetMinutes: number = 0): string {
   try {
     const now = new Date();
+    // Accepted risk R2 (docs/ACCEPTED_RISKS.md): offset is only NaN-guarded,
+    // not range-clamped — extreme values mint fresh quota docs intentionally.
     // Default to 0 if NaN or undefined
     const offset = (timezoneOffsetMinutes === undefined || isNaN(timezoneOffsetMinutes)) ? 0 : timezoneOffsetMinutes;
     const localTime = new Date(now.getTime() + (offset * 60000));
@@ -68,6 +70,11 @@ function fieldFor(type: UsageType): 'chat_count' | 'scan_count' | 'system_count'
  * Reads the premium flag the app mirrors into the profile after the RevenueCat
  * SDK entitlement check (client-side premium model — there is no server-side
  * RevenueCat integration, by product decision).
+ *
+ * ACCEPTED RISK R1 (docs/ACCEPTED_RISKS.md): firestore.rules intentionally let
+ * the client write this field, so any user can self-grant premium and this
+ * function is a paywall convenience, NOT an authorization boundary. Premium
+ * status here also affects aiProxy's fail-open behavior on usage-check errors.
  */
 export async function isPremiumUser(uid: string): Promise<boolean> {
   try {

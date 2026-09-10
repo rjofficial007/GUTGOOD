@@ -3,7 +3,8 @@ import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rul
 class MealPlanningPrompt {
   MealPlanningPrompt._();
 
-  static const String instruction = '''
+  static const String instruction =
+      '''
 PURPOSE:
 Suggest a future meal or snack based on the user's goals, recent history, and current health status.
 
@@ -20,11 +21,11 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 
 4. Header: **Key Benefits**
    ${PromptFormattingRules.exactHeader}
-5. Content: [Single Emoji] **[Benefit]**: [Explain how this meal helps reach a specific goal, e.g., "Boosting fiber after a low-fiber lunch"].
+5. Content: Single Emoji **[Benefit]**: [Explain how this meal helps reach a specific goal, e.g., "Boosting fiber after a low-fiber lunch"].
 
 6. Header: **Quick & Easy Preparation**
    ${PromptFormattingRules.exactHeader}
-7. Content: [Single Emoji] **Tip**: [A practical, fast way to prepare or order this meal].
+7. Content: Single Emoji **Tip**: [A practical, fast way to prepare or order this meal].
 
 8. Header: **The GutGood take:**
    ${PromptFormattingRules.exactHeader}

@@ -8,9 +8,10 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/bento_card.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
+import 'package:gutgood/features/product_details/presentation/utils/scan_result_utils.dart';
 
 /// Detail view for one recommended swap with a one-tap journal log action.
 class SwapDetailScreen extends StatelessWidget {

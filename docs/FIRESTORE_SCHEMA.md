@@ -20,8 +20,8 @@ Source: `UserProfile.toMap()`.
 | `email` | String | Authenticated email address. |
 | `photoUrl` | String | URL to profile picture in Storage. |
 | `onboarded` | Boolean | Whether onboarding is complete. |
-| `isPremium` | Boolean | Mirror of the RevenueCat entitlement (client SDK writes). |
-| `subscriptionStatus` | String | "free" or "premium". |
+| `isPremium` | Boolean | Mirror of the RevenueCat entitlement (client SDK writes; client-authoritative by design — accepted risk R1, see `ACCEPTED_RISKS.md`). |
+| `subscriptionStatus` | String | "free" or "premium" (client-written; same R1 caveat). |
 | `isAnonymous` | Boolean | Whether the account is guest/anonymous. |
 | `authProvider` | String | Login method (google.com, apple.com, etc). |
 | `goals` | List<String> | Selected health goals. |
@@ -230,7 +230,7 @@ Source: `HealthAlert.toMap()`.
 
 ## 8. `user_profiles/{uid}/daily_usage` (Subcollection)
 
-**Purpose:** Server-managed AI rate limits (one doc per UTC date).
+**Purpose:** Server-managed AI rate limits (one doc per local date; the date key is derived from the client-supplied `timezoneOffset`, intentionally not range-validated — accepted risk R2, see `ACCEPTED_RISKS.md`).
 
 | Field | Type | Description |
 | --- | --- | --- |

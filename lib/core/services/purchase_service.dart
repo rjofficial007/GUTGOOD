@@ -30,6 +30,10 @@ class PurchaseServiceImpl implements PurchaseService {
   Stream<bool> get premiumStatusStream => _premiumStatusController.stream;
 
 
+  // Intentionally iOS-only for now: the Google key is left empty, so RevenueCat
+  // configuration fails (benignly — errors are caught and logged) and purchases
+  // are unavailable on Android. Accepted decision R4; fill in before Android
+  // launch (docs/ACCEPTED_RISKS.md).
   static const String _googleApiKey = '';
   static const String _appleApiKey = 'appl_NQQoVWhHEKFUOXvpiOFeDCBezCm';
   static const String _offering = 'premium_offering';
@@ -37,9 +41,11 @@ class PurchaseServiceImpl implements PurchaseService {
   @override
   Future<void> initialize() async {
     try {
+      // Debug log level in all build modes is intentional for now (accepted:
+      // verbose payment internals in release logs — R4, docs/ACCEPTED_RISKS.md).
       await Purchases.setLogLevel(LogLevel.debug);
       final apiKey = Platform.isAndroid ? _googleApiKey : _appleApiKey;
-      AppLogger.payments('Configuring with API Key: $apiKey');
+      AppLogger.payments('Configuring with API Key: $apiKey'); // R4: key logged intentionally (public SDK key)
       final configuration = PurchasesConfiguration(apiKey);
       await Purchases.configure(configuration);
       _isConfigured = true;

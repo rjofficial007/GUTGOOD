@@ -7,6 +7,9 @@
  * NOTE: There is intentionally no RevenueCat server integration. Premium is
  * determined on-device by the purchases_flutter SDK and mirrored into
  * user_profiles/{uid}.isPremium by the app (client-side premium model).
+ *
+ * Accepted risks register: docs/ACCEPTED_RISKS.md (R1 client-authoritative
+ * premium, R2 unvalidated timezoneOffset, R5/R6 email flows, R7 no App Check).
  */
 import { defineSecret } from 'firebase-functions/params';
 

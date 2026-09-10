@@ -2,6 +2,13 @@
 
 This document tracks identified bugs, technical debt, and planned improvements to the GutGood codebase.
 
+> ⚠️ **Before adding entries here:** several behaviors that *look* like bugs
+> (client-writable `isPremium`, unvalidated `timezoneOffset`, deletable guest
+> profile root, empty Android RevenueCat key, un-throttled magic-link endpoint,
+> no App Check) are **intentional, owner-accepted decisions** — they are
+> registered with blast radius and revisit triggers in
+> [`ACCEPTED_RISKS.md`](ACCEPTED_RISKS.md). Do not "fix" them without reading it.
+
 ## 1. Resolved Issues
 - **Scan Doc Bloat (audit P0-2):** Every scan doc persisted the entire decoded AI JSON blob (`rawData`). `saveToScanHistory` now writes `toPersistenceMap()` (blob stripped, `rawDataHash` kept); readers still hydrate legacy docs with the blob.
 - **Zero Scan Caching (audit P0-3):** Every re-scan re-ran OFF + full AI analysis + new history doc. Fresh (<30d) personal scans now short-circuit: engine re-score on persisted inputs (bit-exact), sensitivity re-flagging (union, never hides), chat message + analytics only. OFF lookups also memoized per session (30-min TTL). Requires the new `(barcode, createdAt)` composite index.

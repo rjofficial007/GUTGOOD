@@ -52,9 +52,9 @@ class ScanResultInlineCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context, impactColor),
-          _buildAnalysisSection(context, ingredients),
-          _buildLikelyImpact(context),
-          if (cycleEnabled) _buildCycleInsight(context),
+          // _buildAnalysisSection(context, ingredients),
+          // _buildLikelyImpact(context),
+          // if (cycleEnabled) _buildCycleInsight(context),
           FooterActionButton(label: AppStrings.viewFullReport, onTap: onViewFullReport, isEmbedded: isEmbedded),
         ],
       ),

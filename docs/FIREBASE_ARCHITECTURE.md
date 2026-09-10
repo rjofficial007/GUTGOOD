@@ -16,7 +16,7 @@ GutGood leverages Firebase for its entire backend infrastructure, ensuring scala
 
 ## 3. Firebase Cloud Functions
 **Purpose:** Secure execution of logic that requires API keys or administrative privileges.
-- **`aiProxy`:** Secure gateway to OpenAI. Handles auth verification, quota management (PRD §3.1), and SSE streaming.
+- **`aiProxy`:** Secure gateway to OpenAI. Handles auth verification, usage metering (PRD §3.1), and SSE streaming. Quota limits are intentionally soft — premium is client-authoritative (accepted risk R1, `ACCEPTED_RISKS.md`).
 - **`mergeAnonymousAccount`:** Atomic, idempotent migration of data from a guest UID to a permanent UID.
 - **`onUserDeleted`:** Firestore trigger for cascade deletion of all user-related data (GDPR compliance).
 - **`cleanupAnonymousUsers`:** Cron job to purge abandoned guest accounts after 14 days.

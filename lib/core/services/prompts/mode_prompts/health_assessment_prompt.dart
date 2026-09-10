@@ -3,7 +3,8 @@ import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rul
 class HealthAssessmentPrompt {
   HealthAssessmentPrompt._();
 
-  static const String instruction = '''
+  static const String instruction =
+      '''
 PURPOSE:
 Handle questions like "Is this healthy?" or "Is this balanced?".
 
@@ -38,7 +39,7 @@ STRUCTURE (MANDATORY ORDER):
 5. Header: **Key Considerations**
    ${PromptFormattingRules.exactHeader}
 
-6. Content: [Single Emoji matching the item] **[Item]**: [Description].
+6. Content: Single Emoji matching the item **[Item]**: [Description].
 
 7. Header: **The GutGood take:**
    ${PromptFormattingRules.exactHeader}

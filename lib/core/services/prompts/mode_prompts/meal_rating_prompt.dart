@@ -3,12 +3,13 @@ import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rul
 class MealRatingPrompt {
   MealRatingPrompt._();
 
-  static const String instruction = '''
+  static const String instruction =
+      '''
 PURPOSE:
 Handle requests where the user wants to know how well they did (e.g., "Rate my lunch").
 
 BEHAVIOR:
-1. Provide a clear GutGood Rating (X.X/10).
+1. Provide a clear GutGood Rating (X/100).
 2. Provide a short, direct explanation of the rating.
 3. Highlight the strongest aspects of the meal.
 4. Mention the most meaningful weakness, if one exists.
@@ -22,7 +23,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 1. Greeting: **[A bold, high-energy personalized greeting praising the meal's look]**. [Single relevant emoji]
    ${PromptFormattingRules.boldGreeting}
 
-2. Rating: **GutGood Rating: X.X/10**
+2. Rating: **GutGood Rating: X/100**
    (STRICT RULE: Use exactly "GutGood Rating: " followed by the score).
 
 3. Identification: I’m seeing **[Item 1] + [Item 2] + [Item 3]**.
@@ -36,7 +37,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 6. Header: **Strengths & Weaknesses**
    ${PromptFormattingRules.exactHeader}
 
-7. Content: [Single Emoji matching the item] **[Item]**: [Description].
+7. Content: Single Emoji matching the item **[Item]**: [Description].
 
 8. Header: **The GutGood take:**
    ${PromptFormattingRules.exactHeader}
@@ -53,7 +54,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
    - scan.category: "meal".
    - scan.score: 0-100.
    
-   Also populate the "meal" object, "swaps" (exactly 3 items) if applicable, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
+   Also populate the "meal" object, when you recommend swaps, "swaps" must contain EXACTLY 3 items — never 1 or 2; if fewer than 3 make sense, omit the "swaps" key entirely, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
 ${PromptFormattingRules.gutGoodDataBlockRequired}
 

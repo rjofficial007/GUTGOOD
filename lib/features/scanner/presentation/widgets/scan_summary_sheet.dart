@@ -15,8 +15,8 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
+import 'package:gutgood/features/scanner/presentation/widgets/scan_detail_sections.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
@@ -55,6 +55,11 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
       createdAt: DateTime.now(),
     );
   }
+
+  /// All nutrient figures in the Positives/Negatives sections come from OFF's
+  /// per-100 g values (`Nutriments.getValue(..., PerSize.oneHundredGrams)`),
+  /// so we always label that basis explicitly (100 ml for beverages).
+  String get _perBasisLabel => widget.product.nutrientDataPer == '100ml' ? '100 ml' : '100 g';
 
   @override
   Widget build(BuildContext context) {
@@ -129,17 +134,23 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
                   // 2. Intelligence Result
                   if (isAnalyzed) ...[_buildAnalyzedContent(context), Gap.h24],
 
-                  // 3. Positives Section
-                  _buildFactorSection(context, title: AppStrings.positivesLabel, subtitle: 'per serving (${widget.product.servingSize ?? '100g'})', factors: _getPositives(context)),
+                  // 3. Positives Section (all figures are per 100 g)
+                  _buildFactorSection(context, title: AppStrings.positivesLabel, subtitle: 'per ${_perBasisLabel}', factors: _getPositives(context)),
 
                   Gap.h24,
 
-                  // 4. Negatives Section
-                  _buildFactorSection(context, title: AppStrings.negativesLabel, factors: _getNegatives(context)),
+                  // 4. Negatives Section (all figures are per 100 g)
+                  _buildFactorSection(context, title: AppStrings.negativesLabel, subtitle: 'per ${_perBasisLabel}', factors: _getNegatives(context)),
 
                   Gap.h24,
 
-                  // 5. Action CTA Button
+                  // 5. Full OFF fact sheet — expandable sections, shown only
+                  // for data that actually exists on the product.
+                  ScanProductDetails(product: widget.product),
+
+                  Gap.h24,
+
+                  // 6. Action CTA Button
                   _buildActionButton(context),
                 ],
               ),
@@ -165,7 +176,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
             width: 80.w,
             height: 120.h,
             decoration: BoxDecoration(color: scheme.elevatedSurface, borderRadius: BorderRadius.circular(12)),
-            child: widget.product.imageUrl != null
+            child: (widget.product.imageUrl != null && widget.product.imageUrl!.isNotEmpty)
                 ? Image.network(
                     widget.product.imageUrl!,
                     fit: BoxFit.contain,
@@ -249,9 +260,6 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
       ],
     );
   }
-
-
-
 
   Widget _buildAnalyzedContent(BuildContext context) {
     final scheme = context.appColorScheme;
@@ -411,14 +419,53 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
       );
     }
 
-    // 6. Intelligence Warnings (if analyzed)
+    // 6. Palm Oil (ingredient analysis)
+    if (widget.product.ingredientAnalysisPalmOilFree == 'no') {
+      items.add(_HealthFactor(label: 'Palm oil', value: 'Present', description: 'Contains palm oil', color: scheme.warning, icon: LucideIcons.treePalm, isPositive: false));
+    }
+
+    // 7. Environmental Footprint (Eco-Score D/E)
+    final ecoNeg = widget.product.ecoscore?.toLowerCase();
+    if (ecoNeg == 'd' || ecoNeg == 'e') {
+      final ecoScore = widget.product.ecoscoreScore;
+      items.add(
+        _HealthFactor(
+          label: 'Environment',
+          value: 'Eco ${ecoNeg!.toUpperCase()}',
+          description: ecoScore != null ? 'Low Eco-Score ($ecoScore/100)' : 'High environmental impact',
+          color: ecoNeg == 'e' ? scheme.error : scheme.warning,
+          icon: AppIcons.globe,
+          isPositive: false,
+        ),
+      );
+    }
+
+    // 8. Allergens (caution — not a health penalty, but flag it loudly)
+    final allergens = widget.product.allergens ?? const <String>[];
+    final traces = widget.product.tracesTags ?? const <String>[];
+    if (allergens.isNotEmpty || traces.isNotEmpty) {
+      items.add(
+        _HealthFactor(
+          label: 'Allergens',
+          value: allergens.isNotEmpty ? '${allergens.length}' : 'May contain',
+          description: allergens.isNotEmpty ? 'Contains: ${allergens.take(3).join(', ')}${allergens.length > 3 ? ' +${allergens.length - 3} more' : ''}' : 'May contain: ${traces.take(2).join(', ')}',
+          color: scheme.warning,
+          icon: AppIcons.alertTriangle,
+          details: [...allergens.map((a) => 'Contains: $a'), ...traces.map((t) => 'May contain: $t')],
+          detailsArePlain: true,
+          isPositive: false,
+        ),
+      );
+    }
+
+    // 9. Intelligence Warnings (if analyzed)
     if (_analyzedResult?.insight?.warnings.isNotEmpty ?? false) {
       for (final warning in _analyzedResult!.insight!.warnings) {
         items.add(_HealthFactor(label: 'Caution', value: 'Alert', description: warning, color: scheme.error, icon: AppIcons.alertTriangle, isPositive: false));
       }
     }
 
-    // 7. Risky Additives
+    // 10. Risky Additives
     final riskyAdditives = widget.product.additiveConcerns.where((a) => a.level == AdditiveConcernLevel.higher || a.level == AdditiveConcernLevel.moderate).toList();
     if (riskyAdditives.isNotEmpty) {
       final names = riskyAdditives.map((a) => a.code.isNotEmpty ? a.code : a.name).join(', ');
@@ -537,12 +584,78 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
       );
     }
 
-    // 6. Organic Bonus
+    // 6. Salt (Low/Zero) — symmetry with the negatives side
+    final pSodiumPos = pts['sodium'] ?? 10;
+    final valSaltPos = n?.salt;
+    if (pSodiumPos <= 1 && valSaltPos != null) {
+      items.add(
+        _HealthFactor(
+          label: 'Salt',
+          value: '${valSaltPos.toStringAsFixed(1)}g',
+          description: valSaltPos < 0.1 ? 'Almost no salt' : 'Low in salt',
+          color: scheme.success,
+          icon: AppIcons.scale,
+          isPositive: true,
+          points: pSodiumPos,
+        ),
+      );
+    }
+
+    // 7. Fat (Low nutrient level)
+    final levels = widget.product.nutrientLevels;
+    final valFat = n?.fat;
+    if (levels != null && levels.fat == 'low' && valFat != null) {
+      items.add(_HealthFactor(label: 'Fat', value: '${valFat.toStringAsFixed(1)}g', description: 'Low in fat', color: scheme.success, icon: AppIcons.droplet, isPositive: true));
+    }
+
+    // 8. Diet-friendly verdicts (OFF ingredient analysis)
+    if (widget.product.ingredientAnalysisVegan == 'yes') {
+      items.add(
+        _HealthFactor(label: 'Vegan', value: '', description: 'No animal-derived ingredients', color: scheme.success, icon: LucideIcons.sprout, isPositive: true, useTick: true, expandable: false),
+      );
+    }
+    if (widget.product.ingredientAnalysisVegetarian == 'yes') {
+      items.add(
+        _HealthFactor(label: 'Vegetarian', value: '', description: 'No meat or fish ingredients', color: scheme.success, icon: AppIcons.leaf, isPositive: true, useTick: true, expandable: false),
+      );
+    }
+    if (widget.product.ingredientAnalysisPalmOilFree == 'yes') {
+      items.add(
+        _HealthFactor(
+          label: 'Palm oil free',
+          value: '',
+          description: 'No palm oil in the ingredient list',
+          color: scheme.success,
+          icon: LucideIcons.treePalm,
+          isPositive: true,
+          useTick: true,
+          expandable: false,
+        ),
+      );
+    }
+
+    // 9. Environmental Footprint (Eco-Score A/B)
+    final ecoPos = widget.product.ecoscore?.toLowerCase();
+    if (ecoPos == 'a' || ecoPos == 'b') {
+      final ecoScore = widget.product.ecoscoreScore;
+      items.add(
+        _HealthFactor(
+          label: 'Environment',
+          value: 'Eco ${ecoPos!.toUpperCase()}',
+          description: ecoScore != null ? 'Great Eco-Score ($ecoScore/100)' : 'Low environmental impact',
+          color: scheme.success,
+          icon: AppIcons.globe,
+          isPositive: true,
+        ),
+      );
+    }
+
+    // 10. Organic Bonus
     if (widget.product.isOrganic == true) {
       items.add(_HealthFactor(label: 'Organic', value: '', description: 'Certified organic product', color: scheme.success, icon: AppIcons.leaf, isPositive: true, useTick: true, expandable: false));
     }
 
-    // 7. Processing (NOVA 1/2)
+    // 11. Processing (NOVA 1/2)
     final nova = widget.product.novaGroup;
     if (nova != null && nova <= 2) {
       items.add(
@@ -557,7 +670,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
       );
     }
 
-    // 8. Additives (No Risky ones)
+    // 12. Additives (No Risky ones)
     final riskyAdditives = widget.product.additiveConcerns.where((a) => a.level == AdditiveConcernLevel.higher || a.level == AdditiveConcernLevel.moderate).toList();
     if (riskyAdditives.isEmpty) {
       final totalCount = widget.product.additivesCount ?? 0;
@@ -578,10 +691,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
 
     return items;
   }
-
-
 }
-
 
 class _HealthFactor {
   _HealthFactor({
@@ -595,6 +705,7 @@ class _HealthFactor {
     this.points = 0,
     this.useTick = false,
     this.expandable = true,
+    this.detailsArePlain = false,
   });
   final String label;
   final String value;
@@ -606,6 +717,11 @@ class _HealthFactor {
   final int points;
   final bool useTick;
   final bool expandable;
+
+  /// True when [details] are informational lines (allergens, traces) that
+  /// must render verbatim — false when they are additive labels to resolve
+  /// against the concern database.
+  final bool detailsArePlain;
 
   String get longDescription {
     if (details.isNotEmpty) return '';
@@ -640,6 +756,12 @@ class _HealthFactor {
             : 'Ultra-processing often strips natural fiber and adds industrial markers that can interfere with normal satiety signals and gut health.';
       case 'organic':
         return 'Certified organic products are produced without synthetic pesticides, reducing the chemical load on your microbiome.';
+      case 'palm oil':
+        return 'Palm oil is high in saturated fat and its production is a major driver of deforestation. Choosing palm-oil-free products is kinder to your gut and the planet.';
+      case 'environment':
+        return isPositive
+            ? 'This product has one of the best environmental footprints in its category, according to the Open Food Facts Eco-Score.'
+            : 'This product has a below-average environmental footprint (Eco-Score), driven by its ingredients, packaging or transport.';
       default:
         return 'This property has a $impact impact on your gut health score. Maintaining optimal levels $action your long-term wellness goals.';
     }
@@ -707,7 +829,9 @@ class _FactorRowState extends State<_FactorRow> {
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: factor.details.map((detail) {
-                      final concern = AdditiveConcernDb.resolve(detail);
+                      final concern = factor.detailsArePlain ? null : AdditiveConcernDb.resolve(detail);
+                      final label = factor.detailsArePlain ? detail : concern!.displayTitle;
+                      final dotColor = factor.detailsArePlain ? factor.color : _getConcernColor(concern!.level, scheme);
                       return Padding(
                         padding: EdgeInsets.only(bottom: 6.h),
                         child: Row(
@@ -715,11 +839,11 @@ class _FactorRowState extends State<_FactorRow> {
                             Container(
                               width: 6,
                               height: 6,
-                              decoration: BoxDecoration(color: _getConcernColor(concern.level, scheme), shape: BoxShape.circle),
+                              decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
                             ),
                             Gap.w10,
                             Expanded(
-                              child: Text(concern.displayTitle, style: context.caption.copyWith(color: scheme.textPrimary)),
+                              child: Text(label, style: context.caption.copyWith(color: scheme.textPrimary)),
                             ),
                           ],
                         ),

@@ -8,9 +8,9 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/bento_card.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class SymptomDetailScreen extends StatelessWidget {
   const SymptomDetailScreen({super.key, required this.symptom});

@@ -32,6 +32,21 @@ class OffProduct extends Equatable {
     this.nutrients,
     this.impacts,
     this.miscTags,
+    this.quantity,
+    this.ecoscoreScore,
+    this.imageIngredientsUrl,
+    this.imageNutritionUrl,
+    this.nutrientDataPer,
+    this.ingredientsDetail,
+    this.ingredientAnalysisVegan,
+    this.ingredientAnalysisVegetarian,
+    this.ingredientAnalysisPalmOilFree,
+    this.servingNutrients,
+    this.tracesTags,
+    this.countries,
+    this.comparedToCategory,
+    this.nutriscoreComponents,
+    this.nutriscoreExplanation,
   });
 
   factory OffProduct.fromMap(Map<String, dynamic> map) => OffProduct(
@@ -61,6 +76,21 @@ class OffProduct extends Equatable {
     nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
     impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
     miscTags: ModelUtils.parseList<String>(map['miscTags'] ?? map['misc_tags']),
+    quantity: map['quantity'],
+    ecoscoreScore: map['ecoscoreScore'] is int ? map['ecoscoreScore'] as int : int.tryParse(map['ecoscoreScore']?.toString() ?? ''),
+    imageIngredientsUrl: map['imageIngredientsUrl'],
+    imageNutritionUrl: map['imageNutritionUrl'],
+    nutrientDataPer: map['nutrientDataPer'],
+    ingredientsDetail: ModelUtils.parseModelList<IngredientDetail>(map['ingredientsDetail'], IngredientDetail.fromMap),
+    ingredientAnalysisVegan: map['ingredientAnalysisVegan'],
+    ingredientAnalysisVegetarian: map['ingredientAnalysisVegetarian'],
+    ingredientAnalysisPalmOilFree: map['ingredientAnalysisPalmOilFree'],
+    servingNutrients: ModelUtils.parseNestedModel<NutrientData>(map['servingNutrients'], NutrientData.fromMap),
+    tracesTags: ModelUtils.parseList<String>(map['tracesTags']),
+    countries: map['countries'],
+    comparedToCategory: map['comparedToCategory'],
+    nutriscoreComponents: ModelUtils.parseModelList<NutriScoreComponent>(map['nutriscoreComponents'], NutriScoreComponent.fromMap),
+    nutriscoreExplanation: map['nutriscoreExplanation'],
   );
 
   /// Additive concerns resolved from [additives] (E-codes / additive names).
@@ -134,6 +164,54 @@ class OffProduct extends Equatable {
   /// reuse it without constructing an [OffProduct].
   String? get unscorableReason => ModelUtils.unscorableReason(miscTags);
 
+  // --- Full-details fields (smooth-app parity) -----------------------------
+  // Populated by OffService since the move to the official SDK + expanded
+  // field list; all optional so V1 persisted documents stay readable.
+
+  /// Declared net quantity (`quantity`), e.g. "330 ml".
+  final String? quantity;
+
+  /// Numeric Eco-Score (0-100), distinct from the [ecoscore] letter.
+  final int? ecoscoreScore;
+
+  /// OFF image URLs for the ingredients and nutrition-facts panels.
+  final String? imageIngredientsUrl;
+  final String? imageNutritionUrl;
+
+  /// What `nutriments` are expressed per (`nutrition_data_per`): "100g",
+  /// "100ml" or "serving".
+  final String? nutrientDataPer;
+
+  /// Structured ingredients (rank, name, percent, sub-ingredients) for the
+  /// smooth-app-style ingredients breakdown.
+  final List<IngredientDetail>? ingredientsDetail;
+
+  /// Ingredient analysis (`ingredients_analysis_tags`) condensed to
+  /// 'yes' / 'no' / 'maybe' / null (unknown).
+  final String? ingredientAnalysisVegan;
+  final String? ingredientAnalysisVegetarian;
+  final String? ingredientAnalysisPalmOilFree;
+
+  /// Per-serving nutrient values, when OFF provides them (same shape as
+  /// [nutrients], which is per 100 g).
+  final NutrientData? servingNutrients;
+
+  /// "May contain" allergens (`traces_tags`, language-stripped).
+  final List<String>? tracesTags;
+
+  /// Countries where the product is sold (server-localized string).
+  final String? countries;
+
+  /// The OFF category the Nutri-Score is benchmarked against.
+  final String? comparedToCategory;
+
+  /// Nutri-Score component rows from the OFF `nutriscore` knowledge panel
+  /// (the per-nutrient points table shown in the smooth-app detail page).
+  final List<NutriScoreComponent>? nutriscoreComponents;
+
+  /// Plain-language Nutri-Score summary from the same knowledge panel.
+  final String? nutriscoreExplanation;
+
   Map<String, dynamic> toMap() => {
     'productName': productName,
     'brand': brand,
@@ -161,6 +239,21 @@ class OffProduct extends Equatable {
     'nutrients': nutrients?.toMap(),
     'impacts': impacts?.map((e) => e.toMap()).toList(),
     'miscTags': miscTags,
+    'quantity': quantity,
+    'ecoscoreScore': ecoscoreScore,
+    'imageIngredientsUrl': imageIngredientsUrl,
+    'imageNutritionUrl': imageNutritionUrl,
+    'nutrientDataPer': nutrientDataPer,
+    'ingredientsDetail': ingredientsDetail?.map((e) => e.toMap()).toList(),
+    'ingredientAnalysisVegan': ingredientAnalysisVegan,
+    'ingredientAnalysisVegetarian': ingredientAnalysisVegetarian,
+    'ingredientAnalysisPalmOilFree': ingredientAnalysisPalmOilFree,
+    'servingNutrients': servingNutrients?.toMap(),
+    'tracesTags': tracesTags,
+    'countries': countries,
+    'comparedToCategory': comparedToCategory,
+    'nutriscoreComponents': nutriscoreComponents?.map((e) => e.toMap()).toList(),
+    'nutriscoreExplanation': nutriscoreExplanation,
   };
 
   @override
@@ -189,7 +282,71 @@ class OffProduct extends Equatable {
     nutrients,
     impacts,
     miscTags,
+    quantity,
+    ecoscoreScore,
+    imageIngredientsUrl,
+    imageNutritionUrl,
+    nutrientDataPer,
+    ingredientsDetail,
+    ingredientAnalysisVegan,
+    ingredientAnalysisVegetarian,
+    ingredientAnalysisPalmOilFree,
+    servingNutrients,
+    tracesTags,
+    countries,
+    comparedToCategory,
+    nutriscoreComponents,
+    nutriscoreExplanation,
   ];
+}
+
+/// One structured ingredient with its share — mirrors the smooth-app
+/// ingredients breakdown (rank order, percent where known, sub-ingredients).
+class IngredientDetail extends Equatable {
+  const IngredientDetail({required this.text, this.percent, this.percentIsEstimate = false, this.subIngredients = const []});
+
+  final String text;
+
+  /// Share of the product in percent (0-100), when OFF knows/estimates it.
+  final double? percent;
+
+  /// True when [percent] is an OFF estimate rather than a declared value.
+  final bool percentIsEstimate;
+
+  /// Sub-ingredient names (one level), e.g. sugar/glucose inside "syrup".
+  final List<String> subIngredients;
+
+  factory IngredientDetail.fromMap(Map<String, dynamic> map) => IngredientDetail(
+    text: map['text']?.toString() ?? '',
+    percent: map['percent'] is num ? (map['percent'] as num).toDouble() : double.tryParse(map['percent']?.toString() ?? ''),
+    percentIsEstimate: map['percentIsEstimate'] == true,
+    subIngredients: ModelUtils.parseList<String>(map['subIngredients']),
+  );
+
+  Map<String, dynamic> toMap() => {'text': text, 'percent': percent, 'percentIsEstimate': percentIsEstimate, 'subIngredients': subIngredients};
+
+  @override
+  List<Object?> get props => [text, percent, percentIsEstimate, subIngredients];
+}
+
+/// One row of the OFF Nutri-Score components table (knowledge panel),
+/// e.g. `Sugars — 9 points` with a good/bad evaluation for coloring.
+class NutriScoreComponent extends Equatable {
+  const NutriScoreComponent({required this.label, required this.value, this.evaluation});
+
+  final String label;
+  final String value;
+
+  /// OFF cell evaluation ('good' | 'neutral' | 'bad' | …); null when absent.
+  final String? evaluation;
+
+  factory NutriScoreComponent.fromMap(Map<String, dynamic> map) =>
+      NutriScoreComponent(label: map['label']?.toString() ?? '', value: map['value']?.toString() ?? '', evaluation: map['evaluation']?.toString());
+
+  Map<String, dynamic> toMap() => {'label': label, 'value': value, 'evaluation': evaluation};
+
+  @override
+  List<Object?> get props => [label, value, evaluation];
 }
 
 /// P2-11: maps OFF alternatives to grounded swap cards. Lives here (not on

@@ -254,6 +254,9 @@ export const mergeAnonymousAccount = functions
     }
 
     const permanentUid = context.auth.uid;
+    // Accepted risk R8 (docs/ACCEPTED_RISKS.md): no possession proof for the
+    // anonymous account — anyone who learns a guest's uid could absorb/delete
+    // it. UIDs are high-entropy and not enumerable, so exposure is low.
     const anonymousUid = (data?.anonymousUid ?? '').toString();
 
     if (!anonymousUid || anonymousUid === permanentUid) {

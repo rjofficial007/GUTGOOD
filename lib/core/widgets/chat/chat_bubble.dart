@@ -191,9 +191,7 @@ class ChatBubble extends StatelessWidget {
           child: Icon(AppIcons.clock, size: 11, color: context.appColorScheme.cardBackground),
         ),
       Text(
-        isSending
-            ? AppStrings.labelSending
-            : (sendFailed ? AppStrings.labelFailed : (isQueued ? AppStrings.labelQueued : '$formattedTime ✓✓')),
+        isSending ? AppStrings.labelSending : (sendFailed ? AppStrings.labelFailed : (isQueued ? AppStrings.labelQueued : '$formattedTime ✓✓')),
         style: context.captionTiny.copyWith(color: context.appColorScheme.cardBackground.withAlpha(138), fontWeight: FontWeight.bold),
       ),
     ],
@@ -265,10 +263,7 @@ class ChatBubble extends StatelessWidget {
                                 ScanResultInlineCard(scanData: scanData!, isEmbedded: true, onViewFullReport: onViewFullReport),
                               ],
 
-                              if (wasTruncated) ...[
-                                Gap.h12,
-                                _buildTrimmedRow(context),
-                              ],
+                              if (wasTruncated) ...[Gap.h12, _buildTrimmedRow(context)],
                               Gap.h12,
                               Row(
                                 children: [

@@ -6,11 +6,11 @@ import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
+import 'package:gutgood/core/models/scan_list_args.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/router/route_codec.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 /// go_router serializes `extra` through [RouteCodec] — every extra type used
 /// in app_router must survive encode → json → decode, or navigation throws
@@ -33,10 +33,12 @@ void main() {
 
     test('round-trips AIInsight with JSON-safe dates', () {
       final out =
-          roundTrip(AIInsight.fromMap({
-                'gutScore': 80,
-                'topInsight': {'title': 'T', 'description': 'D', 'type': 'Pattern'},
-              }))
+          roundTrip(
+                AIInsight.fromMap({
+                  'gutScore': 80,
+                  'topInsight': {'title': 'T', 'description': 'D', 'type': 'Pattern'},
+                }),
+              )
               as AIInsight;
       expect(out.gutScore, 80);
       expect(out.topInsight?.title, 'T');
@@ -48,16 +50,12 @@ void main() {
     });
 
     test('round-trips ScanResult', () {
-      final out =
-          roundTrip(ScanResult.fromMap({'productName': 'Oats', 'brand': 'Quaker', 'category': 'food', 'score': 90, 'impact': 'Great'}))
-              as ScanResult;
+      final out = roundTrip(ScanResult.fromMap({'productName': 'Oats', 'brand': 'Quaker', 'category': 'food', 'score': 90, 'impact': 'Great'})) as ScanResult;
       expect(out.productName, 'Oats');
     });
 
     test('round-trips ScanResultArgs', () {
-      final out =
-          roundTrip(ScanResultArgs(scanData: ScanResult.fromMap({'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'}), heroTag: 'h'))
-              as ScanResultArgs;
+      final out = roundTrip(ScanResultArgs(scanData: ScanResult.fromMap({'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'}), heroTag: 'h')) as ScanResultArgs;
       expect(out.scanData.productName, 'Oats');
       expect(out.heroTag, 'h');
     });
@@ -79,26 +77,14 @@ void main() {
     });
 
     test('round-trips AdditiveConcern', () {
-      const concern = AdditiveConcern(
-        code: 'E621',
-        name: 'MSG',
-        whatItIs: 'w',
-        whyUsed: 'u',
-        level: AdditiveConcernLevel.moderate,
-        whyFlagged: 'f',
-        explanation: 'e',
-      );
+      const concern = AdditiveConcern(code: 'E621', name: 'MSG', whatItIs: 'w', whyUsed: 'u', level: AdditiveConcernLevel.moderate, whyFlagged: 'f', explanation: 'e');
       final out = roundTrip(concern) as AdditiveConcern;
       expect(out.code, 'E621');
       expect(out.level, AdditiveConcernLevel.moderate);
     });
 
     test('round-trips ScanListDetailArgs', () {
-      final out =
-          roundTrip(
-                ScanListDetailArgs(kind: ScanListKind.additives, scan: ScanResult.fromMap({'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'})),
-              )
-              as ScanListDetailArgs;
+      final out = roundTrip(ScanListDetailArgs(kind: ScanListKind.additives, scan: ScanResult.fromMap({'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'}))) as ScanListDetailArgs;
       expect(out.kind, ScanListKind.additives);
       expect(out.scan.productName, 'Oats');
     });

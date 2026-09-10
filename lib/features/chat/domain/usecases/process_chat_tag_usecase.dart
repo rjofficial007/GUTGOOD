@@ -10,25 +10,29 @@ import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Swap cards shown per recommendation (SwapItContainer). The prompts demand
-/// exactly this many; [normalizeSwapCards] enforces the cap and backfills
-/// from grounded OFF alternatives when the model emits fewer.
+/// exactly this many; [normalizeSwapCards] enforces it client-side.
 const int kSwapCardCount = 3;
 
-/// Normalizes parsed swaps to exactly [kSwapCardCount] cards: extras are
-/// trimmed; shortfalls are backfilled from [fallback] (real OFF products,
-/// skipping barcode dupes). With no fallback the model output is only
-/// trimmed — the parser never invents products.
+/// Normalizes parsed swaps to EXACTLY [kSwapCardCount] cards — all or nothing:
+///
+/// * extras are trimmed to the top 3;
+/// * shortfalls are backfilled from [fallback] (real OFF products, skipping
+///   barcode dupes);
+/// * if the list STILL isn't exactly 3, the section is dropped entirely
+///   (`[]`) — a 1-2 card "Better swaps" row reads as broken, not honest,
+///   and the parser never invents products.
 List<ProductSwap> normalizeSwapCards(List<ProductSwap> swaps, List<ProductSwap> fallback) {
   final kept = swaps.take(kSwapCardCount).toList();
-  if (kept.length >= kSwapCardCount || fallback.isEmpty) return kept;
-  final seen = <String>{for (final s in kept) if (s.barcode != null && s.barcode!.isNotEmpty) s.barcode!};
-  for (final alt in fallback) {
-    if (kept.length >= kSwapCardCount) break;
-    final code = alt.barcode;
-    if (code != null && code.isNotEmpty && !seen.add(code)) continue;
-    kept.add(alt);
+  if (kept.length < kSwapCardCount && fallback.isNotEmpty) {
+    final seen = <String>{for (final s in kept) if (s.barcode != null && s.barcode!.isNotEmpty) s.barcode!};
+    for (final alt in fallback) {
+      if (kept.length >= kSwapCardCount) break;
+      final code = alt.barcode;
+      if (code != null && code.isNotEmpty && !seen.add(code)) continue;
+      kept.add(alt);
+    }
   }
-  return kept;
+  return kept.length == kSwapCardCount ? kept : const [];
 }
 
 class ProcessChatTagUseCase {

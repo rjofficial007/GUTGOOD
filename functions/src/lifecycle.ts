@@ -44,6 +44,13 @@ export const onUserDeleted = functionsV1
  * Triggered when a user profile is created or updated in Firestore.
  * Ensures every new permanent user gets a welcome email exactly once.
  * Covers: direct sign-in, account upgrade (link), and account merge.
+ *
+ * ACCEPTED RISK R6 (docs/ACCEPTED_RISKS.md): `email`, `displayName` (unescaped
+ * in the HTML body), `isAnonymous`, and `welcomeEmailSent` are all
+ * client-writable profile fields — a client can direct welcome emails to
+ * arbitrary/third-party addresses (with HTML in the name) and re-trigger them.
+ * Hardening path: recipient from admin.auth().getUser(), escape displayName,
+ * rules-lock the welcomeEmailSent* flags.
  */
 export const onProfileWritten = functionsV1
   .region(REGION)

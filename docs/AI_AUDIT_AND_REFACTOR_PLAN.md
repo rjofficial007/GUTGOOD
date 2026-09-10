@@ -265,6 +265,8 @@ to scans. *Fix (G-3): OFF-backed swaps with IDs; AI ranks/explains, never invent
 on-device (RevenueCat SDK) and merely *read* by quota checks — a tampered client grants itself
 unlimited AI. *Fix: RevenueCat webhook → server-stamped `premiumUntil`; treat client flag as
 hint only. (Explicitly deferred by the team before; keeping it visible.)*
+**STATUS 2026-09-10: formally accepted by the owner — now registered as accepted risk R1 in
+[`ACCEPTED_RISKS.md`](ACCEPTED_RISKS.md) alongside the related quota soft-spots (R2, R3).**
 
 ### P3 — Low
 

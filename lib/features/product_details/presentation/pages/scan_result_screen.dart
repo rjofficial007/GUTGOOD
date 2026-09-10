@@ -1,17 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_view.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
@@ -91,60 +90,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                 ],
               ),
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
-                  child: Column(
-                    children: [
-                      // 1. Food identity header (photo + brand + name + summary)
-                      DashboardEntrance(delay: 50, child: ScanScoreHeader(scanData: _currentData)),
-                      Gap.h12,
-
-                      // 2. Score gauge + band + "here's why" + expandable breakdown
-                      DashboardEntrance(delay: 100, child: ScanScoreSection(scanData: _currentData)),
-                      Gap.h12,
-
-                      // 3. Quick-signal metric cards (Gut Impact, NOVA, Gut Barrier, Processing)
-                      DashboardEntrance(delay: 150, child: ScanMetricsRow(scanData: _currentData)),
-                      Gap.h16,
-
-                      // 4. What works for you (Positives)
-                      DashboardEntrance(delay: 200, child: ScanWorkingSection(scanData: _currentData)),
-                      Gap.h12,
-
-                      // 5. What to watch (Negatives + tappable additives/allergens)
-                      DashboardEntrance(delay: 250, child: ScanWatchSection(scanData: _currentData)),
-                      Gap.h12,
-
-                      // 6. What this means for you (hidden when the AI gave no narrative)
-                      if (_currentData.impact.isNotEmpty) ...[DashboardEntrance(delay: 300, child: ScanTopInsightsCard(scanData: _currentData)), Gap.h12],
-
-                      // 7. Cycle Insight (Hormonal Phase Advice if Enabled)
-                      if (_currentData.cycleInsight != null && cycleSyncEnabled) ...[DashboardEntrance(delay: 320, child: CycleInsightSection(insight: _currentData.cycleInsight!)), Gap.h12],
-
-                      // 8. Better Swaps (tappable cards + working "+ Add")
-                      if (_currentData.swaps.isNotEmpty) ...[DashboardEntrance(delay: 340, child: ScanSwapsSection(swaps: _currentData.swaps)), Gap.h12],
-
-                      // 9. Additives (tappable rows → additive detail)
-                      DashboardEntrance(delay: 360, child: ScanAdditivesSection(scanData: _currentData)),
-                      Gap.h12,
-
-                      // 10. Ingredients section (modern cards → ingredient list)
-                      DashboardEntrance(delay: 380, child: ScanIngredientsSection(scanData: _currentData)),
-                      Gap.h12,
-
-                      // 11. Allergens section (modern cards → allergen list)
-                      DashboardEntrance(delay: 400, child: ScanAllergensSection(scanData: _currentData)),
-                      Gap.h12,
-
-                      // 12. Scan details (provenance footer)
-                      DashboardEntrance(delay: 420, child: ScanDetailsCard(scanData: _currentData)),
-                      Gap.h12,
-
-                      // 13. Footer nudge into chat
-                      const DashboardEntrance(delay: 440, child: ScanFooterCard()),
-                    ],
-                  ),
-                ),
+                child: ScanResultView(scanData: _currentData, cycleSyncEnabled: cycleSyncEnabled),
               ),
             ],
           ),

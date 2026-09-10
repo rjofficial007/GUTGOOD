@@ -3,7 +3,8 @@ import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rul
 class BarcodeAnalysisPrompt {
   BarcodeAnalysisPrompt._();
 
-  static const String instruction = '''
+  static const String instruction =
+      '''
 PURPOSE:
 Transform Open Food Facts product data into practical gut-health intelligence.
 
@@ -17,12 +18,12 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 2. Header: **Product Analysis**
    ${PromptFormattingRules.exactHeaderNoMarkdown}
 
-3. Content: [Single Emoji] **[Category]**: [Analysis of Nutri-Score, NOVA group, and overall ingredient quality].
+3. Content: Single Emoji **[Category]**: [Analysis of Nutri-Score, NOVA group, and overall ingredient quality].
 
 4. Header: **Gut Impact Audit**
    ${PromptFormattingRules.exactHeader}
 
-5. Content: [Single Emoji] **[Ingredient/Aspect]**: [Detailed explanation of how this aspect impacts gut health, protein/fiber balance, or processing levels].
+5. Content: Single Emoji **[Ingredient/Aspect]**: [Detailed explanation of how this aspect impacts gut health, protein/fiber balance, or processing levels].
 
 6. Header: **Sensitivity & Allergen Check**
    ${PromptFormattingRules.exactHeader}

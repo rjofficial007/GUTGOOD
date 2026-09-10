@@ -5,9 +5,10 @@ import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/models/scan_insight.dart';
 import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/off_product.dart';
+import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
@@ -21,6 +22,7 @@ import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
+import 'package:gutgood/core/utils/narrative_text.dart';
 import 'package:gutgood/core/utils/yuka_score.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
@@ -91,7 +93,14 @@ class ScannerRepositoryImpl implements ScannerRepository {
       );
 
       await _chatFirestoreService.saveMessage(
-        ChatMessage(localId: turnId, role: 'ai', text: 'Welcome back — **${view.productName}**, from your scan history with a fresh score ✨', scanData: view, source: view.source, createdAt: DateTime.now()),
+        ChatMessage(
+          localId: turnId,
+          role: 'ai',
+          text: 'Welcome back — **${view.productName}**, from your scan history with a fresh score ✨\n\n${NarrativeText.ratingLine(view.score)}',
+          scanData: view,
+          source: view.source,
+          createdAt: DateTime.now(),
+        ),
       );
       _appStateService.notifyChatUpdated();
       await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'barcode_cache', 'product_name': view.productName, 'score': view.score});
@@ -182,12 +191,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     // usually tells us exactly what is missing, so pass that through.
     if (!breakdown.hasData) {
       final reason = ModelUtils.unscorableReason(miscTags);
-      return scan.copyWith(
-        score: 50,
-        insight: reason == null
-            ? scan.insight
-            : (scan.insight ?? const ScanInsight()).copyWith(scoreExplanation: reason),
-      );
+      return scan.copyWith(score: 50, insight: reason == null ? scan.insight : (scan.insight ?? const ScanInsight()).copyWith(scoreExplanation: reason));
     }
 
     final score = breakdown.score;
@@ -195,10 +199,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     return scan.copyWith(
       score: score,
-      insight: (scan.insight ?? const ScanInsight()).copyWith(
-        scoreFactors: breakdown.factors,
-        scoreExplanation: breakdown.explanation,
-      ),
+      insight: (scan.insight ?? const ScanInsight()).copyWith(scoreFactors: breakdown.factors, scoreExplanation: breakdown.explanation),
     );
   }
 
@@ -224,9 +225,38 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     final prompt = '${Prompts.productAnalysisPrompt(productData: productMap, userGoals: goals, userSensitivities: sensitivities, userLifestyle: lifestyle, cyclePhase: cyclePhase)}$alternativesText';
 
-    final aiResultStr = await _aiService.generateContent(prompt: prompt, systemInstruction: Prompts.barcodeAnalysisSystemInstruction, usageType: 'scan', mode: 'plain', promptVersion: AiVersions.visionPromptVersion);
+    final aiResultStr = await _aiService.generateContent(
+      prompt: prompt,
+      systemInstruction: Prompts.barcodeAnalysisSystemInstruction,
+      usageType: 'scan',
+      mode: 'plain',
+      promptVersion: AiVersions.visionPromptVersion,
+    );
 
-    final result = _processChatTagUseCase(aiResultStr, source: 'barcode', promptVersion: _aiService.lastPromptVersion ?? AiVersions.visionPromptVersion, servedModel: _aiService.lastServedModel);
+    // Ground-truth backfill for the swap cards: real OFF alternatives, so the
+    // "Better swaps" section can always reach exactly kSwapCardCount cards
+    // even when the model recommends fewer (normalizeSwapCards trims/drops).
+    final fallbackSwaps = (alternatives ?? const <OffProduct>[])
+        .map(
+          (a) => ProductSwap(
+            title: a.productName,
+            subtitle: '${a.brand ?? 'Alternative'}${a.nutriscore != null ? ' · Nutri-Score ${a.nutriscore!.toUpperCase()}' : ''}',
+            imageKeyword: a.productName,
+            imageUrl: a.imageUrl,
+            tag: a.nutriscore != null ? 'NUTRI-SCORE ${a.nutriscore!.toUpperCase()}' : 'BETTER CHOICE',
+            barcode: a.barcode,
+            nutriscore: a.nutriscore,
+          ),
+        )
+        .toList();
+
+    final result = _processChatTagUseCase(
+      aiResultStr,
+      source: 'barcode',
+      promptVersion: _aiService.lastPromptVersion ?? AiVersions.visionPromptVersion,
+      servedModel: _aiService.lastServedModel,
+      fallbackSwaps: fallbackSwaps,
+    );
 
     if (result.scan != null) {
       final scan = result.scan!;
@@ -302,7 +332,13 @@ class ScannerRepositoryImpl implements ScannerRepository {
       promptVersion: AiVersions.visionPromptVersion,
     );
 
-    var result = _processChatTagUseCase(aiResultStr, userText: userText, source: classification.imageMode, promptVersion: _aiService.lastPromptVersion ?? AiVersions.visionPromptVersion, servedModel: _aiService.lastServedModel);
+    var result = _processChatTagUseCase(
+      aiResultStr,
+      userText: userText,
+      source: classification.imageMode,
+      promptVersion: _aiService.lastPromptVersion ?? AiVersions.visionPromptVersion,
+      servedModel: _aiService.lastServedModel,
+    );
 
     // Photo scans used to take whatever score the model invented. Run the same
     // deterministic engine used for barcode scans over the model's structured
@@ -347,14 +383,39 @@ class ScannerRepositoryImpl implements ScannerRepository {
     // missing confidence gating here). The returned result carries hydrated
     // IDs, and cleared records for chat-only turns, which the bubble embeds.
     final outcome = await _persister.persist(result, chatMessageId: finalScanId, imageUrl: userImageUrl, source: scan.source);
-    final hydrated = outcome.result;
-    final hydratedScan = hydrated.scan ?? scan;
+    var hydrated = outcome.result;
+    var hydratedScan = hydrated.scan ?? scan;
 
-    // 🚀 Consistent UX: Use the AI's actual conversational text in the chat bubble
+    // Barcode turns: the product identity is OFF ground truth, so an AI
+    // verdict (non_food / uncertain / low-confidence) must not veto the
+    // history record. If the persister declined the write, force it here so
+    // every completed barcode analysis lands in scan_history. (Vision/label/
+    // menu turns keep their chat-only gating — those categories are guessed,
+    // not scanned.) Stable ID convention matches the persister exactly.
+    if (!outcome.persistedScan && scan.source == 'barcode' && (scan.barcode ?? '').isNotEmpty) {
+      final stableScanId = '${finalScanId}_scan';
+      AppLogger.warning(
+        'ScannerRepository: persister skipped scan_history for barcode turn '
+        '(${outcome.chatOnlyReason ?? 'unknown'}; ${outcome.validationReasons.join('; ')}) — forcing write for verified OFF product',
+      );
+      final forcedScan = hydratedScan.copyWith(scanId: stableScanId, chatMessageId: finalScanId);
+      await _historyFirestoreService.saveToScanHistory(forcedScan, userImageUrl: userImageUrl, scanId: stableScanId);
+      hydrated = hydrated.copyWith(scan: forcedScan);
+      hydratedScan = forcedScan;
+    }
+
+    // 🚀 Consistent UX: Use the AI's actual conversational text in the chat bubble.
+    // Bracket-emoji decorations are stripped and the engine rating is spliced
+    // under the greeting — the number can never drift from the score gauge.
+    final narrative = NarrativeText.sanitize(hydrated.text.isEmpty ? '' : hydrated.text);
+    final bubbleText = narrative.isNotEmpty
+        ? NarrativeText.injectRating(narrative, hydratedScan.score)
+        : 'I analyzed **${hydratedScan.productName}** for you. ✨\n\n${NarrativeText.ratingLine(hydratedScan.score)}';
+
     final aiMsg = ChatMessage(
       localId: finalScanId,
       role: 'ai',
-      text: hydrated.text.isEmpty ? 'I analyzed **${hydratedScan.productName}** for you. ✨' : hydrated.text,
+      text: bubbleText,
       scanData: hydratedScan,
       imageUrl: userImageUrl,
       symptomLogs: hydrated.symptoms,

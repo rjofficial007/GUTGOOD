@@ -156,8 +156,10 @@ class UsageServiceImpl implements UsageService {
     if (!kDebugMode) return;
     if (_uid == null) return;
     // Debug-only override: persists locally and flips the in-memory RevenueCat
-    // flag. The Firestore copy is intentionally NOT written — the security
-    // rules reserve that field for the server.
+    // flag. The Firestore copy is not written because this override only
+    // affects this device's UI state. (Under the client-side premium model the
+    // profile's isPremium field is client-writable by design — not
+    // server-reserved; see docs/ACCEPTED_RISKS.md R1.)
     await _prefs.setBool('is_premium', isPremium);
     _purchaseService.setProStatusForDebug(isPremium);
   }

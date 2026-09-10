@@ -5,6 +5,11 @@ import { sendMagicLinkEmail } from './email';
 
 /**
  * HTTPS Callable: Generates a sign-in link and sends it via custom SMTP.
+ *
+ * ACCEPTED RISK R5 (docs/ACCEPTED_RISKS.md): intentionally no authentication
+ * (pre-login flow), no per-email/per-IP rate limiting, and no App Check — an
+ * unauthenticated script could relay branded sign-in emails to arbitrary
+ * addresses through our SMTP. Add throttling + App Check before public launch.
  */
 export const sendCustomMagicLink = functions
   .region(REGION)

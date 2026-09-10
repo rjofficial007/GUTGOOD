@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gutgood/core/constants/strings/chat_strings.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
@@ -148,6 +147,15 @@ class ChatScreenState extends State<ChatScreen> {
     if (notifier == null) return;
 
     if (!notifier.historyLoading && !_hasScrolledToBottomInitially && notifier.messages.isNotEmpty) {
+      // If we are currently in a turn (user just sent a message), the
+      // send-scroll anchor handles the positioning. A jump-to-bottom
+      // here would fight with it and, because of the turn spacer,
+      // push the new message off the top of the viewport.
+      if (_latestUserMsgId != null) {
+        _hasScrolledToBottomInitially = true;
+        return;
+      }
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_scroll.hasClients) {
           return;
@@ -167,6 +175,19 @@ class ChatScreenState extends State<ChatScreen> {
   // ===========================================================================
   // SCROLL
   // ===========================================================================
+
+  /// Returns the max scroll extent adjusted for the turn spacer. When the
+  /// spacer is active, the raw maxScrollExtent points to the bottom of a
+  /// huge empty area; this points to the end of the actual content.
+  double get _effectiveMaxScrollExtent {
+    if (!_scroll.hasClients) return 0.0;
+    final position = _scroll.position;
+    var max = position.maxScrollExtent;
+    if (_turnSpacerEnabled) {
+      max -= position.viewportDimension;
+    }
+    return max.clamp(0.0, position.maxScrollExtent);
+  }
 
   void _onScroll() {
     if (!_scroll.hasClients) return;
@@ -196,7 +217,7 @@ class ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    _scroll.jumpTo(_scroll.position.maxScrollExtent);
+    _scroll.jumpTo(_effectiveMaxScrollExtent);
 
     await WidgetsBinding.instance.endOfFrame;
 
@@ -204,7 +225,7 @@ class ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    _scroll.jumpTo(_scroll.position.maxScrollExtent);
+    _scroll.jumpTo(_effectiveMaxScrollExtent);
   }
 
   // ===========================================================================
@@ -238,9 +259,11 @@ class ChatScreenState extends State<ChatScreen> {
 
     final position = _scroll.position;
 
-    final hasNewerContent = position.maxScrollExtent > 0;
+    final maxExtent = _effectiveMaxScrollExtent;
 
-    final distanceFromBottom = position.maxScrollExtent - position.pixels;
+    final hasNewerContent = maxExtent > 0;
+
+    final distanceFromBottom = maxExtent - position.pixels;
 
     final threshold = _showJumpToLatest ? _hideJumpToLatestThreshold : _showJumpToLatestThreshold;
 
@@ -259,7 +282,7 @@ class ChatScreenState extends State<ChatScreen> {
   Future<void> _jumpToLatest() async {
     if (!_scroll.hasClients) return;
 
-    await _scroll.animateTo(_scroll.position.maxScrollExtent, duration: const Duration(milliseconds: 250), curve: Curves.easeOutCubic);
+    await _scroll.animateTo(_effectiveMaxScrollExtent, duration: const Duration(milliseconds: 250), curve: Curves.easeOutCubic);
 
     if (!mounted) return;
 
@@ -367,9 +390,12 @@ class ChatScreenState extends State<ChatScreen> {
       /*
        * Message still outside the built range (user sent from far up):
        * bring the tail into layout once, then measure on the next frame.
+       *
+       * We jump to the effective bottom (end of content) rather than the
+       * raw maxScrollExtent to avoid overshooting into the turn spacer.
        */
       if (i == 0 && _scroll.hasClients) {
-        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        _scroll.jumpTo(_effectiveMaxScrollExtent);
       }
     }
 
@@ -974,14 +1000,14 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                           : (msg.sendFailed
                                 ? () => unawaited(composerNotifier.retryMessage(msg))
                                 : (msg.errorKind == ChatErrorKind.connection
-                                ? () async {
-                                    final messenger = ScaffoldMessenger.of(context);
-                                    final error = await composerNotifier.regenerateLastResponse();
-                                    if (error == ChatSendError.offline) {
-                                      messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
-                                    }
-                                  }
-                                : null)),
+                                      ? () async {
+                                          final messenger = ScaffoldMessenger.of(context);
+                                          final error = await composerNotifier.regenerateLastResponse();
+                                          if (error == ChatSendError.offline) {
+                                            messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+                                          }
+                                        }
+                                      : null)),
                       onQuotaPressed: () => unawaited(showPaywallScreen(context, onProceedWithLimited: () {})),
                       showFeedback: isLatestAi && !isStreaming && msg.text.isNotEmpty && msg.scanData == null && msg.swapData == null && msg.errorKind == ChatErrorKind.none,
                       feedback: msg.feedback,

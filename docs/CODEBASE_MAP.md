@@ -36,7 +36,7 @@ The heart of the Flutter application, following a Clean Architecture structure.
 
 ## 2. `/functions` - Backend Logic
 Firebase Cloud Functions written in TypeScript.
-- `src/ai_proxy.ts`: Secure OpenAI gateway with auth and quota enforcement.
+- `src/ai_proxy.ts`: Secure OpenAI gateway with auth and server-side usage metering (soft limits per `ACCEPTED_RISKS.md` R1–R3).
 - `src/merge.ts`: Atomic collection migration logic for account upgrades.
 - `src/lifecycle.ts`: Automated cleanup and GDPR-compliant deletion triggers.
 - `src/usage.ts`: Server-side logic for daily usage tracking.

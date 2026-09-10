@@ -14,8 +14,11 @@ import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:uuid/uuid.dart';
 
 /// Thrown when the server-side free-tier gate rejects the request (HTTP 429).
-/// The UI maps this to the paywall — the single source of truth for limits is
-/// now the backend, which removes the old client-tampering vector.
+/// The UI maps this to the paywall. The backend owns the numeric counters
+/// (daily_usage is server-write-locked), but premium status itself is
+/// client-authoritative by product decision, so these limits are a soft
+/// paywall rather than a tamper-proof boundary — see docs/ACCEPTED_RISKS.md
+/// R1–R3.
 class AiQuotaExceededException implements Exception {
   const AiQuotaExceededException({required this.type, this.message = 'Daily free limit reached.'});
   final String type; // 'chat' | 'scan'
@@ -70,7 +73,9 @@ abstract class AiService {
 ///  - The OpenAI API key never exists on-device (replaces the previous
 ///    Remote-Config-delivered key, which was extractable from the client).
 ///  - Every request carries a Firebase ID token; the function verifies it and
-///    enforces the free-tier limits server-side (tamper-proof).
+///    meters the free-tier limits server-side. Note: enforcement is bounded by
+///    accepted risks R1–R3 (client-authoritative premium, unvalidated timezone
+///    offset, guest profile-delete reset) — see docs/ACCEPTED_RISKS.md.
 class AiServiceImpl implements AiService {
   AiServiceImpl({required Dio dio, required FirebaseAuth auth, required RemoteConfigService config, required AnalyticsService analyticsService, required CrashlyticsService crashlyticsService})
     : _dio = dio,

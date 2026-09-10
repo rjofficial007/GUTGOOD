@@ -20,6 +20,9 @@ export function getTransporter() {
 /**
  * Sends a polished welcome email with a verification link.
  */
+// NOTE: `displayName` is interpolated into the HTML body unescaped — accepted
+// risk R6 (docs/ACCEPTED_RISKS.md); escape it if email-sending hardening is
+// ever revisited.
 export async function sendWelcomeEmail(email: string, displayName: string) {
   const transporter = getTransporter();
 

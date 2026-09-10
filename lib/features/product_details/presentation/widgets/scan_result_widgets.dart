@@ -5,16 +5,13 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/ai_insight_details.dart';
-import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/nova_group.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
 import 'package:gutgood/core/models/scan_insight.dart';
+import 'package:gutgood/core/models/scan_list_args.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/router/app_routes.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -23,60 +20,9 @@ import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/utils/yuka_score.dart';
-import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/super_card.dart';
+import 'package:gutgood/core/widgets/bento_card.dart';
+import 'package:gutgood/features/product_details/presentation/utils/scan_result_utils.dart';
 import 'package:intl/intl.dart';
-
-class BentoCard extends StatelessWidget {
-  const BentoCard({super.key, required this.child, this.backgroundColor, this.borderColor, this.padding, this.borderRadius, this.height, this.width, this.showShadow = true});
-  final Widget child;
-  final Color? backgroundColor;
-  final Color? borderColor;
-  final EdgeInsetsGeometry? padding;
-  final double? borderRadius;
-  final double? height;
-  final double? width;
-  final bool showShadow;
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    return Container(
-      width: width,
-      height: height,
-      padding: padding ?? const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: backgroundColor ?? scheme.cardBackground,
-        borderRadius: BorderRadius.circular(borderRadius ?? 20),
-        border: Border.all(color: borderColor ?? scheme.borderSubtle),
-        boxShadow: showShadow ? [BoxShadow(color: scheme.surfaceSubtle, blurRadius: 15, offset: const Offset(0, 5))] : null,
-      ),
-      child: child,
-    );
-  }
-}
-
-class BentoCardHeader extends StatelessWidget {
-  const BentoCardHeader({super.key, required this.title, this.icon, this.textColor, this.iconColor});
-  final String title;
-  final IconData? icon;
-  final Color? textColor;
-  final Color? iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final color = textColor ?? scheme.textSecondary;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(title.toUpperCase(), style: context.captionBold.copyWith(color: color, letterSpacing: 1.1)),
-        ),
-        if (icon != null) Icon(icon, color: iconColor ?? scheme.textMuted, size: 14),
-      ],
-    );
-  }
-}
 
 class ScoreGauge extends StatelessWidget {
   const ScoreGauge({super.key, required this.score, required this.color, this.label = 'GUT SCORE', this.fontSize});
@@ -163,103 +109,6 @@ class _GaugePainter extends CustomPainter {
   bool shouldRepaint(covariant _GaugePainter oldDelegate) => oldDelegate.score != score;
 }
 
-enum ScanListKind { ingredients, allergens, additives }
-
-class ScanListDetailArgs {
-  const ScanListDetailArgs({required this.kind, required this.scan});
-  final ScanListKind kind;
-  final ScanResult scan;
-
-  factory ScanListDetailArgs.fromMap(Map<String, dynamic> map) => ScanListDetailArgs(
-    kind: ScanListKind.values.firstWhere((k) => k.name == map['kind']?.toString(), orElse: () => ScanListKind.ingredients),
-    scan: ScanResult.fromMap(map['scan'] as Map<String, dynamic>),
-  );
-
-  Map<String, dynamic> toMap() => {'kind': kind.name, 'scan': scan.toMap()};
-}
-
-/// Concern level → UI color.
-Color additiveConcernColor(BuildContext context, AdditiveConcernLevel level) {
-  final scheme = context.appColorScheme;
-  switch (level) {
-    case AdditiveConcernLevel.low:
-      return scheme.success;
-    case AdditiveConcernLevel.moderate:
-      return AppPalette.orange;
-    case AdditiveConcernLevel.higher:
-      return scheme.error;
-    case AdditiveConcernLevel.unknown:
-      return scheme.textMuted;
-  }
-}
-
-int _concernRank(AdditiveConcernLevel level) {
-  switch (level) {
-    case AdditiveConcernLevel.higher:
-      return 3;
-    case AdditiveConcernLevel.moderate:
-      return 2;
-    case AdditiveConcernLevel.low:
-      return 1;
-    case AdditiveConcernLevel.unknown:
-      return 0;
-  }
-}
-
-/// AI ingredient colorName → UI color.
-Color ingredientSignalColor(BuildContext context, String colorName) {
-  final scheme = context.appColorScheme;
-  switch (colorName.toLowerCase()) {
-    case 'green':
-    case 'low':
-    case 'positive':
-      return scheme.success;
-    case 'red':
-      return scheme.error;
-    case 'orange':
-    case 'moderate':
-    case 'yellow':
-      return AppPalette.orange;
-    default:
-      return scheme.textMuted;
-  }
-}
-
-/// Split a free-text allergen summary ('Milk, Soy', 'Contains: gluten') into items.
-List<String> parseAllergenItems(String? raw) {
-  if (raw == null || raw.trim().isEmpty) return const [];
-  final text = raw.trim().replaceAll(RegExp(r'^(contains|may contain)\s*:?\s*', caseSensitive: false), '');
-  if (RegExp(r'^(none|no\s+allergens?|not\s+detected|n/?a)\b', caseSensitive: false).hasMatch(text)) return const [];
-  var parts = text.split(RegExp(r'[,;•\n]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-  if (parts.length == 1 && parts.first.contains(RegExp(r'\sand\s', caseSensitive: false))) {
-    parts = parts.first.split(RegExp(r'\sand\s', caseSensitive: false)).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-  }
-  return parts;
-}
-
-/// Human label for how this scan was captured.
-String scanSourceLabel(ScanResult scan) {
-  if (scan.barcode != null && scan.barcode!.isNotEmpty) return AppStrings.barcodeSource;
-  final s = (scan.source ?? '').toLowerCase();
-  if (s.contains('menu')) return AppStrings.menuSource;
-  if (s.contains('label')) return AppStrings.labelSource;
-  return AppStrings.photoSource;
-}
-
-/// Logs a swap to the journal as a snack. Shared by the swaps carousel + swap detail.
-Future<void> logSwapToJournal(BuildContext context, ProductSwap swap) async {
-  try {
-    await sl<HistoryFirestoreService>().logMeal(MealLog(items: [swap.title], notes: swap.subtitle, mealType: 'snack', source: 'swap', createdAt: DateTime.now()));
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppStrings.swapLogged(swap.title)), behavior: SnackBarBehavior.floating));
-    }
-  } catch (_) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Couldn't log this swap — try again."), behavior: SnackBarBehavior.floating));
-    }
-  }
-}
-
 /// 🌟 Section 1: Food identity header (photo + brand + name + summary).
 class ScanScoreHeader extends StatelessWidget {
   const ScanScoreHeader({super.key, required this.scanData});
@@ -272,46 +121,34 @@ class ScanScoreHeader extends StatelessWidget {
     final band = GutScoreBand.fromScore(scanData.score);
     final hasImage = imageUrl != null && imageUrl.isNotEmpty;
 
-    return BentoCard(
-      padding: const EdgeInsets.all(14),
-      borderRadius: 20,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: hasImage ? CachedNetworkImage(imageUrl: imageUrl, width: 76.w, height: 76.w, fit: BoxFit.cover, errorWidget: (_, _, _) => _fallbackTile(band.color)) : _fallbackTile(band.color),
-          ),
-          Gap.w12,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: hasImage ? CachedNetworkImage(imageUrl: imageUrl, width: 130.w, height: 130.w, fit: BoxFit.cover, errorWidget: (_, _, _) => _fallbackTile(band.color)) : _fallbackTile(band.color),
+        ),
+        Gap.w12,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(scanData.brand.toUpperCase(), style: context.eyebrow.copyWith(color: scheme.textMuted)),
+              Gap.h4,
+              Text(scanData.productName, maxLines: 2, overflow: TextOverflow.ellipsis, style: context.headingSm.copyWith(fontSize: 16, height: 1.15)),
+              if (scanData.impact.isNotEmpty) ...[
+                Gap.h2,
                 Text(
-                  scanData.brand.toUpperCase(),
-                  style: context.captionBold.copyWith(color: scheme.textMuted, fontSize: 10.sp, letterSpacing: 1.0),
-                ),
-                Gap.h4,
-                Text(
-                  scanData.productName,
-                  maxLines: 2,
+                  scanData.impact,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: context.title.copyWith(fontSize: 17.sp, fontWeight: FontWeight.w900, height: 1.15),
+                  style: context.bodySm.copyWith(fontSize: 12, color: scheme.textSecondary, height: 1.4),
                 ),
-                if (scanData.impact.isNotEmpty) ...[
-                  Gap.h6,
-                  Text(
-                    scanData.impact,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp, height: 1.4),
-                  ),
-                ],
               ],
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -370,7 +207,7 @@ class ScanScoreSection extends StatelessWidget {
     return BentoCard(
       backgroundColor: band.color.withValues(alpha: 0.2),
       padding: const EdgeInsets.all(16),
-      borderRadius: 20,
+      borderRadius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -379,22 +216,16 @@ class ScanScoreSection extends StatelessWidget {
             children: [
               SizedBox(
                 width: 104.w,
-                child: ScoreGauge(score: scanData.score, color: band.color, fontSize: 30.sp),
+                child: ScoreGauge(score: scanData.score, color: band.color, fontSize: 24.sp),
               ),
               Gap.w16,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      band.label,
-                      style: context.headingSm.copyWith(fontSize: 22.sp, fontWeight: FontWeight.w900),
-                    ),
+                    Text(band.label, style: context.headingMd.copyWith(fontSize: 16)),
                     Gap.h4,
-                    Text(
-                      explanation,
-                      style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.5.sp, height: 1.45),
-                    ),
+                    Text(explanation, style: context.bodySm.copyWith(fontSize: 12, color: scheme.textSecondary, height: 1.4)),
                   ],
                 ),
               ),
@@ -431,7 +262,7 @@ class _WhyScoreExpanderState extends State<_WhyScoreExpander> {
             children: [
               Text(
                 AppStrings.whyThisScore,
-                style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 12.sp),
+                style: context.bodySm.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w700),
               ),
               Icon(_open ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, size: 18.sp, color: scheme.textMuted),
             ],
@@ -444,7 +275,7 @@ class _WhyScoreExpanderState extends State<_WhyScoreExpander> {
           Gap.h4,
           Text(
             AppStrings.scoreFootnote,
-            style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp),
+            style: context.caption.copyWith(color: scheme.textMuted),
             textAlign: TextAlign.center,
           ),
         ],
@@ -474,12 +305,12 @@ class _ScoreFactorRow extends StatelessWidget {
           Expanded(
             child: Text(
               factor.label,
-              style: context.caption.copyWith(color: scheme.textPrimary, fontSize: 12.sp, fontWeight: FontWeight.w600),
+              style: context.bodySm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w600),
             ),
           ),
           Text(
             '${factor.isPositive ? '+' : ''}${factor.delta}',
-            style: context.captionBold.copyWith(color: color, fontSize: 12.sp),
+            style: context.bodySm.copyWith(color: color, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -561,7 +392,7 @@ class _MetricCard extends StatelessWidget {
     return BentoCard(
       backgroundColor: iconColor.withAlpha(22),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      borderRadius: 16,
+      borderRadius: 12,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -573,15 +404,15 @@ class _MetricCard extends StatelessWidget {
           Gap.h6,
           Text(
             value,
-            style: context.labelBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 11.sp),
+            style: context.caption.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Gap.h2,
           Text(
-            label,
-            style: context.caption.copyWith(color: scheme.textMuted, fontSize: 8.5.sp, fontWeight: FontWeight.w600),
+            label.toUpperCase(),
+            style: context.captionBold.copyWith(color: scheme.textMuted),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -628,12 +459,12 @@ Widget _buildModernFactorCard(BuildContext context, _ScanFactor item, {required 
             Text(
               item.title,
               maxLines: 1,
-              style: context.body.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary, fontSize: 14.5.sp),
+              style: context.bodySm.copyWith(fontWeight: FontWeight.w600, color: scheme.textPrimary),
             ),
             const SizedBox(height: 1),
             Text(
               item.subtitle,
-              style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp),
+              style: context.caption.copyWith(color: scheme.textSecondary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -643,7 +474,7 @@ Widget _buildModernFactorCard(BuildContext context, _ScanFactor item, {required 
       if (item.valueText != null)
         Text(
           item.valueText!,
-          style: context.caption.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary, fontSize: 12.sp),
+          style: context.bodySm.copyWith(fontSize: 10, fontWeight: FontWeight.w700, color: scheme.textPrimary),
         ),
       if (item.badgeColor != null) ...[
         Gap.w8,
@@ -831,12 +662,9 @@ class ScanWorkingSection extends StatelessWidget {
                 children: [
                   Text(
                     'What\'s Working',
-                    style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: scheme.textPrimary),
+                    style: context.headingSm.copyWith(fontSize: 16, fontWeight: FontWeight.w700, color: scheme.textPrimary),
                   ),
-                  Text(
-                    AppStrings.perServing(serving),
-                    style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp),
-                  ),
+                  Text(AppStrings.perServing(serving), style: context.caption.copyWith(fontSize: 12, color: scheme.textSecondary)),
                 ],
               ),
             ),
@@ -973,13 +801,10 @@ class ScanWatchSection extends StatelessWidget {
                 children: [
                   Text(
                     'What to Watch',
-                    style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: scheme.textPrimary),
+                    style: context.headingSm.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary),
                   ),
 
-                  Text(
-                    AppStrings.perServing(serving),
-                    style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp),
-                  ),
+                  Text(AppStrings.perServing(serving), style: context.caption.copyWith(color: scheme.textSecondary)),
                 ],
               ),
             ),
@@ -1017,12 +842,9 @@ class ScanSwapsSection extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.betterSwapsLabel,
-                    style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: scheme.textPrimary),
+                    style: context.headingSm.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary),
                   ),
-                  Text(
-                    'Simple swaps to make this meal even better.',
-                    style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp),
-                  ),
+                  Text('Simple swaps to make this meal even better.', style: context.caption.copyWith(color: scheme.textSecondary)),
                 ],
               ),
             ),
@@ -1054,16 +876,16 @@ class _SwapCard extends StatelessWidget {
     final imageUrl = (swap.imageUrl != null && swap.imageUrl!.isNotEmpty) ? swap.imageUrl! : getDynamicImageUrl(swap.imageKeyword.isNotEmpty ? swap.imageKeyword : swap.title);
     return InkWell(
       onTap: () => context.push(AppRoutes.swapDetail, extra: swap),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(12),
       child: BentoCard(
         width: 160.w,
         padding: const EdgeInsets.all(10),
-        borderRadius: 16,
+        borderRadius: 12,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               child: CachedNetworkImage(imageUrl: imageUrl, height: 82.h, width: double.infinity, fit: BoxFit.cover),
             ),
             Gap.h8,
@@ -1071,20 +893,20 @@ class _SwapCard extends StatelessWidget {
               swap.tag.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.captionBold.copyWith(color: scheme.success, fontSize: 9.sp, letterSpacing: 0.8),
+              style: context.captionBold.copyWith(color: scheme.success, letterSpacing: 0.8),
             ),
             Gap.h2,
             Text(
               swap.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.labelBold.copyWith(fontSize: 12.5.sp, fontWeight: FontWeight.w800),
+              style: context.bodySm.copyWith(fontWeight: FontWeight.w700),
             ),
             Text(
               swap.subtitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: context.caption.copyWith(color: scheme.textMuted, fontSize: 10.5.sp, height: 1.3),
+              style: context.caption.copyWith(color: scheme.textMuted, height: 1.3),
             ),
             const Spacer(),
             GestureDetector(
@@ -1099,7 +921,7 @@ class _SwapCard extends StatelessWidget {
                     Gap.w4,
                     Text(
                       AppStrings.addLabel,
-                      style: context.captionBold.copyWith(color: scheme.success, fontSize: 11.5.sp),
+                      style: context.bodySm.copyWith(color: scheme.success, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -1120,7 +942,7 @@ class ScanAdditivesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final sorted = [...scanData.additiveConcerns]..sort((a, b) => _concernRank(b.level).compareTo(_concernRank(a.level)));
+    final sorted = [...scanData.additiveConcerns]..sort((a, b) => additiveConcernRank(b.level).compareTo(additiveConcernRank(a.level)));
     final visible = sorted.take(3).toList();
 
     if (sorted.isEmpty) return const SizedBox.shrink();
@@ -1145,7 +967,7 @@ class ScanAdditivesSection extends StatelessWidget {
                       Expanded(
                         child: Text(
                           '${AppStrings.additivesLabel} (${scanData.additiveConcerns.length})',
-                          style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: scheme.textPrimary),
+                          style: context.headingSm.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary),
                         ),
                       ),
                       if (sorted.length > 0)
@@ -1159,7 +981,7 @@ class ScanAdditivesSection extends StatelessWidget {
                             children: [
                               Text(
                                 AppStrings.seeAll,
-                                style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 13.sp),
+                                style: context.bodySm.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w700),
                               ),
                               Icon(AppIcons.chevronRight, size: 16.sp, color: scheme.textMuted),
                             ],
@@ -1167,10 +989,7 @@ class ScanAdditivesSection extends StatelessWidget {
                         ),
                     ],
                   ),
-                  Text(
-                    'Tap an additive to learn more about what it is and how it may impact you.',
-                    style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp),
-                  ),
+                  Text('Tap an additive to learn more about what it is and how it may impact you.', style: context.caption.copyWith(color: scheme.textSecondary)),
                 ],
               ),
             ),
@@ -1232,7 +1051,7 @@ class ScanIngredientsSection extends StatelessWidget {
                       Expanded(
                         child: Text(
                           AppStrings.ingredientsTitle,
-                          style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: scheme.textPrimary),
+                          style: context.headingSm.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary),
                         ),
                       ),
                       if (hasItems)
@@ -1246,7 +1065,7 @@ class ScanIngredientsSection extends StatelessWidget {
                             children: [
                               Text(
                                 AppStrings.seeAll,
-                                style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 13.sp),
+                                style: context.bodySm.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w700),
                               ),
                               Icon(AppIcons.chevronRight, size: 16.sp, color: scheme.textMuted),
                             ],
@@ -1254,10 +1073,7 @@ class ScanIngredientsSection extends StatelessWidget {
                         ),
                     ],
                   ),
-                  Text(
-                    'Tap an ingredient to see details.',
-                    style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp),
-                  ),
+                  Text('Tap an ingredient to see details.', style: context.caption.copyWith(color: scheme.textSecondary)),
                 ],
               ),
             ),
@@ -1323,7 +1139,7 @@ class ScanAllergensSection extends StatelessWidget {
                       Expanded(
                         child: Text(
                           AppStrings.allergensLabel,
-                          style: context.title.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: scheme.textPrimary),
+                          style: context.headingSm.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary),
                         ),
                       ),
                       if (hasItems)
@@ -1337,7 +1153,7 @@ class ScanAllergensSection extends StatelessWidget {
                             children: [
                               Text(
                                 AppStrings.seeAll,
-                                style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 13.sp),
+                                style: context.bodySm.copyWith(color: scheme.textSecondary, fontWeight: FontWeight.w700),
                               ),
                               Icon(AppIcons.chevronRight, size: 16.sp, color: scheme.textMuted),
                             ],
@@ -1345,10 +1161,7 @@ class ScanAllergensSection extends StatelessWidget {
                         ),
                     ],
                   ),
-                  Text(
-                    hasItems ? 'Potential gut triggers detected.' : 'No allergens declared for this product.',
-                    style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp),
-                  ),
+                  Text(hasItems ? 'Potential gut triggers detected.' : 'No allergens declared for this product.', style: context.caption.copyWith(color: scheme.textSecondary)),
                 ],
               ),
             ),
@@ -1388,7 +1201,7 @@ class ScanDetailsCard extends StatelessWidget {
     final date = DateFormat('MMM dd, yyyy • hh:mm a').format(scanData.createdAt);
     return BentoCard(
       padding: const EdgeInsets.all(16),
-      borderRadius: 16,
+      borderRadius: 12,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1433,10 +1246,10 @@ class ScanFooterCard extends StatelessWidget {
     final scheme = context.appColorScheme;
     return InkWell(
       onTap: () => context.go(AppRoutes.chat),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(12),
       child: BentoCard(
         padding: const EdgeInsets.all(16),
-        borderRadius: 20,
+        borderRadius: 12,
         backgroundColor: AppPalette.green.withAlpha(16),
         borderColor: AppPalette.green.withAlpha(40),
         child: Row(
@@ -1453,13 +1266,10 @@ class ScanFooterCard extends StatelessWidget {
                 children: [
                   Text(
                     AppStrings.scanFooterTitle,
-                    style: context.labelBold.copyWith(color: AppPalette.green, fontWeight: FontWeight.w800, fontSize: 13.sp),
+                    style: context.bodySm.copyWith(color: AppPalette.green, fontWeight: FontWeight.w700),
                   ),
                   Gap.h2,
-                  Text(
-                    AppStrings.scanFooterBody,
-                    style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.sp),
-                  ),
+                  Text(AppStrings.scanFooterBody, style: context.caption.copyWith(color: scheme.textMuted)),
                 ],
               ),
             ),
@@ -1482,7 +1292,7 @@ class CycleInsightSection extends StatelessWidget {
 
     return BentoCard(
       padding: const EdgeInsets.all(18),
-      borderRadius: 20,
+      borderRadius: 16,
       backgroundColor: isDark ? AppPalette.pink.withAlpha(26) : AppPalette.pinkLight,
       borderColor: AppPalette.pink.withAlpha(40),
       child: Column(
@@ -1492,7 +1302,7 @@ class CycleInsightSection extends StatelessWidget {
           Gap.h12,
           Text(
             insight.phase.toUpperCase(),
-            style: context.headingSm.copyWith(color: AppPalette.pink, fontWeight: FontWeight.w900, letterSpacing: -0.5, fontSize: 16.sp),
+            style: context.headingSm.copyWith(color: AppPalette.pink, fontWeight: FontWeight.w900, letterSpacing: -0.5),
           ),
           Gap.h8,
           Text(
@@ -1525,84 +1335,6 @@ class CycleInsightSection extends StatelessWidget {
   }
 }
 
-class BentoFoodCard extends StatelessWidget {
-  const BentoFoodCard({super.key, required this.foods, required this.title, required this.trend, required this.isPositive, required this.icon, this.score, this.highlight});
-  final List<dynamic> foods;
-  final String title;
-  final String? trend;
-  final bool isPositive;
-  final IconData icon;
-  final int? score;
-  final TopHighlight? highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    if (title.toUpperCase() == 'RECENT LOGS') {
-      debugPrint('--- BentoFoodCard: RECENT LOGS DATA DEBUG ---');
-      debugPrint('Foods list length: ${foods.length}');
-      for (var i = 0; i < foods.length; i++) {
-        debugPrint('Item $i type: ${foods[i].runtimeType}');
-        if (foods[i] is FoodImpact) {
-          final fi = foods[i] as FoodImpact;
-          debugPrint('  FoodImpact: ${fi.food}, ImageUrl: ${fi.imageUrl}');
-        }
-      }
-      debugPrint('----------------------------------------------');
-    }
-
-    final items = foods.map((f) {
-      if (f is HealingFood || f is TriggerFood) {
-        final dynamic food = f;
-        return SuperCyclerItemData(name: food.name, effect: food.effect, imageUrl: food.imageUrl);
-      } else if (f is FoodImpact) {
-        return SuperCyclerItemData(name: f.food, effect: f.effect, imageUrl: f.imageUrl);
-      } else if (f is ProductSwap) {
-        return SuperCyclerItemData(name: f.title, effect: f.subtitle, imageUrl: f.imageUrl ?? getDynamicImageUrl(f.imageKeyword.isNotEmpty ? f.imageKeyword : f.title));
-      } else if (f is RecapHighlight) {
-        return SuperCyclerItemData(name: f.text, effect: '');
-      }
-      return SuperCyclerItemData(name: 'Unknown', effect: '');
-    }).toList();
-
-    if (title.toUpperCase() == 'HEALING' || title.toUpperCase() == 'TRIGGERS' || title.toUpperCase() == 'RECENT LOGS' || title.toUpperCase() == 'BETTER SWAPS') {
-      final displayScore = score ?? (isPositive ? 85 : 25);
-      Color statusColor = isPositive ? const Color(0xFF27F15B) : const Color(0xFFE9579A);
-
-      if (title.toUpperCase() == 'RECENT LOGS') {
-        statusColor = const Color(0xFF0759E8); // Premium Blue for History
-      }
-
-      return DashboardEntrance(
-        delay: 200,
-        child: SuperFoodGaugeCard(
-          title: title,
-          label:
-              highlight?.timeframe.toUpperCase() ??
-              (title.toUpperCase() == 'RECENT LOGS' ? 'HISTORY' : (title.toUpperCase() == 'BETTER SWAPS' ? 'RECOMMENDED' : (isPositive ? 'POSITIVE PATTERNS' : 'NEGATIVE PATTERNS'))),
-          score: displayScore,
-          statusColor: statusColor,
-          foods: items,
-        ),
-      );
-    }
-
-    return DashboardEntrance(
-      delay: 200,
-      child: SuperFoodCyclerCard(items: items, title: title, trend: trend, isPositive: isPositive, icon: icon),
-    );
-  }
-}
-
-class BentoActivityCard extends StatelessWidget {
-  const BentoActivityCard({super.key, required this.impacts, this.score});
-  final List<FoodImpact> impacts;
-  final int? score;
-
-  @override
-  Widget build(BuildContext context) => BentoFoodCard(foods: impacts, title: 'RECENT LOGS', trend: null, isPositive: true, icon: AppIcons.history, score: score);
-}
-
-/// 🌟 Save Button
 class SaveButton extends StatelessWidget {
   const SaveButton({super.key, required this.isSaved, required this.isLoading, required this.onTap});
   final bool isSaved;
@@ -1625,12 +1357,17 @@ class SaveButton extends StatelessWidget {
   );
 }
 
-/// 🌟 "Top 3 things to know" — the prioritised view.
+/// 🌟 Section 6: "What this means for you" — the prioritized AI view.
 ///
 /// Everything the model found is still available further down the screen, but
-/// leading with the three most significant points (each carrying an explicit
-/// severity) is what stops the result reading as an undifferentiated list of
-/// 15 equally-important facts.
+/// leading with the top points (concerns carry an explicit severity) is what
+/// stops the result reading as an undifferentiated list of equally-important
+/// facts.
+///
+/// Visual language mirrors the page's other cards: the tinted Bento card +
+/// sparkle header matches [CycleInsightSection] (swap pink → AI purple), the
+/// summary copy matches its description rhythm, and the positive/concern rows
+/// reuse the factor-card geometry of ScanWorking / ScanWatch.
 class ScanTopInsightsCard extends StatelessWidget {
   const ScanTopInsightsCard({super.key, required this.scanData});
 
@@ -1643,132 +1380,194 @@ class ScanTopInsightsCard extends StatelessWidget {
 
     final concerns = insight.rankedConcerns;
     final positives = insight.rankedPositives;
-    if (concerns.isEmpty && positives.isEmpty) return const SizedBox.shrink();
+    if (insight.summary.isEmpty && positives.isEmpty && concerns.isEmpty && insight.warnings.isEmpty) return const SizedBox.shrink();
 
     final scheme = context.appColorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return BentoCard(
-      padding: const EdgeInsets.all(16),
-      borderRadius: 20,
+      padding: const EdgeInsets.all(18),
+      borderRadius: 16,
       backgroundColor: isDark ? AppPalette.purple.withAlpha(26) : AppPalette.purplePastel.withAlpha(26),
+      borderColor: AppPalette.purple.withAlpha(40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(AppIcons.salad, size: 16.sp, color: AppPalette.purple),
-              Gap.w8,
-              Text(
-                'WHAT THIS MEANS FOR YOU',
-                style: context.captionBold.copyWith(color: AppPalette.purple, fontSize: 10.sp, letterSpacing: 1.2, fontWeight: FontWeight.w900),
-              ),
-            ],
-          ),
+          const BentoCardHeader(title: 'What this means for you', icon: AppIcons.sparkles, textColor: AppPalette.purple, iconColor: AppPalette.purple),
+
+          // AI narrative — the "why" in plain language.
           if (insight.summary.isNotEmpty) ...[
-            Gap.h8,
+            Gap.h12,
             Text(
               insight.summary,
-              style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.5.sp, height: 1.45),
+              style: context.bodySm.copyWith(color: isDark ? scheme.textSecondary : AppPalette.purple.withAlpha(204), height: 1.5, fontWeight: FontWeight.w500),
             ),
           ],
-          Gap.h12,
-          ...positives.map((p) => _TopInsightRow(icon: AppIcons.checkCircle, color: scheme.success, title: p.title, detail: p.detail)),
-          ...concerns.map((c) => _TopInsightRow(icon: AppIcons.alertTriangle, color: _severityColor(c.severity, scheme), title: c.title, detail: c.detail, severityLabel: c.severity.label)),
-          if (insight.warnings.isNotEmpty) ...[
+
+          // Ranked positives (factor-card geometry, shared with ScanWorking).
+          if (positives.isNotEmpty) ...[
+            Gap.h16,
+            _TopInsightGroupLabel(label: 'What helps', color: scheme.success),
             Gap.h8,
-            ...insight.warnings.map(
-              (w) => Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(AppIcons.info, size: 13.sp, color: scheme.warning),
-                    Gap.w8,
-                    Expanded(
-                      child: Text(
-                        w,
-                        style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 11.5.sp, height: 1.4),
-                      ),
-                    ),
-                  ],
+            ...positives.map(
+              (p) => _buildModernFactorCard(
+                context,
+                _ScanFactor(
+                  icon: AppIcons.checkCircle,
+                  iconColor: scheme.success,
+                  title: p.title,
+                  subtitle: p.detail.isNotEmpty ? p.detail : 'Worth keeping',
+                  trailing: Icon(Icons.check_rounded, color: scheme.success, size: 18.sp),
                 ),
+                isPositive: true,
               ),
             ),
           ],
+
+          // Ranked concerns — same geometry, severity-true colors.
+          if (concerns.isNotEmpty) ...[
+            if (positives.isEmpty) Gap.h16,
+            _TopInsightGroupLabel(label: 'Worth watching', color: scheme.warning),
+            Gap.h8,
+            ...concerns.map((c) => _SeverityInsightCard(concern: c)),
+          ],
+
+          // Warnings — one soft callout instead of scattered lines.
+          if (insight.warnings.isNotEmpty) ...[Gap.h8, _WarningsCallout(warnings: insight.warnings)],
         ],
       ),
     );
   }
-
-  /// Deliberately muted: "higher concern" must not read as "dangerous".
-  Color _severityColor(ConcernSeverity severity, AppColorScheme scheme) => switch (severity) {
-    ConcernSeverity.minor => scheme.textMuted,
-    ConcernSeverity.moderate => scheme.warning,
-    ConcernSeverity.important => scheme.error,
-    ConcernSeverity.higher => scheme.error,
-  };
 }
 
-class _TopInsightRow extends StatelessWidget {
-  const _TopInsightRow({required this.icon, required this.color, required this.title, required this.detail, this.severityLabel});
+/// Tiny dotted group eyebrow used inside [ScanTopInsightsCard] to split
+/// "what helps" from "worth watching" without adding two full section cards.
+class _TopInsightGroupLabel extends StatelessWidget {
+  const _TopInsightGroupLabel({required this.label, required this.color});
 
-  final IconData icon;
+  final String label;
   final Color color;
-  final String title;
-  final String detail;
-  final String? severityLabel;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 6.sp,
+        height: 6.sp,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+      Gap.w6,
+      Text(label.toUpperCase(), style: context.eyebrow.copyWith(color: color)),
+    ],
+  );
+}
+
+/// One ranked concern — mirrors `_buildModernFactorCard` geometry (rounded
+/// tinted card, circular icon chip, bold title + caption, chevron-free) but
+/// tinted by the concern's actual severity, so "minor" reads calmer than
+/// "higher". Deliberately muted: higher concern must not read as "dangerous".
+class _SeverityInsightCard extends StatelessWidget {
+  const _SeverityInsightCard({required this.concern});
+
+  final InsightConcern concern;
+
+  Color _severityColor(AppColorScheme scheme) => switch (concern.severity) {
+    ConcernSeverity.minor => scheme.textMuted,
+    ConcernSeverity.moderate => scheme.warning,
+    ConcernSeverity.important || ConcernSeverity.higher => scheme.error,
+  };
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = _severityColor(scheme);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(color: color.withAlpha(isDark ? 30 : 12), borderRadius: BorderRadius.circular(12)),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 8,
-            height: 8,
-            margin: EdgeInsets.only(top: 5.sp),
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(color: color.withAlpha(isDark ? 40 : 18), shape: BoxShape.circle),
+            child: Icon(AppIcons.alertTriangle, size: 18.sp, color: color),
           ),
-          Gap.w10,
+          Gap.w12,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: context.captionBold.copyWith(color: scheme.textPrimary, fontSize: 12.5.sp),
-                      ),
-                    ),
-                    if (severityLabel != null) ...[
-                      Gap.w8,
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: color.withAlpha(28), borderRadius: BorderRadius.circular(6)),
-                        child: Text(
-                          severityLabel!,
-                          style: context.caption.copyWith(color: color, fontSize: 10.sp, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
-                  ],
+                Text(
+                  concern.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.bodySm.copyWith(fontWeight: FontWeight.w600, color: scheme.textPrimary),
                 ),
-                if (detail.isNotEmpty) ...[
-                  Gap.h2,
+                if (concern.detail.isNotEmpty) ...[
+                  const SizedBox(height: 1),
                   Text(
-                    detail,
-                    style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 11.5.sp, height: 1.4),
+                    concern.detail,
+                    style: context.caption.copyWith(color: scheme.textSecondary),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ],
             ),
           ),
+          Gap.w8,
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+            decoration: BoxDecoration(color: color.withAlpha(28), borderRadius: BorderRadius.circular(6)),
+            child: Text(concern.severity.label, style: context.captionBold.copyWith(color: color)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// AI warnings grouped into one calm amber callout (replaces the scattered
+/// icon-rows version, which read as more noise than signal).
+class _WarningsCallout extends StatelessWidget {
+  const _WarningsCallout({required this.warnings});
+
+  final List<String> warnings;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: scheme.warning.withAlpha(isDark ? 30 : 12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.warning.withAlpha(51)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < warnings.length; i++) ...[
+            if (i > 0) Gap.h8,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: EdgeInsets.only(top: 2.h),
+                  child: Icon(AppIcons.info, size: 13.sp, color: scheme.warning),
+                ),
+                Gap.w8,
+                Expanded(
+                  child: Text(warnings[i], style: context.caption.copyWith(color: scheme.textSecondary, height: 1.4)),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

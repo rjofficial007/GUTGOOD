@@ -3,7 +3,8 @@ import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rul
 class IngredientsLabelPrompt {
   IngredientsLabelPrompt._();
 
-  static const String instruction = '''
+  static const String instruction =
+      '''
 PURPOSE:
 Perform a deep, evidence-aware audit of an ingredient label, identifying components that may impact gut health or trigger user sensitivities.
 
@@ -17,7 +18,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 2. Header: **Ingredient Audit**
    ${PromptFormattingRules.exactHeaderNoMarkdown}
 
-3. Content: [Single Emoji] **[Ingredient/Group]**: [Description of its role and potential impact on gut health].
+3. Content: Single Emoji **[Ingredient/Group]**: [Description of its role and potential impact on gut health].
 
 4. Header: **Processing & Additives**
    ${PromptFormattingRules.exactHeader}

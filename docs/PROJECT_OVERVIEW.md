@@ -18,7 +18,7 @@ The application aims to bridge the gap between "what we eat" and "how we feel" b
 ## Technology Stack
 - **Framework:** Flutter (3.11.0+)
 - **Backend:** Firebase (Auth, Firestore, Cloud Functions, Storage)
-- **AI Engine:** OpenAI GPT-4o / GPT-4o-mini via a secure Cloud Function proxy (`aiProxy`) with server-side quota enforcement.
+- **AI Engine:** OpenAI GPT-4o / GPT-4o-mini via a secure Cloud Function proxy (`aiProxy`) with server-side usage metering (limits are a soft paywall under the client-side premium model — see `ACCEPTED_RISKS.md` R1–R3).
 - **AI Architecture:** Modular prompt engine with dedicated intent-specific logic in `lib/core/services/prompts/mode_prompts/`.
 - **Payments:** RevenueCat (purchases_flutter) for subscription management
 - **Product Data:** Open Food Facts API

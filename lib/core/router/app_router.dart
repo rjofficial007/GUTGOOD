@@ -5,11 +5,14 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
+import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
+import 'package:gutgood/core/models/scan_list_args.dart';
+import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/router/route_codec.dart';
@@ -33,15 +36,12 @@ import 'package:gutgood/features/insights/presentation/pages/pattern_detail_scre
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
-import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/features/product_details/presentation/pages/additive_detail_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/additives_list_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/product_not_found_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/scan_list_detail_screen.dart';
-import 'package:gutgood/features/product_details/presentation/pages/swap_detail_screen.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/product_details/presentation/pages/scan_result_screen.dart';
+import 'package:gutgood/features/product_details/presentation/pages/swap_detail_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/symptom_detail_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/cycle_phase_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/goals_screen.dart';
@@ -216,7 +216,10 @@ class AppRouter {
                 path: AppRoutes.additivesList,
                 builder: (context, state) => AdditivesListScreen(args: state.extra as AdditiveListArgs),
               ),
-              GoRoute(path: AppRoutes.swapDetail, builder: (context, state) => SwapDetailScreen(swap: state.extra as ProductSwap)),
+              GoRoute(
+                path: AppRoutes.swapDetail,
+                builder: (context, state) => SwapDetailScreen(swap: state.extra as ProductSwap),
+              ),
             ],
           ),
           StatefulShellBranch(

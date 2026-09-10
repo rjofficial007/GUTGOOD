@@ -3,7 +3,8 @@ import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rul
 class MealSnapPrompt {
   MealSnapPrompt._();
 
-  static const String instruction = '''
+  static const String instruction =
+      '''
 PURPOSE:
 Analyze a meal photo and provide a high-energy, supportive nutrition coaching session focused on metabolic balance and gut health.
 
@@ -20,9 +21,9 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
    ${PromptFormattingRules.exactHeaderNoMarkdown}
 
 4. Content: 
-[Single Emoji] **Protein**: [How the protein source supports metabolic health].
-[Single Emoji] **Fiber**: [How the plant/fiber source supports the microbiome].
-[Single Emoji] **Healthy Fats**: [How the fats contribute to satiety and hormone health].
+Single Emoji **Protein**: [How the protein source supports metabolic health].
+Single Emoji **Fiber**: [How the plant/fiber source supports the microbiome].
+Single Emoji **Healthy Fats**: [How the fats contribute to satiety and hormone health].
 
 5. Header: **One Simple Addition**
    ${PromptFormattingRules.exactHeader}

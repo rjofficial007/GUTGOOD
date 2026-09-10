@@ -12,6 +12,10 @@
  * (purchases_flutter). The app mirrors the entitlement into
  * user_profiles/{uid}.isPremium so the aiProxy quota check can read it;
  * there is intentionally no server-side RevenueCat integration here.
+ *
+ * Read ../docs/ACCEPTED_RISKS.md before changing any quota/premium/email
+ * behavior — several "soft" behaviors below are deliberate, registered
+ * decisions (R1–R9), not latent bugs.
  */
 import * as admin from 'firebase-admin';
 

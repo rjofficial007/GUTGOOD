@@ -11,12 +11,10 @@ import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
-import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/super_card.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_bento_cards.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -218,64 +216,5 @@ class InsightDashboardSliver extends StatelessWidget {
   int _calculateTriggerScore(AIInsight data) {
     final total = math.max(1, data.healingFoods.length + data.triggerFoods.length);
     return ((data.triggerFoods.length / total) * 100).round();
-  }
-}
-
-
-class TrackingInProgressCard extends StatelessWidget {
-  const TrackingInProgressCard({super.key, required this.mealsLogged, required this.symptomsLogged, required this.scansDone});
-
-  final int mealsLogged;
-  final int symptomsLogged;
-  final int scansDone;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    const totalTarget = 4;
-    final currentProgress = (scansDone + mealsLogged + symptomsLogged).clamp(0, totalTarget);
-    final progressPercent = (currentProgress / totalTarget).clamp(0.0, 1.0);
-
-    return BentoCard(
-      padding: const EdgeInsets.all(20),
-      backgroundColor: isDark ? AppPalette.darkCard : scheme.cardBackground,
-      borderColor: AppPalette.purple.withAlpha(50),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppPalette.purple.withAlpha(26), shape: BoxShape.circle),
-                child: Icon(AppIcons.brain, size: 16.sp, color: AppPalette.purple),
-              ),
-              Gap.w10,
-              Text(
-                'PATTERN ENGINE INITIALIZING',
-                style: context.captionBold.copyWith(color: AppPalette.purple, letterSpacing: 1.2, fontSize: 9.sp, fontWeight: FontWeight.w900),
-              ),
-            ],
-          ),
-          Gap.h12,
-          Text(
-            'Keep Logging Your Meals & Feelings',
-            style: context.headingSm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900),
-          ),
-          Gap.h6,
-          Text(
-            'GutGood needs at least 3 meals and 1 feeling log to discover your unique body patterns. Progress: $currentProgress / $totalTarget items tracked.',
-            style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.3),
-          ),
-          Gap.h16,
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(value: progressPercent, minHeight: 8.h, backgroundColor: scheme.borderSubtle, valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.purple)),
-          ),
-        ],
-      ),
-    );
   }
 }

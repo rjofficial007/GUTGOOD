@@ -5,10 +5,10 @@ import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/models/route_arguments.dart';
+import 'package:gutgood/core/models/scan_list_args.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
-import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 /// go_router `extra` codec: extras are serialized as JSON (state
 /// restoration), so every non-primitive type passed as `state.extra` in

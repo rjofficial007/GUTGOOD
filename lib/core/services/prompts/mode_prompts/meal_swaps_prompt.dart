@@ -3,7 +3,8 @@ import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rul
 class MealSwapsPrompt {
   MealSwapsPrompt._();
 
-  static const String instruction = '''
+  static const String instruction =
+      '''
 PURPOSE:
 Suggest swaps or alternatives when requested or when a significant improvement is possible.
 
@@ -32,7 +33,7 @@ STRUCTURE (MANDATORY ORDER):
 3. Header: **Recommended Swaps**
    ${PromptFormattingRules.exactHeaderNoMarkdown}
 
-4. Content: [Single Emoji matching the food] **[Swap Item]**: [Conversational recommendation of what to swap it with and why].
+4. Content: Single Emoji matching the food **[Swap Item]**: [Conversational recommendation of what to swap it with and why].
 
 5. Header: **The GutGood take:**
    ${PromptFormattingRules.exactHeader}

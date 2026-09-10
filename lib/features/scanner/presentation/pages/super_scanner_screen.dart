@@ -13,6 +13,7 @@ import 'package:gutgood/core/models/off_product.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/barcode_validator.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
@@ -156,7 +157,11 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     if (_currentMode != ScannerMode.barcode || _isSheetOpen) return;
     if (_scanningState == ScanningState.scanning || _scanningState == ScanningState.detected || _scanningState == ScanningState.ready) return;
 
-    final barcode = capture.barcodes.firstOrNull?.displayValue ?? capture.barcodes.firstOrNull?.rawValue;
+    // smooth-app scan behavior: drop QR codes / too-short values entirely
+    // (no haptic, no state change — the scanner simply keeps searching), and
+    // normalize the code (UPC-A → EAN-13, dash stripping) before use.
+    final rawCode = capture.barcodes.firstOrNull?.displayValue ?? capture.barcodes.firstOrNull?.rawValue;
+    final barcode = BarcodeValidator.normalizeForScan(rawCode);
     if (barcode != null) {
       setState(() => _scanningState = ScanningState.detected);
       unawaited(HapticFeedback.mediumImpact());
