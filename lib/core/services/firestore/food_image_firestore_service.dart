@@ -64,7 +64,7 @@ class FoodImageServiceImpl implements FoodImageService {
             'hash': hash,
             'storagePath': storagePath,
             'downloadUrl': downloadUrl,
-            if (bytes != null) 'bytes': bytes,
+            'bytes': ?bytes,
             'links': const FoodImageLinks().toMap(),
             'linkCount': 0,
             'foods': const [],
@@ -72,7 +72,7 @@ class FoodImageServiceImpl implements FoodImageService {
             'updatedAt': FieldValue.serverTimestamp(),
           });
         } else {
-          tx.update(ref, {'storagePath': storagePath, 'downloadUrl': downloadUrl, if (bytes != null) 'bytes': bytes, 'updatedAt': FieldValue.serverTimestamp()});
+          tx.update(ref, {'storagePath': storagePath, 'downloadUrl': downloadUrl, 'bytes': ?bytes, 'updatedAt': FieldValue.serverTimestamp()});
         }
       });
     } catch (e) {

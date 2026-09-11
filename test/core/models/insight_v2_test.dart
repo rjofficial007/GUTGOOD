@@ -36,14 +36,14 @@ void main() {
     });
 
     test('food emoji defaults derive from the name; stored emoji is kept', () {
-      expect(HealingFood.fromMap({'name': 'Pizza', 'effect': 'x'}).emoji, '🍕');
-      expect(TriggerFood.fromMap({'name': 'Oats', 'effect': 'x'}).emoji, '🥣');
-      expect(TopHighlight.fromMap({'food': 'Salad', 'effects': 'x', 'timeframe': 'w', 'frequency': '1x'}).emoji, '🥗');
-      expect(FoodImpact.fromMap({'food': 'Coffee', 'impactType': 'positive'}).emoji, '☕');
+      expect(HealingFood.fromMap(const {'name': 'Pizza', 'effect': 'x'}).emoji, '🍕');
+      expect(TriggerFood.fromMap(const {'name': 'Oats', 'effect': 'x'}).emoji, '🥣');
+      expect(TopHighlight.fromMap(const {'food': 'Salad', 'effects': 'x', 'timeframe': 'w', 'frequency': '1x'}).emoji, '🥗');
+      expect(FoodImpact.fromMap(const {'food': 'Coffee', 'impactType': 'positive'}).emoji, '☕');
 
       // Stored values (legacy docs) win; empty strings count as missing.
-      expect(HealingFood.fromMap({'name': 'Pizza', 'effect': 'x', 'emoji': '🌮'}).emoji, '🌮');
-      expect(HealingFood.fromMap({'name': 'Pizza', 'effect': 'x', 'emoji': ''}).emoji, '🍕');
+      expect(HealingFood.fromMap(const {'name': 'Pizza', 'effect': 'x', 'emoji': '🌮'}).emoji, '🌮');
+      expect(HealingFood.fromMap(const {'name': 'Pizza', 'effect': 'x', 'emoji': ''}).emoji, '🍕');
     });
   });
 
@@ -67,7 +67,7 @@ void main() {
       final rebuilt = InsightEvidence.fromPatterns([_pattern(timeframeDays: 12)]);
       expect(rebuilt.spanDays, 12);
       expect(rebuilt.patternRefs, hasLength(1));
-      expect(InsightEvidence.fromPatterns([]).spanDays, 0);
+      expect(InsightEvidence.fromPatterns(const []).spanDays, 0);
     });
   });
 
@@ -101,7 +101,7 @@ void main() {
     });
 
     test('legacy docs default the envelope', () {
-      final legacy = AIInsight.fromMap({'gutScore': 70, 'updatedAt': DateTime.now().toIso8601String(), 'detectedPatterns': [
+      final legacy = AIInsight.fromMap({'gutScore': 70, 'updatedAt': DateTime.now().toIso8601String(), 'detectedPatterns': const [
         {'type': 'bloating', 'trigger': 'Pizza', 'reaction': 'Bloating', 'frequency': 3, 'confidence': 'Medium', 'description': 'x', 'timeframeDays': 9}
       ]});
 

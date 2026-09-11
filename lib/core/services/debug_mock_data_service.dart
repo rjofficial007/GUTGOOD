@@ -2,29 +2,49 @@ import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/health_alert.dart';
+import 'package:gutgood/core/models/insight_evidence.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/pattern_occurrence.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
+import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/core/utils/yuka_score.dart';
+import 'package:uuid/uuid.dart';
 
 /// Service to generate pattern-rich mock data for testing.
 class DebugMockDataService {
-  DebugMockDataService({required HistoryFirestoreService historyFirestoreService, required InsightFirestoreService insightFirestoreService})
-    : _historyFirestoreService = historyFirestoreService,
-      _insightFirestoreService = insightFirestoreService;
+  DebugMockDataService({
+    required HistoryFirestoreService historyFirestoreService,
+    required InsightFirestoreService insightFirestoreService,
+    required ChatFirestoreService chatFirestoreService,
+    required PurchaseService purchaseService,
+    required FoodImageService foodImageService,
+  }) : _historyFirestoreService = historyFirestoreService,
+       _insightFirestoreService = insightFirestoreService,
+       _chatFirestoreService = chatFirestoreService,
+       _purchaseService = purchaseService,
+       _foodImageService = foodImageService;
 
   final HistoryFirestoreService _historyFirestoreService;
   final InsightFirestoreService _insightFirestoreService;
+  final ChatFirestoreService _chatFirestoreService;
+  final PurchaseService _purchaseService;
+  final FoodImageService _foodImageService;
 
   Future<void> generateThirtyDaysData() async {
     AppLogger.mock('Generating 30 days of structured pattern-rich data...');
+
+    // Set premium status to unlock pro features in mocks
+    _purchaseService.setProStatusForDebug(true);
+
     final now = DateTime.now();
 
     // Track occurrences for pattern generation
@@ -341,6 +361,11 @@ class DebugMockDataService {
       gutScore: 50,
       scoreDiff: '+6',
       updatedAt: now,
+      status: AIInsight.statusReady,
+      origin: AIInsight.originClient,
+      periodFrom: rangeStart,
+      periodTo: now,
+      evidence: InsightEvidence.fromPatterns(patterns, sampleSizes: const SampleSizes(meals: 32, symptoms: 12, scans: 11)),
       topInsight: const InsightSummary(title: 'Meals with whole foods are showing up more often.', description: 'Keep it up! Real food makes a difference.', type: 'Behavioral', strength: 'High'),
       healingTrend: 'More fiber this week settled your digestion.',
       healingFoods: const [
@@ -409,7 +434,60 @@ class DebugMockDataService {
       ),
     );
 
+    // --- CHAT HISTORY SEEDING ---
+    await _seedMockChatHistory(now);
+
     AppLogger.mock('Complete 30-day history, detailed patterns, and weekly insights generated.');
+  }
+
+  Future<void> _seedMockChatHistory(DateTime now) async {
+    AppLogger.mock('Seeding mock chat history...');
+    final msg1Id = const Uuid().v4();
+    final msg2Id = const Uuid().v4();
+
+    // 1. User asks about a meal
+    await _chatFirestoreService.saveMessage(
+      ChatMessage(
+        localId: msg1Id,
+        role: 'user',
+        text: 'I just had some Greek yogurt with blueberries for breakfast. How is that for my gut?',
+        createdAt: now.subtract(const Duration(minutes: 15)),
+        source: 'chat',
+      ),
+    );
+
+    // 2. AI responds with analysis
+    await _chatFirestoreService.saveMessage(
+      ChatMessage(
+        localId: msg2Id,
+        role: 'ai',
+        text:
+            'Great choice! Greek yogurt is excellent for your gut. It provides live probiotic cultures that support your microbiome, and the blueberries add a nice dose of antioxidants and gentle fiber. \n\nI\'ve logged this as a positive meal for you.',
+        createdAt: now.subtract(const Duration(minutes: 14)),
+        source: 'chat',
+        foodMentions: const ['Greek Yogurt', 'Blueberries'],
+      ),
+    );
+
+    // 3. User asks about bloating
+    final msg3Id = const Uuid().v4();
+    await _chatFirestoreService.saveMessage(
+      ChatMessage(localId: msg3Id, role: 'user', text: 'I feel a bit bloated after that pizza I had last night. Any advice?', createdAt: now.subtract(const Duration(minutes: 5)), source: 'chat'),
+    );
+
+    // 4. AI responds with symptom logging and advice
+    final msg4Id = const Uuid().v4();
+    await _chatFirestoreService.saveMessage(
+      ChatMessage(
+        localId: msg4Id,
+        role: 'ai',
+        text:
+            'I\'m sorry to hear you\'re feeling uncomfortable. Bloating after pepperoni pizza is a pattern we\'ve noticed in your logs. \n\nTry drinking some warm ginger tea or taking a short walk to help with digestion. I\'ve noted the bloating in your symptoms.',
+        createdAt: now.subtract(const Duration(minutes: 4)),
+        source: 'chat',
+        symptomMentions: const ['Bloating'],
+      ),
+    );
   }
 
   /// Seeds two fully-detailed showcase scans (low-score + high-score) on top of
@@ -420,21 +498,23 @@ class DebugMockDataService {
   /// Scores come from the real scoring engine (`yuka_score.dart`), so the
   /// breakdown shown in the UI matches what a live scan would produce.
   Future<void> _seedShowcaseScans(DateTime now) async {
-    int scoreFor({String? nutriscore, int? novaGroup, required NutrientData n, required List<String> items, bool organic = false}) {
-      return YukaScore.evaluate(
-        nutriscore: nutriscore,
-        energyKcal: n.calories,
-        fiberG: n.fiber,
-        proteinG: n.proteins,
-        sugarG: n.sugars,
-        saltG: n.salt,
-        saturatedFatG: n.saturatedFat,
-        additiveConcerns: AdditiveConcernDb.resolveAll(items),
-        isOrganic: organic,
-      ).score;
-    }
+    int scoreFor({String? nutriscore, int? novaGroup, required NutrientData n, required List<String> items, bool organic = false}) => YukaScore.evaluate(
+      nutriscore: nutriscore,
+      energyKcal: n.calories,
+      fiberG: n.fiber,
+      proteinG: n.proteins,
+      sugarG: n.sugars,
+      saltG: n.salt,
+      saturatedFatG: n.saturatedFat,
+      additiveConcerns: AdditiveConcernDb.resolveAll(items),
+      isOrganic: organic,
+    ).score;
 
     // --- SHOWCASE 1: instant noodles (ultra-processed, additive-heavy) -> 28 ---
+    const noodlesUrl = 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80';
+    const noodlesHash = 'noodles_mock_hash'; // Usually sha256_16
+    await _foodImageService.registerImage(hash: noodlesHash, storagePath: 'users/debug/food_images/$noodlesHash.jpg', downloadUrl: noodlesUrl);
+
     const noodlesNutrients = NutrientData(calories: 420, fat: 15, saturatedFat: 7, carbs: 62, sugars: 3, fiber: 5.2, proteins: 8, salt: 2.2);
     const noodlesItems = ['E621', 'E631', 'Palm Oil'];
     await _historyFirestoreService.saveToScanHistory(
@@ -451,7 +531,8 @@ class DebugMockDataService {
         source: 'barcode',
         barcode: '8901030821232',
         servingSize: '70g pack (1 serving)',
-        imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
+        imageUrl: noodlesUrl,
+        userImageUrl: noodlesUrl,
         nutrients: noodlesNutrients,
         additives: 'Contains flavour enhancers E621, E631 and palm oil.',
         additiveItems: noodlesItems,
@@ -482,6 +563,10 @@ class DebugMockDataService {
     );
 
     // --- SHOWCASE 2: greek yogurt (clean label, high score) -> 72 ---
+    const yogurtUrl = 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80';
+    const yogurtHash = 'yogurt_mock_hash';
+    await _foodImageService.registerImage(hash: yogurtHash, storagePath: 'users/debug/food_images/$yogurtHash.jpg', downloadUrl: yogurtUrl);
+
     const yogurtNutrients = NutrientData(calories: 95, fat: 6, saturatedFat: 5, carbs: 7, sugars: 5, fiber: 0, proteins: 9.5, salt: 0.3);
     await _historyFirestoreService.saveToScanHistory(
       ScanResult(
@@ -496,7 +581,8 @@ class DebugMockDataService {
         source: 'barcode',
         barcode: '8908001234567',
         servingSize: '100g cup',
-        imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80',
+        imageUrl: yogurtUrl,
+        userImageUrl: yogurtUrl,
         nutrients: yogurtNutrients,
         additives: 'No additives detected.',
         additiveItems: const [],
@@ -527,5 +613,46 @@ class DebugMockDataService {
     );
 
     AppLogger.mock('Showcase scans seeded (noodles 28 + yogurt 72).');
+
+    // --- SEED SAVED FOODS ---
+    final savedItems = await _historyFirestoreService.getScanHistory(limit: 3);
+    for (final item in savedItems) {
+      await _historyFirestoreService.toggleSaveFood(item);
+    }
+    AppLogger.mock('Seeded ${savedItems.length} saved foods.');
+  }
+
+  /// 🟢 NEW: Generates an "Insufficient Data" state to test the Learning Grid UI.
+  Future<void> generateInsufficientDataState() async {
+    AppLogger.mock('Generating insufficient data state (Learning Grid)...');
+    final now = DateTime.now();
+
+    // Just enough to show some progress but not unlock (unlock is scans >= 3 OR (meals >= 3 && symptoms >= 1))
+    await _historyFirestoreService.logMeal(MealLog(items: const ['Morning Oats'], mealType: 'breakfast', createdAt: now, source: 'debug'));
+    await _historyFirestoreService.saveToScanHistory(
+      ScanResult(
+        productName: 'Sample Yogurt',
+        brand: 'Brand',
+        score: 70,
+        createdAt: now,
+        impactType: ImpactType.positive,
+        impact: 'High protein and probiotics support gut health.',
+        category: 'food',
+        source: 'barcode',
+      ),
+    );
+
+    // Generate an "insufficient" insight envelope
+    final insight = AIInsight(
+      gutScore: 0,
+      updatedAt: now,
+      status: AIInsight.statusInsufficientData,
+      origin: AIInsight.originClient,
+      evidence: const InsightEvidence(sampleSizes: SampleSizes(meals: 1, symptoms: 0, scans: 1), spanDays: 0),
+    );
+
+    await _insightFirestoreService.saveInsights(insight, useServerTimestamp: false);
+    await _insightFirestoreService.savePatternData([]); // Clear patterns
+    AppLogger.mock('Insufficient data state generated.');
   }
 }

@@ -26,10 +26,12 @@ class BentoFoodCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = foods.map((f) {
-      if (f is HealingFood || f is TriggerFood) {
-        final dynamic food = f;
-        final img = food.imageUrl?.toString();
-        return SuperCyclerItemData(name: food.name, effect: food.effect, imageUrl: (img != null && img.isNotEmpty) ? img : null);
+      if (f is HealingFood) {
+        final img = f.imageUrl?.toString();
+        return SuperCyclerItemData(name: f.name, effect: f.effect, imageUrl: (img != null && img.isNotEmpty) ? img : null);
+      } else if (f is TriggerFood) {
+        final img = f.imageUrl?.toString();
+        return SuperCyclerItemData(name: f.name, effect: f.effect, imageUrl: (img != null && img.isNotEmpty) ? img : null);
       } else if (f is FoodImpact) {
         final img = f.imageUrl?.toString();
         return SuperCyclerItemData(name: f.food, effect: f.effect, imageUrl: (img != null && img.isNotEmpty) ? img : null);
@@ -44,7 +46,7 @@ class BentoFoodCard extends StatelessWidget {
 
     if (title.toUpperCase() == 'HEALING' || title.toUpperCase() == 'TRIGGERS' || title.toUpperCase() == 'RECENT LOGS' || title.toUpperCase() == 'BETTER SWAPS') {
       final displayScore = score ?? (isPositive ? 85 : 25);
-      Color statusColor = isPositive ? const Color(0xFF27F15B) : const Color(0xFFE9579A);
+      var statusColor = isPositive ? const Color(0xFF27F15B) : const Color(0xFFE9579A);
 
       if (title.toUpperCase() == 'RECENT LOGS') {
         statusColor = const Color(0xFF0759E8); // Premium Blue for History

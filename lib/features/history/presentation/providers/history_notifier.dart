@@ -53,18 +53,15 @@ class HistoryNotifier with ChangeNotifier {
   // Label Scans
   final List<ScanResult> _labelScans = [];
   bool _labelScansLoading = true;
-  bool _labelScansHasMore = true;
 
   // Menu Scans
   final List<ScanResult> _menuScans = [];
   bool _menuScansLoading = true;
-  bool _menuScansHasMore = true;
 
   // Meals
   final List<MealLog> _meals = [];
   bool _mealsLoading = true;
-  bool _mealsLoadingMore = false;
-  bool _mealsHasMore = true;
+  final bool _mealsLoadingMore = false;
 
   // Symptoms
   final List<SymptomLog> _symptoms = [];
@@ -164,7 +161,6 @@ class HistoryNotifier with ChangeNotifier {
     _mealsLoading = false;
     _symptomsLoading = false;
     _scansHasMore = true;
-    _mealsHasMore = true;
     _symptomsHasMore = true;
     notifyListeners();
   }
@@ -194,7 +190,6 @@ class HistoryNotifier with ChangeNotifier {
 
   Future<void> refreshLabelScans() async {
     _labelScansLoading = true;
-    _labelScansHasMore = true;
     notifyListeners();
 
     try {
@@ -202,7 +197,6 @@ class HistoryNotifier with ChangeNotifier {
       _labelScans
         ..clear()
         ..addAll(results);
-      if (results.length < _pageSize) _labelScansHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh label scans', error: e);
     } finally {
@@ -213,7 +207,6 @@ class HistoryNotifier with ChangeNotifier {
 
   Future<void> refreshMenuScans() async {
     _menuScansLoading = true;
-    _menuScansHasMore = true;
     notifyListeners();
 
     try {
@@ -221,7 +214,6 @@ class HistoryNotifier with ChangeNotifier {
       _menuScans
         ..clear()
         ..addAll(results);
-      if (results.length < _pageSize) _menuScansHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh menu scans', error: e);
     } finally {
@@ -251,7 +243,6 @@ class HistoryNotifier with ChangeNotifier {
 
   Future<void> refreshMeals() async {
     _mealsLoading = true;
-    _mealsHasMore = true;
     notifyListeners();
 
     try {
@@ -259,7 +250,6 @@ class HistoryNotifier with ChangeNotifier {
       _meals
         ..clear()
         ..addAll(results);
-      if (results.length < _pageSize) _mealsHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh meals', error: e);
     } finally {
@@ -267,7 +257,6 @@ class HistoryNotifier with ChangeNotifier {
       notifyListeners();
     }
   }
-
 
   Future<void> refreshSymptoms() async {
     _symptomsLoading = true;

@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class InsightStrings {
   const InsightStrings._();
 
@@ -258,4 +260,95 @@ class InsightStrings {
   static String youAteMoreThisWeek(String food) => 'You ate more $food this week';
   static String patternHeadline(String trigger, String reaction) => '$trigger shows up on days you report $reaction.';
   static String evidenceTimes(int positive, int total) => '$positive of $total times';
+
+  // ---------------------------------------------------------------------
+  // Bento Insights (v4 redesign)
+  // ---------------------------------------------------------------------
+  static const String bentoScoreEyebrow = 'GutGood Score';
+  static const String bentoWeeklyEyebrow = 'Weekly Average Score';
+  static const String bentoFoodEyebrow = 'Food Intelligence';
+  static const String bentoMappingEyebrow = 'Mapping your gut';
+  static const String bentoVsLastWeek = 'vs last week';
+  static const String bentoGutBoosters = 'Gut Boosters';
+  static const String bentoWatchItems = 'watch items';
+  static const String bentoPatternNoticed = 'Pattern noticed';
+  static const String bentoImproving = 'Improving';
+  static const String bentoToWatch = 'To watch';
+  static const String bentoWorking = 'Working';
+  static const String bentoInvestigating = 'Investigating';
+  static const String bentoTopFoods = 'Top foods this week';
+  static const String bentoTopWin = 'Top win';
+  static const String bentoCulprit = 'Culprit';
+  static const String bentoRecovery = 'Recovery';
+  static const String bentoBiologicalRoot = 'Biological root';
+  static const String bentoRepeatingEpisode = 'Repeating episode';
+  static const String bentoMultiplier = '3-way multiplier';
+  static const String bentoRescueProtocol = 'Rescue protocol';
+  static const String bentoUnlockPatterns = 'Unlock patterns';
+  static const String bentoHypothesis = 'Hypothesis';
+  static const String bentoLocked = 'Locked';
+  static const String bentoConfidence = 'confidence';
+  static const String bentoEpisodes = 'Episodes';
+  static const String bentoOnsetLag = 'Onset lag';
+  static const String bentoAll = 'All';
+  static const String bentoWins = 'Wins';
+  static const String bentoWatch = 'Watch';
+  static const String bentoFilter = 'Filter';
+  static const String bentoSeeAll = 'See all';
+  static const String bentoAiCore = 'AI core';
+  static const String bentoScans = 'scans';
+  static const String bentoLogged = 'logged';
+  static const String bentoScoreImpact = 'Score impact';
+  static const String bentoTopBooster = 'Top booster';
+  static const String bentoFoodIntelligence = 'Food Intelligence';
+  static const String bentoPatternAnatomy = 'Pattern Anatomy';
+  static const String bentoTriggerSynergy = 'Trigger Synergy';
+  static const String bentoPositiveDays = 'Positive days';
+  static const String bentoWatchDays = 'Watch days';
+  static const String bentoPeak = 'Peak';
+  static const String bentoSwap = 'Swap';
+  static const String bentoDriver = 'Driver';
+  static const String bentoHealer = 'Healer';
+  static const String bentoTrigger = 'Trigger';
+  static const String bentoScanToUnlock = 'Scan to unlock';
+  static const String bentoLogToSolve = 'Log to solve';
+  static const String bentoScanDinnerToUnlock = 'Scan a meal to unlock';
+
+  static String bentoMatchPct(int pct) => '$pct% match';
+  static String bentoPts(int pts) => '${pts > 0 ? '+' : '\u2212'}${pts.abs()} pts';
+  static String bentoOfDays(int n, int total) => '$n of $total days';
+  static String bentoSeeCount(int n) => 'See $n';
+  static String bentoScanProgress(int done, int total) => '$done/$total scans';
+  static String bentoPctMapped(int pct) => '$pct% mapped';
+  static String bentoScanLeft(int n) => n == 1 ? '1 scan left' : '$n scans left';
+
+  // History (screen 04)
+  static const String bentoScoreTrend = 'Score trend';
+  static const String bentoBestDay = 'Best day';
+  static const String bentoBiggestDrop = 'Biggest drop';
+  static const String bentoWinRate = 'Win rate';
+  static const String bentoAiSynthesis = 'AI synthesis';
+  static const String bentoOpenRecap = 'Open weekly recap';
+  static const String bentoReadAnalysis = 'Read full analysis';
+  static const String bentoSearchInsights = 'Search insights';
+  static const String bentoClearFilters = 'Clear filters';
+  static const String bentoNoMatches = 'Nothing matches yet';
+  static const String bentoNoMatchesDesc = 'Try a different filter, or clear your search to see every insight.';
+  static const String bentoNoHistoryTitle = 'Your gut health story';
+  static const String bentoToday = 'Today';
+  static const String bentoYesterday = 'Yesterday';
+  static const String bentoSortNewest = 'Newest';
+  static const String bentoSortOldest = 'Oldest';
+  static const String bentoSortGains = 'Gains';
+  static const String bentoSortDrops = 'Drops';
+
+  static String bentoEntries(int n) => n == 1 ? '1 insight' : '$n insights';
+  static String bentoScoreOf(int s) => 'Score $s';
+  static String bentoWinsOf(int w, int total) => '$w of $total positive';
+  static String bentoWinPct(int pct) => '$pct% positive days';
+  static String bentoWatchSteady(int watch, int neutral) =>
+      watch == 0 ? '$neutral steady days' : '$watch to watch \u00B7 $neutral steady';
+  static String bentoNet(int pts) => '${pts > 0 ? '+' : pts < 0 ? '\u2212' : '\u00B1'}${pts.abs()} pts overall';
+  static String bentoRange(String from, String to) => '$from \u2013 $to';
+  static String bentoMonthHeader(DateTime d) => DateFormat('MMMM yyyy').format(d);
 }

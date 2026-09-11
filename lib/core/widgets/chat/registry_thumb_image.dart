@@ -1,10 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
-import 'package:gutgood/core/constants/app_icons.dart';
 
 /// Chat-strip thumbnail that prefers the 320px registry thumb over the
 /// 1024px Storage original (§E bandwidth win on history scroll). Resolution
@@ -38,10 +38,12 @@ class _RegistryThumbImageState extends State<RegistryThumbImage> {
     sl<FoodImageService>()
         .resolveThumbUrl(hash: hash, fullUrl: widget.fullUrl)
         .then((url) {
-          if (mounted) setState(() {
+          if (mounted) {
+            setState(() {
             _resolved = url;
             _done = true;
           });
+          }
         })
         .catchError((_) {
           if (mounted) setState(() => _done = true);

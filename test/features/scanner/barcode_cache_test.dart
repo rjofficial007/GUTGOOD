@@ -3,8 +3,8 @@ import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/models/symptom_log.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
@@ -92,7 +92,12 @@ void main() {
     );
 
     when(() => chat.saveMessage(any())).thenAnswer((_) async => 'msg-id');
-    when(() => analytics.logEvent(name: any(named: 'name'), parameters: any(named: 'parameters'))).thenAnswer((_) async {});
+    when(
+      () => analytics.logEvent(
+        name: any(named: 'name'),
+        parameters: any(named: 'parameters'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
   group('getCachedBarcodeScan (P0-3)', () {
@@ -103,7 +108,12 @@ void main() {
 
       expect(result, isNull);
       verifyNever(() => chat.saveMessage(any()));
-      verifyNever(() => analytics.logEvent(name: any(named: 'name'), parameters: any(named: 'parameters')));
+      verifyNever(
+        () => analytics.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      );
     });
 
     test('stale entry (older than 30 days) falls through to full analysis', () async {
@@ -136,7 +146,7 @@ void main() {
       );
       expect(result!.score, expected.score);
       expect(result.score, isNot(1), reason: 'The bogus stored score must be replaced by the engine result.');
-      expect(result.insight, isNotNull, reason: 'The engine recomposes the explanation fresh.');
+      expect(result.impact, expected.explanation, reason: 'The engine recomposes the explanation fresh.');
     });
 
     test('fresh hit mints new turn IDs and writes no history/journal docs', () async {
@@ -149,7 +159,13 @@ void main() {
       expect(result!.scanId, isNot('original-scan'));
       expect(result.chatMessageId, isNot('original-turn'));
       expect(result.chatMessageId, isNotNull);
-      verifyNever(() => history.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
+      verifyNever(
+        () => history.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      );
       verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
       verifyNever(() => history.logSymptom(any(), docId: any(named: 'docId')));
     });
@@ -161,7 +177,14 @@ void main() {
 
       final chatMsg = verify(() => chat.saveMessage(captureAny())).captured.single as ChatMessage;
       expect(chatMsg.scanData, isNotNull);
-      final params = verify(() => analytics.logEvent(name: 'scan_performed', parameters: captureAny(named: 'parameters'))).captured.single as Map;
+      final params =
+          verify(
+                () => analytics.logEvent(
+                  name: 'scan_performed',
+                  parameters: captureAny(named: 'parameters'),
+                ),
+              ).captured.single
+              as Map;
       expect(params['source'], 'barcode_cache');
     });
 

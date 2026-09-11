@@ -7,12 +7,9 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/features/chat/domain/usecases/persist_ai_response_usecase.dart';
-import 'package:gutgood/features/logs/domain/repositories/log_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}
-
-class MockLogRepository extends Mock implements LogRepository {}
 
 class MockAppStateService extends Mock implements AppStateService {}
 
@@ -21,7 +18,6 @@ class MockStreakService extends Mock implements StreakService {}
 void main() {
   late PersistAiResponseUseCase useCase;
   late MockHistoryFirestoreService mockFirestoreService;
-  late MockLogRepository mockLogRepository;
   late MockAppStateService mockAppStateService;
   late MockStreakService mockStreakService;
 
@@ -33,7 +29,6 @@ void main() {
 
   setUp(() {
     mockFirestoreService = MockHistoryFirestoreService();
-    mockLogRepository = MockLogRepository();
     mockAppStateService = MockAppStateService();
     mockStreakService = MockStreakService();
     useCase = PersistAiResponseUseCase(firestoreService: mockFirestoreService, appStateService: mockAppStateService, streakService: mockStreakService);
@@ -113,7 +108,13 @@ void main() {
       final output = await useCase.call(labelResult, source: 'label', persistedTagBlocks: persistedTags);
 
       expect(output.meal, isNull);
-      verifyNever(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
+      verifyNever(
+        () => mockFirestoreService.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      );
       verifyNever(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId')));
     });
 
@@ -131,7 +132,13 @@ void main() {
       final output = await useCase.call(lowConfidenceResult, persistedTagBlocks: persistedTags);
 
       expect(output, equals(lowConfidenceResult));
-      verifyNever(() => mockFirestoreService.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
+      verifyNever(
+        () => mockFirestoreService.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      );
       verifyNever(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId')));
       verifyNever(() => mockFirestoreService.logSymptom(any(), docId: any(named: 'docId')));
       verifyNever(() => mockStreakService.markActivityToday());

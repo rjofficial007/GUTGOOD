@@ -23,7 +23,7 @@ class NarrativeText {
   /// ZWJ chains, variation selectors, skin tones) inside square brackets,
   /// e.g. `[🫐]`, `[🧇‍🥞]`.
   static final RegExp _emojiBrackets = RegExp(
-    '\\[(?:[\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2B00}-\\u{2BFF}\\u{1F3FB}-\\u{1F3FF}\\u{200D}\\u{FE0F}\\s]+)\\]\\s*',
+    r'\[(?:[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F3FB}-\u{1F3FF}\u{200D}\u{FE0F}\s]+)\]\s*',
     unicode: true,
   );
 
@@ -32,8 +32,8 @@ class NarrativeText {
   /// only the bracket form was flagged as noise.
   static String sanitize(String text) => text
       .replaceAll(_emojiBrackets, '')
-      .replaceAll(RegExp('[ \\t]{2,}'), ' ')
-      .replaceAll(RegExp('\\n{3,}'), '\n\n')
+      .replaceAll(RegExp(r'[ \t]{2,}'), ' ')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
       .trim();
 
   /// The canonical rating line — single source for the prose version of the

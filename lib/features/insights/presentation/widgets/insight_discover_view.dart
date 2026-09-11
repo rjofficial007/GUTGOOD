@@ -591,7 +591,7 @@ class _HeroVisual extends StatelessWidget {
     );
     final photo = _photoUrl();
     if (photo == null) return fallback;
-    return Image.network(photo, fit: BoxFit.cover, errorBuilder: (_, __, ___) => fallback);
+    return Image.network(photo, fit: BoxFit.cover, errorBuilder: (_, _, _) => fallback);
   }
 
   String? _photoUrl() {
@@ -742,7 +742,7 @@ class _TopFoodsSection extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: foods.length,
-            separatorBuilder: (_, __) => Gap.w12,
+            separatorBuilder: (_, _) => Gap.w12,
             itemBuilder: (context, index) {
               final food = foods[index];
               return _FoodCard(food: food, onTap: () => _openFood(context, food));
@@ -838,7 +838,7 @@ class _FoodCard extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: (food.imageUrl != null && food.imageUrl!.isNotEmpty) ? food.imageUrl! : getDynamicImageUrl(food.name),
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: (_, _, _) => Container(
                   color: bg,
                   child: Center(child: Icon(food.isPositive ? AppIcons.salad : AppIcons.alertTriangle, size: 28, color: accent)),
                 ),

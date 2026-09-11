@@ -82,15 +82,7 @@ class StorageServiceImpl implements StorageService {
   Future<Uint8List> _compressForStorage(Uint8List bytes) async {
     if (bytes.isEmpty) return bytes;
     try {
-      final compressedBytes = await FlutterImageCompress.compressWithList(
-        bytes,
-        minWidth: 1024,
-        minHeight: 1024,
-        quality: 80,
-        format: CompressFormat.jpeg,
-        autoCorrectionAngle: true,
-        keepExif: false,
-      );
+      final compressedBytes = await FlutterImageCompress.compressWithList(bytes, minWidth: 1024, minHeight: 1024, quality: 80, format: CompressFormat.jpeg, autoCorrectionAngle: true, keepExif: false);
       AppLogger.info('StorageService: Storage-profile size: ${(compressedBytes.lengthInBytes / 1024).toStringAsFixed(2)}KB');
       return compressedBytes;
     } catch (e, st) {
@@ -134,9 +126,7 @@ class StorageServiceImpl implements StorageService {
         if (best.lengthInBytes <= _aiTargetBytes) break;
       }
 
-      AppLogger.info(
-        'StorageService: AI image ${(bytes.lengthInBytes / 1024).toStringAsFixed(0)}KB -> ${(best.lengthInBytes / 1024).toStringAsFixed(0)}KB',
-      );
+      AppLogger.info('StorageService: AI image ${(bytes.lengthInBytes / 1024).toStringAsFixed(0)}KB -> ${(best.lengthInBytes / 1024).toStringAsFixed(0)}KB');
       return best;
     } catch (e, st) {
       // Never block a scan on a compression failure — send the original bytes.
@@ -204,19 +194,6 @@ class StorageServiceImpl implements StorageService {
     } catch (e) {
       AppLogger.error('StorageService: Profile picture upload failed', error: e);
       return null;
-    }
-  }
-
-
-
-
-  Future<void> _deleteFolder(Reference ref) async {
-    final listResult = await ref.listAll();
-    for (final item in listResult.items) {
-      await item.delete();
-    }
-    for (final prefix in listResult.prefixes) {
-      await _deleteFolder(prefix);
     }
   }
 }

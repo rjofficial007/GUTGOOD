@@ -1,13 +1,11 @@
 import 'package:equatable/equatable.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 /// P2-10: keeps a stored emoji when present (legacy docs, tolerated LLM
 /// output); otherwise derives it from the food name. Empty strings count as
 /// missing — they previously persisted as invisible UI.
-String _resolveEmoji(String? stored, String foodName) =>
-    (stored == null || stored.isEmpty) ? InsightPresentation.emojiForFood(foodName) : stored;
+String _resolveEmoji(String? stored, String foodName) => (stored == null || stored.isEmpty) ? InsightPresentation.emojiForFood(foodName) : stored;
 
 class InsightSummary extends Equatable {
   const InsightSummary({
@@ -62,7 +60,6 @@ class InsightSummary extends Equatable {
     'positiveCount': positiveCount,
     'negativeCount': negativeCount,
   };
-
 
   @override
   List<Object?> get props => [title, description, type, observation, strength, frequency];

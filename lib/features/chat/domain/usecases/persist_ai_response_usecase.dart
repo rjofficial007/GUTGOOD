@@ -25,11 +25,11 @@ class PersistAiResponseUseCase {
     final outcome = await _persister.persist(result, chatMessageId: chatMessageId, imageUrl: imageUrl, source: source, persistedTagBlocks: persistedTagBlocks);
 
     if (outcome.hasPersistedAnything) {
-      _streakService.markActivityToday();
+      await _streakService.markActivityToday();
       _appStateService.notifyChatUpdated();
     } else if (outcome.chatOnlyReason == ChatOnlyReason.labelMenu) {
       // Label/menu turns still count as activity (chat interaction happened).
-      _streakService.markActivityToday();
+      await _streakService.markActivityToday();
     }
     return outcome.result;
   }

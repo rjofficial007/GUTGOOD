@@ -27,7 +27,6 @@ class ScannerNotifier with ChangeNotifier {
   final StorageService _storageService;
 
   bool _isProcessing = false;
-  ScanResult? _lastResult;
   bool _isAnalyzing = false;
   bool _lastErrorWasOffline = false;
 
@@ -76,7 +75,6 @@ class ScannerNotifier with ChangeNotifier {
       // personal scan still short-circuits the AI call + upload + new docs.
       final cached = await _repository.getCachedBarcodeScan(barcode: product.barcode ?? '', sensitivities: sensitivities);
       if (cached != null) {
-        _lastResult = cached;
         return cached;
       }
 
@@ -102,8 +100,6 @@ class ScannerNotifier with ChangeNotifier {
         AppLogger.info('ScannerNotifier: Saving barcode scan result for ${finalScan.productName} (ID: $scanId)');
         await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
 
-        _lastResult = finalScan;
-
         // 🟢 Trigger streak celebration if one is pending (Scan finished)
         sl<ProfileNotifier>().triggerPendingCelebration();
 
@@ -119,7 +115,6 @@ class ScannerNotifier with ChangeNotifier {
       notifyListeners();
     }
   }
-
 
   Future<ScanResult?> processImage(Uint8List bytes, {String? mode, String? userText}) async {
     _isProcessing = true;
@@ -158,8 +153,6 @@ class ScannerNotifier with ChangeNotifier {
         AppLogger.info('ScannerNotifier: Saving image scan result for ${finalScan.productName} (detected: ${result.imageMode}, ID: $scanId)');
         await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
 
-        _lastResult = finalScan;
-
         // 🟢 Trigger streak celebration if one is pending (Scan finished)
         sl<ProfileNotifier>().triggerPendingCelebration();
 
@@ -175,7 +168,6 @@ class ScannerNotifier with ChangeNotifier {
       notifyListeners();
     }
   }
-
 
   /// Handles photo capture logic, detecting barcodes if in barcode mode or proceeding with vision.
   Future<void> handlePhotoCapture({

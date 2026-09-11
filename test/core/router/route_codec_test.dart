@@ -34,7 +34,7 @@ void main() {
     test('round-trips AIInsight with JSON-safe dates', () {
       final out =
           roundTrip(
-                AIInsight.fromMap({
+                AIInsight.fromMap(const {
                   'gutScore': 80,
                   'topInsight': {'title': 'T', 'description': 'D', 'type': 'Pattern'},
                 }),
@@ -45,17 +45,17 @@ void main() {
     });
 
     test('round-trips BodyPattern', () {
-      final out = roundTrip(BodyPattern.fromMap({'type': 'Bloating', 'trigger': 'Milk'})) as BodyPattern;
+      final out = roundTrip(BodyPattern.fromMap(const {'type': 'Bloating', 'trigger': 'Milk'})) as BodyPattern;
       expect(out.trigger, 'Milk');
     });
 
     test('round-trips ScanResult', () {
-      final out = roundTrip(ScanResult.fromMap({'productName': 'Oats', 'brand': 'Quaker', 'category': 'food', 'score': 90, 'impact': 'Great'})) as ScanResult;
+      final out = roundTrip(ScanResult.fromMap(const {'productName': 'Oats', 'brand': 'Quaker', 'category': 'food', 'score': 90, 'impact': 'Great'})) as ScanResult;
       expect(out.productName, 'Oats');
     });
 
     test('round-trips ScanResultArgs', () {
-      final out = roundTrip(ScanResultArgs(scanData: ScanResult.fromMap({'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'}), heroTag: 'h')) as ScanResultArgs;
+      final out = roundTrip(ScanResultArgs(scanData: ScanResult.fromMap(const {'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'}), heroTag: 'h')) as ScanResultArgs;
       expect(out.scanData.productName, 'Oats');
       expect(out.heroTag, 'h');
     });
@@ -84,7 +84,7 @@ void main() {
     });
 
     test('round-trips ScanListDetailArgs', () {
-      final out = roundTrip(ScanListDetailArgs(kind: ScanListKind.additives, scan: ScanResult.fromMap({'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'}))) as ScanListDetailArgs;
+      final out = roundTrip(ScanListDetailArgs(kind: ScanListKind.additives, scan: ScanResult.fromMap(const {'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'}))) as ScanListDetailArgs;
       expect(out.kind, ScanListKind.additives);
       expect(out.scan.productName, 'Oats');
     });

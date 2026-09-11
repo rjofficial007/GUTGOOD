@@ -116,7 +116,7 @@ void main() {
     test('isLabelOrMenuTurn unifies source, category, and intent signals', () {
       final bySource = AiAnalysisResult(text: 'x', scan: _scan().copyWith(source: 'menu'));
       final byCategory = AiAnalysisResult(text: 'x', scan: _scan().copyWith(category: 'label'));
-      final byIntent = AiAnalysisResult(text: 'x', intent: UserIntent.menuRecommendation);
+      const byIntent = AiAnalysisResult(text: 'x', intent: UserIntent.menuRecommendation);
       final normal = AiAnalysisResult(text: 'x', intent: UserIntent.mealRating, scan: _scan());
 
       expect(DomainEventPersister.isLabelOrMenuTurn(bySource), isTrue);

@@ -187,8 +187,8 @@ class AiServiceImpl implements AiService {
       'usageType': (images != null && images.isNotEmpty) ? 'scan' : 'chat',
       'idempotencyKey': idempotencyKey,
       'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
-      if (intent != null) 'intent': intent,
-      if (promptVersion != null) 'promptVersion': promptVersion,
+      'intent': ?intent,
+      'promptVersion': ?promptVersion,
     });
 
     AppLogger.ai('streaming via proxy (history: ${history.length}, images: ${images?.length ?? 0})');
@@ -360,7 +360,7 @@ class AiServiceImpl implements AiService {
       'usageType': usageType,
       'idempotencyKey': idempotencyKey,
       'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
-      if (promptVersion != null) 'promptVersion': promptVersion,
+      'promptVersion': ?promptVersion,
     });
 
     var attempts = 0;

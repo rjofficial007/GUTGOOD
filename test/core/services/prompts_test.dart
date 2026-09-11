@@ -51,11 +51,11 @@ void main() {
 
   group('Prompts.chatSystemInstruction — size & cacheability contract', () {
     /// Mirrors the server-side cap in functions/src/config.ts.
-    const int maxSystemChars = 24000;
+    const maxSystemChars = 24000;
 
     /// Marker separating the cacheable static block from per-user/per-request
     /// values (see the ORDERING CONTRACT comment in prompts.dart).
-    const String dynamicMarker = '=================== DYNAMIC CONTEXT (not cacheable) ===================';
+    const dynamicMarker = '=================== DYNAMIC CONTEXT (not cacheable) ===================';
 
     String buildWorstCaseProfile() => Prompts.chatSystemInstruction(
       userGoals: List.generate(8, (i) => 'Reduce bloating and improve steady energy levels throughout the day (goal ${i + 1})'),
@@ -120,14 +120,14 @@ void main() {
     });
 
     test('image classification prompt covers every canonical UserIntent token', () {
-      final instruction = ImageClassificationPrompt.instruction;
+      const instruction = ImageClassificationPrompt.instruction;
       for (final intent in UserIntent.all) {
         expect(instruction.contains(intent), isTrue, reason: 'Intent "$intent" must be classifiable from photo turns too (e.g. symptom photos).');
       }
     });
 
     test('image classification prompt covers every canonical ImageMode token', () {
-      final instruction = ImageClassificationPrompt.instruction;
+      const instruction = ImageClassificationPrompt.instruction;
       for (final mode in ImageMode.all) {
         expect(instruction.contains(mode), isTrue, reason: 'ImageMode "$mode" must be a documented category.');
       }

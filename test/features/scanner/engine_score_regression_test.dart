@@ -1,11 +1,9 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/off_product.dart';
-import 'package:gutgood/core/models/scan_insight.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
@@ -47,30 +45,22 @@ ScannerRepositoryImpl buildRepository({
   required MockAiClassifierService classifier,
   required MockProcessChatTagUseCase tagUseCase,
   required MockAnalyticsService analytics,
-}) =>
-    ScannerRepositoryImpl(
-      offService: MockOffService(),
-      aiService: ai,
-      aiClassifierService: classifier,
-      chatFirestoreService: MockChatFirestoreService(),
-      historyFirestoreService: MockHistoryFirestoreService(),
-      notificationService: MockNotificationService(),
-      appStateService: MockAppStateService(),
-      analyticsService: analytics,
-      streakService: MockStreakService(),
-      processChatTagUseCase: tagUseCase,
-      eventPersister: DomainEventPersister(historyFirestoreService: MockHistoryFirestoreService()),
-    );
+}) => ScannerRepositoryImpl(
+  offService: MockOffService(),
+  aiService: ai,
+  aiClassifierService: classifier,
+  chatFirestoreService: MockChatFirestoreService(),
+  historyFirestoreService: MockHistoryFirestoreService(),
+  notificationService: MockNotificationService(),
+  appStateService: MockAppStateService(),
+  analyticsService: analytics,
+  streakService: MockStreakService(),
+  processChatTagUseCase: tagUseCase,
+  eventPersister: DomainEventPersister(historyFirestoreService: MockHistoryFirestoreService()),
+);
 
-ScanResult bareScan({int score = 50, ScanInsight? insight}) => ScanResult(
-      productName: 'Grilled chicken salad',
-      brand: '',
-      score: score,
-      impactType: ImpactType.neutral,
-      impact: 'A balanced plate',
-      createdAt: DateTime(2026, 1, 1),
-      insight: insight,
-    );
+ScanResult bareScan({int score = 50}) =>
+    ScanResult(productName: 'Grilled chicken salad', brand: '', score: score, impactType: ImpactType.neutral, impact: 'A balanced plate', createdAt: DateTime(2026, 1, 1));
 
 void main() {
   late MockAiService mockAiService;
@@ -90,7 +80,12 @@ void main() {
     mockTagUseCase = MockProcessChatTagUseCase();
     mockAnalytics = MockAnalyticsService();
 
-    when(() => mockAnalytics.logEvent(name: any(named: 'name'), parameters: any(named: 'parameters'))).thenAnswer((_) async {});
+    when(
+      () => mockAnalytics.logEvent(
+        name: any(named: 'name'),
+        parameters: any(named: 'parameters'),
+      ),
+    ).thenAnswer((_) async {});
     when(() => mockAiService.lastPromptVersion).thenReturn(null);
     when(() => mockAiService.lastServedModel).thenReturn(null);
   });
@@ -99,27 +94,34 @@ void main() {
     Future<ScanResult?> runVision(ScanResult modelScan) async {
       final repo = buildRepository(ai: mockAiService, classifier: mockClassifier, tagUseCase: mockTagUseCase, analytics: mockAnalytics);
 
-      when(() => mockClassifier.classifyImage(imageBytes: any(named: 'imageBytes'), userText: any(named: 'userText'), modeHint: any(named: 'modeHint')))
-          .thenAnswer((_) async => const AiClassificationResult(imageMode: 'FOOD', intent: 'COMPLETE_ANALYSIS', confidence: 1.0));
-      when(() => mockAiService.generateContent(
-            prompt: any(named: 'prompt'),
-            systemInstruction: any(named: 'systemInstruction'),
-            imageBytes: any(named: 'imageBytes'),
-            usageType: any(named: 'usageType'),
-            mode: any(named: 'mode'),
-            promptVersion: any(named: 'promptVersion'),
-          )).thenAnswer((_) async => 'analysis text');
-      when(() => mockTagUseCase(any(), userText: any(named: 'userText'), source: any(named: 'source'), promptVersion: any(named: 'promptVersion'), servedModel: any(named: 'servedModel')))
-          .thenReturn(AiAnalysisResult(text: 'analysis text', scan: modelScan));
+      when(
+        () => mockClassifier.classifyImage(
+          imageBytes: any(named: 'imageBytes'),
+          userText: any(named: 'userText'),
+          modeHint: any(named: 'modeHint'),
+        ),
+      ).thenAnswer((_) async => const AiClassificationResult(imageMode: 'FOOD', intent: 'COMPLETE_ANALYSIS', confidence: 1.0));
+      when(
+        () => mockAiService.generateContent(
+          prompt: any(named: 'prompt'),
+          systemInstruction: any(named: 'systemInstruction'),
+          imageBytes: any(named: 'imageBytes'),
+          usageType: any(named: 'usageType'),
+          mode: any(named: 'mode'),
+          promptVersion: any(named: 'promptVersion'),
+        ),
+      ).thenAnswer((_) async => 'analysis text');
+      when(
+        () => mockTagUseCase(
+          any(),
+          userText: any(named: 'userText'),
+          source: any(named: 'source'),
+          promptVersion: any(named: 'promptVersion'),
+          servedModel: any(named: 'servedModel'),
+        ),
+      ).thenReturn(AiAnalysisResult(text: 'analysis text', scan: modelScan));
 
-      final result = await repo.analyzeImageWithAi(
-        imageBytes: Uint8List.fromList([1, 2, 3]),
-        mode: 'FOOD',
-        goals: const [],
-        sensitivities: const [],
-        lifestyle: const [],
-        cyclePhase: 'none',
-      );
+      final result = await repo.analyzeImageWithAi(imageBytes: Uint8List.fromList([1, 2, 3]), mode: 'FOOD', goals: const [], sensitivities: const [], lifestyle: const [], cyclePhase: 'none');
       return result.scan;
     }
 
@@ -131,34 +133,17 @@ void main() {
     });
 
     test('a photo scan WITH extracted signals is still scored by the engine', () async {
-      final scan = await runVision(
-        bareScan(score: 20).copyWith(nutriscore: 'a', novaGroup: '1'),
-      );
+      final scan = await runVision(bareScan(score: 20).copyWith(nutriscore: 'a', novaGroup: '1'));
 
       expect(scan, isNotNull);
       expect(scan!.score, greaterThan(50), reason: 'Nutri-Score A / NOVA 1 must raise the score above the neutral baseline.');
-      expect(scan.insight?.scoreFactors, isNotEmpty);
-      expect(scan.insight?.scoreExplanation, contains('Score ${scan.score}'));
     });
 
-    test('engine override preserves the model-authored insight layers', () async {
-      final scan = await runVision(
-        bareScan(score: 20).copyWith(
-          nutriscore: 'a',
-          insight: const ScanInsight(
-            summary: 'Mostly whole foods.',
-            positives: [InsightPositive(title: 'High in fibre')],
-            concerns: [InsightConcern(title: 'Salty dressing', severity: ConcernSeverity.moderate)],
-            warnings: ['Contains dairy'],
-          ),
-        ),
-      );
+    test('engine override preserves the model-authored narrative', () async {
+      final scan = await runVision(bareScan(score: 20).copyWith(nutriscore: 'a', impact: 'Mostly whole foods. High in fibre.'));
 
-      expect(scan!.insight?.summary, 'Mostly whole foods.');
-      expect(scan.insight?.positives.single.title, 'High in fibre');
-      expect(scan.insight?.concerns.single.title, 'Salty dressing');
-      expect(scan.insight?.warnings, ['Contains dairy']);
-      expect(scan.insight?.scoreFactors, isNotEmpty, reason: 'Engine factors are merged in, not swapped for the model layers.');
+      expect(scan!.impact, 'Mostly whole foods. High in fibre.');
+      expect(scan.score, greaterThan(50));
     });
   });
 
@@ -166,23 +151,26 @@ void main() {
     Future<ScanResult?> runBarcode({required OffProduct product, required ScanResult modelScan}) async {
       final repo = buildRepository(ai: mockAiService, classifier: mockClassifier, tagUseCase: mockTagUseCase, analytics: mockAnalytics);
 
-      when(() => mockAiService.generateContent(
-            prompt: any(named: 'prompt'),
-            systemInstruction: any(named: 'systemInstruction'),
-            imageBytes: any(named: 'imageBytes'),
-            usageType: any(named: 'usageType'),
-            mode: any(named: 'mode'),
-            promptVersion: any(named: 'promptVersion'),
-          )).thenAnswer((_) async => 'analysis text');
-      when(() => mockTagUseCase(any(), source: any(named: 'source'), promptVersion: any(named: 'promptVersion'), servedModel: any(named: 'servedModel'))).thenReturn(AiAnalysisResult(text: 'analysis text', scan: modelScan));
+      when(
+        () => mockAiService.generateContent(
+          prompt: any(named: 'prompt'),
+          systemInstruction: any(named: 'systemInstruction'),
+          imageBytes: any(named: 'imageBytes'),
+          usageType: any(named: 'usageType'),
+          mode: any(named: 'mode'),
+          promptVersion: any(named: 'promptVersion'),
+        ),
+      ).thenAnswer((_) async => 'analysis text');
+      when(
+        () => mockTagUseCase(
+          any(),
+          source: any(named: 'source'),
+          promptVersion: any(named: 'promptVersion'),
+          servedModel: any(named: 'servedModel'),
+        ),
+      ).thenReturn(AiAnalysisResult(text: 'analysis text', scan: modelScan));
 
-      final result = await repo.analyzeProductWithAi(
-        product: product,
-        goals: const [],
-        sensitivities: const [],
-        lifestyle: const [],
-        cyclePhase: 'none',
-      );
+      final result = await repo.analyzeProductWithAi(product: product, goals: const [], sensitivities: const [], lifestyle: const [], cyclePhase: 'none');
       return result.scan;
     }
 
@@ -193,7 +181,6 @@ void main() {
       );
 
       expect(scan!.score, lessThan(50), reason: 'Nutri-Score E / NOVA 4 must pull the score down regardless of what the model claimed.');
-      expect(scan.insight?.scoreFactors, isNotEmpty);
     });
 
     test('an OFF product with no data still yields the neutral baseline (pre-existing behaviour)', () async {
@@ -206,93 +193,19 @@ void main() {
     });
   });
 
-  group('Hostile payloads must not throw or poison a Firestore write', () {
-    test('malformed insight payloads parse to something safe', () {
-      final insight = ScanInsight.fromMap({
-        'summary': 42,
-        'scoreFactors': ['not a map', null],
-        'positives': [null, 'nope', {'detail': 'no title'}],
-        'concerns': [{'title': null, 'severity': 'CATASTROPHIC'}],
-        'warnings': [null, 7, '  ', 'Contains soy'],
-        'nutritionInsights': 'not a list',
-      });
+  group('Legacy compatibility — old scans parse correctly', () {
+    test('scans saved before schema v2 still parse correctly', () {
+      final legacy = ScanResult.fromMap(const {'productName': 'Old scan', 'brand': 'Legacy', 'score': 74, 'impactType': 'positive', 'impact': 'Fine', 'createdAt': '2026-01-01T00:00:00.000'});
 
-      expect(insight.summary, '42');
-      expect(insight.scoreFactors, isEmpty);
-      expect(insight.positives, isEmpty, reason: 'Entries without a title would render as empty rows.');
-      expect(insight.concerns, isEmpty);
-      expect(insight.warnings, ['Contains soy']);
-      expect(insight.nutritionInsights, isEmpty);
-    });
-
-    test('a parsed insight contains no nulls in arrays and survives jsonEncode (Firestore transport)', () {
-      final insight = ScanInsight.fromMap({
-        'summary': 'Balanced, with a sodium caveat.',
-        'positives': [
-          {'title': 'Fibre', 'detail': '6g'},
-        ],
-        'concerns': [
-          {'title': 'Sodium', 'severity': 'important', 'detail': null},
-        ],
-        'warnings': ['Contains dairy'],
-      });
-
-      final scan = bareScan(insight: insight);
-      final map = scan.toMap();
-
-      void assertNoNullsInArrays(Object? node) {
-        if (node is List) {
-          for (final item in node) {
-            expect(item, isNotNull, reason: 'Firestore rejects null elements inside arrays — this would fail the whole scan save.');
-            assertNoNullsInArrays(item);
-          }
-        } else if (node is Map) {
-          node.values.forEach(assertNoNullsInArrays);
-        }
-      }
-
-      assertNoNullsInArrays(map['insight']);
-
-      // Round-trip the insight subtree through JSON. (The full toMap() cannot
-      // be jsonEncoded — it deliberately carries a Firestore Timestamp in
-      // `createdAt` — but note nothing in the app jsonEncodes a whole scan, so
-      // that is pre-existing and unrelated to insights.)
-      final revivedInsight = ScanInsight.fromMap(jsonDecode(jsonEncode(insight.toMap())) as Map<String, dynamic>);
-      expect(revivedInsight.summary, 'Balanced, with a sodium caveat.');
-      expect(revivedInsight.concerns.single.severity, ConcernSeverity.important);
-      expect(revivedInsight.warnings, ['Contains dairy']);
-
-      // And the same payload read back off a Firestore-style map.
-      final revived = ScanResult.fromMap(map);
-      expect(revived.insight, insight);
-    });
-
-    test('scans saved before insights existed still parse to a null insight', () {
-      final legacy = ScanResult.fromMap({
-        'productName': 'Old scan',
-        'brand': 'Legacy',
-        'score': 74,
-        'impactType': 'positive',
-        'impact': 'Fine',
-        'createdAt': '2026-01-01T00:00:00.000',
-      });
-
-      expect(legacy.insight, isNull);
       expect(legacy.score, 74);
-      expect(legacy.rankedConcernTitlesForTest, isEmpty);
     });
 
-    test('copyWith never silently drops an existing insight', () {
-      final scan = bareScan(insight: const ScanInsight(summary: 'Keep me'));
+    test('copyWith works correctly', () {
+      final scan = bareScan(score: 80);
       final renamed = scan.copyWith(productName: 'Renamed');
 
-      expect(renamed.insight?.summary, 'Keep me', reason: 'Every unrelated copyWith call in the app would otherwise wipe the insight.');
+      expect(renamed.productName, 'Renamed');
+      expect(renamed.score, 80);
     });
   });
-}
-
-/// Not part of the app — a test-only helper so the legacy-scan case can assert
-/// the UI-facing concern list without importing the widget tree.
-extension ScanResultTestHelpers on ScanResult {
-  List<String> get rankedConcernTitlesForTest => insight?.rankedConcerns.map((c) => c.title).toList() ?? const [];
 }

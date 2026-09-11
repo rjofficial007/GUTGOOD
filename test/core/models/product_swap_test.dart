@@ -37,7 +37,7 @@ void main() {
     });
 
     test('ProductSwap.fromMap tolerates legacy maps without grounding keys', () {
-      final swap = ProductSwap.fromMap({'title': 'Oat milk', 'subtitle': 'swap', 'imageKeyword': 'oat milk', 'tag': 'BETTER'});
+      final swap = ProductSwap.fromMap(const {'title': 'Oat milk', 'subtitle': 'swap', 'imageKeyword': 'oat milk', 'tag': 'BETTER'});
 
       expect(swap.barcode, isNull);
       expect(swap.nutriscore, isNull);

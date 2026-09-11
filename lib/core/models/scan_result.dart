@@ -1,14 +1,13 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:crypto/crypto.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/scan_insight.dart';
-import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
@@ -55,7 +54,6 @@ class ScanResult extends Equatable {
     required this.createdAt,
     this.rawData,
     this.nutritionEstimated = false,
-    this.insight,
     this.schemaVersion = AiVersions.schemaVersion,
     this.promptVersion,
     this.model,
@@ -85,7 +83,9 @@ class ScanResult extends Equatable {
     // 🚀 Professional Fallback: If AI returns 0 for a meal/food/menu scan, calculate a heuristic score
     // based on NOVA group, nutrient levels, and meal balance.
     if (score == 0 && (category == 'meal' || category == 'food' || category == 'menu')) {
-      final mealBlock = map['meal'] is Map ? Map<String, dynamic>.from(map['meal'] as Map) : (map['rawData']?['meal'] is Map ? Map<String, dynamic>.from(map['rawData']['meal'] as Map) : null);
+      final mealBlock = map['meal'] is Map
+          ? Map<String, dynamic>.from(map['meal'] as Map)
+          : ((map['rawData'] as Map?)?['meal'] is Map ? Map<String, dynamic>.from((map['rawData'] as Map)['meal'] as Map) : null);
 
       score = ModelUtils.computeMealScore(
         novaGroup: novaInt,
@@ -132,7 +132,7 @@ class ScanResult extends Equatable {
       imageUrl: map['imageUrl']?.toString(),
       score: score,
       impactType: type,
-      impact: map['impact']?.toString() ?? map['meal']?['summary']?.toString() ?? map['rawData']?['meal']?['summary']?.toString() ?? '',
+      impact: map['impact']?.toString() ?? (map['meal'] as Map?)?['summary']?.toString() ?? (resolvedRaw['meal'] as Map?)?['summary']?.toString() ?? '',
       badge: map['badge']?.toString(),
       nutriscore: normalizedNutriscore,
       novaGroup: normalizedNova,
@@ -143,13 +143,16 @@ class ScanResult extends Equatable {
       allergens: ModelUtils.parseString(map['allergens']),
       additives: ModelUtils.parseString(map['additives']),
       additiveItems: _additiveItemsFrom(map),
-      ingredients: ModelUtils.parseModelList<Ingredient>(map['ingredients'], Ingredient.fromMap),
-      nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'], NutrientData.fromMap),
-      nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'], NutrientLevels.fromMap),
-      impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
+      ingredients: ModelUtils.parseModelList<Ingredient>(map['ingredients'] as List?, Ingredient.fromMap),
+      nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'] as Map?, NutrientData.fromMap),
+      nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'] as Map?, NutrientLevels.fromMap),
+      impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'] as List?, ImpactDetail.fromMap),
       // 🚀 Robust Recovery: Check primary field and rawData block for swaps.
       // We check for null or empty list to ensure old data with empty swaps is fixed.
-      swaps: ModelUtils.parseModelList<ProductSwap>((map['swaps'] is List && (map['swaps'] as List).isNotEmpty) ? map['swaps'] : (resolvedRaw['swaps'] ?? map['swaps']), ProductSwap.fromMap),
+      swaps: ModelUtils.parseModelList<ProductSwap>(
+        (map['swaps'] is List && (map['swaps'] as List).isNotEmpty) ? map['swaps'] as List : (resolvedRaw['swaps'] as List? ?? (map['swaps'] as List?)),
+        ProductSwap.fromMap,
+      ),
       cycleInsight: ModelUtils.parseNestedModel<CycleInsight>(map['cycleInsight'], CycleInsight.fromMap),
       barcode: map['barcode']?.toString(),
       source: map['source']?.toString(),
@@ -174,9 +177,6 @@ class ScanResult extends Equatable {
       // those categories are estimated by prompt design; packaged/labeled
       // products default to `false` (label-sourced facts).
       nutritionEstimated: map['nutritionEstimated'] != null ? ModelUtils.parseBool(map['nutritionEstimated']) : (category == 'meal' || category == 'food' || category == 'menu'),
-      insight: map['insight'] is Map
-          ? ScanInsight.fromMap(Map<String, dynamic>.from(map['insight'] as Map))
-          : (resolvedRaw['insight'] is Map ? ScanInsight.fromMap(Map<String, dynamic>.from(resolvedRaw['insight'] as Map)) : null),
       schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
       promptVersion: (map['promptVersion'] as num?)?.toInt(),
       model: map['model'] as String?,
@@ -292,11 +292,6 @@ class ScanResult extends Equatable {
   /// authority as scanned data (audit §F.2 / §O item 6).
   final bool nutritionEstimated;
 
-  /// Layered insight (positives / ranked concerns / nutrition / personalised /
-  /// warnings) plus the engine-authored score explanation. Null for scans
-  /// produced before this field existed.
-  final ScanInsight? insight;
-
   /// Durable-doc schema version (§17), stamped as `v`.
   final int schemaVersion;
 
@@ -319,7 +314,9 @@ class ScanResult extends Equatable {
       }
     }
 
-    final mealBlock = map['meal'] is Map ? map['meal'] as Map : (map['rawData']?['meal'] is Map ? map['rawData']['meal'] as Map : null);
+    final mealBlock = map['meal'] is Map
+        ? Map<String, dynamic>.from(map['meal'] as Map)
+        : ((map['rawData'] as Map?)?['meal'] is Map ? Map<String, dynamic>.from((map['rawData'] as Map)['meal'] as Map) : null);
     if (mealBlock != null) {
       final items = mealBlock['items'];
       if (items is List && items.isNotEmpty) {
@@ -346,7 +343,7 @@ class ScanResult extends Equatable {
       }
     }
 
-    final restName = map['restaurantName']?.toString() ?? map['menu']?['restaurantName']?.toString() ?? map['location']?.toString() ?? map['detectedText']?.toString();
+    final restName = map['restaurantName']?.toString() ?? (map['menu'] as Map?)?['restaurantName']?.toString() ?? map['location']?.toString() ?? map['detectedText']?.toString();
     if (restName != null && restName.trim().isNotEmpty) {
       return restName.trim();
     }
@@ -382,7 +379,7 @@ class ScanResult extends Equatable {
     // 4. Content check: has ingredients, nutrients, or meal items. The rawData
     // meal check only fires for legacy docs — new docs strip the blob at
     // persistence (see toPersistenceMap), so only pre-strip scans qualify here.
-    if (ingredients.isNotEmpty || nutrients != null || rawData?['meal'] != null) return true;
+    if (ingredients.isNotEmpty || nutrients != null || (rawData as Map?)?['meal'] != null) return true;
 
     // 5. Fallback Heuristics for older scans or missing category
     return !_isGenericName(productName);
@@ -432,7 +429,6 @@ class ScanResult extends Equatable {
     DateTime? createdAt,
     Map<String, dynamic>? rawData,
     bool? nutritionEstimated,
-    ScanInsight? insight,
     int? schemaVersion,
     int? promptVersion,
     String? model,
@@ -469,7 +465,6 @@ class ScanResult extends Equatable {
     createdAt: createdAt ?? this.createdAt,
     rawData: rawData ?? this.rawData,
     nutritionEstimated: nutritionEstimated ?? this.nutritionEstimated,
-    insight: insight ?? this.insight,
     schemaVersion: schemaVersion ?? this.schemaVersion,
     promptVersion: promptVersion ?? this.promptVersion,
     model: model ?? this.model,
@@ -511,7 +506,6 @@ class ScanResult extends Equatable {
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
     'rawData': rawData,
     'nutritionEstimated': nutritionEstimated,
-    if (insight != null) 'insight': insight!.toMap(),
   };
 
   /// Stable fingerprint of the decoded AI payload, kept so identical analyses
@@ -533,12 +527,9 @@ class ScanResult extends Equatable {
   /// scan doc carried the full AI payload toward the 1 MB cap and taxed every
   /// history/insight read; the durable facts all live in top-level fields.
   /// In-memory `rawData` (used during the live turn) is untouched.
-  Map<String, dynamic> toPersistenceMap() {
-    final map = toMap();
-    map.remove('rawData');
-    map['rawDataHash'] = rawDataHash;
-    return map;
-  }
+  Map<String, dynamic> toPersistenceMap() => toMap()
+    ..remove('rawData')
+    ..['rawDataHash'] = rawDataHash;
 
   /// Optimized Map for AI context to prevent 502/payload-too-large errors.
   /// Excludes large fields like full ingredients, nutrients, and swaps.
@@ -571,7 +562,6 @@ class ScanResult extends Equatable {
     rawData,
     nutritionEstimated,
     additiveItems,
-    insight,
   ];
 
   /// Stored per-additive list, or parsed from the legacy summary string.

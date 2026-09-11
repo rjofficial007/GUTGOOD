@@ -9,7 +9,7 @@ void main() {
     test('AI time becomes a tagged occurrence; createdAt stays log time', () {
       final mealTime = DateTime.now().subtract(const Duration(hours: 2));
       final meal = MealLog.fromMap({
-        'items': ['Dal'],
+        'items': const ['Dal'],
         'time': mealTime.toIso8601String(),
       });
 
@@ -21,30 +21,30 @@ void main() {
 
     test('stored occurredAt passes through verbatim (no clamp on vetted values)', () {
       final old = DateTime.now().subtract(const Duration(days: 60));
-      final meal = MealLog.fromMap({'items': ['Dal'], 'createdAt': old.toIso8601String(), 'occurredAt': old.toIso8601String(), 'occurredAtProvenance': 'user'});
+      final meal = MealLog.fromMap({'items': const ['Dal'], 'createdAt': old.toIso8601String(), 'occurredAt': old.toIso8601String(), 'occurredAtProvenance': 'user'});
 
       expect(meal.occurredAt, old);
       expect(meal.occurredAtProvenance, 'user');
     });
 
     test('insane AI estimates (far future / ancient) resolve to unknown', () {
-      final future = MealLog.fromMap({'items': ['x'], 'time': DateTime.now().add(const Duration(days: 2)).toIso8601String()});
+      final future = MealLog.fromMap({'items': const ['x'], 'time': DateTime.now().add(const Duration(days: 2)).toIso8601String()});
       expect(future.occurredAt, isNull);
       expect(future.occurredAtProvenance, isNull);
 
-      final ancient = MealLog.fromMap({'items': ['x'], 'time': DateTime.now().subtract(const Duration(days: 60)).toIso8601String()});
+      final ancient = MealLog.fromMap({'items': const ['x'], 'time': DateTime.now().subtract(const Duration(days: 60)).toIso8601String()});
       expect(ancient.occurredAt, isNull);
     });
 
     test('garbage AI time ("last night") resolves to unknown, not now()', () {
-      final meal = MealLog.fromMap({'items': ['x'], 'time': 'last night'});
+      final meal = MealLog.fromMap(const {'items': ['x'], 'time': 'last night'});
 
       expect(meal.occurredAt, isNull);
       expect(meal.eventTime, meal.createdAt);
     });
 
     test('no time anywhere leaves occurredAt null with createdAt fallback', () {
-      final symptom = SymptomLog.fromMap({'symptom': 'Bloating'});
+      final symptom = SymptomLog.fromMap(const {'symptom': 'Bloating'});
 
       expect(symptom.occurredAt, isNull);
       expect(symptom.eventTime, symptom.createdAt);
@@ -69,15 +69,15 @@ void main() {
     });
 
     test('legacy docs without provenance read as null (treated as confirmed)', () {
-      final log = SymptomLog.fromMap({'symptom': 'Bloating', 'severity': 4});
+      final log = SymptomLog.fromMap(const {'symptom': 'Bloating', 'severity': 4});
 
       expect(log.provenance, isNull);
       expect(log.severity, 4, reason: 'Explicitly provided numbers are preserved.');
     });
 
     test('energy is no longer inferred from the symptom name', () {
-      final fatigue = SymptomLog.fromMap({'symptom': 'Fatigue'});
-      final energetic = SymptomLog.fromMap({'symptom': 'Energetic'});
+      final fatigue = SymptomLog.fromMap(const {'symptom': 'Fatigue'});
+      final energetic = SymptomLog.fromMap(const {'symptom': 'Energetic'});
 
       expect(fatigue.energyLevel, isNull);
       expect(energetic.energyLevel, isNull);

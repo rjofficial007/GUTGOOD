@@ -5,8 +5,7 @@ import 'package:gutgood/core/widgets/empty_state_widget.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
 
 void main() {
-  Widget createTestWidget(Widget child) {
-    return MaterialApp(
+  Widget createTestWidget(Widget child) => MaterialApp(
       home: Scaffold(
         body: Builder(
           builder: (context) {
@@ -16,7 +15,6 @@ void main() {
         ),
       ),
     );
-  }
 
   group('EmptyStateWidget Tests', () {
     testWidgets('renders title, description, and icon correctly', (tester) async {
@@ -36,7 +34,7 @@ void main() {
     });
 
     testWidgets('renders action button and triggers callback on press', (tester) async {
-      bool actionClicked = false;
+      var actionClicked = false;
 
       await tester.pumpWidget(
         createTestWidget(

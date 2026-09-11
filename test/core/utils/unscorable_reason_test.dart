@@ -84,9 +84,9 @@ void main() {
 
   group('OffProduct.unscorableReason', () {
     test('delegates to the shared helper', () {
-      final product = OffProduct(
+      const product = OffProduct(
         productName: 'Real Orange Juice',
-        miscTags: const ['en:nutriscore-missing-nutrition-data-sodium'],
+        miscTags: ['en:nutriscore-missing-nutrition-data-sodium'],
       );
       expect(product.unscorableReason, ModelUtils.unscorableReason(product.miscTags));
     });
@@ -97,10 +97,10 @@ void main() {
     });
 
     test('survives the Firestore round-trip through toMap/fromMap', () {
-      final original = OffProduct(
+      const original = OffProduct(
         productName: 'Real Orange Juice',
         barcode: '0180411000803',
-        miscTags: const [
+        miscTags: [
           'en:nutriscore-not-computed',
           'en:nutriscore-missing-nutrition-data-sodium',
         ],

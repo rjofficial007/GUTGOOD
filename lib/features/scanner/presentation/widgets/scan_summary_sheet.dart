@@ -135,12 +135,12 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
                   if (isAnalyzed) ...[_buildAnalyzedContent(context), Gap.h24],
 
                   // 3. Positives Section (all figures are per 100 g)
-                  _buildFactorSection(context, title: AppStrings.positivesLabel, subtitle: 'per ${_perBasisLabel}', factors: _getPositives(context)),
+                  _buildFactorSection(context, title: AppStrings.positivesLabel, subtitle: 'per $_perBasisLabel', factors: _getPositives(context)),
 
                   Gap.h24,
 
                   // 4. Negatives Section (all figures are per 100 g)
-                  _buildFactorSection(context, title: AppStrings.negativesLabel, subtitle: 'per ${_perBasisLabel}', factors: _getNegatives(context)),
+                  _buildFactorSection(context, title: AppStrings.negativesLabel, subtitle: 'per $_perBasisLabel', factors: _getNegatives(context)),
 
                   Gap.h24,
 
@@ -180,7 +180,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
                 ? Image.network(
                     widget.product.imageUrl!,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(AppIcons.package, size: 32.sp, color: scheme.textMuted),
+                    errorBuilder: (_, _, _) => Icon(AppIcons.package, size: 32.sp, color: scheme.textMuted),
                   )
                 : Icon(AppIcons.package, size: 32.sp, color: scheme.textMuted),
           ),
@@ -323,13 +323,16 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
         } else {
           // Previously silent: the button just stopped spinning. Say why.
           final message = notifier.lastErrorWasOffline ? AppStrings.offlineMessage : AppStrings.failedToAnalyzeProduct;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
+          }
         }
       },
     );
   }
 
   List<_HealthFactor> _getNegatives(BuildContext context) {
+    final isAnalyzed = _analyzedResult != null;
     final items = <_HealthFactor>[];
     final n = widget.product.nutrients;
     final scheme = context.appColorScheme;
@@ -459,10 +462,8 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
     }
 
     // 9. Intelligence Warnings (if analyzed)
-    if (_analyzedResult?.insight?.warnings.isNotEmpty ?? false) {
-      for (final warning in _analyzedResult!.insight!.warnings) {
-        items.add(_HealthFactor(label: 'Caution', value: 'Alert', description: warning, color: scheme.error, icon: AppIcons.alertTriangle, isPositive: false));
-      }
+    if (isAnalyzed && _analyzedResult!.impactType == ImpactType.negative) {
+      items.add(_HealthFactor(label: 'Caution', value: 'Alert', description: _analyzedResult!.impact, color: scheme.error, icon: AppIcons.alertTriangle, isPositive: false));
     }
 
     // 10. Risky Additives
@@ -487,6 +488,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
   }
 
   List<_HealthFactor> _getPositives(BuildContext context) {
+    final isAnalyzed = _analyzedResult != null;
     final items = <_HealthFactor>[];
     final n = widget.product.nutrients;
     final scheme = context.appColorScheme;
@@ -494,10 +496,8 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
     final pts = breakdown.nutriScorePoints;
 
     // 1. Personalized Insights (if analyzed)
-    if (_analyzedResult?.insight?.personalizedInsights.isNotEmpty ?? false) {
-      for (final insight in _analyzedResult!.insight!.personalizedInsights) {
-        items.add(_HealthFactor(label: 'For You', value: 'Personal', description: insight.observation, color: scheme.info, icon: AppIcons.userCheck, isPositive: true));
-      }
+    if (isAnalyzed && _analyzedResult!.impactType == ImpactType.positive) {
+      items.add(_HealthFactor(label: 'For You', value: 'Personal', description: _analyzedResult!.impact, color: scheme.info, icon: AppIcons.userCheck, isPositive: true));
     }
 
     // 2. Calories (Low/Zero)
@@ -783,7 +783,6 @@ class _FactorRowState extends State<_FactorRow> {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
     final factor = widget.factor;
-    final hasDetails = factor.details.isNotEmpty;
 
     return Column(
       children: [
@@ -865,7 +864,6 @@ class _FactorRowState extends State<_FactorRow> {
       case AdditiveConcernLevel.low:
         return scheme.success;
       case AdditiveConcernLevel.unknown:
-      default:
         return scheme.textMuted;
     }
   }

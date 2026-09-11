@@ -14,8 +14,7 @@ class MockInsightFirestoreService extends Mock implements InsightFirestoreServic
 
 MealLog _meal(List<String> items, DateTime at) => MealLog(items: items, createdAt: at);
 
-SymptomLog _symptom(String name, DateTime at, {int? energy, String? sleep, String? provenance}) =>
-    SymptomLog(symptom: name, createdAt: at, energyLevel: energy, sleep: sleep, provenance: provenance);
+SymptomLog _symptom(String name, DateTime at, {int? energy, String? sleep, String? provenance}) => SymptomLog(symptom: name, createdAt: at, energyLevel: energy, sleep: sleep, provenance: provenance);
 
 void main() {
   late MockHistoryFirestoreService history;
@@ -32,21 +31,46 @@ void main() {
     insights = MockInsightFirestoreService();
     engine = PatternEngineServiceImpl(historyFirestoreService: history, insightFirestoreService: insights);
 
-    when(() => history.getRecentMealLogs(limit: any(named: 'limit'), since: any(named: 'since'))).thenAnswer((_) async => []);
-    when(() => history.getRecentSymptomLogs(limit: any(named: 'limit'), since: any(named: 'since'))).thenAnswer((_) async => []);
+    when(
+      () => history.getRecentMealLogs(
+        limit: any(named: 'limit'),
+        since: any(named: 'since'),
+      ),
+    ).thenAnswer((_) async => []);
+    when(
+      () => history.getRecentSymptomLogs(
+        limit: any(named: 'limit'),
+        since: any(named: 'since'),
+      ),
+    ).thenAnswer((_) async => []);
     when(() => insights.savePatternData(any())).thenAnswer((_) async {});
   });
 
   Future<List<BodyPattern>> runWith({required List<MealLog> meals, required List<SymptomLog> symptoms}) async {
-    when(() => history.getRecentMealLogs(limit: any(named: 'limit'), since: any(named: 'since'))).thenAnswer((_) async => meals);
-    when(() => history.getRecentSymptomLogs(limit: any(named: 'limit'), since: any(named: 'since'))).thenAnswer((_) async => symptoms);
+    when(
+      () => history.getRecentMealLogs(
+        limit: any(named: 'limit'),
+        since: any(named: 'since'),
+      ),
+    ).thenAnswer((_) async => meals);
+    when(
+      () => history.getRecentSymptomLogs(
+        limit: any(named: 'limit'),
+        since: any(named: 'since'),
+      ),
+    ).thenAnswer((_) async => symptoms);
     return engine.runAnalysis();
   }
 
   group('PatternEngineService (P1-7)', () {
     test('returns [] and clears stale patterns when data is insufficient', () async {
       final noMeals = await runWith(meals: [], symptoms: [_symptom('Bloating', DateTime.now())]);
-      final noSymptoms = await runWith(meals: [_meal(['Pizza'], DateTime.now())], symptoms: []);
+      final noSymptoms = await runWith(
+        meals: [
+          _meal(['Pizza'], DateTime.now()),
+        ],
+        symptoms: [],
+      );
 
       expect(noMeals, isEmpty);
       expect(noSymptoms, isEmpty);
@@ -56,7 +80,12 @@ void main() {
     test('analysis is time-bounded to the 30-day window', () async {
       await runWith(meals: [], symptoms: []);
 
-      final captured = verify(() => history.getRecentMealLogs(limit: captureAny(named: 'limit'), since: captureAny(named: 'since'))).captured;
+      final captured = verify(
+        () => history.getRecentMealLogs(
+          limit: captureAny(named: 'limit'),
+          since: captureAny(named: 'since'),
+        ),
+      ).captured;
       expect(captured[0], 150);
       final since = captured[1] as DateTime;
       expect(DateTime.now().difference(since).inDays, 30);
@@ -116,7 +145,11 @@ void main() {
 
     test('food keys normalize: "Pizza", "pizza " and "2x Pizza" group together', () async {
       final now = DateTime.now();
-      final meals = [_meal(['Pizza'], now.subtract(const Duration(days: 3))), _meal(['pizza '], now.subtract(const Duration(days: 2))), _meal(['2x Pizza'], now.subtract(const Duration(days: 1)))];
+      final meals = [
+        _meal(['Pizza'], now.subtract(const Duration(days: 3))),
+        _meal(['pizza '], now.subtract(const Duration(days: 2))),
+        _meal(['2x Pizza'], now.subtract(const Duration(days: 1))),
+      ];
       final symptoms = meals.map((m) => _symptom('Bloating', m.createdAt.add(const Duration(hours: 2)))).toList();
 
       final patterns = await runWith(meals: meals, symptoms: symptoms);
@@ -140,8 +173,9 @@ void main() {
       // Firestore newest-first order: the +3h reading sorts before the +2h one.
       final symptoms = <SymptomLog>[];
       for (final m in meals) {
-        symptoms.add(_symptom('Energy check', m.createdAt.add(const Duration(hours: 3)), energy: 9));
-        symptoms.add(_symptom('Energy check', m.createdAt.add(const Duration(hours: 2)), energy: 2));
+        symptoms
+          ..add(_symptom('Energy check', m.createdAt.add(const Duration(hours: 3)), energy: 9))
+          ..add(_symptom('Energy check', m.createdAt.add(const Duration(hours: 2)), energy: 2));
       }
 
       final patterns = await runWith(meals: meals, symptoms: symptoms);
@@ -158,8 +192,9 @@ void main() {
       final symptoms = <SymptomLog>[];
       for (var d = 3; d >= 1; d--) {
         final day = DateTime(now.year, now.month, now.day).subtract(Duration(days: d));
-        meals.add(_meal(['Late snack'], day.add(const Duration(hours: 21, minutes: 30))));
-        meals.add(_meal(['Early dinner'], day.add(const Duration(hours: 18, minutes: 30))));
+        meals
+          ..add(_meal(['Late snack'], day.add(const Duration(hours: 21, minutes: 30))))
+          ..add(_meal(['Early dinner'], day.add(const Duration(hours: 18, minutes: 30))));
         symptoms.add(_symptom('Morning check', day.add(const Duration(days: 1, hours: 7)), sleep: 'Poor, interrupted'));
       }
 
@@ -212,7 +247,11 @@ void main() {
 
     test('timeframeDays reports the honest span (no 7-day floor)', () async {
       final now = DateTime.now();
-      final meals = [_meal(['Pizza'], now.subtract(const Duration(days: 2, hours: 3))), _meal(['Pizza'], now.subtract(const Duration(days: 2, hours: 2))), _meal(['Pizza'], now.subtract(const Duration(days: 2, hours: 1)))];
+      final meals = [
+        _meal(['Pizza'], now.subtract(const Duration(days: 2, hours: 3))),
+        _meal(['Pizza'], now.subtract(const Duration(days: 2, hours: 2))),
+        _meal(['Pizza'], now.subtract(const Duration(days: 2, hours: 1))),
+      ];
       final symptoms = meals.map((m) => _symptom('Bloating', m.createdAt.add(const Duration(hours: 2)))).toList();
 
       final patterns = await runWith(meals: meals, symptoms: symptoms);
@@ -231,8 +270,7 @@ void main() {
     test('patterns sort High-first, then by frequency', () async {
       final now = DateTime.now();
       // 5-of-6 high-energy oat meals (one contrast case → High)...
-      final meals = List.generate(5, (i) => _meal(['Oats'], now.subtract(Duration(days: 10 - i))));
-      meals.add(_meal(['Oats'], now.subtract(const Duration(days: 11)))); // asymptomatic contrast
+      final meals = List.generate(5, (i) => _meal(['Oats'], now.subtract(Duration(days: 10 - i))))..add(_meal(['Oats'], now.subtract(const Duration(days: 11)))); // asymptomatic contrast
       final symptoms = meals.take(5).map((m) => _symptom('Energy check', m.createdAt.add(const Duration(hours: 2)), energy: 9)).toList();
       // ...plus 3-of-10 pizza bloat (ratio 0.3 → Low).
       for (var i = 0; i < 3; i++) {

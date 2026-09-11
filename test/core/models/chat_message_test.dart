@@ -21,15 +21,15 @@ void main() {
     localId: 'm1',
     role: 'ai',
     text: 'analysis here',
-    imageUrls: ['https://x/food_images/abcdef0123456789.jpg'],
-    imageHashes: ['abcdef0123456789'],
+    imageUrls: const ['https://x/food_images/abcdef0123456789.jpg'],
+    imageHashes: const ['abcdef0123456789'],
     scanData: scan(),
-    mealLogs: [MealLog(items: ['Pizza'], firestoreId: 'j1', createdAt: DateTime.now())],
+    mealLogs: [MealLog(items: const ['Pizza'], firestoreId: 'j1', createdAt: DateTime.now())],
     symptomLogs: [SymptomLog(symptom: 'Bloating', firestoreId: 'j2', createdAt: DateTime.now())],
-    swapData: [const ProductSwap(title: 'Oat milk', subtitle: 'swap', imageKeyword: 'oat milk', tag: 'BETTER')],
+    swapData: const [ProductSwap(title: 'Oat milk', subtitle: 'swap', imageKeyword: 'oat milk', tag: 'BETTER')],
     analysisResult: AiAnalysisResult(text: 'analysis here', scan: scan()),
-    foodMentions: ['Pizza'],
-    symptomMentions: ['Bloating'],
+    foodMentions: const ['Pizza'],
+    symptomMentions: const ['Bloating'],
     createdAt: DateTime.now(),
   );
 
@@ -44,8 +44,8 @@ void main() {
       expect(map['journalEntryIds'], ['j1', 'j2']);
       expect(map['scanId'], 's1');
       expect((map['scanPreview'] as Map)['productName'], 'Test Cola');
-      expect((map['symptomLogs'] as List), hasLength(1));
-      expect((map['swapData'] as List), hasLength(1));
+      expect(map['symptomLogs'] as List, hasLength(1));
+      expect(map['swapData'] as List, hasLength(1));
       expect(map['imageHashes'], ['abcdef0123456789']);
       expect(map['foodMentions'], ['Pizza']);
     });

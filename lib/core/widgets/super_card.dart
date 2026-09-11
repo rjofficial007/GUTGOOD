@@ -187,10 +187,10 @@ class _SuperFoodGaugeCardState extends State<SuperFoodGaugeCard> {
 
   @override
   Widget build(BuildContext context) {
-    final int totalPages = widget.foods.length;
-    final bool hasFoods = totalPages > 0;
+    final totalPages = widget.foods.length;
+    final hasFoods = totalPages > 0;
 
-    final SuperCyclerItemData? currentFood = hasFoods ? widget.foods[_currentIndex] : null;
+    final currentFood = hasFoods ? widget.foods[_currentIndex] : null;
 
     if (widget.title.toUpperCase() == 'RECENT LOGS') {
       debugPrint('--- SuperFoodGaugeCard: RECENT LOGS DEBUG ---');
@@ -248,16 +248,12 @@ class _SuperFoodGaugeCardState extends State<SuperFoodGaugeCard> {
 
                         fadeInDuration: const Duration(milliseconds: 300),
 
-                        placeholder: (context, url) {
-                          return Container(color: Colors.black);
-                        },
+                        placeholder: (context, url) => Container(color: Colors.black),
 
-                        errorWidget: (context, url, error) {
-                          return Container(
-                            color: widget.statusColor.withAlpha(40),
-                            child: Icon(widget.title.toUpperCase().contains('HEALING') ? Icons.auto_awesome : Icons.warning_amber_rounded, color: widget.statusColor.withAlpha(120), size: 48),
-                          );
-                        },
+                        errorWidget: (context, url, error) => Container(
+                          color: widget.statusColor.withAlpha(40),
+                          child: Icon(widget.title.toUpperCase().contains('HEALING') ? Icons.auto_awesome : Icons.warning_amber_rounded, color: widget.statusColor.withAlpha(120), size: 48),
+                        ),
                       )
                     // ----------------------------------------------------
                     // NO FOOD IMAGE
@@ -388,7 +384,7 @@ class _SuperFoodGaugeCardState extends State<SuperFoodGaugeCard> {
                 },
 
                 itemBuilder: (context, index) {
-                  final SuperCyclerItemData? food = hasFoods ? widget.foods[index] : null;
+                  final food = hasFoods ? widget.foods[index] : null;
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -575,18 +571,16 @@ class _StackCard extends StatelessWidget {
   final double borderRadius;
 
   @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        height: 34,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
-          gradient: gradient,
-          border: Border.all(color: Colors.white.withAlpha(5), width: 1),
-        ),
+  Widget build(BuildContext context) => IgnorePointer(
+    child: Container(
+      height: 34,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        gradient: gradient,
+        border: Border.all(color: Colors.white.withAlpha(5), width: 1),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _RecapMetric extends StatelessWidget {
@@ -597,21 +591,19 @@ class _RecapMetric extends StatelessWidget {
   final Color dotColor;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(title, style: TextStyle(color: Colors.white.withAlpha(204), fontSize: 14)),
-        const SizedBox(width: 6),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14)),
-        const SizedBox(width: 5),
-        Container(
-          width: 5,
-          height: 5,
-          decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Row(
+    children: [
+      Text(title, style: TextStyle(color: Colors.white.withAlpha(204), fontSize: 14)),
+      const SizedBox(width: 6),
+      Text(value, style: const TextStyle(color: Colors.white, fontSize: 14)),
+      const SizedBox(width: 5),
+      Container(
+        width: 5,
+        height: 5,
+        decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+      ),
+    ],
+  );
 }
 
 /// ---------------------------------------------------------------------------
@@ -629,60 +621,54 @@ class SuperPhysicalGoalCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 140,
-        width: double.maxFinite,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color.lerp(const Color(0xFF1A1C21), color, 0.15)!, Color.lerp(const Color(0xFF0F1012), color, 0.05)!],
-          ),
-          border: Border.all(color: const Color(0xFFF4F4F4).withAlpha(15)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            Positioned(
-              right: -20,
-              bottom: -20,
-              child: Opacity(opacity: 0.15, child: Icon(icon, size: 110, color: color)),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    subtitle,
-                    style: TextStyle(color: color.withAlpha(230), fontSize: 11, letterSpacing: 1.8, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFFF4F4F4), fontSize: 26, fontWeight: FontWeight.w300, letterSpacing: -1.2),
-                  ),
-                  const Spacer(),
-                  Text(
-                    label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: const Color(0xFFF4F4F4).withAlpha(180), fontSize: 13, fontWeight: FontWeight.w400),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      height: 140,
+      width: double.maxFinite,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color.lerp(const Color(0xFF1A1C21), color, 0.15)!, Color.lerp(const Color(0xFF0F1012), color, 0.05)!]),
+        border: Border.all(color: const Color(0xFFF4F4F4).withAlpha(15)),
       ),
-    );
-  }
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            bottom: -20,
+            child: Opacity(opacity: 0.15, child: Icon(icon, size: 110, color: color)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  subtitle,
+                  style: TextStyle(color: color.withAlpha(230), fontSize: 11, letterSpacing: 1.8, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Color(0xFFF4F4F4), fontSize: 26, fontWeight: FontWeight.w300, letterSpacing: -1.2),
+                ),
+                const Spacer(),
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: const Color(0xFFF4F4F4).withAlpha(180), fontSize: 13, fontWeight: FontWeight.w400),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// ---------------------------------------------------------------------------
@@ -752,16 +738,14 @@ class _SuperPatternCardState extends State<SuperPatternCard> with SingleTickerPr
               bottom: -20,
               child: AnimatedBuilder(
                 animation: _controller,
-                builder: (context, child) {
-                  return Transform(
-                    alignment: Alignment.center,
-                    transform: _getAnimationTransform(),
-                    child: Opacity(
-                      opacity: _getAnimationOpacity(),
-                      child: Icon(icon, size: 110, color: accentColor),
-                    ),
-                  );
-                },
+                builder: (context, child) => Transform(
+                  alignment: Alignment.center,
+                  transform: _getAnimationTransform(),
+                  child: Opacity(
+                    opacity: _getAnimationOpacity(),
+                    child: Icon(icon, size: 110, color: accentColor),
+                  ),
+                ),
               ),
             ),
 
@@ -802,8 +786,8 @@ class _SuperPatternCardState extends State<SuperPatternCard> with SingleTickerPr
     final value = _controller.value;
     final type = widget.pattern.type.toLowerCase();
     return switch (type) {
-      BodyPattern.typeEnergy => Matrix4.identity()..scale(1.0 + (value * 0.05), 1.0 + (value * 0.05)),
-      BodyPattern.typeBloating => Matrix4.identity()..scale(1.0 + (value * 0.12), 1.0 + (value * 0.12)),
+      BodyPattern.typeEnergy => Matrix4.diagonal3Values(1.0 + (value * 0.05), 1.0 + (value * 0.05), 1.0),
+      BodyPattern.typeBloating => Matrix4.diagonal3Values(1.0 + (value * 0.12), 1.0 + (value * 0.12), 1.0),
       BodyPattern.typeHeadache || BodyPattern.typeDigestion => Matrix4.rotationZ(value * 0.15 - 0.075),
       _ => Matrix4.translationValues(0, value * -10, 0),
     };
@@ -882,12 +866,10 @@ class _SuperFoodCyclerCardState extends State<SuperFoodCyclerCard> with SingleTi
             bottom: -25,
             child: AnimatedBuilder(
               animation: _iconController,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(0, _iconController.value * -12),
-                  child: Opacity(opacity: 0.12, child: Icon(widget.icon, size: 130, color: accentColor)),
-                );
-              },
+              builder: (context, child) => Transform.translate(
+                offset: Offset(0, _iconController.value * -12),
+                child: Opacity(opacity: 0.12, child: Icon(widget.icon, size: 130, color: accentColor)),
+              ),
             ),
           ),
 
@@ -1042,4 +1024,3 @@ class GutTickGaugePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant GutTickGaugePainter oldDelegate) => oldDelegate.progress != progress;
 }
-

@@ -23,7 +23,7 @@ class BottomSheetHelper {
         context: context,
         isScrollControlled: isScrollControlled,
         backgroundColor: backgroundColor ?? AppPalette.transparent,
-        builder: (context) => Container(
+        builder: (context) => DecoratedBox(
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

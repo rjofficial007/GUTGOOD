@@ -32,6 +32,35 @@ enum AdditiveConcernLevel {
 class AdditiveConcern {
   const AdditiveConcern({required this.code, required this.name, required this.whatItIs, required this.whyUsed, required this.level, required this.whyFlagged, required this.explanation, this.category = '', this.carefulFor = '', this.tip = ''});
 
+  factory AdditiveConcern.fromMap(Map<String, dynamic> map) => AdditiveConcern(
+    code: map['code']?.toString() ?? '',
+    name: map['name']?.toString() ?? '',
+    whatItIs: map['whatItIs']?.toString() ?? '',
+    whyUsed: map['whyUsed']?.toString() ?? '',
+    level: AdditiveConcernLevel.values.firstWhere((l) => l.name == map['level']?.toString(), orElse: () => AdditiveConcernLevel.unknown),
+    whyFlagged: map['whyFlagged']?.toString() ?? '',
+    explanation: map['explanation']?.toString() ?? '',
+    category: map['category']?.toString() ?? '',
+    carefulFor: map['carefulFor']?.toString() ?? '',
+    tip: map['tip']?.toString() ?? '',
+  );
+
+  /// Fallback for items not in the database. Penalized like low.
+  factory AdditiveConcern.unknown(String rawLabel) {
+    final label = rawLabel.trim().isEmpty ? 'Unknown additive' : rawLabel.trim();
+    return AdditiveConcern(
+      code: _looksLikeCode(label) ? label.toUpperCase() : '',
+      name: _looksLikeCode(label) ? 'Food additive $label'.toUpperCase() : label,
+      whatItIs: 'A food additive with limited independent data in our database.',
+      whyUsed: 'Used for processing, texture, color, flavor or shelf life.',
+      level: AdditiveConcernLevel.unknown,
+      whyFlagged: 'Limited data',
+      explanation:
+          'We don\'t have a full profile for $label yet, so we treat it gently in your score. '
+          'As a rule of thumb, fewer hard-to-pronounce ingredients usually means a kinder food for your gut.',
+    );
+  }
+
   /// Display code, e.g. 'E621'. Empty for name-only entries like 'Palm Oil'.
   final String code;
 
@@ -104,35 +133,6 @@ class AdditiveConcern {
     'carefulFor': carefulFor,
     'tip': tip,
   };
-
-  factory AdditiveConcern.fromMap(Map<String, dynamic> map) => AdditiveConcern(
-    code: map['code']?.toString() ?? '',
-    name: map['name']?.toString() ?? '',
-    whatItIs: map['whatItIs']?.toString() ?? '',
-    whyUsed: map['whyUsed']?.toString() ?? '',
-    level: AdditiveConcernLevel.values.firstWhere((l) => l.name == map['level']?.toString(), orElse: () => AdditiveConcernLevel.unknown),
-    whyFlagged: map['whyFlagged']?.toString() ?? '',
-    explanation: map['explanation']?.toString() ?? '',
-    category: map['category']?.toString() ?? '',
-    carefulFor: map['carefulFor']?.toString() ?? '',
-    tip: map['tip']?.toString() ?? '',
-  );
-
-  /// Fallback for items not in the database. Penalized like low.
-  factory AdditiveConcern.unknown(String rawLabel) {
-    final label = rawLabel.trim().isEmpty ? 'Unknown additive' : rawLabel.trim();
-    return AdditiveConcern(
-      code: _looksLikeCode(label) ? label.toUpperCase() : '',
-      name: _looksLikeCode(label) ? 'Food additive $label'.toUpperCase() : label,
-      whatItIs: 'A food additive with limited independent data in our database.',
-      whyUsed: 'Used for processing, texture, color, flavor or shelf life.',
-      level: AdditiveConcernLevel.unknown,
-      whyFlagged: 'Limited data',
-      explanation:
-          'We don\'t have a full profile for $label yet, so we treat it gently in your score. '
-          'As a rule of thumb, fewer hard-to-pronounce ingredients usually means a kinder food for your gut.',
-    );
-  }
 
   static bool _looksLikeCode(String label) => RegExp(r'^e\s?\d{3,4}[a-z]?$', caseSensitive: false).hasMatch(label.trim());
 }
@@ -1202,7 +1202,7 @@ class AdditiveConcernDb {
     // Try code-style match first ('E631', 'INS 621', '621').
     final codeMatch = _codePattern.firstMatch(cleaned);
     if (codeMatch != null && codeMatch.group(0)!.length >= cleaned.length - 1) {
-      final key = normalizeCode(codeMatch.group(0)!.replaceAll(RegExp(r'ins', caseSensitive: false), 'E'));
+      final key = normalizeCode(codeMatch.group(0)!.replaceAll(RegExp('ins', caseSensitive: false), 'E'));
       final hit = _byKey[key] ?? _byKey[key.replaceFirst('E', '')];
       if (hit != null) return hit;
       return AdditiveConcern.unknown(key.startsWith('E') ? key : 'E$key');

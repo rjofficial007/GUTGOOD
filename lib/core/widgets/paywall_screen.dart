@@ -23,9 +23,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 ///
 /// Presented as a full-screen modal dialog (covers the bottom navigation
 /// bar, like the old bottom sheet did). Completes when the page is popped.
-Future<void> showPaywallScreen(BuildContext context, {required VoidCallback onProceedWithLimited}) {
-  return Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => GutPaywallScreen(onProceedWithLimited: onProceedWithLimited)));
-}
+Future<void> showPaywallScreen(BuildContext context, {required VoidCallback onProceedWithLimited}) => Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => GutPaywallScreen(onProceedWithLimited: onProceedWithLimited)));
 
 class GutPaywallScreen extends StatelessWidget {
   const GutPaywallScreen({super.key, required this.onProceedWithLimited});
@@ -354,8 +352,7 @@ class _FeatureCard extends StatelessWidget {
   final String subtitle;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: EdgeInsets.all(AppSizes.p12),
       decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(AppSizes.r16)),
       child: Column(
@@ -378,7 +375,6 @@ class _FeatureCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 // =============================================================================
@@ -572,8 +568,7 @@ class _TrustRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
 
-    Widget item(IconData icon, String label) {
-      return Expanded(
+    Widget item(IconData icon, String label) => Expanded(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -587,7 +582,6 @@ class _TrustRow extends StatelessWidget {
           ],
         ),
       );
-    }
 
     return Row(
       children: [

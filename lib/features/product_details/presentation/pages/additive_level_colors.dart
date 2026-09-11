@@ -78,8 +78,7 @@ class AdditiveConcernPill extends StatelessWidget {
   final EdgeInsets? padding;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: padding ?? EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p6),
       decoration: BoxDecoration(color: colors.pillBackground, borderRadius: BorderRadius.circular(40)),
       child: Text(
@@ -87,5 +86,4 @@ class AdditiveConcernPill extends StatelessWidget {
         style: context.captionBold.copyWith(color: colors.accent, fontSize: fontSize, fontWeight: FontWeight.w800),
       ),
     );
-  }
 }

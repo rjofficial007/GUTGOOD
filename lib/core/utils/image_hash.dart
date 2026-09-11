@@ -13,7 +13,7 @@ String imageHash(Uint8List bytes) => sha256.convert(bytes).toString().substring(
 /// (`.../food_images/<hash>.jpg?...`, raw or URL-encoded). Returns null for
 /// any other shape (legacy timestamp names, mocks) so callers can fall back.
 String? imageHashFromFoodUrl(String url) {
-  final match = RegExp('food_images%2F([0-9a-f]{16})\\.jpg|food_images/([0-9a-f]{16})\\.jpg').firstMatch(url);
+  final match = RegExp(r'food_images%2F([0-9a-f]{16})\.jpg|food_images/([0-9a-f]{16})\.jpg').firstMatch(url);
   if (match == null) return null;
   return match.group(1) ?? match.group(2);
 }

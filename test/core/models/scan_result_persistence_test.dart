@@ -15,7 +15,7 @@ ScanResult _testScan() => ScanResult(
   createdAt: DateTime(2026, 5, 1),
   rawData: {
     'intent': 'COMPLETE_ANALYSIS',
-    'meal': {'summary': 'A test meal'},
+    'meal': const {'summary': 'A test meal'},
     'padding': List.filled(20, 'x'),
   },
 );
@@ -35,8 +35,7 @@ void main() {
     });
 
     test('leaves the in-memory rawData untouched', () {
-      final scan = _testScan();
-      scan.toPersistenceMap();
+      final scan = _testScan()..toPersistenceMap();
 
       expect(scan.rawData, isNotNull);
       expect(scan.rawData!['intent'], 'COMPLETE_ANALYSIS');
@@ -97,7 +96,7 @@ void main() {
         'score': 60,
         'impactType': 'neutral',
         'createdAt': DateTime(2026, 1, 1),
-        'rawData': {
+        'rawData': const {
           'meal': {'summary': 'Legacy summary here'},
         },
       });

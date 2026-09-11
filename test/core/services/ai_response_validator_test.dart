@@ -37,7 +37,7 @@ ScanResult _scan({String? userImageUrl}) => ScanResult(
   userImageUrl: userImageUrl,
 );
 
-MealLog _meal() => MealLog(items: ['Pizza'], createdAt: DateTime.now());
+MealLog _meal() => MealLog(items: const ['Pizza'], createdAt: DateTime.now());
 
 SymptomLog _symptom({int? severity, int? energyLevel}) => SymptomLog(symptom: 'Bloating', severity: severity, energyLevel: energyLevel, createdAt: DateTime.now());
 

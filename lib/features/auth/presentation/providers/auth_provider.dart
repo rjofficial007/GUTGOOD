@@ -10,7 +10,6 @@ class GutAuthNotifier with ChangeNotifier {
     _user = _repository.currentUser;
     _authSub = _repository.authStateChanges.listen((user) {
       _user = user;
-      _authReady = true;
       notifyListeners();
     });
     _mergingSub = _repository.isMerging.listen((merging) {
@@ -25,7 +24,6 @@ class GutAuthNotifier with ChangeNotifier {
   AuthUser? _user;
   bool _isLoading = false;
   bool _isMerging = false;
-  bool _authReady = false;
 
   late final StreamSubscription<AuthUser?> _authSub;
   late final StreamSubscription<bool> _mergingSub;
@@ -67,49 +65,33 @@ class GutAuthNotifier with ChangeNotifier {
     super.dispose();
   }
 
-  Future<AuthUser?> signInAnonymously() =>
-      _withLoading(_repository.signInAnonymously);
+  Future<AuthUser?> signInAnonymously() => _withLoading(_repository.signInAnonymously);
 
-  Future<AuthUser?> signInWithGoogle() =>
-      _withLoading(_repository.signInWithGoogle);
+  Future<AuthUser?> signInWithGoogle() => _withLoading(_repository.signInWithGoogle);
 
-  Future<AuthUser?> signInWithApple() =>
-      _withLoading(_repository.signInWithApple);
+  Future<AuthUser?> signInWithApple() => _withLoading(_repository.signInWithApple);
 
-  Future<AuthUser?> linkWithGoogle() =>
-      _withLoading(_repository.linkWithGoogle);
+  Future<AuthUser?> linkWithGoogle() => _withLoading(_repository.linkWithGoogle);
 
   Future<AuthUser?> linkWithApple() => _withLoading(_repository.linkWithApple);
 
-  Future<AuthUser?> signInWithEmailAndPassword(String email, String password) =>
-      _withLoading(
-        () => _repository.signInWithEmailAndPassword(email, password),
-      );
+  Future<AuthUser?> signInWithEmailAndPassword(String email, String password) => _withLoading(() => _repository.signInWithEmailAndPassword(email, password));
 
-  Future<AuthUser?> signUpWithEmailAndPassword(String email, String password) =>
-      _withLoading(
-        () => _repository.signUpWithEmailAndPassword(email, password),
-      );
+  Future<AuthUser?> signUpWithEmailAndPassword(String email, String password) => _withLoading(() => _repository.signUpWithEmailAndPassword(email, password));
 
-  Future<void> sendPasswordResetEmail(String email) =>
-      _withLoading(() => _repository.sendPasswordResetEmail(email));
+  Future<void> sendPasswordResetEmail(String email) => _withLoading(() => _repository.sendPasswordResetEmail(email));
 
-  Future<void> sendSignInLinkToEmail(String email) =>
-      _withLoading(() => _repository.sendSignInLinkToEmail(email));
+  Future<void> sendSignInLinkToEmail(String email) => _withLoading(() => _repository.sendSignInLinkToEmail(email));
 
-  Future<AuthUser?> signInWithEmailLink(String email, String emailLink) =>
-      _withLoading(() => _repository.signInWithEmailLink(email, emailLink));
+  Future<AuthUser?> signInWithEmailLink(String email, String emailLink) => _withLoading(() => _repository.signInWithEmailLink(email, emailLink));
 
   Future<void> signOut() => _withLoading(_repository.signOut);
 
   Future<void> deleteAccount() => _withLoading(_repository.deleteAccount);
 
-  Future<void> reauthenticateWithPassword(String password) =>
-      _withLoading(() => _repository.reauthenticateWithPassword(password));
+  Future<void> reauthenticateWithPassword(String password) => _withLoading(() => _repository.reauthenticateWithPassword(password));
 
-  Future<void> reauthenticateWithProvider(String providerId) =>
-      _withLoading(() => _repository.reauthenticateWithProvider(providerId));
-
+  Future<void> reauthenticateWithProvider(String providerId) => _withLoading(() => _repository.reauthenticateWithProvider(providerId));
 
   @override
   void notifyListeners() {

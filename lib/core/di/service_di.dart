@@ -50,9 +50,7 @@ void initServiceDI() {
     ..registerLazySingleton<ChatOutboxService>(() => ChatOutboxServiceImpl(prefs: sl()))
     // Pending bytes live in the cache dir (expendable by design): if the OS
     // purges them, the outbox drops those entries gracefully on flush.
-    ..registerLazySingleton<ImageUploadOutbox>(
-      () => ImageUploadOutboxImpl(prefs: sl(), storageService: sl(), baseDir: Directory('${Directory.systemTemp.path}/pending_uploads')),
-    )
+    ..registerLazySingleton<ImageUploadOutbox>(() => ImageUploadOutboxImpl(prefs: sl(), storageService: sl(), baseDir: Directory('${Directory.systemTemp.path}/pending_uploads')))
     ..registerLazySingleton<AuthFirestoreService>(() => AuthFirestoreServiceImpl(auth: sl(), db: sl(), storageService: sl()))
     ..registerLazySingleton<ChatFirestoreService>(() => ChatFirestoreServiceImpl(auth: sl(), db: sl()))
     ..registerLazySingleton<HistoryFirestoreService>(() => HistoryFirestoreServiceImpl(auth: sl(), db: sl(), foodImages: sl()))
@@ -64,6 +62,8 @@ void initServiceDI() {
     ..registerLazySingleton<LinkService>(() => LinkServiceImpl(authRepository: sl(), prefs: sl(), firebaseAuth: sl(), appStateService: sl()))
     ..registerLazySingleton<PurchaseService>(PurchaseServiceImpl.new)
     ..registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), authFirestoreService: sl(), usageFirestoreService: sl(), purchaseService: sl(), prefs: sl()))
-    ..registerLazySingleton<DebugMockDataService>(() => DebugMockDataService(historyFirestoreService: sl(), insightFirestoreService: sl()))
+    ..registerLazySingleton<DebugMockDataService>(
+      () => DebugMockDataService(historyFirestoreService: sl(), insightFirestoreService: sl(), chatFirestoreService: sl(), purchaseService: sl(), foodImageService: sl()),
+    )
     ..registerLazySingleton(() => ThemeNotifier(sl()));
 }

@@ -54,7 +54,6 @@ class PurchaseProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _selectedPackageIdentifier;
   bool _isPurchasing = false;
-  bool? _purchaseResult;
   PurchaseActionType? _actionType;
   bool _isPremium = false;
 
@@ -100,7 +99,6 @@ class PurchaseProvider extends ChangeNotifier {
 
   Future<bool> purchasePackage(Package package) async {
     _isPurchasing = true;
-    _purchaseResult = null;
     _actionType = PurchaseActionType.purchase;
     _errorMessage = null;
     notifyListeners();
@@ -109,13 +107,11 @@ class PurchaseProvider extends ChangeNotifier {
 
     try {
       final success = await _purchaseService.purchasePackage(package);
-      _purchaseResult = success;
       await _analyticsService.logEvent(name: 'purchase_completed', parameters: {'package_id': package.identifier, 'success': success});
       await _updatePremiumStatusFromService();
       return success;
     } catch (e) {
       AppLogger.error('PurchaseProvider: Purchase failed', error: e);
-      _purchaseResult = false;
       rethrow;
     } finally {
       _isPurchasing = false;
@@ -125,7 +121,6 @@ class PurchaseProvider extends ChangeNotifier {
 
   Future<bool> restorePurchases() async {
     _isPurchasing = true;
-    _purchaseResult = null;
     _actionType = PurchaseActionType.restore;
     // A new action supersedes any previous fetch error, so loading and
     // error states are never shown at the same time.
@@ -137,13 +132,11 @@ class PurchaseProvider extends ChangeNotifier {
 
     try {
       final restored = await _purchaseService.restorePurchases();
-      _purchaseResult = restored;
       await _analyticsService.logEvent(name: 'restore_completed', parameters: {'success': restored});
       await _updatePremiumStatusFromService();
       return restored;
     } catch (e) {
       AppLogger.error('PurchaseProvider: Restore failed', error: e);
-      _purchaseResult = false;
       return false;
     } finally {
       _isPurchasing = false;
@@ -160,7 +153,6 @@ class PurchaseProvider extends ChangeNotifier {
   Future<void> retryFetchOfferings() async {
     await fetchOfferings();
   }
-
 
   Future<void> _updatePremiumStatusFromService() async {
     final active = _purchaseService.isPremium;

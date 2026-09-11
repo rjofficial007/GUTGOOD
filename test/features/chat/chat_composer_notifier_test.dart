@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,8 +10,6 @@ import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/meal_log.dart';
 import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/features/chat/data/services/chat_outbox_service.dart';
-import 'package:gutgood/features/chat/data/services/image_upload_outbox.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
@@ -21,6 +18,8 @@ import 'package:gutgood/core/services/firestore/food_image_firestore_service.dar
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/storage_service.dart';
+import 'package:gutgood/features/chat/data/services/chat_outbox_service.dart';
+import 'package:gutgood/features/chat/data/services/image_upload_outbox.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 import 'package:gutgood/features/chat/domain/usecases/persist_ai_response_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
@@ -66,7 +65,7 @@ class MockImageUploadOutbox extends Mock implements ImageUploadOutbox {}
 
 class MockFoodImageService extends Mock implements FoodImageService {}
 
-Future<void> _noopRecover(String _, Map<int, RecoveredUpload> __) async {}
+Future<void> _noopRecover(String _, Map<int, RecoveredUpload> _) async {}
 
 void main() {
   late ChatComposerNotifier notifier;
@@ -90,7 +89,7 @@ void main() {
     registerFallbackValue(ChatMessage(localId: '', role: '', text: '', createdAt: DateTime.now()));
     registerFallbackValue(Uint8List(0));
     registerFallbackValue(<ChatMessage>[]);
-    registerFallbackValue(AiAnalysisResult(text: ''));
+    registerFallbackValue(const AiAnalysisResult(text: ''));
     registerFallbackValue(<String>{});
     registerFallbackValue(<String>[]);
     registerFallbackValue(QueuedMessage(id: '', text: '', createdAt: DateTime.now()));
@@ -515,9 +514,9 @@ void main() {
           localId: 'a',
           role: 'user',
           text: 'x',
-          foodMentions: ['Pizza', '  '],
-          symptomMentions: ['Bloating'],
-          mealLogs: [MealLog(items: ['pizza', 'Salad'], createdAt: DateTime.now())],
+          foodMentions: const ['Pizza', '  '],
+          symptomMentions: const ['Bloating'],
+          mealLogs: [MealLog(items: const ['pizza', 'Salad'], createdAt: DateTime.now())],
           createdAt: DateTime.now(),
         ),
         ChatMessage(

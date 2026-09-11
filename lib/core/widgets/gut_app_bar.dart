@@ -122,7 +122,16 @@ class GutSliverAppBar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showBrandingIcon) ...[Image.asset(AppAssets.appIconBg, height: 24.0.w, width: 24.0.w, color: context.appColorScheme.textPrimary), Gap.w10],
-        Text(title!.toUpperCase(), style: context.title.copyWith(letterSpacing: 0.1)),
+        // Flexible so a long title ellipsises instead of overflowing the bar on
+        // narrow devices; the streak badge keeps its own width.
+        Flexible(
+          child: Text(
+            title!.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.title.copyWith(letterSpacing: 0.1),
+          ),
+        ),
         if (streak != null) ...[Gap.w12, _StreakBadge(streak: streak!)],
       ],
     );

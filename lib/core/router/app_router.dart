@@ -35,6 +35,7 @@ import 'package:gutgood/features/insights/presentation/pages/insights_screen.dar
 import 'package:gutgood/features/insights/presentation/pages/pattern_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_screens.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/additive_detail_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/additives_list_screen.dart';
@@ -182,6 +183,10 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.smartInsightDetail,
                 builder: (context, state) => SmartInsightDetailScreen(insight: state.extra as InsightSummary),
+              ),
+              GoRoute(
+                path: AppRoutes.foodIntelligence,
+                builder: (context, state) => FoodIntelligenceScreen(insight: state.extra as AIInsight),
               ),
               GoRoute(path: AppRoutes.notificationArchive, builder: (context, state) => const NotificationArchiveScreen()),
             ],

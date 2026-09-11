@@ -9,7 +9,6 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
 import 'package:gutgood/core/router/app_routes.dart';
-import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/super_card.dart';
@@ -174,8 +173,6 @@ class InsightDashboardSliver extends StatelessWidget {
   List<Widget> _buildPatternCards(BuildContext context, List<BodyPattern> patterns) {
     if (patterns.isEmpty) return [];
     final widgets = <Widget>[];
-    final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Deduplicate patterns
     final seenPatterns = <String>{};

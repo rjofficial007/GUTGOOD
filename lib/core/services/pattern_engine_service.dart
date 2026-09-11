@@ -109,11 +109,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
   /// P1-7: symptoms strictly after [mealTime] within [window], sorted
   /// ASCENDING by event time. Firestore returns newest-first, so callers must
   /// never rely on list order (`.first` used to mean "latest in window").
-  List<SymptomLog> _symptomsAfter(List<SymptomLog> logs, DateTime mealTime, Duration window) {
-    final matches = logs.where((s) => s.eventTime.isAfter(mealTime) && s.eventTime.difference(mealTime) <= window).toList();
-    matches.sort((a, b) => a.eventTime.compareTo(b.eventTime));
-    return matches;
-  }
+  List<SymptomLog> _symptomsAfter(List<SymptomLog> logs, DateTime mealTime, Duration window) =>
+      logs.where((s) => s.eventTime.isAfter(mealTime) && s.eventTime.difference(mealTime) <= window).toList()..sort((a, b) => a.eventTime.compareTo(b.eventTime));
 
   /// P1-7: co-occurring items graduate from single-item triggers: items
   /// present in at least half the symptomatic meals join the trigger (cap 3
@@ -338,7 +335,14 @@ class PatternEngineServiceImpl implements PatternEngineService {
     ..._detectHeadacheLike(meals, symptoms, keywords: const ['migraine'], reaction: 'Migraine', plural: 'migraines', timeframeDays: timeframeDays),
   ];
 
-  List<BodyPattern> _detectHeadacheLike(List<MealLog> meals, List<SymptomLog> symptoms, {required List<String> keywords, required String reaction, required String plural, required int timeframeDays}) {
+  List<BodyPattern> _detectHeadacheLike(
+    List<MealLog> meals,
+    List<SymptomLog> symptoms, {
+    required List<String> keywords,
+    required String reaction,
+    required String plural,
+    required int timeframeDays,
+  }) {
     final foodToSymptomaticMeals = <String, List<MealLog>>{};
     final headacheLogs = symptoms.where((s) => keywords.any((k) => s.symptom.toLowerCase().contains(k))).toList();
 

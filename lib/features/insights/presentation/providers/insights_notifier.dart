@@ -100,13 +100,17 @@ class InsightsNotifier with ChangeNotifier {
     try {
       _insightHistory = await _repository.getInsightHistory();
       await _analyticsService.logEvent(name: 'insight_history_viewed', parameters: {'count': _insightHistory.length});
-      notifyListeners();
+      
+      // If we have history but no stream data yet, notify so UI can show the latest cached insight
+      if (_state.latestInsight == null && _insightHistory.isNotEmpty) {
+        notifyListeners();
+      }
     } catch (e) {
       AppLogger.error('InsightsNotifier: Failed to fetch history', error: e);
     }
   }
 
-  AIInsight? get latestInsight => _state.latestInsight;
+  AIInsight? get latestInsight => _state.latestInsight ?? (_insightHistory.isNotEmpty ? _insightHistory.first : null);
   List<AIInsight> get insightHistory => _insightHistory;
 
   /// Returns 3-5 most meaningful insights prioritized by confidence and frequency.
@@ -152,6 +156,7 @@ class InsightsNotifier with ChangeNotifier {
   bool get isSufficient => _state.totalScans >= 3 || (_state.totalMeals >= 3 && _state.totalSymptoms >= 1);
 
   bool get isLoading => _isLoading;
+  bool get isGenerating => _isGenerating;
 
   Future<void> markAllAlertsAsRead() async {
     final unreadIds = _state.alerts.where((a) => !a.isRead).map((a) => a.id).toList();

@@ -31,7 +31,7 @@ class PromptFormattingRules {
 
   /// The three formatting rules present, byte-for-byte, at the bottom of
   /// every mode prompt: spacing, one-emoji-per-line, and no lists.
-  static const String spacingRule = '- Use double newlines (\\n\\n) between EVERY numbered step above for a spacious layout.';
+  static const String spacingRule = r'- Use double newlines (\n\n) between EVERY numbered step above for a spacious layout.';
   static const String singleEmojiRule = '- STRICT RULE: Never use more than ONE emoji per line.';
   static const String noListsRule = '- NO numbered lists or bullet points. Use the "[Emoji] **Item**: Description" format.';
 

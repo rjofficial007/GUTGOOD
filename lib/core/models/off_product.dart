@@ -305,6 +305,13 @@ class OffProduct extends Equatable {
 class IngredientDetail extends Equatable {
   const IngredientDetail({required this.text, this.percent, this.percentIsEstimate = false, this.subIngredients = const []});
 
+  factory IngredientDetail.fromMap(Map<String, dynamic> map) => IngredientDetail(
+    text: map['text']?.toString() ?? '',
+    percent: map['percent'] is num ? (map['percent'] as num).toDouble() : double.tryParse(map['percent']?.toString() ?? ''),
+    percentIsEstimate: map['percentIsEstimate'] == true,
+    subIngredients: ModelUtils.parseList<String>(map['subIngredients']),
+  );
+
   final String text;
 
   /// Share of the product in percent (0-100), when OFF knows/estimates it.
@@ -315,13 +322,6 @@ class IngredientDetail extends Equatable {
 
   /// Sub-ingredient names (one level), e.g. sugar/glucose inside "syrup".
   final List<String> subIngredients;
-
-  factory IngredientDetail.fromMap(Map<String, dynamic> map) => IngredientDetail(
-    text: map['text']?.toString() ?? '',
-    percent: map['percent'] is num ? (map['percent'] as num).toDouble() : double.tryParse(map['percent']?.toString() ?? ''),
-    percentIsEstimate: map['percentIsEstimate'] == true,
-    subIngredients: ModelUtils.parseList<String>(map['subIngredients']),
-  );
 
   Map<String, dynamic> toMap() => {'text': text, 'percent': percent, 'percentIsEstimate': percentIsEstimate, 'subIngredients': subIngredients};
 
@@ -334,14 +334,14 @@ class IngredientDetail extends Equatable {
 class NutriScoreComponent extends Equatable {
   const NutriScoreComponent({required this.label, required this.value, this.evaluation});
 
+  factory NutriScoreComponent.fromMap(Map<String, dynamic> map) =>
+      NutriScoreComponent(label: map['label']?.toString() ?? '', value: map['value']?.toString() ?? '', evaluation: map['evaluation']?.toString());
+
   final String label;
   final String value;
 
   /// OFF cell evaluation ('good' | 'neutral' | 'bad' | …); null when absent.
   final String? evaluation;
-
-  factory NutriScoreComponent.fromMap(Map<String, dynamic> map) =>
-      NutriScoreComponent(label: map['label']?.toString() ?? '', value: map['value']?.toString() ?? '', evaluation: map['evaluation']?.toString());
 
   Map<String, dynamic> toMap() => {'label': label, 'value': value, 'evaluation': evaluation};
 

@@ -48,18 +48,6 @@ class AIInsight extends Equatable {
     this.origin,
   });
 
-  /// Minimum-evidence doctrine (§H): full insight with pattern claims.
-  static const String statusReady = 'ready';
-
-  /// Minimum-evidence doctrine (§H): digest with score-trend only — zero
-  /// pattern claims, explicit "not enough data yet" state.
-  static const String statusInsufficientData = 'insufficient_data';
-
-  /// Writer provenance, stamped on every insight doc. On-device generation
-  /// is the only pipeline; the field stays so future writers remain
-  /// comparable (retired server values may appear on old docs).
-  static const String originClient = 'client';
-
   factory AIInsight.fromMap(Map<String, dynamic> map) {
     final rawData = map['data'];
     final data = rawData is String ? jsonDecode(rawData) as Map<String, dynamic> : (rawData as Map<String, dynamic>? ?? map);
@@ -102,6 +90,18 @@ class AIInsight extends Equatable {
       origin: data['origin'] as String?,
     );
   }
+
+  /// Minimum-evidence doctrine (§H): full insight with pattern claims.
+  static const String statusReady = 'ready';
+
+  /// Minimum-evidence doctrine (§H): digest with score-trend only — zero
+  /// pattern claims, explicit "not enough data yet" state.
+  static const String statusInsufficientData = 'insufficient_data';
+
+  /// Writer provenance, stamped on every insight doc. On-device generation
+  /// is the only pipeline; the field stays so future writers remain
+  /// comparable (retired server values may appear on old docs).
+  static const String originClient = 'client';
 
   /// Local SQLite primary key.
   final int? id;

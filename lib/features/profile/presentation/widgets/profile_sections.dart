@@ -139,17 +139,7 @@ class AppSettingsSection extends StatelessWidget {
       children: [
         AppTile(icon: AppIcons.bookmark, title: AppStrings.savedFoods, onTap: () => unawaited(context.push(AppRoutes.savedFoods))),
         AppTile(icon: AppIcons.bell, title: AppStrings.notificationPreferences, onTap: () => unawaited(context.push(AppRoutes.notifications))),
-        // C-4: per-user kill switch for server insight generation.
-        Selector<ProfileNotifier, bool>(
-          selector: (_, n) => n.profile?.insightsDisabled ?? false,
-          builder: (context, disabled, _) => AppSwitchTile(
-            icon: AppIcons.sparkles,
-            title: AppStrings.dailyInsights,
-            desc: AppStrings.dailyInsightsSubtitle,
-            value: !disabled,
-            onChanged: (val) => unawaited(context.read<ProfileNotifier>().updateInsightsDisabled(!val)),
-          ),
-        ),
+
         Selector<ThemeNotifier, ThemeMode>(
           selector: (_, n) => n.themeMode,
           builder: (context, mode, _) => AppTile(
@@ -395,10 +385,7 @@ class AppVersionInfo extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(AppStrings.appName, style: AppTextStyles.bodyBold),
-                  Text(
-                    'v${sl<AppVersionService>().appVersion} (${sl<AppVersionService>().buildVersion})',
-                    style: context.captionBold.copyWith(color: context.appColorScheme.textMuted),
-                  ),
+                  Text('v${sl<AppVersionService>().appVersion} (${sl<AppVersionService>().buildVersion})', style: context.captionBold.copyWith(color: context.appColorScheme.textMuted)),
                 ],
               ),
             ),
@@ -444,10 +431,7 @@ class AIUsageCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    AppStrings.limits.toUpperCase(),
-                    style: context.captionBold.copyWith(color: textColor.withAlpha(153)),
-                  ),
+                  Text(AppStrings.limits.toUpperCase(), style: context.captionBold.copyWith(color: textColor.withAlpha(153))),
                   Text(isAnon ? AppStrings.guestAccount : AppStrings.freePlan, style: context.bodyBold.copyWith(color: textColor, height: 1.1)),
                 ],
               ),
@@ -456,10 +440,7 @@ class AIUsageCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(color: textColor, borderRadius: BorderRadius.circular(100)),
-                  child: Text(
-                    AppStrings.upgrade.toUpperCase(),
-                    style: context.captionBold.copyWith(color: scheme.cardBackground),
-                  ),
+                  child: Text(AppStrings.upgrade.toUpperCase(), style: context.captionBold.copyWith(color: scheme.cardBackground)),
                 ),
               ),
             ],
@@ -491,14 +472,8 @@ class UsageRow extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label.toUpperCase(),
-              style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary),
-            ),
-            Text(
-              '$current / $total',
-              style: context.captionBold.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
-            ),
+            Text(label.toUpperCase(), style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary)),
+            Text('$current / $total', style: context.captionBold.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
           ],
         ),
         Gap.h6,
@@ -542,10 +517,7 @@ class AppearanceOption extends StatelessWidget {
               child: Icon(icon, color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary, size: AppSizes.icon20),
             ),
             Gap.w16,
-            Text(
-              title,
-              style: context.labelBold.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary),
-            ),
+            Text(title, style: context.labelBold.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textPrimary)),
             const Spacer(),
             if (isSelected) Icon(AppIcons.checkCircle2, color: context.appColorScheme.cardBackground, size: AppSizes.icon20),
           ],

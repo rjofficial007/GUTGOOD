@@ -6,7 +6,6 @@ import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat_message.dart';
 import 'package:gutgood/core/models/off_product.dart';
-import 'package:gutgood/core/models/scan_insight.dart';
 import 'package:gutgood/core/models/scan_result.dart';
 import 'package:gutgood/core/models/scan_result_details.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
@@ -191,16 +190,13 @@ class ScannerRepositoryImpl implements ScannerRepository {
     // usually tells us exactly what is missing, so pass that through.
     if (!breakdown.hasData) {
       final reason = ModelUtils.unscorableReason(miscTags);
-      return scan.copyWith(score: 50, insight: reason == null ? scan.insight : (scan.insight ?? const ScanInsight()).copyWith(scoreExplanation: reason));
+      return scan.copyWith(score: 50, impact: reason ?? scan.impact);
     }
 
     final score = breakdown.score;
     AppLogger.ai('ScannerRepository: engine score $score (nutrition ${breakdown.nutritionSubscore}, additives ${breakdown.additiveSubscore}, organic ${breakdown.organicSubscore})');
 
-    return scan.copyWith(
-      score: score,
-      insight: (scan.insight ?? const ScanInsight()).copyWith(scoreFactors: breakdown.factors, scoreExplanation: breakdown.explanation),
-    );
+    return scan.copyWith(score: score, impact: breakdown.explanation.isNotEmpty ? breakdown.explanation : scan.impact);
   }
 
   @override

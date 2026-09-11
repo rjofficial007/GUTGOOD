@@ -57,7 +57,6 @@ class ProfileNotifier with ChangeNotifier {
   bool _isInitialized = false;
   bool _showStreakCelebration = false;
   bool _pendingStreakCelebration = false; // 🟢 Track if a celebration is queued
-  String _quickInsight = 'Log more meals to see patterns.';
   StreamSubscription<UserProfile?>? _profileSub;
   StreamSubscription<int>? _avgScoreSub;
   Timer? _dayRolloverTimer;
@@ -192,17 +191,12 @@ class ProfileNotifier with ChangeNotifier {
     _previousStreak = null;
     _showStreakCelebration = false;
     _isInitialized = false;
-    _quickInsight = 'Log more meals to see patterns.';
     _profileSub?.cancel();
     _avgScoreSub?.cancel();
     notifyListeners();
   }
 
   void _updateInsights() {
-    final insights = _appStateService.insightsData.value;
-    if (insights != null && insights.topInsight != null) {
-      _quickInsight = insights.topInsight!.description;
-    }
     notifyListeners();
   }
 

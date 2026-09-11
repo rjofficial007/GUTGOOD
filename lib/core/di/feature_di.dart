@@ -44,14 +44,23 @@ void initFeatureDI() {
     ..registerLazySingleton(() => GutAuthNotifier(sl(), sl()))
     ..registerLazySingleton(() => PurchaseProvider(purchaseService: sl(), connectionChecker: sl(), appStateService: sl(), prefs: sl(), authFirestoreService: sl(), analyticsService: sl()))
     // --- Profile ---
-    ..registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(auth: sl(), firestoreService: sl()))
+    ..registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(firestoreService: sl()))
     ..registerLazySingleton(() => ProfileNotifier(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()))
     ..registerLazySingleton(() => UsageNotifier(sl(), sl()))
     // --- Chat ---
     ..registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestoreService: sl(), aiService: sl(), streakService: sl(), foodImages: sl()))
     ..registerLazySingleton(
-      () =>
-          ChatHistoryNotifier(repository: sl(), chatFirestoreService: sl(), authFirestoreService: sl(), historyFirestoreService: sl(), aiService: sl(), appStateService: sl(), prefs: sl(), auth: sl(), usageService: sl()),
+      () => ChatHistoryNotifier(
+        repository: sl(),
+        chatFirestoreService: sl(),
+        authFirestoreService: sl(),
+        historyFirestoreService: sl(),
+        aiService: sl(),
+        appStateService: sl(),
+        prefs: sl(),
+        auth: sl(),
+        usageService: sl(),
+      ),
     )
     ..registerLazySingleton(
       () => ChatComposerNotifier(

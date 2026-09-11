@@ -24,10 +24,7 @@ class ScanHistoryTile extends StatelessWidget {
     final leadingWidget = Container(
       width: AppSizes.w52,
       height: AppSizes.w52,
-      decoration: BoxDecoration(
-        color: context.appColorScheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppSizes.r12),
-      ),
+      decoration: BoxDecoration(color: context.appColorScheme.cardBackground, borderRadius: BorderRadius.circular(AppSizes.r12)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSizes.r12),
         child: displayImageUrl != null

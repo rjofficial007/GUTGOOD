@@ -9,26 +9,26 @@ class AppTextStyles {
   static TextStyle get displayHero => TextStyle(fontSize: 72.0.sp, fontWeight: FontWeight.w900, letterSpacing: -0.05, height: 1.0);
   static TextStyle get displayLg => TextStyle(fontSize: 56.0.sp, fontWeight: FontWeight.w900, letterSpacing: -0.04, height: 1.1);
   static TextStyle get displayMd => TextStyle(fontSize: 44.0.sp, fontWeight: FontWeight.w900, letterSpacing: -0.04, height: 1.1);
-  static TextStyle get displaySm => TextStyle(fontSize: 34.0.sp, fontWeight: FontWeight.w700, letterSpacing: -0.03, height: 1.1);
+  static TextStyle get displaySm => TextStyle(fontSize: 34.0.sp, fontWeight: FontWeight.w800, letterSpacing: -0.03, height: 1.1);
 
   static TextStyle get headingLg => TextStyle(fontSize: 28.0.sp, fontWeight: FontWeight.w800, letterSpacing: -0.02, height: 1.25);
-  static TextStyle get headingMd => TextStyle(fontSize: 22.0.sp, fontWeight: FontWeight.w700, letterSpacing: -0.02, height: 1.25);
+  static TextStyle get headingMd => TextStyle(fontSize: 24.0.sp, fontWeight: FontWeight.w700, letterSpacing: -0.02, height: 1.25);
   static TextStyle get headingSm => TextStyle(fontSize: 20.0.sp, fontWeight: FontWeight.w700, letterSpacing: -0.02, height: 1.25);
 
   static TextStyle get title => const TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.02, height: 1.25);
 
-  static TextStyle get bodyLg => TextStyle(fontSize: 17.0.sp, fontWeight: FontWeight.w400, letterSpacing: -0.4, height: 1.3);
-  static TextStyle get body => TextStyle(fontSize: 16.0.sp, fontWeight: FontWeight.w400, letterSpacing: -0.4, height: 1.3);
-  static TextStyle get bodySm => TextStyle(fontSize: 15.0.sp, fontWeight: FontWeight.w400, letterSpacing: -0.24, height: 1.3);
+  static TextStyle get bodyLg => TextStyle(fontSize: 16.0.sp, fontWeight: FontWeight.w400, letterSpacing: -0.01, height: 1.5);
+  static TextStyle get body => TextStyle(fontSize: 15.0.sp, fontWeight: FontWeight.w400, letterSpacing: -0.01, height: 1.4);
+  static TextStyle get bodySm => TextStyle(fontSize: 13.0.sp, fontWeight: FontWeight.w400, letterSpacing: -0.01, height: 1.5);
 
-  static TextStyle get label => TextStyle(fontSize: 13.0.sp, fontWeight: FontWeight.w500, letterSpacing: -0.08, height: 1.4);
-  static TextStyle get labelBold => TextStyle(fontSize: 11.0.sp, fontWeight: FontWeight.w600, letterSpacing: 0.06, height: 1.4);
-  static TextStyle get caption => TextStyle(fontSize: 12.0.sp, fontWeight: FontWeight.w500, letterSpacing: 0.5, height: 1.4);
-  static TextStyle get captionBold => TextStyle(fontSize: 10.0.sp, fontWeight: FontWeight.w600, letterSpacing: 0.06, height: 1.2);
-  static TextStyle get captionTiny => TextStyle(fontSize: 10.0.sp, fontWeight: FontWeight.w400, letterSpacing: 0.06, height: 1.2);
-  static TextStyle get captionMicro => TextStyle(fontSize: 10.0.sp, fontWeight: FontWeight.w400, letterSpacing: 0.06, height: 1.1);
-  static TextStyle get overline => TextStyle(fontSize: 10.0.sp, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.4);
-  static TextStyle get eyebrow => TextStyle(fontSize: 12.0.sp, fontWeight: FontWeight.w600, letterSpacing: 0.5, height: 1.2);
+  static TextStyle get label => TextStyle(fontSize: 13.0.sp, fontWeight: FontWeight.w500, letterSpacing: -0.01, height: 1.4);
+  static TextStyle get labelBold => TextStyle(fontSize: 11.0.sp, fontWeight: FontWeight.w900, letterSpacing: -0.01, height: 1.4);
+  static TextStyle get caption => TextStyle(fontSize: 10.0.sp, fontWeight: FontWeight.w500, letterSpacing: 0.01, height: 1.4);
+  static TextStyle get captionBold => TextStyle(fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 0.01, height: 1.2);
+  static TextStyle get captionTiny => TextStyle(fontSize: 7.0.sp, fontWeight: FontWeight.w900, letterSpacing: 0.01, height: 1.2);
+  static TextStyle get captionMicro => TextStyle(fontSize: 6.0.sp, fontWeight: FontWeight.w800, letterSpacing: 0.01, height: 1.1);
+  static TextStyle get overline => TextStyle(fontSize: 11.0.sp, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.4);
+  static TextStyle get eyebrow => TextStyle(fontSize: 10.0.sp, fontWeight: FontWeight.w900, letterSpacing: 1.5, height: 1.2);
 
   // Aliases & Legacy mappings
   static TextStyle get h1 => displaySm;

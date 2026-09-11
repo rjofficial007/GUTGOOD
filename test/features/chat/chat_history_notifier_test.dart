@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -152,7 +151,9 @@ void main() {
       expect(shown.isSending, isTrue);
 
       // Once remote URLs land, the server version wins and local bytes drop.
-      controller.add([msg.copyWith(firestoreId: 'cloud_img1', imageUrls: ['https://x/y.jpg'], clearLocalImages: true, isSending: false)]);
+      controller.add([
+        msg.copyWith(firestoreId: 'cloud_img1', imageUrls: ['https://x/y.jpg'], clearLocalImages: true, isSending: false),
+      ]);
       await Future.delayed(const Duration(milliseconds: 50));
 
       final hydrated = notifier.messages.first;
@@ -187,8 +188,9 @@ void main() {
       expect(notifier.cachedSummary, 's1');
 
       // Two more turns age out — below the batch threshold, no second call.
-      notifier.addOptimisticMessage(msg('m10'));
-      notifier.addOptimisticMessage(msg('m11'));
+      notifier
+        ..addOptimisticMessage(msg('m10'))
+        ..addOptimisticMessage(msg('m11'));
       await notifier.precomputeSummary();
 
       verifyNever(() => aiService.summarizeHistory(any(), previousSummary: 's1'));

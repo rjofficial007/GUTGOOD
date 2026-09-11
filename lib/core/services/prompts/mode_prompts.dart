@@ -1,6 +1,6 @@
 import 'package:gutgood/core/services/prompts/mode_prompts/barcode_analysis_prompt.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/general_rules_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/full_analysis_prompt.dart';
+import 'package:gutgood/core/services/prompts/mode_prompts/general_rules_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/ingredients_label_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/restaurant_menu_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/vision_safety_prompt.dart';

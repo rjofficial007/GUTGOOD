@@ -1,10 +1,7 @@
 import 'dart:convert';
 
-import 'package:equatable/equatable.dart';
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:gutgood/core/data/additive_concern_db.dart';
+import 'package:equatable/equatable.dart';
 
 class ModelUtils {
   /// 🟢 NEW: Global safe JSON encoder that handles Firestore Timestamps and DateTimes.
@@ -31,13 +28,19 @@ class ModelUtils {
     // contain Timestamp-like properties (seconds/nanoseconds) or toDate() methods.
     try {
       final dynamic obj = nonEncodable;
+      // ignore: avoid_dynamic_calls
       if (obj.runtimeType.toString().contains('Timestamp')) {
+        // ignore: avoid_dynamic_calls
         return obj.toDate().toIso8601String();
       }
+      // ignore: avoid_dynamic_calls
       if (obj.toMap != null) {
+        // ignore: avoid_dynamic_calls
         return obj.toMap();
       }
+      // ignore: avoid_dynamic_calls
       if (obj.toJson != null) {
+        // ignore: avoid_dynamic_calls
         return obj.toJson();
       }
     } catch (_) {}
@@ -326,7 +329,6 @@ class ModelUtils {
     return score.clamp(1, 100).toInt();
   }
 
-
   /// Friendly nutrient names for OFF's `en:nutriscore-missing-nutrition-data-*`
   /// tags, so we can say "missing sodium" rather than "missing-nutrition-data-sodium".
   static const Map<String, String> _nutrientLabels = {
@@ -360,9 +362,7 @@ class ModelUtils {
     final tags = miscTags;
     if (tags == null || tags.isEmpty) return null;
 
-    final relevant = tags
-        .where((t) => t.startsWith('en:nutriscore') || t.startsWith('en:nutrition'))
-        .toSet();
+    final relevant = tags.where((t) => t.startsWith('en:nutriscore') || t.startsWith('en:nutrition')).toSet();
     if (relevant.isEmpty) return null;
 
     // Most specific first: a named missing nutrient beats a generic
@@ -374,13 +374,8 @@ class ModelUtils {
     }
 
     if (missingNutrients.isNotEmpty) {
-      final names = missingNutrients
-          .map((k) => _nutrientLabels[k] ?? k.replaceAll('_', ' ').replaceAll('-', ' '))
-          .toSet()
-          .toList();
-      final joined = names.length == 1
-          ? names.single
-          : '${names.take(names.length - 1).join(', ')} and ${names.last}';
+      final names = missingNutrients.map((k) => _nutrientLabels[k] ?? k.replaceAll('_', ' ').replaceAll('-', ' ')).toSet().toList();
+      final joined = names.length == 1 ? names.single : '${names.take(names.length - 1).join(', ')} and ${names.last}';
       return "Open Food Facts is missing $joined for this product, so we can't "
           'score it yet. You could add it and help everyone who scans this.';
     }
@@ -390,17 +385,13 @@ class ModelUtils {
           "Nutri-Score can't be worked out yet.";
     }
 
-    if (relevant.any((t) =>
-        t.contains('not-enough-data') ||
-        t == 'en:nutriscore-not-computed' ||
-        t == 'en:nutriscore-missing-nutrition-data')) {
+    if (relevant.any((t) => t.contains('not-enough-data') || t == 'en:nutriscore-not-computed' || t == 'en:nutriscore-missing-nutrition-data')) {
       return "Open Food Facts doesn't have enough nutrition data for this "
           'product yet, so there is nothing to score.';
     }
 
     return null;
   }
-
 }
 
 /// One explainable input to the deterministic gut score.

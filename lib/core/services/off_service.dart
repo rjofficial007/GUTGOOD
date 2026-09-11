@@ -418,7 +418,7 @@ class OffServiceImpl implements OffService {
 
     // The components table lives under the 'nutriscore' panel (v2 taxonomy);
     // fall back to any panel whose id starts with 'nutriscore'.
-    off.KnowledgePanel? panel = panels['nutriscore'];
+    var panel = panels['nutriscore'];
     if (panel == null) {
       for (final entry in panels.entries) {
         if (entry.key.startsWith('nutriscore')) {
@@ -452,7 +452,7 @@ class OffServiceImpl implements OffService {
     return (components == null || components.isEmpty ? null : components, explanation);
   }
 
-  static String _stripHtml(String html) => html.replaceAll(RegExp(r'<[^>]+>'), '').replaceAll('&amp;', '&').replaceAll('&quot;', '"').trim();
+  static String _stripHtml(String html) => html.replaceAll(RegExp('<[^>]+>'), '').replaceAll('&amp;', '&').replaceAll('&quot;', '"').trim();
 
   /// Light-weight mapping for search results (alternatives), identical in
   /// shape to the old raw-mapping for the v2 fallback.

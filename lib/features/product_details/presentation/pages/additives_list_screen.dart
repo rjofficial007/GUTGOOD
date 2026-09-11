@@ -201,8 +201,7 @@ class _ListRiskBadge extends StatelessWidget {
   final Color background;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(20)),
       child: Row(
@@ -221,7 +220,6 @@ class _ListRiskBadge extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class _WhyItMattersCard extends StatelessWidget {

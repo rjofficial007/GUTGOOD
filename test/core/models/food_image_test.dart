@@ -37,7 +37,7 @@ void main() {
 
     test('fromMap tolerates null, missing keys, and non-string entries', () {
       expect(const FoodImageLinks(), FoodImageLinks.fromMap(null));
-      final links = FoodImageLinks.fromMap({'chat': ['m1', 42, null]});
+      final links = FoodImageLinks.fromMap(const {'chat': ['m1', 42, null]});
       expect(links.chat, ['m1']);
       expect(links.meals, isEmpty);
     });
@@ -45,7 +45,7 @@ void main() {
 
   group('FoodImage', () {
     test('fromMap parses a full doc', () {
-      final image = FoodImage.fromMap({
+      final image = FoodImage.fromMap(const {
         'hash': 'abcdef0123456789',
         'storagePath': 'users/u/food_images/abcdef0123456789.jpg',
         'downloadUrl': 'https://full/x.jpg',

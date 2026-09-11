@@ -11,8 +11,7 @@ class ScanResultView extends StatelessWidget {
   final bool cycleSyncEnabled;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
       child: Column(
         children: [
@@ -36,10 +35,7 @@ class ScanResultView extends StatelessWidget {
           DashboardEntrance(delay: 250, child: ScanWatchSection(scanData: scanData)),
           Gap.h20,
 
-          // 6. What this means for you (hidden when the AI gave no narrative)
-          if (scanData.impact.isNotEmpty) ...[DashboardEntrance(delay: 300, child: ScanTopInsightsCard(scanData: scanData)), Gap.h20],
-
-          // 7. Cycle Insight (Hormonal Phase Advice if Enabled)
+          // 6. Cycle Insight (Hormonal Phase Advice if Enabled)
           if (scanData.cycleInsight != null && cycleSyncEnabled) ...[DashboardEntrance(delay: 320, child: CycleInsightSection(insight: scanData.cycleInsight!)), Gap.h20],
 
           // 8. Better Swaps (tappable cards + working "+ Add")
@@ -66,5 +62,4 @@ class ScanResultView extends StatelessWidget {
         ],
       ),
     );
-  }
 }

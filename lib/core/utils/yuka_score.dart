@@ -113,7 +113,6 @@ class YukaScoreBreakdown {
 
   /// Engine-authored "why this score", in plain language.
   final String explanation;
-
 }
 
 class _Band {
@@ -273,7 +272,9 @@ class YukaScore {
   static int additiveSubscore(List<AdditiveConcern> concerns) {
     if (concerns.isEmpty) return 100;
 
-    var low = 0, moderate = 0, high = 0;
+    var low = 0;
+    var moderate = 0;
+    var high = 0;
     for (final c in concerns) {
       switch (c.level) {
         case AdditiveConcernLevel.low:
@@ -355,7 +356,7 @@ class YukaScore {
     NutriScoreGrade? grade;
     double? points;
     var estimated = false;
-    Map<String, int> componentPoints = {};
+    var componentPoints = <String, int>{};
 
     if (nutriscoreScore != null) {
       points = nutriscoreScore.toDouble();
@@ -387,10 +388,10 @@ class YukaScore {
 
     final hasNutrition = grade != null && points != null;
     if (!hasNutrition && concerns.isEmpty) {
-      return YukaScoreBreakdown(hasData: false, score: 0, nutritionSubscore: 0, additiveSubscore: 0, organicSubscore: 0, factors: const [], explanation: '');
+      return const YukaScoreBreakdown(hasData: false, score: 0, nutritionSubscore: 0, additiveSubscore: 0, organicSubscore: 0, factors: [], explanation: '');
     }
 
-    final nutrition = hasNutrition ? nutritionSubscore(grade!, points!) : 50; // no signal → neutral
+    final nutrition = hasNutrition ? nutritionSubscore(grade, points) : 50; // no signal → neutral
     final additive = additiveSubscore(concerns);
     final organicSub = organic ? 100 : 0;
 
@@ -411,10 +412,10 @@ class YukaScore {
     final factors = <ScoreFactor>[
       ScoreFactor(
         label: hasNutrition
-            ? 'Nutrition · Nutri-Score ${grade!.letter}${estimated ? ' (estimated)' : ''} · $nutritionPts/$nutritionWeight'
+            ? 'Nutrition · Nutri-Score ${grade.letter}${estimated ? ' (estimated)' : ''} · $nutritionPts/$nutritionWeight'
             : 'Nutrition · not enough data · $nutritionPts/$nutritionWeight',
         delta: nutritionPts,
-        phrase: hasNutrition ? 'a Nutri-Score of ${grade!.letter}' : 'incomplete nutrition data',
+        phrase: hasNutrition ? 'a Nutri-Score of ${grade.letter}' : 'incomplete nutrition data',
       ),
       ScoreFactor(
         label: 'Additives · ${_additiveSummary(concerns)} · $additivePts/$additiveWeight',
@@ -449,7 +450,9 @@ class YukaScore {
 
   static String _additiveSummary(List<AdditiveConcern> concerns) {
     if (concerns.isEmpty) return 'none detected';
-    var low = 0, moderate = 0, high = 0;
+    var low = 0;
+    var moderate = 0;
+    var high = 0;
     for (final c in concerns) {
       switch (c.level) {
         case AdditiveConcernLevel.low:
@@ -474,14 +477,14 @@ class YukaScore {
   }
 
   static String _explain(int score, int nutritionPts, int additivePts, int organicPts, NutriScoreGrade? grade, bool estimated, int? beforeCap, List<AdditiveConcern> concerns) {
-    final buffer = StringBuffer('Score $score out of 100 — ');
-    buffer.write(
-      grade != null
-          ? 'nutrition ${nutritionPts}/$nutritionWeight (Nutri-Score ${grade.letter}${estimated ? ', estimated from its nutrients' : ''})'
-          : 'nutrition ${nutritionPts}/$nutritionWeight (incomplete data)',
-    );
-    buffer.write(', additives ${additivePts}/$additiveWeight');
-    buffer.write(' and organic ${organicPts}/$organicWeight.');
+    final buffer = StringBuffer('Score $score out of 100 — ')
+      ..write(
+        grade != null
+            ? 'nutrition $nutritionPts/$nutritionWeight (Nutri-Score ${grade.letter}${estimated ? ', estimated from its nutrients' : ''})'
+            : 'nutrition $nutritionPts/$nutritionWeight (incomplete data)',
+      )
+      ..write(', additives $additivePts/$additiveWeight')
+      ..write(' and organic $organicPts/$organicWeight.');
 
     if (beforeCap != null) {
       final names = concerns.where(_isHighRisk).map((c) => c.code.isNotEmpty ? c.code : c.name).take(2).join(', ');

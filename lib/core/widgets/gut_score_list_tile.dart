@@ -6,16 +6,7 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 /// A standardized list tile displaying a leading image or icon,
 /// title and subtitle metadata, and a trailing circular score progress gauge.
 class GutScoreListTile extends StatelessWidget {
-  const GutScoreListTile({
-    super.key,
-    required this.leading,
-    required this.title,
-    required this.subtitle,
-    required this.score,
-    required this.onTap,
-    this.scoreColor,
-    this.trackColor,
-  });
+  const GutScoreListTile({super.key, required this.leading, required this.title, required this.subtitle, required this.score, required this.onTap, this.scoreColor, this.trackColor});
 
   final Widget leading;
   final String title;
@@ -43,11 +34,7 @@ class GutScoreListTile extends StatelessWidget {
         child: Row(
           children: [
             // 1. Leading Image / Icon Widget
-            SizedBox(
-              width: AppSizes.w52,
-              height: AppSizes.w52,
-              child: leading,
-            ),
+            SizedBox(width: AppSizes.w52, height: AppSizes.w52, child: leading),
             Gap.w16,
             // 2. Info (Title & Subtitle)
             Expanded(
@@ -56,14 +43,14 @@ class GutScoreListTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: context.labelBold,
+                    style: context.bodyBold.copyWith(fontSize: AppSizes.s15),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Gap.h4,
                   Text(
                     subtitle,
-                    style: context.captionBold.copyWith(color: context.appColorScheme.textMuted),
+                    style: context.caption.copyWith(color: context.appColorScheme.textMuted),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -85,10 +72,7 @@ class GutScoreListTile extends StatelessWidget {
                     backgroundColor: effectiveTrackColor,
                     valueColor: AlwaysStoppedAnimation<Color>(effectiveScoreColor),
                   ),
-                  Text(
-                    '$score',
-                    style: context.labelBold,
-                  ),
+                  Text('$score', style: context.labelBold),
                 ],
               ),
             ),

@@ -69,7 +69,7 @@ class AdditiveDetailScreen extends StatelessWidget {
             SliverToBoxAdapter(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final double horizontalPadding = constraints.maxWidth < 400 ? AppSizes.p12 : AppSizes.p16;
+                  final horizontalPadding = constraints.maxWidth < 400 ? AppSizes.p12 : AppSizes.p16;
 
                   return Padding(
                     padding: EdgeInsets.fromLTRB(horizontalPadding, AppSizes.p8, horizontalPadding, AppSizes.p20),
@@ -141,7 +141,7 @@ class AdditiveDetailScreen extends StatelessWidget {
           // Description
           Text(
             description,
-            style: TextStyle(color: scheme.textPrimary.withOpacity(0.8), fontSize: width < 380 ? 13 : 14, height: 1.35, fontWeight: FontWeight.w400),
+            style: TextStyle(color: scheme.textPrimary.withValues(alpha: 0.8), fontSize: width < 380 ? 13 : 14, height: 1.35, fontWeight: FontWeight.w400),
           ),
           const SizedBox(height: 10),
           // Grid
@@ -387,13 +387,11 @@ class AdditiveDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _iconCircle({required IconData icon, required Color iconColor, required Color background, required double size}) {
-    return Container(
+  Widget _iconCircle({required IconData icon, required Color iconColor, required Color background, required double size}) => Container(
       width: size,
       height: size,
       decoration: BoxDecoration(color: background, shape: BoxShape.circle),
       alignment: Alignment.center,
       child: Icon(icon, color: iconColor, size: size * 0.52),
     );
-  }
 }

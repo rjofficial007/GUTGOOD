@@ -28,12 +28,16 @@ void main() {
       final analysisResultMap = map['analysisResult'] as Map<String, dynamic>;
       final scanMap = analysisResultMap['scan'] as Map<String, dynamic>;
 
-      expect(scanMap.containsKey('rawData'), isFalse, reason: 'rawData duplicates data already captured in scanPreview and the parsed scan/meal/symptoms fields; persisting it 3x wastes storage for no benefit.');
+      expect(
+        scanMap.containsKey('rawData'),
+        isFalse,
+        reason: 'rawData duplicates data already captured in scanPreview and the parsed scan/meal/symptoms fields; persisting it 3x wastes storage for no benefit.',
+      );
       // The in-memory model (used during the live turn, e.g. to resolve
       // scanPreview.intent) must be untouched by the persistence-time strip.
       expect(msg.analysisResult!.scan!.rawData, rawData);
       // scanPreview.intent must still resolve correctly from the live model.
-      expect(map['scanPreview']['intent'], 'MEAL_RECOGNITION');
+      expect((map['scanPreview'] as Map<String, dynamic>)['intent'], 'MEAL_RECOGNITION');
     });
   });
 

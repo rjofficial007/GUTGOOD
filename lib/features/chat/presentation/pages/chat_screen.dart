@@ -405,21 +405,15 @@ class ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    final targetContext = _latestUserMsgKey.currentContext;
-
-    if (targetContext == null) {
-      AppLogger.warning('ChatScreen: sent message was not available for the send scroll.');
-      return;
-    }
-
-    await _glideToUserMessage(targetContext);
+    await _glideToUserMessage(_latestUserMsgKey);
   }
 
   /// Glides the viewport exactly once so the sent user message sits near
   /// the top (with breathing room). The AI response then appears and grows
   /// below it without any further motion.
-  Future<void> _glideToUserMessage(BuildContext messageContext) async {
-    if (!mounted || !_scroll.hasClients) {
+  Future<void> _glideToUserMessage(GlobalKey key) async {
+    final messageContext = key.currentContext;
+    if (messageContext == null || !messageContext.mounted || !mounted || !_scroll.hasClients) {
       return;
     }
 
@@ -646,10 +640,14 @@ class ChatScreenState extends State<ChatScreen> {
 
     switch (error) {
       case ChatSendError.offline:
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+        }
 
       case ChatSendError.uploadFailed:
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.connectionError), behavior: SnackBarBehavior.floating));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.connectionError), behavior: SnackBarBehavior.floating));
+        }
 
       case ChatSendError.queued:
         // Accepted into the outbox: clear the composer like a send. The
@@ -669,49 +667,47 @@ class ChatScreenState extends State<ChatScreen> {
   // ===========================================================================
 
   @override
-  Widget build(BuildContext context) {
-    return UpgradeAlert(
-      dialogStyle: Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
-      barrierDismissible: !RemoteConfigService.instance.isForceUpdateApp,
-      showReleaseNotes: !kReleaseMode,
-      showIgnore: !RemoteConfigService.instance.isForceUpdateApp,
-      showLater: !RemoteConfigService.instance.isForceUpdateApp,
-      shouldPopScope: () => !RemoteConfigService.instance.isForceUpdateApp,
-      onIgnore: () => true,
-      onLater: () => true,
-      onUpdate: () => true,
-      upgrader: Upgrader(
-        durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp ? Duration.zero : const Duration(days: 3),
-        debugLogging: !kReleaseMode,
-        debugDisplayAlways: false,
-        messages: UpgraderMessages(),
-      ),
-      child: Scaffold(
-        backgroundColor: context.appColorScheme.cardBackground,
-        appBar: const _ChatAppBar(),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: Stack(
-                  children: [
-                    const _MessageListView(),
-                    if (_showJumpToLatest)
-                      Positioned(
-                        right: AppSizes.p16,
-                        bottom: AppSizes.p12,
-                        child: _JumpToLatestButton(onTap: _jumpToLatest),
-                      ),
-                  ],
-                ),
+  Widget build(BuildContext context) => UpgradeAlert(
+    dialogStyle: Platform.isAndroid ? UpgradeDialogStyle.material : UpgradeDialogStyle.cupertino,
+    barrierDismissible: !RemoteConfigService.instance.isForceUpdateApp,
+    showReleaseNotes: !kReleaseMode,
+    showIgnore: !RemoteConfigService.instance.isForceUpdateApp,
+    showLater: !RemoteConfigService.instance.isForceUpdateApp,
+    shouldPopScope: () => !RemoteConfigService.instance.isForceUpdateApp,
+    onIgnore: () => true,
+    onLater: () => true,
+    onUpdate: () => true,
+    upgrader: Upgrader(
+      durationUntilAlertAgain: RemoteConfigService.instance.isForceUpdateApp ? Duration.zero : const Duration(days: 3),
+      debugLogging: !kReleaseMode,
+      debugDisplayAlways: false,
+      messages: UpgraderMessages(),
+    ),
+    child: Scaffold(
+      backgroundColor: context.appColorScheme.cardBackground,
+      appBar: const _ChatAppBar(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  const _MessageListView(),
+                  if (_showJumpToLatest)
+                    Positioned(
+                      right: AppSizes.p16,
+                      bottom: AppSizes.p12,
+                      child: _JumpToLatestButton(onTap: _jumpToLatest),
+                    ),
+                ],
               ),
-              _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
-            ],
-          ),
+            ),
+            _ChatComposer(controller: _controller, onChanged: _scheduleDraftSave, onCamera: handleCamera, onGallery: _pickImages, onSend: _send),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 // =============================================================================
@@ -724,44 +720,40 @@ class _SuggestionChipsSection extends StatelessWidget {
   final TextEditingController controller;
 
   @override
-  Widget build(BuildContext context) {
-    return Selector<ChatHistoryNotifier, int>(
-      selector: (_, n) => n.messages.length,
-      builder: (context, count, _) {
-        final suggestions = [
-          AppStrings.suggestRateMeal,
-          AppStrings.suggestBetterSwap,
-          AppStrings.suggestBloatCheck,
-          AppStrings.suggestIsThisHealthy,
-          AppStrings.suggestMealPlan,
-          AppStrings.suggestExplainIngredients,
-          AppStrings.menuPhotoPrompt,
-        ];
+  Widget build(BuildContext context) => Selector<ChatHistoryNotifier, int>(
+    selector: (_, n) => n.messages.length,
+    builder: (context, count, _) {
+      final suggestions = [
+        AppStrings.suggestRateMeal,
+        AppStrings.suggestBetterSwap,
+        AppStrings.suggestBloatCheck,
+        AppStrings.suggestIsThisHealthy,
+        AppStrings.suggestMealPlan,
+        AppStrings.suggestExplainIngredients,
+        AppStrings.menuPhotoPrompt,
+      ];
 
-        return Container(
-          height: 38,
-          margin: EdgeInsets.only(bottom: AppSizes.p12),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
-            itemCount: suggestions.length,
-            itemBuilder: (context, i) {
-              return ChatSuggestionChip(
-                label: suggestions[i],
-                onTap: () {
-                  HapticHelper.light();
+      return Container(
+        height: 38,
+        margin: EdgeInsets.only(bottom: AppSizes.p12),
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
+          itemCount: suggestions.length,
+          itemBuilder: (context, i) => ChatSuggestionChip(
+            label: suggestions[i],
+            onTap: () {
+              HapticHelper.light();
 
-                  controller.text = suggestions[i];
+              controller.text = suggestions[i];
 
-                  controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
-                },
-              );
+              controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
             },
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
 }
 
 // =============================================================================
@@ -772,50 +764,48 @@ class _ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _ChatAppBar();
 
   @override
-  Widget build(BuildContext context) {
-    return Selector2<ProfileNotifier, InsightsNotifier, (int?, bool)>(
-      selector: (_, p, i) => (p.profile?.streak, i.healthAlerts.any((a) => !a.isRead)),
-      builder: (context, data, _) {
-        final streak = data.$1;
-        final hasUnreadAlerts = data.$2;
+  Widget build(BuildContext context) => Selector2<ProfileNotifier, InsightsNotifier, (int?, bool)>(
+    selector: (_, p, i) => (p.profile?.streak, i.healthAlerts.any((a) => !a.isRead)),
+    builder: (context, data, _) {
+      final streak = data.$1;
+      final hasUnreadAlerts = data.$2;
 
-        return GutAppBar(
-          title: AppStrings.gutgood,
-          streak: streak,
-          actions: [
-            GestureDetector(
-              onTap: () => showPaywallScreen(context, onProceedWithLimited: () {}),
-              child: const Tooltip(message: AppStrings.viewPremiumBenefits, child: PremiumBadge()),
-            ),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(AppIcons.bell, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
-                  onPressed: () => context.push(AppRoutes.notificationArchive),
-                ),
-                if (hasUnreadAlerts)
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: context.appColorScheme.error,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
-                      ),
+      return GutAppBar(
+        title: AppStrings.gutgood,
+        streak: streak,
+        actions: [
+          GestureDetector(
+            onTap: () => showPaywallScreen(context, onProceedWithLimited: () {}),
+            child: const Tooltip(message: AppStrings.viewPremiumBenefits, child: PremiumBadge()),
+          ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: Icon(AppIcons.bell, color: context.appColorScheme.textPrimary, size: AppSizes.icon20),
+                onPressed: () => context.push(AppRoutes.notificationArchive),
+              ),
+              if (hasUnreadAlerts)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: context.appColorScheme.error,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: context.appColorScheme.cardBackground, width: 1.5),
                     ),
                   ),
-              ],
-            ),
-            Gap.w4,
-          ],
-        );
-      },
-    );
-  }
+                ),
+            ],
+          ),
+          Gap.w4,
+        ],
+      );
+    },
+  );
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -856,15 +846,14 @@ class _MessageListView extends StatelessWidget {
         }
 
         return LayoutBuilder(
-          builder: (context, constraints) {
-            return CustomScrollView(
-              controller: scrollController,
-              reverse: false,
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              slivers: [
-                SliverPadding(padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p10, AppSizes.p16, AppSizes.p16), sliver: const _MessageSliverList()),
+          builder: (context, constraints) => CustomScrollView(
+            controller: scrollController,
+            reverse: false,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            slivers: [
+              SliverPadding(padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p10, AppSizes.p16, AppSizes.p16), sliver: const _MessageSliverList()),
 
-                /*
+              /*
                  * Turn-scoped spacer: enabled ONLY between send and turn end.
                  *
                  * Positioning the new user message near the top is physically
@@ -874,10 +863,9 @@ class _MessageListView extends StatelessWidget {
                  * removed the moment the turn ends. At rest, scroll extent
                  * is always exactly: actual content + the padding above.
                  */
-                if (chatScreenState._turnSpacerEnabled) SliverToBoxAdapter(child: SizedBox(height: constraints.maxHeight)),
-              ],
-            );
-          },
+              if (chatScreenState._turnSpacerEnabled) SliverToBoxAdapter(child: SizedBox(height: constraints.maxHeight)),
+            ],
+          ),
         );
       },
     );
@@ -984,7 +972,7 @@ class _MessageSliverListState extends State<_MessageSliverList> {
 
                               final messenger = ScaffoldMessenger.of(context);
                               final error = await composerNotifier.regenerateLastResponse();
-                              if (error == ChatSendError.offline) {
+                              if (error == ChatSendError.offline && context.mounted) {
                                 messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
                               }
                             }
@@ -993,7 +981,7 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                           ? () async {
                               final messenger = ScaffoldMessenger.of(context);
                               final error = await composerNotifier.flushOutbox();
-                              if (error == ChatSendError.offline) {
+                              if (error == ChatSendError.offline && context.mounted) {
                                 messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
                               }
                             }
@@ -1003,7 +991,7 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                                       ? () async {
                                           final messenger = ScaffoldMessenger.of(context);
                                           final error = await composerNotifier.regenerateLastResponse();
-                                          if (error == ChatSendError.offline) {
+                                          if (error == ChatSendError.offline && context.mounted) {
                                             messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
                                           }
                                         }
@@ -1037,7 +1025,7 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                       onSeeMoreSwaps: () async {
                         final messenger = ScaffoldMessenger.of(context);
                         final error = await composerNotifier.handleSeeMoreSwaps(msg.text, msg.scanData);
-                        if (error == ChatSendError.offline) {
+                        if (error == ChatSendError.offline && context.mounted) {
                           messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
                         }
                       },
@@ -1202,7 +1190,7 @@ class _ChatComposer extends StatelessWidget {
 /// scroll — it never fires on its own, and no AI update ever moves the
 /// viewport or summons it.
 class _JumpToLatestButton extends StatelessWidget {
-  const _JumpToLatestButton({super.key, required this.onTap});
+  const _JumpToLatestButton({required this.onTap});
 
   final VoidCallback onTap;
 

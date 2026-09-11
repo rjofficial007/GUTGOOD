@@ -89,7 +89,7 @@ class AiResponseValidator {
     // 6. Symptom ranges: severity/energyLevel must be 1..10. Out-of-range
     // values are voided (null), never clamped — a confused number is worse
     // than an honest unknown. Non-blocking: the symptom name itself persists.
-    AiAnalysisResult sanitized = result;
+    var sanitized = result;
     if (result.symptoms.isNotEmpty) {
       var changed = false;
       final symptoms = result.symptoms.map((s) {

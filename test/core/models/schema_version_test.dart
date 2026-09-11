@@ -40,8 +40,8 @@ void main() {
         }).schemaVersion,
         1,
       );
-      expect(MealLog.fromMap({'items': ['x']}).schemaVersion, 1);
-      expect(SymptomLog.fromMap({'symptom': 'x'}).schemaVersion, 1);
+      expect(MealLog.fromMap(const {'items': ['x']}).schemaVersion, 1);
+      expect(SymptomLog.fromMap(const {'symptom': 'x'}).schemaVersion, 1);
     });
 
     test('explicit v and verdict on AI turns parse and round-trip', () {
@@ -76,9 +76,9 @@ void main() {
 
       // Legacy docs predate stamping: nulls, never fabricated versions.
       expect(ScanResult.fromMap({'productName': 'p', 'createdAt': now.toIso8601String()}).promptVersion, isNull);
-      expect(MealLog.fromMap({'items': ['x']}).model, isNull);
-      expect(SymptomLog.fromMap({'symptom': 'x'}).promptVersion, isNull);
-      expect(ChatMessage.fromMap({'text': 'hi'}).promptVersion, isNull);
+      expect(MealLog.fromMap(const {'items': ['x']}).model, isNull);
+      expect(SymptomLog.fromMap(const {'symptom': 'x'}).promptVersion, isNull);
+      expect(ChatMessage.fromMap(const {'text': 'hi'}).promptVersion, isNull);
     });
   });
 }

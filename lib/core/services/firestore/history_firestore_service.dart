@@ -52,7 +52,6 @@ abstract class HistoryFirestoreService {
   /// `count()` aggregations while the counters doc does not exist yet.
   Stream<HistoryCounts> watchHistoryCounts();
 
-
   /// Returns a stream of the average food score, updating in real-time.
   Stream<int> getAverageFoodScoreStream();
 
@@ -345,9 +344,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       if ((await ref.get()).exists) return true;
 
       final collection = doc.collection('scan_history');
-      final Query query = (barcode != null && barcode.isNotEmpty)
-          ? collection.where('barcode', isEqualTo: barcode)
-          : collection.where('productName', isEqualTo: productName);
+      final Query query = (barcode != null && barcode.isNotEmpty) ? collection.where('barcode', isEqualTo: barcode) : collection.where('productName', isEqualTo: productName);
 
       final snapshot = await query.where('isSaved', isEqualTo: true).limit(1).get();
       return snapshot.docs.isNotEmpty;
@@ -390,8 +387,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         await batch.commit();
       }
 
-      final list = items.values.toList();
-      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final list = items.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     } catch (e) {
       AppLogger.firestore('Error getting saved foods', error: e);
@@ -407,10 +403,10 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       // 🚀 PRD §13 & §14: Support deterministic IDs for idempotency.
       final docRef = doc.collection('journal_logs').doc(docId);
       final data = {
-        ...log.toMap(), 
-        'firestoreId': docRef.id, 
-        'type': 'meal', 
-        'source': log.source ?? 'chat', 
+        ...log.toMap(),
+        'firestoreId': docRef.id,
+        'type': 'meal',
+        'source': log.source ?? 'chat',
         'createdAt': log.createdAt, // Log time (ordering clock); AI estimates live in occurredAt
         'loggedAt': FieldValue.serverTimestamp(),
       };
@@ -462,14 +458,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       if (doc == null) return null;
       // 🚀 PRD §13 & §14: Support deterministic IDs for idempotency.
       final docRef = doc.collection('journal_logs').doc(docId);
-      final data = {
-        ...log.toMap(), 
-        'firestoreId': docRef.id, 
-        'type': 'symptom', 
-        'source': log.source ?? 'manual', 
-        'createdAt': log.createdAt,
-        'loggedAt': FieldValue.serverTimestamp(),
-      };
+      final data = {...log.toMap(), 'firestoreId': docRef.id, 'type': 'symptom', 'source': log.source ?? 'manual', 'createdAt': log.createdAt, 'loggedAt': FieldValue.serverTimestamp()};
       await docRef.set(data, SetOptions(merge: true));
       return docRef.id;
     } catch (e) {
@@ -508,7 +497,6 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     }
   }
 
-
   /// Runs a server-side `count()` aggregation instead of downloading documents.
   /// Bills ~1 read per 1000 index entries (vs 1 read per document) and never
   /// throws — failures (e.g. offline) resolve to 0.
@@ -522,17 +510,12 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     }
   }
 
-
   @override
   Future<int> getMealLogsCountSince(DateTime since) async {
     final doc = _userDoc;
     if (doc == null) return 0;
-    return _countQuery(
-      doc.collection('journal_logs').where('type', isEqualTo: 'meal').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)),
-      'meals-since',
-    );
+    return _countQuery(doc.collection('journal_logs').where('type', isEqualTo: 'meal').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)), 'meals-since');
   }
-
 
   @override
   Future<int> getTotalScansCount() async {
@@ -590,7 +573,6 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         });
   }
 
-
   @override
   Stream<int> getAverageFoodScoreStream() {
     final doc = _userDoc;
@@ -600,7 +582,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       try {
         final data = snap.data();
         if (snap.exists && data != null) return HistoryCounts.fromMap(data).averageFoodScore;
-        return _legacyAverageFoodScore();
+        return await _legacyAverageFoodScore();
       } catch (e) {
         AppLogger.firestore('Error watching average food score', error: e);
         return 0;
@@ -641,7 +623,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       // photos BEFORE the batch deletes the docs that name them.
       final journalSnaps = await doc.collection('journal_logs').where('chatMessageId', isEqualTo: chatMessageId).get();
       for (final d in journalSnaps.docs) {
-        final photoUrl = (d.data())['photoUrl'] as String?;
+        final photoUrl = d.data()['photoUrl'] as String?;
         final hash = photoUrl == null ? null : imageHashFromFoodUrl(photoUrl);
         if (hash != null) await _foodImages.removeLink(hash: hash, kind: FoodImageLinks.kindMeal, id: d.id);
         batch.delete(d.reference);
