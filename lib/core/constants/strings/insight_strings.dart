@@ -314,6 +314,12 @@ class InsightStrings {
   static const String bentoLogToSolve = 'Log to solve';
   static const String bentoScanDinnerToUnlock = 'Scan a meal to unlock';
 
+  static const String bentoPatternsHeadline = 'Your Gut Health Patterns';
+  static const String bentoPatternsSub = 'AI insights from your meals, symptoms & daily logs';
+  static const String bentoPatternsAppear = 'Patterns appear with enough data.';
+  static const String bentoPatternsLearning = 'GUTGOOD is still learning your body patterns.';
+  static const String bentoPrivacyNote = 'Your data is private & secure. We only show patterns with enough data.';
+
   static String bentoMatchPct(int pct) => '$pct% match';
   static String bentoPts(int pts) => '${pts > 0 ? '+' : '\u2212'}${pts.abs()} pts';
   static String bentoOfDays(int n, int total) => '$n of $total days';

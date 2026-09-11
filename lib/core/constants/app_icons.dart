@@ -123,4 +123,6 @@ class AppIcons {
   static const share = LucideIcons.share2;
   static const messageSquare = LucideIcons.messageSquare;
   static const star = LucideIcons.star;
+  static const more = LucideIcons.moreHorizontal;
+  static const chartPie = LucideIcons.pieChart;
 }

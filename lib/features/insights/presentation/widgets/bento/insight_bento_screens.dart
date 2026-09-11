@@ -6,6 +6,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/ai_insight.dart';
 import 'package:gutgood/core/models/ai_insight_details.dart';
 import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/pattern_occurrence.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -15,9 +16,6 @@ import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widge
 import 'package:intl/intl.dart';
 
 /// Screen 03 — the weekly recap, rebuilt on the bento system.
-///
-/// [series] is the real per-day score history; the sparkline hides itself when
-/// there are fewer than two points rather than drawing invented data.
 class InsightBentoRecap extends StatelessWidget {
   const InsightBentoRecap({super.key, required this.recap, this.series = const [], this.insight});
 
@@ -115,7 +113,6 @@ class InsightBentoRecap extends StatelessWidget {
       );
     }
 
-    // Remaining highlights that did not win the hero slot.
     for (final h in hl.skip(1).take(2)) {
       tiles.add(BentoTile(BentoCard(tone: _toneForHighlightColor(h.color), tag: AppStrings.bentoRecovery, title: h.text, footRight: '→')));
     }
@@ -159,27 +156,15 @@ class InsightBentoRecap extends StatelessWidget {
   }
 }
 
-/// How the history timeline is ordered.
 enum HistorySort { newest, oldest, gains, drops }
 
 /// Screen 04 — the insight history.
-///
-/// Structured around the three questions a history screen has to answer, in
-/// order: "how am I trending", "how am I doing overall", and "what happened
-/// when". The summary bento row answers the first two from the full data set,
-/// so the tab / search / sort controls and the month-grouped timeline can
-/// filter freely without the summary numbers jumping around underneath them.
 class InsightBentoHistory extends StatefulWidget {
   const InsightBentoHistory({super.key, required this.insights, required this.onTapInsight, this.onOpenRecap, this.onOpenSynthesis});
 
   final List<AIInsight> insights;
   final void Function(AIInsight) onTapInsight;
-
-  /// Opens the weekly recap. Pass only when some insight actually carries
-  /// recap data, so the entry card never dead-ends.
   final VoidCallback? onOpenRecap;
-
-  /// Opens the AI synthesis for the most recent insight with a top insight.
   final VoidCallback? onOpenSynthesis;
 
   @override
@@ -208,7 +193,6 @@ class _InsightBentoHistoryState extends State<InsightBentoHistory> {
     return null;
   }
 
-  /// Newest first, so the timeline reads top-down like a log.
   List<AIInsight> get _newestFirst => [...widget.insights]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
   bool _matches(AIInsight i) {
@@ -284,17 +268,13 @@ class _InsightBentoHistoryState extends State<InsightBentoHistory> {
     );
   }
 
-  // ---------------------------------------------------------------- summary
-
   List<BentoTile> _summaryTiles(List<AIInsight> all, int wins, int watch) {
     if (all.isEmpty) return const [];
-    // Oldest -> newest, so the sparkline and the net change read left to right.
     final asc = all.reversed.toList();
     final first = asc.first;
     final last = asc.last;
     final tiles = <BentoTile>[];
 
-    // 1. Trend — only when there are at least two points to draw between.
     if (asc.length >= 2) {
       tiles.add(
         BentoTile(
@@ -316,7 +296,6 @@ class _InsightBentoHistoryState extends State<InsightBentoHistory> {
       );
     }
 
-    // 2. Extremes — meaningful only once there is something to compare.
     if (asc.length >= 2) {
       var best = asc.first;
       var worst = asc.first;
@@ -354,7 +333,6 @@ class _InsightBentoHistoryState extends State<InsightBentoHistory> {
       ]);
     }
 
-    // 3. Win rate.
     final neutral = all.length - wins - watch;
     tiles.add(
       BentoTile(
@@ -372,7 +350,6 @@ class _InsightBentoHistoryState extends State<InsightBentoHistory> {
       ),
     );
 
-    // 4. AI synthesis entry — the route nothing else in the app reaches.
     final synthesis = _firstOrNull(all, (i) => i.topInsight != null);
     if (synthesis != null && widget.onOpenSynthesis != null) {
       final top = synthesis.topInsight!;
@@ -397,8 +374,6 @@ class _InsightBentoHistoryState extends State<InsightBentoHistory> {
 
     return tiles;
   }
-
-  // --------------------------------------------------------------- controls
 
   Widget _controls(int total, int wins, int watch) => Column(
     children: [
@@ -479,11 +454,7 @@ class _InsightBentoHistoryState extends State<InsightBentoHistory> {
     ],
   );
 
-  // -------------------------------------------------------------- timeline
-
   Widget _timeline(List<AIInsight> rows) {
-    // Date sorts keep the month grouping honest; gain/drop sorts are a flat
-    // ranking, where grouping by month would fight the ordering.
     if (_sort != HistorySort.newest && _sort != HistorySort.oldest) {
       return BentoGrid(children: [for (final i in rows) BentoTile(_dayCard(i))]);
     }
@@ -565,14 +536,11 @@ class _InsightBentoHistoryState extends State<InsightBentoHistory> {
   }
 }
 
-/// The wins / watch / steady split behind the win-rate card.
 class _ProportionBar extends StatelessWidget {
   const _ProportionBar({required this.wins, required this.watch, required this.neutral});
-
   final int wins;
   final int watch;
   final int neutral;
-
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
@@ -586,21 +554,9 @@ class _ProportionBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(100),
         child: Row(
           children: [
-            if (wins > 0)
-              Expanded(
-                flex: wins,
-                child: ColoredBox(color: t.positive),
-              ),
-            if (neutral > 0)
-              Expanded(
-                flex: neutral,
-                child: ColoredBox(color: t.textQuaternary),
-              ),
-            if (watch > 0)
-              Expanded(
-                flex: watch,
-                child: ColoredBox(color: t.negative),
-              ),
+            if (wins > 0) Expanded(flex: wins, child: ColoredBox(color: t.positive)),
+            if (neutral > 0) Expanded(flex: neutral, child: ColoredBox(color: t.textQuaternary)),
+            if (watch > 0) Expanded(flex: watch, child: ColoredBox(color: t.negative)),
           ],
         ),
       ),
@@ -610,10 +566,8 @@ class _ProportionBar extends StatelessWidget {
 
 class _MonthHeader extends StatelessWidget {
   const _MonthHeader({required this.label, required this.count});
-
   final String label;
   final int count;
-
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
@@ -621,26 +575,9 @@ class _MonthHeader extends StatelessWidget {
       padding: EdgeInsets.only(left: 2.w),
       child: Row(
         children: [
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: InsightBentoTheme.fontFamily,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1, // ~.1em uppercase heading
-                color: t.textTertiary,
-                height: 1.2,
-              ),
-            ),
-          ),
+          Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, letterSpacing: 1.1, color: t.textTertiary, height: 1.2))),
           Gap.w8,
-          Text(
-            AppStrings.bentoEntries(count),
-            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.sp, color: t.textQuaternary, height: 1.2),
-          ),
+          Text(AppStrings.bentoEntries(count), style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.sp, color: t.textQuaternary, height: 1.2)),
           Gap.w10,
           Expanded(child: Container(height: 1, color: t.border)),
         ],
@@ -649,28 +586,11 @@ class _MonthHeader extends StatelessWidget {
   }
 }
 
-class _EmptyFilter extends StatelessWidget {
-  const _EmptyFilter();
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(vertical: 48.w),
-    child: Center(
-      child: Text(
-        AppStrings.noInsightsYet,
-        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, color: context.bentoTheme.textTertiary),
-      ),
-    ),
-  );
-}
-
 class _SortChip extends StatelessWidget {
   const _SortChip({required this.label, required this.selected, required this.onTap});
-
   final String label;
   final bool selected;
   final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
@@ -679,98 +599,382 @@ class _SortChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.w),
-        decoration: BoxDecoration(
-          color: selected ? t.textPrimary : t.tileBackground,
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: selected ? t.textPrimary : t.border),
-        ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w600, color: selected ? t.cardBackground : t.textTertiary, height: 1.2),
-        ),
+        decoration: BoxDecoration(color: selected ? t.textPrimary : t.tileBackground, borderRadius: BorderRadius.circular(100), border: Border.all(color: selected ? t.textPrimary : t.border)),
+        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w600, color: selected ? t.cardBackground : t.textTertiary, height: 1.2)),
       ),
     );
   }
 }
 
-/// Screen 05 — pattern anatomy: hero bento, tick-fan metrics, root cause,
-/// and the swap pair.
+/// Screen 05 — pattern anatomy (overhauled to match patterns.html rich UI).
 class InsightBentoPattern extends StatelessWidget {
   const InsightBentoPattern({super.key, required this.pattern});
-
   final BodyPattern pattern;
 
   @override
   Widget build(BuildContext context) {
-    final confidence = pattern.evidenceRatio.clamp(0.0, 1.0);
+    final accent = _getAccent(pattern.type);
+    final confidence = (pattern.evidenceRatio.clamp(0.0, 1.0) * 100).round();
     final swaps = pattern.involvedFoods.take(2).toList();
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
+      padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 30.w),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
-          BentoCard(
-            tone: BentoTone.peach,
-            spanTwo: true,
-            tag: AppStrings.bentoRepeatingEpisode,
-            tagIcon: '🔍',
-            badge: confidence > 0 ? '${(confidence * 100).round()}% ${AppStrings.bentoConfidence}' : pattern.confidence,
-            title: BentoData.patternHeadline(pattern),
-            body: AppStrings.patternFrequencyTimes(pattern.frequency, pattern.timeframeDays),
-          ),
-          Gap.h12,
-          TickFanRow(
-            items: [
-              TickFanItem(
-                fraction: pattern.totalSimilarMeals == 0 ? 0 : (pattern.frequency / pattern.totalSimilarMeals).clamp(0.0, 1.0),
-                amount: '${pattern.frequency} / ${pattern.totalSimilarMeals}',
-                label: AppStrings.bentoEpisodes,
-              ),
-              TickFanItem(fraction: 0.6, amount: pattern.type.isEmpty ? '—' : pattern.type, label: AppStrings.bentoOnsetLag),
-              TickFanItem(fraction: confidence, amount: '${(confidence * 100).round()}%', label: AppStrings.bentoConfidence),
-            ],
-          ),
-          Gap.h12,
-          BentoGrid(
+          // 1. Hero Mascot Card
+          _HeroMascotCard(pattern: pattern, accent: accent),
+          Gap.h16,
+          // 2. Meta Pills
+          Row(
             children: [
-              BentoTile(
-                spanTwo: true,
-                BentoCard(
-                  tone: BentoTone.coral,
-                  spanTwo: true,
-                  tag: AppStrings.bentoBiologicalRoot,
-                  tagIcon: '🧬',
-                  title: pattern.type.isEmpty ? AppStrings.observedPatterns : pattern.type,
-                  body: pattern.description,
-                ),
-              ),
-              for (var i = 0; i < swaps.length; i++)
-                BentoTile(BentoCard(tone: BentoTone.mint, tag: '${AppStrings.bentoSwap} ${i + 1}', title: swaps[i], body: pattern.recommendation, footLeft: AppStrings.bentoScoreImpact)),
+              _MetaPill(label: 'Seen ${pattern.frequency} times · ${pattern.timeframeDays} days', color: accent, filled: false),
+              Gap.w8,
+              _MetaPill(label: '${pattern.confidence} · $confidence%', color: accent, filled: true),
             ],
           ),
+          Gap.h16,
+          // 3. Metrics Grid
+          Row(
+            children: [
+              _MetricCard(value: '${pattern.frequency} / ${pattern.totalSimilarMeals}', label: AppStrings.bentoEpisodes.toUpperCase(), color: accent),
+              Gap.w10,
+              _MetricCard(value: '~2 hrs', label: AppStrings.bentoOnsetLag.toUpperCase(), color: accent),
+              Gap.w10,
+              _MetricCard(value: '$confidence%', label: AppStrings.bentoConfidence.toUpperCase(), color: accent),
+            ],
+          ),
+          Gap.h16,
+          // 4. Biological Root
+          _SectionCard(
+            title: AppStrings.bentoBiologicalRoot,
+            color: accent,
+            child: Text(
+              pattern.description,
+              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, color: const Color(0xFF3A3F47), height: 1.55),
+            ),
+          ),
+          Gap.h16,
+          // 5. Swaps
+          if (swaps.isNotEmpty)
+            _SectionCard(
+              title: AppStrings.bentoSwap.toUpperCase(),
+              color: accent,
+              child: Column(
+                children: [
+                  for (var i = 0; i < swaps.length; i++) ...[
+                    _SwapRow(food: swaps[i], color: accent, pts: 6 - i * 2),
+                    if (i < swaps.length - 1) Divider(color: accent.withValues(alpha: 0.1), height: 1),
+                  ],
+                ],
+              ),
+            ),
+          Gap.h16,
+          // 6. Recent Episodes
+          if (pattern.occurrences.isNotEmpty)
+            _SectionCard(
+              title: 'RECENT EPISODES',
+              color: accent,
+              child: Column(
+                children: [
+                  for (final o in pattern.occurrences.take(4)) _EpisodeRow(occurrence: o, color: accent),
+                ],
+              ),
+            ),
+          Gap.h16,
+          // 7. Common Factors
+          if (pattern.commonFactors.isNotEmpty)
+            _SectionCard(
+              title: 'COMMON FACTORS',
+              color: accent,
+              child: Wrap(
+                spacing: 6.w,
+                runSpacing: 6.w,
+                children: [
+                  for (final f in pattern.commonFactors)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.w),
+                      decoration: BoxDecoration(color: accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(999)),
+                      child: Text(f.label, style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w600, color: _getTextAccent(pattern.type))),
+                    ),
+                ],
+              ),
+            ),
+          Gap.h16,
+          // 8. Recommendation
+          _RecommendationCard(pattern: pattern, accent: accent),
+          Gap.h14,
+          // 9. Summary Text
+          Center(
+            child: Text(
+              '${pattern.positiveCount} symptomatic · ${pattern.negativeCount} without symptoms',
+              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, color: const Color(0xFF71767F)),
+            ),
+          ),
+          Gap.h14,
+          // 10. CTA
+          BentoCta(label: 'Apply this swap', onTap: () {}),
+          Gap.h10,
+          Center(child: Text('Based on your logs · last ${pattern.timeframeDays} days', style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF9AA0A8)))),
         ]),
       ),
     );
   }
+
+  Color _getAccent(String type) => switch (type) {
+    BodyPattern.typeBloating => const Color(0xFF8B5CF6),
+    BodyPattern.typeEnergy => const Color(0xFF57B93B),
+    BodyPattern.typeHeadache => const Color(0xFFF08019),
+    BodyPattern.typeDigestion => const Color(0xFF14A38F),
+    BodyPattern.typeFullness => const Color(0xFFEFB008),
+    BodyPattern.typeSleep => const Color(0xFF6B74E8),
+    _ => const Color(0xFF8B5CF6),
+  };
+
+  Color _getTextAccent(String type) => switch (type) {
+    BodyPattern.typeBloating => const Color(0xFF563999),
+    BodyPattern.typeEnergy => const Color(0xFF367325),
+    BodyPattern.typeHeadache => const Color(0xFF954F10),
+    BodyPattern.typeDigestion => const Color(0xFF0C6559),
+    BodyPattern.typeFullness => const Color(0xFF946D05),
+    BodyPattern.typeSleep => const Color(0xFF424890),
+    _ => const Color(0xFF563999),
+  };
 }
 
-/// Screen 06 — trigger synergy: the multiplier hero, its drivers, and the
-/// rescue protocol.
+class _HeroMascotCard extends StatelessWidget {
+  const _HeroMascotCard({required this.pattern, required this.accent});
+  final BodyPattern pattern;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 92.w,
+        height: 92.w,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24.w),
+          boxShadow: [BoxShadow(color: const Color(0xFF141828).withValues(alpha: 0.07), blurRadius: 26.w, offset: Offset(0, 10.w))],
+        ),
+        child: Center(
+          child: Icon(_getIcon(pattern.type), size: 48, color: accent),
+        ),
+      ),
+      Gap.w14,
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${pattern.type} pattern'.toUpperCase(),
+              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.7, color: _getTextAccent(pattern.type)),
+            ),
+            Gap.h4,
+            Text(
+              '${pattern.trigger} \u{2192} ${pattern.reaction}',
+              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: const Color(0xFF1F2430), height: 1.22),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  IconData _getIcon(String type) => switch (type) {
+    BodyPattern.typeBloating => AppIcons.wind,
+    BodyPattern.typeEnergy => AppIcons.zap,
+    BodyPattern.typeHeadache => AppIcons.brain,
+    BodyPattern.typeDigestion => AppIcons.leaf,
+    BodyPattern.typeFullness => AppIcons.chartPie,
+    BodyPattern.typeSleep => AppIcons.moon,
+    _ => AppIcons.sparkles,
+  };
+
+  Color _getTextAccent(String type) => switch (type) {
+    BodyPattern.typeBloating => const Color(0xFF563999),
+    BodyPattern.typeEnergy => const Color(0xFF367325),
+    BodyPattern.typeHeadache => const Color(0xFF954F10),
+    BodyPattern.typeDigestion => const Color(0xFF0C6559),
+    BodyPattern.typeFullness => const Color(0xFF946D05),
+    BodyPattern.typeSleep => const Color(0xFF424890),
+    _ => const Color(0xFF563999),
+  };
+}
+
+class _MetaPill extends StatelessWidget {
+  const _MetaPill({required this.label, required this.color, required this.filled});
+  final String label;
+  final Color color;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.w),
+    decoration: BoxDecoration(
+      color: filled ? color : Colors.white.withValues(alpha: 0.72),
+      borderRadius: BorderRadius.circular(999),
+      border: filled ? null : Border.all(color: color.withValues(alpha: 0.5)),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, fontWeight: filled ? FontWeight.w700 : FontWeight.w600, color: filled ? Colors.white : color),
+    ),
+  );
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({required this.value, required this.label, required this.color});
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Container(
+      padding: EdgeInsets.symmetric(vertical: 12.w, horizontal: 6.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.w),
+        boxShadow: [BoxShadow(color: const Color(0xFF141828).withValues(alpha: 0.07), blurRadius: 26.w, offset: Offset(0, 10.w))],
+      ),
+      child: Column(
+        children: [
+          Text(value, style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: color)),
+          Gap.h4,
+          Text(label, textAlign: TextAlign.center, style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF71767F), letterSpacing: 0.5)),
+        ],
+      ),
+    ),
+  );
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, required this.color, required this.child});
+  final String title;
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.all(16.w),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18.w),
+      boxShadow: [BoxShadow(color: const Color(0xFF141828).withValues(alpha: 0.07), blurRadius: 26.w, offset: Offset(0, 10.w))],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(width: 4.w, height: 15.w, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+            Gap.w10,
+            Text(title.toUpperCase(), style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: color)),
+          ],
+        ),
+        Gap.h10,
+        child,
+      ],
+    ),
+  );
+}
+
+class _SwapRow extends StatelessWidget {
+  const _SwapRow({required this.food, required this.color, required this.pts});
+  final String food;
+  final Color color;
+  final int pts;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.symmetric(vertical: 10.w),
+    child: Row(
+      children: [
+        Expanded(child: Text(food, style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w700, color: const Color(0xFF1F2430)))),
+        Icon(Icons.arrow_forward, size: 16, color: color),
+        Gap.w8,
+        Expanded(child: Text('Alternative', textAlign: TextAlign.end, style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w700, color: color))),
+        Gap.w8,
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(8.w)),
+          child: Text('+$pts pts', style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: color)),
+        ),
+      ],
+    ),
+  );
+}
+
+class _EpisodeRow extends StatelessWidget {
+  const _EpisodeRow({required this.occurrence, required this.color});
+  final PatternOccurrence occurrence;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.symmetric(vertical: 8.w),
+    child: Row(
+      children: [
+        SizedBox(width: 40.w, child: Text(_formatDate(occurrence.date), style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: color))),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(occurrence.mealName, style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w600, color: const Color(0xFF1F2430))),
+              Text('${occurrence.reaction} \u00b7 ${occurrence.timeAfter}', style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, color: const Color(0xFF71767F))),
+            ],
+          ),
+        ),
+        Container(width: 8.w, height: 8.w, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+      ],
+    ),
+  );
+
+  String _formatDate(String raw) {
+    if (raw.isEmpty) return '???';
+    try {
+      final date = DateTime.parse(raw);
+      return DateFormat('EEE').format(date);
+    } catch (_) {
+      return raw.length > 3 ? raw.substring(0, 3) : raw;
+    }
+  }
+}
+
+class _RecommendationCard extends StatelessWidget {
+  const _RecommendationCard({required this.pattern, required this.accent});
+  final BodyPattern pattern;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.all(16.w),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accent, accent.withValues(alpha: 0.8)]),
+      borderRadius: BorderRadius.circular(18.w),
+      boxShadow: [BoxShadow(color: const Color(0xFF141828).withValues(alpha: 0.07), blurRadius: 26.w, offset: Offset(0, 10.w))],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('RECOMMENDATION', style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: Colors.white.withValues(alpha: 0.9))),
+        Gap.h8,
+        Text(pattern.recommendation ?? 'Try reducing intake of triggers.', style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.5.sp, color: Colors.white, height: 1.5)),
+      ],
+    ),
+  );
+}
+
 class InsightBentoSynergy extends StatelessWidget {
   const InsightBentoSynergy({super.key, required this.summary, this.patterns = const []});
-
   final InsightSummary summary;
   final List<BodyPattern> patterns;
-
   static const List<BentoTone> _driverTones = [BentoTone.coral, BentoTone.peach, BentoTone.amber];
-
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
     final drivers = patterns.take(3).toList();
-
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
       sliver: SliverList(
@@ -780,19 +984,8 @@ class InsightBentoSynergy extends StatelessWidget {
           BentoGrid(
             children: [
               for (var i = 0; i < drivers.length; i++)
-                BentoTile(
-                  spanTwo: i == 2,
-                  BentoCard(
-                    tone: _driverTones[i],
-                    spanTwo: i == 2,
-                    tag: '${AppStrings.bentoDriver} ${i + 1}',
-                    emphasis: drivers[i].evidenceRatio > 0 ? BentoEmphasis(text: '${(drivers[i].evidenceRatio.clamp(0.0, 1.0) * 100).round()}%', color: i == 0 ? t.negative : t.orange) : null,
-                    title: drivers[i].trigger,
-                    body: drivers[i].description,
-                  ),
-                ),
-              if ((summary.observation ?? '').isNotEmpty)
-                BentoTile(spanTwo: true, BentoCard(tone: BentoTone.mint, spanTwo: true, tag: AppStrings.bentoRescueProtocol, tagIcon: '⚡', title: summary.observation!, body: summary.strength)),
+                BentoTile(spanTwo: i == 2, BentoCard(tone: _driverTones[i], spanTwo: i == 2, tag: '${AppStrings.bentoDriver} ${i + 1}', emphasis: drivers[i].evidenceRatio > 0 ? BentoEmphasis(text: '${(drivers[i].evidenceRatio.clamp(0.0, 1.0) * 100).round()}%', color: i == 0 ? t.negative : t.orange) : null, title: drivers[i].trigger, body: drivers[i].description)),
+              if ((summary.observation ?? '').isNotEmpty) BentoTile(spanTwo: true, BentoCard(tone: BentoTone.mint, spanTwo: true, tag: AppStrings.bentoRescueProtocol, tagIcon: '⚡', title: summary.observation!, body: summary.strength)),
             ],
           ),
         ]),
@@ -801,20 +994,15 @@ class InsightBentoSynergy extends StatelessWidget {
   }
 }
 
-/// Screen 07 — food intelligence: a new route showing every logged food as a
-/// scored bento tile.
 class FoodIntelligenceScreen extends StatelessWidget {
   const FoodIntelligenceScreen({super.key, required this.insight});
-
   final AIInsight insight;
-
   @override
   Widget build(BuildContext context) {
     final foods = BentoData.topFoods(insight, limit: 12);
     final boosters = foods.where((f) => f.isPositive).length;
     final watch = foods.length - boosters;
     final top = foods.where((f) => f.isPositive).fold<BentoFood?>(null, (best, f) => f.count > (best?.count ?? 0) ? f : best);
-
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
@@ -825,35 +1013,9 @@ class FoodIntelligenceScreen extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                ScoreHeroCard(
-                  eyebrow: AppStrings.bentoFoodEyebrow,
-                  value: '$boosters',
-                  statusBadge: '${BentoData.loggedFoodCount(insight)} ${AppStrings.bentoLogged}',
-                  delta: AppStrings.bentoGutBoosters,
-                  deltaSub: '$watch ${AppStrings.bentoWatchItems}',
-                  showTrack: false,
-                  footLeft: top == null ? null : '${AppStrings.bentoTopBooster}: ${top.name}',
-                  footRight: top == null ? null : AppStrings.bentoPts(top.count),
-                ),
+                ScoreHeroCard(eyebrow: AppStrings.bentoFoodEyebrow, value: '$boosters', statusBadge: '${BentoData.loggedFoodCount(insight)} ${AppStrings.bentoLogged}', delta: AppStrings.bentoGutBoosters, deltaSub: '$watch ${AppStrings.bentoWatchItems}', showTrack: false, footLeft: top == null ? null : '${AppStrings.bentoTopBooster}: ${top.name}', footRight: top == null ? null : AppStrings.bentoPts(top.count)),
                 Gap.h14,
-                if (foods.isEmpty)
-                  const _EmptyFilter()
-                else
-                  BentoGrid(
-                    children: [
-                      for (final f in foods)
-                        BentoTile(
-                          BentoCard(
-                            tone: f.isPositive ? BentoTone.mint : BentoTone.coral,
-                            tag: f.isPositive ? AppStrings.bentoHealer : AppStrings.bentoTrigger,
-                            media: BentoArtPlate(emoji: f.emoji, imageUrl: f.imageUrl, tone: f.isPositive ? BentoTone.mint : BentoTone.coral, width: 42, height: 38),
-                            title: f.name,
-                            body: f.stat,
-                            footLeft: f.isPositive ? '+${f.count}' : '−${f.count}',
-                          ),
-                        ),
-                    ],
-                  ),
+                if (foods.isEmpty) Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 48.w), child: Text(AppStrings.noInsightsYet, style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, color: context.bentoTheme.textTertiary)))) else BentoGrid(children: [for (final f in foods) BentoTile(BentoCard(tone: f.isPositive ? BentoTone.mint : BentoTone.coral, tag: f.isPositive ? AppStrings.bentoHealer : AppStrings.bentoTrigger, media: BentoArtPlate(emoji: f.emoji, imageUrl: f.imageUrl, tone: f.isPositive ? BentoTone.mint : BentoTone.coral, width: 42, height: 38), title: f.name, body: f.stat, footLeft: f.isPositive ? '+${f.count}' : '−${f.count}'))]),
               ]),
             ),
           ),

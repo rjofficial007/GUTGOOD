@@ -32,6 +32,7 @@ import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
+import 'package:gutgood/features/insights/presentation/pages/patterns_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/pattern_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
@@ -176,6 +177,7 @@ class AppRouter {
                 builder: (context, state) => InsightDetailScreen(insight: state.extra as AIInsight),
               ),
               GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
+              GoRoute(path: AppRoutes.patterns, builder: (context, state) => const PatternsScreen()),
               GoRoute(
                 path: AppRoutes.patternDetail,
                 builder: (context, state) => PatternDetailScreen(pattern: state.extra as BodyPattern),

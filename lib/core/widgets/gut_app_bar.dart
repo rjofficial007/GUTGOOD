@@ -81,6 +81,8 @@ class GutSliverAppBar extends StatelessWidget {
     this.forceElevated = false,
     this.automaticallyImplyLeading = true,
     this.streak,
+    this.backgroundColor,
+    this.foregroundColor,
   });
   final String? title;
   final Widget? titleWidget;
@@ -94,6 +96,8 @@ class GutSliverAppBar extends StatelessWidget {
   final bool forceElevated;
   final bool automaticallyImplyLeading;
   final int? streak;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
 
   @override
   Widget build(BuildContext context) => SliverAppBar(
@@ -106,7 +110,8 @@ class GutSliverAppBar extends StatelessWidget {
     snap: snap,
     elevation: 0,
     forceElevated: forceElevated,
-    backgroundColor: context.appColorScheme.cardBackground.withAlpha(204),
+    backgroundColor: backgroundColor ?? context.appColorScheme.cardBackground.withAlpha(204),
+    foregroundColor: foregroundColor,
     automaticallyImplyLeading: automaticallyImplyLeading,
     flexibleSpace: ClipRect(
       child: BackdropFilter(

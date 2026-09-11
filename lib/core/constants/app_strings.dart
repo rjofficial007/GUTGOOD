@@ -267,6 +267,12 @@ class AppStrings {
   static const String bentoLogToSolve = InsightStrings.bentoLogToSolve;
   static const String bentoScanDinnerToUnlock = InsightStrings.bentoScanDinnerToUnlock;
 
+  static const String bentoPatternsHeadline = InsightStrings.bentoPatternsHeadline;
+  static const String bentoPatternsSub = InsightStrings.bentoPatternsSub;
+  static const String bentoPatternsAppear = InsightStrings.bentoPatternsAppear;
+  static const String bentoPatternsLearning = InsightStrings.bentoPatternsLearning;
+  static const String bentoPrivacyNote = InsightStrings.bentoPrivacyNote;
+
   // History (screen 04)
   static const String bentoScoreTrend = InsightStrings.bentoScoreTrend;
   static const String bentoBestDay = InsightStrings.bentoBestDay;
