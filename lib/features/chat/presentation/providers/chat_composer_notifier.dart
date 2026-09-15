@@ -6,12 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/chat_attachment.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/food_image.dart';
-import 'package:gutgood/core/models/off_product.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
@@ -89,11 +84,13 @@ String? buildPinnedEntities(List<ChatMessage> dropped) {
 /// so LLM-invented swaps without them still parse).
 @visibleForTesting
 String swapsGroundingFragment(String userText, List<ProductSwap> grounded) {
-  final items = grounded.map((s) {
-    final grade = (s.nutriscore == null || s.nutriscore!.isEmpty) ? '?' : s.nutriscore!;
-    final code = (s.barcode == null || s.barcode!.isEmpty) ? '?' : s.barcode!;
-    return '${s.title} (grade $grade, barcode $code)';
-  }).join('; ');
+  final items = grounded
+      .map((s) {
+        final grade = (s.nutriscore == null || s.nutriscore!.isEmpty) ? '?' : s.nutriscore!;
+        final code = (s.barcode == null || s.barcode!.isEmpty) ? '?' : s.barcode!;
+        return '${s.title} (grade $grade, barcode $code)';
+      })
+      .join('; ');
   return '$userText\n\n(REAL PRODUCT DATA — emit exactly 3 swap objects, one per product below, and copy each "barcode" and "nutriscore" value into its swap object: $items)';
 }
 
@@ -269,7 +266,6 @@ class ChatComposerNotifier with ChangeNotifier {
     _attachments.removeWhere((a) => a.id == id);
     notifyListeners();
   }
-
 
   Future<ChatSendError?> send({String text = '', String? hiddenContext, String? source, String? providedUserMsgId}) async {
     if (_isLoading) return ChatSendError.busy;
@@ -863,7 +859,16 @@ class ChatComposerNotifier with ChangeNotifier {
     _chunkBuffer = '';
 
     final userText = _findUserTextForAiMessage(aiLocalId);
-    final result = _processChatTagUseCase(_fullAiText, userText: userText, imageUrl: imageUrl, source: source, chatMessageId: aiLocalId, isFinal: false, promptVersion: AiVersions.chatPromptVersion, servedModel: null);
+    final result = _processChatTagUseCase(
+      _fullAiText,
+      userText: userText,
+      imageUrl: imageUrl,
+      source: source,
+      chatMessageId: aiLocalId,
+      isFinal: false,
+      promptVersion: AiVersions.chatPromptVersion,
+      servedModel: null,
+    );
 
     var finalToDisplay = _applySafetyGuardrails(result.text);
     if (finalToDisplay.isEmpty && (result.scan != null || result.swaps.isNotEmpty)) {
@@ -915,7 +920,16 @@ class ChatComposerNotifier with ChangeNotifier {
       _fullAiText += _chunkBuffer;
       _chunkBuffer = '';
       final userText = _findUserTextForAiMessage(aiLocalId);
-      final result = _processChatTagUseCase(_fullAiText, userText: userText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, chatMessageId: aiLocalId, isFinal: true, promptVersion: AiVersions.chatPromptVersion, servedModel: null);
+      final result = _processChatTagUseCase(
+        _fullAiText,
+        userText: userText,
+        imageUrl: currentMsg.imageUrl,
+        source: currentMsg.source,
+        chatMessageId: aiLocalId,
+        isFinal: true,
+        promptVersion: AiVersions.chatPromptVersion,
+        servedModel: null,
+      );
       final finalMsg = currentMsg.copyWith(
         text: _applySafetyGuardrails(result.text),
         scanData: result.scan,
@@ -972,7 +986,16 @@ class ChatComposerNotifier with ChangeNotifier {
     _fullAiText += _chunkBuffer;
     _chunkBuffer = '';
     final userText = _findUserTextForAiMessage(aiLocalId);
-    final result = _processChatTagUseCase(_fullAiText, userText: userText, imageUrl: currentMsg.imageUrl, source: currentMsg.source, chatMessageId: aiLocalId, isFinal: true, promptVersion: _repository.lastPromptVersion ?? AiVersions.chatPromptVersion, servedModel: _repository.lastServedModel);
+    final result = _processChatTagUseCase(
+      _fullAiText,
+      userText: userText,
+      imageUrl: currentMsg.imageUrl,
+      source: currentMsg.source,
+      chatMessageId: aiLocalId,
+      isFinal: true,
+      promptVersion: _repository.lastPromptVersion ?? AiVersions.chatPromptVersion,
+      servedModel: _repository.lastServedModel,
+    );
 
     final finalMsg = currentMsg.copyWith(
       text: _applySafetyGuardrails(result.text),
@@ -1124,7 +1147,16 @@ class ChatComposerNotifier with ChangeNotifier {
 
       await for (final chunk in stream) {
         fullTextBuffer.write(chunk);
-        final result = _processChatTagUseCase(fullTextBuffer.toString(), userText: userMsg.text, source: 'chat', chatMessageId: aiLocalId, isFinal: false, promptVersion: AiVersions.chatPromptVersion, servedModel: null, fallbackSwaps: groundedSwaps ?? const []);
+        final result = _processChatTagUseCase(
+          fullTextBuffer.toString(),
+          userText: userMsg.text,
+          source: 'chat',
+          chatMessageId: aiLocalId,
+          isFinal: false,
+          promptVersion: AiVersions.chatPromptVersion,
+          servedModel: null,
+          fallbackSwaps: groundedSwaps ?? const [],
+        );
 
         var finalToDisplay = result.text;
         if (finalToDisplay.isEmpty && result.swaps.isNotEmpty) {
@@ -1156,7 +1188,16 @@ class ChatComposerNotifier with ChangeNotifier {
       final servedModel = _repository.lastServedModel;
 
       // Atomic persistence for See More Swaps
-      final finalResult = _processChatTagUseCase(fullTextBuffer.toString(), userText: userMsg.text, source: 'chat', chatMessageId: aiLocalId, isFinal: true, promptVersion: promptVersion, servedModel: servedModel, fallbackSwaps: groundedSwaps ?? const []);
+      final finalResult = _processChatTagUseCase(
+        fullTextBuffer.toString(),
+        userText: userMsg.text,
+        source: 'chat',
+        chatMessageId: aiLocalId,
+        isFinal: true,
+        promptVersion: promptVersion,
+        servedModel: servedModel,
+        fallbackSwaps: groundedSwaps ?? const [],
+      );
       final hydratedResult = await _persistAiResponseUseCase(finalResult, chatMessageId: aiLocalId, source: 'chat', persistedTagBlocks: persistedTags);
 
       final finalAi = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);

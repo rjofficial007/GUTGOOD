@@ -56,6 +56,7 @@ class SchemaDefinitions {
     "impactType": "positive|neutral|negative",
     "nutriscore": "A|B|C|D|E|null",
     "novaGroup": 1,
+    "isOrganic": false,
     "nutritionEstimated": false,
     "nutrientLevels": {
       "sugars": "low|moderate|high|unknown",
@@ -196,6 +197,8 @@ SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - insight.personalizedInsights: ONLY when the user profile or scan history supplied in context genuinely supports it, and "basedOn" must quote that supporting fact. If there is no supporting data, return an empty array — never infer goals, preferences, history, or values that were not provided.
 - insight.warnings: allergy, medical or safety cautions only. Empty array when none apply.
 - insight.scoreFactors and insight.scoreExplanation are computed by GutGood's scoring engine after your response. Do NOT emit them and do NOT state a numeric GutGood score.
+- scan.nutrients: numeric values per serving in GRAMS (calories in kcal, fat/carbs/sugars/fiber/proteins/salt in grams g). NOTE: "salt" MUST be in grams (g) e.g. 0.6 or 1.5 (NEVER milligrams mg like 600).
+- scan.isOrganic: boolean or JSON null. Set to true when the product or meal carries an organic certification label (USDA Organic, EU Bio, AB) or is explicitly organic.
 - scan.nutritionEstimated: REQUIRED boolean. Set this to `true` whenever the "nutrients"/"nutrientLevels"/"novaGroup" fields are a visually-grounded APPROXIMATION rather than a label-sourced/barcode-sourced fact (this is the normal case for any home-cooked or unpackaged meal identified from a photo — see the estimation exception above). Set it to `false` only when those values came from an actual product label, barcode lookup, or menu nutrition data. The app uses this flag to visually label estimated macros as "Estimated" instead of presenting them with the same authority as a scanned fact.
 ''';
 }

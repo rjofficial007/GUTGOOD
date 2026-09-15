@@ -1,18 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/off_product.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/models/scans/off_product.dart';
+import 'package:gutgood/core/models/scans/scan_result_details.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
 
 void main() {
   group('P2-11 grounded swaps', () {
     test('OffProduct.toSwap maps grounding fields with brand fallback', () {
-      const product = OffProduct(
-        productName: 'Oat Drink',
-        brand: 'Oatly',
-        imageUrl: 'https://img/oat.jpg',
-        barcode: '12345678',
-        nutriscore: 'a',
-      );
+      const product = OffProduct(productName: 'Oat Drink', brand: 'Oatly', imageUrl: 'https://img/oat.jpg', barcode: '12345678', nutriscore: 'a');
 
       final swap = product.toSwap();
 

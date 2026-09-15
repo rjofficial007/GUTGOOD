@@ -1,16 +1,18 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
-import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/bento_card.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart' hide BentoCard;
+import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class SymptomDetailScreen extends StatelessWidget {
   const SymptomDetailScreen({super.key, required this.symptom});
@@ -19,11 +21,18 @@ class SymptomDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final severity = symptom.severity ?? 0;
-    final severityColor = _getSeverityColor(context, severity);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final hasMetrics =
+        (symptom.energyLevel != null) ||
+        (symptom.mood != null && symptom.mood!.isNotEmpty) ||
+        (symptom.sleep != null && symptom.sleep!.isNotEmpty) ||
+        (symptom.foodName != null && symptom.foodName!.isNotEmpty);
+    final hasTriggers = (symptom.foodName != null && symptom.foodName!.isNotEmpty) || (symptom.lastMealFirestoreId != null && symptom.lastMealFirestoreId!.isNotEmpty);
+    final hasNotes = symptom.notes != null && symptom.notes!.trim().isNotEmpty;
 
     return Scaffold(
-      backgroundColor: scheme.cardBackground,
+      backgroundColor: isDark ? scheme.cardBackground : const Color(0xFFFCFCFD),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -34,17 +43,29 @@ class SymptomDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DashboardEntrance(
-                    delay: 50,
-                    child: _SymptomHeroSection(symptom: symptom, severityColor: severityColor),
-                  ),
-                  Gap.h12,
-                  DashboardEntrance(delay: 100, child: _SymptomStatsGrid(symptom: symptom)),
-                  Gap.h12,
-                  DashboardEntrance(delay: 150, child: _PotentialTriggerCard(mealId: symptom.lastMealFirestoreId)),
-                  Gap.h12,
-                  DashboardEntrance(delay: 200, child: _SymptomNotesSection(notes: symptom.notes ?? '')),
-                  Gap.h40,
+                  // 1. Symptom Identity Header (Photo + Severity + Name + Event Date)
+                  DashboardEntrance(delay: 50, child: _SymptomHeader(symptom: symptom)),
+                  Gap.h20,
+
+                  // 2. Severity Gauge & Band Section
+                  DashboardEntrance(delay: 100, child: _SymptomSeveritySection(symptom: symptom)),
+                  Gap.h20,
+
+                  // 3. Quick-Signal Metrics Row (Energy, Mood, Sleep, Food)
+                  if (hasMetrics) ...[DashboardEntrance(delay: 150, child: _SymptomMetricsRow(symptom: symptom)), Gap.h20],
+
+                  // 4. Potential Triggers & Expert Analysis
+                  if (hasTriggers) ...[DashboardEntrance(delay: 200, child: _SymptomTriggerSection(symptom: symptom)), Gap.h20],
+
+                  // 5. Notes & User Observation
+                  if (hasNotes) ...[DashboardEntrance(delay: 250, child: _SymptomNotesSection(notes: symptom.notes!)), Gap.h20],
+
+                  // 6. Symptom Details Card (Provenance Footer)
+                  DashboardEntrance(delay: 300, child: _SymptomDetailsCard(symptom: symptom)),
+                  Gap.h20,
+
+                  // 7. Footer Chat Nudge
+                  const DashboardEntrance(delay: 350, child: ScanFooterCard()),
                 ],
               ),
             ),
@@ -53,237 +74,455 @@ class SymptomDetailScreen extends StatelessWidget {
       ),
     );
   }
-
-  Color _getSeverityColor(BuildContext context, int severity) {
-    if (severity <= 3) return AppPalette.greenPastel;
-    if (severity <= 7) return AppPalette.purplePastel;
-    return AppPalette.red;
-  }
 }
 
-class _SymptomHeroSection extends StatelessWidget {
-  const _SymptomHeroSection({required this.symptom, required this.severityColor});
+/// 🌟 Section 1: Symptom Identity Header (matching ScanScoreHeader).
+class _SymptomHeader extends StatelessWidget {
+  const _SymptomHeader({required this.symptom});
   final SymptomLog symptom;
-  final Color severityColor;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
+    final t = context.bentoTheme;
     final severity = symptom.severity ?? 0;
+    final color = _severityColor(severity);
+    final hasImage = symptom.imageUrl != null && symptom.imageUrl!.isNotEmpty;
+    final size = 104.w;
 
-    return BentoCard(
-      padding: const EdgeInsets.all(12),
-      height: 200.h,
-      backgroundColor: scheme.cardBackground,
-      child: Row(
-        children: [
-          // Left Panel: Image or Wallet Card
-          Container(
-            width: 176.h,
-            height: 176.h,
-            decoration: BoxDecoration(color: severityColor, borderRadius: BorderRadius.circular(16)),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                children: [
-                  if (symptom.imageUrl != null && symptom.imageUrl!.isNotEmpty)
-                    Positioned.fill(
-                      child: Image.network(
-                        symptom.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(color: severityColor),
-                      ),
-                    ),
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: AppPalette.black.withAlpha(153), borderRadius: BorderRadius.circular(8)),
-                      child: Text(
-                        AppStrings.severityLabel.toUpperCase(),
-                        style: context.captionTiny.copyWith(color: AppPalette.white, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 8,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                      decoration: BoxDecoration(color: AppPalette.black.withAlpha(179), borderRadius: BorderRadius.circular(12)),
-                      child: Text('$severity/10', style: context.labelBold.copyWith(color: AppPalette.white)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: t.cardBackground,
+            borderRadius: BorderRadius.circular(BentoMetrics.radius.w * 0.75),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
           ),
-          Gap.w16,
-          // Right Panel: Narrative & Identity
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular((BentoMetrics.radius.w * 0.75) - 1.2),
+            child: hasImage
+                ? CachedNetworkImage(
+                    imageUrl: symptom.imageUrl!,
+                    width: size,
+                    height: size,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => Container(
+                      color: color.withValues(alpha: 0.08),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20.w,
+                          height: 20.w,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: color),
+                        ),
+                      ),
+                    ),
+                    errorWidget: (_, _, _) => _fallbackTile(color, size),
+                  )
+                : _fallbackTile(color, size),
+          ),
+        ),
+        Gap.w14,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppStrings.symptomAnalysis.toUpperCase(),
+                style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: (BentoMetrics.eyebrowSize * 0.95).sp, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: t.textSecondary),
+              ),
+              Gap.h6,
+              Text(
+                symptom.symptom,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: InsightBentoTheme.fontFamily,
+                  fontSize: (BentoMetrics.titleWideSize * 1.05).sp,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: BentoMetrics.titleWideTracking,
+                  height: 1.2,
+                  color: t.textPrimary,
+                ),
+              ),
+              Gap.h6,
+              if (symptom.foodName != null && symptom.foodName!.isNotEmpty) ...[
+                Text(
+                  'After ${symptom.foodName}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.bodySize.sp, fontWeight: FontWeight.w600, color: t.textPrimary),
+                ),
+                Gap.h4,
+              ],
+              Text(
+                DateFormatter.formatFull(symptom.eventTime),
+                style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _fallbackTile(Color color, double size) => Container(
+    width: size,
+    height: size,
+    color: color.withValues(alpha: 0.12),
+    child: Center(
+      child: Icon(AppIcons.alertCircle, color: color, size: (size * 0.38).sp),
+    ),
+  );
+
+  Color _severityColor(int severity) {
+    if (severity <= 3) return const Color(0xFF10B981); // Green
+    if (severity <= 6) return AppPalette.orange;
+    return const Color(0xFFE11D48); // Red
+  }
+}
+
+/// 🌟 Section 2: Severity Gauge & Band Section (matching ScanScoreSection).
+class _SymptomSeveritySection extends StatelessWidget {
+  const _SymptomSeveritySection({required this.symptom});
+  final SymptomLog symptom;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.bentoTheme;
+    final severity = symptom.severity ?? 0;
+    final color = _severityColor(severity);
+    final bandLabel = _severityBand(severity);
+    final explanation = _severityExplanation(severity, symptom);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color.withValues(alpha: 0.14), color.withValues(alpha: 0.05)]),
+        borderRadius: BorderRadius.circular(BentoMetrics.radius.w),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 4))],
+      ),
+      padding: EdgeInsets.all(BentoMetrics.padding.w),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 96.w,
+            child: ScoreGauge(score: (severity * 10).clamp(0, 100), color: color, label: 'SEVERITY', fontSize: 26.sp),
+          ),
+          Gap.w14,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(AppStrings.symptomAnalysis, style: context.captionBold.copyWith(color: scheme.textSecondary)),
-                Gap.h4,
-                Text(
-                  symptom.symptom.toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.headingSm.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w900),
-                ),
-                if (symptom.foodName != null && symptom.foodName!.isNotEmpty) ...[
-                  Gap.h4,
-                  Text(
-                    'After ${symptom.foodName}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.captionBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w700),
-                  ),
-                ],
-                Gap.h8,
-                Text(DateFormatter.formatFull(symptom.eventTime), style: context.captionBold.copyWith(color: scheme.textSecondary)),
-                Gap.h12,
                 Row(
                   children: [
-                    Icon(AppIcons.info, size: 12.sp, color: scheme.textMuted),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(100.r)),
+                      child: Text(
+                        bandLabel.toUpperCase(),
+                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w900, letterSpacing: 0.8, color: Colors.white),
+                      ),
+                    ),
                     Gap.w6,
-                    Text(AppStrings.loggedVia(symptom.source?.toUpperCase() ?? AppStrings.chatSource), style: context.captionBold.copyWith(color: scheme.textMuted)),
+                    Text(
+                      '$severity/10',
+                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: color),
+                    ),
                   ],
+                ),
+                Gap.h6,
+                Text(
+                  explanation,
+                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.bodySize.sp, fontWeight: FontWeight.w500, height: 1.4, color: t.textPrimary),
                 ),
               ],
             ),
           ),
-          Gap.w4,
         ],
       ),
     );
   }
+
+  Color _severityColor(int severity) {
+    if (severity <= 3) return const Color(0xFF10B981);
+    if (severity <= 6) return AppPalette.orange;
+    return const Color(0xFFE11D48);
+  }
+
+  String _severityBand(int severity) {
+    if (severity <= 3) return 'Mild Reaction';
+    if (severity <= 6) return 'Moderate Reaction';
+    return 'Severe Reaction';
+  }
+
+  String _severityExplanation(int severity, SymptomLog symptom) {
+    if (symptom.notes != null && symptom.notes!.isNotEmpty) {
+      return symptom.notes!;
+    }
+    if (severity <= 3) return 'Mild discomfort reported. Keep logging to identify early sensitivity patterns.';
+    if (severity <= 6) return 'Moderate reaction recorded. Consider noting nearby meals to pinpoint potential triggers.';
+    return 'High severity reaction recorded. Review recent meal logs and consider consulting a gut health specialist.';
+  }
 }
 
-class _SymptomStatsGrid extends StatelessWidget {
-  const _SymptomStatsGrid({required this.symptom});
+/// 🌟 Section 3: Quick-Signal Metrics Row (matching ScanMetricsRow).
+class _SymptomMetricsRow extends StatelessWidget {
+  const _SymptomMetricsRow({required this.symptom});
   final SymptomLog symptom;
 
   @override
   Widget build(BuildContext context) {
-    final metrics = [
-      if (symptom.foodName != null && symptom.foodName!.isNotEmpty) _MetricData('Food', symptom.foodName!.toUpperCase(), 'MEAL'),
-      if (symptom.energyLevel != null) _MetricData('Energy', '${symptom.energyLevel}/10', 'LEVEL'),
-      if (symptom.mood != null) _MetricData('Mood', symptom.mood!.toUpperCase(), 'STATE'),
-      if (symptom.sleep != null) _MetricData('Sleep', symptom.sleep!.toUpperCase(), 'QUALITY'),
-      if (symptom.foodName == null || symptom.foodName!.isEmpty) _MetricData('Source', symptom.source?.toUpperCase() ?? AppStrings.manualLabel, 'ORIGIN'),
-    ];
+    final t = context.bentoTheme;
+    final items = <Widget>[];
 
-    return Row(
-      children: metrics.asMap().entries.map((entry) {
-        final i = entry.key;
-        final data = entry.value;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: i == metrics.length - 1 ? 0 : 12.w),
-            child: _SmallMetricCard(
-              label: data.label,
-              value: data.value,
-              unit: data.unit,
-              icon: switch (data.label.toLowerCase()) {
-                'energy' => AppIcons.zap,
-                'mood' => AppIcons.smile,
-                'sleep' => AppIcons.moon,
-                _ => AppIcons.info,
-              },
-            ),
-          ),
-        );
-      }).toList(),
-    );
+    if (symptom.energyLevel != null) {
+      items.add(
+        Expanded(
+          child: _MetricTile(icon: AppIcons.zap, color: AppPalette.orange, value: '${symptom.energyLevel}/10', label: 'Energy'),
+        ),
+      );
+    }
+
+    if (symptom.mood != null && symptom.mood!.isNotEmpty) {
+      if (items.isNotEmpty) items.add(Gap.w6);
+      items.add(
+        Expanded(
+          child: _MetricTile(icon: AppIcons.smile, color: const Color(0xFF0284C7), value: symptom.mood!.toUpperCase(), label: 'Mood'),
+        ),
+      );
+    }
+
+    if (symptom.sleep != null && symptom.sleep!.isNotEmpty) {
+      if (items.isNotEmpty) items.add(Gap.w6);
+      items.add(
+        Expanded(
+          child: _MetricTile(icon: AppIcons.moon, color: const Color(0xFF7C3AED), value: symptom.sleep!.toUpperCase(), label: 'Sleep'),
+        ),
+      );
+    }
+
+    if (symptom.foodName != null && symptom.foodName!.isNotEmpty) {
+      if (items.isNotEmpty) items.add(Gap.w6);
+      items.add(
+        Expanded(
+          child: _MetricTile(icon: AppIcons.utensils, color: t.positive, value: symptom.foodName!, label: 'Food'),
+        ),
+      );
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Row(children: items);
   }
 }
 
-class _MetricData {
-  _MetricData(this.label, this.value, this.unit);
-  final String label;
-  final String value;
-  final String unit;
-}
+class _MetricTile extends StatelessWidget {
+  const _MetricTile({required this.icon, required this.color, required this.value, required this.label});
 
-class _SmallMetricCard extends StatelessWidget {
-  const _SmallMetricCard({required this.label, required this.value, required this.unit, required this.icon});
-  final String label;
-  final String value;
-  final String unit;
   final IconData icon;
+  final Color color;
+  final String value;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    return BentoCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      borderRadius: 10,
-      height: 100.h,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 10.sp, color: scheme.textSecondary),
-              Gap.w4,
-              Text(label.toUpperCase(), style: context.captionBold.copyWith(color: scheme.textSecondary)),
-            ],
+    final t = context.bentoTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isLong = value.length > 10;
+    final fontSize = isLong ? 10.sp : 11.5.sp;
+
+    final bgStart = color.withValues(alpha: isDark ? 0.22 : 0.12);
+    final bgEnd = color.withValues(alpha: isDark ? 0.12 : 0.04);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [bgStart, bgEnd]),
+        borderRadius: BorderRadius.circular(14.r),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: isDark ? 0.12 : 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-          const Spacer(),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.labelBold.copyWith(color: scheme.textPrimary),
+        ],
+      ),
+      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 4.w),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: isDark ? 0.28 : 0.18),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 24.sp, color: color),
+          ),
+          Gap.h8,
+          Center(
+            child: Text(
+              value,
+              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: fontSize, fontWeight: FontWeight.w900, height: 1.15, color: color),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           Gap.h2,
-          Text(unit, style: context.captionMicro.copyWith(color: scheme.textMuted)),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: t.textSecondary),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
   }
 }
 
+/// 🌟 Section 4: Potential Triggers & Expert Analysis (matching ScanWatchSection).
+class _SymptomTriggerSection extends StatelessWidget {
+  const _SymptomTriggerSection({required this.symptom});
+  final SymptomLog symptom;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.bentoTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final items = <_FactorItem>[];
+
+    if (symptom.foodName != null && symptom.foodName!.isNotEmpty) {
+      items.add(_FactorItem(icon: AppIcons.utensils, color: t.negative, title: symptom.foodName!, subtitle: 'Meal consumed shortly before reaction'));
+    }
+
+    if (symptom.lastMealFirestoreId != null && symptom.lastMealFirestoreId!.isNotEmpty) {
+      items.add(_FactorItem(icon: AppIcons.sparkles, color: const Color(0xFF7C3AED), title: 'Linked Meal Record', subtitle: 'Meal log is being cross-referenced with your pattern history'));
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: t.negative.withAlpha(20), shape: BoxShape.circle),
+              child: Icon(AppIcons.sparkles, size: 22.sp, color: t.negative),
+            ),
+            Gap.w12,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.expertAnalysis,
+                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.titleSize.sp, fontWeight: FontWeight.w700, color: t.textPrimary),
+                  ),
+                  Text(
+                    'Potential food or environmental triggers linked to this reaction.',
+                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Gap.h16,
+        ...items.map((item) => _buildCard(context, item, isDark: isDark)),
+      ],
+    );
+  }
+
+  Widget _buildCard(BuildContext context, _FactorItem item, {required bool isDark}) {
+    final t = context.bentoTheme;
+    final cardShade = item.color.withValues(alpha: isDark ? 0.16 : 0.08);
+    final iconBgColor = item.color.withValues(alpha: isDark ? 0.28 : 0.16);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 11.h),
+      decoration: BoxDecoration(color: cardShade, borderRadius: BorderRadius.circular(14.r)),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+            child: Icon(item.icon, size: 16.sp, color: item.color),
+          ),
+          Gap.w12,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w700, color: t.textPrimary, height: 1.2),
+                ),
+                Gap.h2,
+                Text(
+                  item.subtitle,
+                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w400, color: t.textSecondary, height: 1.3),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FactorItem {
+  _FactorItem({required this.icon, required this.color, required this.title, required this.subtitle});
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+}
+
+/// 🌟 Section 5: Reaction Notes & User Observation (matching ScanDetailsCard).
 class _SymptomNotesSection extends StatelessWidget {
   const _SymptomNotesSection({required this.notes});
   final String notes;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    return BentoCard(
-      padding: const EdgeInsets.all(24),
-      backgroundColor: scheme.elevatedSurface,
-      child: Stack(
+    final t = context.bentoTheme;
+
+    return Container(
+      padding: EdgeInsets.all(BentoMetrics.padding.w),
+      decoration: BoxDecoration(color: t.cardBackground, borderRadius: BorderRadius.circular(BentoMetrics.radius.w)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned(right: 0, top: 0, child: Icon(Icons.format_quote_rounded, color: scheme.textMuted.withAlpha(51), size: 48)),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(AppStrings.reactionMemo, style: context.captionBold.copyWith(color: scheme.textSecondary)),
-              Gap.h16,
-              Text(
-                notes.isEmpty ? 'NO ADDITIONAL OBSERVATIONS LOGGED' : notes,
-                style: context.label.copyWith(color: scheme.textPrimary, height: 1.6, fontWeight: FontWeight.w600, fontStyle: notes.isEmpty ? FontStyle.normal : FontStyle.italic),
+          const BentoCardHeader(title: 'REACTION MEMO', icon: AppIcons.fileText),
+          Gap.h12,
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(color: t.border.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10.r)),
+            child: Text(
+              notes,
+              style: TextStyle(
+                fontFamily: InsightBentoTheme.fontFamily,
+                fontSize: BentoMetrics.bodySize.sp,
+                fontWeight: FontWeight.w500,
+                height: 1.5,
+                color: t.textPrimary,
+                fontStyle: FontStyle.italic,
               ),
-              Gap.h16,
-              Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 2,
-                    decoration: BoxDecoration(color: scheme.textMuted.withAlpha(127), borderRadius: BorderRadius.circular(2)),
-                  ),
-                  Gap.w8,
-                  Text(AppStrings.userObservation, style: context.captionTiny.copyWith(color: scheme.textMuted)),
-                ],
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -291,53 +530,53 @@ class _SymptomNotesSection extends StatelessWidget {
   }
 }
 
-class _PotentialTriggerCard extends StatelessWidget {
-  const _PotentialTriggerCard({required this.mealId});
-  final String? mealId;
+/// 🌟 Section 6: Symptom Provenance Details (matching ScanDetailsCard).
+class _SymptomDetailsCard extends StatelessWidget {
+  const _SymptomDetailsCard({required this.symptom});
+  final SymptomLog symptom;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final t = context.bentoTheme;
+    final date = DateFormatter.formatFull(symptom.eventTime);
 
-    return BentoCard(
-      padding: const EdgeInsets.all(20),
-      backgroundColor: isDark ? AppPalette.purple.withAlpha(26) : AppPalette.purplePastel,
+    return Container(
+      padding: EdgeInsets.all(BentoMetrics.padding.w),
+      decoration: BoxDecoration(color: t.cardBackground, borderRadius: BorderRadius.circular(BentoMetrics.radius.w)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          BentoCardHeader(
-            title: AppStrings.expertAnalysis,
-            icon: AppIcons.sparkles,
-            textColor: isDark ? AppPalette.purplePastel.withAlpha(153) : AppPalette.black.withAlpha(153),
-            iconColor: isDark ? AppPalette.purplePastel.withAlpha(102) : AppPalette.black.withAlpha(102),
+          const BentoCardHeader(title: 'LOG DETAILS', icon: AppIcons.info),
+          Gap.h12,
+          _detailRow(context, 'Recorded On', date, AppIcons.calendar),
+          Gap.h8,
+          _detailRow(context, 'Source', symptom.source?.toUpperCase() ?? AppStrings.chatSource, AppIcons.database),
+          Gap.h8,
+          _detailRow(context, 'Severity Level', '${symptom.severity ?? 0} / 10', AppIcons.activity),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(BuildContext context, String label, String value, IconData icon) {
+    final t = context.bentoTheme;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      decoration: BoxDecoration(color: t.border.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8.r)),
+      child: Row(
+        children: [
+          Icon(icon, size: 14.sp, color: t.textTertiary),
+          Gap.w8,
+          Text(
+            label,
+            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w500, color: t.textSecondary),
           ),
-          Gap.h24,
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: isDark ? AppPalette.white.withAlpha(26) : AppPalette.black.withAlpha(26), shape: BoxShape.circle),
-                    child: Icon(AppIcons.utensils, color: isDark ? scheme.textPrimary : AppPalette.black, size: 14),
-                  ),
-                  Gap.w10,
-                  Text(AppStrings.potentialTrigger, style: context.labelBold.copyWith(color: isDark ? scheme.textPrimary : AppPalette.black)),
-                ],
-              ),
-              Gap.h12,
-              Text(
-                mealId == null ? 'NO POTENTIAL TRIGGERS IDENTIFIED FOR THIS REACTION' : 'A meal logged shortly before this reaction is being analyzed for potential sensitivities.',
-                style: context.label.copyWith(
-                  color: isDark ? scheme.textPrimary : AppPalette.black,
-                  height: 1.6,
-                  fontWeight: FontWeight.w600,
-                  fontStyle: mealId == null ? FontStyle.normal : FontStyle.italic,
-                ),
-              ),
-            ],
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w700, color: t.textPrimary),
+            ),
           ),
         ],
       ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -200,11 +202,19 @@ class NotificationServiceImpl implements NotificationService {
     }
   }
 
-  Future<void> _scheduleDaily({required int id, required String title, required String body, required int hour, required int minute, String? payload}) async {
+  Future<void> _scheduleDaily({required int id, required String title, required String body, required int hour, required int minute, String? payload, DateTime? notBefore}) async {
     final now = tz.TZDateTime.now(tz.local);
     var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
+    }
+    // Defer the first occurrence past [notBefore] (e.g. tomorrow, when today's
+    // condition was already satisfied) while keeping the daily repeat intact.
+    if (notBefore != null) {
+      final earliest = tz.TZDateTime.from(notBefore, tz.local);
+      while (scheduled.isBefore(earliest)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
     }
 
     try {
@@ -286,15 +296,50 @@ class NotificationServiceImpl implements NotificationService {
 
   @override
   Future<void> scheduleNoMealLoggedReminder({int hour = 19, int minute = 0}) async {
+    // Respect the user's toggles — automatic re-checks (app open, meal logged)
+    // must never re-arm a reminder the user explicitly turned off.
+    if (!(_prefs.getBool('notif_enable_all') ?? true) || !(_prefs.getBool('notif_no_meal_logged') ?? true)) {
+      return;
+    }
+
     // 🟡 Fix: Use local start of day to match the user's local day experience.
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
-    final count = await _historyFirestoreService.getMealLogsCountSince(startOfToday);
+    final mealCount = await _historyFirestoreService.getMealLogsCountSince(startOfToday);
+    final scanCount = await _historyFirestoreService.getScansCountSince(startOfToday);
 
-    if (count == 0) {
-      await _scheduleDaily(id: NotificationIds.noMealLogged, title: AppStrings.notifNoMealLoggedTitle, body: AppStrings.notifNoMealLoggedBody, hour: hour, minute: minute, payload: 'no_meal_logged');
+    if (mealCount < 0 && scanCount < 0) {
+      // Both count queries failed (offline / Firestore error). Leave any existing
+      // schedule untouched rather than guessing that no meal/scan occurred.
+      AppLogger.notifs('NotificationService: meal/scan count unknown; keeping noMealLogged schedule as-is');
+      return;
+    }
+
+    final totalActivityToday = (mealCount > 0 ? mealCount : 0) + (scanCount > 0 ? scanCount : 0);
+
+    if (totalActivityToday == 0) {
+      await _scheduleDaily(
+        id: NotificationIds.noMealLogged,
+        title: AppStrings.notifNoMealLoggedTitle,
+        body: AppStrings.notifNoMealLoggedBody,
+        hour: hour,
+        minute: minute,
+        payload: 'no_meal_logged',
+      );
     } else {
-      await cancel(NotificationIds.noMealLogged);
+      // 🟢 Fix: A meal or food scan is already logged today. Replacing the schedule
+      // (same id) with a tomorrow-anchored repeat silences today's 7 PM reminder
+      // while keeping the daily series alive for future days — a plain
+      // cancel() would kill it permanently.
+      await _scheduleDaily(
+        id: NotificationIds.noMealLogged,
+        title: AppStrings.notifNoMealLoggedTitle,
+        body: AppStrings.notifNoMealLoggedBody,
+        hour: hour,
+        minute: minute,
+        payload: 'no_meal_logged',
+        notBefore: startOfToday.add(const Duration(days: 1)),
+      );
     }
   }
 
@@ -311,6 +356,10 @@ class NotificationServiceImpl implements NotificationService {
     final minute = int.tryParse(parts[1]) ?? 0;
 
     await scheduleDailyReminder(hour: hour, minute: minute);
+    // 🟢 Fix: Re-evaluate the "no meals logged" reminder on every app open so
+    // it reflects today's actual logs (silenced once a meal exists, re-armed
+    // on a new day) instead of whatever was true when it was last scheduled.
+    unawaited(scheduleNoMealLoggedReminder());
   }
 
   @override

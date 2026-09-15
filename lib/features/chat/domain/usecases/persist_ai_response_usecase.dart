@@ -1,4 +1,4 @@
-import 'package:gutgood/core/models/ai_analysis_result.dart';
+import 'package:gutgood/core/models/scans/ai_analysis_result.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/domain_event_persister.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
@@ -12,10 +12,10 @@ import 'package:gutgood/core/services/streak_service.dart';
 /// This wrapper preserves the chat path's exact observable behavior —
 /// including its streak/UI side effects — on top of the shared outcome.
 class PersistAiResponseUseCase {
-  PersistAiResponseUseCase({required HistoryFirestoreService firestoreService, required AppStateService appStateService, required StreakService streakService})
+  PersistAiResponseUseCase({required HistoryFirestoreService firestoreService, required AppStateService appStateService, required StreakService streakService, void Function()? onMealPersisted})
     : _appStateService = appStateService,
       _streakService = streakService,
-      _persister = DomainEventPersister(historyFirestoreService: firestoreService);
+      _persister = DomainEventPersister(historyFirestoreService: firestoreService, onMealPersisted: onMealPersisted);
 
   final AppStateService _appStateService;
   final StreakService _streakService;

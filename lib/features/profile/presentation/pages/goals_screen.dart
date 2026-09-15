@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_config_data.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/models/selection_option.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
@@ -36,10 +36,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
     final notifier = context.read<ProfileNotifier>();
     if (notifier.profile != null) {
-      final updatedProfile = notifier.profile!.copyWith(
-        goals: goalsList,
-        updatedAt: DateTime.now(),
-      );
+      final updatedProfile = notifier.profile!.copyWith(goals: goalsList, updatedAt: DateTime.now());
       await notifier.updateUserProfile(updatedProfile);
     }
 
@@ -71,16 +68,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SelectionHeader(
-                  title: AppStrings.onboardingGoalsTitle,
-                  subtitle: AppStrings.updatePreferencesSubtitle,
-                ),
+                const _SelectionHeader(title: AppStrings.onboardingGoalsTitle, subtitle: AppStrings.updatePreferencesSubtitle),
                 Gap.h32,
-                SelectionWrap(
-                  options: _goalOptions,
-                  selectedValues: _selectedGoals,
-                  onToggle: _toggleGoal,
-                ),
+                SelectionWrap(options: _goalOptions, selectedValues: _selectedGoals, onToggle: _toggleGoal),
               ],
             ),
           ),
@@ -100,20 +90,9 @@ class _SelectionHeader extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        title,
-        style: AppTextStyles.title.copyWith(
-          fontWeight: FontWeight.w800,
-          fontSize: 18,
-        ),
-      ),
+      Text(title, style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
       Gap.h8,
-      Text(
-        subtitle,
-        style: AppTextStyles.bodySm.copyWith(
-          color: context.appColorScheme.textSecondary,
-        ),
-      ),
+      Text(subtitle, style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
     ],
   );
 }
@@ -125,16 +104,7 @@ class _SelectionFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      AppSizes.p24,
-      AppSizes.p16,
-      AppSizes.p24,
-      AppSizes.p32,
-    ),
-    child: GutButton(
-      label: AppStrings.saveChanges,
-      isLoading: isLoading,
-      onTap: onSave,
-    ),
+    padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p32),
+    child: GutButton(label: AppStrings.saveChanges, isLoading: isLoading, onTap: onSave),
   );
 }

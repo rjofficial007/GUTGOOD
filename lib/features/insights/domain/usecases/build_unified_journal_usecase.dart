@@ -1,6 +1,4 @@
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 
 /// Interleaves different event types (Meals, Symptoms, Scans) into a
 /// chronologically sorted text journal for AI analysis.
@@ -16,7 +14,10 @@ class BuildUnifiedJournalUseCase {
 
     for (final s in symptoms) {
       allEvents.add(
-        _JournalEvent(createdAt: s.createdAt, text: 'FEELING: ${s.symptom} (Severity: ${s.severity}${s.energyLevel != null ? ', Energy: ${s.energyLevel}' : ''}${s.sleep != null ? ', Sleep: ${s.sleep}' : ''})'),
+        _JournalEvent(
+          createdAt: s.createdAt,
+          text: 'FEELING: ${s.symptom} (Severity: ${s.severity}${s.energyLevel != null ? ', Energy: ${s.energyLevel}' : ''}${s.sleep != null ? ', Sleep: ${s.sleep}' : ''})',
+        ),
       );
     }
 

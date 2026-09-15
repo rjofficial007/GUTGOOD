@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/models/scans/scan_result_details.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -47,10 +47,7 @@ class SwapItContainer extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(AppStrings.swapItFeelBetter.toUpperCase(), style: context.eyebrow.copyWith(color: colorScheme.textPrimary)),
-                      Text(
-                        AppStrings.easySwapsDesc,
-                        style: context.label.copyWith(color: colorScheme.textMuted),
-                      ),
+                      Text(AppStrings.easySwapsDesc, style: context.label.copyWith(color: colorScheme.textMuted)),
                     ],
                   ),
                 ),
@@ -92,12 +89,7 @@ class SwapItContainer extends StatelessWidget {
             ),
           ),
 
-          FooterActionButton(
-            label: AppStrings.seeMoreSwaps,
-            onTap: onSeeMore,
-            isEmbedded: isEmbedded,
-            icon: AppIcons.refreshCcw,
-          ),
+          FooterActionButton(label: AppStrings.seeMoreSwaps, onTap: onSeeMore, isEmbedded: isEmbedded, icon: AppIcons.refreshCcw),
         ],
       ),
     );

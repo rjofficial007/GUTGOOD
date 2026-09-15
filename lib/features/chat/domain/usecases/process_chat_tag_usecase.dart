@@ -1,11 +1,7 @@
 import 'dart:convert';
 
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
@@ -24,7 +20,10 @@ const int kSwapCardCount = 3;
 List<ProductSwap> normalizeSwapCards(List<ProductSwap> swaps, List<ProductSwap> fallback) {
   final kept = swaps.take(kSwapCardCount).toList();
   if (kept.length < kSwapCardCount && fallback.isNotEmpty) {
-    final seen = <String>{for (final s in kept) if (s.barcode != null && s.barcode!.isNotEmpty) s.barcode!};
+    final seen = <String>{
+      for (final s in kept)
+        if (s.barcode != null && s.barcode!.isNotEmpty) s.barcode!,
+    };
     for (final alt in fallback) {
       if (kept.length >= kSwapCardCount) break;
       final code = alt.barcode;
@@ -38,7 +37,17 @@ List<ProductSwap> normalizeSwapCards(List<ProductSwap> swaps, List<ProductSwap> 
 class ProcessChatTagUseCase {
   ProcessChatTagUseCase();
 
-  AiAnalysisResult call(String text, {String? userText, String? imageUrl, String? source, String? chatMessageId, bool isFinal = false, int? promptVersion, String? servedModel, List<ProductSwap> fallbackSwaps = const []}) {
+  AiAnalysisResult call(
+    String text, {
+    String? userText,
+    String? imageUrl,
+    String? source,
+    String? chatMessageId,
+    bool isFinal = false,
+    int? promptVersion,
+    String? servedModel,
+    List<ProductSwap> fallbackSwaps = const [],
+  }) {
     var displayOutput = text;
     String? intent;
     String? imageMode;

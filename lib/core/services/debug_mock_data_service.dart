@@ -1,15 +1,5 @@
 import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/ai_insight_details.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/health_alert.dart';
-import 'package:gutgood/core/models/insight_evidence.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/pattern_occurrence.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
@@ -52,6 +42,13 @@ class DebugMockDataService {
     final energyOccurrences = <PatternOccurrence>[];
     final headacheOccurrences = <PatternOccurrence>[];
 
+    const oatsPhoto = 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?auto=format&fit=crop&w=800&q=80';
+    const shakePhoto = 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80';
+    const espressoPhoto = 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80';
+    const saladPhoto = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80';
+    const pizzaPhoto = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80';
+    const salmonPhoto = 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=800&q=80';
+
     for (var i = 0; i < 30; i++) {
       final date = now.subtract(Duration(days: i));
       final dateStr = '${date.year}-${date.month}-${date.day}';
@@ -71,6 +68,7 @@ class DebugMockDataService {
         MealLog(
           items: isFullnessDay ? const ['Steel Cut Oats', 'Walnuts', 'Blueberries'] : const ['White Toast', 'Jam'],
           mealType: 'breakfast',
+          photoUrl: isFullnessDay ? oatsPhoto : null,
           createdAt: DateTime(date.year, date.month, date.day, 8, 0),
           source: 'debug',
         ),
@@ -79,13 +77,13 @@ class DebugMockDataService {
       // Mid-Morning (Pattern triggers)
       if (isEnergyDay) {
         final time = DateTime(date.year, date.month, date.day, 10, 30);
-        await _historyFirestoreService.logMeal(MealLog(items: const ['Whey Protein Shake', 'Banana'], mealType: 'snack', createdAt: time, source: 'debug'));
-        energyOccurrences.add(PatternOccurrence(date: dateStr, mealName: 'Whey Protein Shake', reaction: 'High Energy', timeAfter: '1.5h'));
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Whey Protein Shake', 'Banana'], mealType: 'snack', photoUrl: shakePhoto, createdAt: time, source: 'debug'));
+        energyOccurrences.add(PatternOccurrence(date: dateStr, mealName: 'Whey Protein Shake', imageUrl: shakePhoto, reaction: 'High Energy', timeAfter: '1.5h'));
       }
       if (isHeadacheDay) {
         final time = DateTime(date.year, date.month, date.day, 9, 0);
-        await _historyFirestoreService.logMeal(MealLog(items: const ['Double Espresso', 'Sugar Packet'], mealType: 'snack', createdAt: time, source: 'debug'));
-        headacheOccurrences.add(PatternOccurrence(date: dateStr, mealName: 'Double Espresso', reaction: 'Headache', timeAfter: '2h'));
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Double Espresso', 'Sugar Packet'], mealType: 'snack', photoUrl: espressoPhoto, createdAt: time, source: 'debug'));
+        headacheOccurrences.add(PatternOccurrence(date: dateStr, mealName: 'Double Espresso', imageUrl: espressoPhoto, reaction: 'Headache', timeAfter: '2h'));
       }
 
       // Lunch
@@ -93,6 +91,7 @@ class DebugMockDataService {
         MealLog(
           items: isDigestionDay ? const ['Spicy Street Tacos', 'Jalapeños', 'Corn Tortilla'] : const ['Grilled Chicken Salad', 'Vinaigrette', 'Avocado'],
           mealType: 'lunch',
+          photoUrl: saladPhoto,
           createdAt: DateTime(date.year, date.month, date.day, 13, 0),
           source: 'debug',
         ),
@@ -101,15 +100,15 @@ class DebugMockDataService {
       // Dinner
       if (isPizzaDay) {
         final time = DateTime(date.year, date.month, date.day, 19, 0);
-        await _historyFirestoreService.logMeal(MealLog(items: const ['Pepperoni Pizza', 'Garlic Bread', 'Soda'], mealType: 'dinner', createdAt: time, source: 'debug'));
-        pizzaOccurrences.add(PatternOccurrence(date: dateStr, mealName: 'Pepperoni Pizza', reaction: 'Severe Bloating', timeAfter: '2.5h'));
+        await _historyFirestoreService.logMeal(MealLog(items: const ['Pepperoni Pizza', 'Garlic Bread', 'Soda'], mealType: 'dinner', photoUrl: pizzaPhoto, createdAt: time, source: 'debug'));
+        pizzaOccurrences.add(PatternOccurrence(date: dateStr, mealName: 'Pepperoni Pizza', imageUrl: pizzaPhoto, reaction: 'Severe Bloating', timeAfter: '2.5h'));
       } else if (isDairyDay) {
         await _historyFirestoreService.logMeal(
           MealLog(items: const ['Creamy Pasta Carbonara', 'Parmesan Cheese'], mealType: 'dinner', createdAt: DateTime(date.year, date.month, date.day, 19, 30), source: 'debug'),
         );
       } else {
         await _historyFirestoreService.logMeal(
-          MealLog(items: const ['Steamed Salmon', 'Broccoli', 'Brown Rice'], mealType: 'dinner', createdAt: DateTime(date.year, date.month, date.day, 19, 0), source: 'debug'),
+          MealLog(items: const ['Steamed Salmon', 'Broccoli', 'Brown Rice'], mealType: 'dinner', photoUrl: salmonPhoto, createdAt: DateTime(date.year, date.month, date.day, 19, 0), source: 'debug'),
         );
       }
 
@@ -128,6 +127,7 @@ class DebugMockDataService {
             severity: 1,
             energyLevel: 6,
             mood: 'Content',
+            foodName: 'Steel Cut Oats',
             notes: 'Feeling satisfied long after breakfast.',
             createdAt: DateTime(date.year, date.month, date.day, 11, 30),
             source: 'debug',
@@ -138,21 +138,47 @@ class DebugMockDataService {
       // Energy Spike
       if (isEnergyDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'High Energy', energyLevel: 9, mood: 'Productive', notes: 'Feeling very productive.', createdAt: DateTime(date.year, date.month, date.day, 12, 0), source: 'debug'),
+          SymptomLog(
+            symptom: 'High Energy',
+            severity: 2,
+            energyLevel: 9,
+            mood: 'Productive',
+            foodName: 'Whey Protein Shake',
+            imageUrl: shakePhoto,
+            notes: 'Feeling very productive after morning shake.',
+            createdAt: DateTime(date.year, date.month, date.day, 12, 0),
+            source: 'debug',
+          ),
         );
       }
 
       // Headache Check
       if (isHeadacheDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Headache', severity: 6, mood: 'Irritable', notes: 'Dull ache behind eyes.', createdAt: DateTime(date.year, date.month, date.day, 11, 0), source: 'debug'),
+          SymptomLog(
+            symptom: 'Headache',
+            severity: 6,
+            mood: 'Irritable',
+            foodName: 'Double Espresso',
+            imageUrl: espressoPhoto,
+            notes: 'Dull ache behind eyes.',
+            createdAt: DateTime(date.year, date.month, date.day, 11, 0),
+            source: 'debug',
+          ),
         );
       }
 
       // Digestion Check
       if (isDigestionDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Heartburn/Indigestion', severity: 5, notes: 'Burning sensation in chest.', createdAt: DateTime(date.year, date.month, date.day, 15, 0), source: 'debug'),
+          SymptomLog(
+            symptom: 'Heartburn/Indigestion',
+            severity: 5,
+            foodName: 'Spicy Street Tacos',
+            notes: 'Burning sensation in chest.',
+            createdAt: DateTime(date.year, date.month, date.day, 15, 0),
+            source: 'debug',
+          ),
         );
       }
 
@@ -163,7 +189,9 @@ class DebugMockDataService {
             symptom: 'Severe Bloating',
             severity: 8,
             mood: 'Uncomfortable',
-            notes: 'Stomach feels like a balloon.',
+            foodName: 'Pepperoni Pizza',
+            imageUrl: pizzaPhoto,
+            notes: 'Stomach feels like a balloon after pizza.',
             createdAt: DateTime(date.year, date.month, date.day, 21, 30),
             source: 'debug',
           ),
@@ -173,7 +201,14 @@ class DebugMockDataService {
       // Skin Check
       if (isDairyDay) {
         await _historyFirestoreService.logSymptom(
-          SymptomLog(symptom: 'Skin Flare-up', severity: 4, notes: 'Redness on cheeks noted.', createdAt: DateTime(date.year, date.month, date.day, 22, 30), source: 'debug'),
+          SymptomLog(
+            symptom: 'Skin Flare-up',
+            severity: 4,
+            foodName: 'Creamy Pasta Carbonara',
+            notes: 'Redness on cheeks noted.',
+            createdAt: DateTime(date.year, date.month, date.day, 22, 30),
+            source: 'debug',
+          ),
         );
       }
 
@@ -188,22 +223,103 @@ class DebugMockDataService {
 
     // --- GENERATE SCAN HISTORY ---
     final scanProducts = [
-      // Scores average exactly 50 -> header shows 50 via the scan-average sync.
-      {'name': 'Greek Yogurt', 'brand': 'Chobani', 'score': 62, 'nutri': 'C', 'nova': 1, 'cat': 'food'},
-      {'name': 'Veggie Chips', 'brand': 'Sensible Portions', 'score': 58, 'nutri': 'C', 'nova': 3, 'cat': 'food'},
-      {'name': 'Dark Chocolate 85%', 'brand': 'Lindt', 'score': 45, 'nutri': 'D', 'nova': 2, 'cat': 'food'},
-      {'name': 'Frozen Pepperoni Pizza', 'brand': 'Digiorno', 'score': 30, 'nutri': 'E', 'nova': 4, 'cat': 'food'},
-      {'name': 'Oat Milk', 'brand': 'Oatly', 'score': 55, 'nutri': 'C', 'nova': 2, 'cat': 'food'},
-      {'name': 'Diet Soda', 'brand': 'Coca-Cola', 'score': 48, 'nutri': 'D', 'nova': 4, 'cat': 'food'},
-      {'name': 'Whole Grain Bread', 'brand': 'Ezekiel 4:9', 'score': 66, 'nutri': 'B', 'nova': 1, 'cat': 'label'},
-      {'name': 'Gastro Pub Menu', 'brand': 'The Local', 'score': 52, 'nutri': 'C', 'nova': 2, 'cat': 'menu'},
-      {'name': 'Granola Bar', 'brand': 'Nature Valley', 'score': 44, 'nutri': 'D', 'nova': 3, 'cat': 'food'},
-      {'name': 'Oat Milk Creamer', 'brand': 'Chobani', 'score': 50, 'nutri': 'C', 'nova': 3, 'cat': 'food'},
-      {'name': 'Canned Soup', 'brand': 'Campbell\'s', 'score': 40, 'nutri': 'D', 'nova': 3, 'cat': 'food'},
+      {
+        'name': 'Greek Yogurt',
+        'brand': 'Chobani',
+        'score': 62,
+        'nutri': 'C',
+        'nova': 1,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80',
+      },
+      {
+        'name': 'Matcha Latte',
+        'brand': 'GutGood',
+        'score': 75,
+        'nutri': 'B',
+        'nova': 1,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=800&q=80',
+      },
+      {
+        'name': 'Veggie Chips',
+        'brand': 'Sensible Portions',
+        'score': 58,
+        'nutri': 'C',
+        'nova': 3,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80',
+      },
+      {
+        'name': 'Dark Chocolate 85%',
+        'brand': 'Lindt',
+        'score': 45,
+        'nutri': 'D',
+        'nova': 2,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1549007994-cb92caebd54b?auto=format&fit=crop&w=800&q=80',
+      },
+      {'name': 'Frozen Pepperoni Pizza', 'brand': 'Digiorno', 'score': 30, 'nutri': 'E', 'nova': 4, 'cat': 'food', 'img': pizzaPhoto},
+      {'name': 'Oat Milk', 'brand': 'Oatly', 'score': 55, 'nutri': 'C', 'nova': 2, 'cat': 'food', 'img': 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80'},
+      {
+        'name': 'Diet Soda',
+        'brand': 'Coca-Cola',
+        'score': 48,
+        'nutri': 'D',
+        'nova': 4,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=800&q=80',
+      },
+      {
+        'name': 'Whole Grain Bread',
+        'brand': 'Ezekiel 4:9',
+        'score': 66,
+        'nutri': 'B',
+        'nova': 1,
+        'cat': 'label',
+        'img': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
+      },
+      {
+        'name': 'Gastro Pub Menu',
+        'brand': 'The Local',
+        'score': 52,
+        'nutri': 'C',
+        'nova': 2,
+        'cat': 'menu',
+        'img': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
+      },
+      {
+        'name': 'Granola Bar',
+        'brand': 'Nature Valley',
+        'score': 44,
+        'nutri': 'D',
+        'nova': 3,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=800&q=80',
+      },
+      {
+        'name': 'Oat Milk Creamer',
+        'brand': 'Chobani',
+        'score': 50,
+        'nutri': 'C',
+        'nova': 3,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80',
+      },
+      {
+        'name': 'Canned Soup',
+        'brand': 'Campbell\'s',
+        'score': 40,
+        'nutri': 'D',
+        'nova': 3,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80',
+      },
     ];
 
     for (var i = 0; i < scanProducts.length; i++) {
       final p = scanProducts[i];
+      final img = p['img'] as String?;
       await _historyFirestoreService.saveToScanHistory(
         ScanResult(
           productName: p['name'] as String,
@@ -214,9 +330,11 @@ class DebugMockDataService {
           nutriscore: p['nutri'] as String,
           novaGroup: (p['nova'] as int).toString(),
           category: p['cat'] as String,
-          createdAt: now.subtract(Duration(hours: i * 8 + 3)), // Shifted older: showcase scans land on top
+          imageUrl: img,
+          userImageUrl: img,
+          createdAt: now.subtract(Duration(hours: i * 8 + 3)),
           source: p['cat'] == 'food' ? 'barcode' : p['cat'] as String,
-          isSaved: i < 5, // Save more items
+          isSaved: i < 5,
         ),
       );
     }
@@ -369,29 +487,45 @@ class DebugMockDataService {
       topInsight: const InsightSummary(title: 'Meals with whole foods are showing up more often.', description: 'Keep it up! Real food makes a difference.', type: 'Behavioral', strength: 'High'),
       healingTrend: 'More fiber this week settled your digestion.',
       healingFoods: const [
-        HealingFood(name: 'Berries', effect: 'Antioxidant boost', emoji: '🫐', imageUrl: berriesPhoto),
-        HealingFood(name: 'Chicken', effect: 'Lean protein', emoji: '🍗', imageUrl: chickenPhoto),
-        HealingFood(name: 'Apples', effect: 'Gentle fiber', emoji: '🍎', imageUrl: applesPhoto),
+        HealingFood(name: 'Berries', effect: 'Antioxidant boost', emoji: '🫐', imageUrl: berriesPhoto, userImageUrl: berriesPhoto),
+        HealingFood(name: 'Chicken', effect: 'Lean protein', emoji: '🍗', imageUrl: chickenPhoto, userImageUrl: chickenPhoto),
+        HealingFood(name: 'Apples', effect: 'Gentle fiber', emoji: '🍎', imageUrl: applesPhoto, userImageUrl: applesPhoto),
       ],
       triggerTrend: 'Late salty dinners lined up with your bloating.',
-      triggerFoods: const [TriggerFood(name: 'French Fries', effect: 'Headaches', emoji: '🍟', imageUrl: friesThumb)],
+      triggerFoods: const [TriggerFood(name: 'French Fries', effect: 'Headaches', emoji: '🍟', imageUrl: friesThumb, userImageUrl: friesThumb)],
       detectedPatterns: patterns,
-      topHealing: const TopHighlight(food: 'Fiber', effects: 'Great job! Higher fiber supports a happy gut.', timeframe: 'this week', frequency: '4x this week', emoji: '🥬'),
-      topTrigger: const TopHighlight(food: 'Sodium', effects: 'Try earlier, lower-sodium options when possible.', timeframe: 'this week', frequency: '3x this week', emoji: '🧂'),
+      topHealing: const TopHighlight(
+        food: 'Fiber',
+        effects: 'Great job! Higher fiber supports a happy gut.',
+        timeframe: 'this week',
+        frequency: '4x this week',
+        emoji: '🥬',
+        imageUrl: berriesPhoto,
+        userImageUrl: berriesPhoto,
+      ),
+      topTrigger: const TopHighlight(
+        food: 'Sodium',
+        effects: 'Try earlier, lower-sodium options when possible.',
+        timeframe: 'this week',
+        frequency: '3x this week',
+        emoji: '🧂',
+        imageUrl: friesThumb,
+        userImageUrl: friesThumb,
+      ),
       foodImpacts: const [
-        FoodImpact(food: 'Berries', dateLabel: 'Mon', effect: 'Steady energy', timeframeLabel: 'Breakfast', emoji: '🫐', impactType: 'positive', imageUrl: berriesPhoto),
-        FoodImpact(food: 'Chicken', dateLabel: 'Mon', effect: 'Lean protein', timeframeLabel: 'Lunch', emoji: '🍗', impactType: 'positive', imageUrl: chickenPhoto),
-        FoodImpact(food: 'Apples', dateLabel: 'Mon', effect: 'Gentle fiber', timeframeLabel: 'Snack', emoji: '🍎', impactType: 'positive', imageUrl: applesPhoto),
-        FoodImpact(food: 'Berries', dateLabel: 'Tue', effect: 'Steady energy', timeframeLabel: 'Breakfast', emoji: '🫐', impactType: 'positive', imageUrl: berriesPhoto),
-        FoodImpact(food: 'French Fries', dateLabel: 'Tue', effect: 'Headaches', timeframeLabel: 'Dinner', emoji: '🍟', impactType: 'negative', imageUrl: friesThumb),
-        FoodImpact(food: 'Chicken', dateLabel: 'Wed', effect: 'Lean protein', timeframeLabel: 'Lunch', emoji: '🍗', impactType: 'positive', imageUrl: chickenPhoto),
-        FoodImpact(food: 'Apples', dateLabel: 'Wed', effect: 'Gentle fiber', timeframeLabel: 'Snack', emoji: '🍎', impactType: 'positive', imageUrl: applesPhoto),
-        FoodImpact(food: 'Berries', dateLabel: 'Thu', effect: 'Steady energy', timeframeLabel: 'Breakfast', emoji: '🫐', impactType: 'positive', imageUrl: berriesPhoto),
-        FoodImpact(food: 'French Fries', dateLabel: 'Thu', effect: 'Headaches', timeframeLabel: 'Dinner', emoji: '🍟', impactType: 'negative', imageUrl: friesThumb),
-        FoodImpact(food: 'Chicken', dateLabel: 'Fri', effect: 'Lean protein', timeframeLabel: 'Dinner', emoji: '🍗', impactType: 'positive', imageUrl: chickenPhoto),
-        FoodImpact(food: 'Apples', dateLabel: 'Sat', effect: 'Gentle fiber', timeframeLabel: 'Snack', emoji: '🍎', impactType: 'positive', imageUrl: applesPhoto),
-        FoodImpact(food: 'Berries', dateLabel: 'Sat', effect: 'Steady energy', timeframeLabel: 'Breakfast', emoji: '🫐', impactType: 'positive', imageUrl: berriesPhoto),
-        FoodImpact(food: 'French Fries', dateLabel: 'Sun', effect: 'Headaches', timeframeLabel: 'Lunch', emoji: '🍟', impactType: 'negative', imageUrl: friesThumb),
+        FoodImpact(food: 'Berries', dateLabel: 'Mon', effect: 'Steady energy', timeframeLabel: 'Breakfast', emoji: '🫐', impactType: 'positive', imageUrl: berriesPhoto, userImageUrl: berriesPhoto),
+        FoodImpact(food: 'Chicken', dateLabel: 'Mon', effect: 'Lean protein', timeframeLabel: 'Lunch', emoji: '🍗', impactType: 'positive', imageUrl: chickenPhoto, userImageUrl: chickenPhoto),
+        FoodImpact(food: 'Apples', dateLabel: 'Mon', effect: 'Gentle fiber', timeframeLabel: 'Snack', emoji: '🍎', impactType: 'positive', imageUrl: applesPhoto, userImageUrl: applesPhoto),
+        FoodImpact(food: 'Berries', dateLabel: 'Tue', effect: 'Steady energy', timeframeLabel: 'Breakfast', emoji: '🫐', impactType: 'positive', imageUrl: berriesPhoto, userImageUrl: berriesPhoto),
+        FoodImpact(food: 'French Fries', dateLabel: 'Tue', effect: 'Headaches', timeframeLabel: 'Dinner', emoji: '🍟', impactType: 'negative', imageUrl: friesThumb, userImageUrl: friesThumb),
+        FoodImpact(food: 'Chicken', dateLabel: 'Wed', effect: 'Lean protein', timeframeLabel: 'Lunch', emoji: '🍗', impactType: 'positive', imageUrl: chickenPhoto, userImageUrl: chickenPhoto),
+        FoodImpact(food: 'Apples', dateLabel: 'Wed', effect: 'Gentle fiber', timeframeLabel: 'Snack', emoji: '🍎', impactType: 'positive', imageUrl: applesPhoto, userImageUrl: applesPhoto),
+        FoodImpact(food: 'Berries', dateLabel: 'Thu', effect: 'Steady energy', timeframeLabel: 'Breakfast', emoji: '🫐', impactType: 'positive', imageUrl: berriesPhoto, userImageUrl: berriesPhoto),
+        FoodImpact(food: 'French Fries', dateLabel: 'Thu', effect: 'Headaches', timeframeLabel: 'Dinner', emoji: '🍟', impactType: 'negative', imageUrl: friesThumb, userImageUrl: friesThumb),
+        FoodImpact(food: 'Chicken', dateLabel: 'Fri', effect: 'Lean protein', timeframeLabel: 'Dinner', emoji: '🍗', impactType: 'positive', imageUrl: chickenPhoto, userImageUrl: chickenPhoto),
+        FoodImpact(food: 'Apples', dateLabel: 'Sat', effect: 'Gentle fiber', timeframeLabel: 'Snack', emoji: '🍎', impactType: 'positive', imageUrl: applesPhoto, userImageUrl: applesPhoto),
+        FoodImpact(food: 'Berries', dateLabel: 'Sat', effect: 'Steady energy', timeframeLabel: 'Breakfast', emoji: '🫐', impactType: 'positive', imageUrl: berriesPhoto, userImageUrl: berriesPhoto),
+        FoodImpact(food: 'French Fries', dateLabel: 'Sun', effect: 'Headaches', timeframeLabel: 'Lunch', emoji: '🍟', impactType: 'negative', imageUrl: friesThumb, userImageUrl: friesThumb),
       ],
       weeklyRecap: WeeklyRecap(
         dateRange: '${rangeStart.month}/${rangeStart.day} - ${now.month}/${now.day}',

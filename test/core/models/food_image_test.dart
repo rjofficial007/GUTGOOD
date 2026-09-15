@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/food_image.dart';
+import 'package:gutgood/core/models/user/food_image.dart';
 
 void main() {
   group('FoodImageLinks', () {
@@ -37,7 +37,9 @@ void main() {
 
     test('fromMap tolerates null, missing keys, and non-string entries', () {
       expect(const FoodImageLinks(), FoodImageLinks.fromMap(null));
-      final links = FoodImageLinks.fromMap(const {'chat': ['m1', 42, null]});
+      final links = FoodImageLinks.fromMap(const {
+        'chat': ['m1', 42, null],
+      });
       expect(links.chat, ['m1']);
       expect(links.meals, isEmpty);
     });
@@ -54,7 +56,12 @@ void main() {
         'width': 1024,
         'height': 768,
         'bytes': 12345,
-        'links': {'chat': ['m1'], 'scans': ['s1'], 'meals': [], 'symptoms': []},
+        'links': {
+          'chat': ['m1'],
+          'scans': ['s1'],
+          'meals': [],
+          'symptoms': [],
+        },
         'linkCount': 2,
         'foods': ['pizza'],
         'createdAt': '2026-01-01T00:00:00.000',

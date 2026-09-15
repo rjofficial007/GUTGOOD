@@ -1,25 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/domain_event_persister.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}
 
-ScanResult _scan() => ScanResult(
-  productName: 'Persist Yogurt',
-  brand: 'Persist Brand',
-  category: 'food',
-  barcode: '999000111',
-  score: 70,
-  impactType: ImpactType.positive,
-  impact: 'Good',
-  createdAt: DateTime.now(),
-);
+ScanResult _scan() =>
+    ScanResult(productName: 'Persist Yogurt', brand: 'Persist Brand', category: 'food', barcode: '999000111', score: 70, impactType: ImpactType.positive, impact: 'Good', createdAt: DateTime.now());
 
 MealLog _meal() => MealLog(items: const ['Dal', 'Rice'], mealType: 'dinner', createdAt: DateTime.now());
 
@@ -39,7 +28,13 @@ void main() {
     history = MockHistoryFirestoreService();
     persister = DomainEventPersister(historyFirestoreService: history);
 
-    when(() => history.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId'))).thenAnswer((_) async {});
+    when(
+      () => history.saveToScanHistory(
+        any(),
+        userImageUrl: any(named: 'userImageUrl'),
+        scanId: any(named: 'scanId'),
+      ),
+    ).thenAnswer((_) async {});
     when(() => history.logMeal(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'meal-id');
     when(() => history.logSymptom(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'sym-id');
   });
@@ -54,7 +49,13 @@ void main() {
       expect(outcome.hasPersistedAnything, isFalse);
       expect(outcome.result.meal, isNull);
       expect(outcome.result.symptoms, isEmpty);
-      verifyNever(() => history.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
+      verifyNever(
+        () => history.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      );
       verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
       verifyNever(() => history.logSymptom(any(), docId: any(named: 'docId')));
     });
@@ -66,7 +67,13 @@ void main() {
 
       expect(outcome.chatOnlyReason, ChatOnlyReason.validationFailed);
       expect(outcome.validationReasons.join(' '), contains('confidence'));
-      verifyNever(() => history.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
+      verifyNever(
+        () => history.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      );
     });
 
     test('non_food verdict goes chat-only without writes', () async {
@@ -75,7 +82,13 @@ void main() {
       final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
 
       expect(outcome.chatOnlyReason, ChatOnlyReason.validationFailed);
-      verifyNever(() => history.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId')));
+      verifyNever(
+        () => history.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      );
     });
 
     test('consumption gate: question-about-food persists scan but NOT a phantom meal', () async {
@@ -85,7 +98,13 @@ void main() {
 
       expect(outcome.persistedScan, isTrue);
       expect(outcome.persistedMeal, isFalse);
-      verify(() => history.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: 'msg1_scan')).called(1);
+      verify(
+        () => history.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: 'msg1_scan',
+        ),
+      ).called(1);
       verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
     });
 
@@ -108,14 +127,30 @@ void main() {
 
       await persister.persist(first, chatMessageId: 'msg1', persistedTagBlocks: tags);
       // Same product+score rebuilt (e.g. streaming re-parse) hits the same key.
-      await persister.persist(AiAnalysisResult(text: 'x', scan: _scan()), chatMessageId: 'msg1', persistedTagBlocks: tags);
+      await persister.persist(
+        AiAnalysisResult(text: 'x', scan: _scan()),
+        chatMessageId: 'msg1',
+        persistedTagBlocks: tags,
+      );
 
-      verify(() => history.saveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: any(named: 'scanId'))).called(1);
+      verify(
+        () => history.saveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      ).called(1);
     });
 
     test('isLabelOrMenuTurn unifies source, category, and intent signals', () {
-      final bySource = AiAnalysisResult(text: 'x', scan: _scan().copyWith(source: 'menu'));
-      final byCategory = AiAnalysisResult(text: 'x', scan: _scan().copyWith(category: 'label'));
+      final bySource = AiAnalysisResult(
+        text: 'x',
+        scan: _scan().copyWith(source: 'menu'),
+      );
+      final byCategory = AiAnalysisResult(
+        text: 'x',
+        scan: _scan().copyWith(category: 'label'),
+      );
       const byIntent = AiAnalysisResult(text: 'x', intent: UserIntent.menuRecommendation);
       final normal = AiAnalysisResult(text: 'x', intent: UserIntent.mealRating, scan: _scan());
 

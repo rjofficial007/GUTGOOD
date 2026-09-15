@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/ai_insight_details.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/app_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';

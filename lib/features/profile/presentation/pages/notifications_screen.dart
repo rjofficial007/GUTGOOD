@@ -3,7 +3,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/notification_preferences.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -50,51 +50,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final data = cloudPrefs ?? {};
 
     setState(() {
-      _enableAll = ModelUtils.parseBool(
-        data['enableAll'],
-        defaultValue: prefs.getBool('notif_enable_all') ?? true,
-      );
-      _mealReminders = ModelUtils.parseBool(
-        data['mealReminders'],
-        defaultValue: prefs.getBool('notif_meal_reminders') ?? true,
-      );
-      _noMealLoggedReminder = ModelUtils.parseBool(
-        data['noMealLoggedReminder'],
-        defaultValue: prefs.getBool('notif_no_meal_logged') ?? true,
-      );
-      _dailyReminder = ModelUtils.parseBool(
-        data['dailyReminder'],
-        defaultValue: prefs.getBool('notif_daily_reminder') ?? true,
-      );
-      _insightUpdates = ModelUtils.parseBool(
-        data['insightUpdates'],
-        defaultValue: prefs.getBool('notif_insight_updates') ?? true,
-      );
-      _weeklySummary = ModelUtils.parseBool(
-        data['weeklySummary'],
-        defaultValue: prefs.getBool('notif_weekly_summary') ?? true,
-      );
+      _enableAll = ModelUtils.parseBool(data['enableAll'], defaultValue: prefs.getBool('notif_enable_all') ?? true);
+      _mealReminders = ModelUtils.parseBool(data['mealReminders'], defaultValue: prefs.getBool('notif_meal_reminders') ?? true);
+      _noMealLoggedReminder = ModelUtils.parseBool(data['noMealLoggedReminder'], defaultValue: prefs.getBool('notif_no_meal_logged') ?? true);
+      _dailyReminder = ModelUtils.parseBool(data['dailyReminder'], defaultValue: prefs.getBool('notif_daily_reminder') ?? true);
+      _insightUpdates = ModelUtils.parseBool(data['insightUpdates'], defaultValue: prefs.getBool('notif_insight_updates') ?? true);
+      _weeklySummary = ModelUtils.parseBool(data['weeklySummary'], defaultValue: prefs.getBool('notif_weekly_summary') ?? true);
 
-      _breakfastTime =
-          _decodeTime(
-            data['breakfastTime'] ?? prefs.getString('notif_breakfast_time'),
-          ) ??
-          _breakfastTime;
-      _lunchTime =
-          _decodeTime(
-            data['lunchTime'] ?? prefs.getString('notif_lunch_time'),
-          ) ??
-          _lunchTime;
-      _dinnerTime =
-          _decodeTime(
-            data['dinnerTime'] ?? prefs.getString('notif_dinner_time'),
-          ) ??
-          _dinnerTime;
-      _dailyReminderTime =
-          _decodeTime(
-            data['dailyReminderTime'] ?? prefs.getString('notif_daily_time'),
-          ) ??
-          _dailyReminderTime;
+      _breakfastTime = _decodeTime(data['breakfastTime'] ?? prefs.getString('notif_breakfast_time')) ?? _breakfastTime;
+      _lunchTime = _decodeTime(data['lunchTime'] ?? prefs.getString('notif_lunch_time')) ?? _lunchTime;
+      _dinnerTime = _decodeTime(data['dinnerTime'] ?? prefs.getString('notif_dinner_time')) ?? _dinnerTime;
+      _dailyReminderTime = _decodeTime(data['dailyReminderTime'] ?? prefs.getString('notif_daily_time')) ?? _dailyReminderTime;
 
       _loading = false;
     });
@@ -104,10 +70,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (raw == null) return null;
     final parts = raw.split(':');
     if (parts.length != 2) return null;
-    return TimeOfDay(
-      hour: int.tryParse(parts[0]) ?? 0,
-      minute: int.tryParse(parts[1]) ?? 0,
-    );
+    return TimeOfDay(hour: int.tryParse(parts[0]) ?? 0, minute: int.tryParse(parts[1]) ?? 0);
   }
 
   String _encodeTime(TimeOfDay t) => '${t.hour}:${t.minute}';
@@ -143,18 +106,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _applyMealReminderSchedule() async {
     final notificationService = sl<NotificationService>();
     if (_enableAll && _mealReminders) {
-      await notificationService.scheduleBreakfastReminder(
-        _breakfastTime.hour,
-        _breakfastTime.minute,
-      );
-      await notificationService.scheduleLunchReminder(
-        _lunchTime.hour,
-        _lunchTime.minute,
-      );
-      await notificationService.scheduleDinnerReminder(
-        _dinnerTime.hour,
-        _dinnerTime.minute,
-      );
+      await notificationService.scheduleBreakfastReminder(_breakfastTime.hour, _breakfastTime.minute);
+      await notificationService.scheduleLunchReminder(_lunchTime.hour, _lunchTime.minute);
+      await notificationService.scheduleDinnerReminder(_dinnerTime.hour, _dinnerTime.minute);
     } else {
       await notificationService.cancelMealReminders();
     }
@@ -172,10 +126,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _applyDailyReminderSchedule() async {
     final notificationService = sl<NotificationService>();
     if (_enableAll && _dailyReminder) {
-      await notificationService.scheduleDailyReminder(
-        hour: _dailyReminderTime.hour,
-        minute: _dailyReminderTime.minute,
-      );
+      await notificationService.scheduleDailyReminder(hour: _dailyReminderTime.hour, minute: _dailyReminderTime.minute);
     } else {
       await notificationService.cancelDailyReminder();
     }
@@ -194,16 +145,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  Future<void> _pickTime(
-    TimeOfDay initial,
-    ValueChanged<TimeOfDay> onPicked,
-  ) async {
-    final picked = await BottomSheetHelper.showTimePickerSheet(
-      context: context,
-      title: AppStrings.selectTime,
-      initialTime: initial,
-      backgroundColor: AppPalette.transparent,
-    );
+  Future<void> _pickTime(TimeOfDay initial, ValueChanged<TimeOfDay> onPicked) async {
+    final picked = await BottomSheetHelper.showTimePickerSheet(context: context, title: AppStrings.selectTime, initialTime: initial, backgroundColor: AppPalette.transparent);
     if (picked != null) onPicked(picked);
   }
 
@@ -212,11 +155,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (_loading) {
       return Scaffold(
         backgroundColor: context.appColorScheme.cardBackground,
-        body: Center(
-          child: CircularProgressIndicator(
-            color: context.appColorScheme.textPrimary,
-          ),
-        ),
+        body: Center(child: CircularProgressIndicator(color: context.appColorScheme.textPrimary)),
       );
     }
 
@@ -228,10 +167,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _GlobalEnableSection(
-              isEnabled: _enableAll,
-              onToggle: _toggleEnableAll,
-            ),
+            _GlobalEnableSection(isEnabled: _enableAll, onToggle: _toggleEnableAll),
             _RemindersSection(
               enableAll: _enableAll,
               mealReminders: _mealReminders,
@@ -297,13 +233,7 @@ class _GlobalEnableSection extends StatelessWidget {
     topPadding: 0,
     children: [
       _ModernSettingCard(
-        child: AppSwitchTile(
-          title: AppStrings.enableNotifications,
-          desc: AppStrings.receiveUpdates,
-          value: isEnabled,
-          onChanged: onToggle,
-          showBottomBorder: false,
-        ),
+        child: AppSwitchTile(title: AppStrings.enableNotifications, desc: AppStrings.receiveUpdates, value: isEnabled, onChanged: onToggle, showBottomBorder: false),
       ),
     ],
   );
@@ -450,13 +380,7 @@ class _RemindersSection extends StatelessWidget {
 }
 
 class _UpdatesSection extends StatelessWidget {
-  const _UpdatesSection({
-    required this.enableAll,
-    required this.insightUpdates,
-    required this.weeklySummary,
-    required this.onInsightToggle,
-    required this.onWeeklyToggle,
-  });
+  const _UpdatesSection({required this.enableAll, required this.insightUpdates, required this.weeklySummary, required this.onInsightToggle, required this.onWeeklyToggle});
 
   final bool enableAll;
   final bool insightUpdates;
@@ -502,10 +426,7 @@ class _UpdatesSection extends StatelessWidget {
 }
 
 class _AnimatedTimePickerList extends StatelessWidget {
-  const _AnimatedTimePickerList({
-    required this.isVisible,
-    required this.children,
-  });
+  const _AnimatedTimePickerList({required this.isVisible, required this.children});
   final bool isVisible;
   final List<Widget> children;
 
@@ -535,21 +456,14 @@ class _ModernSettingCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: context.appColorScheme.elevatedSurface,
       borderRadius: BorderRadius.circular(AppSizes.r24),
-      border: Border.all(
-        color: context.appColorScheme.borderSubtle,
-      ),
+      border: Border.all(color: context.appColorScheme.borderSubtle),
     ),
     child: child,
   );
 }
 
 class _ModernTimeTile extends StatelessWidget {
-  const _ModernTimeTile({
-    required this.label,
-    required this.time,
-    required this.icon,
-    required this.onTap,
-  });
+  const _ModernTimeTile({required this.label, required this.time, required this.icon, required this.onTap});
   final String label;
   final TimeOfDay time;
   final IconData icon;
@@ -561,9 +475,7 @@ class _ModernTimeTile extends StatelessWidget {
     decoration: BoxDecoration(
       color: context.appColorScheme.elevatedSurface,
       borderRadius: BorderRadius.circular(AppSizes.r24),
-      border: Border.all(
-        color: context.appColorScheme.borderSubtle,
-      ),
+      border: Border.all(color: context.appColorScheme.borderSubtle),
     ),
     child: Material(
       color: Colors.transparent,
@@ -577,15 +489,8 @@ class _ModernTimeTile extends StatelessWidget {
               Container(
                 width: AppSizes.w52,
                 height: AppSizes.w52,
-                decoration: BoxDecoration(
-                  color: context.appColorScheme.textPrimary,
-                  borderRadius: BorderRadius.circular(AppSizes.r18),
-                ),
-                child: Icon(
-                  icon,
-                  color: context.appColorScheme.cardBackground,
-                  size: AppSizes.icon24,
-                ),
+                decoration: BoxDecoration(color: context.appColorScheme.textPrimary, borderRadius: BorderRadius.circular(AppSizes.r18)),
+                child: Icon(icon, color: context.appColorScheme.cardBackground, size: AppSizes.icon24),
               ),
               Gap.w16,
               Expanded(
@@ -594,29 +499,17 @@ class _ModernTimeTile extends StatelessWidget {
                   children: [
                     Text(
                       label.toUpperCase(),
-                      style: context.caption.copyWith(
-                        color: context.appColorScheme.textMuted,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.0,
-                        fontSize: AppSizes.s9,
-                      ),
+                      style: context.caption.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: AppSizes.s9),
                     ),
                     Gap.h4,
                     Text(
                       time.format(context),
-                      style: context.headingMd.copyWith(
-                        color: context.appColorScheme.textPrimary,
-                        fontWeight: FontWeight.w900,
-                        fontSize: AppSizes.s22,
-                      ),
+                      style: context.headingMd.copyWith(color: context.appColorScheme.textPrimary, fontWeight: FontWeight.w900, fontSize: AppSizes.s22),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                AppIcons.chevronRight,
-                color: context.appColorScheme.textMuted,
-              ),
+              Icon(AppIcons.chevronRight, color: context.appColorScheme.textMuted),
             ],
           ),
         ),

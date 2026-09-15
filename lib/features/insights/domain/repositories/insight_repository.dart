@@ -1,11 +1,4 @@
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/health_alert.dart';
-import 'package:gutgood/core/models/insights_dashboard_state.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 
 abstract class InsightRepository {
   Future<AIInsight?> getLatestInsight();

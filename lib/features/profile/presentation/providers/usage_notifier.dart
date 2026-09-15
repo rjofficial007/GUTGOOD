@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/daily_usage.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/usage_firestore_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';

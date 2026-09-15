@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/journal/meal_log.dart';
+import 'package:gutgood/core/models/journal/symptom_log.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 
 void main() {
@@ -21,23 +21,37 @@ void main() {
 
     test('stored occurredAt passes through verbatim (no clamp on vetted values)', () {
       final old = DateTime.now().subtract(const Duration(days: 60));
-      final meal = MealLog.fromMap({'items': const ['Dal'], 'createdAt': old.toIso8601String(), 'occurredAt': old.toIso8601String(), 'occurredAtProvenance': 'user'});
+      final meal = MealLog.fromMap({
+        'items': const ['Dal'],
+        'createdAt': old.toIso8601String(),
+        'occurredAt': old.toIso8601String(),
+        'occurredAtProvenance': 'user',
+      });
 
       expect(meal.occurredAt, old);
       expect(meal.occurredAtProvenance, 'user');
     });
 
     test('insane AI estimates (far future / ancient) resolve to unknown', () {
-      final future = MealLog.fromMap({'items': const ['x'], 'time': DateTime.now().add(const Duration(days: 2)).toIso8601String()});
+      final future = MealLog.fromMap({
+        'items': const ['x'],
+        'time': DateTime.now().add(const Duration(days: 2)).toIso8601String(),
+      });
       expect(future.occurredAt, isNull);
       expect(future.occurredAtProvenance, isNull);
 
-      final ancient = MealLog.fromMap({'items': const ['x'], 'time': DateTime.now().subtract(const Duration(days: 60)).toIso8601String()});
+      final ancient = MealLog.fromMap({
+        'items': const ['x'],
+        'time': DateTime.now().subtract(const Duration(days: 60)).toIso8601String(),
+      });
       expect(ancient.occurredAt, isNull);
     });
 
     test('garbage AI time ("last night") resolves to unknown, not now()', () {
-      final meal = MealLog.fromMap(const {'items': ['x'], 'time': 'last night'});
+      final meal = MealLog.fromMap(const {
+        'items': ['x'],
+        'time': 'last night',
+      });
 
       expect(meal.occurredAt, isNull);
       expect(meal.eventTime, meal.createdAt);
@@ -66,6 +80,14 @@ void main() {
       final log = SymptomLog(symptom: 'Bloating', createdAt: DateTime.now(), provenance: RecordProvenance.keywordFallback);
 
       expect(SymptomLog.fromMap(log.toMap()).provenance, RecordProvenance.keywordFallback);
+    });
+
+    test('explicit symptom provenance round-trips', () {
+      final symptom = SymptomLog.fromMap(const {'symptom': 'Bloating'});
+      expect(symptom.provenance, isNull);
+
+      final confirmed = symptom.copyWith(provenance: RecordProvenance.user);
+      expect(SymptomLog.fromMap(confirmed.toMap()).provenance, RecordProvenance.user);
     });
 
     test('legacy docs without provenance read as null (treated as confirmed)', () {

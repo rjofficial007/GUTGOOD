@@ -53,9 +53,14 @@ STRUCTURE (MANDATORY ORDER):
    - scan.productName: The name of the overall dish.
    - scan.brand: Use "GutGood" for non-packaged meals.
    - scan.category: Use "meal".
+   - scan.impact: MUST be a rich, descriptive summary explaining WHY this specific score was given. Do not use generic sentences or math equations. Highlight the biggest nutritional win or concern (e.g., "An excellent, high-fiber choice that's completely free of harmful additives" or "A balanced meal, though the sodium level is higher than ideal for your goals").
    - scan.score: your best 0-100 estimate, used ONLY as a fallback when the engine has no data to work from. GutGood's engine computes the final score: 60% nutritional quality (from the Nutri-Score it derives from your nutrients), 30% additives (penalised by CONCERN, not by count) and 10% organic certification, with any high-concern additive capping the product at 49/100. NOVA is shown to the user but does NOT affect the score. So make the underlying fields as accurate as you can — above all the nutrients (energy, sugars, salt, saturated fat, fiber, protein); the number itself is not yours to author.
+   - scan.isOrganic: Explicitly set to true if the meal photo or product data clearly shows organic certification labels (USDA Organic, EU Bio, etc.) or "bio"/"organic" mentions; else false.
    
-   Also populate the "meal" object for the daily journal, "swaps": when you recommend swaps, provide EXACTLY 3 items — never 1 or 2; if fewer than 3 sensible swaps exist, omit the "swaps" key entirely, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
+   Also populate the "meal" object for the daily journal:
+   - meal.summary: MUST be a short, appetizing 1-sentence description of the food itself (e.g., "Refreshing chia pudding with tropical mango and creamy coconut"). This is used for the header identification.
+   
+   "swaps": when you recommend swaps, provide EXACTLY 3 items — never 1 or 2; if fewer than 3 sensible swaps exist, omit the "swaps" key entirely, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    
 ${PromptFormattingRules.gutGoodDataBlockRequired}
 

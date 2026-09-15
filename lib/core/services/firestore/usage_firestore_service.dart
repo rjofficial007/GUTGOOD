@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gutgood/core/models/daily_usage.dart';
+import 'package:gutgood/core/models/user/daily_usage.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class UsageFirestoreService {

@@ -112,7 +112,7 @@ void initFeatureDI() {
     )
     ..registerLazySingleton(() => ScannerNotifier(repository: sl(), authFirestoreService: sl(), offService: sl(), storageService: sl()))
     // --- Logs ---
-    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl(), streakService: sl()))
+    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl(), streakService: sl(), notificationService: sl()))
     // --- History ---
     ..registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl()))
     ..registerLazySingleton(() => HistoryNotifier(repository: sl(), appStateService: sl(), auth: sl()))

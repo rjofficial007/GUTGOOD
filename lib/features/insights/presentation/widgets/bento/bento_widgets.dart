@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_theme.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/pattern_style.dart';
 
 export 'insight_bento_theme.dart';
 
@@ -1046,12 +1047,15 @@ class FoodTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
+    final dark = PatternSurface.isDark(context);
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.w),
       decoration: BoxDecoration(
-        color: t.tileBackground,
+        color: PatternSurface.card(context),
         borderRadius: BorderRadius.circular(BentoMetrics.radiusSm.w),
-        border: Border.all(color: t.border),
+        border: Border.all(color: t.border.withValues(alpha: dark ? 1.0 : 0.6)),
+        boxShadow: PatternSurface.softShadow(context),
       ),
       child: Row(
         children: [
@@ -1066,14 +1070,14 @@ class FoodTile extends StatelessWidget {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w600, height: 1.1, color: t.textPrimary),
+                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w700, height: 1.1, color: PatternSurface.ink(context)),
                 ),
                 Gap.h2,
                 Text(
                   stat,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: statColor, height: 1.2),
+                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: dark ? statColor : _getDeepStatColor(statColor), height: 1.2),
                 ),
               ],
             ),
@@ -1082,11 +1086,13 @@ class FoodTile extends StatelessWidget {
       ),
     );
   }
+
+  Color _getDeepStatColor(Color accent) => HSLColor.fromColor(accent).withLightness((HSLColor.fromColor(accent).lightness - 0.15).clamp(0.0, 1.0)).toColor();
 }
 
 /// The 2×2 food grid inside a span-2 bento (`.mini-food-grid`).
 class MiniFoodGrid extends StatelessWidget {
-  const MiniFoodGrid({super.key, required this.tiles, this.gap = 8});
+  const MiniFoodGrid({super.key, required this.tiles, this.gap = 10});
   final List<Widget> tiles;
   final double gap;
 
@@ -1095,16 +1101,12 @@ class MiniFoodGrid extends StatelessWidget {
     final g = gap.w;
     // Pair tiles into rows and stretch row-mates to a common height, so a long
     // food name cannot make one tile taller than its neighbour.
-    //
-    // Expanded (not LayoutBuilder + fixed widths): this grid sits inside the
-    // span-2 bento card, which an IntrinsicHeight measures — and LayoutBuilder
-    // cannot answer an intrinsic-dimension query.
     final rows = <List<Widget>>[];
     for (var i = 0; i < tiles.length; i += 2) {
       rows.add(tiles.sublist(i, i + 2 > tiles.length ? tiles.length : i + 2));
     }
     return Padding(
-      padding: EdgeInsets.only(top: 10.w),
+      padding: EdgeInsets.only(top: 8.w),
       child: Column(
         children: [
           for (var r = 0; r < rows.length; r++) ...[

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/off_product.dart';
+import 'package:gutgood/core/models/scans/off_product.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -24,20 +24,9 @@ class ScanProductDetails extends StatelessWidget {
 
   // Official Nutri-Score palette (constants: these colors ARE the label's
   // brand identity, in light and dark mode alike).
-  static const nsColors = <String, Color>{
-    'a': Color(0xFF038141),
-    'b': Color(0xFF85BC2B),
-    'c': Color(0xFFFECB02),
-    'd': Color(0xFFEE8100),
-    'e': Color(0xFFE63E11),
-  };
+  static const nsColors = <String, Color>{'a': Color(0xFF038141), 'b': Color(0xFF85BC2B), 'c': Color(0xFFFECB02), 'd': Color(0xFFEE8100), 'e': Color(0xFFE63E11)};
 
-  static const novaColors = <int, Color>{
-    1: Color(0xFF038141),
-    2: Color(0xFF85BC2B),
-    3: Color(0xFFFECB02),
-    4: Color(0xFFE63E11),
-  };
+  static const novaColors = <int, Color>{1: Color(0xFF038141), 2: Color(0xFF85BC2B), 3: Color(0xFFFECB02), 4: Color(0xFFE63E11)};
 
   bool get _hasScores =>
       (product.nutriscore ?? '').isNotEmpty ||
@@ -48,8 +37,7 @@ class ScanProductDetails extends StatelessWidget {
 
   bool get _hasNutrition =>
       product.nutrients != null ||
-      (product.nutrientLevels != null &&
-          [product.nutrientLevels!.fat, product.nutrientLevels!.saturatedFat, product.nutrientLevels!.sugars, product.nutrientLevels!.salt].any((l) => l != 'unknown'));
+      (product.nutrientLevels != null && [product.nutrientLevels!.fat, product.nutrientLevels!.saturatedFat, product.nutrientLevels!.sugars, product.nutrientLevels!.salt].any((l) => l != 'unknown'));
 
   bool get _hasIngredients =>
       (product.ingredientsDetail ?? const []).isNotEmpty ||
@@ -203,7 +191,10 @@ class _DetailTileState extends State<_DetailTile> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.title, style: context.body.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary)),
+                      Text(
+                        widget.title,
+                        style: context.body.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary),
+                      ),
                       Text(
                         widget.peek,
                         style: context.caption.copyWith(color: scheme.textSecondary),
@@ -297,11 +288,7 @@ class _ScoresBody extends StatelessWidget {
                     alignment: Alignment.center,
                     child: Text(
                       entry.key.toUpperCase(),
-                      style: context.title.copyWith(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w800,
-                        color: grade == entry.key ? Colors.white : entry.value,
-                      ),
+                      style: context.title.copyWith(fontSize: 15.sp, fontWeight: FontWeight.w800, color: grade == entry.key ? Colors.white : entry.value),
                     ),
                   ),
                 ),
@@ -333,34 +320,18 @@ class _ScoresBody extends StatelessWidget {
           ],
         ),
 
-        if ((product.comparedToCategory ?? '').isNotEmpty) ...[
-          Gap.h12,
-          Text('Nutri-Score compared with: ${product.comparedToCategory}', style: context.caption),
-        ],
+        if ((product.comparedToCategory ?? '').isNotEmpty) ...[Gap.h12, Text('Nutri-Score compared with: ${product.comparedToCategory}', style: context.caption)],
 
-        if ((product.nutriscoreExplanation ?? '').isNotEmpty) ...[
-          Gap.h12,
-          Text(product.nutriscoreExplanation!, style: context.bodySm.copyWith(height: 1.5)),
-        ],
+        if ((product.nutriscoreExplanation ?? '').isNotEmpty) ...[Gap.h12, Text(product.nutriscoreExplanation!, style: context.bodySm.copyWith(height: 1.5))],
 
         // Component table (which nutrients pushed the score)
         if (components.isNotEmpty) ...[
           Gap.h12,
           Text('Components', style: context.captionBold),
           Gap.h8,
-          for (var i = 0; i < components.length; i++) ...[
-            if (i > 0) Divider(height: AppSizes.p16, color: scheme.borderSubtle),
-            _componentRow(context, components[i], scheme),
-          ],
+          for (var i = 0; i < components.length; i++) ...[if (i > 0) Divider(height: AppSizes.p16, color: scheme.borderSubtle), _componentRow(context, components[i], scheme)],
           Gap.h8,
-          Wrap(
-            spacing: AppSizes.p16,
-            children: [
-              _legendDot(context, scheme.success, 'Supports'),
-              _legendDot(context, scheme.warning, 'Neutral'),
-              _legendDot(context, scheme.error, 'Limits'),
-            ],
-          ),
+          Wrap(spacing: AppSizes.p16, children: [_legendDot(context, scheme.success, 'Supports'), _legendDot(context, scheme.warning, 'Neutral'), _legendDot(context, scheme.error, 'Limits')]),
         ],
 
         if (product.unscorableReason != null) ...[Gap.h12, Text(product.unscorableReason!, style: context.captionMicro)],
@@ -385,7 +356,9 @@ class _ScoresBody extends StatelessWidget {
           decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
         ),
         Gap.w12,
-        Expanded(child: Text(c.label, style: context.caption.copyWith(color: scheme.textPrimary))),
+        Expanded(
+          child: Text(c.label, style: context.caption.copyWith(color: scheme.textPrimary)),
+        ),
         Text(c.value, style: context.captionBold.copyWith(color: amountColor)),
       ],
     );
@@ -412,7 +385,10 @@ Widget _gradeChip(BuildContext context, {required String label, required Color c
     mainAxisSize: MainAxisSize.min,
     children: [
       if (icon != null) ...[Icon(icon, size: 13.sp, color: textOnColor), Gap.w4],
-      Text(label, style: context.captionBold.copyWith(color: textOnColor, fontSize: 12.sp)),
+      Text(
+        label,
+        style: context.captionBold.copyWith(color: textOnColor, fontSize: 12.sp),
+      ),
     ],
   ),
 );
@@ -528,7 +504,9 @@ class _NutritionFactsBodyState extends State<_NutritionFactsBody> {
     final scheme = context.appColorScheme;
     return Container(
       padding: EdgeInsets.symmetric(vertical: 8.0.h),
-      decoration: BoxDecoration(border: last ? null : Border(bottom: BorderSide(color: scheme.borderSubtle))),
+      decoration: BoxDecoration(
+        border: last ? null : Border(bottom: BorderSide(color: scheme.borderSubtle)),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -537,8 +515,8 @@ class _NutritionFactsBodyState extends State<_NutritionFactsBody> {
               style: emphasis
                   ? context.bodyBold.copyWith(fontWeight: FontWeight.w700)
                   : indent
-                      ? context.caption.copyWith(color: scheme.textSecondary)
-                      : context.bodyBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w600),
+                  ? context.caption.copyWith(color: scheme.textSecondary)
+                  : context.bodyBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w600),
             ),
           ),
           Text(value, style: emphasis ? context.bodyBold : context.bodySm.copyWith(color: scheme.textSecondary)),
@@ -551,8 +529,8 @@ class _NutritionFactsBodyState extends State<_NutritionFactsBody> {
 String _per100Label(OffProduct product) => product.nutrientDataPer == '100ml'
     ? '100 ml'
     : product.nutrientDataPer == 'serving'
-        ? 'serving'
-        : '100 g';
+    ? 'serving'
+    : '100 g';
 
 String _fmtGrams(num? value) {
   if (value == null) return '—';
@@ -591,14 +569,10 @@ class _IngredientsBody extends StatelessWidget {
         ),
         if (product.ingredientAnalysisVegan != null || product.ingredientAnalysisVegetarian != null || product.ingredientAnalysisPalmOilFree != null) Gap.h12,
         if (details.isNotEmpty)
-          for (var i = 0; i < details.length; i++) ...[
-            if (i > 0) Gap.h12,
-            _ingredientRow(context, details[i], allergenHints, scheme),
-          ]
+          for (var i = 0; i < details.length; i++) ...[if (i > 0) Gap.h12, _ingredientRow(context, details[i], allergenHints, scheme)]
         else if ((product.ingredientsText ?? '').isNotEmpty)
           Text(product.ingredientsText!, style: context.bodySm.copyWith(height: 1.55)),
-        if (product.imageIngredientsUrl != null && details.isEmpty && (product.ingredientsText ?? '').isEmpty)
-          Text('Ingredients listed on the packaging photo.', style: context.caption),
+        if (product.imageIngredientsUrl != null && details.isEmpty && (product.ingredientsText ?? '').isEmpty) Text('Ingredients listed on the packaging photo.', style: context.caption),
       ],
     );
   }
@@ -612,7 +586,11 @@ class _IngredientsBody extends StatelessWidget {
     };
     return Container(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p10, vertical: AppSizes.p6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppSizes.r100), border: Border.all(color: color.withAlpha(120))),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppSizes.r100),
+        border: Border.all(color: color.withAlpha(120)),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -628,9 +606,7 @@ class _IngredientsBody extends StatelessWidget {
 
   Widget _ingredientRow(BuildContext context, IngredientDetail detail, List<String> allergenHints, AppColorScheme scheme) {
     final isAllergen = allergenHints.any((a) => a.isNotEmpty && detail.text.toLowerCase().contains(a));
-    final percentText = detail.percent == null
-        ? null
-        : '${detail.percentIsEstimate ? '~' : ''}${detail.percent!.toStringAsFixed(detail.percent == detail.percent!.roundToDouble() ? 0 : 1)}%';
+    final percentText = detail.percent == null ? null : '${detail.percentIsEstimate ? '~' : ''}${detail.percent!.toStringAsFixed(detail.percent == detail.percent!.roundToDouble() ? 0 : 1)}%';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -641,16 +617,10 @@ class _IngredientsBody extends StatelessWidget {
             Expanded(
               child: Text(
                 detail.text,
-                style: context.bodySm.copyWith(
-                  fontWeight: isAllergen ? FontWeight.w800 : FontWeight.w600,
-                  color: isAllergen ? scheme.error : scheme.textPrimary,
-                ),
+                style: context.bodySm.copyWith(fontWeight: isAllergen ? FontWeight.w800 : FontWeight.w600, color: isAllergen ? scheme.error : scheme.textPrimary),
               ),
             ),
-            if (percentText != null) ...[
-              Gap.w8,
-              Text(percentText, style: context.captionBold.copyWith(color: scheme.textSecondary)),
-            ],
+            if (percentText != null) ...[Gap.w8, Text(percentText, style: context.captionBold.copyWith(color: scheme.textSecondary))],
           ],
         ),
         if (detail.subIngredients.isNotEmpty)
@@ -666,7 +636,10 @@ class _IngredientsBody extends StatelessWidget {
               children: [
                 Icon(AppIcons.alertTriangle, size: 12.sp, color: scheme.error),
                 Gap.w4,
-                Text('Allergen', style: context.captionMicro.copyWith(color: scheme.error, fontWeight: FontWeight.w700)),
+                Text(
+                  'Allergen',
+                  style: context.captionMicro.copyWith(color: scheme.error, fontWeight: FontWeight.w700),
+                ),
               ],
             ),
           ),
@@ -692,10 +665,7 @@ class _AdditivesBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < concerns.length; i++) ...[
-          if (i > 0) Gap.h12,
-          _additiveRow(context, concerns[i], scheme),
-        ],
+        for (var i = 0; i < concerns.length; i++) ...[if (i > 0) Gap.h12, _additiveRow(context, concerns[i], scheme)],
         Gap.h8,
         Text('Fewer additives usually means less ultra-processing.', style: context.captionMicro.copyWith(color: scheme.textMuted)),
       ],
@@ -717,15 +687,17 @@ class _AdditivesBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(c.displayTitle, style: context.captionBold.copyWith(color: scheme.textPrimary)),
-              if (c.name.isNotEmpty && c.name.toLowerCase() != c.displayTitle.toLowerCase())
-                Text(c.name, style: context.captionMicro, maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (c.name.isNotEmpty && c.name.toLowerCase() != c.displayTitle.toLowerCase()) Text(c.name, style: context.captionMicro, maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
         Container(
           padding: EdgeInsets.symmetric(horizontal: AppSizes.p8, vertical: 3.0.h),
           decoration: BoxDecoration(color: colors.pillBackground, borderRadius: BorderRadius.circular(AppSizes.r100)),
-          child: Text(c.level.label, style: context.captionMicro.copyWith(color: colors.accent, fontWeight: FontWeight.w700)),
+          child: Text(
+            c.level.label,
+            style: context.captionMicro.copyWith(color: colors.accent, fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );
@@ -847,7 +819,10 @@ class _LabelsBody extends StatelessWidget {
 Widget _tagChip(BuildContext context, String tag, {required Color color, required Color background}) => Container(
   padding: EdgeInsets.symmetric(horizontal: AppSizes.p10, vertical: AppSizes.p6),
   decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(AppSizes.r100)),
-  child: Text(tag, style: context.captionBold.copyWith(color: color, fontSize: 12.sp)),
+  child: Text(
+    tag,
+    style: context.captionBold.copyWith(color: color, fontSize: 12.sp),
+  ),
 );
 
 // -----------------------------------------------------------------------------
@@ -886,10 +861,7 @@ class _ServingToggle extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: EdgeInsets.symmetric(vertical: AppSizes.p8),
-          decoration: BoxDecoration(
-            color: active ? scheme.elevatedSurface : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSizes.r100),
-          ),
+          decoration: BoxDecoration(color: active ? scheme.elevatedSurface : Colors.transparent, borderRadius: BorderRadius.circular(AppSizes.r100)),
           alignment: Alignment.center,
           child: Text(
             label,

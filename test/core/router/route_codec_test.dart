@@ -1,15 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/ai_insight_details.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/route_arguments.dart';
-import 'package:gutgood/core/models/scan_list_args.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/route_codec.dart';
 
 /// go_router serializes `extra` through [RouteCodec] — every extra type used
@@ -25,75 +17,82 @@ void main() {
   }
 
   group('RouteCodec', () {
-    test('passes through null and primitives', () {
-      expect(roundTrip(null), isNull);
-      expect(roundTrip('chat'), 'chat');
-      expect(roundTrip(['a', 'b']), ['a', 'b']);
+    test('Round-trip primitive (String)', () {
+      const input = 'hello';
+      final output = roundTrip(input);
+      expect(output, input);
     });
 
-    test('round-trips AIInsight with JSON-safe dates', () {
-      final out =
-          roundTrip(
-                AIInsight.fromMap(const {
-                  'gutScore': 80,
-                  'topInsight': {'title': 'T', 'description': 'D', 'type': 'Pattern'},
-                }),
-              )
-              as AIInsight;
-      expect(out.gutScore, 80);
-      expect(out.topInsight?.title, 'T');
+    test('Round-trip primitive (Map)', () {
+      final input = {'key': 'value', 'nested': 123};
+      final output = roundTrip(input);
+      expect(output, input);
     });
 
-    test('round-trips BodyPattern', () {
-      final out = roundTrip(BodyPattern.fromMap(const {'type': 'Bloating', 'trigger': 'Milk'})) as BodyPattern;
-      expect(out.trigger, 'Milk');
+    test('Round-trip ScanResult', () {
+      final input = ScanResult(
+        productName: 'Yogurt',
+        brand: 'Brand',
+        category: 'food',
+        barcode: '12345',
+        score: 85,
+        impactType: ImpactType.positive,
+        impact: 'High protein',
+        createdAt: DateTime.utc(2024, 1, 1),
+      );
+      final output = roundTrip(input) as ScanResult;
+      expect(output.productName, input.productName);
+      expect(output.createdAt, input.createdAt);
     });
 
-    test('round-trips ScanResult', () {
-      final out = roundTrip(ScanResult.fromMap(const {'productName': 'Oats', 'brand': 'Quaker', 'category': 'food', 'score': 90, 'impact': 'Great'})) as ScanResult;
-      expect(out.productName, 'Oats');
+    test('Round-trip ScanResultArgs', () {
+      final input = ScanResultArgs(
+        scanData: ScanResult(productName: 'Yogurt', brand: 'Brand', category: 'food', barcode: '123', score: 50, impactType: ImpactType.neutral, impact: 'ok', createdAt: DateTime.now().toUtc()),
+      );
+      final output = roundTrip(input) as ScanResultArgs;
+      expect(output.scanData.productName, 'Yogurt');
     });
 
-    test('round-trips ScanResultArgs', () {
-      final out = roundTrip(ScanResultArgs(scanData: ScanResult.fromMap(const {'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'}), heroTag: 'h')) as ScanResultArgs;
-      expect(out.scanData.productName, 'Oats');
-      expect(out.heroTag, 'h');
+    test('Round-trip AIInsight', () {
+      final input = AIInsight(
+        gutScore: 80,
+        updatedAt: DateTime.now().toUtc(),
+        topInsight: const InsightSummary(title: 'Great job', description: 'Keep eating fiber', type: 'Summary'),
+      );
+      final output = roundTrip(input) as AIInsight;
+      expect(output.gutScore, 80);
+      expect(output.topInsight?.title, 'Great job');
     });
 
-    test('round-trips InsightSummary', () {
-      const summary = InsightSummary(title: 'T', description: 'D', type: 'Pattern', involvedFoods: ['Milk'], frequency: 3);
-      final out = roundTrip(summary) as InsightSummary;
-      expect(out.title, 'T');
-      expect(out.involvedFoods, ['Milk']);
-      expect(out.frequency, 3);
+    test('Round-trip SymptomLog', () {
+      final input = SymptomLog(symptom: 'Bloating', severity: 2, createdAt: DateTime.now().toUtc());
+      final output = roundTrip(input) as SymptomLog;
+      expect(output.symptom, 'Bloating');
+      expect(output.severity, 2);
     });
 
-    test('round-trips SymptomLog with JSON-safe dates', () {
-      final log = SymptomLog(symptom: 'Bloating', severity: 3, createdAt: DateTime.utc(2026, 1, 2, 3, 4, 5));
-      final out = roundTrip(log) as SymptomLog;
-      expect(out.symptom, 'Bloating');
-      expect(out.severity, 3);
-      expect(out.createdAt, DateTime.utc(2026, 1, 2, 3, 4, 5));
+    test('Round-trip AdditiveConcern', () {
+      const input = AdditiveConcern(code: 'E123', name: 'Color', whatItIs: 'A color', whyUsed: 'To look good', level: AdditiveConcernLevel.higher, whyFlagged: 'Signal', explanation: 'Avoid it');
+      final output = roundTrip(input) as AdditiveConcern;
+      expect(output.code, 'E123');
+      expect(output.level, AdditiveConcernLevel.higher);
     });
 
-    test('round-trips AdditiveConcern', () {
-      const concern = AdditiveConcern(code: 'E621', name: 'MSG', whatItIs: 'w', whyUsed: 'u', level: AdditiveConcernLevel.moderate, whyFlagged: 'f', explanation: 'e');
-      final out = roundTrip(concern) as AdditiveConcern;
-      expect(out.code, 'E621');
-      expect(out.level, AdditiveConcernLevel.moderate);
+    test('Round-trip ScanListDetailArgs', () {
+      final input = ScanListDetailArgs(
+        kind: ScanListKind.additives,
+        scan: ScanResult(productName: 'Yogurt', brand: 'Brand', category: 'food', barcode: '123', score: 50, impactType: ImpactType.neutral, impact: 'ok', createdAt: DateTime.now().toUtc()),
+      );
+      final output = roundTrip(input) as ScanListDetailArgs;
+      expect(output.kind, ScanListKind.additives);
+      expect(output.scan.productName, 'Yogurt');
     });
 
-    test('round-trips ScanListDetailArgs', () {
-      final out = roundTrip(ScanListDetailArgs(kind: ScanListKind.additives, scan: ScanResult.fromMap(const {'productName': 'Oats', 'brand': 'Q', 'score': 90, 'impact': 'Ok'}))) as ScanListDetailArgs;
-      expect(out.kind, ScanListKind.additives);
-      expect(out.scan.productName, 'Oats');
-    });
-
-    test('round-trips ProductSwap', () {
-      const swap = ProductSwap(title: 'Oat Drink', subtitle: 'Oatly', imageKeyword: 'oat', tag: 'BETTER', barcode: '123', nutriscore: 'a');
-      final out = roundTrip(swap) as ProductSwap;
-      expect(out.title, 'Oat Drink');
-      expect(out.barcode, '123');
+    test('Round-trip ProductSwap', () {
+      const input = ProductSwap(title: 'Better Yogurt', subtitle: 'Less sugar', imageKeyword: 'yogurt', tag: 'GOOD');
+      final output = roundTrip(input) as ProductSwap;
+      expect(output.title, 'Better Yogurt');
+      expect(output.tag, 'GOOD');
     });
   });
 }

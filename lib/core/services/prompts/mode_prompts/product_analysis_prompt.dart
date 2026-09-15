@@ -3,7 +3,8 @@ import 'package:gutgood/core/services/prompts/mode_prompts/prompt_formatting_rul
 class ProductAnalysisPrompt {
   ProductAnalysisPrompt._();
 
-  static const String instruction = '''
+  static const String instruction =
+      '''
 Analyze the following product data from Open Food Facts.
 
 TASK:
@@ -22,6 +23,7 @@ RULES:
 - Prefer addition/context over restriction.
 - Do NOT compute the numeric "score" field — set it to 50 as a placeholder.
 - List EVERY additive from PRODUCT DATA as separate short labels in "additiveItems" (E-codes first, e.g. "E621", else names like "Palm Oil"); [] if none.
+- Explicitly set "isOrganic": true if the product data contains "organic" or "bio" labels/tags; else false.
 - Do not diagnose allergies or intolerances.
 - Do not use fear-based language or call products "toxic".
 

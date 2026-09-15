@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/models/chat/chat_message.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/services/prompts.dart';
@@ -47,7 +47,15 @@ class AiAuthException implements Exception {
 }
 
 abstract class AiService {
-  Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String mode = 'stream', String? intent, int? promptVersion});
+  Stream<String> sendMessageStream({
+    required String systemInstruction,
+    required List<ChatMessage> history,
+    required String userText,
+    List<Uint8List>? images,
+    String mode = 'stream',
+    String? intent,
+    int? promptVersion,
+  });
 
   Future<String> generateContent({required String prompt, String? systemInstruction, Uint8List? imageBytes, String usageType, String mode = 'json', int? promptVersion});
 
@@ -56,7 +64,6 @@ abstract class AiService {
   /// P3-4: whether the most recently completed call was truncated
   /// (middle-out input cut, or a `finish_reason: length` output cut).
   bool get lastResponseTruncated;
-
 
   /// J-4 §17: proxy echo of the sent `promptVersion` (null when the caller
   /// didn't send one, or the stream broke before the meta frame).
@@ -98,7 +105,6 @@ class AiServiceImpl implements AiService {
 
   @override
   bool get lastResponseTruncated => _lastResponseTruncated;
-
 
   @override
   int? get lastPromptVersion => _lastPromptVersion;

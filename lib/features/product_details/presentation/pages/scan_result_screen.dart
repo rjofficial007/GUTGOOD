@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -44,7 +44,13 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     if (_currentData.scanId == null) return;
     try {
       final fullData = await sl<HistoryRepository>().getScanById(_currentData.scanId!);
-      if (fullData != null && mounted) setState(() => _currentData = fullData);
+      if (fullData != null && mounted) {
+        setState(() {
+          _currentData = fullData.copyWith(
+            userImageUrl: fullData.userImageUrl ?? _currentData.userImageUrl,
+          );
+        });
+      }
     } catch (e) {
       AppLogger.error('ScanResultScreen: Hydration failed', error: e);
     }

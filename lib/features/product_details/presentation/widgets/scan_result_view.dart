@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
-import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
+import 'package:gutgood/features/product_details/presentation/utils/scan_result_utils.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 
 class ScanResultView extends StatelessWidget {
@@ -11,7 +12,16 @@ class ScanResultView extends StatelessWidget {
   final bool cycleSyncEnabled;
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) {
+    final hasWorking = ScanWorkingSection.hasData(scanData);
+    final hasWatch = ScanWatchSection.hasData(scanData);
+    final hasCycle = scanData.cycleInsight != null && cycleSyncEnabled;
+    final hasSwaps = scanData.swaps.isNotEmpty;
+    final hasAdditives = scanData.additiveConcerns.isNotEmpty;
+    final hasIngredients = scanData.ingredients.isNotEmpty;
+    final hasAllergens = scanData.allergens != null && parseAllergenItems(scanData.allergens).isNotEmpty;
+
+    return Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
       child: Column(
         children: [
@@ -28,30 +38,25 @@ class ScanResultView extends StatelessWidget {
           Gap.h20,
 
           // 4. What works for you (Positives)
-          DashboardEntrance(delay: 200, child: ScanWorkingSection(scanData: scanData)),
-          Gap.h20,
+          if (hasWorking) ...[DashboardEntrance(delay: 200, child: ScanWorkingSection(scanData: scanData)), Gap.h20],
 
           // 5. What to watch (Negatives + tappable additives/allergens)
-          DashboardEntrance(delay: 250, child: ScanWatchSection(scanData: scanData)),
-          Gap.h20,
+          if (hasWatch) ...[DashboardEntrance(delay: 250, child: ScanWatchSection(scanData: scanData)), Gap.h20],
 
           // 6. Cycle Insight (Hormonal Phase Advice if Enabled)
-          if (scanData.cycleInsight != null && cycleSyncEnabled) ...[DashboardEntrance(delay: 320, child: CycleInsightSection(insight: scanData.cycleInsight!)), Gap.h20],
+          if (hasCycle) ...[DashboardEntrance(delay: 320, child: CycleInsightSection(insight: scanData.cycleInsight!)), Gap.h20],
 
           // 8. Better Swaps (tappable cards + working "+ Add")
-          if (scanData.swaps.isNotEmpty) ...[DashboardEntrance(delay: 340, child: ScanSwapsSection(swaps: scanData.swaps)), Gap.h20],
+          if (hasSwaps) ...[DashboardEntrance(delay: 340, child: ScanSwapsSection(swaps: scanData.swaps)), Gap.h20],
 
           // 9. Additives (tappable rows → additive detail)
-          DashboardEntrance(delay: 360, child: ScanAdditivesSection(scanData: scanData)),
-          Gap.h20,
+          if (hasAdditives) ...[DashboardEntrance(delay: 360, child: ScanAdditivesSection(scanData: scanData)), Gap.h20],
 
           // 10. Ingredients section (modern cards → ingredient list)
-          DashboardEntrance(delay: 380, child: ScanIngredientsSection(scanData: scanData)),
-          Gap.h20,
+          if (hasIngredients) ...[DashboardEntrance(delay: 380, child: ScanIngredientsSection(scanData: scanData)), Gap.h20],
 
           // 11. Allergens section (modern cards → allergen list)
-          DashboardEntrance(delay: 400, child: ScanAllergensSection(scanData: scanData)),
-          Gap.h20,
+          if (hasAllergens) ...[DashboardEntrance(delay: 400, child: ScanAllergensSection(scanData: scanData)), Gap.h20],
 
           // 12. Scan details (provenance footer)
           DashboardEntrance(delay: 420, child: ScanDetailsCard(scanData: scanData)),
@@ -62,4 +67,5 @@ class ScanResultView extends StatelessWidget {
         ],
       ),
     );
+  }
 }

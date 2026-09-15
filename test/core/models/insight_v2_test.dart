@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/ai_insight_details.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/insight_evidence.dart';
+import 'package:gutgood/core/models/chat/chat_message.dart';
+import 'package:gutgood/core/models/insights/ai_insight.dart';
+import 'package:gutgood/core/models/insights/ai_insight_details.dart';
+import 'package:gutgood/core/models/insights/body_pattern.dart';
+import 'package:gutgood/core/models/insights/insight_evidence.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
 import 'package:gutgood/features/insights/domain/usecases/generate_insight_usecase.dart';
 
@@ -101,9 +101,13 @@ void main() {
     });
 
     test('legacy docs default the envelope', () {
-      final legacy = AIInsight.fromMap({'gutScore': 70, 'updatedAt': DateTime.now().toIso8601String(), 'detectedPatterns': const [
-        {'type': 'bloating', 'trigger': 'Pizza', 'reaction': 'Bloating', 'frequency': 3, 'confidence': 'Medium', 'description': 'x', 'timeframeDays': 9}
-      ]});
+      final legacy = AIInsight.fromMap({
+        'gutScore': 70,
+        'updatedAt': DateTime.now().toIso8601String(),
+        'detectedPatterns': const [
+          {'type': 'bloating', 'trigger': 'Pizza', 'reaction': 'Bloating', 'frequency': 3, 'confidence': 'Medium', 'description': 'x', 'timeframeDays': 9},
+        ],
+      });
 
       expect(legacy.status, AIInsight.statusReady);
       expect(legacy.evidence, isNull);
@@ -113,12 +117,13 @@ void main() {
       expect(legacy.origin, isNull);
       expect(legacy.periodFrom, isNull);
       expect(legacy.expiresAt, isNull);
-
     });
   });
 
   group('stampInsightEnvelope', () {
-    AIInsight base() => _insight(top: const InsightSummary(title: 't', description: 'd', type: 'Pattern', nextSteps: ['Step one']));
+    AIInsight base() => _insight(
+      top: const InsightSummary(title: 't', description: 'd', type: 'Pattern', nextSteps: ['Step one']),
+    );
 
     test('ready when candidates exist with ≥ 7d span; actions come from nextSteps', () {
       final stamped = stampInsightEnvelope(

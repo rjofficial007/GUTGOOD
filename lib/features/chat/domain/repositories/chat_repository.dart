@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/models/chat/chat_message.dart';
 
 abstract class ChatRepository {
   Future<ChatMessage> saveMessage(ChatMessage message);

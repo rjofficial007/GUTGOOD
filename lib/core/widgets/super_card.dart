@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/insights/body_pattern.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/image_utils.dart';

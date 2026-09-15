@@ -57,7 +57,7 @@ class InsightStrings {
   static const String observedPatterns = 'Observed Patterns';
   static const String behavioralAnalysis = 'BEHAVIORAL ANALYSIS';
   static const String dietaryEfficiency = 'Dietary efficiency';
-  static const String weeklyHighlights = 'Weekly Highlights';
+  static const String highlights = 'Highlights';
   static const String performanceAnalysis = 'PERFORMANCE ANALYSIS';
   static const String topHealingFood = 'Top Healing Food';
   static const String responseTracking = 'Response tracking';
@@ -146,7 +146,7 @@ class InsightStrings {
   static const String bestPerformance = 'Best Performance';
   static const String logs = 'LOGS';
   static const String reportDate = 'REPORT: ';
-  static const String last7Days = 'Last 7 Days';
+  static const String last7Days = 'Last 7 days';
   static const String discovery = 'DISCOVERY';
   static const String optimizing = 'optimizing';
   static const String stable = 'STABLE';
@@ -255,6 +255,7 @@ class InsightStrings {
     final period = days == 7 ? 'week' : (days % 7 == 0 && days > 0 ? '${days ~/ 7} weeks' : '$days days');
     return '$times times in the past $period.';
   }
+
   static String scansCount(int count) => '$count scans';
   static String foodIsHelping(String food) => '$food is helping';
   static String youAteMoreThisWeek(String food) => 'You ate more $food this week';
@@ -265,7 +266,7 @@ class InsightStrings {
   // Bento Insights (v4 redesign)
   // ---------------------------------------------------------------------
   static const String bentoScoreEyebrow = 'GutGood Score';
-  static const String bentoWeeklyEyebrow = 'Weekly Average Score';
+  static const String bentoWeeklyEyebrow = 'Weekly average';
   static const String bentoFoodEyebrow = 'Food Intelligence';
   static const String bentoMappingEyebrow = 'Mapping your gut';
   static const String bentoVsLastWeek = 'vs last week';
@@ -327,13 +328,24 @@ class InsightStrings {
   static String bentoScanProgress(int done, int total) => '$done/$total scans';
   static String bentoPctMapped(int pct) => '$pct% mapped';
   static String bentoScanLeft(int n) => n == 1 ? '1 scan left' : '$n scans left';
+  static String bentoRiskPill(int n) => '$n× RISK';
+  static String bentoBasedOnEpisodes(int n) => n == 1 ? 'Based on 1 episode' : 'Based on $n episodes';
+
+  // Insight history (pattern-card redesign)
+  static const String historyMetricInsights = 'INSIGHTS';
+  static const String historyMetricBest = 'BEST';
+  static const String historyMetricAvg = 'AVG CHANGE';
+  static const String historyKindWeekly = 'Weekly insight';
+  static const String historyKindScan = 'Scan insight';
+  static const String historyKindPattern = 'Pattern update';
+  static const String historyAnalysisComplete = 'Analysis complete';
 
   // History (screen 04)
   static const String bentoScoreTrend = 'Score trend';
   static const String bentoBestDay = 'Best day';
   static const String bentoBiggestDrop = 'Biggest drop';
   static const String bentoWinRate = 'Win rate';
-  static const String bentoAiSynthesis = 'AI synthesis';
+  static const String bentoSmartInsight = 'Deep Discovery';
   static const String bentoOpenRecap = 'Open weekly recap';
   static const String bentoReadAnalysis = 'Read full analysis';
   static const String bentoSearchInsights = 'Search insights';
@@ -352,9 +364,13 @@ class InsightStrings {
   static String bentoScoreOf(int s) => 'Score $s';
   static String bentoWinsOf(int w, int total) => '$w of $total positive';
   static String bentoWinPct(int pct) => '$pct% positive days';
-  static String bentoWatchSteady(int watch, int neutral) =>
-      watch == 0 ? '$neutral steady days' : '$watch to watch \u00B7 $neutral steady';
-  static String bentoNet(int pts) => '${pts > 0 ? '+' : pts < 0 ? '\u2212' : '\u00B1'}${pts.abs()} pts overall';
+  static String bentoWatchSteady(int watch, int neutral) => watch == 0 ? '$neutral steady days' : '$watch to watch \u00B7 $neutral steady';
+  static String bentoNet(int pts) =>
+      '${pts > 0
+          ? '+'
+          : pts < 0
+          ? '\u2212'
+          : '\u00B1'}${pts.abs()} pts overall';
   static String bentoRange(String from, String to) => '$from \u2013 $to';
   static String bentoMonthHeader(DateTime d) => DateFormat('MMMM yyyy').format(d);
 }

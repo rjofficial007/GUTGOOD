@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:gutgood/core/models/daily_usage.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/usage_firestore_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';

@@ -60,33 +60,40 @@ class StorageServiceImpl implements StorageService {
     if (bytes.isEmpty) return bytes;
     try {
       final originalSize = bytes.lengthInBytes / 1024;
-      AppLogger.info('StorageService: Original image size: ${originalSize.toStringAsFixed(2)}KB');
+      AppLogger.info('StorageService: Original food image size: ${originalSize.toStringAsFixed(2)}KB');
 
-      // 🚀 Professional Compression: Target ~20KB
-      // Reducing resolution to 320px and quality to 20% to hit the 20KB target.
-      final compressedBytes = await FlutterImageCompress.compressWithList(bytes, minHeight: 320, minWidth: 320, quality: 50, format: CompressFormat.jpeg, autoCorrectionAngle: true, keepExif: false);
+      const maxBytes = 20 * 1024; // 20KB max
+      var quality = 60;
+      var compressedBytes = await FlutterImageCompress.compressWithList(
+        bytes,
+        minHeight: 320,
+        minWidth: 320,
+        quality: quality,
+        format: CompressFormat.jpeg,
+        autoCorrectionAngle: true,
+        keepExif: false,
+      );
+
+      // Walk quality down until size <= 20KB or quality reaches minimum
+      while (compressedBytes.lengthInBytes > maxBytes && quality > 15) {
+        quality -= 10;
+        compressedBytes = await FlutterImageCompress.compressWithList(
+          bytes,
+          minHeight: 320,
+          minWidth: 320,
+          quality: quality,
+          format: CompressFormat.jpeg,
+          autoCorrectionAngle: true,
+          keepExif: false,
+        );
+      }
 
       final finalSize = compressedBytes.lengthInBytes / 1024;
-      AppLogger.info('StorageService: Compressed image size: ${finalSize.toStringAsFixed(2)}KB');
+      AppLogger.info('StorageService: Compressed food image size (target max 20KB): ${finalSize.toStringAsFixed(2)}KB');
 
       return compressedBytes;
     } catch (e, st) {
-      AppLogger.error('StorageService: Compression plugin failure', error: e, stackTrace: st);
-      return bytes;
-    }
-  }
-
-  /// Storage profile: 1024px archival copy (§E). The old 320px-only upload was
-  /// visibly lossy on re-view; now Storage keeps 1024px and a Cloud Function
-  /// derives the 320px thumb into `thumbs/`.
-  Future<Uint8List> _compressForStorage(Uint8List bytes) async {
-    if (bytes.isEmpty) return bytes;
-    try {
-      final compressedBytes = await FlutterImageCompress.compressWithList(bytes, minWidth: 1024, minHeight: 1024, quality: 80, format: CompressFormat.jpeg, autoCorrectionAngle: true, keepExif: false);
-      AppLogger.info('StorageService: Storage-profile size: ${(compressedBytes.lengthInBytes / 1024).toStringAsFixed(2)}KB');
-      return compressedBytes;
-    } catch (e, st) {
-      AppLogger.error('StorageService: Storage compression failure', error: e, stackTrace: st);
+      AppLogger.error('StorageService: Compression failure', error: e, stackTrace: st);
       return bytes;
     }
   }
@@ -144,7 +151,7 @@ class StorageServiceImpl implements StorageService {
     }
 
     try {
-      final compressedBytes = await _compressForStorage(bytes);
+      final compressedBytes = await compressImage(bytes);
       // Hash AFTER compression: the stored object is the compressed bytes,
       // so the same photo always lands on the same path — retries,
       // regenerates, and re-scans never re-upload (audit §E idempotent

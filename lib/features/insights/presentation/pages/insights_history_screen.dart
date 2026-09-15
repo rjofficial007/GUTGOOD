@@ -2,18 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_theme.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_history_tile.dart';
-import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 
 /// Every past insight, newest first. Simple list view matching Scan History style.
 class InsightsHistoryScreen extends StatefulWidget {
@@ -41,17 +43,17 @@ class _InsightsHistoryScreenState extends State<InsightsHistoryScreen> {
     body: FutureBuilder<List<AIInsight>>(
       future: _future,
       builder: (context, snapshot) => RefreshIndicator(
-          onRefresh: _reload,
-          color: context.appColorScheme.textPrimary,
-          backgroundColor: context.appColorScheme.cardBackground,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-            slivers: [
-              const GutSliverAppBar(title: AppStrings.insightHistory, centerTitle: true),
-              _body(context, snapshot),
-            ],
-          ),
+        onRefresh: _reload,
+        color: context.appColorScheme.textPrimary,
+        backgroundColor: context.appColorScheme.cardBackground,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          slivers: [
+            const GutSliverAppBar(title: AppStrings.insightHistory, centerTitle: true),
+            _body(context, snapshot),
+          ],
         ),
+      ),
     ),
   );
 
@@ -65,62 +67,125 @@ class _InsightsHistoryScreenState extends State<InsightsHistoryScreen> {
     // Sort newest first
     final newestFirst = [...history]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
-    // Group by date/month for clean headers
-    final groups = <String, List<AIInsight>>{};
-    for (final insight in newestFirst) {
-      final key = _getHeaderKey(insight.updatedAt);
-      groups.putIfAbsent(key, () => []).add(insight);
-    }
+    // Ascending view powers each card's "scores up to this insight" sparkline.
+    final ascending = [...history]..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final key = groups.keys.elementAt(index);
-        final items = groups[key]!;
+    return SliverPadding(
+      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 32.w),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          if (index == 0) return _HistoryMetrics(history: history);
+          final insight = newestFirst[index - 1];
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p24, AppSizes.p16, AppSizes.p12),
-              child: Text(key, style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary)),
+          return Padding(
+            padding: EdgeInsets.only(top: index == 1 ? 16.w : 12.w),
+            child: InsightHistoryCard(
+              insight: insight,
+              series: _seriesUpTo(ascending, insight),
+              onTap: () => unawaited(context.push(AppRoutes.insightDetail, extra: insight)),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
-              child: Column(
-                children: items
-                    .map(
-                      (i) => InsightHistoryTile(
-                        insight: i,
-                        onTap: () => unawaited(context.push(AppRoutes.insightDetail, extra: i)),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ],
-        );
-      }, childCount: groups.length),
+          );
+        }, childCount: newestFirst.length + 1),
+      ),
     );
   }
 
-  String _getHeaderKey(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final entryDate = DateTime(date.year, date.month, date.day);
+  /// The ≤7 chronological scores ending at [target] — the card's sparkline.
+  static List<double> _seriesUpTo(List<AIInsight> ascending, AIInsight target) {
+    final idx = ascending.indexWhere((i) => i.updatedAt == target.updatedAt);
+    final upto = idx >= 0 ? ascending.sublist(0, idx + 1) : ascending;
+    final window = upto.length > 7 ? upto.sublist(upto.length - 7) : upto;
+    return [for (final i in window) i.gutScore.toDouble()];
+  }
+}
 
-    if (entryDate == today) {
-      return '${AppStrings.today.toUpperCase()} • ${_formatMonthDay(date)}';
-    } else if (entryDate == yesterday) {
-      return '${AppStrings.yesterday.toUpperCase()} • ${_formatMonthDay(date)}';
-    } else {
-      return _formatMonthDay(date);
-    }
+/// The redesign's summary strip: total insights, best score and the average
+/// signed change across the whole history — three quiet white metric cards.
+class _HistoryMetrics extends StatelessWidget {
+  const _HistoryMetrics({required this.history});
+  final List<AIInsight> history;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.bentoTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final deltas = [for (final i in history) BentoData.parseDelta(i.scoreDiff)].whereType<int>().toList();
+    final best = history.fold<int>(0, (m, i) => i.gutScore > m ? i.gutScore : m);
+    final avg = deltas.isEmpty ? null : (deltas.fold<int>(0, (a, b) => a + b) / deltas.length).round();
+
+    const purpleColor = Color(0xFF8B5CF6);
+    final greenColor = t.positive;
+    final avgColor = avg == null ? t.textTertiary : (avg >= 0 ? t.positive : t.negative);
+
+    final avgIcon = avg == null ? AppIcons.activity : (avg >= 0 ? AppIcons.trendingUp : AppIcons.trendingDown);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(0, 12.w, 0, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: _metricCard(t: t, isDark: isDark, icon: AppIcons.sparkles, label: AppStrings.historyMetricInsights, value: '${history.length}', color: purpleColor),
+          ),
+          Gap.w8,
+          Expanded(
+            child: _metricCard(t: t, isDark: isDark, icon: AppIcons.trophy, label: AppStrings.historyMetricBest, value: '$best', color: greenColor),
+          ),
+          Gap.w8,
+          Expanded(
+            child: _metricCard(t: t, isDark: isDark, icon: avgIcon, label: AppStrings.historyMetricAvg, value: avg == null ? '—' : '${avg > 0 ? '+' : ''}$avg', color: avgColor),
+          ),
+        ],
+      ),
+    );
   }
 
-  String _formatMonthDay(DateTime date) {
-    final months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    return '${months[date.month - 1]} ${date.day}';
+  Widget _metricCard({required InsightBentoTheme t, required bool isDark, required IconData icon, required String label, required String value, required Color color}) {
+    final bgStart = color.withValues(alpha: isDark ? 0.22 : 0.12);
+    final bgEnd = color.withValues(alpha: isDark ? 0.12 : 0.04);
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [bgStart, bgEnd]),
+        borderRadius: BorderRadius.circular(14.r),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: isDark ? 0.10 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: isDark ? 0.28 : 0.18),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 14.sp, color: color),
+          ),
+          Gap.h6,
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w900, letterSpacing: -0.4, height: 1.1, color: color),
+          ),
+          Gap.h2,
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: t.textSecondary),
+          ),
+        ],
+      ),
+    );
   }
 }
 

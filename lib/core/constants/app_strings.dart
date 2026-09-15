@@ -278,7 +278,7 @@ class AppStrings {
   static const String bentoBestDay = InsightStrings.bentoBestDay;
   static const String bentoBiggestDrop = InsightStrings.bentoBiggestDrop;
   static const String bentoWinRate = InsightStrings.bentoWinRate;
-  static const String bentoAiSynthesis = InsightStrings.bentoAiSynthesis;
+  static const String bentoSmartInsight = InsightStrings.bentoSmartInsight;
   static const String bentoOpenRecap = InsightStrings.bentoOpenRecap;
   static const String bentoReadAnalysis = InsightStrings.bentoReadAnalysis;
   static const String bentoSearchInsights = InsightStrings.bentoSearchInsights;
@@ -299,6 +299,15 @@ class AppStrings {
   static String bentoScanProgress(int done, int total) => InsightStrings.bentoScanProgress(done, total);
   static String bentoPctMapped(int pct) => InsightStrings.bentoPctMapped(pct);
   static String bentoScanLeft(int n) => InsightStrings.bentoScanLeft(n);
+  static String bentoRiskPill(int n) => InsightStrings.bentoRiskPill(n);
+  static String bentoBasedOnEpisodes(int n) => InsightStrings.bentoBasedOnEpisodes(n);
+  static const String historyMetricInsights = InsightStrings.historyMetricInsights;
+  static const String historyMetricBest = InsightStrings.historyMetricBest;
+  static const String historyMetricAvg = InsightStrings.historyMetricAvg;
+  static const String historyKindWeekly = InsightStrings.historyKindWeekly;
+  static const String historyKindScan = InsightStrings.historyKindScan;
+  static const String historyKindPattern = InsightStrings.historyKindPattern;
+  static const String historyAnalysisComplete = InsightStrings.historyAnalysisComplete;
   static String bentoEntries(int n) => InsightStrings.bentoEntries(n);
   static String bentoScoreOf(int s) => InsightStrings.bentoScoreOf(s);
   static String bentoWinsOf(int w, int total) => InsightStrings.bentoWinsOf(w, total);
@@ -574,7 +583,7 @@ class AppStrings {
   static const String observedPatterns = InsightStrings.observedPatterns;
   static const String behavioralAnalysis = InsightStrings.behavioralAnalysis;
   static const String dietaryEfficiency = InsightStrings.dietaryEfficiency;
-  static const String weeklyHighlights = InsightStrings.weeklyHighlights;
+  static const String highlights = InsightStrings.highlights;
   static const String performanceAnalysis = InsightStrings.performanceAnalysis;
   static const String topHealingFood = InsightStrings.topHealingFood;
   static const String responseTracking = InsightStrings.responseTracking;

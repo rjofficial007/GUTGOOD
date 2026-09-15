@@ -2,10 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/models/journal_entry.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';

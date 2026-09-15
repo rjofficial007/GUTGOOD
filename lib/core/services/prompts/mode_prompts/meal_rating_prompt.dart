@@ -53,6 +53,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
    - scan.brand: "GutGood".
    - scan.category: "meal".
    - scan.score: 0-100.
+   - scan.isOrganic: Explicitly set to true if the meal photo or user message clearly indicates organic ingredients/certification; else false.
    
    Also populate the "meal" object, when you recommend swaps, "swaps" must contain EXACTLY 3 items — never 1 or 2; if fewer than 3 make sense, omit the "swaps" key entirely, and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
    

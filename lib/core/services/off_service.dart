@@ -3,8 +3,8 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:dio/dio.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/off_product.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/models/scans/off_product.dart';
+import 'package:gutgood/core/models/scans/scan_result_details.dart';
 import 'package:gutgood/core/utils/barcode_validator.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -194,13 +194,7 @@ class OffServiceImpl implements OffService {
     _setUserAgentComment('scan');
     try {
       final result = await off.OpenFoodAPIClient.getProductV3(
-        off.ProductQueryConfiguration(
-          barcode,
-          version: off.ProductQueryVersion.v3,
-          language: _language,
-          country: _country,
-          fields: _productFields,
-        ),
+        off.ProductQueryConfiguration(barcode, version: off.ProductQueryVersion.v3, language: _language, country: _country, fields: _productFields),
       );
       if (result.result?.id == off.ProductResultV3.resultProductNotFound) return null;
       final product = result.product;
@@ -216,13 +210,7 @@ class OffServiceImpl implements OffService {
   static void _setUserAgentComment(String? comment) {
     final previous = off.OpenFoodAPIConfiguration.userAgent;
     if (previous == null) return;
-    off.OpenFoodAPIConfiguration.userAgent = off.UserAgent(
-      name: previous.name,
-      version: previous.version,
-      system: previous.system,
-      url: previous.url,
-      comment: comment,
-    );
+    off.OpenFoodAPIConfiguration.userAgent = off.UserAgent(name: previous.name, version: previous.version, system: previous.system, url: previous.url, comment: comment);
   }
 
   static String _stripLangPrefix(String tag) {

@@ -1,11 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
+import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 
@@ -82,6 +82,7 @@ String scanSourceLabel(ScanResult scan) {
 Future<void> logSwapToJournal(BuildContext context, ProductSwap swap) async {
   try {
     await sl<HistoryFirestoreService>().logMeal(MealLog(items: [swap.title], notes: swap.subtitle, mealType: 'snack', source: 'swap', createdAt: DateTime.now()));
+    unawaited(sl<NotificationService>().scheduleNoMealLoggedReminder());
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppStrings.swapLogged(swap.title)), behavior: SnackBarBehavior.floating));
     }

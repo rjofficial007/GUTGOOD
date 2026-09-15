@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 ///
 /// Names follow the source mock (`uploads/v4.html`, `.bento-peach` …
 /// `.bento-white`) so the Dart maps 1:1 onto the reference.
-enum BentoTone { peach, mint, coral, amber, purple, white }
+enum BentoTone { peach, mint, coral, amber, purple, white, pink }
 
 /// The six colour slots a bento card paints: a two-stop background ramp, a
 /// hairline border, the tag chip, and the footer rule/label.
@@ -33,11 +33,7 @@ class BentoPalette {
   static const Alignment begin = Alignment(-0.7, -1);
   static const Alignment end = Alignment(0.7, 1);
 
-  LinearGradient get gradient => LinearGradient(
-    begin: begin,
-    end: end,
-    colors: [gradientStart, gradientEnd],
-  );
+  LinearGradient get gradient => LinearGradient(begin: begin, end: end, colors: [gradientStart, gradientEnd]);
 
   /// Flat variant, for callers that cannot take a gradient.
   Color get flat => Color.alphaBlend(gradientEnd, gradientStart);
@@ -205,10 +201,7 @@ class InsightBentoTheme extends ThemeExtension<InsightBentoTheme> {
   );
 
   @override
-  InsightBentoTheme lerp(
-    covariant ThemeExtension<InsightBentoTheme>? other,
-    double t,
-  ) {
+  InsightBentoTheme lerp(covariant ThemeExtension<InsightBentoTheme>? other, double t) {
     if (other is! InsightBentoTheme) return this;
     Color l(Color a, Color b) => Color.lerp(a, b, t)!;
     final merged = <BentoTone, BentoPalette>{};
@@ -240,14 +233,8 @@ class InsightBentoTheme extends ThemeExtension<InsightBentoTheme> {
       orange: l(orange, other.orange),
       positive: l(positive, other.positive),
       negative: l(negative, other.negative),
-      statusBadgeBackground: l(
-        statusBadgeBackground,
-        other.statusBadgeBackground,
-      ),
-      statusBadgeForeground: l(
-        statusBadgeForeground,
-        other.statusBadgeForeground,
-      ),
+      statusBadgeBackground: l(statusBadgeBackground, other.statusBadgeBackground),
+      statusBadgeForeground: l(statusBadgeForeground, other.statusBadgeForeground),
       statusBadgeBorder: l(statusBadgeBorder, other.statusBadgeBorder),
       deltaPillBackground: l(deltaPillBackground, other.deltaPillBackground),
       deltaPillForeground: l(deltaPillForeground, other.deltaPillForeground),
@@ -356,6 +343,15 @@ class InsightBentoTheme extends ThemeExtension<InsightBentoTheme> {
       footForeground: Color(0xFF111827),
       shadowTint: Color(0xFF000000),
     ),
+    BentoTone.pink: BentoPalette(
+      gradientStart: Color(0xFFFDF2F8),
+      gradientEnd: Color(0xFFFCE7F3),
+      border: Color(0xFFFBCFE8),
+      tagBackground: Color(0xFFFCE7F3),
+      tagForeground: Color(0xFF9D174D),
+      footForeground: Color(0xFFDB2777),
+      shadowTint: Color(0xFFEC4899),
+    ),
   };
 
   // ---------------------------------------------------------------------
@@ -449,12 +445,20 @@ class InsightBentoTheme extends ThemeExtension<InsightBentoTheme> {
       footForeground: Color(0xFFF5F7FA),
       shadowTint: Color(0xFF000000),
     ),
+    BentoTone.pink: BentoPalette(
+      gradientStart: Color(0xFF4A1C36),
+      gradientEnd: Color(0xFF361124),
+      border: Color(0xFF772251),
+      tagBackground: Color(0xFF6F2049),
+      tagForeground: Color(0xFFF49AC9),
+      footForeground: Color(0xFFEC6EB6),
+      shadowTint: Color(0xFFF368B2),
+    ),
   };
 }
 
 extension InsightBentoThemeX on BuildContext {
   /// The bento tokens for the current brightness, falling back to light so a
   /// screen never hard-crashes if the extension is missing from the theme.
-  InsightBentoTheme get bentoTheme =>
-      Theme.of(this).extension<InsightBentoTheme>() ?? InsightBentoTheme.light;
+  InsightBentoTheme get bentoTheme => Theme.of(this).extension<InsightBentoTheme>() ?? InsightBentoTheme.light;
 }

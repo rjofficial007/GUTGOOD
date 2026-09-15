@@ -1,6 +1,4 @@
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/ai_insight_details.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
 
 /// Derives the bento screens' content from the existing insight models.
@@ -53,10 +51,8 @@ abstract final class BentoData {
     return '${_upper(trigger)} shows up on days you report ${_lower(reaction)}.';
   }
 
-  static String _upper(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
-  static String _lower(String s) =>
-      s.isEmpty ? s : s[0].toLowerCase() + s.substring(1);
+  static String _upper(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+  static String _lower(String s) => s.isEmpty ? s : s[0].toLowerCase() + s.substring(1);
 
   /// Groups `foodImpacts` by lowercased name (the app's existing rule) and
   /// falls back to the healing/trigger food lists, as before.
@@ -71,61 +67,74 @@ abstract final class BentoData {
         counts[key] = (counts[key] ?? 0) + 1;
         firstSeen.putIfAbsent(key, () => impact);
       }
-      final entries = counts.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-      return [
-        for (final e in entries.take(limit))
-          BentoFood(
-            name: firstSeen[e.key]!.food,
-            stat: e.value == 1 ? '1 log' : '${e.value} logs',
-            isPositive:
-                firstSeen[e.key]!.impactType.toLowerCase() != 'negative',
-            emoji: InsightPresentation.emojiForFood(firstSeen[e.key]!.food),
-            imageUrl: firstSeen[e.key]!.imageUrl,
-            count: e.value,
-          ),
-      ];
+      final entries = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+      final result = <BentoFood>[];
+      for (final e in entries.take(limit)) {
+        final impact = firstSeen[e.key];
+        if (impact != null) {
+          result.add(
+            BentoFood(
+              name: impact.food,
+              stat: e.value == 1 ? '1 log' : '${e.value} logs',
+              isPositive: impact.impactType.toLowerCase() != 'negative',
+              emoji: InsightPresentation.emojiForFood(impact.food),
+              imageUrl: impact.userImageUrl ?? impact.imageUrl,
+              count: e.value,
+            ),
+          );
+        }
+      }
+      return result;
     }
     return [
-      for (final f in data.healingFoods)
-        BentoFood(
-          name: f.name,
-          stat: f.effect,
-          isPositive: true,
-          emoji: f.emoji,
-          imageUrl: f.imageUrl,
-        ),
-      for (final f in data.triggerFoods)
-        BentoFood(
-          name: f.name,
-          stat: f.effect,
-          isPositive: false,
-          emoji: f.emoji,
-          imageUrl: f.imageUrl,
-        ),
+      for (final f in data.healingFoods) BentoFood(name: f.name, stat: f.effect, isPositive: true, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl),
+      for (final f in data.triggerFoods) BentoFood(name: f.name, stat: f.effect, isPositive: false, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl),
     ].take(limit).toList();
   }
 
   /// Count of foods the user has logged this period — the "14 LOGGED" figure.
   static int loggedFoodCount(AIInsight data) {
-    final unique = <String>{
-      for (final f in data.foodImpacts) f.food.toLowerCase().trim(),
-    }..remove('');
+    final unique = <String>{for (final f in data.foodImpacts) f.food.toLowerCase().trim()}..remove('');
     if (unique.isNotEmpty) return unique.length;
     return data.healingFoods.length + data.triggerFoods.length;
+  }
+
+  /// Chronological gut-score window (≤7 points) for the heroes' bar charts,
+  /// plus the matching weekday-initial labels.
+  ///
+  /// [until] truncates the history at a date (historical insight view) and
+  /// [ensure] is appended when the history does not already contain it, so
+  /// the chart always ends on the insight being displayed.
+  static (List<double>, List<String>) scoreWindow(Iterable<AIInsight> history, {DateTime? until, AIInsight? ensure}) {
+    var sorted = [...history]..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+    if (until != null) {
+      sorted = sorted.where((i) => !i.updatedAt.isAfter(until)).toList();
+    }
+    if (ensure != null && !sorted.any((i) => i.updatedAt == ensure.updatedAt)) {
+      sorted.add(ensure);
+    }
+    final window = sorted.length > 7 ? sorted.sublist(sorted.length - 7) : sorted;
+    const initials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    return ([for (final i in window) i.gutScore.toDouble()], [for (final i in window) initials[i.updatedAt.weekday - 1]]);
+  }
+
+  /// Gallery-faithful fallback for the heroes' bar charts: the feed and recap
+  /// heroes in GUTGOOD_SCREENS.html always chart seven bars, so below two real
+  /// history points we synthesise a gentle ramp anchored at the displayed
+  /// [score] (direction from [delta]) with weekday-initial labels ending on
+  /// [end]'s day. Same decorative-fallback precedent as the mini-chart
+  /// painters in `pattern_grid.dart`.
+  static (List<double>, List<String>) fallbackWindow(int score, {int? delta, DateTime? end}) {
+    final dir = (delta ?? 1) >= 0 ? 1 : -1;
+    final lastDay = (end ?? DateTime.now()).weekday; // 1 = Monday
+    const initials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    return ([for (var i = 6; i >= 0; i--) (score - dir * i * 2.5).clamp(0.0, 100.0)], [for (var i = 6; i >= 0; i--) initials[(lastDay - 1 - i) % 7]]);
   }
 }
 
 /// One food entry for the bento grids.
 class BentoFood {
-  const BentoFood({
-    required this.name,
-    required this.stat,
-    required this.isPositive,
-    required this.emoji,
-    this.imageUrl,
-    this.count = 1,
-  });
+  const BentoFood({required this.name, required this.stat, required this.isPositive, required this.emoji, this.imageUrl, this.count = 1});
 
   final String name;
   final String stat;

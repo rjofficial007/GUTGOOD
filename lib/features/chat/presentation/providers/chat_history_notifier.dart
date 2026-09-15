@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
-import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';

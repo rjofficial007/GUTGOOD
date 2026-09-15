@@ -55,10 +55,10 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
   },
   "healingGoal": "string",
   "healingTrend": "string (ONE sentence under 140 chars, e.g. More fiber this week settled your digestion.)",
-  "healingFoods": [{"name": "string", "effect": "string (short phrase)"}],
+  "healingFoods": [{"name": "string", "effect": "string (short phrase)", "foodScanId": "string|null", "userImageUrl": "string|null"}],
   "triggerSymptom": "string",
   "triggerTrend": "string (ONE sentence under 140 chars, e.g. Late salty dinners lined up with your bloating.)",
-  "triggerFoods": [{"name": "string", "effect": "string (short phrase)"}],
+  "triggerFoods": [{"name": "string", "effect": "string (short phrase)", "foodScanId": "string|null", "userImageUrl": "string|null"}],
   "detectedPatterns": [
     {
       "type": "bloating|energy|headache|digestion|fullness|sleep",
@@ -83,7 +83,7 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
       ]
     }
   ],
-  "foodImpacts": [{"food": "string", "dateLabel": "string", "effect": "string", "timeframeLabel": "string", "impactType": "positive|negative", "imageUrl": "ALWAYS empty string - never invent image URLs"}],
+  "foodImpacts": [{"food": "string", "dateLabel": "string", "effect": "string", "timeframeLabel": "string", "impactType": "positive|negative", "userImageUrl": "string|null", "foodScanId": "string|null"}],
   "weeklyRecap": {
     "dateRange": "string",
     "avgScore": 0,
@@ -93,8 +93,8 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
     "loggedSub": "string",
     "highlights": [{"text": "string"}]
   },
-  "topHealing": { "food": "", "effects": "short phrase", "timeframe": "this week", "frequency": "REQUIRED format Nx this week, e.g. 4x this week" },
-  "topTrigger": { "food": "", "effects": "short phrase", "timeframe": "this week", "frequency": "REQUIRED format Nx this week, e.g. 3x this week" },
+  "topHealing": { "food": "", "effects": "short phrase", "timeframe": "this week", "frequency": "REQUIRED format Nx this week, e.g. 4x this week", "foodScanId": "string|null", "userImageUrl": "string|null" },
+  "topTrigger": { "food": "", "effects": "short phrase", "timeframe": "this week", "frequency": "REQUIRED format Nx this week, e.g. 3x this week", "foodScanId": "string|null", "userImageUrl": "string|null" },
 }
 
 CRITICAL: Return ONLY the JSON object. No Markdown, no preamble.

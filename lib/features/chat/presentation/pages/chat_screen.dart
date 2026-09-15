@@ -9,8 +9,7 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/route_arguments.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -24,7 +23,6 @@ import 'package:gutgood/features/chat/presentation/providers/chat_history_notifi
 import 'package:gutgood/features/chat/presentation/widgets/chat_components.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
-import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';

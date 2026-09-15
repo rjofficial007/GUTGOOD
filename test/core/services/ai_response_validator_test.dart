@@ -1,9 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/ai_response_validator.dart';
 
 AiAnalysisResult _result({
@@ -15,27 +12,10 @@ AiAnalysisResult _result({
   MealLog? meal,
   List<SymptomLog> symptoms = const [],
   Map<String, dynamic> metadata = const {},
-}) => AiAnalysisResult(
-  text: 'hi',
-  confidence: confidence,
-  schemaVersion: schemaVersion,
-  verdict: verdict,
-  intent: intent,
-  scan: scan,
-  meal: meal,
-  symptoms: symptoms,
-  metadata: metadata,
-);
+}) => AiAnalysisResult(text: 'hi', confidence: confidence, schemaVersion: schemaVersion, verdict: verdict, intent: intent, scan: scan, meal: meal, symptoms: symptoms, metadata: metadata);
 
-ScanResult _scan({String? userImageUrl}) => ScanResult(
-  productName: 'Test Cola',
-  brand: 'Test',
-  score: 50,
-  impactType: ImpactType.neutral,
-  impact: 'meh',
-  createdAt: DateTime.now(),
-  userImageUrl: userImageUrl,
-);
+ScanResult _scan({String? userImageUrl}) =>
+    ScanResult(productName: 'Test Cola', brand: 'Test', score: 50, impactType: ImpactType.neutral, impact: 'meh', createdAt: DateTime.now(), userImageUrl: userImageUrl);
 
 MealLog _meal() => MealLog(items: const ['Pizza'], createdAt: DateTime.now());
 
@@ -113,11 +93,7 @@ void main() {
     });
 
     test('out-of-range severity/energy are voided but the symptom persists', () {
-      final out = AiResponseValidator.validate(
-        _result(
-          symptoms: [_symptom(severity: 99, energyLevel: 0)],
-        ),
-      );
+      final out = AiResponseValidator.validate(_result(symptoms: [_symptom(severity: 99, energyLevel: 0)]));
 
       expect(out.persistRecords, isTrue, reason: 'Bad numbers sanitize; they do not block the record.');
       expect(out.result.symptoms, hasLength(1));
@@ -127,11 +103,7 @@ void main() {
     });
 
     test('in-range numbers (incl. boundaries 1/10) pass through untouched', () {
-      final out = AiResponseValidator.validate(
-        _result(
-          symptoms: [_symptom(severity: 1, energyLevel: 10), _symptom(severity: 7, energyLevel: 4)],
-        ),
-      );
+      final out = AiResponseValidator.validate(_result(symptoms: [_symptom(severity: 1, energyLevel: 10), _symptom(severity: 7, energyLevel: 4)]));
 
       expect(out.persistRecords, isTrue);
       expect(out.reasons, isEmpty);
@@ -171,7 +143,12 @@ void main() {
         final invented = AiResponseValidator.validate(_result(intent: intent, scan: _scan()));
         expect(invented.persistRecords, isFalse, reason: '$intent invented scan');
 
-        final photo = AiResponseValidator.validate(_result(intent: intent, scan: _scan(userImageUrl: 'https://x/p.jpg')));
+        final photo = AiResponseValidator.validate(
+          _result(
+            intent: intent,
+            scan: _scan(userImageUrl: 'https://x/p.jpg'),
+          ),
+        );
         expect(photo.persistRecords, isTrue, reason: '$intent photo scan');
       }
     });

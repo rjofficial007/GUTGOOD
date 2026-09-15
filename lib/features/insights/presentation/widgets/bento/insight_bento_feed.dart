@@ -1,27 +1,36 @@
 import 'dart:math' as math;
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/core/widgets/gut_score_card.dart';
+import 'package:gutgood/features/insights/presentation/widgets/arc_pattern_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart';
-import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/pattern_style.dart';
 
 /// Screen 01 — the bento Insights feed.
 ///
 /// Replaces `InsightDiscoverSliver` as the Insights tab body. Same data in
 /// (`AIInsight` + prioritized `BodyPattern`s), v4 bento presentation out.
 class InsightBentoFeed extends StatelessWidget {
-  const InsightBentoFeed({super.key, required this.data, required this.patterns});
+  const InsightBentoFeed({super.key, required this.data, required this.patterns, this.series = const [], this.seriesLabels = const []});
 
   final AIInsight data;
   final List<BodyPattern> patterns;
+
+  /// Chronological gut-score window (≤7 points) feeding the hero's bar chart.
+  /// Empty or single-point series fall back to the gradient score track.
+  final List<double> series;
+  final List<String> seriesLabels;
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +42,37 @@ class InsightBentoFeed extends StatelessWidget {
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
       sliver: SliverList(
-        delegate: SliverChildListDelegate([_ScoreHero(score: score, delta: delta), Gap.h14, BentoGrid(children: _tiles(context, t, foods))]),
+        delegate: SliverChildListDelegate([
+          GutScoreCard(
+            score: score,
+            delta: delta,
+            series: series,
+            labels: seriesLabels,
+            onTap: () => context.push(AppRoutes.weeklyRecap, extra: data),
+          ),
+          Gap.h14,
+          BentoGrid(children: _tiles(context, t, foods)),
+        ]),
       ),
     );
   }
 
   List<BentoTile> _tiles(BuildContext context, InsightBentoTheme t, List<BentoFood> foods) {
     final tiles = <BentoTile>[];
+
+    // 0. Smart Insight Card
+    if (data.topInsight != null) {
+      final top = data.topInsight!;
+      tiles.add(
+        BentoTile(
+          spanTwo: true,
+          DeepDiscoveryCard(
+            insight: top,
+            onTap: () => context.push(AppRoutes.smartInsightDetail, extra: top),
+          ),
+        ),
+      );
+    }
 
     // 1. Patterns Grid
     if (patterns.isNotEmpty) {
@@ -50,38 +83,8 @@ class InsightBentoFeed extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      AppStrings.observedPatterns,
-                      style: TextStyle(
-                        fontFamily: InsightBentoTheme.fontFamily,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w700,
-                        color: t.textPrimary,
-                      ),
-                    ),
-                    if (patterns.length > 4)
-                      GestureDetector(
-                        onTap: () => context.push(AppRoutes.patterns),
-                        child: Text(
-                          AppStrings.bentoSeeAll,
-                          style: TextStyle(
-                            fontFamily: InsightBentoTheme.fontFamily,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                            color: t.positive,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              PatternGrid(patterns: visiblePatterns),
-              if (patterns.length <= 4) Gap.h12,
+              PatternCarouselWidget(patterns: visiblePatterns),
+              Gap.h12,
             ],
           ),
         ),
@@ -95,13 +98,8 @@ class InsightBentoFeed extends StatelessWidget {
         Padding(
           padding: EdgeInsets.fromLTRB(4.w, 12.w, 4.w, 4.w),
           child: Text(
-            AppStrings.weeklyHighlights,
-            style: TextStyle(
-              fontFamily: InsightBentoTheme.fontFamily,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
-            ),
+            AppStrings.highlights,
+            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w700, color: t.textPrimary),
           ),
         ),
       ),
@@ -115,14 +113,30 @@ class InsightBentoFeed extends StatelessWidget {
           InsightHighlightCard(
             tag: AppStrings.bentoImproving,
             emoji: healing.emoji,
+            imageUrl: healing.imageUrl,
+            userImageUrl: healing.userImageUrl,
             title: healing.food,
-            body: healing.effects,
-            badge: data.healingTrend,
+            body: (data.healingTrend ?? '').isNotEmpty ? data.healingTrend! : healing.effects,
+            bigTitle: true,
             footLeft: AppStrings.bentoSeeAll,
             accentColor: const Color(0xFF14A38F),
             backgroundColor: const Color(0xFFE9F6F3),
             chartPainter: HealingSparklinePainter(color: const Color(0xFF14A38F)),
-            onTap: () => context.push(AppRoutes.insightDetail, extra: data),
+            onTap: () => context.push(
+              AppRoutes.highlightDetail,
+              extra: HighlightDetailArgs(
+                tag: AppStrings.bentoImproving,
+                emoji: healing.emoji,
+                imageUrl: healing.imageUrl,
+                userImageUrl: healing.userImageUrl,
+                title: healing.food,
+                body: (data.healingTrend ?? '').isNotEmpty ? data.healingTrend! : healing.effects,
+                accentColor: 0xFF14A38F,
+                backgroundColor: 0xFFE9F6F3,
+                chartType: 'healing',
+                footLeft: AppStrings.bentoSeeAll,
+              ),
+            ),
             actionIcon: AppIcons.chevronRight,
           ),
         ),
@@ -137,14 +151,30 @@ class InsightBentoFeed extends StatelessWidget {
           InsightHighlightCard(
             tag: AppStrings.bentoToWatch,
             emoji: trigger.emoji,
+            imageUrl: trigger.imageUrl,
+            userImageUrl: trigger.userImageUrl,
             title: trigger.food,
-            body: trigger.effects,
-            badge: data.triggerTrend,
+            body: (data.triggerTrend ?? '').isNotEmpty ? data.triggerTrend! : trigger.effects,
+            bigTitle: true,
             footLeft: trigger.timeframe,
             accentColor: const Color(0xFFF08019),
             backgroundColor: const Color(0xFFFDF1E7),
             chartPainter: TriggerSpikePainter(color: const Color(0xFFF08019)),
-            onTap: () => context.push(AppRoutes.insightDetail, extra: data),
+            onTap: () => context.push(
+              AppRoutes.highlightDetail,
+              extra: HighlightDetailArgs(
+                tag: AppStrings.bentoToWatch,
+                emoji: trigger.emoji,
+                imageUrl: trigger.imageUrl,
+                userImageUrl: trigger.userImageUrl,
+                title: trigger.food,
+                body: (data.triggerTrend ?? '').isNotEmpty ? data.triggerTrend! : trigger.effects,
+                accentColor: 0xFFF08019,
+                backgroundColor: 0xFFFDF1E7,
+                chartType: 'trigger',
+                footLeft: trigger.timeframe,
+              ),
+            ),
             actionIcon: AppIcons.chevronRight,
           ),
         ),
@@ -159,14 +189,30 @@ class InsightBentoFeed extends StatelessWidget {
           InsightHighlightCard(
             tag: AppStrings.bentoWorking,
             emoji: second.emoji,
+            imageUrl: second.imageUrl,
+            userImageUrl: second.userImageUrl,
             title: second.name,
             body: second.effect,
-            badge: 'Active',
+            bigTitle: true,
             footLeft: AppStrings.bentoSeeAll,
             accentColor: const Color(0xFFEFB008),
             backgroundColor: const Color(0xFFFDF6E2),
             chartPainter: WorkingBarsPainter(color: const Color(0xFFEFB008)),
-            onTap: () => context.push(AppRoutes.insightDetail, extra: data),
+            onTap: () => context.push(
+              AppRoutes.highlightDetail,
+              extra: HighlightDetailArgs(
+                tag: AppStrings.bentoWorking,
+                emoji: second.emoji,
+                imageUrl: second.imageUrl,
+                userImageUrl: second.userImageUrl,
+                title: second.name,
+                body: second.effect,
+                accentColor: 0xFFEFB008,
+                backgroundColor: 0xFFFDF6E2,
+                chartType: 'working',
+                footLeft: AppStrings.bentoSeeAll,
+              ),
+            ),
             actionIcon: AppIcons.chevronRight,
           ),
         ),
@@ -183,12 +229,24 @@ class InsightBentoFeed extends StatelessWidget {
             emoji: '💡',
             title: curiosity.$1,
             body: curiosity.$2,
-            badge: 'Explore',
+            bigTitle: true,
             footLeft: AppStrings.bentoLogToSolve,
             accentColor: const Color(0xFF8B5CF6),
             backgroundColor: const Color(0xFFF5EEFC),
             chartPainter: CuriosityPulsePainter(color: const Color(0xFF8B5CF6)),
-            onTap: () => context.push(AppRoutes.insightHistory),
+            onTap: () => context.push(
+              AppRoutes.highlightDetail,
+              extra: HighlightDetailArgs(
+                tag: AppStrings.bentoInvestigating,
+                emoji: '💡',
+                title: curiosity.$1,
+                body: curiosity.$2,
+                accentColor: 0xFF8B5CF6,
+                backgroundColor: 0xFFF5EEFC,
+                chartType: 'curiosity',
+                footLeft: AppStrings.bentoLogToSolve,
+              ),
+            ),
             actionIcon: AppIcons.plus,
           ),
         ),
@@ -197,19 +255,24 @@ class InsightBentoFeed extends StatelessWidget {
 
     // 6. Top Foods (Full Width Summary)
     if (foods.isNotEmpty) {
+      final boosters = foods.where((f) => f.isPositive).length;
       tiles.add(
         BentoTile(
           spanTwo: true,
-          BentoCard(
-            tone: BentoTone.white,
-            spanTwo: true,
-            tag: AppStrings.bentoTopFoods,
-            tagIcon: '🥗',
-            badge: AppStrings.bentoSeeCount(BentoData.loggedFoodCount(data)),
-            title: '',
-            extra: MiniFoodGrid(
+          PatternHeroCard(
+            accent: const Color(0xFF10B981),
+            tone: const Color(0xFFECFDF5),
+            icon: AppIcons.salad,
+            title: AppStrings.bentoTopFoods,
+            sub: AppStrings.last7Days,
+            value: '$boosters',
+            valueSuffix: '/ ${foods.length}',
+            pill: AppStrings.bentoGutBoosters,
+            chart: SlotSegs(filled: boosters, total: foods.length, color: const Color(0xFF10B981), height: 18),
+            bottomWidget: MiniFoodGrid(
               tiles: [for (final f in foods) FoodTile(name: f.name, stat: f.stat, emoji: f.emoji, imageUrl: f.imageUrl, statColor: f.isPositive ? t.positive : t.negative)],
             ),
+            footLeft: 'Analyze your unique body-food synergy',
             onTap: () => context.push(AppRoutes.foodIntelligence, extra: data),
           ),
         ),
@@ -233,32 +296,6 @@ class InsightBentoFeed extends StatelessWidget {
   }
 }
 
-class _ScoreHero extends StatelessWidget {
-  const _ScoreHero({required this.score, required this.delta});
-  final int score;
-  final int? delta;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.bentoTheme;
-    final d = delta;
-    final positive = d != null && d > 0;
-    return ScoreHeroCard(
-      eyebrow: AppStrings.bentoScoreEyebrow,
-      value: '$score',
-      statusBadge: BentoData.statusForScore(score, delta: d),
-      dotColor: t.mint,
-      delta: d == null ? null : BentoData.deltaLabel('${d > 0 ? '+' : '-'}${d.abs()}'),
-      deltaSub: AppStrings.bentoVsLastWeek,
-      deltaForeground: positive ? t.positive : t.negative,
-      deltaBackground: positive ? t.deltaPillBackground : t.negative.withValues(alpha: 0.12),
-      trackProgress: score / 100,
-      footLeft: '${AppStrings.bentoPositiveDays}: $score%',
-      footRight: '${AppStrings.bentoPeak}: $score',
-    );
-  }
-}
-
 /// Screen 02 — the "learning grid" shown before enough evidence exists.
 ///
 /// Replaces `_NoInsightsState`. Keeps the same unlock rule the app already
@@ -271,87 +308,90 @@ class InsightBentoLearning extends StatelessWidget {
   final int symptoms;
   final int scans;
 
+  static const Color _orange = Color(0xFFEA580C);
+  static const Color _orangeDeep = Color(0xFFC2410C);
+  static const Color _orangeTone = Color(0xFFFFF7ED);
+  static const Color _purple = Color(0xFF8B5CF6);
+  static const Color _purpleTone = Color(0xFFF5EEFC);
+  static const Color _mint = Color(0xFF10B981);
+  static const Color _mintTone = Color(0xFFECFDF5);
+  static const Color _coral = Color(0xFFE11D48);
+  static const Color _coralTone = Color(0xFFFFF1F2);
+
   @override
   Widget build(BuildContext context) {
-    final t = context.bentoTheme;
     const scanGoal = 3;
     const mealGoal = 3;
-    final mapped = (scans.clamp(0, scanGoal) + meals.clamp(0, mealGoal)) / (scanGoal + mealGoal);
+    final logs = meals.clamp(0, mealGoal);
+    final hub = scans.clamp(0, scanGoal);
+    final mapped = (hub + logs) / (scanGoal + mealGoal);
     final pct = (mapped * 100).round().clamp(0, 99);
     final remaining = (scanGoal - scans).clamp(0, scanGoal);
-    final peach = t.bento(BentoTone.peach);
-    final coral = t.bento(BentoTone.coral);
+    final t = context.bentoTheme;
 
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
-          ScoreHeroCard(
-            eyebrow: AppStrings.bentoMappingEyebrow,
+          // The same hero anatomy as the feed, in its orange "mapping"
+          // identity: sparkles tile, `--` figure, %-mapped pill, and the six
+          // unlock slots (3 logs + 3 scans) instead of the score bars.
+          PatternHeroCard(
+            accent: _orange,
+            deep: _orangeDeep,
+            tone: _orangeTone,
+            icon: AppIcons.sparkles,
+            title: AppStrings.bentoMappingEyebrow,
+            sub: AppStrings.bentoScanToUnlock,
             value: '--',
             valueColor: t.orange,
-            dotColor: t.orange,
-            statusBadge: AppStrings.bentoPctMapped(pct),
-            statusBackground: peach.tagBackground,
-            statusForeground: peach.tagForeground,
-            statusBorder: peach.border,
-            delta: AppStrings.bentoScanLeft(remaining == 0 ? 1 : remaining),
-            deltaSub: AppStrings.bentoScanToUnlock,
-            deltaBackground: peach.tagBackground,
-            deltaForeground: peach.tagForeground,
-            trackProgress: pct / 100,
-            trackGradient: [t.scoreTrackStart, t.scoreTrackMid],
-            gradientBackground: LinearGradient(begin: BentoPalette.begin, end: BentoPalette.end, colors: [t.cardBackground, peach.gradientStart]),
-            borderOverride: peach.border,
-            footLeft: '${AppStrings.logs} $meals/$mealGoal · ${AppStrings.aiScanHistory} $scans/$scanGoal',
-            footRight: AppStrings.bentoScoreEyebrow,
-            footRightColor: t.orange,
+            pill: AppStrings.bentoPctMapped(pct),
+            chip: AppStrings.bentoScanLeft(remaining == 0 ? 1 : remaining),
+            chipForeground: t.orange,
+            chipBorder: _orange.withValues(alpha: 0.3),
+            chart: SlotSegs(filled: logs + hub, total: scanGoal + mealGoal, color: _orange, height: 18),
+            footLeft: '${AppStrings.logs} $logs/$mealGoal · ${AppStrings.aiScanHistory} $hub/$scanGoal',
+            showChevron: false,
           ),
           Gap.h14,
-          BentoGrid(
+          Column(
             children: [
-              const BentoTile(
-                spanTwo: true,
-                BentoCard(
-                  tone: BentoTone.peach,
-                  spanTwo: true,
-                  tag: AppStrings.bentoUnlockPatterns,
-                  tagIcon: '🔒',
-                  title: AppStrings.bentoScanDinnerToUnlock,
-                  body: AppStrings.understandBodyImpact,
-                  // extra: BentoCta(
-                  //   label: AppStrings.startScanningProducts,
-                  //   onTap: () => context.go(
-                  //     AppRoutes.scannerPath(ScannerMode.food.name),
-                  //   ),
-                  // ),
-                ),
+              InsightHighlightCard(
+                accentColor: _purple,
+                backgroundColor: _purpleTone,
+                icon: AppIcons.lock,
+                tag: AppStrings.bentoUnlockPatterns,
+                meta: '$hub/$scanGoal',
+                title: AppStrings.bentoScanDinnerToUnlock,
+                body: AppStrings.understandBodyImpact,
+                chart: SlotSegs(filled: hub, total: scanGoal, color: _purple, height: 30),
+                footLeft: AppStrings.bentoScanToUnlock,
               ),
-              if (meals > 0)
-                BentoTile(
-                  BentoCard(
-                    tone: BentoTone.mint,
-                    tag: '${AppStrings.bentoHypothesis} 1',
-                    emphasis: BentoEmphasis(text: '${((meals / mealGoal) * 100).round().clamp(0, 100)}%', color: t.positive),
-                    title: AppStrings.bentoPositiveDays,
-                    body: AppStrings.keepLoggingForHighlights,
-                  ),
+              Gap.h14,
+              if (meals > 0) ...[
+                InsightHighlightCard(
+                  accentColor: _mint,
+                  backgroundColor: _mintTone,
+                  icon: AppIcons.trendingUp,
+                  tag: '${AppStrings.bentoHypothesis} 1',
+                  meta: '${((meals / mealGoal) * 100).round().clamp(0, 100)}%',
+                  title: AppStrings.bentoPositiveDays,
+                  body: AppStrings.keepLoggingForHighlights,
+                  chartPainter: HealingSparklinePainter(color: _mint),
+                  footLeft: '${AppStrings.logs} $logs/$mealGoal',
                 ),
-              BentoTile(
-                BentoCard(
-                  tone: BentoTone.coral,
-                  tag: '${AppStrings.bentoHypothesis} 2',
-                  emphasis: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.w),
-                    decoration: BoxDecoration(color: coral.tagBackground, borderRadius: BorderRadius.circular(6.w)),
-                    child: Text(
-                      AppStrings.bentoLocked.toUpperCase(),
-                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: coral.tagForeground),
-                    ),
-                  ),
-                  title: AppStrings.symptoms,
-                  body: '$symptoms/1 ${AppStrings.bentoLogged}',
-                ),
+                Gap.h14,
+              ],
+              InsightHighlightCard(
+                accentColor: _coral,
+                backgroundColor: _coralTone,
+                icon: AppIcons.lock,
+                tag: '${AppStrings.bentoHypothesis} 2',
+                meta: AppStrings.bentoLocked,
+                metaChip: true,
+                title: AppStrings.symptoms,
+                body: '$symptoms/1 ${AppStrings.bentoLogged}',
+                footLeft: AppStrings.keepLoggingForHighlights,
               ),
             ],
           ),
@@ -361,51 +401,186 @@ class InsightBentoLearning extends StatelessWidget {
   }
 }
 
+/// A dedicated Smart Insight / Deep Discovery hero card matching the referral banner style:
+/// rich purple gradient background, white headline, bottom-left pill CTA button,
+/// and [AppAssets.deepDiscovery] illustration aligned on the right side.
+class DeepDiscoveryCard extends StatelessWidget {
+  const DeepDiscoveryCard({super.key, required this.insight, this.onTap, this.assetImage = AppAssets.mascotDiscovery, this.gradientColors = const [Color(0xFF7C66EE), Color(0xFF6352DD)]});
+
+  final InsightSummary insight;
+  final VoidCallback? onTap;
+  final String assetImage;
+  final List<Color> gradientColors;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = 20.w;
+
+    return Semantics(
+      button: onTap != null,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap ?? () => context.push(AppRoutes.smartInsightDetail, extra: insight),
+          borderRadius: BorderRadius.circular(radius),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              gradient: LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: gradientColors),
+              boxShadow: PatternSurface.shadow(context),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(radius),
+              child: Stack(
+                children: [
+                  // Right Side Hero Illustration
+                  Positioned(
+                    top: 0,
+                    bottom: 0,
+                    right: 0,
+                    child: SizedBox(
+                      width: 130.w,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Image.asset(assetImage, fit: BoxFit.contain, alignment: Alignment.centerRight, errorBuilder: (_, _, _) => const SizedBox.shrink()),
+                      ),
+                    ),
+                  ),
+
+                  // Left Side Content Column
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(18.w, 16.w, 130.w, 16.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Subtitle / Eyebrow Text
+                        Text(
+                          AppStrings.bentoSmartInsight,
+                          style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.85), letterSpacing: 0.2),
+                        ),
+
+                        Gap.h6,
+
+                        // Main Bold White Headline
+                        Text(
+                          insight.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 17.sp, fontWeight: FontWeight.w800, height: 1.20, letterSpacing: -0.4, color: Colors.white),
+                        ),
+
+                        Gap.h14,
+
+                        // Bottom Left Pill CTA Button
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.w),
+                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(100)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                AppStrings.bentoReadAnalysis,
+                                style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The PatternCard-language content card: tone wash, 32px accent tile
+/// (emoji or Lucide icon), w800 name with an accent meta on the right,
+/// a title + muted paragraph, a chart slot, and the dot footer.
 class InsightHighlightCard extends StatelessWidget {
   const InsightHighlightCard({
     super.key,
     required this.tag,
-    required this.emoji,
+    this.emoji,
+    this.icon,
+    this.imageUrl,
+    this.userImageUrl,
+    this.assetImage,
     required this.title,
-    required this.body,
-    this.badge,
+    this.body,
+    this.meta,
+    this.metaChip = false,
+    this.bigTitle = false,
     this.footLeft,
     required this.accentColor,
     required this.backgroundColor,
-    required this.chartPainter,
-    required this.onTap,
+    this.chartPainter,
+    this.chart,
+    this.onTap,
     this.actionIcon = AppIcons.chevronRight,
   });
 
+  /// Head-row card name ("To watch", "Top win", "Driver 1"…).
   final String tag;
-  final String emoji;
+
+  /// Tile content: either an emoji, Lucide icon, or asset image.
+  final String? emoji;
+  final IconData? icon;
+  final String? imageUrl;
+  final String? userImageUrl;
+  final String? assetImage;
+
   final String title;
-  final String body;
-  final String? badge;
+
+  /// Muted paragraph under the title.
+  final String? body;
+
+  /// Right-aligned accent meta in the head row ("+18%", "5 of 7 days").
+  /// Renders as a small chip when [metaChip] is set ("LOCKED").
+  final String? meta;
+  final bool metaChip;
+
+  /// Feed-scale title: 15px w700 on a single line (the gallery feed cards).
+  /// The default is the recap-scale 13.5px w800 over two lines.
+  final bool bigTitle;
+
   final String? footLeft;
   final Color accentColor;
   final Color backgroundColor;
-  final CustomPainter chartPainter;
-  final VoidCallback onTap;
-  final IconData actionIcon;
+
+  /// Chart slot: a prebuilt [chart] widget wins over [chartPainter].
+  final CustomPainter? chartPainter;
+  final Widget? chart;
+
+  final VoidCallback? onTap;
+
+  /// Trailing footer action; only rendered when [onTap] is set.
+  final IconData? actionIcon;
 
   @override
   Widget build(BuildContext context) {
+    final chartSlot =
+        chart ??
+        (chartPainter == null
+            ? null
+            : SizedBox(
+                height: 38.w,
+                width: double.infinity,
+                child: CustomPaint(size: Size.infinite, painter: chartPainter!),
+              ));
+    final tappable = onTap != null;
+    final displayImg = userImageUrl ?? imageUrl;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.all(12.w),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(18.w),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF5A4678).withValues(alpha: 0.07),
-              blurRadius: 20.w,
-              offset: Offset(0, 8.w),
-            ),
-          ],
-        ),
+        decoration: BoxDecoration(color: PatternSurface.tone(context, accentColor, backgroundColor), borderRadius: BorderRadius.circular(18.w), boxShadow: PatternSurface.shadow(context)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -414,15 +589,32 @@ class InsightHighlightCard extends StatelessWidget {
                 Container(
                   width: 32.w,
                   height: 32.w,
-                  decoration: BoxDecoration(
-                    color: accentColor,
+                  decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(10.w)),
+                  child: ClipRRect(
                     borderRadius: BorderRadius.circular(10.w),
-                  ),
-                  child: Center(
-                    child: Text(
-                      emoji,
-                      style: TextStyle(fontSize: 16.sp, height: 1),
-                    ),
+                    child: (assetImage != null && assetImage!.isNotEmpty)
+                        ? Image.asset(
+                            assetImage!,
+                            width: 32.w,
+                            height: 32.w,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Center(
+                              child: emoji != null ? Text(emoji!, style: TextStyle(fontSize: 16.sp, height: 1)) : Icon(icon ?? AppIcons.sparkles, size: 16.w, color: Colors.white),
+                            ),
+                          )
+                        : (displayImg != null && displayImg.isNotEmpty)
+                        ? CachedNetworkImage(
+                            imageUrl: displayImg,
+                            width: 32.w,
+                            height: 32.w,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => Center(
+                              child: emoji != null ? Text(emoji!, style: TextStyle(fontSize: 16.sp, height: 1)) : Icon(icon ?? AppIcons.sparkles, size: 16.w, color: Colors.white),
+                            ),
+                          )
+                        : Center(
+                            child: emoji != null ? Text(emoji!, style: TextStyle(fontSize: 16.sp, height: 1)) : Icon(icon ?? AppIcons.sparkles, size: 16.w, color: Colors.white),
+                          ),
                   ),
                 ),
                 Gap.w8,
@@ -431,58 +623,54 @@ class InsightHighlightCard extends StatelessWidget {
                     tag,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: InsightBentoTheme.fontFamily,
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF181A2C),
-                    ),
+                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: PatternSurface.ink(context)),
                   ),
                 ),
-                // if (badge != null)
-                //   Text(
-                //     badge!,
-                //     style: TextStyle(
-                //       fontFamily: InsightBentoTheme.fontFamily,
-                //       fontSize: 11.sp,
-                //       fontWeight: FontWeight.w700,
-                //       color: accentColor,
-                //     ),
-                //   ),
+                if (meta != null) ...[
+                  Gap.w6,
+                  if (metaChip)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.5.w),
+                      decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6.w)),
+                      child: Text(
+                        meta!.toUpperCase(),
+                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: accentColor),
+                      ),
+                    )
+                  else
+                    Text(
+                      meta!,
+                      maxLines: 1,
+                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: accentColor),
+                    ),
+                ],
               ],
             ),
             Gap.h10,
             Text(
               title,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: InsightBentoTheme.fontFamily,
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF181A2C),
+                fontSize: bigTitle ? 15.sp : 13.5.sp,
+                fontWeight: bigTitle ? FontWeight.w700 : FontWeight.w800,
+                height: bigTitle ? 1.2 : 1.3,
+                letterSpacing: -0.2,
+                color: PatternSurface.ink(context),
               ),
             ),
-            Gap.h4,
-            Text(
-              badge!,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: InsightBentoTheme.fontFamily,
-                fontSize: 11.5.sp,
-                color: const Color(0xFF5C6070),
-                height: 1.4,
+            if ((body ?? '').isNotEmpty) ...[
+              Gap.h4,
+              Text(
+                body!,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, color: PatternSurface.muted(context), height: 1.4),
               ),
-            ),
+            ],
             Gap.h10,
-            SizedBox(
-              height: 38.w,
-              child: CustomPaint(
-                size: Size.infinite,
-                painter: chartPainter,
-              ),
-            ),
+            if (chartSlot != null) ...[chartSlot, Gap.h10],
             Gap.h10,
             Row(
               children: [
@@ -494,18 +682,13 @@ class InsightHighlightCard extends StatelessWidget {
                 Gap.w6,
                 Expanded(
                   child: Text(
-                    footLeft ?? AppStrings.bentoSeeAll,
+                    footLeft ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: InsightBentoTheme.fontFamily,
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF33364A),
-                    ),
+                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w600, color: PatternSurface.foot(context)),
                   ),
                 ),
-                Icon(actionIcon, size: 15, color: accentColor),
+                if (tappable && actionIcon != null) Icon(actionIcon, size: 15, color: accentColor),
               ],
             ),
           ],
@@ -516,13 +699,17 @@ class InsightHighlightCard extends StatelessWidget {
 }
 
 class HealingSparklinePainter extends CustomPainter {
-  HealingSparklinePainter({required this.color});
+  HealingSparklinePainter({required this.color, this.values = const []});
   final Color color;
+
+  /// Real series data (e.g. per-day progress). Empty falls back to decorative curve.
+  final List<double> values;
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
+    if (w <= 0 || h <= 0) return;
 
     final linePaint = Paint()
       ..color = color
@@ -532,11 +719,43 @@ class HealingSparklinePainter extends CustomPainter {
 
     final fillPaint = Paint()
       ..style = PaintingStyle.fill
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.0)],
-      ).createShader(Rect.fromLTWH(0, 0, w, h));
+      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.0)]).createShader(Rect.fromLTWH(0, 0, w, h));
+
+    if (values.length >= 2) {
+      final data = values.length > 7 ? values.sublist(values.length - 7) : values;
+      final maxV = data.reduce(math.max);
+      final minV = data.reduce(math.min);
+      final range = maxV - minV;
+
+      Offset at(int i) {
+        final x = w * i / (data.length - 1);
+        final t = range <= 0 ? 0.5 : (data[i] - minV) / range;
+        return Offset(x, h * 0.85 - t * (h * 0.7));
+      }
+
+      final path = Path();
+      final points = [for (var i = 0; i < data.length; i++) at(i)];
+      path.moveTo(points.first.dx, points.first.dy);
+
+      for (var i = 0; i < points.length - 1; i++) {
+        final p0 = points[i];
+        final p1 = points[i + 1];
+        final control1 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p0.dy);
+        final control2 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p1.dy);
+        path.cubicTo(control1.dx, control1.dy, control2.dx, control2.dy, p1.dx, p1.dy);
+      }
+
+      final fillPath = Path.from(path)
+        ..lineTo(points.last.dx, h)
+        ..lineTo(points.first.dx, h)
+        ..close();
+
+      canvas
+        ..drawPath(fillPath, fillPaint)
+        ..drawPath(path, linePaint)
+        ..drawCircle(points.last, 3.5, Paint()..color = color);
+      return;
+    }
 
     final path = Path()
       ..moveTo(0, h * 0.8)
@@ -548,24 +767,28 @@ class HealingSparklinePainter extends CustomPainter {
       ..lineTo(0, h)
       ..close();
 
-    canvas.drawPath(fillPath, fillPaint);
-    canvas.drawPath(path, linePaint);
-
-    canvas.drawCircle(Offset(w, h * 0.05), 3.5, Paint()..color = color);
+    canvas
+      ..drawPath(fillPath, fillPaint)
+      ..drawPath(path, linePaint)
+      ..drawCircle(Offset(w, h * 0.05), 3.5, Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(CustomPainter old) => false;
+  bool shouldRepaint(HealingSparklinePainter old) => old.color != color || !listEquals(old.values, values);
 }
 
 class TriggerSpikePainter extends CustomPainter {
-  TriggerSpikePainter({required this.color});
+  TriggerSpikePainter({required this.color, this.values = const []});
   final Color color;
+
+  /// Real series data (e.g. per-day trigger episodes). Empty falls back to decorative spikes.
+  final List<double> values;
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
+    if (w <= 0 || h <= 0) return;
 
     final linePaint = Paint()
       ..color = color
@@ -576,11 +799,44 @@ class TriggerSpikePainter extends CustomPainter {
 
     final fillPaint = Paint()
       ..style = PaintingStyle.fill
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [color.withValues(alpha: 0.25), color.withValues(alpha: 0.0)],
-      ).createShader(Rect.fromLTWH(0, 0, w, h));
+      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: 0.25), color.withValues(alpha: 0.0)]).createShader(Rect.fromLTWH(0, 0, w, h));
+
+    if (values.length >= 2) {
+      final data = values.length > 7 ? values.sublist(values.length - 7) : values;
+      final maxV = data.reduce(math.max);
+      final minV = data.reduce(math.min);
+      final range = maxV - minV;
+
+      Offset at(int i) {
+        final x = w * i / (data.length - 1);
+        final t = range <= 0 ? 0.5 : (data[i] - minV) / range;
+        return Offset(x, h * 0.85 - t * (h * 0.7));
+      }
+
+      final path = Path();
+      final points = [for (var i = 0; i < data.length; i++) at(i)];
+      path.moveTo(points.first.dx, points.first.dy);
+
+      for (var i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+
+      final fillPath = Path.from(path)
+        ..lineTo(points.last.dx, h)
+        ..lineTo(points.first.dx, h)
+        ..close();
+
+      canvas
+        ..drawPath(fillPath, fillPaint)
+        ..drawPath(path, linePaint);
+
+      var maxIdx = 0;
+      for (var i = 1; i < data.length; i++) {
+        if (data[i] > data[maxIdx]) maxIdx = i;
+      }
+      canvas.drawCircle(points[maxIdx], 3.0, Paint()..color = color);
+      return;
+    }
 
     final path = Path()
       ..moveTo(0, h * 0.8)
@@ -597,45 +853,60 @@ class TriggerSpikePainter extends CustomPainter {
       ..lineTo(0, h)
       ..close();
 
-    canvas.drawPath(fillPath, fillPaint);
-    canvas.drawPath(path, linePaint);
-
-    canvas.drawCircle(Offset(w * 0.3, h * 0.2), 3.0, Paint()..color = color);
-    canvas.drawCircle(Offset(w * 0.75, h * 0.1), 3.0, Paint()..color = color);
+    canvas
+      ..drawPath(fillPath, fillPaint)
+      ..drawPath(path, linePaint)
+      ..drawCircle(Offset(w * 0.3, h * 0.2), 3.0, Paint()..color = color)
+      ..drawCircle(Offset(w * 0.75, h * 0.1), 3.0, Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(CustomPainter old) => false;
+  bool shouldRepaint(TriggerSpikePainter old) => old.color != color || !listEquals(old.values, values);
 }
 
 class WorkingBarsPainter extends CustomPainter {
-  WorkingBarsPainter({required this.color});
+  WorkingBarsPainter({required this.color, this.values = const []});
   final Color color;
+
+  /// Real series (e.g. per-day pattern episodes). Empty falls back to the
+  /// decorative five-bar shape.
+  final List<double> values;
+
+  static const List<double> _fallback = [0.35, 0.5, 0.48, 0.72, 0.9];
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
     final w = size.width;
     final h = size.height;
-    final barCount = 5;
+    if (w <= 0 || h <= 0) return;
     final gap = 6.w;
-    final barW = (w - (gap * (barCount - 1))) / barCount;
-    final heights = [0.35, 0.5, 0.48, 0.72, 0.9];
 
+    if (values.length >= 2) {
+      final data = values.length > 7 ? values.sublist(values.length - 7) : values;
+      final n = data.length;
+      final maxV = data.reduce(math.max);
+      final barW = (w - (gap * (n - 1))) / n;
+      for (var i = 0; i < n; i++) {
+        final t = maxV <= 0 ? 0.5 : (0.25 + 0.75 * (data[i] / maxV)).clamp(0.0, 1.0);
+        final rectH = h * t;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromLTWH(i * (barW + gap), h - rectH, barW, rectH), Radius.circular(math.min(4, barW / 2))),
+          Paint()..color = color.withValues(alpha: n == 1 ? 1.0 : 0.45 + 0.55 * (i / (n - 1))),
+        );
+      }
+      return;
+    }
+
+    final barCount = _fallback.length;
+    final barW = (w - (gap * (barCount - 1))) / barCount;
     for (var i = 0; i < barCount; i++) {
-      final rectH = h * heights[i];
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(i * (barW + gap), h - rectH, barW, rectH),
-          const Radius.circular(4),
-        ),
-        paint..color = color.withValues(alpha: 0.4 + (i * 0.12)),
-      );
+      final rectH = h * _fallback[i];
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(i * (barW + gap), h - rectH, barW, rectH), const Radius.circular(4)), Paint()..color = color.withValues(alpha: 0.4 + (i * 0.12)));
     }
   }
 
   @override
-  bool shouldRepaint(CustomPainter old) => false;
+  bool shouldRepaint(WorkingBarsPainter old) => old.color != color || !listEquals(old.values, values);
 }
 
 class CuriosityPulsePainter extends CustomPainter {
@@ -663,8 +934,9 @@ class CuriosityPulsePainter extends CustomPainter {
       }
     }
 
-    canvas.drawPath(path, dashPaint);
-    canvas.drawCircle(Offset(w * 0.5, h * 0.5 + math.sin(w * 0.5 * 0.08) * (h * 0.3)), 4.0, Paint()..color = color);
+    canvas
+      ..drawPath(path, dashPaint)
+      ..drawCircle(Offset(w * 0.5, h * 0.5 + math.sin(w * 0.5 * 0.08) * (h * 0.3)), 4.0, Paint()..color = color);
   }
 
   @override

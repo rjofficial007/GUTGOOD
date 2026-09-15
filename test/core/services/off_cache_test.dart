@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/off_product.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/off_service.dart';
 import 'package:mocktail/mocktail.dart';
 

@@ -1,8 +1,5 @@
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/pattern_occurrence.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/theme/app_palette.dart';
 
 /// Single source of truth for GutGood score band classifications.
 /// Score bands: ≥90 Excellent · ≥70 Great · ≥50 Good · ≥30 Fair · below 30 Trigger
 enum GutScoreBand {
-  excellent(minScore: 90, label: 'Excellent', color: AppPalette.green),
-  great(minScore: 70, label: 'Great', color: AppPalette.green500),
-  good(minScore: 50, label: 'Good', color: AppPalette.orange),
-  fair(minScore: 30, label: 'Fair', color: AppPalette.orange),
-  trigger(minScore: 0, label: 'Trigger', color: AppPalette.red);
+  excellent(minScore: 90, label: 'Excellent', color: Color(0xFF10B981)),
+  great(minScore: 70, label: 'Great', color: Color(0xFF34D399)),
+  good(minScore: 50, label: 'Good', color: Color(0xFFFBBF24)),
+  fair(minScore: 30, label: 'Fair', color: Color(0xFFFB923C)),
+  trigger(minScore: 0, label: 'Trigger', color: Color(0xFFF87171));
 
   const GutScoreBand({required this.minScore, required this.label, required this.color});
 

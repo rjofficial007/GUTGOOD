@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/off_product.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 void main() {
@@ -11,20 +11,11 @@ void main() {
 
     test('returns null for tags unrelated to scoring', () {
       // A product can have plenty of misc_tags and still be perfectly scorable.
-      expect(
-        ModelUtils.unscorableReason([
-          'en:ecoscore-not-computed',
-          'en:main-countries-new-product',
-        ]),
-        isNull,
-      );
+      expect(ModelUtils.unscorableReason(['en:ecoscore-not-computed', 'en:main-countries-new-product']), isNull);
     });
 
     test('names the missing nutrient', () {
-      final reason = ModelUtils.unscorableReason([
-        'en:nutriscore-not-computed',
-        'en:nutriscore-missing-nutrition-data-sodium',
-      ]);
+      final reason = ModelUtils.unscorableReason(['en:nutriscore-not-computed', 'en:nutriscore-missing-nutrition-data-sodium']);
       expect(reason, isNotNull);
       expect(reason, contains('sodium'));
       // It must read as an explanation, not as a code.
@@ -33,61 +24,42 @@ void main() {
     });
 
     test('joins two missing nutrients naturally', () {
-      final reason = ModelUtils.unscorableReason([
-        'en:nutriscore-missing-nutrition-data-sodium',
-        'en:nutriscore-missing-nutrition-data-sugars',
-      ]);
+      final reason = ModelUtils.unscorableReason(['en:nutriscore-missing-nutrition-data-sodium', 'en:nutriscore-missing-nutrition-data-sugars']);
       expect(reason, contains('sodium and sugar'));
     });
 
     test('de-duplicates repeated nutrients', () {
-      final reason = ModelUtils.unscorableReason([
-        'en:nutriscore-missing-nutrition-data-sodium',
-        'en:nutriscore-missing-nutrition-data-sodium',
-      ]);
+      final reason = ModelUtils.unscorableReason(['en:nutriscore-missing-nutrition-data-sodium', 'en:nutriscore-missing-nutrition-data-sodium']);
       expect(reason, contains('missing sodium for this product'));
       expect(reason, isNot(contains('sodium and sodium')));
     });
 
     test('reports a missing category', () {
-      final reason = ModelUtils.unscorableReason([
-        'en:nutriscore-missing-category',
-      ]);
+      final reason = ModelUtils.unscorableReason(['en:nutriscore-missing-category']);
       expect(reason, contains('category'));
     });
 
     test('falls back to a generic message when nothing specific is known', () {
-      final reason = ModelUtils.unscorableReason([
-        'en:nutrition-not-enough-data-to-compute-nutrition-score',
-      ]);
+      final reason = ModelUtils.unscorableReason(['en:nutrition-not-enough-data-to-compute-nutrition-score']);
       expect(reason, isNotNull);
       expect(reason, contains('enough nutrition data'));
     });
 
     test('a named nutrient beats the generic fallback', () {
       // Specificity matters: "not computed" alone tells the user nothing.
-      final reason = ModelUtils.unscorableReason([
-        'en:nutriscore-not-computed',
-        'en:nutrition-not-enough-data-to-compute-nutrition-score',
-        'en:nutriscore-missing-nutrition-data-sodium',
-      ]);
+      final reason = ModelUtils.unscorableReason(['en:nutriscore-not-computed', 'en:nutrition-not-enough-data-to-compute-nutrition-score', 'en:nutriscore-missing-nutrition-data-sodium']);
       expect(reason, contains('sodium'));
     });
 
     test('invites the user to contribute the missing data', () {
-      final reason = ModelUtils.unscorableReason([
-        'en:nutriscore-missing-nutrition-data-sodium',
-      ]);
+      final reason = ModelUtils.unscorableReason(['en:nutriscore-missing-nutrition-data-sodium']);
       expect(reason!.toLowerCase(), contains('you could add it'));
     });
   });
 
   group('OffProduct.unscorableReason', () {
     test('delegates to the shared helper', () {
-      const product = OffProduct(
-        productName: 'Real Orange Juice',
-        miscTags: ['en:nutriscore-missing-nutrition-data-sodium'],
-      );
+      const product = OffProduct(productName: 'Real Orange Juice', miscTags: ['en:nutriscore-missing-nutrition-data-sodium']);
       expect(product.unscorableReason, ModelUtils.unscorableReason(product.miscTags));
     });
 
@@ -97,14 +69,7 @@ void main() {
     });
 
     test('survives the Firestore round-trip through toMap/fromMap', () {
-      const original = OffProduct(
-        productName: 'Real Orange Juice',
-        barcode: '0180411000803',
-        miscTags: [
-          'en:nutriscore-not-computed',
-          'en:nutriscore-missing-nutrition-data-sodium',
-        ],
-      );
+      const original = OffProduct(productName: 'Real Orange Juice', barcode: '0180411000803', miscTags: ['en:nutriscore-not-computed', 'en:nutriscore-missing-nutrition-data-sodium']);
       final restored = OffProduct.fromMap(original.toMap());
       expect(restored.miscTags, original.miscTags);
       expect(restored.unscorableReason, original.unscorableReason);
@@ -123,11 +88,7 @@ void main() {
 
     test('distinguishes products that differ only by misc_tags', () {
       const a = OffProduct(productName: 'Soup', score: 50);
-      const b = OffProduct(
-        productName: 'Soup',
-        score: 50,
-        miscTags: ['en:nutriscore-missing-category'],
-      );
+      const b = OffProduct(productName: 'Soup', score: 50, miscTags: ['en:nutriscore-missing-category']);
       expect(a, isNot(equals(b)));
     });
   });

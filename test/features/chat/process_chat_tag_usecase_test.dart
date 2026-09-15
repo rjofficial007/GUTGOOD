@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 
 void main() {
@@ -108,7 +108,8 @@ void main() {
     });
 
     test('J-4 stamps promptVersion/servedModel onto every extracted record', () {
-      const text = 'Done [SCAN]{"productName": "Oats", "brand": "Quaker", "category": "food", "score": 90, "impact": "Great"}[/SCAN] '
+      const text =
+          'Done [SCAN]{"productName": "Oats", "brand": "Quaker", "category": "food", "score": 90, "impact": "Great"}[/SCAN] '
           '[MEAL]{"items": [{"name": "Apple", "confidence": 0.9}]}[/MEAL] '
           '[SYMPTOM]{"symptom": "Bloating", "severity": 3}[/SYMPTOM]';
       final result = useCase.call(text, isFinal: true, promptVersion: AiVersions.chatPromptVersion, servedModel: 'gpt-test');

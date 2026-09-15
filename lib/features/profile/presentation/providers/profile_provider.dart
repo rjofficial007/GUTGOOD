@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/user_profile.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';

@@ -3,11 +3,7 @@ import 'dart:typed_data';
 
 import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/off_product.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';

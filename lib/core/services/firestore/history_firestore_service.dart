@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gutgood/core/models/food_image.dart';
-import 'package:gutgood/core/models/history_counts.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/journal/history_counts.dart';
+import 'package:gutgood/core/models/journal/meal_log.dart';
+import 'package:gutgood/core/models/journal/symptom_log.dart';
+import 'package:gutgood/core/models/scans/scan_result.dart';
+import 'package:gutgood/core/models/user/food_image.dart';
 import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/image_hash.dart';
@@ -41,7 +41,13 @@ abstract class HistoryFirestoreService {
   Future<String?> logSymptom(SymptomLog log, {String? docId});
   Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before});
 
+  /// Count of meal logs with `createdAt >= [since]`.
+  /// Returns -1 when the query itself failed (offline, permission, index) so
+  /// callers can distinguish "no meals" from "unknown".
   Future<int> getMealLogsCountSince(DateTime since);
+
+  /// Count of scan history records with `createdAt >= [since]`.
+  Future<int> getScansCountSince(DateTime since);
 
   Future<int> getTotalScansCount();
   Future<int> getTotalMealLogsCount();
@@ -500,21 +506,29 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   /// Runs a server-side `count()` aggregation instead of downloading documents.
   /// Bills ~1 read per 1000 index entries (vs 1 read per document) and never
   /// throws — failures (e.g. offline) resolve to 0.
-  Future<int> _countQuery(Query<Map<String, dynamic>> query, String label) async {
+  Future<int> _countQuery(Query<Map<String, dynamic>> query, String label, {int onError = 0}) async {
     try {
       final snapshot = await query.count().get();
       return snapshot.count ?? 0;
     } catch (e) {
       AppLogger.firestore('Count query failed ($label)', error: e);
-      return 0;
+      return onError;
     }
   }
 
   @override
   Future<int> getMealLogsCountSince(DateTime since) async {
     final doc = _userDoc;
-    if (doc == null) return 0;
-    return _countQuery(doc.collection('journal_logs').where('type', isEqualTo: 'meal').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)), 'meals-since');
+    // No user resolved yet → "unknown", not "no meals".
+    if (doc == null) return -1;
+    return _countQuery(doc.collection('journal_logs').where('type', isEqualTo: 'meal').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)), 'meals-since', onError: -1);
+  }
+
+  @override
+  Future<int> getScansCountSince(DateTime since) async {
+    final doc = _userDoc;
+    if (doc == null) return -1;
+    return _countQuery(doc.collection('scan_history').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)), 'scans-since', onError: -1);
   }
 
   @override

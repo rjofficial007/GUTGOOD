@@ -4,12 +4,15 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/route_arguments.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart';
 import 'package:gutgood/features/product_details/presentation/pages/additive_level_colors.dart';
+import 'package:gutgood/features/product_details/presentation/utils/scan_result_utils.dart';
 
 /// Additive detail screen redesigned to match brand style: header, 2x2 grid,
 /// tip, and related list, all within responsive containers.
@@ -17,6 +20,13 @@ class AdditiveDetailScreen extends StatelessWidget {
   const AdditiveDetailScreen({super.key, required this.concern});
 
   final AdditiveConcern concern;
+
+  static BentoTone toneFor(AdditiveConcernLevel level) => switch (level) {
+    AdditiveConcernLevel.higher => BentoTone.coral,
+    AdditiveConcernLevel.moderate => BentoTone.amber,
+    AdditiveConcernLevel.low => BentoTone.mint,
+    AdditiveConcernLevel.unknown => BentoTone.white,
+  };
 
   static String _take(AdditiveConcern c) => c.whyFlagged.isNotEmpty ? c.whyFlagged : AppStrings.noConcernsTypicalAmounts;
 
@@ -50,13 +60,11 @@ class AdditiveDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final colors = AdditiveLevelColors.of(context, concern.level);
-    final green = AdditiveLevelColors.of(context, AdditiveConcernLevel.low);
-    final amber = AdditiveLevelColors.of(context, AdditiveConcernLevel.moderate);
-    final pink = AdditiveLevelColors.of(context, AdditiveConcernLevel.higher);
     final related = AdditiveConcernDb.relatedTo(concern);
     final relatedAll = AdditiveConcernDb.relatedTo(concern, limit: 100);
     final description = '${concern.whatItIs} ${concern.whyUsed}';
+    final tone = toneFor(concern.level);
+    final palette = context.bentoTheme.bento(tone);
 
     return Scaffold(
       backgroundColor: scheme.cardBackground,
@@ -76,10 +84,10 @@ class AdditiveDetailScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        DashboardEntrance(delay: 40, child: _buildMainCard(context, colors, green, amber, pink, description, constraints.maxWidth)),
-                        const SizedBox(height: 20),
-                        DashboardEntrance(delay: 240, child: _buildTipCard(context, green, constraints.maxWidth)),
-                        if (related.isNotEmpty) ...[const SizedBox(height: 28), DashboardEntrance(delay: 300, child: _buildRelatedSection(context, related, relatedAll, constraints.maxWidth))],
+                        DashboardEntrance(delay: 40, child: _buildMainCard(context, palette, description, constraints.maxWidth)),
+                        Gap.h12,
+                        DashboardEntrance(delay: 240, child: _buildTipCard(context, constraints.maxWidth)),
+                        if (related.isNotEmpty) ...[Gap.h24, DashboardEntrance(delay: 300, child: _buildRelatedSection(context, related, relatedAll, constraints.maxWidth))],
                       ],
                     ),
                   );
@@ -92,45 +100,44 @@ class AdditiveDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMainCard(BuildContext context, AdditiveLevelColors colors, AdditiveLevelColors green, AdditiveLevelColors amber, AdditiveLevelColors pink, String description, double width) {
+  Widget _buildMainCard(BuildContext context, BentoPalette palette, String description, double width) {
     final scheme = context.appColorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: colors.mainCardBackground, borderRadius: BorderRadius.circular(24)),
+      padding: EdgeInsets.all(BentoMetrics.padding.w),
+      decoration: BoxDecoration(gradient: palette.gradient, borderRadius: BorderRadius.circular(BentoMetrics.heroRadius.w)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Row
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _iconCircle(icon: AdditiveLevelColors.iconFor(concern.level), iconColor: colors.accent, background: colors.iconBackground, size: 64),
-              const SizedBox(width: 14),
+              _iconCircle(icon: AdditiveLevelColors.iconFor(concern.level), iconColor: palette.tagForeground, background: palette.tagBackground, size: 38.w),
+              Gap.w12,
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(top: 2),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              concern.name,
-                              style: TextStyle(color: scheme.textPrimary, fontSize: width < 380 ? 16 : 16, fontWeight: FontWeight.w800, height: 1.1),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              concern.category,
-                              style: TextStyle(color: scheme.textSecondary, fontSize: width < 380 ? 13 : 15, fontWeight: FontWeight.w400),
-                            ),
-                          ],
-                        ),
+                      Text(
+                        concern.name,
+                        style: TextStyle(color: scheme.textPrimary, fontFamily: InsightBentoTheme.fontFamily, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.4, height: 1.1),
                       ),
-                      const SizedBox(width: 6),
-                      AdditiveConcernPill(label: concern.riskLabel, colors: colors, fontSize: 11, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6)),
+                      Row(
+                        children: [
+                          _BentoRiskPill(label: concern.riskLabel, palette: palette),
+                          if (concern.category.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 6),
+                              child: Text(
+                                concern.category,
+                                style: TextStyle(color: scheme.textSecondary, fontFamily: InsightBentoTheme.fontFamily, fontSize: 12, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -141,9 +148,9 @@ class AdditiveDetailScreen extends StatelessWidget {
           // Description
           Text(
             description,
-            style: TextStyle(color: scheme.textPrimary.withValues(alpha: 0.8), fontSize: width < 380 ? 13 : 14, height: 1.35, fontWeight: FontWeight.w400),
+            style: TextStyle(color: scheme.textPrimary.withValues(alpha: 0.8), fontFamily: InsightBentoTheme.fontFamily, fontSize: width < 380 ? 13 : 13.5, height: 1.35, fontWeight: FontWeight.w400),
           ),
-          const SizedBox(height: 10),
+          Gap.h10,
           // Grid
           IntrinsicHeight(
             child: Row(
@@ -153,24 +160,24 @@ class AdditiveDetailScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       Expanded(
-                        child: _insightCard(context, title: AppStrings.whyItsUsed, text: concern.whyUsed, icon: AppIcons.leaf, iconColor: green.accent, background: green.background),
+                        child: _insightCard(context, title: AppStrings.whyItsUsed, text: concern.whyUsed, icon: AppIcons.leaf, tone: BentoTone.mint),
                       ),
-                      const SizedBox(height: 8),
+                      Gap.h8,
                       Expanded(
-                        child: _insightCard(context, title: AppStrings.whoToBeCareful, text: _carefulFor(concern), icon: AppIcons.user, iconColor: pink.accent, background: pink.background),
+                        child: _insightCard(context, title: AppStrings.whoToBeCareful, text: _carefulFor(concern), icon: AppIcons.user, tone: BentoTone.coral),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                Gap.w8,
                 Expanded(
                   child: Column(
                     children: [
                       Expanded(
-                        child: _insightCard(context, title: AppStrings.gutGoodTake, text: _take(concern), icon: AppIcons.alertCircle, iconColor: amber.accent, background: amber.background),
+                        child: _insightCard(context, title: AppStrings.gutGoodTake, text: _take(concern), icon: AppIcons.alertCircle, tone: BentoTone.amber),
                       ),
-                      const SizedBox(height: 8),
-                      Expanded(child: _scoreCard(context, colors)),
+                      Gap.h8,
+                      Expanded(child: _scoreCard(context)),
                     ],
                   ),
                 ),
@@ -182,30 +189,26 @@ class AdditiveDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _insightCard(BuildContext context, {required String title, required String text, required IconData icon, required Color iconColor, required Color background}) {
+  Widget _insightCard(BuildContext context, {required String title, required String text, required IconData icon, required BentoTone tone}) {
     final scheme = context.appColorScheme;
+    final palette = context.bentoTheme.bento(tone);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(18)),
+      padding: EdgeInsets.all(BentoMetrics.padding.w),
+      decoration: BoxDecoration(gradient: palette.gradient, borderRadius: BorderRadius.circular(BentoMetrics.radius.w)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.2), shape: BoxShape.circle),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
-          const SizedBox(height: 10),
+          Icon(icon, color: palette.tagForeground, size: 18.w),
+          Gap.h10,
           Text(
             title,
-            style: TextStyle(color: scheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w800, height: 1.1),
+            style: TextStyle(color: scheme.textPrimary, fontFamily: InsightBentoTheme.fontFamily, fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: -0.3, height: 1.1),
           ),
-          const SizedBox(height: 6),
+          Gap.h6,
           Text(
             text,
-            style: TextStyle(color: scheme.textSecondary, fontSize: 13, height: 1.3, fontWeight: FontWeight.w400),
+            style: TextStyle(color: scheme.textSecondary, fontFamily: InsightBentoTheme.fontFamily, fontSize: 12, height: 1.3, fontWeight: FontWeight.w400),
             maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
@@ -214,184 +217,211 @@ class AdditiveDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _scoreCard(BuildContext context, AdditiveLevelColors colors) {
+  Widget _scoreCard(BuildContext context) {
     final scheme = context.appColorScheme;
-    final grey = AdditiveLevelColors.of(context, AdditiveConcernLevel.unknown);
+    final palette = context.bentoTheme.bento(BentoTone.white);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: grey.background, borderRadius: BorderRadius.circular(18)),
+      padding: EdgeInsets.all(BentoMetrics.padding.w),
+      decoration: BoxDecoration(gradient: palette.gradient, borderRadius: BorderRadius.circular(BentoMetrics.radius.w)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: scheme.textPrimary.withValues(alpha: 0.2), shape: BoxShape.circle),
-                child: Icon(AppIcons.barChart, color: scheme.textPrimary, size: 20),
-              ),
+              Icon(AppIcons.barChart, color: palette.tagForeground, size: 18.w),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: colors.pillBackground, borderRadius: BorderRadius.circular(30)),
-                child: Text(
-                  AppStrings.scorePointsShort(concern.scoreImpactPts),
-                  style: TextStyle(color: colors.accent, fontSize: 12, fontWeight: FontWeight.w800),
-                ),
-              ),
+              _BentoRiskPill(label: AppStrings.scorePointsShort(concern.scoreImpactPts), palette: context.bentoTheme.bento(toneFor(concern.level))),
             ],
           ),
-          const SizedBox(height: 10),
+          Gap.h10,
           Text(
             AppStrings.impactOnYourScore,
-            style: TextStyle(color: scheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w800, height: 1.1),
+            style: TextStyle(color: scheme.textPrimary, fontFamily: InsightBentoTheme.fontFamily, fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: -0.3, height: 1.1),
           ),
-          const SizedBox(height: 6),
-          Text(_impactBody(concern.level), style: TextStyle(color: scheme.textSecondary, fontSize: 13, height: 1.3)),
+          Gap.h6,
+          Text(
+            _impactBody(concern.level),
+            style: TextStyle(color: scheme.textSecondary, fontFamily: InsightBentoTheme.fontFamily, fontSize: 12, height: 1.3),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTipCard(BuildContext context, AdditiveLevelColors green, double width) {
-    final scheme = context.appColorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(color: green.background, borderRadius: BorderRadius.circular(20)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(AppIcons.lightbulb, color: green.accent, size: 36),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 2),
-                Text(
-                  AppStrings.tipTitle,
-                  style: TextStyle(color: scheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _tip(concern),
-                  style: TextStyle(color: scheme.textSecondary, fontSize: width < 380 ? 13 : 14, height: 1.35),
-                ),
-              ],
+  Widget _buildTipCard(BuildContext context, double width) {
+    final t = context.bentoTheme;
+    return InkWell(
+      onTap: () => context.push(AppRoutes.chat),
+      borderRadius: BorderRadius.circular(BentoMetrics.radius.w),
+      child: Container(
+        padding: EdgeInsets.all(BentoMetrics.padding.w),
+        decoration: BoxDecoration(
+          color: t.mint.withAlpha(16),
+          borderRadius: BorderRadius.circular(BentoMetrics.radius.w),
+          // border: Border.all(color: t.mint.withAlpha(40)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(color: t.mint.withAlpha(26), shape: BoxShape.circle),
+              child: Icon(AppIcons.lightbulb, size: 18.w, color: t.mint),
             ),
-          ),
-        ],
+            Gap.w12,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppStrings.tipTitle,
+                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w700, color: t.mint),
+                  ),
+                  Gap.h2,
+                  Text(
+                    _tip(concern),
+                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w400, color: t.textTertiary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildRelatedSection(BuildContext context, List<AdditiveConcern> related, List<AdditiveConcern> relatedAll, double width) {
-    final scheme = context.appColorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  AppStrings.relatedAdditives,
-                  style: TextStyle(color: scheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w800),
+  Widget _buildRelatedSection(BuildContext context, List<AdditiveConcern> related, List<AdditiveConcern> relatedAll, double width) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Text(
+                AppStrings.relatedAdditives.toUpperCase(),
+                style: TextStyle(color: context.bentoTheme.textTertiary, fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, letterSpacing: 1.2),
+              ),
+            ),
+            if (relatedAll.length > related.length)
+              InkWell(
+                onTap: () => context.push(
+                  AppRoutes.additivesList,
+                  extra: AdditiveListArgs(items: relatedAll, title: AppStrings.relatedAdditives),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      AppStrings.seeAll,
+                      style: TextStyle(color: context.bentoTheme.positive, fontSize: 13.sp, fontWeight: FontWeight.w700, fontFamily: InsightBentoTheme.fontFamily),
+                    ),
+                    Gap.w2,
+                    Icon(Icons.chevron_right_rounded, color: context.bentoTheme.positive, size: 18.w),
+                  ],
                 ),
               ),
-              if (relatedAll.length > related.length)
-                TextButton(
-                  onPressed: () => context.push(
-                    AppRoutes.additivesList,
-                    extra: AdditiveListArgs(items: relatedAll, title: AppStrings.relatedAdditives),
-                  ),
-                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  child: Row(
-                    children: [
-                      Text(
-                        AppStrings.seeAll,
-                        style: TextStyle(color: scheme.success, fontSize: 13, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(width: 2),
-                      Icon(Icons.chevron_right_rounded, color: scheme.success, size: 18),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
-        const SizedBox(height: 10),
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: scheme.cardBackground,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: scheme.border, width: 1.0),
-          ),
-          child: Column(
-            children: List.generate(related.length, (index) => _relatedAdditiveRow(context, related[index], showDivider: index != related.length - 1, width: width)),
-          ),
-        ),
-      ],
-    );
-  }
+      ),
+      Gap.h12,
+      Column(children: List.generate(related.length, (index) => _relatedAdditiveRow(context, related[index], width: width))),
+    ],
+  );
 
-  Widget _relatedAdditiveRow(BuildContext context, AdditiveConcern additive, {required bool showDivider, required double width}) {
-    final scheme = context.appColorScheme;
-    final colors = AdditiveLevelColors.of(context, additive.level);
-    return InkWell(
-      onTap: () => context.push(AppRoutes.additiveDetail, extra: additive),
-      borderRadius: BorderRadius.circular(20),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  Widget _relatedAdditiveRow(BuildContext context, AdditiveConcern additive, {required double width}) {
+    final t = context.bentoTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dotColor = additiveConcernColor(context, additive.level);
+
+    final isPositive = additive.level == AdditiveConcernLevel.low || additive.level == AdditiveConcernLevel.unknown;
+    final bgColor = isPositive ? t.positive.withAlpha(isDark ? 30 : 12) : t.negative.withAlpha(isDark ? 30 : 12);
+    final iconBgColor = isPositive ? t.positive.withAlpha(isDark ? 40 : 18) : t.negative.withAlpha(isDark ? 40 : 18);
+    final iconColor = isPositive ? t.positive : t.negative;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push(AppRoutes.additiveDetail, extra: additive),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
             child: Row(
               children: [
-                _iconCircle(icon: AdditiveLevelColors.iconFor(additive.level), iconColor: colors.accent, background: colors.iconBackground, size: 40),
-                const SizedBox(width: 14),
+                Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+                  child: Icon(AdditiveLevelColors.iconFor(additive.level), size: 18.sp, color: iconColor),
+                ),
+                Gap.w12,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        additive.name,
-                        style: TextStyle(color: scheme.textPrimary, fontSize: width < 380 ? 13 : 15, fontWeight: FontWeight.w500, height: 1.15),
+                        additive.displayTitle,
+                        maxLines: 1,
+                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.titleSize.sp, fontWeight: FontWeight.w600, color: t.textPrimary),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 1),
                       Text(
-                        additive.category,
-                        style: TextStyle(color: scheme.textSecondary, fontSize: width < 380 ? 11 : 13, height: 1.15),
+                        additive.whyFlagged.isNotEmpty ? additive.whyFlagged : additive.whatItIs,
+                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  additive.riskLabel,
-                  style: TextStyle(color: colors.accent, fontSize: width < 380 ? 11 : 13, fontWeight: FontWeight.w700),
+                Gap.w8,
+                Container(
+                  width: 8.sp,
+                  height: 8.sp,
+                  decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
                 ),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right_rounded, color: scheme.textMuted, size: 22),
+                Gap.w8,
+                Icon(AppIcons.chevronRight, size: 16.sp, color: iconColor.withAlpha(150)),
               ],
             ),
           ),
-          if (showDivider) Divider(height: 1, thickness: 1, indent: 16, endIndent: 16, color: scheme.border),
-        ],
+        ),
       ),
     );
   }
 
   Widget _iconCircle({required IconData icon, required Color iconColor, required Color background, required double size}) => Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-      alignment: Alignment.center,
-      child: Icon(icon, color: iconColor, size: size * 0.52),
-    );
+    width: size,
+    height: size,
+    decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+    alignment: Alignment.center,
+    child: Icon(icon, color: iconColor, size: size * 0.52),
+  );
+}
+
+class _BentoRiskPill extends StatelessWidget {
+  const _BentoRiskPill({required this.label, required this.palette});
+  final String label;
+  final BentoPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 6,
+        height: 6,
+        decoration: BoxDecoration(color: palette.tagForeground, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 4),
+      Text(
+        label.toUpperCase(),
+        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10, fontWeight: FontWeight.w800, color: palette.tagForeground),
+      ),
+    ],
+  );
 }

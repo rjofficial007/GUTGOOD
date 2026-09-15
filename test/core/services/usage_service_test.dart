@@ -1,11 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/daily_usage.dart';
-import 'package:gutgood/core/models/user_profile.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/usage_firestore_service.dart';
 import 'package:gutgood/core/services/purchase_service.dart';
 import 'package:gutgood/core/services/usage_service.dart';
-import 'package:gutgood/features/auth/domain/entities/auth_user.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,8 +23,7 @@ void main() {
   late MockPurchaseService purchaseService;
   late UsageServiceImpl usage;
 
-  UserProfile profile({bool premium = false}) =>
-      UserProfile(uid: 'u1', isPremium: premium, updatedAt: DateTime.now(), createdAt: DateTime.now());
+  UserProfile profile({bool premium = false}) => UserProfile(uid: 'u1', isPremium: premium, updatedAt: DateTime.now(), createdAt: DateTime.now());
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -49,15 +46,13 @@ void main() {
 
   group('UsageService.canSummarize (K-6)', () {
     test('allows summaries while system quota is healthy', () async {
-      when(() => usageFirestoreService.getUsageToday())
-          .thenAnswer((_) async => const DailyUsage(uid: 'u1', date: '2026-09-09', systemCount: 5));
+      when(() => usageFirestoreService.getUsageToday()).thenAnswer((_) async => const DailyUsage(uid: 'u1', date: '2026-09-09', systemCount: 5));
 
       expect(await usage.canSummarize(), isTrue);
     });
 
     test('blocks summaries inside the classification reserve', () async {
-      when(() => usageFirestoreService.getUsageToday())
-          .thenAnswer((_) async => const DailyUsage(uid: 'u1', date: '2026-09-09', systemCount: 18));
+      when(() => usageFirestoreService.getUsageToday()).thenAnswer((_) async => const DailyUsage(uid: 'u1', date: '2026-09-09', systemCount: 18));
 
       expect(await usage.canSummarize(), isFalse);
     });
@@ -71,8 +66,7 @@ void main() {
 
     test('guests use the lifetime system count against the guest cap', () async {
       when(() => authRepository.currentUser).thenReturn(const AuthUser(uid: 'g1', isAnonymous: true));
-      when(() => usageFirestoreService.getLifetimeUsage())
-          .thenAnswer((_) async => const DailyUsage(uid: 'g1', date: 'lifetime', systemCount: 8));
+      when(() => usageFirestoreService.getLifetimeUsage()).thenAnswer((_) async => const DailyUsage(uid: 'g1', date: 'lifetime', systemCount: 8));
 
       expect(await usage.canSummarize(), isFalse);
     });

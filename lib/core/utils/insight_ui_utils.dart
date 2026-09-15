@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
+import 'package:gutgood/core/models/insights/body_pattern.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 
 /// UI Mappings for AI-generated insight data.
 class InsightUiUtils {
   const InsightUiUtils._();
-
-
 
   static IconData getPatternTypeIcon(String type) => switch (type) {
     BodyPattern.typeBloating => AppIcons.wind,
@@ -31,7 +29,6 @@ class InsightUiUtils {
     _ => AppPalette.black,
   };
 
-
   /// Returns the proper display name for a pattern category.
   static String getPatternName(String type) => switch (type) {
     BodyPattern.typeBloating => AppStrings.bloatingPattern,
@@ -42,6 +39,4 @@ class InsightUiUtils {
     BodyPattern.typeSleep => AppStrings.sleepPattern,
     _ => AppStrings.discoveryPattern,
   };
-
-
 }

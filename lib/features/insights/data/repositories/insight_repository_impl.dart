@@ -2,15 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:gutgood/core/constants/storage_keys.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/health_alert.dart';
-import 'package:gutgood/core/models/history_counts.dart';
-import 'package:gutgood/core/models/insights_dashboard_state.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';
@@ -152,25 +144,139 @@ class InsightRepositoryImpl implements InsightRepository {
       }
 
       final decoded = Map<String, dynamic>.from(jsonDecode(jsonStr) as Map);
-      // Deterministic score delta (drives the "↑ 6 from last week" pill). The
-      // repo already receives lastScore — previously it was never used.
+      final newScore = (decoded['gutScore'] as num?)?.toInt() ?? 0;
       if (lastScore != null) {
-        final newScore = (decoded['gutScore'] as num?)?.toInt() ?? 0;
         final diff = newScore - lastScore;
         decoded['scoreDiff'] = diff >= 0 ? '+$diff' : '$diff';
       }
-      final insight = AIInsight.fromMap(decoded);
+      var insight = AIInsight.fromMap(decoded);
+
+      // Enrich synthesized insight with user's uploaded food photos
+      insight = await _enrichInsightWithUserPhotos(insight);
 
       final duration = DateTime.now().difference(startTime).inSeconds;
       await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
 
-      await _prefs.setString(StorageKeys.gutgoodInsightsCache, jsonEncode(decoded));
+      await _prefs.setString(StorageKeys.gutgoodInsightsCache, ModelUtils.safeJsonEncode(insight.toMap()));
       return insight;
     } catch (e, st) {
       AppLogger.error('InsightRepo: AI Analysis failed', error: e);
       await _analyticsService.logEvent(name: 'insight_generation_failed', parameters: {'error': e.toString()});
       await _crashlyticsService.recordError(e, st, reason: 'AI Insight generation failed');
       rethrow;
+    }
+  }
+
+  Future<AIInsight> _enrichInsightWithUserPhotos(AIInsight insight) async {
+    try {
+      final recentScans = await getRecentScans(DateTime.now().subtract(const Duration(days: 30)));
+      if (recentScans.isEmpty) return insight;
+
+      final scanImageMap = <String, ScanResult>{};
+      for (final scan in recentScans) {
+        final url = scan.userImageUrl ?? scan.imageUrl;
+        if (url != null && url.isNotEmpty) {
+          final key = scan.productName.toLowerCase().trim();
+          if (key.isNotEmpty && !scanImageMap.containsKey(key)) {
+            scanImageMap[key] = scan;
+          }
+        }
+      }
+
+      if (scanImageMap.isEmpty) return insight;
+
+      ScanResult? findMatchingScan(String foodName) {
+        final norm = foodName.toLowerCase().trim();
+        if (norm.isEmpty) return null;
+        if (scanImageMap.containsKey(norm)) return scanImageMap[norm];
+        for (final entry in scanImageMap.entries) {
+          if (norm.contains(entry.key) || entry.key.contains(norm)) {
+            return entry.value;
+          }
+        }
+        return null;
+      }
+
+      var enrichedTopHealing = insight.topHealing;
+      if (enrichedTopHealing != null && (enrichedTopHealing.userImageUrl == null || enrichedTopHealing.userImageUrl!.isEmpty)) {
+        final match = findMatchingScan(enrichedTopHealing.food);
+        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
+        if (match != null && matchUrl != null) {
+          enrichedTopHealing = TopHighlight(
+            food: enrichedTopHealing.food,
+            effects: enrichedTopHealing.effects,
+            timeframe: enrichedTopHealing.timeframe,
+            frequency: enrichedTopHealing.frequency,
+            emoji: enrichedTopHealing.emoji,
+            imageUrl: enrichedTopHealing.imageUrl ?? matchUrl,
+            userImageUrl: matchUrl,
+            foodScanId: match.scanId,
+          );
+        }
+      }
+
+      var enrichedTopTrigger = insight.topTrigger;
+      if (enrichedTopTrigger != null && (enrichedTopTrigger.userImageUrl == null || enrichedTopTrigger.userImageUrl!.isEmpty)) {
+        final match = findMatchingScan(enrichedTopTrigger.food);
+        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
+        if (match != null && matchUrl != null) {
+          enrichedTopTrigger = TopHighlight(
+            food: enrichedTopTrigger.food,
+            effects: enrichedTopTrigger.effects,
+            timeframe: enrichedTopTrigger.timeframe,
+            frequency: enrichedTopTrigger.frequency,
+            emoji: enrichedTopTrigger.emoji,
+            imageUrl: enrichedTopTrigger.imageUrl ?? matchUrl,
+            userImageUrl: matchUrl,
+            foodScanId: match.scanId,
+          );
+        }
+      }
+
+      final enrichedHealingFoods = insight.healingFoods.map((hf) {
+        if (hf.userImageUrl != null && hf.userImageUrl!.isNotEmpty) return hf;
+        final match = findMatchingScan(hf.name);
+        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
+        if (match != null && matchUrl != null) {
+          return HealingFood(name: hf.name, effect: hf.effect, emoji: hf.emoji, imageUrl: hf.imageUrl ?? matchUrl, userImageUrl: matchUrl, foodScanId: match.scanId);
+        }
+        return hf;
+      }).toList();
+
+      final enrichedTriggerFoods = insight.triggerFoods.map((tf) {
+        if (tf.userImageUrl != null && tf.userImageUrl!.isNotEmpty) return tf;
+        final match = findMatchingScan(tf.name);
+        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
+        if (match != null && matchUrl != null) {
+          return TriggerFood(name: tf.name, effect: tf.effect, emoji: tf.emoji, imageUrl: tf.imageUrl ?? matchUrl, userImageUrl: matchUrl, foodScanId: match.scanId);
+        }
+        return tf;
+      }).toList();
+
+      final enrichedFoodImpacts = insight.foodImpacts.map((fi) {
+        if (fi.userImageUrl != null && fi.userImageUrl!.isNotEmpty) return fi;
+        final match = findMatchingScan(fi.food);
+        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
+        if (match != null && matchUrl != null) {
+          return FoodImpact(
+            food: fi.food,
+            dateLabel: fi.dateLabel,
+            effect: fi.effect,
+            timeframeLabel: fi.timeframeLabel,
+            emoji: fi.emoji,
+            impactType: fi.impactType,
+            imageUrl: fi.imageUrl ?? matchUrl,
+            userImageUrl: matchUrl,
+            foodScanId: match.scanId,
+          );
+        }
+        return fi;
+      }).toList();
+
+      return insight.copyWith(topHealing: enrichedTopHealing, topTrigger: enrichedTopTrigger, healingFoods: enrichedHealingFoods, triggerFoods: enrichedTriggerFoods, foodImpacts: enrichedFoodImpacts);
+    } catch (e) {
+      AppLogger.warning('Failed to enrich insight with user photos: $e');
+      return insight;
     }
   }
 }

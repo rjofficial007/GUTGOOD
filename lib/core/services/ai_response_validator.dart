@@ -1,5 +1,5 @@
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
+import 'package:gutgood/core/models/scans/ai_analysis_result.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 /// Outcome of [AiResponseValidator.validate].
@@ -114,10 +114,7 @@ class AiResponseValidator {
     if (intent != null && UserIntent.all.contains(intent)) {
       final isLabelMenu = upperIntent.contains('LABEL') || upperIntent.contains('MENU') || upperIntent.contains('INGREDIENT');
       final isGeneral =
-          upperIntent == UserIntent.generalChat ||
-          upperIntent == UserIntent.generalFoodQuestion ||
-          upperIntent == UserIntent.generalWellness ||
-          upperIntent == UserIntent.generalImageAnalysis;
+          upperIntent == UserIntent.generalChat || upperIntent == UserIntent.generalFoodQuestion || upperIntent == UserIntent.generalWellness || upperIntent == UserIntent.generalImageAnalysis;
       if (isLabelMenu || isGeneral) {
         // Zero-data intents: any scan/meal block is a model invention.
         if (sanitized.meal != null) {

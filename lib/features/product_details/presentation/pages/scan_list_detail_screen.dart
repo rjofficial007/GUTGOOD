@@ -3,15 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/scan_list_args.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
-import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/core/widgets/bento_card.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
-import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/core/widgets/gut_app_bar.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart' hide BentoCard;
+import 'package:gutgood/features/product_details/presentation/pages/additive_level_colors.dart';
 import 'package:gutgood/features/product_details/presentation/utils/scan_result_utils.dart';
 
 /// Generic full-list screen for a scan's ingredients, allergens or additives.
@@ -22,35 +20,45 @@ class ScanListDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
+    final t = context.bentoTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: scheme.cardBackground,
+      backgroundColor: t.cardBackground,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          GutSliverAppBar(title: _title, centerTitle: true),
+          GutSliverAppBar(title: _title, centerTitle: true, backgroundColor: t.cardBackground.withValues(alpha: 0.8)),
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+              padding: EdgeInsets.fromLTRB(16.w, 12.w, 16.w, 32.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (args.kind == ScanListKind.allergens)
                     DashboardEntrance(
                       delay: 50,
-                      child: BentoCard(
-                        padding: const EdgeInsets.all(16),
-                        borderRadius: 20,
-                        backgroundColor: scheme.error.withAlpha(14),
-                        borderColor: scheme.error.withAlpha(50),
+                      child: Container(
+                        padding: EdgeInsets.all(14.w),
+                        decoration: BoxDecoration(
+                          color: t.negative.withValues(alpha: isDark ? 0.18 : 0.09),
+                          borderRadius: BorderRadius.circular(14.r),
+                        ),
                         child: Row(
                           children: [
-                            Icon(Icons.warning_amber_rounded, size: 18.sp, color: scheme.error),
-                            Gap.w10,
+                            Container(
+                              padding: EdgeInsets.all(6.w),
+                              decoration: BoxDecoration(
+                                color: t.negative.withValues(alpha: isDark ? 0.25 : 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.warning_amber_rounded, size: 16.sp, color: t.negative),
+                            ),
+                            Gap.w12,
                             Expanded(
                               child: Text(
                                 AppStrings.allergenCaution,
-                                style: context.caption.copyWith(color: scheme.textSecondary, fontSize: 12.sp, height: 1.5),
+                                style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, color: t.textSecondary, fontSize: 12.sp, height: 1.4, fontWeight: FontWeight.w400),
                               ),
                             ),
                           ],
@@ -58,14 +66,7 @@ class ScanListDetailScreen extends StatelessWidget {
                       ),
                     ),
                   if (args.kind == ScanListKind.allergens) Gap.h12,
-                  DashboardEntrance(
-                    delay: 100,
-                    child: BentoCard(
-                      padding: const EdgeInsets.all(16),
-                      borderRadius: 20,
-                      child: Column(children: _rows(context)),
-                    ),
-                  ),
+                  ..._rows(context),
                   Gap.h40,
                 ],
               ),
@@ -94,21 +95,8 @@ class ScanListDetailScreen extends StatelessWidget {
       case ScanListKind.allergens:
         return parseAllergenItems(args.scan.allergens).map((name) => _AllergenRow(name: name)).toList();
       case ScanListKind.additives:
-        final sorted = [...args.scan.additiveConcerns]..sort((a, b) => _rank(b.level).compareTo(_rank(a.level)));
+        final sorted = [...args.scan.additiveConcerns]..sort((a, b) => additiveConcernRank(b.level).compareTo(additiveConcernRank(a.level)));
         return sorted.map((concern) => _ConcernRow(concern: concern)).toList();
-    }
-  }
-
-  int _rank(AdditiveConcernLevel level) {
-    switch (level) {
-      case AdditiveConcernLevel.higher:
-        return 3;
-      case AdditiveConcernLevel.moderate:
-        return 2;
-      case AdditiveConcernLevel.low:
-        return 1;
-      case AdditiveConcernLevel.unknown:
-        return 0;
     }
   }
 }
@@ -121,16 +109,22 @@ class _IngredientRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final color = ingredientSignalColor(context, colorName);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final t = context.bentoTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final signalColor = ingredientSignalColor(context, colorName);
+    final cardShade = signalColor.withValues(alpha: isDark ? 0.16 : 0.08);
+    final iconBgColor = signalColor.withValues(alpha: isDark ? 0.28 : 0.16);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      decoration: BoxDecoration(color: cardShade, borderRadius: BorderRadius.circular(14.r)),
       child: Row(
         children: [
           Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            padding: EdgeInsets.all(7.w),
+            decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+            child: Icon(AppIcons.leaf, size: 15.sp, color: signalColor),
           ),
           Gap.w12,
           Expanded(
@@ -139,13 +133,15 @@ class _IngredientRow extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: context.labelBold.copyWith(fontWeight: FontWeight.w800, fontSize: 13.sp),
+                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w700, color: t.textPrimary, letterSpacing: -0.2),
                 ),
-                if (impact.isNotEmpty)
+                if (impact.isNotEmpty) ...[
+                  Gap.h2,
                   Text(
                     impact,
-                    style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.5.sp, height: 1.4),
+                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w400, color: t.textSecondary, height: 1.3),
                   ),
+                ],
               ],
             ),
           ),
@@ -161,21 +157,39 @@ class _AllergenRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final t = context.bentoTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accentColor = t.negative;
+    final cardShade = accentColor.withValues(alpha: isDark ? 0.18 : 0.09);
+    final iconBgColor = accentColor.withValues(alpha: isDark ? 0.28 : 0.16);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      decoration: BoxDecoration(color: cardShade, borderRadius: BorderRadius.circular(14.r)),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(color: scheme.error.withAlpha(20), shape: BoxShape.circle),
-            child: Icon(Icons.warning_amber_rounded, size: 15.sp, color: scheme.error),
+            padding: EdgeInsets.all(7.w),
+            decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+            child: Icon(Icons.warning_amber_rounded, size: 16.sp, color: accentColor),
           ),
           Gap.w12,
           Expanded(
             child: Text(
               name,
-              style: context.labelBold.copyWith(fontWeight: FontWeight.w800, fontSize: 13.sp),
+              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w700, color: t.textPrimary, letterSpacing: -0.2),
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.h),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: isDark ? 0.25 : 0.14),
+              borderRadius: BorderRadius.circular(6.r),
+            ),
+            child: Text(
+              'ALLERGEN',
+              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 0.6, color: accentColor),
             ),
           ),
         ],
@@ -190,51 +204,75 @@ class _ConcernRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-    final color = additiveConcernColor(context, concern.level);
+    final t = context.bentoTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accentColor = additiveConcernColor(context, concern.level);
+    final cardShade = accentColor.withValues(alpha: isDark ? 0.18 : 0.09);
+    final iconBgColor = accentColor.withValues(alpha: isDark ? 0.28 : 0.16);
     final subtitle = concern.whyFlagged.isNotEmpty ? concern.whyFlagged : concern.whatItIs;
-    return InkWell(
-      onTap: () => context.push(AppRoutes.additiveDetail, extra: concern),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            Gap.w12,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    concern.displayTitle,
-                    style: context.labelBold.copyWith(fontWeight: FontWeight.w800, fontSize: 13.sp),
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push(AppRoutes.additiveDetail, extra: concern),
+          borderRadius: BorderRadius.circular(14.r),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            decoration: BoxDecoration(color: cardShade, borderRadius: BorderRadius.circular(14.r)),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+                  child: Icon(AdditiveLevelColors.iconFor(concern.level), size: 16.sp, color: accentColor),
+                ),
+                Gap.w12,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        concern.displayTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w700, color: t.textPrimary, letterSpacing: -0.2),
+                      ),
+                      Gap.h2,
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.caption.copyWith(color: scheme.textMuted, fontSize: 11.5.sp),
+                ),
+                Gap.w8,
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: isDark ? 0.25 : 0.14),
+                    borderRadius: BorderRadius.circular(6.r),
                   ),
-                ],
-              ),
+                  child: Text(
+                    concern.level.label.toUpperCase(),
+                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 0.6, color: accentColor),
+                  ),
+                ),
+                Gap.w8,
+                Container(
+                  padding: EdgeInsets.all(4.w),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: isDark ? 0.22 : 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(AppIcons.chevronRight, size: 14.sp, color: accentColor),
+                ),
+              ],
             ),
-            Gap.w8,
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: color.withAlpha(22), borderRadius: BorderRadius.circular(6)),
-              child: Text(
-                concern.level.label,
-                style: context.captionBold.copyWith(color: color, fontSize: 10.sp),
-              ),
-            ),
-            Gap.w4,
-            Icon(AppIcons.chevronRight, size: 18.sp, color: scheme.textMuted),
-          ],
+          ),
         ),
       ),
     );

@@ -2,14 +2,7 @@ import 'dart:async';
 
 import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/health_alert.dart';
-import 'package:gutgood/core/models/insight_evidence.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
@@ -47,6 +40,7 @@ class GenerateInsightUseCase {
 
   final InsightRepository _insightRepository;
   final AuthFirestoreService _authFirestoreService;
+  // ignore: unused_field
   final HistoryFirestoreService _historyFirestoreService;
   final CheckInsightThresholdUseCase _checkThreshold;
   final BuildUnifiedJournalUseCase _buildJournal;
@@ -72,13 +66,6 @@ class GenerateInsightUseCase {
 
     if (hoursSinceLastRun < 24) {
       AppLogger.debug('GenerateInsightUseCase: Last insight was generated $hoursSinceLastRun hours ago. Skipping.');
-      return;
-    }
-
-    final counts = await Future.wait([_historyFirestoreService.getTotalScansCount(), _historyFirestoreService.getTotalMealLogsCount(), _historyFirestoreService.getTotalSymptomsCount()]);
-
-    if (!_checkThreshold.execute(scanCount: counts[0], mealCount: counts[1], symptomCount: counts[2])) {
-      AppLogger.debug('GenerateInsightUseCase: Insufficient data threshold not reached. Skipping.');
       return;
     }
 
@@ -114,8 +101,14 @@ class GenerateInsightUseCase {
     final history = dataStreams[3] as List<AIInsight>;
     final allChat = dataStreams[5] as List<ChatMessage>;
 
-    if (allMeals.isEmpty && allScans.isEmpty) {
-      AppLogger.debug('GenerateInsightUseCase: No meals or scans in last 30 days. Skipping.');
+    // Check if TODAY's new logs (since lastRun) meet the exact daily threshold:
+    // Exactly: 3 New Scans Today OR (3 New Meals Today AND 1 New Symptom Today)
+    final newMeals = allMeals.where((m) => m.eventTime.isAfter(lastRun)).toList();
+    final newSymptoms = allSymptoms.where((s) => s.eventTime.isAfter(lastRun)).toList();
+    final newScans = allScans.where((s) => s.createdAt.isAfter(lastRun)).toList();
+
+    if (!_checkThreshold.execute(scanCount: newScans.length, mealCount: newMeals.length, symptomCount: newSymptoms.length)) {
+      AppLogger.debug('GenerateInsightUseCase: Daily log threshold (3 new scans OR 3 new meals + 1 symptom today) not reached since last run ($lastRun). Skipping insight generation.');
       return;
     }
 

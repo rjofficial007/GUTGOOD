@@ -1,6 +1,6 @@
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/journal/symptom_log.dart';
+import 'package:gutgood/core/models/scans/ai_analysis_result.dart';
 import 'package:gutgood/core/services/ai_response_validator.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -48,9 +48,14 @@ class PersistOutcome {
 /// chat-message saves, notifications, and UI refresh stay with the callers,
 /// reported via [PersistOutcome] instead.
 class DomainEventPersister {
-  DomainEventPersister({required HistoryFirestoreService historyFirestoreService}) : _history = historyFirestoreService;
+  DomainEventPersister({required HistoryFirestoreService historyFirestoreService, this.onMealPersisted}) : _history = historyFirestoreService;
 
   final HistoryFirestoreService _history;
+
+  /// Fired after a meal record is persisted. DI wires this to the
+  /// notification re-check ("no meals logged" reminder); a callback keeps
+  /// this core service free of notification/router imports. Null in tests.
+  final void Function()? onMealPersisted;
 
   /// Label/menu policy, single definition. True when the turn is a label or
   /// menu analysis (by capture source, AI category, or intent) — those render
@@ -86,7 +91,11 @@ class DomainEventPersister {
     if (isLabelOrMenuTurn(result, source: source)) {
       final diagnostic = AiResponseValidator.validate(result);
       AppLogger.ai('DomainEventPersister: label/menu turn — chat_history only');
-      return PersistOutcome(result: result.copyWith(clearMeal: true, symptoms: const []), chatOnlyReason: ChatOnlyReason.labelMenu, validationReasons: diagnostic.reasons);
+      return PersistOutcome(
+        result: result.copyWith(clearMeal: true, symptoms: const []),
+        chatOnlyReason: ChatOnlyReason.labelMenu,
+        validationReasons: diagnostic.reasons,
+      );
     }
 
     // 2. Validate: malformed/low-confidence/non-food/contract-violating turns
@@ -110,8 +119,15 @@ class DomainEventPersister {
         if (scan.isLoggableProduct) {
           AppLogger.ai('DomainEventPersister: saving scan to scan_history — ${scan.productName}');
           final stableScanId = chatMessageId != null ? '${chatMessageId}_scan' : null;
-          await _history.saveToScanHistory(scan.copyWith(scanId: stableScanId, chatMessageId: chatMessageId), userImageUrl: imageUrl, scanId: stableScanId);
-          updated = updated.copyWith(scan: scan.copyWith(scanId: stableScanId, chatMessageId: chatMessageId, userImageUrl: imageUrl));
+          final resolvedImage = scan.userImageUrl ?? imageUrl;
+          await _history.saveToScanHistory(
+            scan.copyWith(scanId: stableScanId, chatMessageId: chatMessageId, userImageUrl: resolvedImage),
+            userImageUrl: resolvedImage,
+            scanId: stableScanId,
+          );
+          updated = updated.copyWith(
+            scan: scan.copyWith(scanId: stableScanId, chatMessageId: chatMessageId, userImageUrl: resolvedImage),
+          );
           persistedScan = true;
         } else {
           AppLogger.ai('DomainEventPersister: non-product scan skipped for history collection');
@@ -128,10 +144,16 @@ class DomainEventPersister {
       if (!tags.contains(key)) {
         AppLogger.ai('DomainEventPersister: saving meal to journal_logs');
         final stableMealId = chatMessageId != null ? '${chatMessageId}_meal' : null;
-        final id = await _history.logMeal(meal.copyWith(chatMessageId: chatMessageId, source: source), docId: stableMealId);
+        final id = await _history.logMeal(
+          meal.copyWith(chatMessageId: chatMessageId, source: source),
+          docId: stableMealId,
+        );
         if (id != null) updated = updated.copyWith(meal: updated.meal!.copyWith(firestoreId: id));
         tags.add(key);
         persistedMeal = true;
+        // A meal now exists today — re-evaluate so the evening "no meals
+        // logged" reminder is silenced (deferred to tomorrow, not killed).
+        onMealPersisted?.call();
       }
     }
 

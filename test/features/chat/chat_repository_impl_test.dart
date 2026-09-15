@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/chat_message.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
@@ -26,7 +26,13 @@ void main() {
     repository = ChatRepositoryImpl(firestoreService: firestore, aiService: MockAiService(), streakService: MockStreakService(), foodImages: foodImages);
 
     when(() => firestore.deleteMessage(any())).thenAnswer((_) async {});
-    when(() => foodImages.removeLink(hash: any(named: 'hash'), kind: any(named: 'kind'), id: any(named: 'id'))).thenAnswer((_) async {});
+    when(
+      () => foodImages.removeLink(
+        hash: any(named: 'hash'),
+        kind: any(named: 'kind'),
+        id: any(named: 'id'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
   ChatMessage message({String? firestoreId = 'f1', List<String> hashes = const [], List<String> urls = const []}) =>
@@ -45,14 +51,26 @@ void main() {
       await repository.deleteMessage(message(urls: ['https://x/food_images/aaaabbbbccccdddd.jpg', 'https://x/food_images/1718035200000.jpg']));
 
       verify(() => foodImages.removeLink(hash: 'aaaabbbbccccdddd', kind: 'chat', id: 'f1')).called(1);
-      verifyNever(() => foodImages.removeLink(hash: '1718035200000', kind: any(named: 'kind'), id: any(named: 'id')));
+      verifyNever(
+        () => foodImages.removeLink(
+          hash: '1718035200000',
+          kind: any(named: 'kind'),
+          id: any(named: 'id'),
+        ),
+      );
     });
 
     test('local-only messages touch nothing', () async {
       await repository.deleteMessage(message(firestoreId: null, hashes: ['aaaabbbbccccdddd']));
 
       verifyNever(() => firestore.deleteMessage(any()));
-      verifyNever(() => foodImages.removeLink(hash: any(named: 'hash'), kind: any(named: 'kind'), id: any(named: 'id')));
+      verifyNever(
+        () => foodImages.removeLink(
+          hash: any(named: 'hash'),
+          kind: any(named: 'kind'),
+          id: any(named: 'id'),
+        ),
+      );
     });
   });
 }

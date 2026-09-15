@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/chat/chat_message.dart';
+import 'package:gutgood/core/models/insights/ai_insight.dart';
+import 'package:gutgood/core/models/insights/body_pattern.dart';
+import 'package:gutgood/core/models/journal/meal_log.dart';
+import 'package:gutgood/core/models/journal/symptom_log.dart';
+import 'package:gutgood/core/models/scans/ai_analysis_result.dart';
+import 'package:gutgood/core/models/scans/scan_result.dart';
 
 void main() {
   group('schema version stamps (§17)', () {
@@ -29,23 +29,24 @@ void main() {
       expect(ScanResult.fromMap({'productName': 'p', 'brand': 'b', 'score': 1, 'impactType': 'neutral', 'impact': 'i', 'createdAt': now.toIso8601String()}).schemaVersion, 1);
       expect(AIInsight.fromMap({'gutScore': 1, 'updatedAt': now.toIso8601String()}).schemaVersion, 1);
       expect(
-        BodyPattern.fromMap({
-          'type': 'correlation',
-          'trigger': 't',
-          'reaction': 'r',
-          'frequency': 3,
-          'confidence': 'High',
-          'description': 'd',
-          'updatedAt': now.toIso8601String(),
+        BodyPattern.fromMap({'type': 'correlation', 'trigger': 't', 'reaction': 'r', 'frequency': 3, 'confidence': 'High', 'description': 'd', 'updatedAt': now.toIso8601String()}).schemaVersion,
+        1,
+      );
+      expect(
+        MealLog.fromMap(const {
+          'items': ['x'],
         }).schemaVersion,
         1,
       );
-      expect(MealLog.fromMap(const {'items': ['x']}).schemaVersion, 1);
       expect(SymptomLog.fromMap(const {'symptom': 'x'}).schemaVersion, 1);
     });
 
     test('explicit v and verdict on AI turns parse and round-trip', () {
-      final result = AiAnalysisResult.fromMap(const {'v': 1, 'metadata': {'confidence': 0.9}, 'verdict': 'food'});
+      final result = AiAnalysisResult.fromMap(const {
+        'v': 1,
+        'metadata': {'confidence': 0.9},
+        'verdict': 'food',
+      });
 
       expect(result.schemaVersion, 1);
       expect(result.verdict, 'food');
@@ -76,7 +77,12 @@ void main() {
 
       // Legacy docs predate stamping: nulls, never fabricated versions.
       expect(ScanResult.fromMap({'productName': 'p', 'createdAt': now.toIso8601String()}).promptVersion, isNull);
-      expect(MealLog.fromMap(const {'items': ['x']}).model, isNull);
+      expect(
+        MealLog.fromMap(const {
+          'items': ['x'],
+        }).model,
+        isNull,
+      );
       expect(SymptomLog.fromMap(const {'symptom': 'x'}).promptVersion, isNull);
       expect(ChatMessage.fromMap(const {'text': 'hi'}).promptVersion, isNull);
     });

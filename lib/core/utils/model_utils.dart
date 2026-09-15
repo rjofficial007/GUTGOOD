@@ -22,7 +22,7 @@ class ModelUtils {
   static Object? toSafeEncodable(Object? nonEncodable) {
     if (nonEncodable == null) return null;
     if (nonEncodable is DateTime) return nonEncodable.toIso8601String();
-    if (nonEncodable is Timestamp) return nonEncodable.toDate().toIso8601String();
+    if (nonEncodable is Timestamp) return nonEncodable.toDate().toUtc().toIso8601String();
 
     // 🚀 Robust Duck-Typing: handle objects from other libraries that might
     // contain Timestamp-like properties (seconds/nanoseconds) or toDate() methods.
@@ -31,7 +31,7 @@ class ModelUtils {
       // ignore: avoid_dynamic_calls
       if (obj.runtimeType.toString().contains('Timestamp')) {
         // ignore: avoid_dynamic_calls
-        return obj.toDate().toIso8601String();
+        return obj.toDate().toUtc().toIso8601String();
       }
       // ignore: avoid_dynamic_calls
       if (obj.toMap != null) {
@@ -286,9 +286,14 @@ class ModelUtils {
 
   // Product scoring lives in `yuka_score.dart` (Yuka-style 60/30/10).
 
-  static int computeMealScore({int? novaGroup, Map<String, dynamic>? balance, Map<String, dynamic>? nutrientLevels, String? impactType}) {
+  static int computeMealScore({int? novaGroup, Map<String, dynamic>? balance, Map<String, dynamic>? nutrientLevels, String? impactType, bool? isOrganic}) {
     // Base score for a standard meal
     var score = 60;
+
+    // Organic certification bonus
+    if (isOrganic == true) {
+      score += 10;
+    }
 
     // Adjust based on NOVA group (processing)
     switch (novaGroup) {

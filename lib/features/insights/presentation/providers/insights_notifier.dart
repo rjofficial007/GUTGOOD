@@ -1,10 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/health_alert.dart';
-import 'package:gutgood/core/models/insights_dashboard_state.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -100,7 +97,7 @@ class InsightsNotifier with ChangeNotifier {
     try {
       _insightHistory = await _repository.getInsightHistory();
       await _analyticsService.logEvent(name: 'insight_history_viewed', parameters: {'count': _insightHistory.length});
-      
+
       // If we have history but no stream data yet, notify so UI can show the latest cached insight
       if (_state.latestInsight == null && _insightHistory.isNotEmpty) {
         notifyListeners();

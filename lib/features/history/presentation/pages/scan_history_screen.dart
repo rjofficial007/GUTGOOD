@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/models/journal_entry.dart';
-import 'package:gutgood/core/models/route_arguments.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -163,12 +162,7 @@ class _TimelineBody extends StatelessWidget {
               final entry = e.value;
               // Meal entries have no detail destination; scans and symptoms navigate.
               final hasDetail = entry.type != JournalEntryType.meal;
-              return JournalTimelineEntry(
-                entry: entry,
-                isFirst: entryIndex == 0,
-                isLast: entryIndex == groupEntries.length - 1,
-                onTap: hasDetail ? () => _handleEntryTap(context, entry) : null,
-              );
+              return JournalTimelineEntry(entry: entry, isFirst: entryIndex == 0, isLast: entryIndex == groupEntries.length - 1, onTap: hasDetail ? () => _handleEntryTap(context, entry) : null);
             }),
           ],
         );

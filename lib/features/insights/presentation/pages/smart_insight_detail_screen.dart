@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/models/ai_insight_details.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
@@ -20,11 +20,8 @@ class SmartInsightDetailScreen extends StatelessWidget {
     body: CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        const GutSliverAppBar(title: 'SMART INSIGHT', centerTitle: true),
-        InsightBentoSynergy(
-          summary: insight,
-          patterns: context.read<InsightsNotifier>().prioritizedPatterns,
-        ),
+        const GutSliverAppBar(title: 'DEEP DISCOVERY', centerTitle: true),
+        InsightBentoSynergy(summary: insight, patterns: context.read<InsightsNotifier>().prioritizedPatterns),
       ],
     ),
   );

@@ -5,15 +5,8 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
-import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/ai_insight_details.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/route_arguments.dart';
-import 'package:gutgood/core/models/scan_list_args.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/router/route_codec.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
@@ -29,11 +22,12 @@ import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dar
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
+import 'package:gutgood/features/insights/presentation/pages/highlight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
-import 'package:gutgood/features/insights/presentation/pages/patterns_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/pattern_detail_screen.dart';
+import 'package:gutgood/features/insights/presentation/pages/patterns_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_screens.dart';
@@ -52,7 +46,6 @@ import 'package:gutgood/features/profile/presentation/pages/notifications_screen
 import 'package:gutgood/features/profile/presentation/pages/profile_screen.dart';
 import 'package:gutgood/features/profile/presentation/pages/sensitivities_screen.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
-import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 import 'package:gutgood/features/scanner/presentation/pages/scanning_animation_screen.dart';
 import 'package:gutgood/features/scanner/presentation/pages/super_scanner_screen.dart';
 import 'package:gutgood/features/splash/presentation/pages/splash_screen.dart';
@@ -175,6 +168,10 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.insightDetail,
                 builder: (context, state) => InsightDetailScreen(insight: state.extra as AIInsight),
+              ),
+              GoRoute(
+                path: AppRoutes.highlightDetail,
+                builder: (context, state) => HighlightDetailScreen(args: state.extra as HighlightDetailArgs),
               ),
               GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
               GoRoute(path: AppRoutes.patterns, builder: (context, state) => const PatternsScreen()),

@@ -9,6 +9,7 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_feed.dart';
 import 'package:provider/provider.dart';
 
@@ -47,39 +48,38 @@ class _InsightsScreenState extends State<InsightsScreen> {
           // dashboard state is still loading or empty.
           final prioritizedPatterns = notifier.prioritizedPatterns.isNotEmpty ? notifier.prioritizedPatterns : (latestInsight?.detectedPatterns ?? []);
 
+          // Real per-day score window for the hero's bar chart. Below two
+          // points the hero falls back to the gradient track bar.
+          final (scoreSeries, scoreLabels) = BentoData.scoreWindow(notifier.insightHistory, ensure: latestInsight);
+
           // P2-10: show the shimmer when either the initial stream is loading
           // OR an explicit manual/bootstrap generation is in progress.
           final isLoading = notifier.isLoading || (latestInsight == null && notifier.isGenerating);
 
-          return RefreshIndicator(
-            onRefresh: notifier.generateNewInsight,
-            color: colorScheme.cardBackground,
-            backgroundColor: colorScheme.cardBackground,
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-              slivers: [
-                GutSliverAppBar(
-                  title: AppStrings.insights,
-                  actions: [
-                    IconButton(
-                      icon: Icon(AppIcons.history, color: colorScheme.textPrimary),
-                      onPressed: () => unawaited(context.push(AppRoutes.insightHistory)),
-                    ),
-                    Gap.w10,
-                  ],
-                ),
-                if (isLoading)
-                  const _InsightsLoadingState()
-                else if (latestInsight == null)
-                  // Bento "learning grid" (v4 screen 02) — same unlock rule as
-                  // before, presented as a partially mapped score hero.
-                  InsightBentoLearning(meals: notifier.totalMeals, symptoms: notifier.totalSymptoms, scans: notifier.totalScans)
-                else
-                  // Bento grid feed (v4 screen 01). The app bar above and the
-                  // MainShell bottom nav are unchanged, per the design brief.
-                  InsightBentoFeed(data: latestInsight, patterns: prioritizedPatterns),
-              ],
-            ),
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              GutSliverAppBar(
+                title: AppStrings.insights,
+                actions: [
+                  IconButton(
+                    icon: Icon(AppIcons.history, color: colorScheme.textPrimary),
+                    onPressed: () => unawaited(context.push(AppRoutes.insightHistory)),
+                  ),
+                  Gap.w10,
+                ],
+              ),
+              if (isLoading)
+                const _InsightsLoadingState()
+              else if (latestInsight == null)
+                // Bento "learning grid" (v4 screen 02) — same unlock rule as
+                // before, presented as a partially mapped score hero.
+                InsightBentoLearning(meals: notifier.totalMeals, symptoms: notifier.totalSymptoms, scans: notifier.totalScans)
+              else
+                // Bento grid feed (v4 screen 01). The app bar above and the
+                // MainShell bottom nav are unchanged, per the design brief.
+                InsightBentoFeed(data: latestInsight, patterns: prioritizedPatterns, series: scoreSeries, seriesLabels: scoreLabels),
+            ],
           );
         },
       ),

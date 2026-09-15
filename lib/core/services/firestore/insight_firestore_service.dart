@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/health_alert.dart';
+import 'package:gutgood/core/models/insights/ai_insight.dart';
+import 'package:gutgood/core/models/insights/body_pattern.dart';
+import 'package:gutgood/core/models/user/health_alert.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class InsightFirestoreService {

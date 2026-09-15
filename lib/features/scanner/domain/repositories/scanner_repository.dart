@@ -1,8 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/off_product.dart';
-import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/models.dart';
 
 abstract class ScannerRepository {
   /// Personal barcode cache window (P0-3): entries older than this fall

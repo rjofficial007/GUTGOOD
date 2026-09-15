@@ -6,10 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/ai_classifier_service.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
@@ -127,7 +124,13 @@ void main() {
     when(() => outboxService.pending).thenReturn(<QueuedMessage>[]);
     when(() => outboxService.isEmpty).thenReturn(true);
     when(() => uploadOutbox.isEmpty).thenReturn(true);
-    when(() => foodImages.addLink(hash: any(named: 'hash'), kind: any(named: 'kind'), id: any(named: 'id'))).thenAnswer((_) async {});
+    when(
+      () => foodImages.addLink(
+        hash: any(named: 'hash'),
+        kind: any(named: 'kind'),
+        id: any(named: 'id'),
+      ),
+    ).thenAnswer((_) async {});
     when(() => repository.lastResponseTruncated).thenReturn(false);
     when(() => repository.lastPromptVersion).thenReturn(null);
     when(() => repository.lastServedModel).thenReturn(null);
@@ -222,7 +225,12 @@ void main() {
     test('offline image send still refuses (bytes never queue)', () async {
       when(() => connectionChecker.isInternetAvailable).thenReturn(ValueNotifier<bool>(false));
       when(() => storageService.compressForAi(any())).thenAnswer((inv) async => inv.positionalArguments[0] as Uint8List);
-      when(() => analyticsService.logEvent(name: any(named: 'name'), parameters: any(named: 'parameters'))).thenAnswer((_) async {});
+      when(
+        () => analyticsService.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async {});
       await notifier.addAttachment(Uint8List(10));
 
       final result = await notifier.send(text: 'hello');
@@ -259,10 +267,18 @@ void main() {
       when(() => historyNotifier.precomputeSummary()).thenAnswer((_) async {});
       when(() => storageService.compressForAi(any())).thenAnswer((inv) async => inv.positionalArguments[0] as Uint8List);
       when(
-        () => uploadOutbox.uploadOrEnqueue(bytes: any(named: 'bytes'), chatLocalId: any(named: 'chatLocalId'), index: any(named: 'index')),
+        () => uploadOutbox.uploadOrEnqueue(
+          bytes: any(named: 'bytes'),
+          chatLocalId: any(named: 'chatLocalId'),
+          index: any(named: 'index'),
+        ),
       ).thenThrow(const SocketException('unreachable'));
       when(
-        () => aiClassifierService.classifyImage(imageBytes: any(named: 'imageBytes'), userText: any(named: 'userText'), modeHint: any(named: 'modeHint')),
+        () => aiClassifierService.classifyImage(
+          imageBytes: any(named: 'imageBytes'),
+          userText: any(named: 'userText'),
+          modeHint: any(named: 'modeHint'),
+        ),
       ).thenAnswer((_) async => const AiClassificationResult(imageMode: 'FOOD', intent: 'COMPLETE_ANALYSIS', confidence: 1.0));
       when(() => repository.saveMessage(any())).thenAnswer((inv) async => (inv.positionalArguments[0] as ChatMessage).copyWith(firestoreId: 'f1'));
       when(
@@ -297,7 +313,10 @@ void main() {
         ),
       ).thenAnswer((inv) async => inv.positionalArguments[0] as AiAnalysisResult);
       when(
-        () => analyticsService.logEvent(name: any(named: 'name'), parameters: any(named: 'parameters')),
+        () => analyticsService.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
       ).thenAnswer((_) async {});
 
       await notifier.addAttachment(Uint8List(10));
@@ -363,16 +382,27 @@ void main() {
       expect(patched.localImages, isNull);
       verify(() => repository.saveMessage(any())).called(1);
       verify(() => foodImages.addLink(hash: 'abcdef0123456789', kind: 'chat', id: 'f1')).called(1);
-      verifyNever(() => repository.patchMessageImageUrls(localId: any(named: 'localId'), imageUrls: any(named: 'imageUrls')));
+      verifyNever(
+        () => repository.patchMessageImageUrls(
+          localId: any(named: 'localId'),
+          imageUrls: any(named: 'imageUrls'),
+        ),
+      );
     });
 
     test('flushUploads patches Firestore directly when the message is gone (restart)', () async {
       when(() => historyNotifier.messages).thenReturn(<ChatMessage>[]);
       when(
-        () => repository.patchMessageImageUrls(localId: any(named: 'localId'), imageUrls: any(named: 'imageUrls')),
+        () => repository.patchMessageImageUrls(
+          localId: any(named: 'localId'),
+          imageUrls: any(named: 'imageUrls'),
+        ),
       ).thenAnswer((_) async {});
       when(
-        () => repository.patchMessageImageHashes(localId: any(named: 'localId'), imageHashes: any(named: 'imageHashes')),
+        () => repository.patchMessageImageHashes(
+          localId: any(named: 'localId'),
+          imageHashes: any(named: 'imageHashes'),
+        ),
       ).thenAnswer((_) async {});
       when(() => uploadOutbox.isEmpty).thenReturn(false);
       when(() => uploadOutbox.flush(onRecovered: any(named: 'onRecovered'))).thenAnswer((inv) async {
@@ -443,7 +473,10 @@ void main() {
       });
       when(() => historyNotifier.precomputeSummary()).thenAnswer((_) async {});
       when(
-        () => aiClassifierService.classifyTextIntent(userText: any(named: 'userText'), historySummary: any(named: 'historySummary')),
+        () => aiClassifierService.classifyTextIntent(
+          userText: any(named: 'userText'),
+          historySummary: any(named: 'historySummary'),
+        ),
       ).thenAnswer((_) async => 'COMPLETE_ANALYSIS');
       when(() => repository.saveMessage(any())).thenAnswer((inv) async => (inv.positionalArguments[0] as ChatMessage).copyWith(firestoreId: 'f1'));
       when(
@@ -478,23 +511,25 @@ void main() {
         ),
       ).thenAnswer((inv) async => inv.positionalArguments[0] as AiAnalysisResult);
       when(
-        () => analyticsService.logEvent(name: any(named: 'name'), parameters: any(named: 'parameters')),
+        () => analyticsService.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
       ).thenAnswer((_) async {});
 
       final result = await notifier.send(text: 'new question here');
 
       expect(result, isNull);
-      final captured =
-          verify(
-                () => sendMessageStreamUseCase.call(
-                  systemInstruction: captureAny(named: 'systemInstruction'),
-                  history: captureAny(named: 'history'),
-                  userText: any(named: 'userText'),
-                  images: any(named: 'images'),
-                  intent: any(named: 'intent'),
-                  promptVersion: any(named: 'promptVersion'),
-                ),
-              ).captured;
+      final captured = verify(
+        () => sendMessageStreamUseCase.call(
+          systemInstruction: captureAny(named: 'systemInstruction'),
+          history: captureAny(named: 'history'),
+          userText: any(named: 'userText'),
+          images: any(named: 'images'),
+          intent: any(named: 'intent'),
+          promptVersion: any(named: 'promptVersion'),
+        ),
+      ).captured;
       final history = captured[1] as List<ChatMessage>;
       final instruction = captured[0] as String;
 
@@ -516,7 +551,9 @@ void main() {
           text: 'x',
           foodMentions: const ['Pizza', '  '],
           symptomMentions: const ['Bloating'],
-          mealLogs: [MealLog(items: const ['pizza', 'Salad'], createdAt: DateTime.now())],
+          mealLogs: [
+            MealLog(items: const ['pizza', 'Salad'], createdAt: DateTime.now()),
+          ],
           createdAt: DateTime.now(),
         ),
         ChatMessage(

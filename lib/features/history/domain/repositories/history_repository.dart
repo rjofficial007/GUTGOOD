@@ -1,7 +1,4 @@
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 
 abstract class HistoryRepository {
   Future<List<ChatMessage>> getMessages({int? limit, int? offset, DateTime? beforeTime});

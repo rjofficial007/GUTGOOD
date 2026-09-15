@@ -1,20 +1,11 @@
 import 'dart:convert';
 
-import 'package:gutgood/core/data/additive_concern_db.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
-import 'package:gutgood/core/models/ai_insight_details.dart';
-import 'package:gutgood/core/models/body_pattern.dart';
-import 'package:gutgood/core/models/route_arguments.dart';
-import 'package:gutgood/core/models/scan_list_args.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/utils/model_utils.dart';
 
-/// go_router `extra` codec: extras are serialized as JSON (state
-/// restoration), so every non-primitive type passed as `state.extra` in
-/// app_router MUST be registered here or navigation throws "Converting
-/// object to an encodable object failed". Timestamp-bearing models use
-/// their JSON-safe `toJsonMap`, never Firestore `toMap`.
+/// go_router extra codec: extras are serialized as JSON
+/// so every non-primitive type passed as state.extra in
+/// app_router MUST be registered here or navigation throws.
 class RouteCodec extends Codec<Object?, Object?> {
   const RouteCodec();
 
@@ -31,37 +22,38 @@ class _RouteEncoder extends Converter<Object?, Object?> {
   @override
   Object? convert(Object? input) {
     if (input == null) return null;
+    Object? encoded;
     if (input is AIInsight) {
-      return {'__type': 'AIInsight', 'data': input.toJsonMap()};
+      encoded = {'__type': 'AIInsight', 'data': input.toJsonMap()};
+    } else if (input is BodyPattern) {
+      encoded = {'__type': 'BodyPattern', 'data': input.toMap()};
+    } else if (input is ScanResult) {
+      encoded = {'__type': 'ScanResult', 'data': input.toMap()};
+    } else if (input is ScanResultArgs) {
+      encoded = {'__type': 'ScanResultArgs', 'data': input.toMap()};
+    } else if (input is InsightSummary) {
+      encoded = {'__type': 'InsightSummary', 'data': input.toMap()};
+    } else if (input is SymptomLog) {
+      encoded = {'__type': 'SymptomLog', 'data': input.toJsonMap()};
+    } else if (input is AdditiveConcern) {
+      encoded = {'__type': 'AdditiveConcern', 'data': input.toMap()};
+    } else if (input is ScanListDetailArgs) {
+      encoded = {'__type': 'ScanListDetailArgs', 'data': input.toMap()};
+    } else if (input is ProductSwap) {
+      encoded = {'__type': 'ProductSwap', 'data': input.toMap()};
+    } else if (input is AdditiveListArgs) {
+      encoded = {'__type': 'AdditiveListArgs', 'data': input.toMap()};
+    } else if (input is HighlightDetailArgs) {
+      encoded = {'__type': 'HighlightDetailArgs', 'data': input.toMap()};
+    } else {
+      encoded = input;
     }
-    if (input is BodyPattern) {
-      return {'__type': 'BodyPattern', 'data': input.toMap()};
+
+    try {
+      return jsonDecode(ModelUtils.safeJsonEncode(encoded));
+    } catch (_) {
+      return encoded;
     }
-    if (input is ScanResult) {
-      return {'__type': 'ScanResult', 'data': input.toMap()};
-    }
-    if (input is ScanResultArgs) {
-      return {'__type': 'ScanResultArgs', 'data': input.toMap()};
-    }
-    if (input is InsightSummary) {
-      return {'__type': 'InsightSummary', 'data': input.toMap()};
-    }
-    if (input is SymptomLog) {
-      return {'__type': 'SymptomLog', 'data': input.toJsonMap()};
-    }
-    if (input is AdditiveConcern) {
-      return {'__type': 'AdditiveConcern', 'data': input.toMap()};
-    }
-    if (input is ScanListDetailArgs) {
-      return {'__type': 'ScanListDetailArgs', 'data': input.toMap()};
-    }
-    if (input is ProductSwap) {
-      return {'__type': 'ProductSwap', 'data': input.toMap()};
-    }
-    if (input is AdditiveListArgs) {
-      return {'__type': 'AdditiveListArgs', 'data': input.toMap()};
-    }
-    return input;
   }
 }
 
@@ -97,6 +89,8 @@ class _RouteDecoder extends Converter<Object?, Object?> {
           return ProductSwap.fromMap(data);
         case 'AdditiveListArgs':
           return AdditiveListArgs.fromMap(data);
+        case 'HighlightDetailArgs':
+          return HighlightDetailArgs.fromMap(data);
         default:
           return input;
       }

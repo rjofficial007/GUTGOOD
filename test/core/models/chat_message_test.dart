@@ -1,21 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/scan_result.dart';
-import 'package:gutgood/core/models/scan_result_details.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/chat/chat_message.dart';
+import 'package:gutgood/core/models/journal/meal_log.dart';
+import 'package:gutgood/core/models/journal/symptom_log.dart';
+import 'package:gutgood/core/models/scans/ai_analysis_result.dart';
+import 'package:gutgood/core/models/scans/scan_result.dart';
+import 'package:gutgood/core/models/scans/scan_result_details.dart';
 
 void main() {
-  ScanResult scan() => ScanResult(
-    productName: 'Test Cola',
-    brand: 'Test',
-    score: 42,
-    impactType: ImpactType.neutral,
-    impact: 'okay',
-    createdAt: DateTime.now(),
-    scanId: 's1',
-  );
+  ScanResult scan() => ScanResult(productName: 'Test Cola', brand: 'Test', score: 42, impactType: ImpactType.neutral, impact: 'okay', createdAt: DateTime.now(), scanId: 's1');
 
   ChatMessage fatMessage() => ChatMessage(
     localId: 'm1',
@@ -24,7 +16,9 @@ void main() {
     imageUrls: const ['https://x/food_images/abcdef0123456789.jpg'],
     imageHashes: const ['abcdef0123456789'],
     scanData: scan(),
-    mealLogs: [MealLog(items: const ['Pizza'], firestoreId: 'j1', createdAt: DateTime.now())],
+    mealLogs: [
+      MealLog(items: const ['Pizza'], firestoreId: 'j1', createdAt: DateTime.now()),
+    ],
     symptomLogs: [SymptomLog(symptom: 'Bloating', firestoreId: 'j2', createdAt: DateTime.now())],
     swapData: const [ProductSwap(title: 'Oat milk', subtitle: 'swap', imageKeyword: 'oat milk', tag: 'BETTER')],
     analysisResult: AiAnalysisResult(text: 'analysis here', scan: scan()),
@@ -56,7 +50,10 @@ void main() {
         'role': 'ai',
         'text': 'analysis here',
         'mealLogs': [
-          {'items': ['Pizza'], 'createdAt': '2026-01-01T00:00:00.000'},
+          {
+            'items': ['Pizza'],
+            'createdAt': '2026-01-01T00:00:00.000',
+          },
         ],
         'analysisResult': {
           'text': 'analysis here',
@@ -69,7 +66,9 @@ void main() {
 
       expect(msg.analysisResult, isNotNull);
       expect(msg.scanData?.productName, 'Legacy Cola');
-      expect(msg.mealLogs.map((m) => m.items), [['Pizza']]);
+      expect(msg.mealLogs.map((m) => m.items), [
+        ['Pizza'],
+      ]);
     });
 
     test('fromMap builds the inline card from scanPreview when no analysis is stored', () {

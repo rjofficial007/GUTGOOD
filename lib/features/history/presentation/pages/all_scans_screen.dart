@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/models/historical_scan.dart';
-import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/presentation/providers/history_notifier.dart';
@@ -73,7 +72,6 @@ class _AllScansScreenState extends State<AllScansScreen> {
             const GutSliverAppBar(title: AppStrings.aiScanHistory, showBrandingIcon: false),
             if (notifier.scansLoading) const _Loading() else if (notifier.allScans.isEmpty) const _Empty() else _List(groupedHistory: _groupHistoryByDate(notifier.allScans)),
             if (notifier.scansLoadingMore)
-
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),

@@ -9,7 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:gutgood/core/constants/api_constants.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
-import 'package:gutgood/core/models/user_profile.dart';
+import 'package:gutgood/core/models/user/user_profile.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/crashlytics_service.dart';

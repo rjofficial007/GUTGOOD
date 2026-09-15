@@ -3,8 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
-import 'package:gutgood/core/models/historical_scan.dart';
-import 'package:gutgood/core/models/route_arguments.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/presentation/widgets/scan_history_tile.dart';
 

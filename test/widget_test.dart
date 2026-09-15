@@ -6,9 +6,9 @@
 // ChatGPT-style chat interaction model.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/ai_analysis_result.dart';
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/chat/chat_message.dart';
+import 'package:gutgood/core/models/scans/ai_analysis_result.dart';
+import 'package:gutgood/core/models/scans/scan_result.dart';
 
 void main() {
   group('ChatMessage persistence dedup (rawData)', () {

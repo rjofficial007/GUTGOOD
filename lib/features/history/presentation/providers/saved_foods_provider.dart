@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/models/scan_result.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 
 class SavedFoodsProvider with ChangeNotifier {
-  SavedFoodsProvider({
-    required HistoryRepository repository,
-    required AppStateService appStateService,
-  }) : _repository = repository,
-       _appStateService = appStateService {
+  SavedFoodsProvider({required HistoryRepository repository, required AppStateService appStateService}) : _repository = repository, _appStateService = appStateService {
     _loadSavedFoods();
     _appStateService.savedFoodsUpdated.addListener(_loadSavedFoods);
   }

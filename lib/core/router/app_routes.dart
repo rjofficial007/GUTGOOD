@@ -15,6 +15,7 @@ class AppRoutes {
   // Insights Sub-routes
   static const String weeklyRecap = '/weekly-recap';
   static const String insightDetail = '/insight-detail';
+  static const String highlightDetail = '/highlight-detail';
   static const String insightHistory = '/insight-history';
   static const String patterns = '/patterns';
   static const String patternDetail = '/pattern-detail';

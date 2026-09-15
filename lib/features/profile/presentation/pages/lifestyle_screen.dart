@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_config_data.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/models/selection_option.dart';
+import 'package:gutgood/core/models/user/selection_option.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
@@ -22,8 +22,7 @@ class _LifestyleScreenState extends State<LifestyleScreen> {
   final Set<String> _selectedLifestyle = {};
   bool _isSaving = false;
 
-  final List<SelectionOption> _lifestyleOptions =
-      AppConfigData.lifestyleOptions;
+  final List<SelectionOption> _lifestyleOptions = AppConfigData.lifestyleOptions;
 
   @override
   void initState() {
@@ -37,10 +36,7 @@ class _LifestyleScreenState extends State<LifestyleScreen> {
 
     final notifier = context.read<ProfileNotifier>();
     if (notifier.profile != null) {
-      final updatedProfile = notifier.profile!.copyWith(
-        lifestyle: lifestyleList,
-        updatedAt: DateTime.now(),
-      );
+      final updatedProfile = notifier.profile!.copyWith(lifestyle: lifestyleList, updatedAt: DateTime.now());
       await notifier.updateUserProfile(updatedProfile);
     }
 
@@ -72,16 +68,9 @@ class _LifestyleScreenState extends State<LifestyleScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SelectionHeader(
-                  title: AppStrings.onboardingLifestyleTitle,
-                  subtitle: AppStrings.updatePreferencesSubtitle,
-                ),
+                const _SelectionHeader(title: AppStrings.onboardingLifestyleTitle, subtitle: AppStrings.updatePreferencesSubtitle),
                 Gap.h32,
-                SelectionWrap(
-                  options: _lifestyleOptions,
-                  selectedValues: _selectedLifestyle,
-                  onToggle: _toggleLifestyle,
-                ),
+                SelectionWrap(options: _lifestyleOptions, selectedValues: _selectedLifestyle, onToggle: _toggleLifestyle),
               ],
             ),
           ),
@@ -101,20 +90,9 @@ class _SelectionHeader extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        title,
-        style: AppTextStyles.title.copyWith(
-          fontWeight: FontWeight.w800,
-          fontSize: 18,
-        ),
-      ),
+      Text(title, style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
       Gap.h8,
-      Text(
-        subtitle,
-        style: AppTextStyles.bodySm.copyWith(
-          color: context.appColorScheme.textSecondary,
-        ),
-      ),
+      Text(subtitle, style: AppTextStyles.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
     ],
   );
 }
@@ -126,16 +104,7 @@ class _SelectionFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      AppSizes.p24,
-      AppSizes.p16,
-      AppSizes.p24,
-      AppSizes.p32,
-    ),
-    child: GutButton(
-      label: AppStrings.saveChanges,
-      isLoading: isLoading,
-      onTap: onSave,
-    ),
+    padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p32),
+    child: GutButton(label: AppStrings.saveChanges, isLoading: isLoading, onTap: onSave),
   );
 }

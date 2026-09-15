@@ -1,5 +1,4 @@
-import 'package:gutgood/core/models/meal_log.dart';
-import 'package:gutgood/core/models/symptom_log.dart';
+import 'package:gutgood/core/models/models.dart';
 
 abstract class LogRepository {
   Future<void> logSymptom(SymptomLog log);

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:gutgood/core/models/chat_message.dart';
-import 'package:gutgood/core/models/food_image.dart';
+import 'package:gutgood/core/models/chat/chat_message.dart';
+import 'package:gutgood/core/models/user/food_image.dart';
 import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
@@ -30,8 +30,7 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<List<ChatMessage>> getOlderMessages({required int limit, required DateTime before}) =>
-      _firestoreService.getOlderMessages(limit: limit, before: before);
+  Future<List<ChatMessage>> getOlderMessages({required int limit, required DateTime before}) => _firestoreService.getOlderMessages(limit: limit, before: before);
 
   @override
   Future<void> deleteMessage(ChatMessage message) async {
@@ -40,9 +39,7 @@ class ChatRepositoryImpl implements ChatRepository {
       await _firestoreService.deleteMessage(id);
       // Drop this message's photo links; hash list first, URL parse as
       // fallback for messages saved before imageHashes existed.
-      final hashes = message.imageHashes.isNotEmpty
-          ? message.imageHashes
-          : message.imageUrls.map(imageHashFromFoodUrl).whereType<String>().toList();
+      final hashes = message.imageHashes.isNotEmpty ? message.imageHashes : message.imageUrls.map(imageHashFromFoodUrl).whereType<String>().toList();
       for (final hash in hashes) {
         await _foodImages.removeLink(hash: hash, kind: FoodImageLinks.kindChat, id: id);
       }
@@ -57,12 +54,10 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<void> patchMessageImageUrls({required String localId, required List<String> imageUrls}) =>
-      _firestoreService.patchMessageImageUrls(localId: localId, imageUrls: imageUrls);
+  Future<void> patchMessageImageUrls({required String localId, required List<String> imageUrls}) => _firestoreService.patchMessageImageUrls(localId: localId, imageUrls: imageUrls);
 
   @override
-  Future<void> patchMessageImageHashes({required String localId, required List<String> imageHashes}) =>
-      _firestoreService.patchMessageImageHashes(localId: localId, imageHashes: imageHashes);
+  Future<void> patchMessageImageHashes({required String localId, required List<String> imageHashes}) => _firestoreService.patchMessageImageHashes(localId: localId, imageHashes: imageHashes);
 
   @override
   Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String? intent, int? promptVersion}) =>

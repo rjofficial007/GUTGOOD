@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gutgood/core/models/notification_preferences.dart';
-import 'package:gutgood/core/models/user_profile.dart';
+import 'package:gutgood/core/models/user/notification_preferences.dart';
+import 'package:gutgood/core/models/user/user_profile.dart';
 import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
@@ -93,7 +93,6 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
         });
   }
 
-
   @override
   Future<void> updatePremiumStatus(bool isPremium) async {
     try {
@@ -141,8 +140,6 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
       AppLogger.error('AuthFirestoreService: Error clearing FCM token', error: e);
     }
   }
-
-
 
   @override
   Future<String?> uploadProfilePicture(File imageFile) async {

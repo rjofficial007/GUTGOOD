@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/models/ai_insight.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_screens.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +20,8 @@ class WeeklyRecapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Local capture so the null guard below promotes the field.
+    final insight = this.insight;
     final recap = insight?.weeklyRecap;
 
     if (insight != null) {
@@ -34,19 +37,18 @@ class WeeklyRecapScreen extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           const GutSliverAppBar(title: AppStrings.weeklyRecap, centerTitle: true),
-          // Bento weekly grid (v4 screen 03). The sparkline is fed the real
-          // per-day scores from history and hides itself below 2 points.
-          InsightBentoRecap(recap: recap, insight: insight, series: _scoreSeries(context)),
+          // Bento weekly grid (v4 screen 03). The hero's bar chart is fed the
+          // real per-day scores from history and falls back to the gradient
+          // track below 2 points.
+          Builder(
+            builder: (context) {
+              final (series, labels) = BentoData.scoreWindow(context.read<InsightsNotifier>().insightHistory, until: insight.updatedAt, ensure: insight);
+              return InsightBentoRecap(recap: recap, insight: insight, series: series, seriesLabels: labels);
+            },
+          ),
         ],
       ),
     );
-  }
-
-  /// Chronological gut-score history for the sparkline.
-  static List<double> _scoreSeries(BuildContext context) {
-    final history = context.read<InsightsNotifier>().insightHistory;
-    final sorted = [...history]..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
-    return [for (final i in sorted) i.gutScore.toDouble()];
   }
 }
 

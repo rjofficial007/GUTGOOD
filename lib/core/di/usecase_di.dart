@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/services/domain_event_persister.dart';
+import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/features/chat/domain/usecases/persist_ai_response_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/send_message_stream_usecase.dart';
@@ -12,8 +15,8 @@ void initUseCaseDI() {
   sl
     ..registerLazySingleton(() => SendMessageStreamUseCase(sl()))
     ..registerLazySingleton(ProcessChatTagUseCase.new)
-    ..registerLazySingleton(() => DomainEventPersister(historyFirestoreService: sl()))
-    ..registerLazySingleton(() => PersistAiResponseUseCase(firestoreService: sl(), appStateService: sl(), streakService: sl()))
+    ..registerLazySingleton(() => DomainEventPersister(historyFirestoreService: sl(), onMealPersisted: _recheckNoMealReminder))
+    ..registerLazySingleton(() => PersistAiResponseUseCase(firestoreService: sl(), appStateService: sl(), streakService: sl(), onMealPersisted: _recheckNoMealReminder))
     ..registerLazySingleton(() => const CheckInsightThresholdUseCase())
     ..registerLazySingleton(() => const BuildUnifiedJournalUseCase())
     ..registerLazySingleton(() => SummarizeJournalUseCase(aiService: sl()))
@@ -30,4 +33,11 @@ void initUseCaseDI() {
         patternEngineService: sl(),
       ),
     );
+}
+
+/// Fire-and-forget re-check after a meal is persisted: re-evaluates the
+/// "no meals logged" reminder so today's evening nudge is silenced (and
+/// deferred to tomorrow) as soon as a meal exists.
+void _recheckNoMealReminder() {
+  unawaited(sl<NotificationService>().scheduleNoMealLoggedReminder());
 }
