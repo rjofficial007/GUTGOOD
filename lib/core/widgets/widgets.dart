@@ -1,7 +1,8 @@
+export 'package:gutgood/features/insights/presentation/widgets/arc_pattern_card.dart';
+
 export 'app_switch_tile.dart';
 export 'app_tile.dart';
 export 'auth_option_tile.dart';
-export 'package:gutgood/features/insights/presentation/widgets/arc_pattern_card.dart';
 export 'caution_badge.dart';
 export 'chat/chat_bubble.dart';
 export 'empty_state_widget.dart';

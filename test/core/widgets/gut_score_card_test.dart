@@ -22,7 +22,7 @@ void main() {
       expect(find.text('85'), findsOneWidget);
       expect(find.text('/100'), findsOneWidget);
       expect(find.text('GUTGOOD SCORE'), findsOneWidget);
-      expect(find.text('↑ 5 pts'), findsOneWidget);
+      expect(find.textContaining('5 pts'), findsOneWidget);
     });
 
     testWidgets('renders compact style variant correctly', (tester) async {

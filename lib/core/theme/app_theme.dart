@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_theme.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 
 class AppTheme {
   const AppTheme._();
@@ -81,7 +82,11 @@ class AppTheme {
       ),
       hintStyle: const TextStyle(color: AppPalette.gray400, fontSize: 16),
     ),
-    extensions: const [AppColorScheme.light, InsightBentoTheme.light],
+    extensions: const [
+      AppColorScheme.light,
+      InsightBentoTheme.light,
+      InsightV2Theme.light,
+    ],
   );
 
   static ThemeData get darkTheme => ThemeData(
@@ -158,6 +163,10 @@ class AppTheme {
         fontSize: 16,
       ),
     ),
-    extensions: const [AppColorScheme.dark, InsightBentoTheme.dark],
+    extensions: const [
+      AppColorScheme.dark,
+      InsightBentoTheme.dark,
+      InsightV2Theme.dark,
+    ],
   );
 }

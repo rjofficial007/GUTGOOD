@@ -164,6 +164,15 @@ class GutScoreCard extends StatelessWidget {
                                     ),
                                   ],
                                 ),
+                                if (subtitle != null && subtitle!.isNotEmpty) ...[
+                                  Gap.h4,
+                                  Text(
+                                    subtitle!,
+                                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, color: Colors.white.withValues(alpha: 0.80), height: 1.3),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                                 Gap.h14,
 
                                 // Bottom Left Pill CTA Button matching DeepDiscoveryCard layout completely

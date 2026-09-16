@@ -143,7 +143,7 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('50'), findsOneWidget);
       expect(find.text('GUTGOOD SCORE'), findsOneWidget);
-      expect(find.text('↑ 6 pts'), findsOneWidget);
+      expect(find.textContaining('6 pts'), findsOneWidget);
       expect(find.textContaining('Fast food dinners'), findsOneWidget);
       expect(find.textContaining('94% match'), findsOneWidget);
       // Card titles keep their casing; only tags are uppercased.

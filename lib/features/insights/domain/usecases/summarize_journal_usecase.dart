@@ -6,7 +6,7 @@ import 'package:gutgood/core/utils/logger_service.dart';
 /// summarized context for older data.
 class SummarizeJournalUseCase {
   const SummarizeJournalUseCase({required AiService aiService})
-      : _aiService = aiService;
+    : _aiService = aiService;
 
   final AiService _aiService;
 
@@ -17,9 +17,12 @@ class SummarizeJournalUseCase {
     }
 
     try {
-      AppLogger.ai('Summarizing historical journal (${rawJournal.length} chars)');
-      
-      final prompt = '''
+      AppLogger.ai(
+        'Summarizing historical journal (${rawJournal.length} chars)',
+      );
+
+      final prompt =
+          '''
 Summarize the following Gut Health Journal entries into a compact 2-3 paragraph 
 overview focusing ONLY on repeating patterns, significant symptom clusters, 
 and overall gut score trends. 

@@ -1,4 +1,5 @@
-export 'package:gutgood/core/data/additive_concern_db.dart' show AdditiveConcern, AdditiveConcernLevel;
+export 'package:gutgood/core/data/additive_concern_db.dart'
+    show AdditiveConcern, AdditiveConcernLevel;
 export 'package:gutgood/features/auth/domain/entities/auth_user.dart';
 
 export 'chat/chat_attachment.dart';
@@ -7,6 +8,7 @@ export 'insights/ai_insight.dart';
 export 'insights/ai_insight_details.dart';
 export 'insights/body_pattern.dart';
 export 'insights/insight_evidence.dart';
+export 'insights/insight_v2_blocks.dart';
 export 'insights/insights_dashboard_state.dart';
 export 'insights/pattern_occurrence.dart';
 export 'journal/history_counts.dart';

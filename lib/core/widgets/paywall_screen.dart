@@ -23,7 +23,8 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 ///
 /// Presented as a full-screen modal dialog (covers the bottom navigation
 /// bar, like the old bottom sheet did). Completes when the page is popped.
-Future<void> showPaywallScreen(BuildContext context, {required VoidCallback onProceedWithLimited}) => Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => GutPaywallScreen(onProceedWithLimited: onProceedWithLimited)));
+Future<void> showPaywallScreen(BuildContext context, {required VoidCallback onProceedWithLimited}) =>
+    Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => GutPaywallScreen(onProceedWithLimited: onProceedWithLimited)));
 
 class GutPaywallScreen extends StatelessWidget {
   const GutPaywallScreen({super.key, required this.onProceedWithLimited});
@@ -122,7 +123,10 @@ class GutPaywallScreen extends StatelessWidget {
             children: [
               const _PaywallHeader(),
               Gap.h20,
-              Text(AppStrings.paywallEyebrow, style: context.eyebrow.copyWith(fontSize: AppSizes.s11)),
+              Text(
+                AppStrings.paywallEyebrow,
+                style: context.eyebrow.copyWith(fontSize: AppSizes.s11, fontWeight: .w600),
+              ),
               Gap.h8,
               Text(AppStrings.startHealingGut, style: context.displayMd.copyWith(fontSize: 40.0.sp)),
               Gap.h8,
@@ -265,36 +269,35 @@ class GutPaywallScreen extends StatelessWidget {
                     ? Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: context.appColorScheme.textMuted),
-                          ),
+                          SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: context.appColorScheme.textMuted)),
                           Gap.w8,
-                          Text(AppStrings.restoringPurchases, style: context.bodySm.copyWith(fontSize: AppSizes.s12, color: context.appColorScheme.textMuted)),
+                          Text(
+                            AppStrings.restoringPurchases,
+                            style: context.bodySm.copyWith(fontSize: AppSizes.s12, color: context.appColorScheme.textMuted),
+                          ),
                         ],
                       )
                     : RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: context.bodySm.copyWith(fontSize: AppSizes.s12, color: context.appColorScheme.textMuted),
-                        children: [
-                          TextSpan(text: AppStrings.paywallRestore, style: context.underline, recognizer: TapGestureRecognizer()..onTap = () => unawaited(_handleRestore(context, purchaseProvider))),
-                          const TextSpan(text: '  |  '),
-                          TextSpan(
-                            text: AppStrings.paywallTerms,
-                            style: context.underline,
-                            recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl)),
-                          ),
-                          const TextSpan(text: '  |  '),
-                          TextSpan(
-                            text: AppStrings.paywallPrivacy,
-                            style: context.underline,
-                            recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl)),
-                          ),
-                        ],
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          style: context.bodySm.copyWith(fontSize: AppSizes.s12, color: context.appColorScheme.textMuted),
+                          children: [
+                            TextSpan(text: AppStrings.paywallRestore, style: context.underline, recognizer: TapGestureRecognizer()..onTap = () => unawaited(_handleRestore(context, purchaseProvider))),
+                            const TextSpan(text: '  |  '),
+                            TextSpan(
+                              text: AppStrings.paywallTerms,
+                              style: context.underline,
+                              recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl)),
+                            ),
+                            const TextSpan(text: '  |  '),
+                            TextSpan(
+                              text: AppStrings.paywallPrivacy,
+                              style: context.underline,
+                              recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl)),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
               ),
             ],
           ),
@@ -353,28 +356,28 @@ class _FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      padding: EdgeInsets.all(AppSizes.p12),
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(AppSizes.r16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: Color.alphaBlend(iconColor.withAlpha(40), background), shape: BoxShape.circle),
-            child: Icon(icon, size: AppSizes.icon18, color: iconColor),
-          ),
-          Gap.h8,
-          Text(title, style: context.bodyBold.copyWith(fontSize: AppSizes.s13)),
-          Gap.h4,
-          Text(
-            subtitle,
-            style: context.caption.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textMuted),
-          ),
-        ],
-      ),
-    );
+    padding: EdgeInsets.all(AppSizes.p12),
+    decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(AppSizes.r16)),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: Color.alphaBlend(iconColor.withAlpha(40), background), shape: BoxShape.circle),
+          child: Icon(icon, size: AppSizes.icon18, color: iconColor),
+        ),
+        Gap.h8,
+        Text(title, style: context.bodyBold.copyWith(fontSize: AppSizes.s13)),
+        Gap.h4,
+        Text(
+          subtitle,
+          style: context.caption.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textMuted),
+        ),
+      ],
+    ),
+  );
 }
 
 // =============================================================================
@@ -569,19 +572,19 @@ class _TrustRow extends StatelessWidget {
     final scheme = context.appColorScheme;
 
     Widget item(IconData icon, String label) => Expanded(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: AppSizes.icon28, color: scheme.textMuted),
-            Gap.w8,
-            Text(
-              label,
-              textAlign: TextAlign.start,
-              style: context.bodySm.copyWith(fontSize: AppSizes.s12, color: scheme.textMuted),
-            ),
-          ],
-        ),
-      );
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: AppSizes.icon28, color: scheme.textMuted),
+          Gap.w8,
+          Text(
+            label,
+            textAlign: TextAlign.start,
+            style: context.bodySm.copyWith(fontSize: AppSizes.s12, color: scheme.textMuted),
+          ),
+        ],
+      ),
+    );
 
     return Row(
       children: [

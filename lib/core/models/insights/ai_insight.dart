@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/models/insights/ai_insight_details.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
 import 'package:gutgood/core/models/insights/insight_evidence.dart';
+import 'package:gutgood/core/models/insights/insight_v2_blocks.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
@@ -46,11 +47,17 @@ class AIInsight extends Equatable {
     this.status = AIInsight.statusReady,
     this.expiresAt,
     this.origin,
+    // v3 prompt blocks (v2 Real Tokens UI; tolerant reads, null on legacy docs).
+    this.improving,
+    this.watch,
+    this.smartSwap,
   });
 
   factory AIInsight.fromMap(Map<String, dynamic> map) {
     final rawData = map['data'];
-    final data = rawData is String ? jsonDecode(rawData) as Map<String, dynamic> : (rawData as Map<String, dynamic>? ?? map);
+    final data = rawData is String
+        ? jsonDecode(rawData) as Map<String, dynamic>
+        : (rawData as Map<String, dynamic>? ?? map);
     final rawId = map['id'] ?? map['firestoreId'];
     final period = data['period'] as Map<String, dynamic>?;
 
@@ -60,18 +67,46 @@ class AIInsight extends Equatable {
       uid: map['uid'] as String?,
       gutScore: (data['gutScore'] as num?)?.toInt() ?? 0,
       scoreDiff: data['scoreDiff'] as String?,
-      topInsight: ModelUtils.parseNestedModel<InsightSummary>(data['topInsight'], InsightSummary.fromMap),
+      topInsight: ModelUtils.parseNestedModel<InsightSummary>(
+        data['topInsight'],
+        InsightSummary.fromMap,
+      ),
       healingGoal: data['healingGoal'] as String?,
-      healingFoods: ModelUtils.parseModelList<HealingFood>(data['healingFoods'], HealingFood.fromMap),
+      healingFoods: ModelUtils.parseModelList<HealingFood>(
+        data['healingFoods'],
+        HealingFood.fromMap,
+      ),
       healingTrend: data['healingTrend'] as String?,
       triggerSymptom: data['triggerSymptom'] as String?,
-      triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
+      triggerFoods: ModelUtils.parseModelList<TriggerFood>(
+        data['triggerFoods'],
+        TriggerFood.fromMap,
+      ),
       triggerTrend: data['triggerTrend'] as String?,
-      detectedPatterns: ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap),
-      topTrigger: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topTrigger'], TopHighlight.fromMap)),
-      topHealing: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topHealing'], TopHighlight.fromMap)),
-      foodImpacts: ModelUtils.parseModelList<FoodImpact>(data['foodImpacts'], FoodImpact.fromMap),
-      weeklyRecap: ModelUtils.parseNestedModel<WeeklyRecap>(data['weeklyRecap'], WeeklyRecap.fromMap),
+      detectedPatterns: ModelUtils.parseModelList<BodyPattern>(
+        data['detectedPatterns'],
+        BodyPattern.fromMap,
+      ),
+      topTrigger: _normalizeHighlight(
+        ModelUtils.parseNestedModel<TopHighlight>(
+          data['topTrigger'],
+          TopHighlight.fromMap,
+        ),
+      ),
+      topHealing: _normalizeHighlight(
+        ModelUtils.parseNestedModel<TopHighlight>(
+          data['topHealing'],
+          TopHighlight.fromMap,
+        ),
+      ),
+      foodImpacts: ModelUtils.parseModelList<FoodImpact>(
+        data['foodImpacts'],
+        FoodImpact.fromMap,
+      ),
+      weeklyRecap: ModelUtils.parseNestedModel<WeeklyRecap>(
+        data['weeklyRecap'],
+        WeeklyRecap.fromMap,
+      ),
       type: (data['type'] as String?) ?? 'Pattern',
       confidenceLevel: (data['confidenceLevel'] as String?) ?? 'Moderate',
       triggerData: data['triggerData'] as String?,
@@ -79,15 +114,36 @@ class AIInsight extends Equatable {
       schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
       // Envelope dates stay null when absent — DateTimeUtils.parse(null)
       // returns now, which would fabricate provenance.
-      periodFrom: period?['from'] == null ? null : DateTimeUtils.parse(period!['from']),
-      periodTo: period?['to'] == null ? null : DateTimeUtils.parse(period!['to']),
-      evidence: ModelUtils.parseNestedModel<InsightEvidence>(data['evidence'], InsightEvidence.fromMap),
+      periodFrom: period?['from'] == null
+          ? null
+          : DateTimeUtils.parse(period!['from']),
+      periodTo: period?['to'] == null
+          ? null
+          : DateTimeUtils.parse(period!['to']),
+      evidence: ModelUtils.parseNestedModel<InsightEvidence>(
+        data['evidence'],
+        InsightEvidence.fromMap,
+      ),
       actions: (data['actions'] as List?)?.cast<String>() ?? const [],
       model: data['model'] as String?,
       promptVersion: (data['promptVersion'] as num?)?.toInt(),
       status: (data['status'] as String?) ?? AIInsight.statusReady,
-      expiresAt: data['expiresAt'] == null ? null : DateTimeUtils.parse(data['expiresAt']),
+      expiresAt: data['expiresAt'] == null
+          ? null
+          : DateTimeUtils.parse(data['expiresAt']),
       origin: data['origin'] as String?,
+      improving: ModelUtils.parseNestedModel<ImprovingBlock>(
+        data['improving'],
+        ImprovingBlock.fromMap,
+      ),
+      watch: ModelUtils.parseNestedModel<WatchBlock>(
+        data['watch'],
+        WatchBlock.fromMap,
+      ),
+      smartSwap: ModelUtils.parseNestedModel<SmartSwap>(
+        data['smartSwap'],
+        SmartSwap.fromMap,
+      ),
     );
   }
 
@@ -195,9 +251,22 @@ class AIInsight extends Equatable {
   /// L-6 writer provenance (one of the `origin*` constants; null on legacy docs).
   final String? origin;
 
+  /// v3 block: content for the "What's Improving" card. Null on legacy docs —
+  /// the UI derives an equivalent card from healingTrend/healingFoods/scores.
+  final ImprovingBlock? improving;
+
+  /// v3 block: reaction timing/risk for the "Something to Watch" card.
+  final WatchBlock? watch;
+
+  /// v3 block: Before → After swap under "Something to Watch".
+  final SmartSwap? smartSwap;
+
   static TopHighlight? _normalizeHighlight(TopHighlight? highlight) {
     if (highlight == null) return null;
-    if (highlight.food == '---' || highlight.food.isEmpty || highlight.food.toLowerCase() == 'none' || highlight.food.toLowerCase() == 'n/a') {
+    if (highlight.food == '---' ||
+        highlight.food.isEmpty ||
+        highlight.food.toLowerCase() == 'none' ||
+        highlight.food.toLowerCase() == 'n/a') {
       return null;
     }
     return highlight;
@@ -226,14 +295,26 @@ class AIInsight extends Equatable {
     'updatedAt': DateTimeUtils.toTimestamp(updatedAt),
     'period': (periodFrom == null && periodTo == null)
         ? null
-        : {'from': periodFrom == null ? null : DateTimeUtils.toTimestamp(periodFrom!), 'to': periodTo == null ? null : DateTimeUtils.toTimestamp(periodTo!)},
+        : {
+            'from': periodFrom == null
+                ? null
+                : DateTimeUtils.toTimestamp(periodFrom!),
+            'to': periodTo == null
+                ? null
+                : DateTimeUtils.toTimestamp(periodTo!),
+          },
     'evidence': evidence?.toMap(),
     'actions': actions,
     'model': model,
     'promptVersion': promptVersion,
     'status': status,
-    'expiresAt': expiresAt == null ? null : DateTimeUtils.toTimestamp(expiresAt!),
+    'expiresAt': expiresAt == null
+        ? null
+        : DateTimeUtils.toTimestamp(expiresAt!),
     'origin': origin,
+    'improving': improving?.toMap(),
+    'watch': watch?.toMap(),
+    'smartSwap': smartSwap?.toMap(),
   };
 
   /// JSON-safe variant of [toMap] for navigation extras (route codec):
@@ -242,7 +323,12 @@ class AIInsight extends Equatable {
   Map<String, dynamic> toJsonMap() {
     final map = toMap();
     map['updatedAt'] = updatedAt.toIso8601String();
-    map['period'] = (periodFrom == null && periodTo == null) ? null : {'from': periodFrom?.toIso8601String(), 'to': periodTo?.toIso8601String()};
+    map['period'] = (periodFrom == null && periodTo == null)
+        ? null
+        : {
+            'from': periodFrom?.toIso8601String(),
+            'to': periodTo?.toIso8601String(),
+          };
     map['expiresAt'] = expiresAt?.toIso8601String();
     return map;
   }
@@ -279,6 +365,9 @@ class AIInsight extends Equatable {
     String? status,
     DateTime? expiresAt,
     String? origin,
+    ImprovingBlock? improving,
+    WatchBlock? watch,
+    SmartSwap? smartSwap,
   }) => AIInsight(
     id: id ?? this.id,
     firestoreId: firestoreId ?? this.firestoreId,
@@ -311,8 +400,19 @@ class AIInsight extends Equatable {
     status: status ?? this.status,
     expiresAt: expiresAt ?? this.expiresAt,
     origin: origin ?? this.origin,
+    improving: improving ?? this.improving,
+    watch: watch ?? this.watch,
+    smartSwap: smartSwap ?? this.smartSwap,
   );
 
   @override
-  List<Object?> get props => [id, firestoreId, gutScore, type, confidenceLevel, status, updatedAt];
+  List<Object?> get props => [
+    id,
+    firestoreId,
+    gutScore,
+    type,
+    confidenceLevel,
+    status,
+    updatedAt,
+  ];
 }

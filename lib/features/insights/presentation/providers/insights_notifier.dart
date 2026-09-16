@@ -12,7 +12,13 @@ import 'package:gutgood/features/insights/domain/usecases/generate_insight_useca
 import 'package:rxdart/rxdart.dart';
 
 class InsightsNotifier with ChangeNotifier {
-  InsightsNotifier(this._repository, this._appStateService, this._authRepository, this._analyticsService, this._generateInsightUseCase) {
+  InsightsNotifier(
+    this._repository,
+    this._appStateService,
+    this._authRepository,
+    this._analyticsService,
+    this._generateInsightUseCase,
+  ) {
     _initDashboardStream();
     // Client-owned cadence: regenerate (debounced) whenever chat or profile
     // data changes; the dashboard stream below only renders stored state.
@@ -73,7 +79,10 @@ class InsightsNotifier with ChangeNotifier {
             // One-shot bootstrap for users who crossed the threshold but have
             // no insight yet (reactive listeners cover steady state; this just
             // shortens first-run latency). Session-flagged, never loops.
-            if (_state.latestInsight == null && !_isGenerating && isSufficient && !_bootstrapAttempted) {
+            if (_state.latestInsight == null &&
+                !_isGenerating &&
+                isSufficient &&
+                !_bootstrapAttempted) {
               _bootstrapAttempted = true;
               generateNewInsight();
             }
@@ -96,7 +105,10 @@ class InsightsNotifier with ChangeNotifier {
   Future<void> _fetchHistory() async {
     try {
       _insightHistory = await _repository.getInsightHistory();
-      await _analyticsService.logEvent(name: 'insight_history_viewed', parameters: {'count': _insightHistory.length});
+      await _analyticsService.logEvent(
+        name: 'insight_history_viewed',
+        parameters: {'count': _insightHistory.length},
+      );
 
       // If we have history but no stream data yet, notify so UI can show the latest cached insight
       if (_state.latestInsight == null && _insightHistory.isNotEmpty) {
@@ -107,7 +119,9 @@ class InsightsNotifier with ChangeNotifier {
     }
   }
 
-  AIInsight? get latestInsight => _state.latestInsight ?? (_insightHistory.isNotEmpty ? _insightHistory.first : null);
+  AIInsight? get latestInsight =>
+      _state.latestInsight ??
+      (_insightHistory.isNotEmpty ? _insightHistory.first : null);
   List<AIInsight> get insightHistory => _insightHistory;
 
   /// Returns 3-5 most meaningful insights prioritized by confidence and frequency.
@@ -124,7 +138,9 @@ class InsightsNotifier with ChangeNotifier {
         }
         // 2. Statistical Confidence (rank map: High > Medium > Low — P1-7)
         if (a.confidence != b.confidence) {
-          int rank(String c) => c == BodyPattern.confidenceHigh ? 0 : (c == BodyPattern.confidenceMedium ? 1 : 2);
+          int rank(String c) => c == BodyPattern.confidenceHigh
+              ? 0
+              : (c == BodyPattern.confidenceMedium ? 1 : 2);
           return rank(a.confidence).compareTo(rank(b.confidence));
         }
         // 3. Frequency
@@ -150,24 +166,34 @@ class InsightsNotifier with ChangeNotifier {
   int get totalSymptoms => _state.totalSymptoms;
   int get totalScans => _state.totalScans;
 
-  bool get isSufficient => _state.totalScans >= 3 || (_state.totalMeals >= 3 && _state.totalSymptoms >= 1);
+  bool get isSufficient =>
+      _state.totalScans >= 3 ||
+      (_state.totalMeals >= 3 && _state.totalSymptoms >= 1);
 
   bool get isLoading => _isLoading;
   bool get isGenerating => _isGenerating;
 
   Future<void> markAllAlertsAsRead() async {
-    final unreadIds = _state.alerts.where((a) => !a.isRead).map((a) => a.id).toList();
+    final unreadIds = _state.alerts
+        .where((a) => !a.isRead)
+        .map((a) => a.id)
+        .toList();
     if (unreadIds.isEmpty) return;
 
     // Local optimistic update
-    final updatedAlerts = _state.alerts.map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a).toList();
+    final updatedAlerts = _state.alerts
+        .map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a)
+        .toList();
     _state = _state.copyWith(alerts: updatedAlerts);
     notifyListeners();
 
     try {
       await _repository.markAlertsAsRead(unreadIds);
     } catch (e) {
-      AppLogger.error('InsightsNotifier: Error marking alerts as read', error: e);
+      AppLogger.error(
+        'InsightsNotifier: Error marking alerts as read',
+        error: e,
+      );
     }
   }
 
@@ -199,7 +225,9 @@ class InsightsNotifier with ChangeNotifier {
       // Background-only generation: the UI keeps showing the cached
       // dashboard. Classify so offline failures read as offline in logs.
       if (isOfflineError(e)) {
-        AppLogger.insights('InsightsNotifier: generation skipped (offline); cached dashboard kept');
+        AppLogger.insights(
+          'InsightsNotifier: generation skipped (offline); cached dashboard kept',
+        );
       } else {
         AppLogger.error('InsightsNotifier: generation failed', error: e);
       }
@@ -213,7 +241,11 @@ class InsightsNotifier with ChangeNotifier {
     _generationDebounce?.cancel();
     _generationDebounce = Timer(const Duration(seconds: 5), () {
       generateNewInsight().catchError((e, st) {
-        AppLogger.error('InsightsNotifier: background generation failed', error: e, stackTrace: st);
+        AppLogger.error(
+          'InsightsNotifier: background generation failed',
+          error: e,
+          stackTrace: st,
+        );
       });
     });
   }

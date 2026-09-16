@@ -5,14 +5,21 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
-import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_feed.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/v2_feed.dart';
 import 'package:provider/provider.dart';
 
+/// The Insights tab — "v2 Real Tokens" presentation.
+///
+/// The data plumbing (notifier stream, 24h generation cadence, threshold
+/// bootstrap) is unchanged; this screen now renders the v2 language: a quiet
+/// editorial header (GutGood / serif *Insights* / tagline), then the v2 feed
+/// (score hero → top-insight pager → What's Improving → Something to Watch).
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
 
@@ -36,10 +43,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.appColorScheme;
+    final v2 = context.v2Theme;
 
     return Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
+      backgroundColor: v2.scaffold,
       body: Consumer<InsightsNotifier>(
         builder: (context, notifier, _) {
           final latestInsight = notifier.latestInsight;
@@ -48,9 +55,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
           // dashboard state is still loading or empty.
           final prioritizedPatterns = notifier.prioritizedPatterns.isNotEmpty ? notifier.prioritizedPatterns : (latestInsight?.detectedPatterns ?? []);
 
-          // Real per-day score window for the hero's bar chart. Below two
-          // points the hero falls back to the gradient track bar.
-          final (scoreSeries, scoreLabels) = BentoData.scoreWindow(notifier.insightHistory, ensure: latestInsight);
+          // Real per-day score window for the improving card's trend chart.
+          final scoreSeries = scoreWindowFor(notifier, latestInsight);
 
           // P2-10: show the shimmer when either the initial stream is loading
           // OR an explicit manual/bootstrap generation is in progress.
@@ -59,11 +65,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
+              // Standardized shared app bar — same component, background,
+              // typography and action pattern as every other tab.
               GutSliverAppBar(
                 title: AppStrings.insights,
                 actions: [
                   IconButton(
-                    icon: Icon(AppIcons.history, color: colorScheme.textPrimary),
+                    icon: Icon(AppIcons.history, color: context.appColorScheme.textPrimary),
                     onPressed: () => unawaited(context.push(AppRoutes.insightHistory)),
                   ),
                   Gap.w10,
@@ -72,18 +80,32 @@ class _InsightsScreenState extends State<InsightsScreen> {
               if (isLoading)
                 const _InsightsLoadingState()
               else if (latestInsight == null)
-                // Bento "learning grid" (v4 screen 02) — same unlock rule as
-                // before, presented as a partially mapped score hero.
-                InsightBentoLearning(meals: notifier.totalMeals, symptoms: notifier.totalSymptoms, scans: notifier.totalScans)
+                // Pre-threshold learning state (v2 language, same unlock rule).
+                V2InsightsLearning(meals: notifier.totalMeals, symptoms: notifier.totalSymptoms, scans: notifier.totalScans)
               else
-                // Bento grid feed (v4 screen 01). The app bar above and the
-                // MainShell bottom nav are unchanged, per the design brief.
-                InsightBentoFeed(data: latestInsight, patterns: prioritizedPatterns, series: scoreSeries, seriesLabels: scoreLabels),
+                V2InsightsFeed(data: latestInsight, patterns: prioritizedPatterns, series: scoreSeries, history: notifier.insightHistory),
             ],
           );
         },
       ),
     );
+  }
+
+  /// Chronological ≤7-point score window ending at [insight] (the same rule
+  /// the previous feed used via `BentoData.scoreWindow`).
+  static List<double> scoreWindowFor(InsightsNotifier notifier, AIInsight? insight) {
+    if (insight == null) return const <double>[];
+    try {
+      final history = notifier.insightHistory;
+      final sorted = [...history]..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+      if (!sorted.any((i) => i.updatedAt == insight.updatedAt)) {
+        sorted.add(insight);
+      }
+      final window = sorted.length > 7 ? sorted.sublist(sorted.length - 7) : sorted;
+      return [for (final i in window) i.gutScore.toDouble()];
+    } catch (_) {
+      return [insight.gutScore.toDouble()];
+    }
   }
 }
 

@@ -22,12 +22,12 @@ import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dar
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
+import 'package:gutgood/features/insights/presentation/pages/gut_score_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/highlight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/pattern_detail_screen.dart';
-import 'package:gutgood/features/insights/presentation/pages/patterns_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_screens.dart';
@@ -162,6 +162,10 @@ class AppRouter {
             routes: [
               GoRoute(path: AppRoutes.insights, builder: (context, state) => const InsightsScreen()),
               GoRoute(
+                path: AppRoutes.gutScoreDetail,
+                builder: (context, state) => GutScoreDetailScreen(insight: state.extra as AIInsight),
+              ),
+              GoRoute(
                 path: AppRoutes.weeklyRecap,
                 builder: (context, state) => WeeklyRecapScreen(insight: state.extra as AIInsight?),
               ),
@@ -174,7 +178,6 @@ class AppRouter {
                 builder: (context, state) => HighlightDetailScreen(args: state.extra as HighlightDetailArgs),
               ),
               GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
-              GoRoute(path: AppRoutes.patterns, builder: (context, state) => const PatternsScreen()),
               GoRoute(
                 path: AppRoutes.patternDetail,
                 builder: (context, state) => PatternDetailScreen(pattern: state.extra as BodyPattern),

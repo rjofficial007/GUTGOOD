@@ -1,0 +1,240 @@
+import 'package:flutter/material.dart';
+
+/// Design tokens for the "v2 Real Tokens" Insights language.
+///
+/// Transcribed verbatim from `uploads/v2.html` (`:root` block):
+/// scaffold `#FCFCFD` · card `#FFFFFF` · border `#E4E4E8` · ink `#0A0A0A` /
+/// `#4A4E5A` / `#6E7280` · success `#1F7A3D` · error `#C4302B` ·
+/// warning `#FFAB40` · purple `#7C3AED` · lime `#D9FF30`.
+///
+/// Like [InsightBentoTheme] before it, this is deliberately **not** folded
+/// into the global `AppPalette`: the v2 language is scoped to the Insights
+/// feature. Registered as a [ThemeExtension] so light/dark resolve through
+/// the ambient theme and no widget branches on brightness.
+///
+/// Radii follow the mock's system: bento cards r20 · chips r14 · buttons r12.
+@immutable
+class InsightV2Theme extends ThemeExtension<InsightV2Theme> {
+  const InsightV2Theme({
+    required this.scaffold,
+    required this.card,
+    required this.cardSubtle,
+    required this.border,
+    required this.borderSubtle,
+    required this.surfaceSubtle,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textTertiary,
+    required this.success,
+    required this.successSoft,
+    required this.error,
+    required this.errorSoft,
+    required this.warning,
+    required this.warningSoft,
+    required this.purple,
+    required this.purplePastel,
+    required this.lime,
+    required this.overlayBarrier,
+  });
+
+  // --- Surfaces (v2 --scaffold / --card / --border) ---
+  /// Screen background — `#FCFCFD`.
+  final Color scaffold;
+
+  /// Card surface — `#FFFFFF`.
+  final Color card;
+
+  /// Nested surface (`--card-2`): timeline rows, food tiles, swap halves.
+  final Color cardSubtle;
+
+  /// Hairline border — `#E4E4E8`.
+  final Color border;
+
+  /// `--border-subtle`: rgba(228,228,232,.5).
+  final Color borderSubtle;
+
+  /// `--surface-subtle`: rgba(10,10,10,.03).
+  final Color surfaceSubtle;
+
+  // --- Ink (v2 --t1 / --t2 / --t3) ---
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textTertiary;
+
+  // --- Accents ---
+  /// `#1F7A3D` — healing foods, positive deltas, "What's Improving".
+  final Color success;
+
+  /// `#E7F6E7` — soft success wash behind badges.
+  final Color successSoft;
+
+  /// `#C4302B` — triggers, "Something to Watch".
+  final Color error;
+
+  /// `#FFF1F0` — soft error wash behind badges.
+  final Color errorSoft;
+
+  /// `#FFAB40` — caution accents.
+  final Color warning;
+
+  /// `#FFF4E5` — soft warning wash.
+  final Color warningSoft;
+
+  /// `#7C3AED` — AI/discovery accents.
+  final Color purple;
+
+  /// `#C4B5FD` — pastel purple wash.
+  final Color purplePastel;
+
+  /// `#D9FF30` — lime highlight.
+  final Color lime;
+
+  /// Scrim behind the dark recommendation card icon tile.
+  final Color overlayBarrier;
+
+  /// Body face (v2's SF Pro stack → the app's Inter Tight).
+  static const String fontFamily = 'InterTight';
+
+  /// v2 display face for the big editorial titles ("Insights", hero numbers
+  /// sections). Transcribed from `font-family:'Instrument Serif',serif`.
+  static const String displayFont = 'InstrumentSerif';
+
+  // --- Radii (v2: Bento r20 · Chip r14 · Button r12) ---
+  static const double radiusCard = 20;
+  static const double radiusChip = 14;
+  static const double radiusButton = 12;
+  static const double radiusTile = 14;
+  static const double radiusPill = 999;
+
+  @override
+  InsightV2Theme copyWith({
+    Color? scaffold,
+    Color? card,
+    Color? cardSubtle,
+    Color? border,
+    Color? borderSubtle,
+    Color? surfaceSubtle,
+    Color? textPrimary,
+    Color? textSecondary,
+    Color? textTertiary,
+    Color? success,
+    Color? successSoft,
+    Color? error,
+    Color? errorSoft,
+    Color? warning,
+    Color? warningSoft,
+    Color? purple,
+    Color? purplePastel,
+    Color? lime,
+    Color? overlayBarrier,
+  }) => InsightV2Theme(
+    scaffold: scaffold ?? this.scaffold,
+    card: card ?? this.card,
+    cardSubtle: cardSubtle ?? this.cardSubtle,
+    border: border ?? this.border,
+    borderSubtle: borderSubtle ?? this.borderSubtle,
+    surfaceSubtle: surfaceSubtle ?? this.surfaceSubtle,
+    textPrimary: textPrimary ?? this.textPrimary,
+    textSecondary: textSecondary ?? this.textSecondary,
+    textTertiary: textTertiary ?? this.textTertiary,
+    success: success ?? this.success,
+    successSoft: successSoft ?? this.successSoft,
+    error: error ?? this.error,
+    errorSoft: errorSoft ?? this.errorSoft,
+    warning: warning ?? this.warning,
+    warningSoft: warningSoft ?? this.warningSoft,
+    purple: purple ?? this.purple,
+    purplePastel: purplePastel ?? this.purplePastel,
+    lime: lime ?? this.lime,
+    overlayBarrier: overlayBarrier ?? this.overlayBarrier,
+  );
+
+  @override
+  InsightV2Theme lerp(
+    covariant ThemeExtension<InsightV2Theme>? other,
+    double t,
+  ) {
+    if (other is! InsightV2Theme) return this;
+    Color l(Color a, Color b) => Color.lerp(a, b, t)!;
+    return InsightV2Theme(
+      scaffold: l(scaffold, other.scaffold),
+      card: l(card, other.card),
+      cardSubtle: l(cardSubtle, other.cardSubtle),
+      border: l(border, other.border),
+      borderSubtle: l(borderSubtle, other.borderSubtle),
+      surfaceSubtle: l(surfaceSubtle, other.surfaceSubtle),
+      textPrimary: l(textPrimary, other.textPrimary),
+      textSecondary: l(textSecondary, other.textSecondary),
+      textTertiary: l(textTertiary, other.textTertiary),
+      success: l(success, other.success),
+      successSoft: l(successSoft, other.successSoft),
+      error: l(error, other.error),
+      errorSoft: l(errorSoft, other.errorSoft),
+      warning: l(warning, other.warning),
+      warningSoft: l(warningSoft, other.warningSoft),
+      purple: l(purple, other.purple),
+      purplePastel: l(purplePastel, other.purplePastel),
+      lime: l(lime, other.lime),
+      overlayBarrier: l(overlayBarrier, other.overlayBarrier),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // LIGHT — verbatim from v2.html :root.
+  // ---------------------------------------------------------------------
+  static const InsightV2Theme light = InsightV2Theme(
+    scaffold: Color(0xFFFCFCFD),
+    card: Color(0xFFFFFFFF),
+    cardSubtle: Color(0xFFF6F6F8),
+    border: Color(0xFFE4E4E8),
+    borderSubtle: Color(0x80E4E4E8),
+    surfaceSubtle: Color(0x08F50F0A),
+    textPrimary: Color(0xFF0A0A0A),
+    textSecondary: Color(0xFF4A4E5A),
+    textTertiary: Color(0xFF6E7280),
+    success: Color(0xFF1F7A3D),
+    successSoft: Color(0xFFE7F6E7),
+    error: Color(0xFFC4302B),
+    errorSoft: Color(0xFFFFF1F0),
+    warning: Color(0xFFFFAB40),
+    warningSoft: Color(0xFFFFF4E5),
+    purple: Color(0xFF7C3AED),
+    purplePastel: Color(0xFFC4B5FD),
+    lime: Color(0xFFD9FF30),
+    overlayBarrier: Color(0x140A0A0A),
+  );
+
+  // ---------------------------------------------------------------------
+  // DARK — same hue family, lifted surfaces and softened accents so the
+  // hairline-card language survives inversion (rule: keep luminance deltas,
+  // swap ink for paper).
+  // ---------------------------------------------------------------------
+  static const InsightV2Theme dark = InsightV2Theme(
+    scaffold: Color(0xFF0B0C0E),
+    card: Color(0xFF141518),
+    cardSubtle: Color(0xFF1C1E22),
+    border: Color(0xFF2A2C31),
+    borderSubtle: Color(0x802A2C31),
+    surfaceSubtle: Color(0x0AFFFFFF),
+    textPrimary: Color(0xFFF5F7FA),
+    textSecondary: Color(0xFFC3C9D4),
+    textTertiary: Color(0xFF8D96A5),
+    success: Color(0xFF6FD694),
+    successSoft: Color(0x1F1F7A3D),
+    error: Color(0xFFF27B76),
+    errorSoft: Color(0x1FC4302B),
+    warning: Color(0xFFFFC061),
+    warningSoft: Color(0x1FFFAB40),
+    purple: Color(0xFFA78BFA),
+    purplePastel: Color(0xFF4C3D80),
+    lime: Color(0xFFD9FF30),
+    overlayBarrier: Color(0x14FFFFFF),
+  );
+}
+
+extension InsightV2ThemeX on BuildContext {
+  /// The v2 tokens for the current brightness, falling back to light so a
+  /// screen never hard-crashes when the extension is missing from the theme.
+  InsightV2Theme get v2Theme =>
+      Theme.of(this).extension<InsightV2Theme>() ?? InsightV2Theme.light;
+}
