@@ -11,6 +11,7 @@ INTENT CATEGORIES:
 - ${UserIntent.mealRecognition}: User asks "What is this?" or implies they want to know what the food is.
 - ${UserIntent.mealRating}: User asks for a score, grade, or "how did I do".
 - ${UserIntent.healthAssessment}: User asks if the item is "healthy", "balanced", or "okay for me".
+- ${UserIntent.improvementRequest}: User asks how to improve a meal, recipe, or food choice.
 - ${UserIntent.swapRequest}: User wants improvements, alternatives, or to "make it healthier".
 - ${UserIntent.completeAnalysis}: User wants deep details, "tell me everything", or a comprehensive breakdown.
 - ${UserIntent.ingredientAnalysis}: User asks specifically about ingredients, additives, or labels.
@@ -20,6 +21,7 @@ INTENT CATEGORIES:
 - ${UserIntent.nutritionComparison}: User compares options or asks for the "best" choice among several.
 - ${UserIntent.generalFoodQuestion}: User has a general question about food or a specific ingredient.
 - ${UserIntent.generalWellness}: User asks about general gut health, symptoms, or wellness advice.
+- ${UserIntent.generalImageAnalysis}: User shares a photo and asks general questions.
 - ${UserIntent.symptomAnalysis}: User reports symptoms or asks about correlations.
 - ${UserIntent.mealPlanning}: User asks for future meal suggestions or planning.
 - ${UserIntent.generalChat}: Greetings, platform support, or non-food topics.

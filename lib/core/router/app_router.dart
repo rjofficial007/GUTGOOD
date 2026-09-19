@@ -22,6 +22,7 @@ import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dar
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
+import 'package:gutgood/features/insights/presentation/pages/fiber_synergy_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/gut_score_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/highlight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
@@ -30,6 +31,7 @@ import 'package:gutgood/features/insights/presentation/pages/insights_screen.dar
 import 'package:gutgood/features/insights/presentation/pages/pattern_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_screens.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
 import 'package:gutgood/features/product_details/presentation/pages/additive_detail_screen.dart';
@@ -163,32 +165,73 @@ class AppRouter {
               GoRoute(path: AppRoutes.insights, builder: (context, state) => const InsightsScreen()),
               GoRoute(
                 path: AppRoutes.gutScoreDetail,
-                builder: (context, state) => GutScoreDetailScreen(insight: state.extra as AIInsight),
+                builder: (context, state) {
+                  final insight = state.extra is AIInsight ? state.extra as AIInsight : context.read<InsightsNotifier>().latestInsight;
+                  if (insight == null) return const InsightsHistoryScreen();
+                  return GutScoreDetailScreen(insight: insight);
+                },
               ),
               GoRoute(
                 path: AppRoutes.weeklyRecap,
-                builder: (context, state) => WeeklyRecapScreen(insight: state.extra as AIInsight?),
+                builder: (context, state) => WeeklyRecapScreen(insight: state.extra is AIInsight ? state.extra as AIInsight : null),
               ),
               GoRoute(
                 path: AppRoutes.insightDetail,
-                builder: (context, state) => InsightDetailScreen(insight: state.extra as AIInsight),
+                builder: (context, state) {
+                  final insight = state.extra is AIInsight ? state.extra as AIInsight : context.read<InsightsNotifier>().latestInsight;
+                  if (insight == null) return const InsightsHistoryScreen();
+                  return InsightDetailScreen(insight: insight);
+                },
               ),
               GoRoute(
                 path: AppRoutes.highlightDetail,
-                builder: (context, state) => HighlightDetailScreen(args: state.extra as HighlightDetailArgs),
+                builder: (context, state) {
+                  final args = state.extra is HighlightDetailArgs
+                      ? state.extra as HighlightDetailArgs
+                      : const HighlightDetailArgs(tag: 'Highlight', emoji: '✨', title: 'Highlight Details', accentColor: 0xFF15803D, backgroundColor: 0xFFDCFCE7);
+                  return HighlightDetailScreen(args: args);
+                },
               ),
               GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
               GoRoute(
                 path: AppRoutes.patternDetail,
-                builder: (context, state) => PatternDetailScreen(pattern: state.extra as BodyPattern),
+                builder: (context, state) {
+                  final pattern = state.extra is BodyPattern
+                      ? state.extra as BodyPattern
+                      : (context.read<InsightsNotifier>().prioritizedPatterns.firstOrNull ??
+                            BodyPattern(
+                              type: 'Pattern',
+                              trigger: 'Meal',
+                              reaction: 'Symptom',
+                              frequency: 1,
+                              confidence: 'Medium',
+                              description: 'Pattern details',
+                              updatedAt: DateTime.now().toIso8601String(),
+                            ));
+                  return PatternDetailScreen(pattern: pattern);
+                },
               ),
               GoRoute(
                 path: AppRoutes.smartInsightDetail,
-                builder: (context, state) => SmartInsightDetailScreen(insight: state.extra as InsightSummary),
+                builder: (context, state) {
+                  final insight = state.extra is InsightSummary
+                      ? state.extra as InsightSummary
+                      : (context.read<InsightsNotifier>().latestInsight?.topInsight ?? const InsightSummary(title: 'Top Insight', description: 'Insight details', type: 'Pattern'));
+                  return SmartInsightDetailScreen(insight: insight);
+                },
+              ),
+              GoRoute(
+                path: AppRoutes.fiberSynergyDetail,
+                builder: (context, state) {
+                  if (state.extra is BodyPattern) {
+                    return FiberSynergyDetailScreen(pattern: state.extra as BodyPattern);
+                  }
+                  return FiberSynergyDetailScreen(insight: state.extra is AIInsight ? state.extra as AIInsight : null);
+                },
               ),
               GoRoute(
                 path: AppRoutes.foodIntelligence,
-                builder: (context, state) => FoodIntelligenceScreen(insight: state.extra as AIInsight),
+                builder: (context, state) => FoodIntelligenceScreen(insight: state.extra is AIInsight ? state.extra as AIInsight : null),
               ),
               GoRoute(path: AppRoutes.notificationArchive, builder: (context, state) => const NotificationArchiveScreen()),
             ],
@@ -202,30 +245,62 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.scanResult,
                 builder: (context, state) {
-                  final args = state.extra as ScanResultArgs;
-                  return ScanResultScreen(scanData: args.scanData, heroTag: args.heroTag);
+                  if (state.extra is ScanResultArgs) {
+                    final args = state.extra as ScanResultArgs;
+                    return ScanResultScreen(scanData: args.scanData, heroTag: args.heroTag);
+                  }
+                  if (state.extra is ScanResult) {
+                    return ScanResultScreen(scanData: state.extra as ScanResult);
+                  }
+                  return const ScanHistoryScreen();
                 },
               ),
 
               GoRoute(
                 path: AppRoutes.symptomDetail,
-                builder: (context, state) => SymptomDetailScreen(symptom: state.extra as SymptomLog),
+                builder: (context, state) {
+                  if (state.extra is SymptomLog) {
+                    return SymptomDetailScreen(symptom: state.extra as SymptomLog);
+                  }
+                  return const ScanHistoryScreen();
+                },
               ),
               GoRoute(
                 path: AppRoutes.additiveDetail,
-                builder: (context, state) => AdditiveDetailScreen(concern: state.extra as AdditiveConcern),
+                builder: (context, state) {
+                  if (state.extra is AdditiveConcern) {
+                    return AdditiveDetailScreen(concern: state.extra as AdditiveConcern);
+                  }
+                  return const ScanHistoryScreen();
+                },
               ),
               GoRoute(
                 path: AppRoutes.scanListDetail,
-                builder: (context, state) => ScanListDetailScreen(args: state.extra as ScanListDetailArgs),
+                builder: (context, state) {
+                  if (state.extra is ScanListDetailArgs) {
+                    return ScanListDetailScreen(args: state.extra as ScanListDetailArgs);
+                  }
+                  return const ScanHistoryScreen();
+                },
               ),
               GoRoute(
                 path: AppRoutes.additivesList,
-                builder: (context, state) => AdditivesListScreen(args: state.extra as AdditiveListArgs),
+                builder: (context, state) {
+                  if (state.extra is AdditiveListArgs) {
+                    return AdditivesListScreen(args: state.extra as AdditiveListArgs);
+                  }
+                  return const ScanHistoryScreen();
+                },
               ),
               GoRoute(
                 path: AppRoutes.swapDetail,
-                builder: (context, state) => SwapDetailScreen(swap: state.extra as ProductSwap),
+                builder: (context, state) {
+                  if (state.extra is ProductSwap) {
+                    return SwapDetailScreen(swap: state.extra as ProductSwap);
+                  }
+                  const defaultSwap = ProductSwap(title: 'Better Choice', subtitle: 'A healthier alternative.', imageKeyword: 'healthy food', tag: 'Swap');
+                  return const SwapDetailScreen(swap: defaultSwap);
+                },
               ),
             ],
           ),
@@ -235,15 +310,24 @@ class AppRouter {
               GoRoute(path: AppRoutes.profile, builder: (context, state) => const ProfileScreen()),
               GoRoute(
                 path: AppRoutes.goals,
-                builder: (context, state) => GoalsScreen(activeGoals: (state.extra as List).cast<String>()),
+                builder: (context, state) {
+                  final goals = state.extra is List ? (state.extra as List).cast<String>() : <String>[];
+                  return GoalsScreen(activeGoals: goals);
+                },
               ),
               GoRoute(
                 path: AppRoutes.sensitivities,
-                builder: (context, state) => SensitivitiesScreen(activeSensitivities: (state.extra as List).cast<String>()),
+                builder: (context, state) {
+                  final sensitivities = state.extra is List ? (state.extra as List).cast<String>() : <String>[];
+                  return SensitivitiesScreen(activeSensitivities: sensitivities);
+                },
               ),
               GoRoute(
                 path: AppRoutes.lifestyle,
-                builder: (context, state) => LifestyleScreen(activeLifestyle: (state.extra as List).cast<String>()),
+                builder: (context, state) {
+                  final lifestyle = state.extra is List ? (state.extra as List).cast<String>() : <String>[];
+                  return LifestyleScreen(activeLifestyle: lifestyle);
+                },
               ),
               GoRoute(path: AppRoutes.notifications, builder: (context, state) => const NotificationsScreen()),
               GoRoute(

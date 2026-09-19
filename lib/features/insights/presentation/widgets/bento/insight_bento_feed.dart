@@ -341,7 +341,7 @@ class InsightBentoLearning extends StatelessWidget {
             deep: _orangeDeep,
             tone: _orangeTone,
             icon: AppIcons.sparkles,
-            title: AppStrings.bentoMappingEyebrow,
+            title: AppStrings.bentoMappingEyebrow.toUpperCase(),
             sub: AppStrings.bentoScanToUnlock,
             value: '--',
             valueColor: t.orange,

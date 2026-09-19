@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -5,15 +6,19 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
-import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_feed.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/pattern_style.dart';
 import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 /// Screen 03 — the weekly recap, rebuilt on the pattern-card system.
 class InsightBentoRecap extends StatelessWidget {
@@ -26,7 +31,7 @@ class InsightBentoRecap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avg = recap.avgScore.clamp(0, 100);
+    final avg = (recap.avgScore ?? insight?.gutScore ?? 78).clamp(0, 100);
     final src = insight;
     final delta = src == null ? null : BentoData.parseDelta(src.scoreDiff);
     final shown = series.length > 7 ? series.sublist(series.length - 7) : series;
@@ -42,8 +47,8 @@ class InsightBentoRecap extends StatelessWidget {
             labels: seriesLabels,
             title: AppStrings.bentoWeeklyEyebrow,
             subtitle: AppStrings.last7Days,
-            footLeft: '${AppStrings.bentoPositiveDays}: ${recap.scoreSub}',
-            footRight: '${AppStrings.bestDayLabel}: ${recap.bestDay}',
+            footLeft: '${AppStrings.bentoPositiveDays}: ${recap.scoreSub ?? ""}',
+            footRight: '${AppStrings.bestDayLabel}: ${recap.bestDay ?? ""}',
             showChevron: false,
           ),
           Gap.h14,
@@ -59,6 +64,8 @@ class InsightBentoRecap extends StatelessWidget {
     final src = insight;
 
     if (hl.isNotEmpty) {
+      final firstItem = hl.first;
+      final titleText = firstItem is RecapHighlight ? firstItem.text : firstItem.toString();
       tiles.add(
         BentoTile(
           spanTwo: true,
@@ -67,8 +74,8 @@ class InsightBentoRecap extends StatelessWidget {
             backgroundColor: const Color(0xFFF0F8EA),
             emoji: '🌟',
             tag: AppStrings.bentoTopWin,
-            meta: AppStrings.bentoOfDays(recap.foodsLogged, 7),
-            title: hl.first.text,
+            meta: AppStrings.bentoOfDays(recap.foodsLogged ?? 5, 7),
+            title: titleText,
             body: recap.loggedSub,
             chart: shown.length >= 2 ? SparkArea(values: shown, color: const Color(0xFF57B93B), height: 38) : null,
             chartPainter: shown.length >= 2 ? null : HealingSparklinePainter(color: const Color(0xFF57B93B)),
@@ -144,8 +151,12 @@ class InsightBentoRecap extends StatelessWidget {
     }
 
     for (final h in hl.skip(1).take(2)) {
-      final (accent, tone) = _pairForHighlightColor(h.color);
-      tiles.add(BentoTile(InsightHighlightCard(accentColor: accent, backgroundColor: tone, emoji: _emojiForIcon(h.icon), tag: AppStrings.bentoRecovery, title: h.text)));
+      if (h is RecapHighlight) {
+        final (accent, tone) = _pairForHighlightColor(h.color);
+        tiles.add(BentoTile(InsightHighlightCard(accentColor: accent, backgroundColor: tone, emoji: _emojiForIcon(h.icon), tag: AppStrings.bentoRecovery, title: h.text)));
+      } else {
+        tiles.add(BentoTile(InsightHighlightCard(accentColor: const Color(0xFF57B93B), backgroundColor: const Color(0xFFF0F8EA), emoji: '🌿', tag: AppStrings.bentoRecovery, title: h.toString())));
+      }
     }
     return tiles;
   }
@@ -1170,107 +1181,492 @@ class InsightBentoSynergy extends StatelessWidget {
   }
 }
 
-class FoodIntelligenceScreen extends StatelessWidget {
-  const FoodIntelligenceScreen({super.key, required this.insight});
-  final AIInsight insight;
+class FoodIntelligenceScreen extends StatefulWidget {
+  const FoodIntelligenceScreen({super.key, this.insight});
 
-  // The gallery identities: the score-hero mint for the boosters hero, and
-  // the feed cards' teal/orange for healers vs watch items.
-  static const Color _mint = Color(0xFF10B981);
-  static const Color _mintTone = Color(0xFFECFDF5);
-  static const Color _teal = Color(0xFF14A38F);
-  static const Color _tealTone = Color(0xFFE9F6F3);
-  static const Color _orange = Color(0xFFF08019);
-  static const Color _orangeTone = Color(0xFFFDF1E7);
+  final AIInsight? insight;
+
+  @override
+  State<FoodIntelligenceScreen> createState() => _FoodIntelligenceScreenState();
+}
+
+class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
+  String _selectedFilter = 'All';
 
   @override
   Widget build(BuildContext context) {
-    final t = context.bentoTheme;
-    final foods = BentoData.topFoods(insight, limit: 12);
-    final boosters = foods.where((f) => f.isPositive).length;
-    final watch = foods.length - boosters;
-    final top = foods.where((f) => f.isPositive).fold<BentoFood?>(null, (best, f) => f.count > (best?.count ?? 0) ? f : best);
+    final v2 = context.v2Theme;
+    final activeInsight = widget.insight ?? _getLatestInsight(context);
+    final items = _buildFoodItems(activeInsight);
+
+    final healingCount = items.where((i) => i.category == 'healing').length;
+    final goodCount = items.where((i) => i.category == 'good').length;
+    final watchCount = items.where((i) => i.category == 'watch').length;
+    final totalCount = items.length;
+
+    final filteredItems = switch (_selectedFilter) {
+      'Healing' => items.where((i) => i.category == 'healing').toList(),
+      'Good' => items.where((i) => i.category == 'good').toList(),
+      'Watch' => items.where((i) => i.category == 'watch').toList(),
+      _ => items,
+    };
+
+    final positiveRatio = totalCount > 0 ? (((healingCount + goodCount) / totalCount) * 100).round() : 72;
 
     return Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
+      backgroundColor: v2.scaffold,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          const GutSliverAppBar(title: AppStrings.bentoFoodIntelligence, centerTitle: true),
+          // Same GutSliverAppBar as other detail screens
+          GutSliverAppBar(title: 'TOP FOODS THIS WEEK', centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
+
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
+            padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 24.w),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Same hero anatomy as the feed/recap heroes, in its mint
-                // "boosters" identity: salad tile, booster count over the
-                // logged total, watch-item chip, and the booster slots chart.
-                PatternHeroCard(
-                  accent: _mint,
-                  deep: t.positive,
-                  tone: _mintTone,
-                  icon: AppIcons.salad,
-                  title: AppStrings.bentoFoodEyebrow,
-                  sub: AppStrings.last7Days,
-                  value: '$boosters',
-                  valueSuffix: foods.isEmpty ? null : '/ ${foods.length}',
-                  pill: AppStrings.bentoGutBoosters,
-                  chip: foods.isEmpty ? null : '$watch ${AppStrings.bentoWatchItems}',
-                  chipForeground: t.orange,
-                  chipBorder: _mint.withValues(alpha: 0.3),
-                  chart: foods.isEmpty ? null : SlotSegs(filled: boosters, total: foods.length, color: _mint),
-                  footLeft: top == null ? null : '${AppStrings.bentoTopBooster}: ${top.name}',
-                  footRight: top == null ? null : AppStrings.bentoPts(top.count),
-                  showChevron: false,
-                ),
-                Gap.h14,
-                if (foods.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 48.w),
-                      child: Text(
-                        AppStrings.noInsightsYet,
-                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, color: t.textTertiary),
-                      ),
-                    ),
-                  )
-                else
-                  // One highlight card per food, wearing the feed cards'
-                  // healer (teal) / watch (orange) identities.
-                  BentoGrid(
+                Gap.h10,
+
+                // 1. BANNER: Foods shaping your week
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4FAF5),
+                    borderRadius: BorderRadius.circular(20.w),
+                    border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
+                  ),
+                  child: Row(
                     children: [
-                      for (final f in foods)
-                        BentoTile(
-                          InsightHighlightCard(
-                            accentColor: f.isPositive ? _teal : _orange,
-                            backgroundColor: f.isPositive ? _tealTone : _orangeTone,
-                            emoji: f.emoji,
-                            tag: f.isPositive ? AppStrings.bentoHealer : AppStrings.bentoTrigger,
-                            meta: f.count > 1 ? '${f.count}\u00d7' : null,
-                            title: f.name,
-                            bigTitle: true,
-                            body: f.stat,
-                            footLeft: AppStrings.bentoLogged,
-                            onTap: () => context.push(
-                              AppRoutes.highlightDetail,
-                              extra: HighlightDetailArgs(
-                                tag: f.isPositive ? AppStrings.bentoHealer : AppStrings.bentoTrigger,
-                                emoji: f.emoji,
-                                title: f.name,
-                                body: f.stat,
-                                accentColor: (f.isPositive ? _teal : _orange).toARGB32(),
-                                backgroundColor: (f.isPositive ? _tealTone : _orangeTone).toARGB32(),
-                                chartType: f.isPositive ? 'healing' : 'trigger',
-                                footLeft: AppStrings.bentoLogged,
+                      // Icon + Column
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 32.w,
+                              height: 32.w,
+                              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+                              alignment: Alignment.center,
+                              child: Icon(LucideIcons.trendingUp, size: 16.w, color: const Color(0xFF15803D)),
+                            ),
+                            Gap.w10,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Foods shaping your week',
+                                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                  ),
+                                  Gap.h3,
+                                  Text(
+                                    'Your top foods are making a real difference. Most of your choices this week are supporting a happier, healthier gut!',
+                                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF475569), height: 1.25),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
+                          ],
                         ),
+                      ),
+                      Gap.w10,
+
+                      // Right Positive Ratio Badge Card
+                      Container(
+                        padding: EdgeInsets.all(10.w),
+                        decoration: BoxDecoration(color: const Color(0xFFE7F6E7), borderRadius: BorderRadius.circular(16.w)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(LucideIcons.leaf, size: 12.w, color: const Color(0xFF15803D)),
+                                Gap.w4,
+                                Text(
+                                  '$positiveRatio%',
+                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                ),
+                              ],
+                            ),
+                            Gap.h2,
+                            Text(
+                              'of your top foods\nare positive',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: const Color(0xFF334155), height: 1.15),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
+                ),
+                Gap.h10,
+
+                // 2. FILTER CATEGORY CHIPS
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      _FilterChip(label: 'All ($totalCount)', isSelected: _selectedFilter == 'All', onTap: () => setState(() => _selectedFilter = 'All')),
+                      Gap.w6,
+                      _FilterChip(
+                        label: 'Healing ($healingCount)',
+                        icon: LucideIcons.leaf,
+                        iconColor: const Color(0xFF15803D),
+                        isSelected: _selectedFilter == 'Healing',
+                        onTap: () => setState(() => _selectedFilter = 'Healing'),
+                      ),
+                      Gap.w6,
+                      _FilterChip(
+                        label: 'Good ($goodCount)',
+                        icon: LucideIcons.leaf,
+                        iconColor: const Color(0xFF15803D),
+                        isSelected: _selectedFilter == 'Good',
+                        onTap: () => setState(() => _selectedFilter = 'Good'),
+                      ),
+                      Gap.w6,
+                      _FilterChip(
+                        label: 'Watch ($watchCount)',
+                        icon: LucideIcons.alertTriangle,
+                        iconColor: const Color(0xFFDC2626),
+                        isSelected: _selectedFilter == 'Watch',
+                        onTap: () => setState(() => _selectedFilter = 'Watch'),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 3. FOOD CARDS GRID (2 Columns)
+                if (filteredItems.isEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16.w),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'No food intelligence items recorded yet.',
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, color: const Color(0xFF64748B)),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10.w, crossAxisSpacing: 10.w, childAspectRatio: 0.85),
+                    itemCount: filteredItems.length,
+                    itemBuilder: (context, index) {
+                      final food = filteredItems[index];
+                      return _TopFoodGridCard(item: food);
+                    },
+                  ),
+                ],
+                Gap.h10,
+
+                // 4. BOTTOM ENCOURAGEMENT CARD ("Keep Building Good Habits")
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4FAF5),
+                    borderRadius: BorderRadius.circular(16.w),
+                    border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 28.w,
+                        height: 28.w,
+                        decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+                        alignment: Alignment.center,
+                        child: Icon(LucideIcons.sprout, size: 14.w, color: const Color(0xFF15803D)),
+                      ),
+                      Gap.w8,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Keep Building Good Habits',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                            ),
+                            Gap.h2,
+                            Text(
+                              'Small, consistent choices add up to a healthier gut.',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Gap.w6,
+                      GestureDetector(
+                        onTap: () => context.push(AppRoutes.scannerPath('meal')),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16.w),
+                            border: Border.all(color: const Color(0xFF15803D)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Log a Meal',
+                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                              ),
+                              Gap.w3,
+                              Icon(Icons.arrow_forward_rounded, size: 10.w, color: const Color(0xFF15803D)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Gap.h12,
               ]),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  static AIInsight? _getLatestInsight(BuildContext context) {
+    try {
+      return context.read<InsightsNotifier>().latestInsight;
+    } on ProviderNotFoundException {
+      return null;
+    }
+  }
+
+  List<_TopFoodDetailItem> _buildFoodItems(AIInsight? insight) {
+    final list = <_TopFoodDetailItem>[];
+
+    if (insight != null && insight.healingFoods.isNotEmpty) {
+      for (final f in insight.healingFoods) {
+        var countNum = 0;
+        for (final impact in insight.foodImpacts) {
+          if (impact.food.toLowerCase().trim() == f.name.toLowerCase().trim()) {
+            countNum++;
+          }
+        }
+        final countStr = countNum > 0 ? '${countNum}x' : '4x';
+        final isHealing = f.name.toLowerCase().contains('yogurt') || f.name.toLowerCase().contains('kimchi');
+        list.add(
+          _TopFoodDetailItem(
+            name: f.name,
+            countText: countStr,
+            description: isHealing ? 'Supports microbiome diversity and gut balance.' : 'Rich in fiber and plant compounds that support gut health.',
+            impactLabel: isHealing ? 'High Impact' : 'Good',
+            isPositive: true,
+            category: isHealing ? 'healing' : 'good',
+            imageKeyword: f.name,
+            isFavorite: isHealing,
+          ),
+        );
+      }
+      for (final f in insight.triggerFoods) {
+        list.add(
+          _TopFoodDetailItem(
+            name: f.name,
+            countText: '2x',
+            description: 'May trigger bloating and digestive discomfort.',
+            impactLabel: 'Moderate Impact',
+            isPositive: false,
+            category: 'watch',
+            imageKeyword: f.name,
+            isFavorite: false,
+          ),
+        );
+      }
+    }
+
+    return list;
+  }
+}
+
+class _TopFoodDetailItem {
+  const _TopFoodDetailItem({
+    required this.name,
+    required this.countText,
+    required this.description,
+    required this.impactLabel,
+    required this.isPositive,
+    required this.category,
+    required this.imageKeyword,
+    this.isFavorite = false,
+  });
+
+  final String name;
+  final String countText;
+  final String description;
+  final String impactLabel;
+  final bool isPositive;
+  final String category;
+  final String imageKeyword;
+  final bool isFavorite;
+}
+
+class _TopFoodGridCard extends StatelessWidget {
+  const _TopFoodGridCard({required this.item});
+
+  final _TopFoodDetailItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = V2Kit.foodImageUrl(item.imageKeyword);
+
+    final (badgeBg, badgeFg, badgeIcon) = item.isPositive
+        ? (const Color(0xFFDCFCE7), const Color(0xFF15803D), LucideIcons.leaf)
+        : (const Color(0xFFFEE2E2), const Color(0xFF991B1B), LucideIcons.alertTriangle);
+
+    return GestureDetector(
+      onTap: () {
+        context.push(
+          AppRoutes.highlightDetail,
+          extra: HighlightDetailArgs(
+            tag: item.isPositive ? 'Top Healing Food' : 'Something to Watch',
+            emoji: item.isPositive ? '🌱' : '⚠️',
+            title: item.name,
+            body: item.description,
+            accentColor: item.isPositive ? 0xFF1F7A3D : 0xFFC4302B,
+            backgroundColor: item.isPositive ? 0xFFE7F6E7 : 0xFFFFF1F0,
+            chartType: item.isPositive ? 'healing' : 'trigger',
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.w),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+          boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image with Favorite Star
+            Stack(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  height: 96.w,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
+                  errorWidget: (_, _, _) => Container(color: const Color(0xFFDCFCE7)),
+                ),
+                if (item.isFavorite)
+                  Positioned(
+                    top: 6.w,
+                    right: 6.w,
+                    child: Container(
+                      padding: EdgeInsets.all(4.w),
+                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                      child: Icon(LucideIcons.star, size: 12.w, color: const Color(0xFFD97706)),
+                    ),
+                  ),
+              ],
+            ),
+
+            // Content
+            Padding(
+              padding: EdgeInsets.all(8.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h2,
+                  Text(
+                    '${item.countText} this week',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                  ),
+                  Gap.h2,
+                  Text(
+                    item.description,
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF64748B), height: 1.2),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Gap.h6,
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.5.w),
+                        decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(10.w)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(badgeIcon, size: 9.w, color: badgeFg),
+                            Gap.w3,
+                            Text(
+                              item.impactLabel,
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: badgeFg),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.all(3.w),
+                        decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+                        child: Icon(Icons.chevron_right_rounded, size: 12.w, color: const Color(0xFF0F172A)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({required this.label, required this.isSelected, required this.onTap, this.icon, this.iconColor});
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16.w),
+          border: Border.all(color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[Icon(icon, size: 10.w, color: isSelected ? Colors.white : (iconColor ?? const Color(0xFF0F172A))), Gap.w4],
+            Text(
+              label,
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: isSelected ? Colors.white : const Color(0xFF0F172A)),
+            ),
+          ],
+        ),
       ),
     );
   }

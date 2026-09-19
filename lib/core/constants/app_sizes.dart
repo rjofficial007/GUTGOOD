@@ -86,7 +86,9 @@ class Gap {
   const Gap._();
 
   static Widget get w2 => SizedBox(width: 2.0.w);
+  static Widget get w3 => SizedBox(width: 3.0.w);
   static Widget get w4 => SizedBox(width: 4.0.w);
+  static Widget get w5 => SizedBox(width: 5.0.w);
   static Widget get w6 => SizedBox(width: 6.0.w);
   static Widget get w8 => SizedBox(width: 8.0.w);
   static Widget get w10 => SizedBox(width: 10.0.w);
@@ -97,7 +99,9 @@ class Gap {
   static Widget get w48 => SizedBox(width: 48.0.w);
 
   static Widget get h2 => SizedBox(height: 2.0.h);
+  static Widget get h3 => SizedBox(height: 3.0.h);
   static Widget get h4 => SizedBox(height: 4.0.h);
+  static Widget get h5 => SizedBox(height: 5.0.h);
   static Widget get h6 => SizedBox(height: 6.0.h);
   static Widget get h8 => SizedBox(height: 8.0.h);
   static Widget get h10 => SizedBox(height: 10.0.h);

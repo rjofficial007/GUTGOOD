@@ -92,7 +92,7 @@ class ArcPatternCard extends StatelessWidget {
                             Gap.w10,
                             Expanded(
                               child: Text(
-                                patternName(pattern.type),
+                                pattern.trigger.isNotEmpty ? pattern.trigger : patternName(pattern.type),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: PatternSurface.ink(context), letterSpacing: -0.2),
@@ -121,7 +121,7 @@ class ArcPatternCard extends StatelessWidget {
                             ),
                             Gap.h4,
                             Text(
-                              '$percent%',
+                              pattern.evidenceRatio > 0 ? '$percent% match' : '$percent%',
                               style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 36.sp, fontWeight: FontWeight.w800, height: 1.0, letterSpacing: -1.0, color: accentColor),
                             ),
                             Gap.h8,

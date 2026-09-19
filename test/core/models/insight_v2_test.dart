@@ -4,7 +4,11 @@ import 'package:gutgood/core/models/chat/chat_message.dart';
 import 'package:gutgood/core/models/insights/ai_insight.dart';
 import 'package:gutgood/core/models/insights/ai_insight_details.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
+import 'package:gutgood/core/models/insights/food_swap.dart';
+import 'package:gutgood/core/models/insights/insight_action.dart';
+import 'package:gutgood/core/models/insights/insight_empty_state.dart';
 import 'package:gutgood/core/models/insights/insight_evidence.dart';
+import 'package:gutgood/core/models/insights/recent_insight_item.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
 import 'package:gutgood/features/insights/domain/usecases/generate_insight_usecase.dart';
 
@@ -141,7 +145,7 @@ void main() {
       expect(stamped.actions, ['Step one']);
       expect(stamped.evidence?.spanDays, 12);
       expect(stamped.evidence?.sampleSizes.scans, 3);
-      expect(stamped.promptVersion, 2);
+      expect(stamped.promptVersion, AiVersions.insightPromptVersion);
       expect(stamped.origin, AIInsight.originClient);
     });
 
@@ -179,6 +183,69 @@ void main() {
         expiresAt: DateTime.utc(2026, 9, 2),
       );
       expect(thinSpan.status, AIInsight.statusInsufficientData);
+    });
+  });
+
+  group('v2 Spec Models Round-Trip', () {
+    test('InsightAction round-trips through toMap/fromMap', () {
+      final action = InsightAction(
+        id: 'act_001',
+        title: 'Increase prebiotic vegetables',
+        description: 'Add more fiber-rich foods like leafy greens.',
+        category: 'nutrition',
+        impactLevel: 'high',
+        difficulty: 'easy',
+        status: 'not_started',
+        whenToDo: 'Daily with meals',
+        expectedBenefit: 'Higher fiber intake and less bloating',
+        relatedPatternIds: const ['pat_synergy_01'],
+        relatedFoodIds: const ['food_leafy_greens'],
+        progress: ActionProgress(target: 7, completed: 2, unit: 'days'),
+      );
+
+      final roundTripped = InsightAction.fromMap(action.toMap());
+      expect(roundTripped, action);
+    });
+
+    test('FoodSwap round-trips through toMap/fromMap', () {
+      const swap = FoodSwap(
+        id: 'swap_001',
+        source: SwapSource(foodId: 'food_onion_rings', name: 'Onion Rings'),
+        alternatives: [SwapAlternative(foodId: 'food_roasted_veg', name: 'Roasted Vegetables', reason: 'Lower in added frying fat.', impactLevel: 'high')],
+        relatedPatternId: 'pat_digest_01',
+      );
+
+      final roundTripped = FoodSwap.fromMap(swap.toMap());
+      expect(roundTripped, swap);
+    });
+
+    test('RecentInsightItem round-trips through toMap/fromMap', () {
+      const item = RecentInsightItem(
+        id: 'recent_001',
+        kind: 'product_scan',
+        date: '2024-09-14T08:00:00.000Z',
+        dateLabel: 'Sep 14, 2024',
+        title: 'Organic Greek Yogurt',
+        description: 'Probiotic source',
+        score: 92,
+        destination: InsightDestination(screen: 'food_detail', id: 'food_greek_yogurt'),
+      );
+
+      final roundTripped = RecentInsightItem.fromMap(item.toMap());
+      expect(roundTripped, item);
+    });
+
+    test('InsightEmptyState round-trips through toMap/fromMap', () {
+      const emptyState = InsightEmptyState(
+        reason: 'insufficient_data',
+        title: "We're still learning about your gut",
+        description: 'Log a few more meals and symptoms.',
+        requirements: [EmptyStateRequirement(key: 'meals', label: 'Meals logged', current: 4, recommended: 10)],
+        primaryAction: EmptyStateAction(label: 'Log a meal', route: 'meal_log'),
+      );
+
+      final roundTripped = InsightEmptyState.fromMap(emptyState.toMap());
+      expect(roundTripped, emptyState);
     });
   });
 }

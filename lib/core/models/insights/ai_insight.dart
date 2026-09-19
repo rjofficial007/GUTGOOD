@@ -4,44 +4,57 @@ import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/models/insights/ai_insight_details.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
+import 'package:gutgood/core/models/insights/food_swap.dart';
+import 'package:gutgood/core/models/insights/insight_action.dart';
+import 'package:gutgood/core/models/insights/insight_empty_state.dart';
 import 'package:gutgood/core/models/insights/insight_evidence.dart';
 import 'package:gutgood/core/models/insights/insight_v2_blocks.dart';
+import 'package:gutgood/core/models/insights/recent_insight_item.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Represents a holistic snapshot of a user's gut health trends and AI-driven discoveries.
 ///
-/// This model is the core of the [InsightsScreen]. It aggregates data from
-/// chat history, meal logs, and symptoms to provide actionable advice.
+/// This model is the core of the Insights experience. It aggregates data from
+/// chat history, meal logs, and symptoms to provide actionable advice conforming
+/// to the complete v2 data specification.
 class AIInsight extends Equatable {
   const AIInsight({
     this.id,
     this.firestoreId,
     this.uid,
     required this.gutScore,
+    this.gutScoreSummary,
     this.scoreDiff,
     this.topInsight,
     this.healingGoal,
     this.healingFoods = const [],
     this.healingTrend,
+    this.healingSummary,
     this.triggerSymptom,
     this.triggerFoods = const [],
     this.triggerTrend,
+    this.triggerSummary,
     this.detectedPatterns = const [],
     this.topTrigger,
     this.topHealing,
     this.foodImpacts = const [],
+    this.foodImpactBalance,
     this.weeklyRecap,
+    this.weeklyRecapHistory = const [],
     this.type = 'Pattern',
     this.confidenceLevel = 'Moderate',
     this.triggerData,
     required this.updatedAt,
     this.schemaVersion = AiVersions.schemaVersion,
-    // P2-10 v2 envelope (all tolerant reads; absent on legacy docs).
     this.periodFrom,
     this.periodTo,
     this.evidence,
     this.actions = const [],
+    this.actionsList = const [],
+    this.foodSwaps = const [],
+    this.recentInsights = const [],
+    this.emptyState,
     this.model,
     this.promptVersion,
     this.status = AIInsight.statusReady,
@@ -55,218 +68,138 @@ class AIInsight extends Equatable {
 
   factory AIInsight.fromMap(Map<String, dynamic> map) {
     final rawData = map['data'];
-    final data = rawData is String
-        ? jsonDecode(rawData) as Map<String, dynamic>
-        : (rawData as Map<String, dynamic>? ?? map);
+    final data = rawData is String ? jsonDecode(rawData) as Map<String, dynamic> : (rawData as Map<String, dynamic>? ?? map);
     final rawId = map['id'] ?? map['firestoreId'];
     final period = data['period'] as Map<String, dynamic>?;
+
+    final rawGutScore = data['gutScore'];
+    final parsedScore = rawGutScore is Map<String, dynamic> ? ((rawGutScore['score'] as num?)?.toInt() ?? 0) : ((rawGutScore as num?)?.toInt() ?? 0);
+
+    final parsedGutScoreSummary = rawGutScore is Map<String, dynamic>
+        ? GutScoreSummary.fromMap(rawGutScore)
+        : (data['gutScoreSummary'] is Map<String, dynamic> ? GutScoreSummary.fromMap(data['gutScoreSummary'] as Map<String, dynamic>) : null);
+
+    final rawHealing = data['healing'];
+    final parsedHealingSummary = rawHealing is Map<String, dynamic> ? HealingSummary.fromMap(rawHealing) : null;
+
+    final rawTriggers = data['triggers'];
+    final parsedTriggerSummary = rawTriggers is Map<String, dynamic> ? TriggerSummary.fromMap(rawTriggers) : null;
+
+    final rawActions = data['actions'];
+    final parsedActionStrings = <String>[];
+    final parsedActionObjects = <InsightAction>[];
+
+    if (rawActions is List) {
+      for (final item in rawActions) {
+        if (item is String) {
+          parsedActionStrings.add(item);
+          parsedActionObjects.add(InsightAction(id: 'act_${parsedActionObjects.length + 1}', title: item, description: item));
+        } else if (item is Map<String, dynamic>) {
+          final actionObj = InsightAction.fromMap(item);
+          parsedActionObjects.add(actionObj);
+          parsedActionStrings.add(actionObj.title);
+        }
+      }
+    }
 
     return AIInsight(
       id: rawId is int ? rawId : null,
       firestoreId: rawId is String ? rawId : null,
       uid: map['uid'] as String?,
-      gutScore: (data['gutScore'] as num?)?.toInt() ?? 0,
-      scoreDiff: data['scoreDiff'] as String?,
-      topInsight: ModelUtils.parseNestedModel<InsightSummary>(
-        data['topInsight'],
-        InsightSummary.fromMap,
-      ),
-      healingGoal: data['healingGoal'] as String?,
-      healingFoods: ModelUtils.parseModelList<HealingFood>(
-        data['healingFoods'],
-        HealingFood.fromMap,
-      ),
-      healingTrend: data['healingTrend'] as String?,
-      triggerSymptom: data['triggerSymptom'] as String?,
-      triggerFoods: ModelUtils.parseModelList<TriggerFood>(
-        data['triggerFoods'],
-        TriggerFood.fromMap,
-      ),
-      triggerTrend: data['triggerTrend'] as String?,
-      detectedPatterns: ModelUtils.parseModelList<BodyPattern>(
-        data['detectedPatterns'],
-        BodyPattern.fromMap,
-      ),
-      topTrigger: _normalizeHighlight(
-        ModelUtils.parseNestedModel<TopHighlight>(
-          data['topTrigger'],
-          TopHighlight.fromMap,
-        ),
-      ),
-      topHealing: _normalizeHighlight(
-        ModelUtils.parseNestedModel<TopHighlight>(
-          data['topHealing'],
-          TopHighlight.fromMap,
-        ),
-      ),
-      foodImpacts: ModelUtils.parseModelList<FoodImpact>(
-        data['foodImpacts'],
-        FoodImpact.fromMap,
-      ),
-      weeklyRecap: ModelUtils.parseNestedModel<WeeklyRecap>(
-        data['weeklyRecap'],
-        WeeklyRecap.fromMap,
-      ),
+      gutScore: parsedScore,
+      gutScoreSummary: parsedGutScoreSummary,
+      scoreDiff: data['scoreDiff']?.toString(),
+      topInsight: ModelUtils.parseNestedModel<InsightSummary>(data['topInsight'], InsightSummary.fromMap),
+      healingGoal: data['healingGoal'] as String? ?? parsedHealingSummary?.goal,
+      healingFoods: ModelUtils.parseModelList<HealingFood>(data['healingFoods'], HealingFood.fromMap),
+      healingTrend: data['healingTrend'] as String? ?? parsedHealingSummary?.trend,
+      healingSummary: parsedHealingSummary,
+      triggerSymptom: data['triggerSymptom'] as String? ?? parsedTriggerSummary?.primarySymptom,
+      triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
+      triggerTrend: data['triggerTrend'] as String? ?? parsedTriggerSummary?.trend,
+      triggerSummary: parsedTriggerSummary,
+      detectedPatterns: ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap),
+      topTrigger: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topTrigger'], TopHighlight.fromMap)),
+      topHealing: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topHealing'], TopHighlight.fromMap)),
+      foodImpacts: ModelUtils.parseModelList<FoodImpact>(data['foodImpacts'], FoodImpact.fromMap),
+      foodImpactBalance: ModelUtils.parseNestedModel<FoodImpactBalance>(data['foodImpactBalance'], FoodImpactBalance.fromMap),
+      weeklyRecap: ModelUtils.parseNestedModel<WeeklyRecap>(data['weeklyRecap'], WeeklyRecap.fromMap),
+      weeklyRecapHistory: ModelUtils.parseModelList<WeeklyRecapHistoryItem>(data['weeklyRecapHistory'], WeeklyRecapHistoryItem.fromMap),
       type: (data['type'] as String?) ?? 'Pattern',
       confidenceLevel: (data['confidenceLevel'] as String?) ?? 'Moderate',
       triggerData: data['triggerData'] as String?,
       updatedAt: DateTimeUtils.parse(map['updatedAt']),
       schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
-      // Envelope dates stay null when absent — DateTimeUtils.parse(null)
-      // returns now, which would fabricate provenance.
-      periodFrom: period?['from'] == null
-          ? null
-          : DateTimeUtils.parse(period!['from']),
-      periodTo: period?['to'] == null
-          ? null
-          : DateTimeUtils.parse(period!['to']),
-      evidence: ModelUtils.parseNestedModel<InsightEvidence>(
-        data['evidence'],
-        InsightEvidence.fromMap,
-      ),
-      actions: (data['actions'] as List?)?.cast<String>() ?? const [],
+      periodFrom: period?['from'] == null ? null : DateTimeUtils.parse(period!['from']).toUtc(),
+      periodTo: period?['to'] == null ? null : DateTimeUtils.parse(period!['to']).toUtc(),
+      evidence: ModelUtils.parseNestedModel<InsightEvidence>(data['evidence'], InsightEvidence.fromMap),
+      actions: parsedActionStrings,
+      actionsList: parsedActionObjects,
+      foodSwaps: ModelUtils.parseModelList<FoodSwap>(data['foodSwaps'], FoodSwap.fromMap),
+      recentInsights: ModelUtils.parseModelList<RecentInsightItem>(data['recentInsights'], RecentInsightItem.fromMap),
+      emptyState: ModelUtils.parseNestedModel<InsightEmptyState>(data['emptyState'], InsightEmptyState.fromMap),
       model: data['model'] as String?,
       promptVersion: (data['promptVersion'] as num?)?.toInt(),
       status: (data['status'] as String?) ?? AIInsight.statusReady,
-      expiresAt: data['expiresAt'] == null
-          ? null
-          : DateTimeUtils.parse(data['expiresAt']),
+      expiresAt: data['expiresAt'] == null ? null : DateTimeUtils.parse(data['expiresAt']).toUtc(),
       origin: data['origin'] as String?,
-      improving: ModelUtils.parseNestedModel<ImprovingBlock>(
-        data['improving'],
-        ImprovingBlock.fromMap,
-      ),
-      watch: ModelUtils.parseNestedModel<WatchBlock>(
-        data['watch'],
-        WatchBlock.fromMap,
-      ),
-      smartSwap: ModelUtils.parseNestedModel<SmartSwap>(
-        data['smartSwap'],
-        SmartSwap.fromMap,
-      ),
+      improving: ModelUtils.parseNestedModel<ImprovingBlock>(data['improving'], ImprovingBlock.fromMap),
+      watch: ModelUtils.parseNestedModel<WatchBlock>(data['watch'], WatchBlock.fromMap),
+      smartSwap: ModelUtils.parseNestedModel<SmartSwap>(data['smartSwap'], SmartSwap.fromMap),
     );
   }
 
-  /// Minimum-evidence doctrine (§H): full insight with pattern claims.
   static const String statusReady = 'ready';
-
-  /// Minimum-evidence doctrine (§H): digest with score-trend only — zero
-  /// pattern claims, explicit "not enough data yet" state.
   static const String statusInsufficientData = 'insufficient_data';
-
-  /// Writer provenance, stamped on every insight doc. On-device generation
-  /// is the only pipeline; the field stays so future writers remain
-  /// comparable (retired server values may appear on old docs).
   static const String originClient = 'client';
 
-  /// Local SQLite primary key.
   final int? id;
-
-  /// Cloud Firestore unique identifier.
   final String? firestoreId;
-
-  /// Identifier of the user who owns this insight.
   final String? uid;
-
-  /// Aggregate gut health score (0-100) at the time of generation.
   final int gutScore;
-
-  /// Descriptive difference from the previous score (e.g., "+4").
+  final GutScoreSummary? gutScoreSummary;
   final String? scoreDiff;
-
-  /// The most critical discovery or suggestion for the user.
   final InsightSummary? topInsight;
-
-  /// Primary health goal identified for this period.
   final String? healingGoal;
-
-  /// List of foods that positively impacted gut health.
   final List<HealingFood> healingFoods;
-
-  /// Narrative description of positive trends.
   final String? healingTrend;
-
-  /// Primary symptom being tracked or addressed.
+  final HealingSummary? healingSummary;
   final String? triggerSymptom;
-
-  /// List of foods that negatively impacted gut health.
   final List<TriggerFood> triggerFoods;
-
-  /// Narrative description of negative trends.
   final String? triggerTrend;
-
-  /// List of recurring behavioral or dietary patterns.
+  final TriggerSummary? triggerSummary;
   final List<BodyPattern> detectedPatterns;
-
-  /// Highlighted positive food encounter.
   final TopHighlight? topTrigger;
-
-  /// Highlighted negative food encounter.
   final TopHighlight? topHealing;
-
-  /// List of detailed food-to-body impact mappings.
   final List<FoodImpact> foodImpacts;
-
-  /// Structured data for the [WeeklyRecapScreen].
+  final FoodImpactBalance? foodImpactBalance;
   final WeeklyRecap? weeklyRecap;
-
-  /// The type of analysis: 'Pattern', 'Ingredient', 'Behavioral', 'Goal'.
+  final List<WeeklyRecapHistoryItem> weeklyRecapHistory;
   final String type;
-
-  /// Statistical confidence in this insight: 'High', 'Moderate', 'Low'.
   final String confidenceLevel;
-
-  /// JSON encoded summary of the raw events that triggered this insight.
   final String? triggerData;
-
-  /// The exact time this analysis was synthesized.
   final DateTime updatedAt;
-
-  /// Durable-doc schema version (§17), stamped as `v`.
   final int schemaVersion;
-
-  /// P2-10 v2 envelope: the data window this insight covers (30d, `period.from/to`).
   final DateTime? periodFrom;
   final DateTime? periodTo;
-
-  /// P2-10 v2 envelope: citable evidence (pattern refs + sample sizes). Null
-  /// on legacy docs (they predate evidence; nothing recomputes it).
   final InsightEvidence? evidence;
-
-  /// P2-10 v2 envelope: recommended actions (stamped from topInsight.nextSteps).
   final List<String> actions;
-
-  /// P2-10 v2 envelope: serving model id (RemoteConfig `openai_model`).
+  final List<InsightAction> actionsList;
+  final List<FoodSwap> foodSwaps;
+  final List<RecentInsightItem> recentInsights;
+  final InsightEmptyState? emptyState;
   final String? model;
-
-  /// P2-10 v2 envelope: insights-prompt version ([AiVersions.insightPromptVersion]).
   final int? promptVersion;
-
-  /// P2-10 v2 envelope: [statusReady] or [statusInsufficientData].
   final String status;
-
-  /// P2-10 v2 envelope: regeneration horizon (stale reads stay servable).
   final DateTime? expiresAt;
-
-  /// L-6 writer provenance (one of the `origin*` constants; null on legacy docs).
   final String? origin;
-
-  /// v3 block: content for the "What's Improving" card. Null on legacy docs —
-  /// the UI derives an equivalent card from healingTrend/healingFoods/scores.
   final ImprovingBlock? improving;
-
-  /// v3 block: reaction timing/risk for the "Something to Watch" card.
   final WatchBlock? watch;
-
-  /// v3 block: Before → After swap under "Something to Watch".
   final SmartSwap? smartSwap;
 
   static TopHighlight? _normalizeHighlight(TopHighlight? highlight) {
     if (highlight == null) return null;
-    if (highlight.food == '---' ||
-        highlight.food.isEmpty ||
-        highlight.food.toLowerCase() == 'none' ||
-        highlight.food.toLowerCase() == 'n/a') {
+    if (highlight.food == '---' || highlight.food.isEmpty || highlight.food.toLowerCase() == 'none' || highlight.food.toLowerCase() == 'n/a') {
       return null;
     }
     return highlight;
@@ -275,60 +208,50 @@ class AIInsight extends Equatable {
   Map<String, dynamic> toMap() => {
     'v': schemaVersion,
     'firestoreId': firestoreId,
-    'gutScore': gutScore,
+    'gutScore': gutScoreSummary?.toMap() ?? gutScore,
     'scoreDiff': scoreDiff,
     'topInsight': topInsight?.toMap(),
     'healingGoal': healingGoal,
     'healingFoods': healingFoods.map((e) => e.toMap()).toList(),
     'healingTrend': healingTrend,
+    'healing': healingSummary?.toMap(),
     'triggerSymptom': triggerSymptom,
     'triggerFoods': triggerFoods.map((e) => e.toMap()).toList(),
     'triggerTrend': triggerTrend,
+    'triggers': triggerSummary?.toMap(),
     'detectedPatterns': detectedPatterns.map((e) => e.toMap()).toList(),
     'topTrigger': topTrigger?.toMap(),
     'topHealing': topHealing?.toMap(),
     'foodImpacts': foodImpacts.map((e) => e.toMap()).toList(),
+    'foodImpactBalance': foodImpactBalance?.toMap(),
     'weeklyRecap': weeklyRecap?.toMap(),
+    'weeklyRecapHistory': weeklyRecapHistory.map((e) => e.toMap()).toList(),
     'type': type,
     'confidenceLevel': confidenceLevel,
     'triggerData': triggerData,
     'updatedAt': DateTimeUtils.toTimestamp(updatedAt),
     'period': (periodFrom == null && periodTo == null)
         ? null
-        : {
-            'from': periodFrom == null
-                ? null
-                : DateTimeUtils.toTimestamp(periodFrom!),
-            'to': periodTo == null
-                ? null
-                : DateTimeUtils.toTimestamp(periodTo!),
-          },
+        : {'from': periodFrom == null ? null : DateTimeUtils.toTimestamp(periodFrom!), 'to': periodTo == null ? null : DateTimeUtils.toTimestamp(periodTo!)},
     'evidence': evidence?.toMap(),
-    'actions': actions,
+    'actions': actionsList.isNotEmpty ? actionsList.map((e) => e.toMap()).toList() : actions,
+    'foodSwaps': foodSwaps.map((e) => e.toMap()).toList(),
+    'recentInsights': recentInsights.map((e) => e.toMap()).toList(),
+    'emptyState': emptyState?.toMap(),
     'model': model,
     'promptVersion': promptVersion,
     'status': status,
-    'expiresAt': expiresAt == null
-        ? null
-        : DateTimeUtils.toTimestamp(expiresAt!),
+    'expiresAt': expiresAt == null ? null : DateTimeUtils.toTimestamp(expiresAt!),
     'origin': origin,
     'improving': improving?.toMap(),
     'watch': watch?.toMap(),
     'smartSwap': smartSwap?.toMap(),
   };
 
-  /// JSON-safe variant of [toMap] for navigation extras (route codec):
-  /// identical but with ISO-8601 dates instead of Firestore Timestamps.
-  /// Round-trips through [AIInsight.fromMap].
   Map<String, dynamic> toJsonMap() {
     final map = toMap();
     map['updatedAt'] = updatedAt.toIso8601String();
-    map['period'] = (periodFrom == null && periodTo == null)
-        ? null
-        : {
-            'from': periodFrom?.toIso8601String(),
-            'to': periodTo?.toIso8601String(),
-          };
+    map['period'] = (periodFrom == null && periodTo == null) ? null : {'from': periodFrom?.toIso8601String(), 'to': periodTo?.toIso8601String()};
     map['expiresAt'] = expiresAt?.toIso8601String();
     return map;
   }
@@ -338,19 +261,24 @@ class AIInsight extends Equatable {
     String? firestoreId,
     String? uid,
     int? gutScore,
+    GutScoreSummary? gutScoreSummary,
     String? scoreDiff,
     InsightSummary? topInsight,
     String? healingGoal,
     List<HealingFood>? healingFoods,
     String? healingTrend,
+    HealingSummary? healingSummary,
     String? triggerSymptom,
     List<TriggerFood>? triggerFoods,
     String? triggerTrend,
+    TriggerSummary? triggerSummary,
     List<BodyPattern>? detectedPatterns,
     TopHighlight? topTrigger,
     TopHighlight? topHealing,
     List<FoodImpact>? foodImpacts,
+    FoodImpactBalance? foodImpactBalance,
     WeeklyRecap? weeklyRecap,
+    List<WeeklyRecapHistoryItem>? weeklyRecapHistory,
     String? type,
     String? confidenceLevel,
     String? triggerData,
@@ -360,6 +288,10 @@ class AIInsight extends Equatable {
     DateTime? periodTo,
     InsightEvidence? evidence,
     List<String>? actions,
+    List<InsightAction>? actionsList,
+    List<FoodSwap>? foodSwaps,
+    List<RecentInsightItem>? recentInsights,
+    InsightEmptyState? emptyState,
     String? model,
     int? promptVersion,
     String? status,
@@ -373,19 +305,24 @@ class AIInsight extends Equatable {
     firestoreId: firestoreId ?? this.firestoreId,
     uid: uid ?? this.uid,
     gutScore: gutScore ?? this.gutScore,
+    gutScoreSummary: gutScoreSummary ?? this.gutScoreSummary,
     scoreDiff: scoreDiff ?? this.scoreDiff,
     topInsight: topInsight ?? this.topInsight,
     healingGoal: healingGoal ?? this.healingGoal,
     healingFoods: healingFoods ?? this.healingFoods,
     healingTrend: healingTrend ?? this.healingTrend,
+    healingSummary: healingSummary ?? this.healingSummary,
     triggerSymptom: triggerSymptom ?? this.triggerSymptom,
     triggerFoods: triggerFoods ?? this.triggerFoods,
     triggerTrend: triggerTrend ?? this.triggerTrend,
+    triggerSummary: triggerSummary ?? this.triggerSummary,
     detectedPatterns: detectedPatterns ?? this.detectedPatterns,
     topTrigger: topTrigger ?? this.topTrigger,
     topHealing: topHealing ?? this.topHealing,
     foodImpacts: foodImpacts ?? this.foodImpacts,
+    foodImpactBalance: foodImpactBalance ?? this.foodImpactBalance,
     weeklyRecap: weeklyRecap ?? this.weeklyRecap,
+    weeklyRecapHistory: weeklyRecapHistory ?? this.weeklyRecapHistory,
     type: type ?? this.type,
     confidenceLevel: confidenceLevel ?? this.confidenceLevel,
     triggerData: triggerData ?? this.triggerData,
@@ -395,6 +332,10 @@ class AIInsight extends Equatable {
     periodTo: periodTo ?? this.periodTo,
     evidence: evidence ?? this.evidence,
     actions: actions ?? this.actions,
+    actionsList: actionsList ?? this.actionsList,
+    foodSwaps: foodSwaps ?? this.foodSwaps,
+    recentInsights: recentInsights ?? this.recentInsights,
+    emptyState: emptyState ?? this.emptyState,
     model: model ?? this.model,
     promptVersion: promptVersion ?? this.promptVersion,
     status: status ?? this.status,
@@ -406,13 +347,5 @@ class AIInsight extends Equatable {
   );
 
   @override
-  List<Object?> get props => [
-    id,
-    firestoreId,
-    gutScore,
-    type,
-    confidenceLevel,
-    status,
-    updatedAt,
-  ];
+  List<Object?> get props => [id, firestoreId, gutScore, type, confidenceLevel, status, updatedAt];
 }

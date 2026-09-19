@@ -5,60 +5,93 @@ import 'package:gutgood/core/utils/model_utils.dart';
 
 class BodyPattern extends Equatable {
   const BodyPattern({
+    this.id,
     required this.type,
     required this.trigger,
     required this.reaction,
     required this.frequency,
     required this.confidence,
     required this.description,
+    this.confidenceScore = 0.85,
     this.involvedFoods = const [],
+    this.relatedFoodIds = const [],
     this.recommendation,
     required this.updatedAt,
     this.occurrences = const [],
     this.commonFactors = const [],
     this.totalSimilarMeals = 0,
     this.timeframeDays = 30,
+    this.typicalTiming,
+    this.typicalDelay,
+    this.impactDirection = 'negative',
+    this.impactLevel = 'high',
     this.evidenceRatio = 0.0,
     this.positiveCount = 0,
     this.negativeCount = 0,
     this.schemaVersion = AiVersions.schemaVersion,
   });
 
-  factory BodyPattern.fromMap(Map<String, dynamic> map) => BodyPattern(
-    type: (map['type'] ?? map['category'] ?? '').toString(),
-    trigger: (map['trigger'] ?? map['title'] ?? map['name'] ?? '').toString(),
-    reaction: (map['reaction'] ?? map['effect'] ?? '').toString(),
-    frequency: (map['frequency'] as num?)?.toInt() ?? 1,
-    confidence: (map['confidence'] ?? map['strength'] ?? 'Moderate').toString(),
-    description: (map['description'] ?? map['observation'] ?? '').toString(),
-    involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
-    recommendation: (map['recommendation'] ?? (map['nextSteps'] is List ? (map['nextSteps'] as List).firstOrNull : null))?.toString(),
-    updatedAt: map['updatedAt'] ?? DateTime.now().toIso8601String(),
-    occurrences: ModelUtils.parseModelList<PatternOccurrence>(map['occurrences'], PatternOccurrence.fromMap),
-    commonFactors: ModelUtils.parseModelList<CommonFactor>(map['commonFactors'], CommonFactor.fromMap),
-    totalSimilarMeals: (map['totalSimilarMeals'] as num?)?.toInt() ?? 0,
-    timeframeDays: (map['timeframeDays'] as num?)?.toInt() ?? 30,
-    evidenceRatio: (map['evidenceRatio'] as num?)?.toDouble() ?? 0.0,
-    positiveCount: (map['positiveCount'] as num?)?.toInt() ?? 0,
-    negativeCount: (map['negativeCount'] as num?)?.toInt() ?? 0,
-    schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
-  );
+  factory BodyPattern.fromMap(Map<String, dynamic> map) {
+    final typeStr = (map['domain'] ?? map['type'] ?? map['category'] ?? '').toString();
+    return BodyPattern(
+      id: map['id']?.toString(),
+      type: typeStr,
+      trigger: (map['trigger'] ?? map['title'] ?? map['name'] ?? '').toString(),
+      reaction: (map['reaction'] ?? map['effect'] ?? '').toString(),
+      frequency: (map['frequency'] as num?)?.toInt() ?? 1,
+      confidence: (map['confidence'] ?? map['strength'] ?? 'Moderate').toString(),
+      confidenceScore: (map['confidenceScore'] as num?)?.toDouble() ?? 0.85,
+      description: (map['description'] ?? map['observation'] ?? '').toString(),
+      involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
+      relatedFoodIds: (map['relatedFoodIds'] as List?)?.cast<String>() ??
+          (map['involvedFoods'] as List?)?.cast<String>() ??
+          const [],
+      recommendation: (map['recommendation'] ??
+              (map['nextSteps'] is List ? (map['nextSteps'] as List).firstOrNull : null))
+          ?.toString(),
+      updatedAt: map['updatedAt']?.toString() ?? DateTime.now().toIso8601String(),
+      occurrences: ModelUtils.parseModelList<PatternOccurrence>(
+          map['occurrences'], PatternOccurrence.fromMap),
+      commonFactors: ModelUtils.parseModelList<CommonFactor>(
+          map['commonFactors'], CommonFactor.fromMap),
+      totalSimilarMeals: (map['totalSimilarMeals'] as num?)?.toInt() ?? 0,
+      timeframeDays: (map['timeframeDays'] as num?)?.toInt() ?? 30,
+      typicalTiming: map['typicalTiming']?.toString(),
+      typicalDelay: map['typicalDelay']?.toString(),
+      impactDirection: map['impactDirection']?.toString() ??
+          ((map['positiveCount'] as num? ?? 0) > 0 ? 'negative' : 'positive'),
+      impactLevel: map['impactLevel']?.toString() ?? 'high',
+      evidenceRatio: (map['evidenceRatio'] as num?)?.toDouble() ?? 0.0,
+      positiveCount: (map['positiveCount'] as num?)?.toInt() ?? 0,
+      negativeCount: (map['negativeCount'] as num?)?.toInt() ?? 0,
+      schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
+    );
+  }
 
+  final String? id;
+
+  /// Pattern domain (e.g., digestion, energy, sleep, mood, appetite).
   final String type;
   final String trigger;
   final String reaction;
   final int frequency;
   final String confidence;
+  final double confidenceScore;
   final String description;
   final List<String> involvedFoods;
+  final List<String> relatedFoodIds;
   final String? recommendation;
   final String updatedAt;
 
-  // New fields for detailed view
+  // Detailed view fields
   final List<PatternOccurrence> occurrences;
   final List<CommonFactor> commonFactors;
   final int totalSimilarMeals;
   final int timeframeDays;
+  final String? typicalTiming;
+  final String? typicalDelay;
+  final String impactDirection;
+  final String impactLevel;
 
   // Statistical Evidence
   final double evidenceRatio; // e.g. 0.8 means 80% of meals with this food were symptomatic
@@ -67,6 +100,9 @@ class BodyPattern extends Equatable {
 
   /// Durable-doc schema version (§17), stamped as `v`.
   final int schemaVersion;
+
+  // Domain Alias
+  String get domain => type;
 
   // Insight Categories
   static const String typeBloating = 'bloating';
@@ -83,42 +119,57 @@ class BodyPattern extends Equatable {
   static const String confidenceHigh = 'High';
 
   Map<String, dynamic> toMap() => {
-    'v': schemaVersion,
-    'type': type,
-    'trigger': trigger,
-    'reaction': reaction,
-    'frequency': frequency,
-    'confidence': confidence,
-    'description': description,
-    'involvedFoods': involvedFoods,
-    'recommendation': recommendation,
-    'updatedAt': updatedAt,
-    'occurrences': occurrences.map((e) => e.toMap()).toList(),
-    'commonFactors': commonFactors.map((e) => e.toMap()).toList(),
-    'totalSimilarMeals': totalSimilarMeals,
-    'timeframeDays': timeframeDays,
-    'evidenceRatio': evidenceRatio,
-    'positiveCount': positiveCount,
-    'negativeCount': negativeCount,
-  };
+        'v': schemaVersion,
+        'id': id,
+        'domain': domain,
+        'type': type,
+        'trigger': trigger,
+        'reaction': reaction,
+        'frequency': frequency,
+        'confidence': confidence,
+        'confidenceScore': confidenceScore,
+        'description': description,
+        'involvedFoods': involvedFoods,
+        'relatedFoodIds': relatedFoodIds,
+        'recommendation': recommendation,
+        'updatedAt': updatedAt,
+        'occurrences': occurrences.map((e) => e.toMap()).toList(),
+        'commonFactors': commonFactors.map((e) => e.toMap()).toList(),
+        'totalSimilarMeals': totalSimilarMeals,
+        'timeframeDays': timeframeDays,
+        'typicalTiming': typicalTiming,
+        'typicalDelay': typicalDelay,
+        'impactDirection': impactDirection,
+        'impactLevel': impactLevel,
+        'evidenceRatio': evidenceRatio,
+        'positiveCount': positiveCount,
+        'negativeCount': negativeCount,
+      };
 
   @override
   List<Object?> get props => [
-    type,
-    trigger,
-    reaction,
-    frequency,
-    confidence,
-    description,
-    involvedFoods,
-    recommendation,
-    updatedAt,
-    occurrences,
-    commonFactors,
-    totalSimilarMeals,
-    timeframeDays,
-    evidenceRatio,
-    positiveCount,
-    negativeCount,
-  ];
+        id,
+        type,
+        trigger,
+        reaction,
+        frequency,
+        confidence,
+        confidenceScore,
+        description,
+        involvedFoods,
+        relatedFoodIds,
+        recommendation,
+        updatedAt,
+        occurrences,
+        commonFactors,
+        totalSimilarMeals,
+        timeframeDays,
+        typicalTiming,
+        typicalDelay,
+        impactDirection,
+        impactLevel,
+        evidenceRatio,
+        positiveCount,
+        negativeCount,
+      ];
 }

@@ -2,13 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
-/// P2-10: keeps a stored emoji when present (legacy docs, tolerated LLM
-/// output); otherwise derives it from the food name. Empty strings count as
-/// missing — they previously persisted as invisible UI.
-String _resolveEmoji(String? stored, String foodName) =>
-    (stored == null || stored.isEmpty)
-    ? InsightPresentation.emojiForFood(foodName)
-    : stored;
+String _resolveEmoji(String? stored, String foodName) => (stored == null || stored.isEmpty) ? InsightPresentation.emojiForFood(foodName) : stored;
 
 class InsightSummary extends Equatable {
   const InsightSummary({
@@ -38,6 +32,7 @@ class InsightSummary extends Equatable {
     positiveCount: (map['positiveCount'] as num?)?.toInt(),
     negativeCount: (map['negativeCount'] as num?)?.toInt(),
   );
+
   final String title;
   final String description;
   final String type;
@@ -65,25 +60,11 @@ class InsightSummary extends Equatable {
   };
 
   @override
-  List<Object?> get props => [
-    title,
-    description,
-    type,
-    observation,
-    strength,
-    frequency,
-  ];
+  List<Object?> get props => [title, description, type, observation, strength, frequency];
 }
 
 class HealingFood extends Equatable {
-  const HealingFood({
-    required this.name,
-    required this.effect,
-    required this.emoji,
-    this.imageUrl,
-    this.userImageUrl,
-    this.foodScanId,
-  });
+  const HealingFood({required this.name, required this.effect, required this.emoji, this.imageUrl, this.userImageUrl, this.foodScanId});
 
   factory HealingFood.fromMap(Map<String, dynamic> map) {
     final name = (map['name'] ?? map['food'] ?? map['title'] ?? '').toString();
@@ -97,6 +78,7 @@ class HealingFood extends Equatable {
       foodScanId: (map['foodScanId'] ?? map['scanId'])?.toString(),
     );
   }
+
   final String name;
   final String effect;
   final String emoji;
@@ -104,35 +86,14 @@ class HealingFood extends Equatable {
   final String? userImageUrl;
   final String? foodScanId;
 
-  Map<String, dynamic> toMap() => {
-    'name': name,
-    'effect': effect,
-    'emoji': emoji,
-    'imageUrl': imageUrl,
-    'userImageUrl': userImageUrl,
-    'foodScanId': foodScanId,
-  };
+  Map<String, dynamic> toMap() => {'name': name, 'effect': effect, 'emoji': emoji, 'imageUrl': imageUrl, 'userImageUrl': userImageUrl, 'foodScanId': foodScanId};
 
   @override
-  List<Object?> get props => [
-    name,
-    effect,
-    emoji,
-    imageUrl,
-    userImageUrl,
-    foodScanId,
-  ];
+  List<Object?> get props => [name, effect, emoji, imageUrl, userImageUrl, foodScanId];
 }
 
 class TriggerFood extends Equatable {
-  const TriggerFood({
-    required this.name,
-    required this.effect,
-    required this.emoji,
-    this.imageUrl,
-    this.userImageUrl,
-    this.foodScanId,
-  });
+  const TriggerFood({required this.name, required this.effect, required this.emoji, this.imageUrl, this.userImageUrl, this.foodScanId});
 
   factory TriggerFood.fromMap(Map<String, dynamic> map) {
     final name = (map['name'] ?? map['food'] ?? map['title'] ?? '').toString();
@@ -146,6 +107,7 @@ class TriggerFood extends Equatable {
       foodScanId: (map['foodScanId'] ?? map['scanId'])?.toString(),
     );
   }
+
   final String name;
   final String effect;
   final String emoji;
@@ -153,117 +115,81 @@ class TriggerFood extends Equatable {
   final String? userImageUrl;
   final String? foodScanId;
 
-  Map<String, dynamic> toMap() => {
-    'name': name,
-    'effect': effect,
-    'emoji': emoji,
-    'imageUrl': imageUrl,
-    'userImageUrl': userImageUrl,
-    'foodScanId': foodScanId,
-  };
+  Map<String, dynamic> toMap() => {'name': name, 'effect': effect, 'emoji': emoji, 'imageUrl': imageUrl, 'userImageUrl': userImageUrl, 'foodScanId': foodScanId};
 
   @override
-  List<Object?> get props => [
-    name,
-    effect,
-    emoji,
-    imageUrl,
-    userImageUrl,
-    foodScanId,
-  ];
-}
-
-class DetectedPattern extends Equatable {
-  const DetectedPattern({
-    required this.title,
-    required this.description,
-    required this.icon,
-  });
-
-  factory DetectedPattern.fromMap(Map<String, dynamic> map) => DetectedPattern(
-    title: (map['title'] ?? map['name'] ?? map['text'] ?? '').toString(),
-    description: (map['description'] ?? '').toString(),
-    icon: map['icon']?.toString() ?? 'brain',
-  );
-  final String title;
-  final String description;
-  final String icon;
-
-  Map<String, dynamic> toMap() => {
-    'title': title,
-    'description': description,
-    'icon': icon,
-  };
-
-  @override
-  List<Object?> get props => [title, description, icon];
+  List<Object?> get props => [name, effect, emoji, imageUrl, userImageUrl, foodScanId];
 }
 
 class TopHighlight extends Equatable {
   const TopHighlight({
     required this.food,
-    required this.effects,
-    required this.timeframe,
-    required this.frequency,
+    String impact = '',
     required this.emoji,
+    this.symptom,
     this.imageUrl,
     this.userImageUrl,
+    this.frequency,
     this.foodScanId,
     this.whyPoints = const [],
-  });
+    String? effects,
+    String? timeframe,
+  }) : _impact = impact,
+       _effects = effects,
+       _timeframe = timeframe;
 
   factory TopHighlight.fromMap(Map<String, dynamic> map) {
-    final food = map['food']?.toString() ?? '';
+    final food = (map['food'] ?? map['title'] ?? map['name'] ?? '').toString();
     final img = map['userImageUrl']?.toString() ?? map['imageUrl']?.toString();
+    final eff = (map['effects'] ?? map['impact'] ?? map['effect'] ?? '').toString();
+    final tf = map['timeframe']?.toString() ?? map['symptom']?.toString();
     return TopHighlight(
       food: food,
-      effects: map['effects']?.toString() ?? '',
-      timeframe: map['timeframe']?.toString() ?? '',
-      frequency: map['frequency']?.toString() ?? '',
+      impact: eff,
       emoji: _resolveEmoji(map['emoji']?.toString(), food),
+      symptom: map['symptom']?.toString() ?? tf,
       imageUrl: map['imageUrl']?.toString() ?? img,
       userImageUrl: img,
+      frequency: map['frequency']?.toString(),
       foodScanId: (map['foodScanId'] ?? map['scanId'])?.toString(),
       whyPoints: (map['whyPoints'] as List?)?.cast<String>() ?? const [],
+      effects: eff,
+      timeframe: tf,
     );
   }
+
   final String food;
-  final String effects;
-  final String timeframe;
-  final String frequency;
+  final String _impact;
   final String emoji;
+  final String? symptom;
   final String? imageUrl;
   final String? userImageUrl;
+  final String? frequency;
   final String? foodScanId;
-
-  /// v3: checklist for the detail screen's "Why it works"/"Why it's a trigger"
-  /// section. Empty on legacy docs — the UI falls back to [effects].
   final List<String> whyPoints;
+  final String? _effects;
+  final String? _timeframe;
+
+  String get impact => _effects != null && _effects.isNotEmpty ? _effects : _impact;
+  String get effects => impact;
+  String? get timeframe => _timeframe ?? symptom;
 
   Map<String, dynamic> toMap() => {
     'food': food,
+    'impact': impact,
     'effects': effects,
-    'timeframe': timeframe,
-    'frequency': frequency,
     'emoji': emoji,
+    'symptom': symptom,
+    'timeframe': timeframe,
     'imageUrl': imageUrl,
     'userImageUrl': userImageUrl,
+    'frequency': frequency,
     'foodScanId': foodScanId,
     'whyPoints': whyPoints,
   };
 
   @override
-  List<Object?> get props => [
-    food,
-    effects,
-    timeframe,
-    frequency,
-    emoji,
-    imageUrl,
-    userImageUrl,
-    foodScanId,
-    whyPoints,
-  ];
+  List<Object?> get props => [food, impact, emoji, symptom, imageUrl, userImageUrl, frequency, foodScanId, whyPoints, _effects, _timeframe];
 }
 
 class FoodImpact extends Equatable {
@@ -280,20 +206,21 @@ class FoodImpact extends Equatable {
   });
 
   factory FoodImpact.fromMap(Map<String, dynamic> map) {
-    final food = map['food']?.toString() ?? 'Unknown';
+    final food = (map['food'] ?? map['title'] ?? map['name'] ?? '').toString();
     final img = map['userImageUrl']?.toString() ?? map['imageUrl']?.toString();
     return FoodImpact(
       food: food,
-      dateLabel: map['dateLabel']?.toString() ?? '',
-      effect: map['effect']?.toString() ?? 'Stable',
-      timeframeLabel: map['timeframeLabel']?.toString() ?? '',
+      dateLabel: (map['dateLabel'] ?? map['date'] ?? '').toString(),
+      effect: (map['effect'] ?? map['impact'] ?? '').toString(),
+      timeframeLabel: (map['timeframeLabel'] ?? map['timeframe'] ?? '').toString(),
       emoji: _resolveEmoji(map['emoji']?.toString(), food),
-      impactType: map['impactType']?.toString() ?? 'positive',
+      impactType: (map['impactType'] ?? map['type'] ?? 'neutral').toString(),
       imageUrl: map['imageUrl']?.toString() ?? img,
       userImageUrl: img,
       foodScanId: (map['foodScanId'] ?? map['scanId'])?.toString(),
     );
   }
+
   final String food;
   final String dateLabel;
   final String effect;
@@ -317,75 +244,15 @@ class FoodImpact extends Equatable {
   };
 
   @override
-  List<Object?> get props => [
-    food,
-    dateLabel,
-    effect,
-    impactType,
-    emoji,
-    imageUrl,
-    userImageUrl,
-    foodScanId,
-  ];
-}
-
-class WeeklyRecap extends Equatable {
-  const WeeklyRecap({
-    required this.dateRange,
-    required this.avgScore,
-    required this.scoreSub,
-    required this.bestDay,
-    required this.foodsLogged,
-    required this.loggedSub,
-    this.highlights = const [],
-  });
-
-  factory WeeklyRecap.fromMap(Map<String, dynamic> map) => WeeklyRecap(
-    dateRange: map['dateRange']?.toString() ?? 'Last 7 Days',
-    avgScore: (map['avgScore'] as num?)?.toInt() ?? 0,
-    scoreSub: map['scoreSub']?.toString() ?? '',
-    bestDay: map['bestDay']?.toString() ?? 'N/A',
-    foodsLogged: (map['foodsLogged'] as num?)?.toInt() ?? 0,
-    loggedSub: map['loggedSub']?.toString() ?? '',
-    highlights: ModelUtils.parseModelList<RecapHighlight>(
-      map['highlights'],
-      RecapHighlight.fromMap,
-    ),
-  );
-  final String dateRange;
-  final int avgScore;
-  final String scoreSub;
-  final String bestDay;
-  final int foodsLogged;
-  final String loggedSub;
-  final List<RecapHighlight> highlights;
-
-  Map<String, dynamic> toMap() => {
-    'dateRange': dateRange,
-    'avgScore': avgScore,
-    'scoreSub': scoreSub,
-    'bestDay': bestDay,
-    'foodsLogged': foodsLogged,
-    'loggedSub': loggedSub,
-    'highlights': highlights.map((e) => e.toMap()).toList(),
-  };
-
-  @override
-  List<Object?> get props => [dateRange, avgScore, bestDay, foodsLogged];
+  List<Object?> get props => [food, dateLabel, effect, timeframeLabel, emoji, impactType, imageUrl, userImageUrl, foodScanId];
 }
 
 class RecapHighlight extends Equatable {
-  const RecapHighlight({
-    required this.icon,
-    required this.text,
-    required this.color,
-  });
+  const RecapHighlight({required this.icon, required this.text, required this.color});
 
-  factory RecapHighlight.fromMap(Map<String, dynamic> map) => RecapHighlight(
-    icon: map['icon']?.toString() ?? 'sparkles',
-    text: map['text']?.toString() ?? '',
-    color: map['color']?.toString() ?? 'purple',
-  );
+  factory RecapHighlight.fromMap(Map<String, dynamic> map) =>
+      RecapHighlight(icon: map['icon']?.toString() ?? 'sparkles', text: map['text']?.toString() ?? '', color: map['color']?.toString() ?? 'green');
+
   final String icon;
   final String text;
   final String color;
@@ -394,4 +261,209 @@ class RecapHighlight extends Equatable {
 
   @override
   List<Object?> get props => [icon, text, color];
+}
+
+class WeeklyRecap extends Equatable {
+  const WeeklyRecap({
+    this.highlights = const [],
+    this.stats = const [],
+    this.gutScoreTrend,
+    this.summary,
+    this.avgScore,
+    this.dateRange,
+    this.scoreSub,
+    this.bestDay,
+    this.foodsLogged,
+    this.loggedSub,
+  });
+
+  factory WeeklyRecap.fromMap(Map<String, dynamic> map) {
+    final rawHighlights = map['highlights'];
+    final parsedHighlights = <dynamic>[];
+    if (rawHighlights is List) {
+      for (final item in rawHighlights) {
+        if (item is Map<String, dynamic>) {
+          parsedHighlights.add(RecapHighlight.fromMap(item));
+        } else if (item is RecapHighlight) {
+          parsedHighlights.add(item);
+        } else if (item != null) {
+          parsedHighlights.add(item.toString());
+        }
+      }
+    }
+
+    return WeeklyRecap(
+      highlights: parsedHighlights,
+      stats: (map['stats'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      gutScoreTrend: (map['gutScoreTrend'] as List?)?.map((e) => (e as num).toInt()).toList(),
+      summary: map['summary']?.toString(),
+      avgScore: (map['avgScore'] as num?)?.toInt(),
+      dateRange: map['dateRange']?.toString(),
+      scoreSub: map['scoreSub']?.toString(),
+      bestDay: map['bestDay']?.toString(),
+      foodsLogged: (map['foodsLogged'] as num?)?.toInt(),
+      loggedSub: map['loggedSub']?.toString(),
+    );
+  }
+
+  final List<dynamic> highlights;
+  final List<String> stats;
+  final List<int>? gutScoreTrend;
+  final String? summary;
+  final int? avgScore;
+  final String? dateRange;
+  final String? scoreSub;
+  final String? bestDay;
+  final int? foodsLogged;
+  final String? loggedSub;
+
+  Map<String, dynamic> toMap() => {
+    'highlights': highlights.map((e) {
+      if (e is RecapHighlight) return e.toMap();
+      return e;
+    }).toList(),
+    'stats': stats,
+    'gutScoreTrend': gutScoreTrend,
+    'summary': summary,
+    'avgScore': avgScore,
+    'dateRange': dateRange,
+    'scoreSub': scoreSub,
+    'bestDay': bestDay,
+    'foodsLogged': foodsLogged,
+    'loggedSub': loggedSub,
+  };
+
+  @override
+  List<Object?> get props => [highlights, stats, gutScoreTrend, summary, avgScore, dateRange, scoreSub, bestDay, foodsLogged, loggedSub];
+}
+
+class GutScoreSummary extends Equatable {
+  const GutScoreSummary({required this.score, required this.trend, this.status, this.description});
+
+  factory GutScoreSummary.fromMap(Map<String, dynamic> map) => GutScoreSummary(
+    score: (map['score'] as num?)?.toInt() ?? 78,
+    trend: map['trend']?.toString() ?? '+2 pts vs last week',
+    status: map['status']?.toString() ?? 'Stable',
+    description: map['description']?.toString(),
+  );
+
+  final int score;
+  final String trend;
+  final String? status;
+  final String? description;
+
+  Map<String, dynamic> toMap() => {'score': score, 'trend': trend, 'status': status, 'description': description};
+
+  @override
+  List<Object?> get props => [score, trend, status, description];
+}
+
+class InsightFood extends Equatable {
+  const InsightFood({required this.foodId, required this.name, required this.emoji, this.imageUrl, this.effect, this.impactLevel = 'medium'});
+
+  factory InsightFood.fromMap(Map<String, dynamic> map) {
+    final name = (map['name'] ?? map['food'] ?? '').toString();
+    return InsightFood(
+      foodId: (map['foodId'] ?? map['id'] ?? 'food_${name.hashCode}').toString(),
+      name: name,
+      emoji: _resolveEmoji(map['emoji']?.toString(), name),
+      imageUrl: map['imageUrl']?.toString() ?? map['userImageUrl']?.toString(),
+      effect: map['effect']?.toString(),
+      impactLevel: map['impactLevel']?.toString() ?? 'medium',
+    );
+  }
+
+  final String foodId;
+  final String name;
+  final String emoji;
+  final String? imageUrl;
+  final String? effect;
+  final String impactLevel;
+
+  Map<String, dynamic> toMap() => {'foodId': foodId, 'name': name, 'emoji': emoji, 'imageUrl': imageUrl, 'effect': effect, 'impactLevel': impactLevel};
+
+  @override
+  List<Object?> get props => [foodId, name, emoji, imageUrl, effect, impactLevel];
+}
+
+class HealingSummary extends Equatable {
+  const HealingSummary({required this.foods, required this.goal, required this.trend});
+
+  factory HealingSummary.fromMap(Map<String, dynamic> map) => HealingSummary(
+    foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap),
+    goal: map['goal']?.toString() ?? 'Microbiome Diversity',
+    trend: map['trend']?.toString() ?? 'Improving',
+  );
+
+  final List<InsightFood> foods;
+  final String goal;
+  final String trend;
+
+  Map<String, dynamic> toMap() => {'foods': foods.map((f) => f.toMap()).toList(), 'goal': goal, 'trend': trend};
+
+  @override
+  List<Object?> get props => [foods, goal, trend];
+}
+
+class TriggerSummary extends Equatable {
+  const TriggerSummary({required this.foods, required this.primarySymptom, required this.trend});
+
+  factory TriggerSummary.fromMap(Map<String, dynamic> map) => TriggerSummary(
+    foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap),
+    primarySymptom: map['primarySymptom']?.toString() ?? 'Bloating',
+    trend: map['trend']?.toString() ?? 'Needs Attention',
+  );
+
+  final List<InsightFood> foods;
+  final String primarySymptom;
+  final String trend;
+
+  Map<String, dynamic> toMap() => {'foods': foods.map((f) => f.toMap()).toList(), 'primarySymptom': primarySymptom, 'trend': trend};
+
+  @override
+  List<Object?> get props => [foods, primarySymptom, trend];
+}
+
+class FoodImpactBalance extends Equatable {
+  const FoodImpactBalance({required this.positivePercent, required this.neutralPercent, required this.negativePercent, this.periodLabel = 'Last 4 weeks'});
+
+  factory FoodImpactBalance.fromMap(Map<String, dynamic> map) => FoodImpactBalance(
+    positivePercent: (map['positivePercent'] as num?)?.toInt() ?? 72,
+    neutralPercent: (map['neutralPercent'] as num?)?.toInt() ?? 18,
+    negativePercent: (map['negativePercent'] as num?)?.toInt() ?? 10,
+    periodLabel: map['periodLabel']?.toString() ?? 'Last 4 weeks',
+  );
+
+  final int positivePercent;
+  final int neutralPercent;
+  final int negativePercent;
+  final String periodLabel;
+
+  Map<String, dynamic> toMap() => {'positivePercent': positivePercent, 'neutralPercent': neutralPercent, 'negativePercent': negativePercent, 'periodLabel': periodLabel};
+
+  @override
+  List<Object?> get props => [positivePercent, neutralPercent, negativePercent, periodLabel];
+}
+
+class WeeklyRecapHistoryItem extends Equatable {
+  const WeeklyRecapHistoryItem({required this.id, required this.weekLabel, required this.avgScore, required this.summary, this.date});
+
+  factory WeeklyRecapHistoryItem.fromMap(Map<String, dynamic> map) => WeeklyRecapHistoryItem(
+    id: map['id']?.toString() ?? 'week_01',
+    weekLabel: map['weekLabel']?.toString() ?? 'Week 1',
+    avgScore: (map['avgScore'] as num?)?.toInt() ?? 75,
+    summary: map['summary']?.toString() ?? 'Great consistency in plant diversity.',
+    date: map['date']?.toString(),
+  );
+
+  final String id;
+  final String weekLabel;
+  final int avgScore;
+  final String summary;
+  final String? date;
+
+  Map<String, dynamic> toMap() => {'id': id, 'weekLabel': weekLabel, 'avgScore': avgScore, 'summary': summary, 'date': date};
+
+  @override
+  List<Object?> get props => [id, weekLabel, avgScore, summary, date];
 }

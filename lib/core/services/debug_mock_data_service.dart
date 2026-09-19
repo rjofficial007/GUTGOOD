@@ -556,6 +556,67 @@ class DebugMockDataService {
         FoodImpact(food: 'Greek Yogurt', dateLabel: 'Mon', effect: 'Steady energy', timeframeLabel: 'Snack', emoji: '🥣', impactType: 'positive'),
         FoodImpact(food: 'French Fries', dateLabel: 'Tue', effect: 'Headache trigger', timeframeLabel: 'Dinner', emoji: '🍟', impactType: 'negative', imageUrl: friesThumb, userImageUrl: friesThumb),
       ],
+      foodImpactBalance: const FoodImpactBalance(
+        positivePercent: 81,
+        neutralPercent: 12,
+        negativePercent: 7,
+        periodLabel: 'Last 4 weeks',
+      ),
+      actionsList: const [
+        InsightAction(
+          id: 'act_01',
+          title: 'Increase prebiotic vegetables',
+          description: 'Add more leafy greens, onions, and garlic to support gut flora.',
+          category: 'nutrition',
+          whenToDo: 'With lunch or dinner',
+          expectedBenefit: 'Improves gut microbiome diversity and reduces bloating risk.',
+          impactLevel: 'high',
+          difficulty: 'Easy',
+        ),
+        InsightAction(
+          id: 'act_02',
+          title: 'Maintain daily kefir intake',
+          description: 'Keep up your 1 serving of kefir per day for steady probiotic support.',
+          category: 'nutrition',
+          whenToDo: 'Every morning with breakfast',
+          expectedBenefit: 'Stabilizes gut mucosal barrier and supports smooth digestion.',
+          impactLevel: 'high',
+          difficulty: 'Easy',
+        ),
+      ],
+      foodSwaps: const [
+        FoodSwap(
+          id: 'swap_01',
+          source: SwapSource(foodId: 'f_fries', name: 'French Fries'),
+          alternatives: [
+            SwapAlternative(
+              foodId: 'f_sweet_potato',
+              name: 'Baked Sweet Potato Wedges',
+              reason: 'Far less refined oil and double the fiber.',
+            ),
+          ],
+        ),
+      ],
+      recentInsights: [
+        RecentInsightItem(
+          id: 'rec_01',
+          kind: 'Pattern',
+          date: 'Today',
+          dateLabel: 'Today',
+          title: 'Fermented Foods Synergy',
+          description: 'Probiotic intake correlates with zero reported bloating episodes.',
+          imageUrl: berriesPhoto,
+        ),
+        RecentInsightItem(
+          id: 'rec_02',
+          kind: 'Trigger Alert',
+          date: 'Yesterday',
+          dateLabel: 'Yesterday',
+          title: 'Sodium & Late Dinners',
+          description: 'Late-night high sodium meals trigger headaches within 2 hours.',
+          imageUrl: friesThumb,
+        ),
+      ],
       weeklyRecap: WeeklyRecap(
         dateRange: '${rangeStart.month}/${rangeStart.day} - ${now.month}/${now.day}',
         avgScore: 52,
