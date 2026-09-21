@@ -10,6 +10,13 @@ abstract class InsightRepository {
   /// Returns a consolidated stream of all dashboard reactive data.
   Stream<InsightsDashboardState> getDashboardStateStream();
 
+  // Active Gut Experiments
+  Future<void> saveActiveExperiment(GutExperiment experiment);
+  Future<GutExperiment?> getActiveExperiment();
+  Stream<GutExperiment?> getActiveExperimentStream();
+  Future<void> updateExperimentCheckIn(String experimentId, String dateKey, bool adhered, bool hadSymptoms);
+  Future<void> completeExperiment(String experimentId, String outcomeSummary);
+
   // Data fetching for analysis
   Future<List<MealLog>> getRecentMeals(DateTime since);
   Future<List<SymptomLog>> getRecentSymptoms(DateTime since);

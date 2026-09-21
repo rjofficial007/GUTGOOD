@@ -192,7 +192,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     final score = breakdown.score;
     AppLogger.ai('ScannerRepository: engine score $score (nutrition ${breakdown.nutritionSubscore}, additives ${breakdown.additiveSubscore}, organic ${breakdown.organicSubscore})');
 
-    return scan.copyWith(score: score, impact: breakdown.explanation.isNotEmpty ? breakdown.explanation : scan.impact);
+    return scan.copyWith(score: score, impact: scan.impact.isNotEmpty ? scan.impact : breakdown.explanation);
   }
 
   @override

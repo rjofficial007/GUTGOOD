@@ -78,7 +78,7 @@ class YukaScoreBreakdown {
     required this.score,
     required this.nutritionSubscore,
     required this.additiveSubscore,
-    required this.organicSubscore,
+    required this.processingSubscore,
     required this.factors,
     required this.explanation,
     this.grade,
@@ -99,7 +99,10 @@ class YukaScoreBreakdown {
 
   final int nutritionSubscore;
   final int additiveSubscore;
-  final int organicSubscore;
+  final int processingSubscore;
+
+  /// Alias for backward compatibility.
+  int get organicSubscore => processingSubscore;
 
   final NutriScoreGrade? grade;
   final bool gradeEstimated;
@@ -128,17 +131,21 @@ class _Band {
   final double bottom;
 }
 
-/// Yuka-style scoring engine.
+/// GutGood food scoring engine.
 ///
-/// Every number it produces is explainable: it returns the component
-/// sub-scores and a sentence, so the UI never shows a number it cannot justify.
+/// Component weights:
+/// - **60% Nutritional Quality** — derived from Nutri-Score.
+/// - **30% Additive Quality / Risk** — by risk level.
+/// - **10% Ingredient & Processing Quality** — derived from NOVA group & organic certification.
+/// - Any high-risk additive caps the final score at 49/100.
 class YukaScore {
   YukaScore._();
 
-  /// Published component weights (percent of the final score).
+  /// Component weights (percent of the final score).
   static const int nutritionWeight = 60;
   static const int additiveWeight = 30;
-  static const int organicWeight = 10;
+  static const int processingWeight = 10;
+  static const int organicWeight = 10; // Alias for backward compatibility
 
   /// Published ceiling for any product containing a high-risk additive.
   static const int highRiskCap = 49;
@@ -331,6 +338,35 @@ class YukaScore {
     return false;
   }
 
+  /// Evaluates 0–100 Ingredient & Processing Quality subscore based on
+  /// NOVA processing group (1 = Unprocessed, 2 = Culinary, 3 = Processed, 4 = Ultra-processed)
+  /// and organic certification.
+  static int processingSubscore(int? novaGroup, bool isOrganic) {
+    var score = 50; // Neutral default if NOVA processing classification is unknown
+
+    if (novaGroup != null) {
+      switch (novaGroup) {
+        case 1:
+          score = 100; // Unprocessed / minimally processed whole foods
+        case 2:
+          score = 80; // Processed culinary ingredients
+        case 3:
+          score = 50; // Processed foods
+        case 4:
+          score = 0; // Ultra-processed foods
+        default:
+          score = 50;
+      }
+    }
+
+    // Organic certification bonus (+15 subscore pts, capped at 100)
+    if (isOrganic) {
+      score = (score + 15).clamp(0, 100);
+    }
+
+    return score;
+  }
+
   /// Scores a product.
   ///
   /// Supply [nutriscoreScore] (raw points) or [nutriscore] (letter) when a
@@ -347,6 +383,7 @@ class YukaScore {
     num? fruitVegPct,
     List<AdditiveConcern>? additiveConcerns,
     bool? isOrganic,
+    int? novaGroup,
     bool isBeverage = false,
   }) {
     final concerns = additiveConcerns ?? const <AdditiveConcern>[];
@@ -387,19 +424,19 @@ class YukaScore {
     }
 
     final hasNutrition = grade != null && points != null;
-    if (!hasNutrition && concerns.isEmpty) {
-      return const YukaScoreBreakdown(hasData: false, score: 0, nutritionSubscore: 0, additiveSubscore: 0, organicSubscore: 0, factors: [], explanation: '');
+    if (!hasNutrition && concerns.isEmpty && novaGroup == null && !organic) {
+      return const YukaScoreBreakdown(hasData: false, score: 0, nutritionSubscore: 0, additiveSubscore: 0, processingSubscore: 0, factors: [], explanation: '');
     }
 
     final nutrition = hasNutrition ? nutritionSubscore(grade, points) : 50; // no signal → neutral
     final additive = additiveSubscore(concerns);
-    final organicSub = organic ? 100 : 0;
+    final processing = processingSubscore(novaGroup, organic);
 
     final nutritionPts = (nutrition * nutritionWeight / 100).round();
     final additivePts = (additive * additiveWeight / 100).round();
-    final organicPts = (organicSub * organicWeight / 100).round();
+    final processingPts = (processing * processingWeight / 100).round();
 
-    var score = (nutritionPts + additivePts + organicPts).clamp(0, 100);
+    var score = (nutritionPts + additivePts + processingPts).clamp(0, 100);
     int? beforeCap;
 
     final hasHighRisk = concerns.any(_isHighRisk);
@@ -423,9 +460,9 @@ class YukaScore {
         phrase: concerns.isEmpty ? 'no additives detected' : _additivePhrase(concerns),
       ),
       ScoreFactor(
-        label: 'Organic · ${organic ? 'certified' : 'not certified'} · $organicPts/$organicWeight',
-        delta: organicPts,
-        phrase: organic ? 'organic certification' : 'no organic certification',
+        label: 'Processing & Ingredients · ${_processingSummary(novaGroup, organic)} · $processingPts/$processingWeight',
+        delta: processingPts,
+        phrase: _processingPhrase(novaGroup, organic),
       ),
     ];
 
@@ -439,13 +476,40 @@ class YukaScore {
       scoreBeforeCap: beforeCap,
       nutritionSubscore: nutrition,
       additiveSubscore: additive,
-      organicSubscore: organicSub,
+      processingSubscore: processing,
       grade: grade,
       gradeEstimated: estimated,
       nutriScorePoints: componentPoints,
       factors: factors,
-      explanation: _explain(score, nutritionPts, additivePts, organicPts, grade, estimated, beforeCap, concerns),
+      explanation: _explain(score, nutritionPts, additivePts, processingPts, grade, estimated, beforeCap, concerns, novaGroup, organic),
     );
+  }
+
+  static String _processingSummary(int? novaGroup, bool organic) {
+    final parts = <String>[];
+    if (novaGroup != null) {
+      parts.add(switch (novaGroup) {
+        1 => 'Unprocessed',
+        2 => 'Culinary',
+        3 => 'Processed',
+        4 => 'Ultra-processed',
+        _ => 'NOVA $novaGroup',
+      });
+    } else {
+      parts.add('Standard processing');
+    }
+    if (organic) parts.add('Organic');
+    return parts.join(' · ');
+  }
+
+  static String _processingPhrase(int? novaGroup, bool organic) {
+    if (novaGroup == 1) {
+      return organic ? 'unprocessed organic ingredients' : 'unprocessed whole ingredients';
+    } else if (novaGroup == 4) {
+      return organic ? 'ultra-processed organic food' : 'ultra-processed food';
+    } else {
+      return organic ? 'processed organic ingredients' : 'ingredient processing quality';
+    }
   }
 
   static String _additiveSummary(List<AdditiveConcern> concerns) {
@@ -476,7 +540,18 @@ class YukaScore {
     return '${concerns.length} flagged additives';
   }
 
-  static String _explain(int score, int nutritionPts, int additivePts, int organicPts, NutriScoreGrade? grade, bool estimated, int? beforeCap, List<AdditiveConcern> concerns) {
+  static String _explain(
+    int score,
+    int nutritionPts,
+    int additivePts,
+    int processingPts,
+    NutriScoreGrade? grade,
+    bool estimated,
+    int? beforeCap,
+    List<AdditiveConcern> concerns,
+    int? novaGroup,
+    bool organic,
+  ) {
     final buffer = StringBuffer('Score $score out of 100 — ')
       ..write(
         grade != null
@@ -484,7 +559,7 @@ class YukaScore {
             : 'nutrition $nutritionPts/$nutritionWeight (incomplete data)',
       )
       ..write(', additives $additivePts/$additiveWeight')
-      ..write(' and organic $organicPts/$organicWeight.');
+      ..write(' and processing & ingredients $processingPts/$processingWeight (${_processingSummary(novaGroup, organic)}).');
 
     if (beforeCap != null) {
       final names = concerns.where(_isHighRisk).map((c) => c.code.isNotEmpty ? c.code : c.name).take(2).join(', ');

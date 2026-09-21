@@ -7,11 +7,12 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/features/insights/presentation/pages/action_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/better_swaps_screen.dart';
+import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/v2_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
+import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class V2InsightsFeed extends StatefulWidget {
@@ -46,7 +47,7 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
           // 1. Top App Header & Filter Chips
           Gap.h10,
           _InsightsHeaderWidget(selectedFilter: _selectedFilter, onFilterSelected: (filter) => setState(() => _selectedFilter = filter)),
-          Gap.h16,
+          Gap.h12,
 
           // -------------------------------------------------------------------
           // TAB: PATTERNS
@@ -103,18 +104,36 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
 
             // Detected Pattern Cards
             if (widget.patterns.isNotEmpty) ...[
-              for (final pattern in widget.patterns) ...[
-                _FiberSynergyHeroCard(
-                  insight: widget.data,
-                  pattern: pattern,
-                  onTap: () => context.push(AppRoutes.fiberSynergyDetail, extra: pattern),
-                ),
-                Gap.h10,
-              ],
+              for (final pattern in widget.patterns) ...[PatternCard(pattern: pattern), Gap.h10],
             ] else ...[
-              _FiberSynergyHeroCard(
-                insight: widget.data,
-                onTap: () => context.push(AppRoutes.fiberSynergyDetail, extra: widget.data),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20.w),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(LucideIcons.sparkles, size: 16.w, color: const Color(0xFF15803D)),
+                        Gap.w8,
+                        Text(
+                          'No Patterns Detected Yet',
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                        ),
+                      ],
+                    ),
+                    Gap.h6,
+                    Text(
+                      'We are still learning from your logs. Keep logging your meals and symptoms to discover recurring body patterns.',
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: const Color(0xFF64748B), height: 1.4),
+                    ),
+                  ],
+                ),
               ),
               Gap.h10,
             ],
@@ -137,10 +156,6 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
             _SideBySideHealingAndTriggerCards(insight: widget.data),
             Gap.h10,
 
-            // 3. Featured Insight Card: Fiber & Fermentation Synergy
-            _FiberSynergyFeaturedCard(insight: widget.data),
-            Gap.h10,
-
             // 4. Recent Food Impacts List
             _RecentFoodImpactsSection(impacts: widget.data.foodImpacts),
             Gap.h10,
@@ -159,26 +174,30 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
             // HERO CARD: Gut Score & On Track
             Gap.h16,
 
-            _GutScoreHeroCard(
-              score: widget.data.gutScore.clamp(0, 100).toInt(),
-              delta: delta ?? 4,
-              onTap: () => context.push(AppRoutes.weeklyRecap, extra: widget.data),
-            ),
+            _GutScoreHeroCard(score: widget.data.gutScore.clamp(0, 100).toInt(), delta: delta ?? 4, onTap: () {}, onWhyTap: () => WhyScoreSheet.show(context, widget.data)),
             Gap.h16,
 
             if (_selectedFilter == 'For You') ...[
-              // FEATURED PATTERN: Fiber & Fermentation Synergy
-              _FiberSynergyHeroCard(
-                insight: widget.data,
-                pattern: widget.patterns.isNotEmpty ? widget.patterns.first : null,
-                onTap: () => context.push(AppRoutes.fiberSynergyDetail, extra: widget.data),
+              // FEATURED PATTERN: PatternCard (Same widget used in Patterns Tab)
+              PatternCard(
+                pattern:
+                    widget.patterns.firstOrNull ??
+                    BodyPattern(
+                      type: widget.data.topInsight?.type ?? 'digestion',
+                      trigger: widget.data.topInsight?.involvedFoods.firstOrNull ?? 'Whole Foods',
+                      reaction: widget.data.topInsight?.title ?? 'Gut Health Pattern',
+                      frequency: widget.data.topInsight?.frequency ?? 1,
+                      confidence: widget.data.topInsight?.strength ?? 'High',
+                      description: widget.data.topInsight?.description ?? 'Track your daily meals to discover personalized gut patterns.',
+                      updatedAt: DateTime.now().toIso8601String(),
+                    ),
               ),
               Gap.h16,
 
               // SIDE-BY-SIDE CARDS: What's Improving & Something to Watch
               _SideBySideImprovingAndWatch(
                 improvingData: improving,
-                series: widget.series.isEmpty ? const [74.0, 75.0, 76.0, 77.0, 78.0] : widget.series,
+                series: widget.series.isEmpty ? [widget.data.gutScore.toDouble()] : widget.series,
                 watchData: watch,
                 onImprovingTap: () => context.push(
                   AppRoutes.highlightDetail,
@@ -216,14 +235,30 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
               ),
               Gap.h10,
 
-              // QUICK WIN: Try More Fermented Foods
-              _QuickWinCard(onExploreTap: () => context.push(AppRoutes.foodIntelligence)),
-              Gap.h20,
               // TOP FOODS THIS WEEK
               _TopFoodsSection(insight: widget.data),
-              Gap.h10,
-              // RECENT INSIGHTS
-              _RecentInsightsSection(insight: widget.data, onViewAllTap: () => context.push(AppRoutes.insightHistory)),
+
+              Gap.h16,
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14.w),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(LucideIcons.shieldAlert, size: 16.w, color: const Color(0xFF94A3B8)),
+                    Gap.w10,
+                    Expanded(
+                      child: Text(
+                        'GutGood Insights reflects statistical correlations from your meal and symptom logs, not permanent allergies or medical diagnoses. Always listen to your body.',
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF64748B), height: 1.35),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ],
         ]),
@@ -299,27 +334,61 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    int pos = balance?.positivePercent ?? 70;
-    int neu = balance?.neutralPercent ?? 20;
-    int neg = balance?.negativePercent ?? 10;
+    var pos = balance?.positivePercent ?? 0;
+    var neu = balance?.neutralPercent ?? 0;
+    var neg = balance?.negativePercent ?? 0;
     final periodLabel = balance?.periodLabel ?? 'Last 4 weeks';
 
-    if (balance == null && foodImpacts.isNotEmpty) {
-      int posCount = 0;
-      int negCount = 0;
-      for (final f in foodImpacts) {
-        if (f.impactType == 'positive') {
-          posCount++;
-        } else if (f.impactType == 'negative') {
-          negCount++;
+    if (balance == null || (pos == 0 && neu == 0 && neg == 0)) {
+      if (foodImpacts.isNotEmpty) {
+        var posCount = 0;
+        var negCount = 0;
+        for (final f in foodImpacts) {
+          if (f.impactType == 'positive') {
+            posCount++;
+          } else if (f.impactType == 'negative') {
+            negCount++;
+          }
+        }
+        final total = foodImpacts.length;
+        if (total > 0) {
+          pos = ((posCount / total) * 100).round();
+          neg = ((negCount / total) * 100).round();
+          neu = (100 - pos - neg).clamp(0, 100);
         }
       }
-      final total = foodImpacts.length;
-      if (total > 0) {
-        pos = ((posCount / total) * 100).round();
-        neg = ((negCount / total) * 100).round();
-        neu = (100 - pos - neg).clamp(0, 100);
-      }
+    }
+
+    if (pos == 0 && neu == 0 && neg == 0) {
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.w),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(LucideIcons.leaf, size: 15.w, color: const Color(0xFF15803D)),
+                Gap.w6,
+                Text(
+                  'Food Impact Balance',
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                ),
+              ],
+            ),
+            Gap.h4,
+            Text(
+              'No food impact balance data yet. Keep logging your meals and symptoms to track your food impact ratios.',
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: const Color(0xFF64748B)),
+            ),
+          ],
+        ),
+      );
     }
 
     final posRatio = pos / 100.0;
@@ -686,6 +755,54 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         ],
                       ),
                     ),
+                    Gap.h6,
+                    InkWell(
+                      onTap: () {
+                        FoodSwap? matchingSwap;
+                        final targetName = triggerList.first.name.toLowerCase().trim();
+                        for (final s in insight?.foodSwaps ?? <FoodSwap>[]) {
+                          if (s.source.name.toLowerCase().trim() == targetName) {
+                            matchingSwap = s;
+                            break;
+                          }
+                        }
+                        final swapObj =
+                            matchingSwap ??
+                            FoodSwap(
+                              id: 'swap_${triggerList.first.name.toLowerCase()}',
+                              source: SwapSource(foodId: 'food_trigger', name: triggerList.first.name),
+                              alternatives: [
+                                SwapAlternative(
+                                  foodId: 'food_alt_01',
+                                  name: 'Gut-Friendly ${triggerList.first.name} Alternative',
+                                  reason: 'Easier to digest with lower fermentation load for your gut balance.',
+                                ),
+                              ],
+                            );
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => BetterSwapsScreen(swap: swapObj)));
+                      },
+                      borderRadius: BorderRadius.circular(8.w),
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8.w),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(LucideIcons.repeat, size: 9.w, color: const Color(0xFFB91C1C)),
+                            Gap.w4,
+                            Text(
+                              'Find Better Swaps',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFFB91C1C)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -757,144 +874,6 @@ class _HealingFoodItemTile extends StatelessWidget {
 }
 
 // =============================================================================
-// FOOD IMPACT TAB: 3. FEATURED INSIGHT CARD (Fiber & Fermentation Synergy)
-// =============================================================================
-class _FiberSynergyFeaturedCard extends StatelessWidget {
-  const _FiberSynergyFeaturedCard({required this.insight});
-
-  final AIInsight insight;
-
-  @override
-  Widget build(BuildContext context) {
-    final yogurtUrl = V2Kit.foodImageUrl('Greek Yogurt Berry Bowl');
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF5),
-        borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: const Color(0xFFFDE6D8)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: () => context.push(AppRoutes.fiberSynergyDetail, extra: insight),
-          child: Padding(
-            padding: EdgeInsets.all(12.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(LucideIcons.barChart2, size: 15.w, color: const Color(0xFF15803D)),
-                        Gap.w6,
-                        Text(
-                          'Fiber & Fermentation Synergy',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.w),
-                      decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(10.w)),
-                      child: Text(
-                        'Top Insight',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
-                      ),
-                    ),
-                  ],
-                ),
-                Gap.h4,
-                Text(
-                  'Consuming fermented foods alongside prebiotic fiber significantly reduces bloating episodes.',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF334155), height: 1.25),
-                ),
-                Gap.h8,
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          _StatPill(icon: LucideIcons.barChart2, title: '92%', sub: 'Evidence ratio', color: const Color(0xFF15803D)),
-                          Gap.w8,
-                          _StatPill(icon: LucideIcons.thumbsUp, title: '5', sub: 'Positive instances', color: const Color(0xFF15803D)),
-                          Gap.w8,
-                          _StatPill(icon: LucideIcons.thumbsDown, title: '0', sub: 'Negative instances', color: const Color(0xFFDC2626)),
-                        ],
-                      ),
-                    ),
-                    Gap.w8,
-
-                    SizedBox(
-                      width: 76.w,
-                      height: 52.w,
-                      child: Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10.w),
-                            child: CachedNetworkImage(imageUrl: yogurtUrl, width: 76.w, height: 52.w, fit: BoxFit.cover),
-                          ),
-                          Positioned(
-                            right: 4.w,
-                            bottom: 4.w,
-                            child: Text(
-                              "Better\ntogether ♡",
-                              textAlign: TextAlign.right,
-                              style: TextStyle(fontFamily: 'serif', fontStyle: FontStyle.italic, fontSize: 8.5.sp, color: const Color(0xFF15803D), height: 1.1),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatPill extends StatelessWidget {
-  const _StatPill({required this.icon, required this.title, required this.sub, required this.color});
-
-  final IconData icon;
-  final String title;
-  final String sub;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 10.w, color: color),
-            Gap.w3,
-            Text(
-              title,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-            ),
-          ],
-        ),
-        Text(
-          sub,
-          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF64748B)),
-        ),
-      ],
-    );
-  }
-}
-
-// =============================================================================
 // FOOD IMPACT TAB: 4. RECENT FOOD IMPACTS SECTION
 // =============================================================================
 class _RecentFoodImpactsSection extends StatelessWidget {
@@ -951,10 +930,6 @@ class _RecentFoodImpactsSection extends StatelessWidget {
                   style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
                 ),
               ],
-            ),
-            Text(
-              'View All →',
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
             ),
           ],
         ),
@@ -1102,10 +1077,6 @@ class _YourNextStepsSection extends StatelessWidget {
                 ),
               ],
             ),
-            Text(
-              'See All →',
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-            ),
           ],
         ),
         Gap.h8,
@@ -1117,14 +1088,7 @@ class _YourNextStepsSection extends StatelessWidget {
               for (var i = 0; i < actions.take(2).length; i++) ...[
                 if (i > 0) Gap.w10,
                 Expanded(
-                  child: _NextStepCard(
-                    icon: i == 0 ? LucideIcons.leaf : LucideIcons.milk,
-                    title: actions[i].title,
-                    sub: actions[i].description,
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => ActionDetailScreen(action: actions[i])));
-                    },
-                  ),
+                  child: _NextStepCard(icon: i == 0 ? LucideIcons.leaf : LucideIcons.milk, title: actions[i].title, sub: actions[i].description, onTap: () {}),
                 ),
               ],
             ],
@@ -1171,16 +1135,6 @@ class _NextStepCard extends StatelessWidget {
                       decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
                       child: Icon(icon, size: 12.w, color: const Color(0xFF15803D)),
                     ),
-                    Container(
-                      width: 20.w,
-                      height: 20.w,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFFDCFCE7)),
-                      ),
-                      child: Icon(Icons.arrow_forward_rounded, size: 10.w, color: const Color(0xFF15803D)),
-                    ),
                   ],
                 ),
                 Gap.h6,
@@ -1217,48 +1171,37 @@ class _PatternsSmarterBannerCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFDCFCE7)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // Bottom-right leaf illustration
-          Positioned(
-            right: -2.w,
-            bottom: -2.w,
-            child: CustomPaint(size: Size(48.w, 56.w), painter: const _CardLeafPainter()),
-          ),
-
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.w),
-            child: Row(
-              children: [
-                // Left Icon Box
-                Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(12.w)),
-                  child: Icon(LucideIcons.barChart2, size: 16.w, color: const Color(0xFF15803D)),
-                ),
-                Gap.w10,
-
-                // Middle Text
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Patterns get smarter over time',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                      ),
-                      Gap.h2,
-                      Text(
-                        'The more you log, the more personalized your insights become. Keep tracking to unlock deeper insights!',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569), height: 1.25),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.w),
+        child: Row(
+          children: [
+            // Left Icon Box
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(12.w)),
+              child: Icon(LucideIcons.barChart2, size: 16.w, color: const Color(0xFF15803D)),
             ),
-          ),
-        ],
+            Gap.w10,
+
+            // Middle Text
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Patterns get smarter over time',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                  ),
+                  Gap.h2,
+                  Text(
+                    'The more you log, the more personalized your insights become. Keep tracking to unlock deeper insights!',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569), height: 1.25),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1268,11 +1211,12 @@ class _PatternsSmarterBannerCard extends StatelessWidget {
 // HERO 1: GUT SCORE & ON TRACK CARD
 // =============================================================================
 class _GutScoreHeroCard extends StatelessWidget {
-  const _GutScoreHeroCard({required this.score, required this.delta, this.onTap});
+  const _GutScoreHeroCard({required this.score, required this.delta, this.onTap, this.onWhyTap});
 
   final int score;
   final int delta;
   final VoidCallback? onTap;
+  final VoidCallback? onWhyTap;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -1357,10 +1301,36 @@ class _GutScoreHeroCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Gap.h8,
+                Gap.h6,
                 Text(
-                  'Your gut health is improving with better food choices and more fermented foods!',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A), height: 1.35),
+                  'Your gut health is improving with better food choices and consistent logging!',
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A), height: 1.3),
+                ),
+                Gap.h6,
+                InkWell(
+                  onTap: onWhyTap,
+                  borderRadius: BorderRadius.circular(100),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.w),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.sparkles, size: 10.w, color: const Color(0xFF059669)),
+                        Gap.w4,
+                        Text(
+                          'Why $score? Breakdown',
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF1E293B)),
+                        ),
+                        Gap.w2,
+                        Icon(LucideIcons.chevronRight, size: 10.w, color: const Color(0xFF64748B)),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1369,275 +1339,6 @@ class _GutScoreHeroCard extends StatelessWidget {
       ),
     ),
   );
-}
-
-// =============================================================================
-// HERO 2: FIBER & FERMENTATION SYNERGY PATTERN CARD (Compact Layout)
-// =============================================================================
-class _FiberSynergyHeroCard extends StatelessWidget {
-  const _FiberSynergyHeroCard({required this.insight, this.pattern, this.onTap});
-
-  final AIInsight insight;
-  final BodyPattern? pattern;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final trigger = pattern?.trigger.trim() ?? '';
-    final reaction = pattern?.reaction.trim() ?? '';
-    final title = (trigger.isNotEmpty || reaction.isNotEmpty)
-        ? ((trigger.isNotEmpty && reaction.isNotEmpty) ? '$trigger → $reaction' : (trigger.isNotEmpty ? trigger : reaction))
-        : (pattern?.description.isNotEmpty == true ? pattern!.description : 'Fiber & Fermentation Synergy');
-
-    final sub = pattern?.description.isNotEmpty == true
-        ? pattern!.description
-        : (insight.healingGoal?.isNotEmpty == true ? insight.healingGoal! : 'Fermented foods + prebiotic fiber significantly reduce bloating episodes.');
-
-    final imageUrl = V2Kit.foodImageUrl(pattern?.involvedFoods.isNotEmpty == true ? pattern!.involvedFoods.first : 'Greek Yogurt Berry Bowl');
-
-    final confidenceLabel = pattern != null && pattern!.confidence.isNotEmpty
-        ? (pattern!.confidence.toLowerCase().contains('confidence') ? pattern!.confidence : '${pattern!.confidence} Confidence')
-        : 'High Confidence';
-
-    final (tagLabel, tagIcon, tagBg, tagFg) = _tagStyle(pattern);
-
-    return Container(
-      height: 160.w,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF5),
-        borderRadius: BorderRadius.circular(20.w),
-        boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.04), blurRadius: 8.w, offset: Offset(0, 2.w))],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onTap,
-          child: Stack(
-            children: [
-              // 1. Right Side Food Photo
-              Positioned.fill(
-                child: Row(
-                  children: [
-                    const Spacer(flex: 4),
-                    Expanded(
-                      flex: 4,
-                      child: CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
-                        errorWidget: (_, _, _) => Container(
-                          color: const Color(0xFFFED7AA),
-                          child: const Icon(LucideIcons.utensils, color: Color(0xFF9A3412)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 2. Left Cream Angled Background Container
-              Positioned.fill(
-                child: ClipPath(
-                  clipper: const _AngledCardClipper(),
-                  child: Container(color: const Color(0xFFFFFDF7)),
-                ),
-              ),
-
-              // 3. Green Leaf Branch Illustration near bottom center
-              Positioned(
-                left: 140.w,
-                bottom: -2.w,
-                child: CustomPaint(size: Size(44.w, 52.w), painter: const _CardLeafPainter()),
-              ),
-
-              // 4. Left Content Column
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 190.w,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(12.w, 10.w, 6.w, 10.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Top Tag Pill
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
-                            decoration: BoxDecoration(color: tagBg, borderRadius: BorderRadius.circular(16.w)),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(tagIcon, size: 11.w, color: tagFg),
-                                Gap.w4,
-                                Text(
-                                  tagLabel,
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: tagFg),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Gap.h6,
-
-                          // Title
-                          Text(
-                            title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), height: 1.15, letterSpacing: -0.3),
-                          ),
-                          Gap.h3,
-
-                          // Subtitle
-                          Text(
-                            sub,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: const Color(0xFF334155), height: 1.25),
-                          ),
-                        ],
-                      ),
-
-                      // View Details Pill Button
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.w),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFDF9),
-                          borderRadius: BorderRadius.circular(20.w),
-                          border: Border.all(color: const Color(0xFFE5DCD0), width: 1.0),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'View Details',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-                            ),
-                            Gap.w4,
-                            Icon(Icons.arrow_forward_rounded, size: 12.w, color: const Color(0xFF0F172A)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // 5. High Confidence Dark Forest Green Badge on bottom-right of image
-              Positioned(
-                right: 8.w,
-                bottom: 8.w,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.w),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF024A2B),
-                    borderRadius: BorderRadius.circular(16.w),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6.w, offset: Offset(0, 2.w))],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(LucideIcons.shieldCheck, size: 11.w, color: Colors.white),
-                      Gap.w4,
-                      Text(
-                        confidenceLabel,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
-                      ),
-                      Gap.w3,
-                      Icon(Icons.arrow_forward_rounded, size: 10.w, color: Colors.white),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static (String, IconData, Color, Color) _tagStyle(BodyPattern? pattern) {
-    if (pattern == null || pattern.type.trim().isEmpty) {
-      return ('Pattern', LucideIcons.leaf, const Color(0xFFFDE6D8), const Color(0xFF7C2D12));
-    }
-    final rawType = pattern.type.trim();
-    final t = rawType.toLowerCase();
-    final label = rawType[0].toUpperCase() + rawType.substring(1);
-
-    return switch (t) {
-      'bloating' => ('Bloating', LucideIcons.leaf, const Color(0xFFFDE6D8), const Color(0xFF7C2D12)),
-      'digestion' || 'digestive' => ('Digestion', LucideIcons.leaf, const Color(0xFFFDE6D8), const Color(0xFF7C2D12)),
-      'energy' => (label, LucideIcons.zap, const Color(0xFFFEF3C7), const Color(0xFF92400E)),
-      'headache' => (label, LucideIcons.activity, const Color(0xFFFEE2E2), const Color(0xFF991B1B)),
-      'fullness' => (label, LucideIcons.activity, const Color(0xFFFDE6D8), const Color(0xFF7C2D12)),
-      'sleep' => (label, LucideIcons.moon, const Color(0xFFE0E7FF), const Color(0xFF3730A3)),
-      'healing' => (label, LucideIcons.sparkles, const Color(0xFFDCFCE7), const Color(0xFF15803D)),
-      'trigger' => (label, LucideIcons.alertTriangle, const Color(0xFFFEE2E2), const Color(0xFF991B1B)),
-      _ => (label, LucideIcons.leaf, const Color(0xFFFDE6D8), const Color(0xFF7C2D12)),
-    };
-  }
-}
-
-class _AngledCardClipper extends CustomClipper<Path> {
-  const _AngledCardClipper();
-
-  @override
-  Path getClip(Size size) => Path()
-    ..moveTo(0, 0)
-    ..lineTo(size.width * 0.61, 0)
-    ..lineTo(size.width * 0.51, size.height)
-    ..lineTo(0, size.height)
-    ..close();
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
-}
-
-class _CardLeafPainter extends CustomPainter {
-  const _CardLeafPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final fillPaint = Paint()
-      ..color = const Color(0xFF86EFAC).withValues(alpha: 0.85)
-      ..style = PaintingStyle.fill;
-
-    final stemPaint = Paint()
-      ..color = const Color(0xFF22C55E).withValues(alpha: 0.6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    path.moveTo(size.width * 0.2, size.height);
-    path.quadraticBezierTo(size.width * 0.4, size.height * 0.5, size.width * 0.7, 0);
-    canvas.drawPath(path, stemPaint);
-
-    void drawLeaf(Offset center, double angle, double scale) {
-      canvas.save();
-      canvas.translate(center.dx, center.dy);
-      canvas.rotate(angle);
-      final leafPath = Path();
-      leafPath.moveTo(0, 0);
-      leafPath.quadraticBezierTo(12 * scale, -8 * scale, 22 * scale, 0);
-      leafPath.quadraticBezierTo(12 * scale, 8 * scale, 0, 0);
-      canvas.drawPath(leafPath, fillPaint);
-      canvas.restore();
-    }
-
-    drawLeaf(Offset(size.width * 0.7, size.height * 0.1), -0.5, 0.9);
-    drawLeaf(Offset(size.width * 0.5, size.height * 0.4), 0.6, 1.0);
-    drawLeaf(Offset(size.width * 0.3, size.height * 0.7), -0.4, 0.8);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // =============================================================================
@@ -1683,11 +1384,11 @@ class _ImprovingCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final startVal = series.isNotEmpty ? series.first.round() : 74;
-    final endVal = series.isNotEmpty ? series.last.round() : 78;
+    final startVal = series.isNotEmpty ? series.first.round() : data.current;
+    final endVal = series.isNotEmpty ? series.last.round() : data.current;
 
-    final headline = data.headline.isNotEmpty ? data.headline : 'Your gut barrier score is up!';
-    final description = data.description.isNotEmpty ? data.description : 'Consistent vegetable fiber intake is making a real difference.';
+    final headline = data.headline.isNotEmpty ? data.headline : 'Your gut score is steady.';
+    final description = data.description.isNotEmpty ? data.description : 'Keep logging meals and symptoms to track your gut health progress.';
 
     return Container(
       decoration: BoxDecoration(
@@ -1702,127 +1403,117 @@ class _ImprovingCardWidget extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(20.w),
-          child: Stack(
-            children: [
-              // Bottom Right Leaf Branch Decoration
-              Positioned(
-                right: -4.w,
-                bottom: -4.w,
-                child: CustomPaint(size: Size(44.w, 44.w), painter: const _CardLeafPainter()),
-              ),
-              Padding(
-                padding: EdgeInsets.all(12.w),
-                child: Column(
+          child: Padding(
+            padding: EdgeInsets.all(12.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    // Header Row
+                    Row(
                       children: [
-                        // Header Row
-                        Row(
-                          children: [
-                            Container(
-                              width: 24.w,
-                              height: 24.w,
-                              decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
-                              child: Center(
-                                child: Icon(Icons.arrow_upward_rounded, size: 14.w, color: Colors.white),
-                              ),
-                            ),
-                            Gap.w6,
-                            Expanded(
-                              child: Text(
-                                "What's Improving",
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D)),
-                              ),
-                            ),
-                          ],
+                        Container(
+                          width: 24.w,
+                          height: 24.w,
+                          decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
+                          child: Center(
+                            child: Icon(Icons.arrow_upward_rounded, size: 14.w, color: Colors.white),
+                          ),
                         ),
-                        Gap.h8,
-
-                        // Headline
-                        Text(
-                          headline,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D), height: 1.2),
-                        ),
-                        Gap.h3,
-
-                        // Description
-                        Text(
-                          description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF334155), height: 1.25),
-                        ),
-                        Gap.h8,
-
-                        // Trend Area Chart
-                        SizedBox(
-                          height: 38.w,
-                          width: double.infinity,
-                          child: CustomPaint(painter: _ImprovingAreaChartPainter(values: series)),
-                        ),
-                        Gap.h2,
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '$startVal',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D), height: 1.0),
-                                ),
-                                Text(
-                                  'Last week',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF15803D)),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '$endVal',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D), height: 1.0),
-                                ),
-                                Text(
-                                  'This week',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF15803D)),
-                                ),
-                              ],
-                            ),
-                          ],
+                        Gap.w6,
+                        Expanded(
+                          child: Text(
+                            "What's Improving",
+                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D)),
+                          ),
                         ),
                       ],
                     ),
                     Gap.h8,
 
-                    // See Details Button
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.w),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20.w),
-                        border: Border.all(color: const Color(0xFFDCFCE7)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'See Details',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-                          ),
-                          Gap.w4,
-                          Icon(Icons.arrow_forward_rounded, size: 12.w, color: const Color(0xFF0F172A)),
-                        ],
-                      ),
+                    // Headline
+                    Text(
+                      headline,
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D), height: 1.2),
+                    ),
+                    Gap.h3,
+
+                    // Description
+                    Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF334155), height: 1.25),
+                    ),
+                    Gap.h8,
+
+                    // Trend Area Chart
+                    SizedBox(
+                      height: 38.w,
+                      width: double.infinity,
+                      child: CustomPaint(painter: _ImprovingAreaChartPainter(values: series)),
+                    ),
+                    Gap.h2,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$startVal',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D), height: 1.0),
+                            ),
+                            Text(
+                              'Last week',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF15803D)),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '$endVal',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D), height: 1.0),
+                            ),
+                            Text(
+                              'This week',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF15803D)),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
-            ],
+                Gap.h8,
+
+                // See Details Button
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20.w),
+                    border: Border.all(color: const Color(0xFFDCFCE7)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'See Details',
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                      ),
+                      Gap.w4,
+                      Icon(Icons.arrow_forward_rounded, size: 12.w, color: const Color(0xFF0F172A)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1838,12 +1529,14 @@ class _WatchCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = data?.title.isNotEmpty == true ? data!.title : 'Fried Foods → Bloating';
-    final desc = data?.description.isNotEmpty == true ? data!.description : 'Fried and heavily processed foods consistently precede bloating by 2 hours.';
+    final title = data?.title.isNotEmpty == true ? data!.title : 'No Triggers Detected';
+    final desc = data?.description.isNotEmpty == true ? data!.description : 'No trigger patterns detected yet. Keep logging your meals to track how foods affect your body.';
 
-    final thumbnails = [V2Kit.foodImageUrl('Fried Onion Rings'), V2Kit.foodImageUrl('French Fries'), V2Kit.foodImageUrl('Burger')];
+    final thumbnails = data?.pattern?.involvedFoods.isNotEmpty == true
+        ? data!.pattern!.involvedFoods.take(3).map(V2Kit.foodImageUrl).toList()
+        : (data?.timeline.isNotEmpty == true ? data!.timeline.take(3).map((t) => t.imageUrl ?? V2Kit.foodImageUrl(t.imageName ?? 'Food')).toList() : const <String>[]);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFFFFF5F5),
         borderRadius: BorderRadius.circular(20.w),
@@ -1860,7 +1553,7 @@ class _WatchCardWidget extends StatelessWidget {
                 final swapObj = FoodSwap(
                   id: 'swap_watch',
                   source: SwapSource(foodId: 'food_trigger', name: title),
-                  alternatives: [SwapAlternative(foodId: 'food_alt_01', name: data?.swapAfter ?? 'Roasted Vegetables', reason: data?.swapTip ?? 'Lower in added frying fat and easier to digest.')],
+                  alternatives: [SwapAlternative(foodId: 'food_alt_01', name: data?.swapAfter ?? 'Gentle Gut Alternative', reason: data?.swapTip ?? 'Lower digestive burden and easier to process.')],
                 );
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => BetterSwapsScreen(swap: swapObj)));
               },
@@ -2001,42 +1694,76 @@ class _TopFoodsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<_FoodItemData> foodItems = [];
+    final foodItems = <_FoodItemData>[];
+    final seen = <String>{};
+
+    int countOccurrences(String foodName) {
+      final key = foodName.toLowerCase().trim();
+      if (key.isEmpty) return 0;
+      var n = 0;
+      for (final impact in insight.foodImpacts) {
+        if (impact.food.toLowerCase().trim() == key) n++;
+      }
+      return n;
+    }
 
     if (insight.healingSummary?.foods.isNotEmpty == true) {
       for (final f in insight.healingSummary!.foods) {
-        foodItems.add(_FoodItemData(f.name, 'Frequent', '${f.impactLevel.toUpperCase()} Impact', f.imageUrl ?? V2Kit.foodImageUrl(f.name)));
+        final key = f.name.toLowerCase().trim();
+        if (key.isEmpty || !seen.add(key)) continue;
+        final n = countOccurrences(f.name);
+        final countStr = n > 0 ? '${n}x logged' : 'Active';
+        foodItems.add(_FoodItemData(f.name, countStr, f.impactLevel.toUpperCase() == 'HIGH' ? 'High Impact' : 'Supportive', f.imageUrl ?? V2Kit.foodImageUrl(f.name)));
       }
-    } else if (insight.healingFoods.isNotEmpty) {
-      for (final f in insight.healingFoods) {
-        foodItems.add(_FoodItemData(f.name, 'Active', 'Supportive', f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.name)));
-      }
-    } else {
-      for (final f in insight.foodImpacts.where((i) => i.impactType == 'positive')) {
-        foodItems.add(_FoodItemData(f.food, f.dateLabel, 'Positive', f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.food)));
-      }
+    }
+
+    for (final f in insight.healingFoods) {
+      final key = f.name.toLowerCase().trim();
+      if (key.isEmpty || !seen.add(key)) continue;
+      final n = countOccurrences(f.name);
+      final countStr = n > 0 ? '${n}x logged' : 'Active';
+      foodItems.add(_FoodItemData(f.name, countStr, 'Gut Hero', f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.name)));
+    }
+
+    for (final f in insight.foodImpacts.where((i) => i.impactType == 'positive')) {
+      final key = f.food.toLowerCase().trim();
+      if (key.isEmpty || !seen.add(key)) continue;
+      final n = countOccurrences(f.food);
+      final countStr = n > 0 ? '${n}x logged' : f.dateLabel;
+      foodItems.add(_FoodItemData(f.food, countStr, 'Positive', f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.food)));
     }
 
     if (foodItems.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16.w),
+          borderRadius: BorderRadius.circular(18.w),
           border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+              child: Icon(LucideIcons.leaf, size: 18.w, color: const Color(0xFF15803D)),
+            ),
+            Gap.w12,
             Text(
               'Top Foods This Week',
               style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
             ),
-            Gap.h4,
-            Text(
-              'No top supportive foods recorded yet. Continue logging meals to see your gut-friendly choices.',
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: const Color(0xFF64748B)),
+            GestureDetector(
+              onTap: () => context.push(AppRoutes.scannerPath('meal')),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
+                decoration: BoxDecoration(color: const Color(0xFF15803D), borderRadius: BorderRadius.circular(12.w)),
+                child: Text(
+                  'Log Meal',
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                ),
+              ),
             ),
           ],
         ),
@@ -2053,18 +1780,15 @@ class _TopFoodsSection extends StatelessWidget {
           children: [
             Row(
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Top Foods This Week',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                    ),
-                    Text(
-                      'These foods are supporting your gut health.',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: const Color(0xFF64748B)),
-                    ),
-                  ],
+                Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+                  child: Icon(LucideIcons.trophy, size: 12.w, color: const Color(0xFF15803D)),
+                ),
+                Gap.w8,
+                Text(
+                  'Top Foods This Week',
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
                 ),
               ],
             ),
@@ -2078,7 +1802,7 @@ class _TopFoodsSection extends StatelessWidget {
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
                   ),
                   Gap.w3,
-                  Icon(Icons.arrow_forward_rounded, size: 12.w, color: const Color(0xFF0F172A)),
+                  Icon(Icons.arrow_forward_rounded, size: 11.w, color: const Color(0xFF0F172A)),
                 ],
               ),
             ),
@@ -2086,77 +1810,122 @@ class _TopFoodsSection extends StatelessWidget {
         ),
         Gap.h10,
 
-        // 4 Compact Food Cards Row
+        // Food Cards Horizontal Carousel in QuickWin style (compact fixed width)
         SizedBox(
-          height: 122.w,
+          height: 110.w,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: foodItems.length,
-            separatorBuilder: (_, _) => Gap.w8,
+            separatorBuilder: (_, _) => Gap.w10,
             itemBuilder: (context, index) {
               final item = foodItems[index];
               return GestureDetector(
                 onTap: () => context.push(AppRoutes.foodIntelligence),
                 child: Container(
-                  width: 100.w,
+                  width: 235.w,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.w),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(18.w),
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+                    boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withValues(alpha: 0.03), blurRadius: 6.w, offset: const Offset(0, 2))],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.only(topLeft: Radius.circular(12.w), topRight: Radius.circular(12.w)),
+                      // 1. Left Angled Image
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 95.w,
                         child: CachedNetworkImage(
                           imageUrl: item.imageUrl,
-                          height: 50.w,
-                          width: double.infinity,
                           fit: BoxFit.cover,
-                          placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
-                          errorWidget: (_, _, _) => Container(color: const Color(0xFFE2E8F0)),
+                          alignment: Alignment.center,
+                          placeholder: (_, _) => Container(color: const Color(0xFFDCFCE7)),
+                          errorWidget: (_, _, _) => Container(
+                            color: const Color(0xFF86EFAC),
+                            child: const Icon(LucideIcons.leaf, color: Color(0xFF15803D), size: 22),
+                          ),
                         ),
                       ),
-                      Padding(
-                        padding: EdgeInsets.all(5.w),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-                            ),
-                            Gap.h2,
-                            Text(
-                              item.frequency,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                            ),
-                            Gap.h2,
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.w),
-                              decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(8.w)),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+
+                      // 2. Right Content Area
+                      Positioned(
+                        left: 100.w,
+                        top: 0,
+                        bottom: 0,
+                        right: 0,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(4.w, 8.w, 8.w, 8.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(LucideIcons.leaf, size: 8.w, color: const Color(0xFF15803D)),
-                                  Gap.w2,
-                                  Expanded(
-                                    child: Text(
-                                      item.badge,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                                  // Top Tag Pill
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.5.w),
+                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.w)),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(LucideIcons.leaf, size: 9.w, color: const Color(0xFF15803D)),
+                                        Gap.w3,
+                                        Text(
+                                          item.badge,
+                                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                                        ),
+                                      ],
                                     ),
+                                  ),
+                                  Gap.h4,
+
+                                  // Title
+                                  Text(
+                                    item.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontFamily: InsightV2Theme.fontFamily,
+                                      fontSize: 12.5.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF0F172A),
+                                      height: 1.15,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                  Gap.h2,
+
+                                  // Frequency
+                                  Text(
+                                    item.frequency,
+                                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w600, color: const Color(0xFF15803D)),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+
+                              // Bottom Dark Pill Button
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.w),
+                                decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(16.w)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'View Food',
+                                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                                    ),
+                                    Gap.w3,
+                                    Icon(Icons.arrow_forward_rounded, size: 10.w, color: Colors.white),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -2177,340 +1946,6 @@ class _FoodItemData {
   final String frequency;
   final String badge;
   final String imageUrl;
-}
-
-// =============================================================================
-// HERO 5: QUICK WIN CARD ("Try More Fermented Foods" - Compact Layout)
-// =============================================================================
-class _QuickWinCard extends StatelessWidget {
-  const _QuickWinCard({this.onExploreTap});
-
-  final VoidCallback? onExploreTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final smoothieUrl = V2Kit.foodImageUrl('Green Smoothie Lime');
-
-    return Container(
-      height: 120.w,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFFDF5),
-        borderRadius: BorderRadius.circular(18.w),
-        boxShadow: [BoxShadow(color: const Color(0xFF16A34A).withValues(alpha: 0.04), blurRadius: 6.w, offset: Offset(0, 2.w))],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        type: MaterialType.transparency,
-        child: Stack(
-          children: [
-            // 1. Left Angled Image (Positioned to left section width)
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 115.w,
-              child: ClipPath(
-                clipper: const _LeftAngledImageClipper(),
-                child: CachedNetworkImage(
-                  imageUrl: smoothieUrl,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  placeholder: (_, _) => Container(color: const Color(0xFFDCFCE7)),
-                  errorWidget: (_, _, _) => Container(color: const Color(0xFF86EFAC)),
-                ),
-              ),
-            ),
-
-            // 2. Bottom Right Leaf Branch Decoration
-            Positioned(
-              right: -4.w,
-              bottom: -4.w,
-              child: CustomPaint(size: Size(48.w, 56.w), painter: const _CardLeafPainter()),
-            ),
-
-            // 4. Right Content Area
-            Positioned(
-              left: 120.w,
-              top: 0,
-              bottom: 0,
-              right: 0,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(6.w, 10.w, 10.w, 10.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Top Tag Pill
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
-                          decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(14.w)),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(LucideIcons.zap, size: 10.w, color: const Color(0xFF166534)),
-                              Gap.w3,
-                              Text(
-                                'Quick Win',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF166534)),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Gap.h4,
-
-                        // Title
-                        Text(
-                          'Try more fermented foods',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), height: 1.15, letterSpacing: -0.3),
-                        ),
-                        Gap.h2,
-
-                        // Subtitle
-                        Text(
-                          'Add kefir, yogurt or kimchi to your meals\nfor better gut balance.',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w500, color: const Color(0xFF334155), height: 1.2),
-                        ),
-                      ],
-                    ),
-
-                    // Explore Foods Dark Pill Button
-                    GestureDetector(
-                      onTap: onExploreTap,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.w),
-                        decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(18.w)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Explore Foods',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
-                            ),
-                            Gap.w4,
-                            Icon(Icons.arrow_forward_rounded, size: 11.w, color: Colors.white),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LeftAngledImageClipper extends CustomClipper<Path> {
-  const _LeftAngledImageClipper();
-
-  @override
-  Path getClip(Size size) => Path()
-    ..moveTo(0, 0)
-    ..lineTo(size.width, 0)
-    ..lineTo(size.width * 0.82, size.height)
-    ..lineTo(0, size.height)
-    ..close();
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
-}
-
-// =============================================================================
-// HERO 6: RECENT INSIGHTS SECTION
-// =============================================================================
-class _RecentInsightsSection extends StatelessWidget {
-  const _RecentInsightsSection({required this.insight, this.onViewAllTap});
-
-  final AIInsight insight;
-  final VoidCallback? onViewAllTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final recentList = insight.recentInsights;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(LucideIcons.clock, size: 11.w, color: const Color(0xFF0F172A)),
-                Gap.w8,
-                Text(
-                  'Recent Insights',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                ),
-              ],
-            ),
-            GestureDetector(
-              onTap: onViewAllTap,
-              child: Row(
-                children: [
-                  Text(
-                    'View All',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-                  ),
-                  Gap.w2,
-                  Icon(Icons.arrow_forward_rounded, size: 13.w, color: const Color(0xFF0F172A)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        Gap.h12,
-
-        if (recentList.isNotEmpty) ...[
-          for (var i = 0; i < recentList.take(3).length; i++) ...[if (i > 0) Gap.h8, _RecentInsightCard(item: recentList[i])],
-        ] else if (insight.topInsight != null) ...[
-          _RecentInsightCard(
-            item: RecentInsightItem(
-              id: 'top_ins',
-              title: insight.topInsight!.title,
-              description: insight.topInsight!.description,
-              kind: insight.topInsight!.type,
-              date: 'Latest',
-              dateLabel: 'Latest',
-              imageUrl: V2Kit.foodImageUrl(insight.topInsight!.involvedFoods.firstOrNull ?? insight.topInsight!.title),
-            ),
-          ),
-        ] else ...[
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16.w),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'No recent insights yet',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                ),
-                Gap.h4,
-                Text(
-                  'Insights and pattern discoveries will appear here as you log meals and symptoms.',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: const Color(0xFF64748B)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _RecentInsightCard extends StatelessWidget {
-  const _RecentInsightCard({required this.item});
-
-  final RecentInsightItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final imgUrl = item.imageUrl ?? V2Kit.foodImageUrl(item.title);
-
-    return Container(
-      padding: EdgeInsets.all(8.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8.w, offset: Offset(0, 2.w))],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12.w),
-            child: CachedNetworkImage(
-              imageUrl: imgUrl,
-              width: 54.w,
-              height: 54.w,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
-              errorWidget: (_, _, _) => Container(color: const Color(0xFFE2E8F0)),
-            ),
-          ),
-          Gap.w12,
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(LucideIcons.scanLine, size: 11.w, color: const Color(0xFF15803D)),
-                    Gap.w3,
-                    Text(
-                      item.kind ?? 'Discovery',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
-                    ),
-                  ],
-                ),
-                Gap.h2,
-                Text(
-                  item.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                ),
-                if (item.description.isNotEmpty) ...[
-                  Gap.h2,
-                  Text(
-                    item.description,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF64748B)),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          if (item.date.isNotEmpty) ...[
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  item.date,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
-                ),
-                Gap.h4,
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.w),
-                  decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(10.w)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(LucideIcons.leaf, size: 9.w, color: const Color(0xFF15803D)),
-                      Gap.w3,
-                      Text(
-                        'Observed',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 }
 
 // =============================================================================
@@ -2547,11 +1982,11 @@ class _GutScoreArcPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round
-      ..shader = SweepGradient(
+      ..shader = const SweepGradient(
         startAngle: startAngle,
         endAngle: startAngle + totalSweep,
-        colors: const [Color(0xFF047857), Color(0xFF10B981), Color(0xFFA3E635), Color(0xFFFDE047)],
-        stops: const [0.0, 0.45, 0.8, 1.0],
+        colors: [Color(0xFF047857), Color(0xFF10B981), Color(0xFFA3E635), Color(0xFFFDE047)],
+        stops: [0.0, 0.45, 0.8, 1.0],
       ).createShader(rect);
 
     canvas.drawArc(rect, startAngle, activeSweep, false, activePaint);
@@ -2621,6 +2056,18 @@ class _ImprovingAreaChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
+
+    final dotPaint = Paint()..color = const Color(0xFF16A34A);
+    final innerDotPaint = Paint()..color = Colors.white;
+
+    if (values.length < 2) {
+      final p = Offset(size.width / 2, size.height * 0.5);
+      canvas
+        ..drawCircle(p, 3.5, dotPaint)
+        ..drawCircle(p, 1.8, innerDotPaint);
+      return;
+    }
+
     final points = <Offset>[];
     final minVal = values.reduce(math.min);
     final maxVal = values.reduce(math.max);
@@ -2633,8 +2080,7 @@ class _ImprovingAreaChartPainter extends CustomPainter {
       points.add(Offset(x, y));
     }
 
-    final path = Path();
-    path.moveTo(points.first.dx, points.first.dy);
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
     for (var i = 1; i < points.length; i++) {
       final p0 = points[i - 1];
       final p1 = points[i];
@@ -2643,10 +2089,10 @@ class _ImprovingAreaChartPainter extends CustomPainter {
     }
 
     // Gradient Fill below line
-    final fillPath = Path.from(path);
-    fillPath.lineTo(size.width, size.height);
-    fillPath.lineTo(0, size.height);
-    fillPath.close();
+    final fillPath = Path.from(path)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
 
     final fillPaint = Paint()
       ..shader = LinearGradient(
@@ -2666,12 +2112,10 @@ class _ImprovingAreaChartPainter extends CustomPainter {
     canvas.drawPath(path, linePaint);
 
     // Data Point Dots
-    final dotPaint = Paint()..color = const Color(0xFF16A34A);
-    final innerDotPaint = Paint()..color = Colors.white;
-
     for (final p in points) {
-      canvas.drawCircle(p, 3.5, dotPaint);
-      canvas.drawCircle(p, 1.8, innerDotPaint);
+      canvas
+        ..drawCircle(p, 3.5, dotPaint)
+        ..drawCircle(p, 1.8, innerDotPaint);
     }
   }
 
@@ -2728,12 +2172,12 @@ class _AverageGutScoreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final recap = data.weeklyRecap;
-    final avgScore = (recap?.avgScore != null && recap!.avgScore! > 0) ? recap.avgScore! : (data.gutScore > 0 ? data.gutScore : 78);
-    final scoreDiff = data.scoreDiff?.isNotEmpty == true ? data.scoreDiff! : '+12';
-    final dateRange = (recap?.dateRange != null && recap!.dateRange!.isNotEmpty) ? recap.dateRange! : 'Sep 08 - Sep 14';
-    final subText = (recap?.scoreSub != null && recap!.scoreSub!.isNotEmpty) ? recap.scoreSub! : 'Great improvement in fiber intake and probiotic diversity!';
+    final avgScore = (recap?.avgScore != null && recap!.avgScore! > 0) ? recap.avgScore! : data.gutScore;
+    final scoreDiff = data.scoreDiff?.isNotEmpty == true ? data.scoreDiff! : '0';
+    final dateRange = (recap?.dateRange?.isNotEmpty == true) ? recap!.dateRange! : 'This Week';
+    final subText = (recap?.scoreSub?.isNotEmpty == true) ? recap!.scoreSub! : 'Keep logging meals to see your weekly progress!';
 
-    final dayScores = series.length >= 7 ? series.sublist(series.length - 7) : const [72.0, 74.0, 76.0, 80.0, 82.0, 78.0, 78.0];
+    final dayScores = series.length >= 7 ? series.sublist(series.length - 7) : (series.isNotEmpty ? series : [avgScore.toDouble()]);
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Column(
@@ -2881,8 +2325,8 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bestDay = (recap?.bestDay != null && recap!.bestDay!.isNotEmpty) ? recap!.bestDay! : 'Sep 11';
-    final foodsLogged = recap?.foodsLogged ?? 21;
+    final bestDay = (recap?.bestDay != null && recap!.bestDay!.isNotEmpty) ? recap!.bestDay! : '—';
+    final foodsLogged = recap?.foodsLogged ?? data.foodImpacts.length;
 
     return IntrinsicHeight(
       child: Row(
@@ -2932,7 +2376,7 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
                             ),
                             Gap.h2,
                             Text(
-                              'Highest score (82)',
+                              'Highest score (${recap?.avgScore ?? data.gutScore})',
                               style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF64748B)),
                             ),
                           ],
@@ -3042,9 +2486,9 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
                       Gap.h6,
                       _EvidenceRow(label: 'Meals', count: foodsLogged),
                       Gap.h2,
-                      const _EvidenceRow(label: 'Symptoms', count: 3),
+                      _EvidenceRow(label: 'Symptoms', count: data.evidence?.sampleSizes.symptoms ?? 0),
                       Gap.h2,
-                      const _EvidenceRow(label: 'Scans', count: 15),
+                      _EvidenceRow(label: 'Scans', count: data.evidence?.sampleSizes.scans ?? 0),
                     ],
                   ),
                   Gap.h4,
@@ -3106,11 +2550,11 @@ class _WeeklyHighlightsCard extends StatelessWidget {
     final h1 = highlights.isNotEmpty ? highlights.first : null;
     final h2 = highlights.length > 1 ? highlights[1] : null;
 
-    final highlight1 = h1 is RecapHighlight ? h1.text : (h1 is String ? h1 : 'Added fermented foods on 5 out of 7 days.');
-    const sub1 = 'That\'s 71% of the week!';
+    final highlight1 = h1 is RecapHighlight ? h1.text : (h1 is String ? h1 : 'Logged meals consistently this week.');
+    const sub1 = 'Great logging habit!';
 
-    final highlight2 = h2 is RecapHighlight ? h2.text : (h2 is String ? h2 : 'Reduced sugary beverage intake by 50%.');
-    const sub2 = 'Great progress for your gut!';
+    final highlight2 = h2 is RecapHighlight ? h2.text : (h2 is String ? h2 : 'Tracking symptoms and food impacts.');
+    const sub2 = 'Building your baseline!';
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -3467,7 +2911,8 @@ class _YourWeeklyInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final quoteText = data.healingGoal?.isNotEmpty == true ? '“${data.healingGoal}”' : '“Consistent vegetable fiber intake is actively improving your gut barrier score.”';
+    final weeklyInsightText = data.weeklyRecap?.summary ?? data.healingGoal ?? data.topInsight?.description;
+    final quoteText = (weeklyInsightText != null && weeklyInsightText.isNotEmpty) ? '“$weeklyInsightText”' : '“Keep logging meals and symptoms to build your personalized weekly gut health trend.”';
 
     return Container(
       padding: EdgeInsets.all(12.w),

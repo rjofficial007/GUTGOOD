@@ -136,8 +136,7 @@ class _OccurrenceTile extends StatelessWidget {
   final BodyPattern pattern;
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -197,5 +196,4 @@ class _OccurrenceTile extends StatelessWidget {
         ),
       ),
     );
-  }
 }

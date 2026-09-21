@@ -10,6 +10,8 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/arc_pattern_card.dart';
@@ -48,7 +50,7 @@ class InsightBentoFeed extends StatelessWidget {
             delta: delta,
             series: series,
             labels: seriesLabels,
-            onTap: () => context.push(AppRoutes.weeklyRecap, extra: data),
+            onTap: () => context.push(AppRoutes.gutScoreDetail, extra: data),
           ),
           Gap.h14,
           BentoGrid(children: _tiles(context, t, foods)),
@@ -296,11 +298,10 @@ class InsightBentoFeed extends StatelessWidget {
   }
 }
 
-/// Screen 02 — the "learning grid" shown before enough evidence exists.
+/// Screen 02 — the empty insight screen shown before enough evidence exists.
 ///
-/// Replaces `_NoInsightsState`. Keeps the same unlock rule the app already
-/// enforces (`InsightsNotifier.isSufficient`) but presents progress as a
-/// partially-mapped score hero plus hypothesis bentos.
+/// Uses a centered, clean AIUsageCard UI/UX pattern showing only essential progress
+/// and a primary call to action.
 class InsightBentoLearning extends StatelessWidget {
   const InsightBentoLearning({super.key, required this.meals, required this.symptoms, required this.scans});
 
@@ -308,95 +309,127 @@ class InsightBentoLearning extends StatelessWidget {
   final int symptoms;
   final int scans;
 
-  static const Color _orange = Color(0xFFEA580C);
-  static const Color _orangeDeep = Color(0xFFC2410C);
-  static const Color _orangeTone = Color(0xFFFFF7ED);
-  static const Color _purple = Color(0xFF8B5CF6);
-  static const Color _purpleTone = Color(0xFFF5EEFC);
-  static const Color _mint = Color(0xFF10B981);
-  static const Color _mintTone = Color(0xFFECFDF5);
-  static const Color _coral = Color(0xFFE11D48);
-  static const Color _coralTone = Color(0xFFFFF1F2);
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
+    final textColor = scheme.textPrimary;
+    final borderColor = scheme.borderSubtle;
+
+    const maxScans = 3;
+    const maxMeals = 3;
+    const maxSymptoms = 1;
+
+    final currentScans = scans.clamp(0, maxScans);
+    final currentMeals = meals.clamp(0, maxMeals);
+    final currentSymptoms = symptoms.clamp(0, maxSymptoms);
+
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(AppSizes.p20, AppSizes.p12, AppSizes.p20, AppSizes.p32),
+        child: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 400.w),
+            padding: EdgeInsets.all(AppSizes.p24),
+            decoration: BoxDecoration(
+              color: scheme.elevatedSurface,
+              borderRadius: BorderRadius.circular(AppSizes.r28),
+              border: Border.all(color: borderColor),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16.w, offset: Offset(0, 4.w))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Top Centered Icon Badge
+                Container(
+                  width: 52.w,
+                  height: 52.w,
+                  decoration: BoxDecoration(color: textColor.withAlpha(12), shape: BoxShape.circle),
+                  child: Icon(AppIcons.salad, size: 24.w, color: textColor),
+                ),
+                Gap.h16,
+
+                // Title & Eyebrow
+                Text(
+                  AppStrings.bentoMappingEyebrow.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: context.captionBold.copyWith(color: textColor.withAlpha(153), letterSpacing: 0.8),
+                ),
+                Gap.h4,
+                Text(
+                  'Log to Unlock AI Insights',
+                  textAlign: TextAlign.center,
+                  style: context.bodyBold.copyWith(color: textColor, fontSize: 18.sp, height: 1.2),
+                ),
+                Gap.h8,
+                Text(
+                  'Log 3 food scans OR 3 meals + 1 symptom to reveal your personalized gut analysis.',
+                  textAlign: TextAlign.center,
+                  style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.35),
+                ),
+                Gap.h24,
+
+                // Usage Rows (AIUsageCard style)
+                InsightUsageRow(label: 'Food Scans', current: currentScans, total: maxScans, color: textColor),
+                Gap.h16,
+                InsightUsageRow(label: 'Meal Logs', current: currentMeals, total: maxMeals, color: textColor),
+                Gap.h16,
+                InsightUsageRow(label: 'Symptom Logs', current: currentSymptoms, total: maxSymptoms, color: textColor),
+                Gap.h24,
+
+                // Primary CTA Button
+                SizedBox(
+                  width: double.infinity,
+                  child: GestureDetector(
+                    onTap: () => context.push(AppRoutes.scannerPath('meal')),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 14.w),
+                      decoration: BoxDecoration(color: textColor, borderRadius: BorderRadius.circular(100)),
+                      child: Text(
+                        'LOG A MEAL',
+                        textAlign: TextAlign.center,
+                        style: context.captionBold.copyWith(color: scheme.cardBackground, fontSize: 11.sp, letterSpacing: 0.5),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class InsightUsageRow extends StatelessWidget {
+  const InsightUsageRow({super.key, required this.label, required this.current, required this.total, required this.color});
+
+  final String label;
+  final int current;
+  final int total;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    const scanGoal = 3;
-    const mealGoal = 3;
-    final logs = meals.clamp(0, mealGoal);
-    final hub = scans.clamp(0, scanGoal);
-    final mapped = (hub + logs) / (scanGoal + mealGoal);
-    final pct = (mapped * 100).round().clamp(0, 99);
-    final remaining = (scanGoal - scans).clamp(0, scanGoal);
-    final t = context.bentoTheme;
+    final progress = (current / total).clamp(0.0, 1.0);
 
-    return SliverPadding(
-      padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
-      sliver: SliverList(
-        delegate: SliverChildListDelegate([
-          // The same hero anatomy as the feed, in its orange "mapping"
-          // identity: sparkles tile, `--` figure, %-mapped pill, and the six
-          // unlock slots (3 logs + 3 scans) instead of the score bars.
-          PatternHeroCard(
-            accent: _orange,
-            deep: _orangeDeep,
-            tone: _orangeTone,
-            icon: AppIcons.sparkles,
-            title: AppStrings.bentoMappingEyebrow.toUpperCase(),
-            sub: AppStrings.bentoScanToUnlock,
-            value: '--',
-            valueColor: t.orange,
-            pill: AppStrings.bentoPctMapped(pct),
-            chip: AppStrings.bentoScanLeft(remaining == 0 ? 1 : remaining),
-            chipForeground: t.orange,
-            chipBorder: _orange.withValues(alpha: 0.3),
-            chart: SlotSegs(filled: logs + hub, total: scanGoal + mealGoal, color: _orange, height: 18),
-            footLeft: '${AppStrings.logs} $logs/$mealGoal · ${AppStrings.aiScanHistory} $hub/$scanGoal',
-            showChevron: false,
-          ),
-          Gap.h14,
-          Column(
-            children: [
-              InsightHighlightCard(
-                accentColor: _purple,
-                backgroundColor: _purpleTone,
-                icon: AppIcons.lock,
-                tag: AppStrings.bentoUnlockPatterns,
-                meta: '$hub/$scanGoal',
-                title: AppStrings.bentoScanDinnerToUnlock,
-                body: AppStrings.understandBodyImpact,
-                chart: SlotSegs(filled: hub, total: scanGoal, color: _purple, height: 30),
-                footLeft: AppStrings.bentoScanToUnlock,
-              ),
-              Gap.h14,
-              if (meals > 0) ...[
-                InsightHighlightCard(
-                  accentColor: _mint,
-                  backgroundColor: _mintTone,
-                  icon: AppIcons.trendingUp,
-                  tag: '${AppStrings.bentoHypothesis} 1',
-                  meta: '${((meals / mealGoal) * 100).round().clamp(0, 100)}%',
-                  title: AppStrings.bentoPositiveDays,
-                  body: AppStrings.keepLoggingForHighlights,
-                  chartPainter: HealingSparklinePainter(color: _mint),
-                  footLeft: '${AppStrings.logs} $logs/$mealGoal',
-                ),
-                Gap.h14,
-              ],
-              InsightHighlightCard(
-                accentColor: _coral,
-                backgroundColor: _coralTone,
-                icon: AppIcons.lock,
-                tag: '${AppStrings.bentoHypothesis} 2',
-                meta: AppStrings.bentoLocked,
-                metaChip: true,
-                title: AppStrings.symptoms,
-                body: '$symptoms/1 ${AppStrings.bentoLogged}',
-                footLeft: AppStrings.keepLoggingForHighlights,
-              ),
-            ],
-          ),
-        ]),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label.toUpperCase(), style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary)),
+            Text('$current / $total', style: context.captionBold.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
+          ],
+        ),
+        Gap.h6,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(100),
+          child: LinearProgressIndicator(value: progress, backgroundColor: context.appColorScheme.borderSubtle, valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 6.w),
+        ),
+      ],
     );
   }
 }

@@ -296,7 +296,7 @@ class WeeklyRecap extends Equatable {
       highlights: parsedHighlights,
       stats: (map['stats'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       gutScoreTrend: (map['gutScoreTrend'] as List?)?.map((e) => (e as num).toInt()).toList(),
-      summary: map['summary']?.toString(),
+      summary: map['summary']?.toString() ?? map['weeklyInsight']?.toString(),
       avgScore: (map['avgScore'] as num?)?.toInt(),
       dateRange: map['dateRange']?.toString(),
       scoreSub: map['scoreSub']?.toString(),
@@ -340,12 +340,8 @@ class WeeklyRecap extends Equatable {
 class GutScoreSummary extends Equatable {
   const GutScoreSummary({required this.score, required this.trend, this.status, this.description});
 
-  factory GutScoreSummary.fromMap(Map<String, dynamic> map) => GutScoreSummary(
-    score: (map['score'] as num?)?.toInt() ?? 78,
-    trend: map['trend']?.toString() ?? '+2 pts vs last week',
-    status: map['status']?.toString() ?? 'Stable',
-    description: map['description']?.toString(),
-  );
+  factory GutScoreSummary.fromMap(Map<String, dynamic> map) =>
+      GutScoreSummary(score: (map['score'] as num?)?.toInt() ?? 0, trend: map['trend']?.toString() ?? '', status: map['status']?.toString() ?? 'Stable', description: map['description']?.toString());
 
   final int score;
   final String trend;
@@ -428,9 +424,9 @@ class FoodImpactBalance extends Equatable {
   const FoodImpactBalance({required this.positivePercent, required this.neutralPercent, required this.negativePercent, this.periodLabel = 'Last 4 weeks'});
 
   factory FoodImpactBalance.fromMap(Map<String, dynamic> map) => FoodImpactBalance(
-    positivePercent: (map['positivePercent'] as num?)?.toInt() ?? 72,
-    neutralPercent: (map['neutralPercent'] as num?)?.toInt() ?? 18,
-    negativePercent: (map['negativePercent'] as num?)?.toInt() ?? 10,
+    positivePercent: (map['positivePercent'] as num?)?.toInt() ?? 0,
+    neutralPercent: (map['neutralPercent'] as num?)?.toInt() ?? 0,
+    negativePercent: (map['negativePercent'] as num?)?.toInt() ?? 0,
     periodLabel: map['periodLabel']?.toString() ?? 'Last 4 weeks',
   );
 

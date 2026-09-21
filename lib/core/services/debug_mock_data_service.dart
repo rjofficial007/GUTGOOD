@@ -478,6 +478,23 @@ class DebugMockDataService {
     final latestInsight = AIInsight(
       gutScore: 52,
       scoreDiff: '+4',
+      healingSummary: const HealingSummary(
+        goal: 'Microbiome Diversity',
+        trend: 'Probiotic diversity up 40% this week.',
+        foods: [
+          InsightFood(foodId: 'h_kefir', name: 'Kefir', emoji: '🥛', imageUrl: berriesPhoto, effect: 'Boosts microbiome diversity and reduces inflammation.', impactLevel: 'high'),
+          InsightFood(foodId: 'h_leafy', name: 'Leafy Greens', emoji: '🥬', imageUrl: applesPhoto, effect: 'Supports fiber intake and gut barrier.', impactLevel: 'high'),
+          InsightFood(foodId: 'h_chicken', name: 'Chicken', emoji: '🍗', imageUrl: chickenPhoto, effect: 'Lean protein for gut repair.', impactLevel: 'medium'),
+        ],
+      ),
+      triggerSummary: const TriggerSummary(
+        primarySymptom: 'Bloating & Headaches',
+        trend: 'Processed sodium late at night correlates with next-morning headaches.',
+        foods: [
+          InsightFood(foodId: 't_fries', name: 'French Fries', emoji: '🍟', imageUrl: friesThumb, effect: 'Dull headaches within 2h.', impactLevel: 'high'),
+          InsightFood(foodId: 't_pizza', name: 'Pepperoni Pizza', emoji: '🍕', imageUrl: friesThumb, effect: 'Severe bloating within 3h.', impactLevel: 'high'),
+        ],
+      ),
       updatedAt: now,
       status: AIInsight.statusReady,
       origin: AIInsight.originClient,
@@ -556,12 +573,7 @@ class DebugMockDataService {
         FoodImpact(food: 'Greek Yogurt', dateLabel: 'Mon', effect: 'Steady energy', timeframeLabel: 'Snack', emoji: '🥣', impactType: 'positive'),
         FoodImpact(food: 'French Fries', dateLabel: 'Tue', effect: 'Headache trigger', timeframeLabel: 'Dinner', emoji: '🍟', impactType: 'negative', imageUrl: friesThumb, userImageUrl: friesThumb),
       ],
-      foodImpactBalance: const FoodImpactBalance(
-        positivePercent: 81,
-        neutralPercent: 12,
-        negativePercent: 7,
-        periodLabel: 'Last 4 weeks',
-      ),
+      foodImpactBalance: const FoodImpactBalance(positivePercent: 81, neutralPercent: 12, negativePercent: 7, periodLabel: 'Last 4 weeks'),
       actionsList: const [
         InsightAction(
           id: 'act_01',
@@ -588,16 +600,10 @@ class DebugMockDataService {
         FoodSwap(
           id: 'swap_01',
           source: SwapSource(foodId: 'f_fries', name: 'French Fries'),
-          alternatives: [
-            SwapAlternative(
-              foodId: 'f_sweet_potato',
-              name: 'Baked Sweet Potato Wedges',
-              reason: 'Far less refined oil and double the fiber.',
-            ),
-          ],
+          alternatives: [SwapAlternative(foodId: 'f_sweet_potato', name: 'Baked Sweet Potato Wedges', reason: 'Far less refined oil and double the fiber.')],
         ),
       ],
-      recentInsights: [
+      recentInsights: const [
         RecentInsightItem(
           id: 'rec_01',
           kind: 'Pattern',
@@ -621,6 +627,7 @@ class DebugMockDataService {
         dateRange: '${rangeStart.month}/${rangeStart.day} - ${now.month}/${now.day}',
         avgScore: 52,
         scoreSub: "You're trending upwards! Your probiotic consistency is making a visible impact.",
+        summary: "You're trending upwards! Your probiotic consistency is making a visible impact.",
         bestDay: bestDay,
         foodsLogged: 42,
         loggedSub: 'Top 5% of active users!',
@@ -633,6 +640,45 @@ class DebugMockDataService {
     );
 
     await _insightFirestoreService.saveInsights(latestInsight, useServerTimestamp: false);
+
+    // --- SEED ACTIVE GUT EXPERIMENT (shows ActiveExperimentCard in the feed) ---
+    final expStart = now.subtract(const Duration(days: 3));
+    final mockExperiment = GutExperiment(
+      id: 'exp_mock_${now.millisecondsSinceEpoch}',
+      actionId: 'act_01',
+      title: '7-Day Dairy-Free Trial',
+      hypothesis: 'Testing whether removing dairy for 7 days reduces skin flare-ups and bloating frequency.',
+      targetDays: 7,
+      startDate: expStart,
+      endDate: expStart.add(const Duration(days: 7)),
+      status: 'active',
+      triggerFood: 'Dairy',
+      baselineSymptomRate: 'high',
+      checkIns: {
+        '${expStart.year}-${expStart.month.toString().padLeft(2, '0')}-${expStart.day.toString().padLeft(2, '0')}': ExperimentDailyCheckIn(
+          date: '${expStart.year}-${expStart.month.toString().padLeft(2, '0')}-${expStart.day.toString().padLeft(2, '0')}',
+          adhered: true,
+          hadSymptoms: false,
+        ),
+        '${expStart.add(const Duration(days: 1)).year}-${expStart.add(const Duration(days: 1)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 1)).day.toString().padLeft(2, '0')}':
+            ExperimentDailyCheckIn(
+              date:
+                  '${expStart.add(const Duration(days: 1)).year}-${expStart.add(const Duration(days: 1)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 1)).day.toString().padLeft(2, '0')}',
+              adhered: true,
+              hadSymptoms: false,
+            ),
+        '${expStart.add(const Duration(days: 2)).year}-${expStart.add(const Duration(days: 2)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 2)).day.toString().padLeft(2, '0')}':
+            ExperimentDailyCheckIn(
+              date:
+                  '${expStart.add(const Duration(days: 2)).year}-${expStart.add(const Duration(days: 2)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 2)).day.toString().padLeft(2, '0')}',
+              adhered: false,
+              hadSymptoms: true,
+              notes: 'Had some cheese at dinner accidentally.',
+            ),
+      },
+    );
+    await _insightFirestoreService.saveActiveExperiment(mockExperiment);
+    AppLogger.mock('Seeded mock active gut experiment: ${mockExperiment.title}');
 
     // --- 7-DAY CHART HISTORY (oldest -> newest; explicit dates order the bars) ---
     final pastScores = [38, 40, 39, 42, 41, 44];

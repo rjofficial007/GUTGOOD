@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/models/insights/ai_insight.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
+import 'package:gutgood/core/models/insights/gut_experiment.dart';
 import 'package:gutgood/core/models/user/health_alert.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
@@ -16,6 +17,11 @@ abstract class InsightFirestoreService {
   Future<void> saveHealthAlert(HealthAlert alert);
   Future<void> markAlertsAsRead(List<String> alertIds);
   Stream<List<HealthAlert>> getHealthAlertsStream({int limit = 20});
+  Future<void> saveActiveExperiment(GutExperiment experiment);
+  Future<GutExperiment?> getActiveExperiment();
+  Stream<GutExperiment?> getActiveExperimentStream();
+  Future<void> updateExperimentCheckIn(String experimentId, String dateKey, bool adhered, bool hadSymptoms);
+  Future<void> completeExperiment(String experimentId, String outcomeSummary);
 }
 
 class InsightFirestoreServiceImpl implements InsightFirestoreService {
@@ -195,5 +201,83 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
           }
         })
         .map((snapshot) => snapshot.docs.map((doc) => HealthAlert.fromMap(doc.data(), id: doc.id)).toList());
+  }
+
+  @override
+  Future<void> saveActiveExperiment(GutExperiment experiment) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return;
+      await doc.collection('experiments').doc(experiment.id).set({...experiment.toMap(), 'updatedAt': FieldValue.serverTimestamp()});
+      // Also update latest pointer
+      await doc.collection('experiments').doc('active_latest').set({'experimentId': experiment.id, ...experiment.toMap(), 'updatedAt': FieldValue.serverTimestamp()});
+    } catch (e) {
+      AppLogger.firestore('Error saving active experiment', error: e);
+    }
+  }
+
+  @override
+  Future<GutExperiment?> getActiveExperiment() async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return null;
+      final snapshot = await doc.collection('experiments').doc('active_latest').get();
+      if (!snapshot.exists) return null;
+      final data = snapshot.data();
+      if (data == null) return null;
+      return GutExperiment.fromMap(data);
+    } catch (e) {
+      AppLogger.firestore('Error getting active experiment', error: e);
+      return null;
+    }
+  }
+
+  @override
+  Stream<GutExperiment?> getActiveExperimentStream() {
+    final doc = _userDoc;
+    if (doc == null) return Stream.value(null);
+    return doc
+        .collection('experiments')
+        .doc('active_latest')
+        .snapshots()
+        .handleError((e) {
+          if (e.toString().contains('permission-denied')) {
+            AppLogger.firestore('Experiment stream closed (permission-denied)');
+          } else {
+            throw e;
+          }
+        })
+        .map((doc) {
+          if (!doc.exists) return null;
+          final data = doc.data();
+          if (data == null) return null;
+          return GutExperiment.fromMap(data);
+        });
+  }
+
+  @override
+  Future<void> updateExperimentCheckIn(String experimentId, String dateKey, bool adhered, bool hadSymptoms) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return;
+      final checkInMap = {'date': dateKey, 'adhered': adhered, 'hadSymptoms': hadSymptoms};
+      await doc.collection('experiments').doc(experimentId).set({'checkIns.$dateKey': checkInMap, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      await doc.collection('experiments').doc('active_latest').set({'checkIns.$dateKey': checkInMap, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+    } catch (e) {
+      AppLogger.firestore('Error updating experiment check-in', error: e);
+    }
+  }
+
+  @override
+  Future<void> completeExperiment(String experimentId, String outcomeSummary) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null) return;
+      final updates = {'status': 'completed', 'completedOutcome': outcomeSummary, 'updatedAt': FieldValue.serverTimestamp()};
+      await doc.collection('experiments').doc(experimentId).update(updates);
+      await doc.collection('experiments').doc('active_latest').update(updates);
+    } catch (e) {
+      AppLogger.firestore('Error completing experiment', error: e);
+    }
   }
 }

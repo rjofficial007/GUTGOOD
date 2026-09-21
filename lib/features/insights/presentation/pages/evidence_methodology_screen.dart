@@ -212,8 +212,7 @@ class _StatColumn extends StatelessWidget {
   final IconData icon;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       children: [
         Icon(icon, size: 18, color: const Color(0xFF16A34A)),
         const SizedBox(height: 4),
@@ -234,7 +233,6 @@ class _StatColumn extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 class _StepCard extends StatelessWidget {
@@ -249,8 +247,7 @@ class _StepCard extends StatelessWidget {
   final String description;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -304,5 +301,4 @@ class _StepCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }

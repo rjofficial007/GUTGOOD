@@ -3,15 +3,7 @@ import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/utils/yuka_score.dart';
 
 /// Helper: build an additive concern at a given level.
-AdditiveConcern concern(AdditiveConcernLevel level) => AdditiveConcern(
-      code: 'E999',
-      name: 'Test additive',
-      whatItIs: 'test',
-      whyUsed: 'test',
-      level: level,
-      whyFlagged: 'test',
-      explanation: 'test',
-    );
+AdditiveConcern concern(AdditiveConcernLevel level) => AdditiveConcern(code: 'E999', name: 'Test additive', whatItIs: 'test', whyUsed: 'test', level: level, whyFlagged: 'test', explanation: 'test');
 
 void main() {
   group('Nutri-Score (original algorithm, as published by Yuka)', () {
@@ -28,15 +20,7 @@ void main() {
     });
 
     test('a product with no unfavourable nutrients scores best-grade A', () {
-      final result = YukaScore.computeNutriScore(
-        energyKj: 100,
-        sugarsG: 0,
-        saturatedFatG: 0,
-        sodiumMg: 0,
-        fiberG: 5,
-        proteinG: 10,
-        fruitVegPct: 90,
-      );
+      final result = YukaScore.computeNutriScore(energyKj: 100, sugarsG: 0, saturatedFatG: 0, sodiumMg: 0, fiberG: 5, proteinG: 10, fruitVegPct: 90);
 
       expect(result, isNotNull);
       // N = 0, P = 5 (fibre) + 5 (protein) + 5 (fruit/veg) = 15 → 0 - 15 = -15
@@ -72,34 +56,31 @@ void main() {
     });
 
     test('returns null when the unfavourable values are incomplete', () {
-      expect(
-        YukaScore.computeNutriScore(energyKj: 100, sugarsG: 1, saturatedFatG: 1, sodiumMg: null),
-        isNull,
-        reason: 'A Nutri-Score built on partial inputs would be worse than none.',
-      );
+      expect(YukaScore.computeNutriScore(energyKj: 100, sugarsG: 1, saturatedFatG: 1, sodiumMg: null), isNull, reason: 'A Nutri-Score built on partial inputs would be worse than none.');
     });
   });
 
   group('Yuka-style composition', () {
     test('components are weighted 60 / 30 / 10', () {
-      final breakdown = YukaScore.evaluate(nutriscore: 'a', additiveConcerns: const [], isOrganic: true);
+      final breakdown = YukaScore.evaluate(nutriscore: 'a', additiveConcerns: const [], isOrganic: true, novaGroup: 1);
 
       expect(breakdown.hasData, isTrue);
       // Nutrition (Nutri-Score A) ≈ 88/100 → 53 of 60
       expect(breakdown.factors.first.delta, 53);
       // No additives → full 30
       expect(breakdown.factors[1].delta, 30);
-      // Organic → full 10
+      // Processing & Ingredients (NOVA 1 + Organic) → full 10
       expect(breakdown.factors[2].delta, 10);
       expect(breakdown.score, 93);
     });
 
-    test('organic certification is worth exactly 10 points', () {
-      final withOrganic = YukaScore.evaluate(nutriscore: 'c', additiveConcerns: const [], isOrganic: true);
-      final without = YukaScore.evaluate(nutriscore: 'c', additiveConcerns: const [], isOrganic: false);
+    test('processing and ingredient quality respects NOVA group and organic bonus', () {
+      final unprocessedOrganic = YukaScore.evaluate(nutriscore: 'c', additiveConcerns: const [], isOrganic: true, novaGroup: 1);
+      final ultraProcessedNonOrganic = YukaScore.evaluate(nutriscore: 'c', additiveConcerns: const [], isOrganic: false, novaGroup: 4);
 
-      expect(withOrganic.score - without.score, 10);
-      expect(without.factors[2].delta, 0);
+      expect(unprocessedOrganic.score, greaterThan(ultraProcessedNonOrganic.score));
+      expect(unprocessedOrganic.factors[2].delta, 10);
+      expect(ultraProcessedNonOrganic.factors[2].delta, 0);
     });
 
     test('a poor Nutri-Score drags the score down', () {
@@ -115,27 +96,15 @@ void main() {
     });
 
     test('additives are penalised by concern, not by count', () {
-      final threeLow = YukaScore.evaluate(
-        nutriscore: 'c',
-        additiveConcerns: [concern(AdditiveConcernLevel.low), concern(AdditiveConcernLevel.low), concern(AdditiveConcernLevel.low)],
-      );
-      final oneModerate = YukaScore.evaluate(
-        nutriscore: 'c',
-        additiveConcerns: [concern(AdditiveConcernLevel.moderate)],
-      );
+      final threeLow = YukaScore.evaluate(nutriscore: 'c', additiveConcerns: [concern(AdditiveConcernLevel.low), concern(AdditiveConcernLevel.low), concern(AdditiveConcernLevel.low)]);
+      final oneModerate = YukaScore.evaluate(nutriscore: 'c', additiveConcerns: [concern(AdditiveConcernLevel.moderate)]);
 
       expect(oneModerate.score, lessThan(threeLow.score), reason: 'One moderate concern must outweigh three low ones.');
     });
 
     test('low-concern penalties are capped so a long list cannot run away with the score', () {
-      final many = YukaScore.evaluate(
-        nutriscore: 'b',
-        additiveConcerns: List.generate(20, (_) => concern(AdditiveConcernLevel.low)),
-      );
-      final few = YukaScore.evaluate(
-        nutriscore: 'b',
-        additiveConcerns: List.generate(4, (_) => concern(AdditiveConcernLevel.low)),
-      );
+      final many = YukaScore.evaluate(nutriscore: 'b', additiveConcerns: List.generate(20, (_) => concern(AdditiveConcernLevel.low)));
+      final few = YukaScore.evaluate(nutriscore: 'b', additiveConcerns: List.generate(4, (_) => concern(AdditiveConcernLevel.low)));
 
       expect(many.score, equals(few.score), reason: 'Both exceed the low-concern band cap of 12.');
     });
@@ -143,11 +112,7 @@ void main() {
 
   group('high-concern additive cap (published rule)', () {
     test('any high-concern additive caps the score at 49, however good the nutrition', () {
-      final breakdown = YukaScore.evaluate(
-        nutriscore: 'a',
-        additiveConcerns: [concern(AdditiveConcernLevel.higher)],
-        isOrganic: true,
-      );
+      final breakdown = YukaScore.evaluate(nutriscore: 'a', additiveConcerns: [concern(AdditiveConcernLevel.higher)], isOrganic: true);
 
       expect(breakdown.score, 49);
       expect(breakdown.scoreBeforeCap, greaterThan(49));
@@ -155,10 +120,7 @@ void main() {
     });
 
     test('the cap never raises a score that was already below it', () {
-      final breakdown = YukaScore.evaluate(
-        nutriscore: 'e',
-        additiveConcerns: [concern(AdditiveConcernLevel.higher)],
-      );
+      final breakdown = YukaScore.evaluate(nutriscore: 'e', additiveConcerns: [concern(AdditiveConcernLevel.higher)]);
 
       expect(breakdown.score, lessThanOrEqualTo(49));
       expect(breakdown.scoreBeforeCap, isNull, reason: 'The product scored below the cap anyway.');

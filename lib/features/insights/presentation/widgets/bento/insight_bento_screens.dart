@@ -31,7 +31,7 @@ class InsightBentoRecap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avg = (recap.avgScore ?? insight?.gutScore ?? 78).clamp(0, 100);
+    final avg = (recap.avgScore ?? insight?.gutScore ?? 0).clamp(0, 100);
     final src = insight;
     final delta = src == null ? null : BentoData.parseDelta(src.scoreDiff);
     final shown = series.length > 7 ? series.sublist(series.length - 7) : series;
@@ -1300,7 +1300,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
                     ],
                   ),
                 ),
-                Gap.h10,
+                Gap.h20,
 
                 // 2. FILTER CATEGORY CHIPS
                 SingleChildScrollView(
@@ -1341,24 +1341,46 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
                 if (filteredItems.isEmpty) ...[
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(16.w),
+                    margin: EdgeInsets.only(top: 20.w),
+                    padding: EdgeInsets.all(20.w),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16.w),
+                      borderRadius: BorderRadius.circular(20.w),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
-                    child: Center(
-                      child: Text(
-                        'No food intelligence items recorded yet.',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, color: const Color(0xFF64748B)),
-                      ),
+                    child: Column(
+                      children: [
+                        Icon(LucideIcons.apple, size: 28.w, color: const Color(0xFF64748B)),
+                        Gap.h8,
+                        Text(
+                          _selectedFilter == 'All' ? 'No Food Intelligence Items Yet' : 'No $_selectedFilter Foods Recorded Yet',
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                        ),
+                        Gap.h4,
+                        Text(
+                          'Keep logging your meals and food scans to discover which foods support or affect your gut.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: const Color(0xFF64748B), height: 1.35),
+                        ),
+                        Gap.h12,
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF15803D),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.w)),
+                          ),
+                          icon: Icon(LucideIcons.plus, size: 16.w),
+                          label: const Text('Log a Meal'),
+                          onPressed: () => context.push(AppRoutes.scannerPath('meal')),
+                        ),
+                      ],
                     ),
                   ),
                 ] else ...[
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10.w, crossAxisSpacing: 10.w, childAspectRatio: 0.85),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10.w, crossAxisSpacing: 10.w, childAspectRatio: 1.0),
                     itemCount: filteredItems.length,
                     itemBuilder: (context, index) {
                       final food = filteredItems[index];
@@ -1402,29 +1424,6 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
                           ],
                         ),
                       ),
-                      Gap.w6,
-                      GestureDetector(
-                        onTap: () => context.push(AppRoutes.scannerPath('meal')),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16.w),
-                            border: Border.all(color: const Color(0xFF15803D)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Log a Meal',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
-                              ),
-                              Gap.w3,
-                              Icon(Icons.arrow_forward_rounded, size: 10.w, color: const Color(0xFF15803D)),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -1446,45 +1445,58 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
   }
 
   List<_TopFoodDetailItem> _buildFoodItems(AIInsight? insight) {
+    if (insight == null) return const <_TopFoodDetailItem>[];
     final list = <_TopFoodDetailItem>[];
+    final seen = <String>{};
 
-    if (insight != null && insight.healingFoods.isNotEmpty) {
-      for (final f in insight.healingFoods) {
-        var countNum = 0;
-        for (final impact in insight.foodImpacts) {
-          if (impact.food.toLowerCase().trim() == f.name.toLowerCase().trim()) {
-            countNum++;
-          }
-        }
-        final countStr = countNum > 0 ? '${countNum}x' : '4x';
-        final isHealing = f.name.toLowerCase().contains('yogurt') || f.name.toLowerCase().contains('kimchi');
-        list.add(
-          _TopFoodDetailItem(
-            name: f.name,
-            countText: countStr,
-            description: isHealing ? 'Supports microbiome diversity and gut balance.' : 'Rich in fiber and plant compounds that support gut health.',
-            impactLabel: isHealing ? 'High Impact' : 'Good',
-            isPositive: true,
-            category: isHealing ? 'healing' : 'good',
-            imageKeyword: f.name,
-            isFavorite: isHealing,
-          ),
-        );
+    int countOccurrences(String foodName) {
+      final key = foodName.toLowerCase().trim();
+      if (key.isEmpty) return 0;
+      var n = 0;
+      for (final impact in insight.foodImpacts) {
+        if (impact.food.toLowerCase().trim() == key) n++;
       }
-      for (final f in insight.triggerFoods) {
-        list.add(
-          _TopFoodDetailItem(
-            name: f.name,
-            countText: '2x',
-            description: 'May trigger bloating and digestive discomfort.',
-            impactLabel: 'Moderate Impact',
-            isPositive: false,
-            category: 'watch',
-            imageKeyword: f.name,
-            isFavorite: false,
-          ),
-        );
-      }
+      return n;
+    }
+
+    // 1. Healing Foods
+    for (final f in insight.healingFoods) {
+      final key = f.name.toLowerCase().trim();
+      if (key.isEmpty || !seen.add(key)) continue;
+      final occurrences = countOccurrences(f.name);
+      final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
+      final desc = f.effect.isNotEmpty ? f.effect : 'Supports microbiome diversity and gut balance.';
+      list.add(_TopFoodDetailItem(name: f.name, countText: countStr, description: desc, impactLabel: 'High Impact', isPositive: true, category: 'healing', imageKeyword: f.name, isFavorite: true));
+    }
+
+    // 2. Food Impacts (Positive)
+    for (final fi in insight.foodImpacts.where((i) => i.impactType == 'positive')) {
+      final key = fi.food.toLowerCase().trim();
+      if (key.isEmpty || !seen.add(key)) continue;
+      final occurrences = countOccurrences(fi.food);
+      final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
+      final desc = fi.effect.isNotEmpty ? fi.effect : 'Observed positive effect on gut health.';
+      list.add(_TopFoodDetailItem(name: fi.food, countText: countStr, description: desc, impactLabel: 'Good', isPositive: true, category: 'good', imageKeyword: fi.food, isFavorite: false));
+    }
+
+    // 3. Trigger Foods
+    for (final f in insight.triggerFoods) {
+      final key = f.name.toLowerCase().trim();
+      if (key.isEmpty || !seen.add(key)) continue;
+      final occurrences = countOccurrences(f.name);
+      final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
+      final desc = f.effect.isNotEmpty ? f.effect : 'Associated with digestive symptoms.';
+      list.add(_TopFoodDetailItem(name: f.name, countText: countStr, description: desc, impactLabel: 'Watch', isPositive: false, category: 'watch', imageKeyword: f.name, isFavorite: false));
+    }
+
+    // 4. Food Impacts (Negative)
+    for (final fi in insight.foodImpacts.where((i) => i.impactType == 'negative')) {
+      final key = fi.food.toLowerCase().trim();
+      if (key.isEmpty || !seen.add(key)) continue;
+      final occurrences = countOccurrences(fi.food);
+      final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
+      final desc = fi.effect.isNotEmpty ? fi.effect : 'Associated with digestive discomfort.';
+      list.add(_TopFoodDetailItem(name: fi.food, countText: countStr, description: desc, impactLabel: 'Watch', isPositive: false, category: 'watch', imageKeyword: fi.food, isFavorite: false));
     }
 
     return list;
@@ -1526,112 +1538,124 @@ class _TopFoodGridCard extends StatelessWidget {
         ? (const Color(0xFFDCFCE7), const Color(0xFF15803D), LucideIcons.leaf)
         : (const Color(0xFFFEE2E2), const Color(0xFF991B1B), LucideIcons.alertTriangle);
 
-    return GestureDetector(
-      onTap: () {
-        context.push(
-          AppRoutes.highlightDetail,
-          extra: HighlightDetailArgs(
-            tag: item.isPositive ? 'Top Healing Food' : 'Something to Watch',
-            emoji: item.isPositive ? '🌱' : '⚠️',
-            title: item.name,
-            body: item.description,
-            accentColor: item.isPositive ? 0xFF1F7A3D : 0xFFC4302B,
-            backgroundColor: item.isPositive ? 0xFFE7F6E7 : 0xFFFFF1F0,
-            chartType: item.isPositive ? 'healing' : 'trigger',
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16.w),
-          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
-          boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image with Favorite Star
-            Stack(
-              children: [
-                CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  height: 96.w,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
-                  errorWidget: (_, _, _) => Container(color: const Color(0xFFDCFCE7)),
-                ),
-                if (item.isFavorite)
-                  Positioned(
-                    top: 6.w,
-                    right: 6.w,
-                    child: Container(
-                      padding: EdgeInsets.all(4.w),
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: Icon(LucideIcons.star, size: 12.w, color: const Color(0xFFD97706)),
-                    ),
-                  ),
-              ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18.w),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withValues(alpha: 0.04), blurRadius: 8.w, offset: const Offset(0, 2))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Full Cover Image
+          CachedNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover,
+            placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
+            errorWidget: (_, _, _) => Container(
+              color: badgeBg,
+              child: Icon(badgeIcon, color: badgeFg, size: 28),
             ),
+          ),
 
-            // Content
-            Padding(
-              padding: EdgeInsets.all(8.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Gap.h2,
-                  Text(
-                    '${item.countText} this week',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-                  ),
-                  Gap.h2,
-                  Text(
-                    item.description,
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF64748B), height: 1.2),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Gap.h6,
+          // 2. Gradient Overlay for Crisp Stacked Text Contrast
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.black.withValues(alpha: 0.2), Colors.black.withValues(alpha: 0.35), Colors.black.withValues(alpha: 0.88)],
+                stops: const [0.0, 0.45, 1.0],
+              ),
+            ),
+          ),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // 3. Top Floating Badges
+          Positioned(
+            top: 8.w,
+            left: 8.w,
+            right: 8.w,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Impact Badge
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.5.w),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(10.w),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 4.w)],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.5.w),
-                        decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(10.w)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(badgeIcon, size: 9.w, color: badgeFg),
-                            Gap.w3,
-                            Text(
-                              item.impactLabel,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: badgeFg),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.all(3.w),
-                        decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
-                        child: Icon(Icons.chevron_right_rounded, size: 12.w, color: const Color(0xFF0F172A)),
+                      Icon(badgeIcon, size: 9.w, color: badgeFg),
+                      Gap.w3,
+                      Text(
+                        item.impactLabel,
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: badgeFg),
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+
+                // Frequency Count Badge
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.5.w),
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.65), borderRadius: BorderRadius.circular(10.w)),
+                  child: Text(
+                    item.countText,
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // 4. Stacked Text Content at Bottom
+          Positioned(
+            left: 10.w,
+            right: 10.w,
+            bottom: 10.w,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.2),
+                ),
+                Gap.h3,
+                Text(
+                  item.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.85), height: 1.25),
+                ),
+                Gap.h6,
+                Row(
+                  children: [
+                    Icon(item.isPositive ? LucideIcons.salad : LucideIcons.info, size: 9.5.w, color: item.isPositive ? const Color(0xFF86EFAC) : const Color(0xFFFECACA)),
+                    Gap.w3,
+                    Text(
+                      item.isPositive ? 'Gut Friendly' : 'Monitor Reaction',
+                      style: TextStyle(
+                        fontFamily: InsightV2Theme.fontFamily,
+                        fontSize: 8.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: item.isPositive ? const Color(0xFF86EFAC) : const Color(0xFFFECACA),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

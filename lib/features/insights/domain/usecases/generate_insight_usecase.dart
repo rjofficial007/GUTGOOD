@@ -214,8 +214,8 @@ AIInsight stampInsightEnvelope(
     emptyState: isInsufficient && insight.emptyState == null
         ? InsightEmptyState(
             reason: 'insufficient_data',
-            title: "We're still learning about your gut",
-            description: "Log a few more meals and symptoms to unlock personalized patterns.",
+            title: 'We\'re still learning about your gut',
+            description: 'Log a few more meals and symptoms to unlock personalized patterns.',
             requirements: [
               EmptyStateRequirement(key: 'meals', label: 'Meals logged', current: sampleSizes.meals, recommended: 10),
               EmptyStateRequirement(key: 'symptoms', label: 'Symptoms logged', current: sampleSizes.symptoms, recommended: 3),

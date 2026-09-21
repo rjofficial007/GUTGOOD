@@ -12,13 +12,7 @@ import 'package:gutgood/features/insights/domain/usecases/generate_insight_useca
 import 'package:rxdart/rxdart.dart';
 
 class InsightsNotifier with ChangeNotifier {
-  InsightsNotifier(
-    this._repository,
-    this._appStateService,
-    this._authRepository,
-    this._analyticsService,
-    this._generateInsightUseCase,
-  ) {
+  InsightsNotifier(this._repository, this._appStateService, this._authRepository, this._analyticsService, this._generateInsightUseCase) {
     _initDashboardStream();
     // Client-owned cadence: regenerate (debounced) whenever chat or profile
     // data changes; the dashboard stream below only renders stored state.
@@ -44,19 +38,24 @@ class InsightsNotifier with ChangeNotifier {
 
   InsightsDashboardState _state = const InsightsDashboardState();
   List<AIInsight> _insightHistory = [];
+  GutExperiment? _activeExperiment;
 
   bool _isLoading = false;
   bool _isGenerating = false;
   bool _bootstrapAttempted = false;
   Timer? _generationDebounce;
   StreamSubscription<InsightsDashboardState>? _dashboardSub;
+  StreamSubscription<GutExperiment?>? _experimentSub;
 
   void _initDashboardStream() {
     _dashboardSub?.cancel();
+    _experimentSub?.cancel();
     _isLoading = true;
     notifyListeners();
 
     _fetchHistory();
+    _fetchActiveExperiment();
+    _initExperimentStream();
 
     _dashboardSub = _repository
         .getDashboardStateStream()
@@ -79,10 +78,7 @@ class InsightsNotifier with ChangeNotifier {
             // One-shot bootstrap for users who crossed the threshold but have
             // no insight yet (reactive listeners cover steady state; this just
             // shortens first-run latency). Session-flagged, never loops.
-            if (_state.latestInsight == null &&
-                !_isGenerating &&
-                isSufficient &&
-                !_bootstrapAttempted) {
+            if (_state.latestInsight == null && !_isGenerating && isSufficient && !_bootstrapAttempted) {
               _bootstrapAttempted = true;
               generateNewInsight();
             }
@@ -105,10 +101,7 @@ class InsightsNotifier with ChangeNotifier {
   Future<void> _fetchHistory() async {
     try {
       _insightHistory = await _repository.getInsightHistory();
-      await _analyticsService.logEvent(
-        name: 'insight_history_viewed',
-        parameters: {'count': _insightHistory.length},
-      );
+      await _analyticsService.logEvent(name: 'insight_history_viewed', parameters: {'count': _insightHistory.length});
 
       // If we have history but no stream data yet, notify so UI can show the latest cached insight
       if (_state.latestInsight == null && _insightHistory.isNotEmpty) {
@@ -119,10 +112,39 @@ class InsightsNotifier with ChangeNotifier {
     }
   }
 
-  AIInsight? get latestInsight =>
-      _state.latestInsight ??
-      (_insightHistory.isNotEmpty ? _insightHistory.first : null);
+  Future<void> _fetchActiveExperiment() async {
+    try {
+      _activeExperiment = await _repository.getActiveExperiment();
+      notifyListeners();
+    } catch (e) {
+      if (e.toString().contains('permission-denied')) {
+        AppLogger.debug('InsightsNotifier: Fetch active experiment skipped (permission-denied)');
+      } else {
+        AppLogger.error('InsightsNotifier: Failed to fetch active experiment', error: e);
+      }
+    }
+  }
+
+  void _initExperimentStream() {
+    _experimentSub?.cancel();
+    _experimentSub = _repository.getActiveExperimentStream().listen(
+      (experiment) {
+        _activeExperiment = experiment;
+        notifyListeners();
+      },
+      onError: (e) {
+        if (e.toString().contains('permission-denied')) {
+          AppLogger.debug('InsightsNotifier: Experiment stream permission denied');
+        } else {
+          AppLogger.error('InsightsNotifier: Experiment stream error', error: e);
+        }
+      },
+    );
+  }
+
+  AIInsight? get latestInsight => _state.latestInsight ?? (_insightHistory.isNotEmpty ? _insightHistory.first : null);
   List<AIInsight> get insightHistory => _insightHistory;
+  GutExperiment? get activeExperiment => _activeExperiment;
 
   /// Returns 3-5 most meaningful insights prioritized by confidence and frequency.
   /// 🟢 NEW: Deduplicates patterns by trigger and type before returning.
@@ -138,9 +160,7 @@ class InsightsNotifier with ChangeNotifier {
         }
         // 2. Statistical Confidence (rank map: High > Medium > Low — P1-7)
         if (a.confidence != b.confidence) {
-          int rank(String c) => c == BodyPattern.confidenceHigh
-              ? 0
-              : (c == BodyPattern.confidenceMedium ? 1 : 2);
+          int rank(String c) => c == BodyPattern.confidenceHigh ? 0 : (c == BodyPattern.confidenceMedium ? 1 : 2);
           return rank(a.confidence).compareTo(rank(b.confidence));
         }
         // 3. Frequency
@@ -166,34 +186,110 @@ class InsightsNotifier with ChangeNotifier {
   int get totalSymptoms => _state.totalSymptoms;
   int get totalScans => _state.totalScans;
 
-  bool get isSufficient =>
-      _state.totalScans >= 3 ||
-      (_state.totalMeals >= 3 && _state.totalSymptoms >= 1);
+  bool get isSufficient => _state.totalScans >= 3 || (_state.totalMeals >= 3 && _state.totalSymptoms >= 1);
 
   bool get isLoading => _isLoading;
   bool get isGenerating => _isGenerating;
 
   Future<void> markAllAlertsAsRead() async {
-    final unreadIds = _state.alerts
-        .where((a) => !a.isRead)
-        .map((a) => a.id)
-        .toList();
+    final unreadIds = _state.alerts.where((a) => !a.isRead).map((a) => a.id).toList();
     if (unreadIds.isEmpty) return;
 
     // Local optimistic update
-    final updatedAlerts = _state.alerts
-        .map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a)
-        .toList();
+    final updatedAlerts = _state.alerts.map((a) => unreadIds.contains(a.id) ? a.copyWith(isRead: true) : a).toList();
     _state = _state.copyWith(alerts: updatedAlerts);
     notifyListeners();
 
     try {
       await _repository.markAlertsAsRead(unreadIds);
     } catch (e) {
-      AppLogger.error(
-        'InsightsNotifier: Error marking alerts as read',
-        error: e,
-      );
+      AppLogger.error('InsightsNotifier: Error marking alerts as read', error: e);
+    }
+  }
+
+  Future<void> startExperiment(InsightAction action, {int targetDays = 7, String? triggerFood}) async {
+    final now = DateTime.now();
+    final experiment = GutExperiment(
+      id: 'exp_${now.millisecondsSinceEpoch}',
+      actionId: action.id,
+      title: action.title,
+      hypothesis: action.description,
+      targetDays: targetDays,
+      startDate: now,
+      endDate: now.add(Duration(days: targetDays)),
+      status: 'active',
+      triggerFood: triggerFood ?? (action.relatedFoodIds.isNotEmpty ? action.relatedFoodIds.first : null),
+      baselineSymptomRate: action.impactLevel,
+    );
+
+    _activeExperiment = experiment;
+    notifyListeners();
+
+    try {
+      await _repository.saveActiveExperiment(experiment);
+      await _analyticsService.logEvent(name: 'gut_experiment_started', parameters: {'title': action.title, 'target_days': targetDays});
+    } catch (e) {
+      AppLogger.error('InsightsNotifier: Failed to save active experiment', error: e);
+    }
+  }
+
+  Future<void> recordDailyCheckIn({required bool adhered, required bool hadSymptoms, String? notes}) async {
+    final experiment = _activeExperiment;
+    if (experiment == null) return;
+
+    final now = DateTime.now();
+    final dateKey = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    final checkIn = ExperimentDailyCheckIn(date: dateKey, adhered: adhered, hadSymptoms: hadSymptoms, notes: notes);
+    final updatedCheckIns = Map<String, ExperimentDailyCheckIn>.from(experiment.checkIns)..[dateKey] = checkIn;
+    final updatedExperiment = experiment.copyWith(checkIns: updatedCheckIns);
+
+    _activeExperiment = updatedExperiment;
+    notifyListeners();
+
+    try {
+      await _repository.updateExperimentCheckIn(experiment.id, dateKey, adhered, hadSymptoms);
+      await _analyticsService.logEvent(name: 'gut_experiment_check_in', parameters: {'experiment_id': experiment.id, 'adhered': adhered, 'had_symptoms': hadSymptoms});
+
+      if (updatedExperiment.completedCheckInsCount >= updatedExperiment.targetDays) {
+        final adheredDays = updatedExperiment.adheredCount;
+        final freeDays = updatedExperiment.symptomFreeCount;
+        final outcome = 'Completed $adheredDays of ${updatedExperiment.targetDays} test days successfully. Enjoyed $freeDays symptom-free days!';
+        await completeActiveExperiment(outcomeSummary: outcome);
+      }
+    } catch (e) {
+      AppLogger.error('InsightsNotifier: Failed to record experiment check-in', error: e);
+    }
+  }
+
+  Future<void> completeActiveExperiment({String? outcomeSummary}) async {
+    final experiment = _activeExperiment;
+    if (experiment == null) return;
+
+    final outcome = outcomeSummary ?? 'Test successfully completed!';
+    _activeExperiment = experiment.copyWith(status: 'completed', completedOutcome: outcome);
+    notifyListeners();
+
+    try {
+      await _repository.completeExperiment(experiment.id, outcome);
+      await _analyticsService.logEvent(name: 'gut_experiment_completed', parameters: {'experiment_id': experiment.id});
+    } catch (e) {
+      AppLogger.error('InsightsNotifier: Failed to complete experiment', error: e);
+    }
+  }
+
+  Future<void> cancelActiveExperiment() async {
+    final experiment = _activeExperiment;
+    if (experiment == null) return;
+
+    _activeExperiment = null;
+    notifyListeners();
+
+    try {
+      await _repository.completeExperiment(experiment.id, 'Cancelled');
+      await _analyticsService.logEvent(name: 'gut_experiment_cancelled', parameters: {'experiment_id': experiment.id});
+    } catch (e) {
+      AppLogger.error('InsightsNotifier: Failed to cancel experiment', error: e);
     }
   }
 
@@ -201,6 +297,7 @@ class InsightsNotifier with ChangeNotifier {
   void dispose() {
     _generationDebounce?.cancel();
     _dashboardSub?.cancel();
+    _experimentSub?.cancel();
     _appStateService.chatUpdated.removeListener(_onDataUpdated);
     _appStateService.profileUpdated.removeListener(_onDataUpdated);
     _appStateService.sessionReset.removeListener(_onSessionReset);
@@ -225,9 +322,7 @@ class InsightsNotifier with ChangeNotifier {
       // Background-only generation: the UI keeps showing the cached
       // dashboard. Classify so offline failures read as offline in logs.
       if (isOfflineError(e)) {
-        AppLogger.insights(
-          'InsightsNotifier: generation skipped (offline); cached dashboard kept',
-        );
+        AppLogger.insights('InsightsNotifier: generation skipped (offline); cached dashboard kept');
       } else {
         AppLogger.error('InsightsNotifier: generation failed', error: e);
       }
@@ -241,11 +336,7 @@ class InsightsNotifier with ChangeNotifier {
     _generationDebounce?.cancel();
     _generationDebounce = Timer(const Duration(seconds: 5), () {
       generateNewInsight().catchError((e, st) {
-        AppLogger.error(
-          'InsightsNotifier: background generation failed',
-          error: e,
-          stackTrace: st,
-        );
+        AppLogger.error('InsightsNotifier: background generation failed', error: e, stackTrace: st);
       });
     });
   }
@@ -255,7 +346,9 @@ class InsightsNotifier with ChangeNotifier {
     _bootstrapAttempted = false;
     _state = const InsightsDashboardState();
     _insightHistory = [];
+    _activeExperiment = null;
     _dashboardSub?.cancel();
+    _experimentSub?.cancel();
     notifyListeners();
   }
 }

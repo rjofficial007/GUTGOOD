@@ -55,8 +55,7 @@ class InsightRepositoryImpl implements InsightRepository {
   }
 
   @override
-  Future<List<AIInsight>> getInsightHistory() async =>
-      _insightFirestoreService.getInsightsHistory();
+  Future<List<AIInsight>> getInsightHistory() async => _insightFirestoreService.getInsightsHistory();
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
@@ -74,50 +73,90 @@ class InsightRepositoryImpl implements InsightRepository {
   }
 
   @override
+  Future<void> saveActiveExperiment(GutExperiment experiment) async {
+    await _prefs.setString('active_gut_experiment_cache', jsonEncode(experiment.toMap()));
+    await _insightFirestoreService.saveActiveExperiment(experiment);
+  }
+
+  @override
+  Future<GutExperiment?> getActiveExperiment() async {
+    final cloud = await _insightFirestoreService.getActiveExperiment();
+    if (cloud != null) {
+      await _prefs.setString('active_gut_experiment_cache', jsonEncode(cloud.toMap()));
+      return cloud;
+    }
+    final cached = _prefs.getString('active_gut_experiment_cache');
+    if (cached != null) {
+      try {
+        return GutExperiment.fromMap(jsonDecode(cached) as Map<String, dynamic>);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  @override
+  Stream<GutExperiment?> getActiveExperimentStream() => _insightFirestoreService.getActiveExperimentStream();
+
+  @override
+  Future<void> updateExperimentCheckIn(String experimentId, String dateKey, bool adhered, bool hadSymptoms) async {
+    await _insightFirestoreService.updateExperimentCheckIn(experimentId, dateKey, adhered, hadSymptoms);
+    // Update cache
+    final cached = _prefs.getString('active_gut_experiment_cache');
+    if (cached != null) {
+      try {
+        final exp = GutExperiment.fromMap(jsonDecode(cached) as Map<String, dynamic>);
+        final updated = exp.copyWith(
+          checkIns: {
+            ...exp.checkIns,
+            dateKey: ExperimentDailyCheckIn(date: dateKey, adhered: adhered, hadSymptoms: hadSymptoms),
+          },
+        );
+        await _prefs.setString('active_gut_experiment_cache', jsonEncode(updated.toMap()));
+      } catch (_) {}
+    }
+  }
+
+  @override
+  Future<void> completeExperiment(String experimentId, String outcomeSummary) async {
+    await _insightFirestoreService.completeExperiment(experimentId, outcomeSummary);
+    final cached = _prefs.getString('active_gut_experiment_cache');
+    if (cached != null) {
+      try {
+        final exp = GutExperiment.fromMap(jsonDecode(cached) as Map<String, dynamic>);
+        final updated = exp.copyWith(status: 'completed', completedOutcome: outcomeSummary);
+        await _prefs.setString('active_gut_experiment_cache', jsonEncode(updated.toMap()));
+      } catch (_) {}
+    }
+  }
+
+  @override
   Stream<InsightsDashboardState> getDashboardStateStream() => Rx.combineLatest4(
     _insightFirestoreService.getLatestInsightsStream(),
     _insightFirestoreService.getPatternDataStream(),
     _insightFirestoreService.getHealthAlertsStream(),
     // Single-doc counters read replaces three full-collection live snapshots.
     _historyFirestoreService.watchHistoryCounts(),
-    (
-      AIInsight? latestInsight,
-      List<BodyPattern> patterns,
-      List<HealthAlert> alerts,
-      HistoryCounts counts,
-    ) => InsightsDashboardState(
-      latestInsight: latestInsight,
-      patterns: patterns,
-      alerts: alerts,
-      totalMeals: counts.meals,
-      totalSymptoms: counts.symptoms,
-      totalScans: counts.scans,
-    ),
+    (AIInsight? latestInsight, List<BodyPattern> patterns, List<HealthAlert> alerts, HistoryCounts counts) =>
+        InsightsDashboardState(latestInsight: latestInsight, patterns: patterns, alerts: alerts, totalMeals: counts.meals, totalSymptoms: counts.symptoms, totalScans: counts.scans),
   ).distinct();
 
   @override
-  Future<List<MealLog>> getRecentMeals(DateTime since) async =>
-      _historyFirestoreService.getRecentMealLogs(since: since);
+  Future<List<MealLog>> getRecentMeals(DateTime since) async => _historyFirestoreService.getRecentMealLogs(since: since);
 
   @override
-  Future<List<SymptomLog>> getRecentSymptoms(DateTime since) async =>
-      _historyFirestoreService.getRecentSymptomLogs(since: since);
+  Future<List<SymptomLog>> getRecentSymptoms(DateTime since) async => _historyFirestoreService.getRecentSymptomLogs(since: since);
 
   @override
-  Future<List<ScanResult>> getRecentScans(DateTime since) async =>
-      _historyFirestoreService.getRecentScans(since: since);
+  Future<List<ScanResult>> getRecentScans(DateTime since) async => _historyFirestoreService.getRecentScans(since: since);
 
   @override
-  Future<List<BodyPattern>> getLatestPatterns() async =>
-      _insightFirestoreService.getLatestPatterns();
+  Future<List<BodyPattern>> getLatestPatterns() async => _insightFirestoreService.getLatestPatterns();
 
   @override
   Future<List<ChatMessage>> getRecentChat(DateTime since) async {
     final chatHistory = await _chatFirestoreService.getMessages(since: since);
     // Only include messages that mention food or symptoms to keep tokens low
-    return chatHistory
-        .where((m) => m.foodMentions.isNotEmpty || m.symptomMentions.isNotEmpty)
-        .toList();
+    return chatHistory.where((m) => m.foodMentions.isNotEmpty || m.symptomMentions.isNotEmpty).toList();
   }
 
   @override
@@ -134,14 +173,8 @@ class InsightRepositoryImpl implements InsightRepository {
     required List<BodyPattern> patternCandidates,
     int? lastScore,
   }) async {
-    final historyJson = ModelUtils.safeJsonEncode(
-      chatHistory.map((m) => m.toAiMap()).toList(),
-    );
-    final preComputedPatternCandidates = patternCandidates.isNotEmpty
-        ? ModelUtils.safeJsonEncode(
-            patternCandidates.map((p) => p.toMap()).toList(),
-          )
-        : null;
+    final historyJson = ModelUtils.safeJsonEncode(chatHistory.map((m) => m.toAiMap()).toList());
+    final preComputedPatternCandidates = patternCandidates.isNotEmpty ? ModelUtils.safeJsonEncode(patternCandidates.map((p) => p.toMap()).toList()) : null;
 
     try {
       AppLogger.insights('Generating insight. History: $scoreHistory');
@@ -168,7 +201,10 @@ class InsightRepositoryImpl implements InsightRepository {
       }
 
       final decoded = Map<String, dynamic>.from(jsonDecode(jsonStr) as Map);
-      final newScore = (decoded['gutScore'] as num?)?.toInt() ?? 0;
+      final rawGutScore = decoded['gutScore'];
+      final newScore = rawGutScore is Map<String, dynamic>
+          ? ((rawGutScore['score'] as num?)?.toInt() ?? 0)
+          : ((rawGutScore as num?)?.toInt() ?? 0);
       if (lastScore != null) {
         final diff = newScore - lastScore;
         decoded['scoreDiff'] = diff >= 0 ? '+$diff' : '$diff';
@@ -179,36 +215,21 @@ class InsightRepositoryImpl implements InsightRepository {
       insight = await _enrichInsightWithUserPhotos(insight);
 
       final duration = DateTime.now().difference(startTime).inSeconds;
-      await _analyticsService.logEvent(
-        name: 'insight_generated',
-        parameters: {'gut_score': insight.gutScore, 'duration_sec': duration},
-      );
+      await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
 
-      await _prefs.setString(
-        StorageKeys.gutgoodInsightsCache,
-        ModelUtils.safeJsonEncode(insight.toMap()),
-      );
+      await _prefs.setString(StorageKeys.gutgoodInsightsCache, ModelUtils.safeJsonEncode(insight.toMap()));
       return insight;
     } catch (e, st) {
       AppLogger.error('InsightRepo: AI Analysis failed', error: e);
-      await _analyticsService.logEvent(
-        name: 'insight_generation_failed',
-        parameters: {'error': e.toString()},
-      );
-      await _crashlyticsService.recordError(
-        e,
-        st,
-        reason: 'AI Insight generation failed',
-      );
+      await _analyticsService.logEvent(name: 'insight_generation_failed', parameters: {'error': e.toString()});
+      await _crashlyticsService.recordError(e, st, reason: 'AI Insight generation failed');
       rethrow;
     }
   }
 
   Future<AIInsight> _enrichInsightWithUserPhotos(AIInsight insight) async {
     try {
-      final recentScans = await getRecentScans(
-        DateTime.now().subtract(const Duration(days: 30)),
-      );
+      final recentScans = await getRecentScans(DateTime.now().subtract(const Duration(days: 30)));
       if (recentScans.isEmpty) return insight;
 
       final scanImageMap = <String, ScanResult>{};
@@ -237,9 +258,7 @@ class InsightRepositoryImpl implements InsightRepository {
       }
 
       var enrichedTopHealing = insight.topHealing;
-      if (enrichedTopHealing != null &&
-          (enrichedTopHealing.userImageUrl == null ||
-              enrichedTopHealing.userImageUrl!.isEmpty)) {
+      if (enrichedTopHealing != null && (enrichedTopHealing.userImageUrl == null || enrichedTopHealing.userImageUrl!.isEmpty)) {
         final match = findMatchingScan(enrichedTopHealing.food);
         final matchUrl = match?.userImageUrl ?? match?.imageUrl;
         if (match != null && matchUrl != null) {
@@ -257,9 +276,7 @@ class InsightRepositoryImpl implements InsightRepository {
       }
 
       var enrichedTopTrigger = insight.topTrigger;
-      if (enrichedTopTrigger != null &&
-          (enrichedTopTrigger.userImageUrl == null ||
-              enrichedTopTrigger.userImageUrl!.isEmpty)) {
+      if (enrichedTopTrigger != null && (enrichedTopTrigger.userImageUrl == null || enrichedTopTrigger.userImageUrl!.isEmpty)) {
         final match = findMatchingScan(enrichedTopTrigger.food);
         final matchUrl = match?.userImageUrl ?? match?.imageUrl;
         if (match != null && matchUrl != null) {
@@ -281,14 +298,7 @@ class InsightRepositoryImpl implements InsightRepository {
         final match = findMatchingScan(hf.name);
         final matchUrl = match?.userImageUrl ?? match?.imageUrl;
         if (match != null && matchUrl != null) {
-          return HealingFood(
-            name: hf.name,
-            effect: hf.effect,
-            emoji: hf.emoji,
-            imageUrl: hf.imageUrl ?? matchUrl,
-            userImageUrl: matchUrl,
-            foodScanId: match.scanId,
-          );
+          return HealingFood(name: hf.name, effect: hf.effect, emoji: hf.emoji, imageUrl: hf.imageUrl ?? matchUrl, userImageUrl: matchUrl, foodScanId: match.scanId);
         }
         return hf;
       }).toList();
@@ -298,14 +308,7 @@ class InsightRepositoryImpl implements InsightRepository {
         final match = findMatchingScan(tf.name);
         final matchUrl = match?.userImageUrl ?? match?.imageUrl;
         if (match != null && matchUrl != null) {
-          return TriggerFood(
-            name: tf.name,
-            effect: tf.effect,
-            emoji: tf.emoji,
-            imageUrl: tf.imageUrl ?? matchUrl,
-            userImageUrl: matchUrl,
-            foodScanId: match.scanId,
-          );
+          return TriggerFood(name: tf.name, effect: tf.effect, emoji: tf.emoji, imageUrl: tf.imageUrl ?? matchUrl, userImageUrl: matchUrl, foodScanId: match.scanId);
         }
         return tf;
       }).toList();
@@ -330,13 +333,7 @@ class InsightRepositoryImpl implements InsightRepository {
         return fi;
       }).toList();
 
-      return insight.copyWith(
-        topHealing: enrichedTopHealing,
-        topTrigger: enrichedTopTrigger,
-        healingFoods: enrichedHealingFoods,
-        triggerFoods: enrichedTriggerFoods,
-        foodImpacts: enrichedFoodImpacts,
-      );
+      return insight.copyWith(topHealing: enrichedTopHealing, topTrigger: enrichedTopTrigger, healingFoods: enrichedHealingFoods, triggerFoods: enrichedTriggerFoods, foodImpacts: enrichedFoodImpacts);
     } catch (e) {
       AppLogger.warning('Failed to enrich insight with user photos: $e');
       return insight;

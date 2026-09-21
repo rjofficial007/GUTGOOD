@@ -30,7 +30,6 @@ class GutScoreDetailScreen extends StatelessWidget {
     final history = _historyOf(context);
     final (series, labels) = _window(history, insight);
     final delta = V2Data.parseDelta(insight.scoreDiff);
-    final band = _bandLabel(insight.gutScore);
 
     return Scaffold(
       backgroundColor: v2.scaffold,
@@ -68,7 +67,7 @@ class GutScoreDetailScreen extends StatelessWidget {
                 Gap.h12,
                 V2Button(
                   label: InsightV2Strings.viewFullReportCta,
-                  onTap: () => context.push(AppRoutes.weeklyRecap, extra: insight),
+                  onTap: () => context.push(AppRoutes.insights),
                 ),
                 Gap.h8,
                 Center(
@@ -120,6 +119,7 @@ class GutScoreDetailScreen extends StatelessWidget {
     ];
   }
 
+  // ignore: unused_element — reserved for score band overlay
   static String _bandLabel(int score) {
     if (score >= 75) return 'Thriving range';
     if (score >= 55) return 'Steady range';

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 class ActionDetailScreen extends StatefulWidget {
   const ActionDetailScreen({super.key, required this.action});
@@ -101,15 +104,37 @@ class _ActionDetailScreenState extends State<ActionDetailScreen> {
                     _status == 'completed'
                         ? 'Completed'
                         : _status == 'in_progress'
-                        ? 'In Progress'
-                        : 'Start My Plan',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                            ? 'Test in Progress'
+                            : 'Start 7-Day Gut Test',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                   onPressed: () {
-                    setState(() {
-                      _status = _status == 'in_progress' ? 'completed' : 'in_progress';
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Action updated to $_status!')));
+                    HapticFeedback.mediumImpact();
+                    if (_status != 'in_progress' && _status != 'completed') {
+                      context.read<InsightsNotifier>().startExperiment(widget.action, targetDays: 7);
+                      setState(() {
+                        _status = 'in_progress';
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('🎉 7-Day Gut Test started! Track your daily progress on the Insights tab.'),
+                          backgroundColor: Color(0xFF16A34A),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      Navigator.of(context).pop();
+                    } else if (_status == 'in_progress') {
+                      context.read<InsightsNotifier>().completeActiveExperiment();
+                      setState(() {
+                        _status = 'completed';
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Test marked as completed!'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
                   },
                 ),
               ),

@@ -7,6 +7,7 @@ export 'insights/ai_insight.dart';
 export 'insights/ai_insight_details.dart';
 export 'insights/body_pattern.dart';
 export 'insights/food_swap.dart';
+export 'insights/gut_experiment.dart';
 export 'insights/insight_action.dart';
 export 'insights/insight_empty_state.dart';
 export 'insights/insight_evidence.dart';

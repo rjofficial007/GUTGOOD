@@ -22,7 +22,6 @@ import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dar
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
-import 'package:gutgood/features/insights/presentation/pages/fiber_synergy_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/gut_score_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/highlight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
@@ -30,7 +29,7 @@ import 'package:gutgood/features/insights/presentation/pages/insights_history_sc
 import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/pattern_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/smart_insight_detail_screen.dart';
-import 'package:gutgood/features/insights/presentation/pages/weekly_recap_screen.dart';
+import 'package:gutgood/features/insights/presentation/pages/synergy_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_screens.dart';
 import 'package:gutgood/features/onboarding/presentation/pages/onboarding_screen.dart';
@@ -172,10 +171,6 @@ class AppRouter {
                 },
               ),
               GoRoute(
-                path: AppRoutes.weeklyRecap,
-                builder: (context, state) => WeeklyRecapScreen(insight: state.extra is AIInsight ? state.extra as AIInsight : null),
-              ),
-              GoRoute(
                 path: AppRoutes.insightDetail,
                 builder: (context, state) {
                   final insight = state.extra is AIInsight ? state.extra as AIInsight : context.read<InsightsNotifier>().latestInsight;
@@ -224,9 +219,9 @@ class AppRouter {
                 path: AppRoutes.fiberSynergyDetail,
                 builder: (context, state) {
                   if (state.extra is BodyPattern) {
-                    return FiberSynergyDetailScreen(pattern: state.extra as BodyPattern);
+                    return SynergyDetailScreen(pattern: state.extra as BodyPattern);
                   }
-                  return FiberSynergyDetailScreen(insight: state.extra is AIInsight ? state.extra as AIInsight : null);
+                  return SynergyDetailScreen(insight: state.extra is AIInsight ? state.extra as AIInsight : null);
                 },
               ),
               GoRoute(

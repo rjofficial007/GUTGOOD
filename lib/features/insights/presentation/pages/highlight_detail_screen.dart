@@ -31,11 +31,12 @@ class HighlightDetailScreen extends StatelessWidget {
   /// Healing / Improving Trend detail screen — matches exact mock layout from screenshot.
   Widget _buildHealingTrendDetail(BuildContext context) {
     final v2 = context.v2Theme;
+    final insight = _insightOf(context);
 
-    final headline = args.title.isNotEmpty ? args.title : 'Your gut barrier score is improving.';
-    final bodyText = (args.body ?? '').isNotEmpty ? args.body! : 'Consistent vegetable fiber intake is actively improving your gut barrier score.';
+    final headline = args.title.isNotEmpty ? args.title : 'Your gut score is steady.';
+    final bodyText = (args.body ?? '').isNotEmpty ? args.body! : 'Keep logging meals to track your gut health progress.';
 
-    final series = args.chartValues.isNotEmpty ? args.chartValues : const [74.0, 75.0, 76.0, 77.0, 78.0, 78.0, 78.0];
+    final series = args.chartValues.isNotEmpty ? args.chartValues : (insight?.gutScore != null ? [insight!.gutScore.toDouble()] : const <double>[]);
 
     return Scaffold(
       backgroundColor: v2.scaffold,
@@ -157,7 +158,7 @@ class HighlightDetailScreen extends StatelessWidget {
                                 ),
                                 Gap.h2,
                                 Text(
-                                  '74 → 78',
+                                  series.isNotEmpty ? '${series.first.round()} → ${series.last.round()}' : (insight?.gutScore != null ? '${insight!.gutScore}' : '—'),
                                   style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
                                 ),
                               ],
@@ -168,9 +169,9 @@ class HighlightDetailScreen extends StatelessWidget {
                       Gap.h8,
 
                       // Days Row
-                      Row(
+                      const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
+                        children: [
                           Text('Mon', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                           Text('Tue', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                           Text('Wed', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
@@ -271,22 +272,22 @@ class HighlightDetailScreen extends StatelessWidget {
           child: Row(
             children: [
               if (foods.isEmpty) ...[
-                _ContributingCard(
+                const _ContributingCard(
                   title: 'Vegetable Fiber',
                   subtitle: 'More fiber-rich plants',
                   badgeText: 'High Impact',
-                  badgeColor: const Color(0xFFDCFCE7),
-                  badgeTextColor: const Color(0xFF15803D),
+                  badgeColor: Color(0xFFDCFCE7),
+                  badgeTextColor: Color(0xFF15803D),
                   imageKeyword: 'salad',
                   icon: LucideIcons.leaf,
                 ),
                 Gap.w8,
-                _ContributingCard(
+                const _ContributingCard(
                   title: 'Fermented Foods',
                   subtitle: 'Supporting good bacteria',
                   badgeText: 'High Impact',
-                  badgeColor: const Color(0xFFDCFCE7),
-                  badgeTextColor: const Color(0xFF15803D),
+                  badgeColor: Color(0xFFDCFCE7),
+                  badgeTextColor: Color(0xFF15803D),
                   imageKeyword: 'yogurt',
                   icon: LucideIcons.leaf,
                 ),
@@ -313,7 +314,7 @@ class HighlightDetailScreen extends StatelessWidget {
   /// 3. Weekly Stats Section
   Widget _buildWeeklyStatsSection(BuildContext context) {
     final insight = _insightOf(context);
-    final avgScore = insight?.gutScore ?? 78;
+    final avgScore = insight?.gutScore ?? 0;
     final bestDay = insight?.weeklyRecap?.bestDay ?? 'Latest';
     final foodsLogged = insight?.foodImpacts.length ?? insight?.healingFoods.length ?? 0;
 
@@ -417,23 +418,17 @@ class HighlightDetailScreen extends StatelessWidget {
 
       Row(
         children: [
-          Expanded(
-            child: _HighlightBox(
-              icon: LucideIcons.leaf,
-              iconBg: Color(0xFFDCFCE7),
-              iconColor: Color(0xFF15803D),
-              title: 'Added fermented foods on 5 out of 7 days.',
-              subtitle: "That's 71% of the week!",
-            ),
+          const Expanded(
+            child: _HighlightBox(icon: LucideIcons.leaf, iconBg: Color(0xFFDCFCE7), iconColor: Color(0xFF15803D), title: 'Logged meals consistently this week.', subtitle: 'Great logging habit!'),
           ),
           Gap.w8,
-          Expanded(
+          const Expanded(
             child: _HighlightBox(
               icon: LucideIcons.arrowDown,
               iconBg: Color(0xFFDCFCE7),
               iconColor: Color(0xFF15803D),
-              title: 'Reduced sugary beverage intake by 50%.',
-              subtitle: 'Great progress for your gut!',
+              title: 'Tracking symptoms and food impacts.',
+              subtitle: 'Building your baseline!',
             ),
           ),
         ],
@@ -497,42 +492,40 @@ class HighlightDetailScreen extends StatelessWidget {
   }
 
   /// 6. Bottom Encouragement Quote Card ("Keep going!")
-  Widget _buildKeepGoingBanner(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4FAF5),
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '“',
-            style: TextStyle(fontFamily: InsightV2Theme.displayFont, fontSize: 28.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D), height: 1.0),
+  Widget _buildKeepGoingBanner(BuildContext context) => Container(
+    padding: EdgeInsets.all(12.w),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF4FAF5),
+      borderRadius: BorderRadius.circular(16.w),
+      border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '“',
+          style: TextStyle(fontFamily: InsightV2Theme.displayFont, fontSize: 28.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D), height: 1.0),
+        ),
+        Gap.w6,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Keep going!',
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D)),
+              ),
+              Gap.h2,
+              Text(
+                "You're building healthier habits, and your gut thanks you.",
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF334155), height: 1.25),
+              ),
+            ],
           ),
-          Gap.w6,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Keep going!',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D)),
-                ),
-                Gap.h2,
-                Text(
-                  "You're building healthier habits, and your gut thanks you.",
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF334155), height: 1.25),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 
   /// Trigger / Something to Watch Detail screen
   Widget _buildTriggerDetail(BuildContext context) {
@@ -540,8 +533,8 @@ class HighlightDetailScreen extends StatelessWidget {
     final insight = _insightOf(context);
     final pattern = insight?.detectedPatterns.where((p) => p.type.toLowerCase().contains('trigger') || p.reaction.isNotEmpty).firstOrNull;
 
-    final title = args.title.isNotEmpty ? args.title : 'Fried Foods → Bloating';
-    final bodyText = (args.body ?? '').isNotEmpty ? args.body! : 'Fried and heavily processed foods consistently precede bloating by 2 hours.';
+    final title = args.title.isNotEmpty ? args.title : 'No Triggers Detected';
+    final bodyText = (args.body ?? '').isNotEmpty ? args.body! : 'No trigger patterns observed. Continue logging meals to track how foods affect your gut.';
 
     final occurrences = pattern?.occurrences ?? const <PatternOccurrence>[];
 
@@ -725,8 +718,8 @@ class HighlightDetailScreen extends StatelessWidget {
                 Gap.w4,
 
                 // Stat 3: Typical Delay
-                Expanded(
-                  child: const _TriggerStatCol(icon: LucideIcons.clock, iconBg: Color(0xFFFEE2E2), iconColor: Color(0xFFDC2626), label: 'Typical Delay', value: '~ 2 hours', subtext: 'After eating'),
+                const Expanded(
+                  child: _TriggerStatCol(icon: LucideIcons.clock, iconBg: Color(0xFFFEE2E2), iconColor: Color(0xFFDC2626), label: 'Typical Delay', value: '~ 2 hours', subtext: 'After eating'),
                 ),
                 Gap.w4,
 
@@ -734,8 +727,8 @@ class HighlightDetailScreen extends StatelessWidget {
                 Expanded(
                   child: _TriggerStatCol(
                     icon: LucideIcons.leaf,
-                    iconBg: const Color(0xFFDCFCE7),
-                    iconColor: const Color(0xFF15803D),
+                    iconBg: const Color(0xFFFEE2E2),
+                    iconColor: const Color(0xFFDC2626),
                     label: 'Confidence',
                     value: pattern?.confidence.isNotEmpty == true ? pattern!.confidence : 'High',
                     subtext: 'Based on your data',
@@ -775,19 +768,6 @@ class HighlightDetailScreen extends StatelessWidget {
                 child: Text(
                   'Recent Occurrences',
                   style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => context.push(AppRoutes.allScans),
-                child: Row(
-                  children: [
-                    Text(
-                      'View All',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-                    ),
-                    Gap.w2,
-                    Icon(Icons.arrow_forward_rounded, size: 11.w, color: const Color(0xFF0F172A)),
-                  ],
                 ),
               ),
             ],
@@ -913,11 +893,11 @@ class HighlightDetailScreen extends StatelessWidget {
 
   /// 4. Related Trigger Foods Section
   Widget _buildRelatedTriggerFoodsSection(BuildContext context) {
-    final relatedFoods = [
-      const _RelatedFoodData(title: 'Deep-Fried Foods', subtitle: 'e.g., onion rings, fried chicken, french fries', imageKeyword: 'Deep Fried Foods'),
-      const _RelatedFoodData(title: 'Refined Vegetable Oils', subtitle: 'e.g., soybean, corn, canola oil', imageKeyword: 'Vegetable Oil Bottle'),
-      const _RelatedFoodData(title: 'Heavily Processed Foods', subtitle: 'e.g., fast food, packaged snacks, fried snacks', imageKeyword: 'Burger Fries Fast Food'),
-    ];
+    final insight = _insightOf(context);
+    final triggerFoods = insight?.triggerFoods ?? const <TriggerFood>[];
+    if (triggerFoods.isEmpty) return const SizedBox.shrink();
+
+    final relatedFoods = [for (final f in triggerFoods) _RelatedFoodData(title: f.name, subtitle: f.effect.isNotEmpty ? f.effect : 'Observed trigger food', imageKeyword: f.name)];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -966,6 +946,11 @@ class HighlightDetailScreen extends StatelessWidget {
 
   /// 5. Good to Know Card
   Widget _buildGoodToKnowCard(BuildContext context) {
+    final insight = _insightOf(context);
+    final tipText = insight?.topTrigger?.effects.isNotEmpty == true
+        ? insight!.topTrigger!.effects
+        : (insight?.triggerTrend?.isNotEmpty == true ? insight!.triggerTrend! : 'Tracking food reactions helps identify patterns and improve your overall digestive well-being.');
+
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
@@ -994,7 +979,7 @@ class HighlightDetailScreen extends StatelessWidget {
                 ),
                 Gap.h3,
                 Text(
-                  'Frying can make foods higher in fat and harder to digest, which may trigger bloating for sensitive guts.',
+                  tipText,
                   style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF334155), height: 1.3),
                 ),
               ],
@@ -1232,15 +1217,6 @@ class _NextStepCard extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Icon(icon, size: 11.w, color: const Color(0xFF15803D)),
               ),
-              Container(
-                padding: EdgeInsets.all(3.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFDCFCE7)),
-                ),
-                child: Icon(Icons.arrow_forward_rounded, size: 10.w, color: const Color(0xFF15803D)),
-              ),
             ],
           ),
           Gap.h6,
@@ -1366,16 +1342,9 @@ class _OccurrenceTile extends StatelessWidget {
             ),
           ),
           Gap.w6,
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                occurrence.timeAfter.isNotEmpty ? occurrence.timeAfter : '2 hours after',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569)),
-              ),
-              Gap.w4,
-              Icon(Icons.chevron_right_rounded, size: 14.w, color: const Color(0xFF94A3B8)),
-            ],
+          Text(
+            occurrence.timeAfter.isNotEmpty ? occurrence.timeAfter : '2 hours after',
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569)),
           ),
         ],
       ),

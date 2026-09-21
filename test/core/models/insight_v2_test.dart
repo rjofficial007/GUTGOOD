@@ -188,7 +188,7 @@ void main() {
 
   group('v2 Spec Models Round-Trip', () {
     test('InsightAction round-trips through toMap/fromMap', () {
-      final action = InsightAction(
+      const action = InsightAction(
         id: 'act_001',
         title: 'Increase prebiotic vegetables',
         description: 'Add more fiber-rich foods like leafy greens.',
@@ -198,8 +198,8 @@ void main() {
         status: 'not_started',
         whenToDo: 'Daily with meals',
         expectedBenefit: 'Higher fiber intake and less bloating',
-        relatedPatternIds: const ['pat_synergy_01'],
-        relatedFoodIds: const ['food_leafy_greens'],
+        relatedPatternIds: ['pat_synergy_01'],
+        relatedFoodIds: ['food_leafy_greens'],
         progress: ActionProgress(target: 7, completed: 2, unit: 'days'),
       );
 
@@ -246,6 +246,16 @@ void main() {
 
       final roundTripped = InsightEmptyState.fromMap(emptyState.toMap());
       expect(roundTripped, emptyState);
+    });
+
+    test('AIInsight.fromMap parses gutScore whether Map or num', () {
+      final mapScore = AIInsight.fromMap(const {
+        'gutScore': {'score': 78, 'scoreDiff': 4},
+      });
+      expect(mapScore.gutScore, 78);
+
+      final numScore = AIInsight.fromMap(const {'gutScore': 78});
+      expect(numScore.gutScore, 78);
     });
   });
 }
