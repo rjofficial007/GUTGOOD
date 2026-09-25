@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_states.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_feed.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/v2_feed.dart';
@@ -20,14 +20,14 @@ class InsightsScreen extends StatefulWidget {
     if (insight == null) return const <double>[];
     try {
       final history = notifier.insightHistory;
-      final sorted = [...history]..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
-      if (!sorted.any((i) => i.updatedAt == insight.updatedAt)) {
+      final sorted = history.where((item) => item.hasGutScore && !item.updatedAt.isAfter(insight.updatedAt)).toList()..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+      if (insight.hasGutScore && !sorted.any((i) => i.updatedAt == insight.updatedAt)) {
         sorted.add(insight);
       }
       final window = sorted.length > 7 ? sorted.sublist(sorted.length - 7) : sorted;
       return [for (final i in window) i.gutScore.toDouble()];
     } catch (_) {
-      return [insight.gutScore.toDouble()];
+      return insight.hasGutScore ? [insight.gutScore.toDouble()] : [];
     }
   }
 
@@ -59,36 +59,42 @@ class _InsightsScreenState extends State<InsightsScreen> {
             final prioritizedPatterns = notifier.prioritizedPatterns.isNotEmpty ? notifier.prioritizedPatterns : (latestInsight?.detectedPatterns ?? []);
 
             final scoreSeries = InsightsScreen.scoreWindowFor(notifier, latestInsight);
-            final isLoading = notifier.isLoading || (latestInsight == null && notifier.isGenerating);
+            final isLoading = latestInsight == null && (notifier.isLoading || notifier.isGenerating);
 
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
+            return RefreshIndicator(
+              onRefresh: notifier.retry,
+              color: v2.textPrimary,
+              backgroundColor: v2.card,
+              child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
               slivers: [
                 GutSliverAppBar(
                   title: AppStrings.insightsTab,
                   actions: [IconButton(icon: const Icon(LucideIcons.history), tooltip: 'Insight History', onPressed: () => context.push(AppRoutes.insightHistory))],
                 ),
                 if (isLoading)
-                  const _InsightsLoadingState()
-                else if (latestInsight == null || !notifier.isSufficient)
-                  InsightBentoLearning(meals: notifier.totalMeals, symptoms: notifier.totalSymptoms, scans: notifier.totalScans)
-                else
-                  V2InsightsFeed(data: latestInsight, patterns: prioritizedPatterns, series: scoreSeries, history: notifier.insightHistory),
+                  const SliverPadding(padding: EdgeInsets.all(20), sliver: SliverToBoxAdapter(child: InsightLoadingState()))
+                else ...[
+                  if (notifier.errorMessage != null)
+                    SliverPadding(padding: const EdgeInsets.all(16), sliver: SliverToBoxAdapter(child: InsightErrorStateCard(onRetry: notifier.retry, hasCachedData: latestInsight != null))),
+                  if (latestInsight != null && latestInsight.status != AIInsight.statusInsufficientData)
+                    V2InsightsFeed(data: latestInsight, patterns: prioritizedPatterns, series: scoreSeries, history: notifier.insightHistory)
+                  else if (notifier.errorMessage == null && notifier.isSufficient)
+                    SliverPadding(padding: const EdgeInsets.all(16), sliver: SliverToBoxAdapter(child: InsightEmptyStateCard(
+                      title: 'Your logs are ready',
+                      message: 'You have enough logs for your first personalized insight.',
+                      actionLabel: 'Generate insights',
+                      onAction: notifier.generateNewInsight,
+                    )))
+                  else if (notifier.errorMessage == null)
+                    InsightBentoLearning(meals: notifier.todayMeals, symptoms: notifier.todaySymptoms, scans: notifier.todayScans),
+                ],
               ],
+            ),
             );
           },
         ),
       ),
     );
   }
-}
-
-class _InsightsLoadingState extends StatelessWidget {
-  const _InsightsLoadingState();
-
-  @override
-  Widget build(BuildContext context) => SliverPadding(
-    padding: EdgeInsets.fromLTRB(AppSizes.p20, AppSizes.p16, AppSizes.p20, AppSizes.p10),
-    sliver: const SliverToBoxAdapter(child: ShimmerGridLoader(itemCount: 4, variant: ShimmerVariant.scanResult)),
-  );
 }

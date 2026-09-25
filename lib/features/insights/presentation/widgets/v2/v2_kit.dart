@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
@@ -791,7 +790,6 @@ class V2DotPager extends StatelessWidget {
 /// `.chart` — the 7-day line trend with soft fill and an end dot.
 class V2TrendChart extends StatelessWidget {
   const V2TrendChart({super.key, required this.values, this.height = 58, this.color, this.endDot = true});
-
   final List<double> values;
   final double height;
   final Color? color;
@@ -799,82 +797,58 @@ class V2TrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final valid = values.where((value) => value.isFinite && value >= 0 && value <= 100).toList();
     final t = context.v2Theme;
-    return SizedBox(
-      height: height.w,
-      width: double.infinity,
-      child: CustomPaint(
-        painter: _TrendPainter(color: color ?? t.textPrimary, values: values, endDot: endDot),
+    return Semantics(
+      label: valid.isEmpty ? 'No recorded scores' : 'Gut scores out of 100, in recording order: ${valid.map((value) => value.round()).join(', ')}',
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: valid.isEmpty
+            ? Center(child: Text('No score history yet', style: TextStyle(color: t.textSecondary)))
+            : CustomPaint(painter: _TrendPainter(color: color ?? t.success, gridColor: t.border, values: valid, endDot: endDot)),
       ),
     );
   }
 }
 
 class _TrendPainter extends CustomPainter {
-  const _TrendPainter({required this.color, required this.values, required this.endDot});
-
+  const _TrendPainter({required this.color, required this.gridColor, required this.values, required this.endDot});
   final Color color;
+  final Color gridColor;
   final List<double> values;
   final bool endDot;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (values.length < 2) {
-      // Single/no point: draw the flat "gathering data" line.
-      final y = size.height * 0.7;
-      final paint = Paint()
-        ..color = color.withValues(alpha: 0.25)
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    if (values.isEmpty || size.width <= 12 || size.height <= 12) return;
+    const padding = 6.0;
+    final width = size.width - padding * 2;
+    final height = size.height - padding * 2;
+    final grid = Paint()..color = gridColor..strokeWidth = 1;
+    for (final fraction in [0.0, 0.5, 1.0]) {
+      final y = padding + height * fraction;
+      canvas.drawLine(Offset(padding, y), Offset(size.width - padding, y), grid);
+    }
+    final points = [for (var i = 0; i < values.length; i++) Offset(
+      values.length == 1 ? size.width / 2 : padding + width * i / (values.length - 1),
+      padding + height * (1 - values[i] / 100),
+    )];
+    if (points.length == 1) {
+      canvas.drawCircle(points.single, 4, Paint()..color = color);
       return;
     }
-
-    final minV = values.reduce(math.min);
-    final maxV = values.reduce(math.max);
-    final range = (maxV - minV) == 0 ? 1.0 : (maxV - minV);
-    Offset at(int i) {
-      final x = size.width * i / (values.length - 1);
-      final t = (values[i] - minV) / range;
-      return Offset(x, size.height * 0.88 - t * size.height * 0.72);
-    }
-
-    final points = [for (var i = 0; i < values.length; i++) at(i)];
     final line = Path()..moveTo(points.first.dx, points.first.dy);
-    for (var i = 0; i < points.length - 1; i++) {
-      final p0 = points[i];
-      final p1 = points[i + 1];
-      line.cubicTo(p0.dx + (p1.dx - p0.dx) / 2, p0.dy, p0.dx + (p1.dx - p0.dx) / 2, p1.dy, p1.dx, p1.dy);
-    }
-
-    final fill = Path.from(line)
-      ..lineTo(points.last.dx, size.height)
-      ..lineTo(points.first.dx, size.height)
-      ..close();
-
-    canvas
-      ..drawPath(
-        fill,
-        Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [color.withValues(alpha: 0.14), color.withValues(alpha: 0.0)],
-          ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
-      )
-      ..drawPath(
-        line,
-        Paint()
-          ..color = color
-          ..strokeWidth = 2
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round,
-      );
-    if (endDot) canvas.drawCircle(points.last, 3.2, Paint()..color = color);
+    for (final point in points.skip(1)) { line.lineTo(point.dx, point.dy); }
+    final fill = Path.from(line)..lineTo(points.last.dx, size.height - padding)..lineTo(points.first.dx, size.height - padding)..close();
+    canvas.drawPath(fill, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: .18), color.withValues(alpha: .01)]).createShader(Offset.zero & size));
+    canvas.drawPath(line, Paint()..color = color..strokeWidth = 2.5..style = PaintingStyle.stroke..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round);
+    for (final point in points) { canvas.drawCircle(point, 2.5, Paint()..color = color); }
+    if (endDot) canvas.drawCircle(points.last, 4, Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(_TrendPainter old) => old.color != color || !listEquals(old.values, values);
+  bool shouldRepaint(_TrendPainter old) => old.color != color || old.gridColor != gridColor || old.endDot != endDot || !listEquals(old.values, values);
 }
 
 /// The 5-segment streak bar under the hero's "Streak" stat.

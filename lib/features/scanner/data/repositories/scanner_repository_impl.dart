@@ -76,13 +76,13 @@ class ScannerRepositoryImpl implements ScannerRepository {
       // Engine inputs are persisted verbatim and the engine is deterministic,
       // so a zero-arg re-run reproduces the original score exactly while the
       // explanation is recomposed fresh from the same factors.
-      final rescored = _applyEngineScore(cached);
+      final rescored = _applyEngineScore(cached, refreshExplanation: true);
       final turnId = const Uuid().v4();
       final view = rescored.copyWith(
         flaggedIngredients: _reflagWithSensitivities(rescored, sensitivities),
-        // Fresh IDs: this is a new turn viewing an old result. The stored doc
-        // is untouched (no counter bump, no history duplicate).
-        scanId: const Uuid().v4(),
+        // Keep the existing scan reference so the slim chat preview can
+        // hydrate its details after a restart. Only the chat turn is new;
+        // no scan document is written for a cache hit.
         chatMessageId: turnId,
         createdAt: DateTime.now(),
       );
@@ -151,6 +151,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     List<String>? additiveItems,
     bool? isOrganic,
     bool deferToModelWhenNoData = false,
+    bool refreshExplanation = false,
     List<String>? miscTags,
   }) {
     final resolvedAdditives = <String>{...?additiveItems, ...scan.additiveItems};
@@ -192,7 +193,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     final score = breakdown.score;
     AppLogger.ai('ScannerRepository: engine score $score (nutrition ${breakdown.nutritionSubscore}, additives ${breakdown.additiveSubscore}, organic ${breakdown.organicSubscore})');
 
-    return scan.copyWith(score: score, impact: scan.impact.isNotEmpty ? scan.impact : breakdown.explanation);
+    return scan.copyWith(score: score, impact: refreshExplanation || scan.impact.isEmpty ? breakdown.explanation : scan.impact);
   }
 
   @override

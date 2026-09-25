@@ -112,7 +112,7 @@ void main() {
 
       await repository.saveScanResult(result);
 
-      verify(() => mockChatFirestoreService.saveMessage(any())).called(1);
+      verify(() => mockChatFirestoreService.saveMessage(any())).called(2);
       verify(
         () => mockHistoryFirestoreService.saveToScanHistory(
           any(),

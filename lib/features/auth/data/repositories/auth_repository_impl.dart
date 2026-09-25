@@ -507,10 +507,6 @@ class AuthRepositoryImpl implements AuthRepository {
     final user = _firebaseAuth.currentUser;
     if (user == null) return;
 
-    // 🟢 Fix: Firebase requires a "recent" sign-in for this destructive
-    // operation. Checking this BEFORE tearing down app state/streams means a
-    // stale session fails fast with a clear, catchable error instead of
-    // leaving the user half-signed-out with a confusing native exception.
     final currentProvider = user.providerData.isNotEmpty ? user.providerData.first.providerId : null;
 
     _appStateService
@@ -528,11 +524,26 @@ class AuthRepositoryImpl implements AuthRepository {
       await _firestoreService.clearFcmToken();
       await _notificationService.cancelAll();
 
-      // 🟢 Fix: Sign out from social providers BEFORE deleting the Firebase user.
       await _googleSignIn.signOut();
 
-      // 2. Perform the authoritative deletion
-      await user.delete();
+      // 2. Perform authoritative deletion via Cloud Function (Admin SDK)
+      // This bypasses client-side `requires-recent-login` checks.
+      var serverDeleted = false;
+      try {
+        await _firebaseFunctions.httpsCallable('deleteAccount').call();
+        serverDeleted = true;
+        AppLogger.auth('Server-side user deletion succeeded via Cloud Function.');
+      } catch (e) {
+        AppLogger.auth('Cloud Function deleteAccount failed, attempting client fallback: $e');
+        // Fallback to client-side deletion
+        await _firestoreService.deleteUserData();
+        await user.delete();
+      }
+
+      if (serverDeleted) {
+        await _firestoreService.deleteUserData();
+      }
+
       AppLogger.auth('Auth user deleted successfully.');
 
       // 3. Dependency cleanup
@@ -598,31 +609,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   Future<void> _clearUserSessionData() async {
-    // Clear ALL user-specific data so a different account signing in on the
-    // same device never inherits the previous user's personalization, caches,
-    // chat draft, or pending merge state. Only genuinely device-level prefs
-    // (e.g. theme) are preserved.
-    const userKeys = {
-      StorageKeys.loginEmail,
-      StorageKeys.loginDisplayName,
-      StorageKeys.isPremium,
-      StorageKeys.onboarded,
-      StorageKeys.userGoals,
-      StorageKeys.userSensitivities,
-      StorageKeys.userLifestyle,
-      StorageKeys.cycleSyncEnabled,
-      StorageKeys.cyclePhase,
-      StorageKeys.aiCommStyle,
-      StorageKeys.gutgoodInsightsCache,
-      StorageKeys.lastInsightRun,
-      StorageKeys.chatDraft,
-      StorageKeys.pendingMergeAnonUid,
-      StorageKeys.pendingMergeProvider,
+    // Clear ALL user-specific data so a different account or a fresh install feel
+    // never inherits the previous user's streak, personalization, caches, drafts,
+    // or notification/outbox state. Only genuinely device-level prefs (e.g. theme)
+    // are preserved.
+    const deviceLevelKeys = {
+      StorageKeys.themeMode, // 'theme_mode'
     };
 
     final keys = _prefs.getKeys();
     for (final key in keys) {
-      if (userKeys.contains(key) || key.startsWith(StorageKeys.lastFirebaseSync)) {
+      if (!deviceLevelKeys.contains(key)) {
         await _prefs.remove(key);
       }
     }

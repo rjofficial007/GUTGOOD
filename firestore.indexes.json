@@ -47,6 +47,14 @@
         { "fieldPath": "barcode", "order": "ASCENDING" },
         { "fieldPath": "isSaved", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "gut_scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

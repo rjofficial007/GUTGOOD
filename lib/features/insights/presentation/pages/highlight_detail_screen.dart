@@ -33,10 +33,18 @@ class HighlightDetailScreen extends StatelessWidget {
     final v2 = context.v2Theme;
     final insight = _insightOf(context);
 
-    final headline = args.title.isNotEmpty ? args.title : 'Your gut score is steady.';
-    final bodyText = (args.body ?? '').isNotEmpty ? args.body! : 'Keep logging meals to track your gut health progress.';
+    final headline = args.title.isNotEmpty
+        ? args.title
+        : 'Your gut score is steady.';
+    final bodyText = (args.body ?? '').isNotEmpty
+        ? args.body!
+        : 'Keep logging meals to track your gut health progress.';
 
-    final series = args.chartValues.isNotEmpty ? args.chartValues : (insight?.gutScore != null ? [insight!.gutScore.toDouble()] : const <double>[]);
+    final series = args.chartValues.isNotEmpty
+        ? args.chartValues
+        : (insight?.gutScore != null
+              ? [insight!.gutScore.toDouble()]
+              : const <double>[]);
 
     return Scaffold(
       backgroundColor: v2.scaffold,
@@ -44,7 +52,12 @@ class HighlightDetailScreen extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         slivers: [
           // Same GutSliverAppBar as other screens
-          GutSliverAppBar(title: 'IMPROVING TREND', centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
+          GutSliverAppBar(
+            title: 'IMPROVING TREND',
+            centerTitle: true,
+            showBrandingIcon: false,
+            backgroundColor: v2.scaffold,
+          ),
 
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 24.w),
@@ -58,8 +71,17 @@ class HighlightDetailScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF4FAF5),
                     borderRadius: BorderRadius.circular(20.w),
-                    border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
-                    boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
+                    border: Border.all(
+                      color: context.insightColor(const Color(0xFFDCFCE7)),
+                      width: 1.w,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF17171B).withValues(alpha: 0.03),
+                        blurRadius: 6.w,
+                        offset: Offset(0, 2.w),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,36 +91,73 @@ class HighlightDetailScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.w),
-                            decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(16.w)),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 3.5.w,
+                            ),
+                            decoration: BoxDecoration(
+                              color: context.insightColor(
+                                const Color(0xFFDCFCE7),
+                              ),
+                              borderRadius: BorderRadius.circular(16.w),
+                            ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(LucideIcons.leaf, size: 10.w, color: const Color(0xFF15803D)),
+                                Icon(
+                                  LucideIcons.leaf,
+                                  size: 10.w,
+                                  color: const Color(0xFF15803D),
+                                ),
                                 Gap.w4,
                                 Text(
                                   'Gut Barrier Score',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                                  style: TextStyle(
+                                    fontFamily: InsightV2Theme.fontFamily,
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF15803D),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.w),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 3.5.w,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16.w),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              border: Border.all(
+                                color: context.insightColor(
+                                  const Color(0xFFE2E8F0),
+                                ),
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Last 7 days',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                                  'Recorded period',
+                                  style: TextStyle(
+                                    fontFamily: InsightV2Theme.fontFamily,
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: context.insightColor(
+                                      const Color(0xFF0F172A),
+                                    ),
+                                  ),
                                 ),
                                 Gap.w4,
-                                Icon(LucideIcons.chevronDown, size: 12.w, color: const Color(0xFF0F172A)),
+                                Icon(
+                                  LucideIcons.chevronDown,
+                                  size: 12.w,
+                                  color: context.insightColor(
+                                    const Color(0xFF0F172A),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -108,12 +167,23 @@ class HighlightDetailScreen extends StatelessWidget {
 
                       Text(
                         headline,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: context.insightColor(const Color(0xFF0F172A)),
+                        ),
                       ),
                       Gap.h3,
                       Text(
                         bodyText,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: const Color(0xFF475569), height: 1.25),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w500,
+                          color: context.insightColor(const Color(0xFF475569)),
+                          height: 1.25,
+                        ),
                       ),
                       Gap.h12,
 
@@ -124,14 +194,24 @@ class HighlightDetailScreen extends StatelessWidget {
                           Expanded(
                             child: SizedBox(
                               height: 60.w,
-                              child: V2TrendChart(values: series, height: 52, color: const Color(0xFF16A34A), endDot: true),
+                              child: V2TrendChart(
+                                values: series,
+                                height: 52,
+                                color: const Color(0xFF16A34A),
+                                endDot: true,
+                              ),
                             ),
                           ),
                           Gap.w12,
 
                           Container(
                             padding: EdgeInsets.all(10.w),
-                            decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(16.w)),
+                            decoration: BoxDecoration(
+                              color: context.insightColor(
+                                const Color(0xFFDCFCE7),
+                              ),
+                              borderRadius: BorderRadius.circular(16.w),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
@@ -141,25 +221,53 @@ class HighlightDetailScreen extends StatelessWidget {
                                   children: [
                                     Container(
                                       padding: EdgeInsets.all(3.w),
-                                      decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
-                                      child: Icon(LucideIcons.arrowUp, size: 10.w, color: Colors.white),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF16A34A),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        LucideIcons.arrowUp,
+                                        size: 10.w,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                     Gap.w4,
                                     Text(
                                       '+4',
-                                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D)),
+                                      style: TextStyle(
+                                        fontFamily: InsightV2Theme.fontFamily,
+                                        fontSize: 18.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF15803D),
+                                      ),
                                     ),
                                   ],
                                 ),
                                 Gap.h2,
                                 Text(
                                   'points this week',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF15803D), fontWeight: FontWeight.w600),
+                                  style: TextStyle(
+                                    fontFamily: InsightV2Theme.fontFamily,
+                                    fontSize: 9.5.sp,
+                                    color: const Color(0xFF15803D),
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 Gap.h2,
                                 Text(
-                                  series.isNotEmpty ? '${series.first.round()} → ${series.last.round()}' : (insight?.gutScore != null ? '${insight!.gutScore}' : '—'),
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                                  series.isNotEmpty
+                                      ? '${series.first.round()} → ${series.last.round()}'
+                                      : (insight?.gutScore != null
+                                            ? '${insight!.gutScore}'
+                                            : '—'),
+                                  style: TextStyle(
+                                    fontFamily: InsightV2Theme.fontFamily,
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: context.insightColor(
+                                      const Color(0xFF0F172A),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -172,24 +280,75 @@ class HighlightDetailScreen extends StatelessWidget {
                       const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Mon', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                          Text('Tue', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                          Text('Wed', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                          Text('Thu', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                          Text('Fri', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                          Text('Sat', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                          Text('Sun', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                          Text(
+                            'Mon',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          Text(
+                            'Tue',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          Text(
+                            'Wed',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          Text(
+                            'Thu',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          Text(
+                            'Fri',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          Text(
+                            'Sat',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          Text(
+                            'Sun',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
                         ],
                       ),
                       Gap.h10,
 
                       Text(
                         'Steady progress',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w700,
+                          color: context.insightColor(const Color(0xFF0F172A)),
+                        ),
                       ),
                       Text(
                         'Your score has increased by 4 points (5%) this week.',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF475569)),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 10.5.sp,
+                          color: context.insightColor(const Color(0xFF475569)),
+                        ),
                       ),
                     ],
                   ),
@@ -230,7 +389,16 @@ class HighlightDetailScreen extends StatelessWidget {
         ? insight!.healingSummary!.foods
         : (insight?.healingFoods.isNotEmpty == true
               ? insight!.healingFoods
-                    .map((f) => InsightFood(foodId: 'f_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect, impactLevel: 'high'))
+                    .map(
+                      (f) => InsightFood(
+                        foodId: 'f_${f.name}',
+                        name: f.name,
+                        emoji: f.emoji,
+                        imageUrl: f.userImageUrl ?? f.imageUrl,
+                        effect: f.effect,
+                        impactLevel: 'high',
+                      ),
+                    )
                     .toList()
               : const <InsightFood>[]);
 
@@ -242,9 +410,16 @@ class HighlightDetailScreen extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: Color(0xFFDCFCE7),
+                shape: BoxShape.circle,
+              ),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.sparkles, size: 14.w, color: const Color(0xFF15803D)),
+              child: Icon(
+                LucideIcons.sparkles,
+                size: 14.w,
+                color: const Color(0xFF15803D),
+              ),
             ),
             Gap.w8,
             Expanded(
@@ -253,11 +428,20 @@ class HighlightDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     "What's Contributing?",
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                      color: context.insightColor(const Color(0xFF0F172A)),
+                    ),
                   ),
                   Text(
                     'These foods and habits are making a real difference.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 10.5.sp,
+                      color: context.insightColor(const Color(0xFF64748B)),
+                    ),
                   ),
                 ],
               ),
@@ -296,8 +480,8 @@ class HighlightDetailScreen extends StatelessWidget {
                   _ContributingCard(
                     title: f.name,
                     subtitle: f.effect ?? 'Supports gut health',
-                    badgeText: '${f.impactLevel.toUpperCase()} Impact',
-                    badgeColor: const Color(0xFFDCFCE7),
+                    badgeText: '${f.impactLevel.toUpperCase()}',
+                    badgeColor: context.insightColor(const Color(0xFFDCFCE7)),
                     badgeTextColor: const Color(0xFF15803D),
                     imageKeyword: f.name,
                     icon: LucideIcons.leaf,
@@ -314,9 +498,9 @@ class HighlightDetailScreen extends StatelessWidget {
   /// 3. Weekly Stats Section
   Widget _buildWeeklyStatsSection(BuildContext context) {
     final insight = _insightOf(context);
-    final avgScore = insight?.gutScore ?? 0;
+    final avgScore = insight?.hasGutScore == true ? insight!.gutScore : null;
     final bestDay = insight?.weeklyRecap?.bestDay ?? 'Latest';
-    final foodsLogged = insight?.foodImpacts.length ?? insight?.healingFoods.length ?? 0;
+    final foodsLogged = insight?.weeklyRecap?.foodsLogged;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,9 +510,16 @@ class HighlightDetailScreen extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: Color(0xFFDCFCE7),
+                shape: BoxShape.circle,
+              ),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.barChart2, size: 14.w, color: const Color(0xFF15803D)),
+              child: Icon(
+                LucideIcons.barChart2,
+                size: 14.w,
+                color: const Color(0xFF15803D),
+              ),
             ),
             Gap.w8,
             Expanded(
@@ -337,11 +528,20 @@ class HighlightDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Weekly Stats',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                      color: context.insightColor(const Color(0xFF0F172A)),
+                    ),
                   ),
                   Text(
                     'Your progress at a glance.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 10.5.sp,
+                      color: context.insightColor(const Color(0xFF64748B)),
+                    ),
                   ),
                 ],
               ),
@@ -355,7 +555,7 @@ class HighlightDetailScreen extends StatelessWidget {
             Expanded(
               child: _WeeklyStatTile(
                 icon: LucideIcons.trophy,
-                iconBg: const Color(0xFFDCFCE7),
+                iconBg: context.insightColor(const Color(0xFFDCFCE7)),
                 iconColor: const Color(0xFF15803D),
                 label: 'Average Score',
                 value: '$avgScore',
@@ -364,16 +564,23 @@ class HighlightDetailScreen extends StatelessWidget {
             ),
             Gap.w6,
             Expanded(
-              child: _WeeklyStatTile(icon: LucideIcons.calendarCheck, iconBg: const Color(0xFFDCFCE7), iconColor: const Color(0xFF15803D), label: 'Best Day', value: bestDay, subtext: 'Highest score'),
+              child: _WeeklyStatTile(
+                icon: LucideIcons.calendarCheck,
+                iconBg: context.insightColor(const Color(0xFFDCFCE7)),
+                iconColor: const Color(0xFF15803D),
+                label: 'Recorded window',
+                value: bestDay,
+                subtext: 'Highest score',
+              ),
             ),
             Gap.w6,
             Expanded(
               child: _WeeklyStatTile(
                 icon: LucideIcons.utensils,
-                iconBg: const Color(0xFFFEF3C7),
+                iconBg: context.insightColor(const Color(0xFFFEF3C7)),
                 iconColor: const Color(0xFFB45309),
                 label: 'Foods Logged',
-                value: '$foodsLogged',
+                value: foodsLogged?.toString() ?? '—',
                 subtext: 'Logged items',
               ),
             ),
@@ -392,9 +599,16 @@ class HighlightDetailScreen extends StatelessWidget {
           Container(
             width: 28.w,
             height: 28.w,
-            decoration: const BoxDecoration(color: Color(0xFFFEF3C7), shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEF3C7),
+              shape: BoxShape.circle,
+            ),
             alignment: Alignment.center,
-            child: Icon(LucideIcons.star, size: 14.w, color: const Color(0xFFB45309)),
+            child: Icon(
+              LucideIcons.star,
+              size: 14.w,
+              color: const Color(0xFFB45309),
+            ),
           ),
           Gap.w8,
           Expanded(
@@ -403,11 +617,20 @@ class HighlightDetailScreen extends StatelessWidget {
               children: [
                 Text(
                   'Progress Highlights',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: context.insightColor(const Color(0xFF0F172A)),
+                  ),
                 ),
                 Text(
                   'Real changes, real results.',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B)),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 10.5.sp,
+                    color: context.insightColor(const Color(0xFF64748B)),
+                  ),
                 ),
               ],
             ),
@@ -419,7 +642,13 @@ class HighlightDetailScreen extends StatelessWidget {
       Row(
         children: [
           const Expanded(
-            child: _HighlightBox(icon: LucideIcons.leaf, iconBg: Color(0xFFDCFCE7), iconColor: Color(0xFF15803D), title: 'Logged meals consistently this week.', subtitle: 'Great logging habit!'),
+            child: _HighlightBox(
+              icon: LucideIcons.leaf,
+              iconBg: Color(0xFFDCFCE7),
+              iconColor: Color(0xFF15803D),
+              title: 'Logged meals consistently this week.',
+              subtitle: 'Great logging habit!',
+            ),
           ),
           Gap.w8,
           const Expanded(
@@ -453,9 +682,16 @@ class HighlightDetailScreen extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: Color(0xFFDCFCE7),
+                shape: BoxShape.circle,
+              ),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.leaf, size: 14.w, color: const Color(0xFF15803D)),
+              child: Icon(
+                LucideIcons.leaf,
+                size: 14.w,
+                color: const Color(0xFF15803D),
+              ),
             ),
             Gap.w8,
             Expanded(
@@ -464,11 +700,20 @@ class HighlightDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Recommended Next Steps',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                      color: context.insightColor(const Color(0xFF0F172A)),
+                    ),
                   ),
                   Text(
                     'Keep the momentum going.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 10.5.sp,
+                      color: context.insightColor(const Color(0xFF64748B)),
+                    ),
                   ),
                 ],
               ),
@@ -482,7 +727,11 @@ class HighlightDetailScreen extends StatelessWidget {
             for (var i = 0; i < actions.take(2).length; i++) ...[
               if (i > 0) Gap.w8,
               Expanded(
-                child: _NextStepCard(icon: i == 0 ? LucideIcons.leaf : LucideIcons.sprout, title: actions[i].title, body: actions[i].description),
+                child: _NextStepCard(
+                  icon: i == 0 ? LucideIcons.leaf : LucideIcons.sprout,
+                  title: actions[i].title,
+                  body: actions[i].description,
+                ),
               ),
             ],
           ],
@@ -497,14 +746,23 @@ class HighlightDetailScreen extends StatelessWidget {
     decoration: BoxDecoration(
       color: const Color(0xFFF4FAF5),
       borderRadius: BorderRadius.circular(16.w),
-      border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
+      border: Border.all(
+        color: context.insightColor(const Color(0xFFDCFCE7)),
+        width: 1.w,
+      ),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '“',
-          style: TextStyle(fontFamily: InsightV2Theme.displayFont, fontSize: 28.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D), height: 1.0),
+          style: TextStyle(
+            fontFamily: InsightV2Theme.displayFont,
+            fontSize: 28.sp,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF15803D),
+            height: 1.0,
+          ),
         ),
         Gap.w6,
         Expanded(
@@ -513,12 +771,22 @@ class HighlightDetailScreen extends StatelessWidget {
             children: [
               Text(
                 'Keep going!',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D)),
+                style: TextStyle(
+                  fontFamily: InsightV2Theme.fontFamily,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF15803D),
+                ),
               ),
               Gap.h2,
               Text(
                 "You're building healthier habits, and your gut thanks you.",
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF334155), height: 1.25),
+                style: TextStyle(
+                  fontFamily: InsightV2Theme.fontFamily,
+                  fontSize: 10.5.sp,
+                  color: context.insightColor(const Color(0xFF334155)),
+                  height: 1.25,
+                ),
               ),
             ],
           ),
@@ -531,10 +799,17 @@ class HighlightDetailScreen extends StatelessWidget {
   Widget _buildTriggerDetail(BuildContext context) {
     final v2 = context.v2Theme;
     final insight = _insightOf(context);
-    final pattern = insight?.detectedPatterns.where((p) => p.type.toLowerCase().contains('trigger') || p.reaction.isNotEmpty).firstOrNull;
+    final pattern = insight?.detectedPatterns
+        .where(
+          (p) =>
+              p.type.toLowerCase().contains('trigger') || p.reaction.isNotEmpty,
+        )
+        .firstOrNull;
 
     final title = args.title.isNotEmpty ? args.title : 'No Triggers Detected';
-    final bodyText = (args.body ?? '').isNotEmpty ? args.body! : 'No trigger patterns observed. Continue logging meals to track how foods affect your gut.';
+    final bodyText = (args.body ?? '').isNotEmpty
+        ? args.body!
+        : 'No trigger patterns observed. Continue logging meals to track how foods affect your gut.';
 
     final occurrences = pattern?.occurrences ?? const <PatternOccurrence>[];
 
@@ -544,18 +819,31 @@ class HighlightDetailScreen extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         slivers: [
           // Same GutSliverAppBar as other screens
-          GutSliverAppBar(title: 'TRIGGER DETAILS', centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
+          GutSliverAppBar(
+            title: 'TRIGGER DETAILS',
+            centerTitle: true,
+            showBrandingIcon: false,
+            backgroundColor: v2.scaffold,
+          ),
 
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 24.w),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // 1. HERO TRIGGER CARD
-                _buildTriggerHeroCard(context, title: title, bodyText: bodyText, pattern: pattern),
+                _buildTriggerHeroCard(
+                  context,
+                  title: title,
+                  bodyText: bodyText,
+                  pattern: pattern,
+                ),
                 Gap.h10,
 
                 // 2. RECENT OCCURRENCES SECTION
-                _buildRecentOccurrencesSection(context, occurrences: occurrences),
+                _buildRecentOccurrencesSection(
+                  context,
+                  occurrences: occurrences,
+                ),
                 Gap.h10,
 
                 // 3. OUR RECOMMENDATION (SMART SWAP) CARD
@@ -578,14 +866,25 @@ class HighlightDetailScreen extends StatelessWidget {
   }
 
   /// 1. Hero Trigger Card ("Something to Watch")
-  Widget _buildTriggerHeroCard(BuildContext context, {required String title, required String bodyText, required BodyPattern? pattern}) {
+  Widget _buildTriggerHeroCard(
+    BuildContext context, {
+    required String title,
+    required String bodyText,
+    required BodyPattern? pattern,
+  }) {
     final foodImageUrl = V2Kit.foodImageUrl(title);
 
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFFFF8F6),
         borderRadius: BorderRadius.circular(20.w),
-        boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF17171B).withValues(alpha: 0.03),
+            blurRadius: 6.w,
+            offset: Offset(0, 2.w),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -610,8 +909,13 @@ class HighlightDetailScreen extends StatelessWidget {
                               imageUrl: foodImageUrl,
                               fit: BoxFit.cover,
                               alignment: Alignment.center,
-                              placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
-                              errorWidget: (_, _, _) => Container(color: const Color(0xFFFEE2E2)),
+                              placeholder: (_, _) => Container(
+                                color: context.insightColor(
+                                  const Color(0xFFF1F5F9),
+                                ),
+                              ),
+                              errorWidget: (_, _, _) =>
+                                  Container(color: const Color(0xFFFEE2E2)),
                             ),
                           ],
                         ),
@@ -641,16 +945,31 @@ class HighlightDetailScreen extends StatelessWidget {
                       children: [
                         // Tag Pill
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.w),
-                          decoration: BoxDecoration(color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(16.w)),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 7.w,
+                            vertical: 3.w,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(16.w),
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(LucideIcons.alertTriangle, size: 10.w, color: const Color(0xFF991B1B)),
+                              Icon(
+                                LucideIcons.alertTriangle,
+                                size: 10.w,
+                                color: const Color(0xFF991B1B),
+                              ),
                               Gap.w4,
                               Text(
                                 'Something to Watch',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF991B1B)),
+                                style: TextStyle(
+                                  fontFamily: InsightV2Theme.fontFamily,
+                                  fontSize: 9.5.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF991B1B),
+                                ),
                               ),
                             ],
                           ),
@@ -662,7 +981,16 @@ class HighlightDetailScreen extends StatelessWidget {
                           title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), height: 1.15, letterSpacing: -0.3),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w800,
+                            color: context.insightColor(
+                              const Color(0xFF0F172A),
+                            ),
+                            height: 1.15,
+                            letterSpacing: -0.3,
+                          ),
                         ),
                         Gap.h4,
 
@@ -671,7 +999,15 @@ class HighlightDetailScreen extends StatelessWidget {
                           bodyText,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w500, color: const Color(0xFF334155), height: 1.25),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 10.5.sp,
+                            fontWeight: FontWeight.w500,
+                            color: context.insightColor(
+                              const Color(0xFF334155),
+                            ),
+                            height: 1.25,
+                          ),
                         ),
                       ],
                     ),
@@ -697,9 +1033,9 @@ class HighlightDetailScreen extends StatelessWidget {
                     icon: LucideIcons.barChart2,
                     iconBg: const Color(0xFFFEE2E2),
                     iconColor: const Color(0xFFDC2626),
-                    label: 'High Frequency',
-                    value: '${pattern?.frequency ?? 4} occurrences',
-                    subtext: 'Last 7 days',
+                    label: 'Logged occurrences',
+                    value: pattern == null ? '—' : '${pattern.frequency} occurrences',
+                    subtext: pattern?.timeframeDays == null ? 'Period unavailable' : 'Last ${pattern!.timeframeDays} days',
                   ),
                 ),
                 Gap.w4,
@@ -711,7 +1047,9 @@ class HighlightDetailScreen extends StatelessWidget {
                     iconBg: const Color(0xFFFEE2E2),
                     iconColor: const Color(0xFFDC2626),
                     label: 'Symptom',
-                    value: pattern?.reaction.isNotEmpty == true ? pattern!.reaction : 'Mild bloating',
+                    value: pattern?.reaction.isNotEmpty == true
+                        ? pattern!.reaction
+                        : 'Not recorded',
                     subtext: 'Common reaction',
                   ),
                 ),
@@ -719,7 +1057,14 @@ class HighlightDetailScreen extends StatelessWidget {
 
                 // Stat 3: Typical Delay
                 const Expanded(
-                  child: _TriggerStatCol(icon: LucideIcons.clock, iconBg: Color(0xFFFEE2E2), iconColor: Color(0xFFDC2626), label: 'Typical Delay', value: '~ 2 hours', subtext: 'After eating'),
+                  child: _TriggerStatCol(
+                    icon: LucideIcons.clock,
+                    iconBg: Color(0xFFFEE2E2),
+                    iconColor: Color(0xFFDC2626),
+                    label: 'Typical Delay',
+                    value: '~ 2 hours',
+                    subtext: 'After eating',
+                  ),
                 ),
                 Gap.w4,
 
@@ -730,7 +1075,9 @@ class HighlightDetailScreen extends StatelessWidget {
                     iconBg: const Color(0xFFFEE2E2),
                     iconColor: const Color(0xFFDC2626),
                     label: 'Confidence',
-                    value: pattern?.confidence.isNotEmpty == true ? pattern!.confidence : 'High',
+                    value: pattern?.confidence.isNotEmpty == true
+                        ? pattern!.confidence
+                        : 'High',
                     subtext: 'Based on your data',
                   ),
                 ),
@@ -743,13 +1090,19 @@ class HighlightDetailScreen extends StatelessWidget {
   }
 
   /// 2. Recent Occurrences Section
-  Widget _buildRecentOccurrencesSection(BuildContext context, {required List<PatternOccurrence> occurrences}) {
+  Widget _buildRecentOccurrencesSection(
+    BuildContext context, {
+    required List<PatternOccurrence> occurrences,
+  }) {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(
+          color: context.insightColor(const Color(0xFFE2E8F0)),
+          width: 1.w,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -759,15 +1112,27 @@ class HighlightDetailScreen extends StatelessWidget {
               Container(
                 width: 28.w,
                 height: 28.w,
-                decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF1F5F9),
+                  shape: BoxShape.circle,
+                ),
                 alignment: Alignment.center,
-                child: Icon(LucideIcons.fileText, size: 14.w, color: const Color(0xFF0F172A)),
+                child: Icon(
+                  LucideIcons.fileText,
+                  size: 14.w,
+                  color: context.insightColor(const Color(0xFF0F172A)),
+                ),
               ),
               Gap.w8,
               Expanded(
                 child: Text(
                   'Recent Occurrences',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: context.insightColor(const Color(0xFF0F172A)),
+                  ),
                 ),
               ),
             ],
@@ -775,7 +1140,10 @@ class HighlightDetailScreen extends StatelessWidget {
           Gap.h10,
 
           // Timeline items
-          for (final o in occurrences.take(3)) ...[_OccurrenceTile(occurrence: o), Gap.h8],
+          for (final o in occurrences.take(3)) ...[
+            _OccurrenceTile(occurrence: o),
+            Gap.h8,
+          ],
         ],
       ),
     );
@@ -790,7 +1158,10 @@ class HighlightDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF4FAF5),
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
+        border: Border.all(
+          color: context.insightColor(const Color(0xFFDCFCE7)),
+          width: 1.w,
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -809,8 +1180,12 @@ class HighlightDetailScreen extends StatelessWidget {
                         imageUrl: veggiesUrl,
                         fit: BoxFit.cover,
                         alignment: Alignment.center,
-                        placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
-                        errorWidget: (_, _, _) => Container(color: const Color(0xFFDCFCE7)),
+                        placeholder: (_, _) => Container(
+                          color: context.insightColor(const Color(0xFFF1F5F9)),
+                        ),
+                        errorWidget: (_, _, _) => Container(
+                          color: context.insightColor(const Color(0xFFDCFCE7)),
+                        ),
                       ),
                     ],
                   ),
@@ -846,20 +1221,38 @@ class HighlightDetailScreen extends StatelessWidget {
                         children: [
                           Container(
                             padding: EdgeInsets.all(4.w),
-                            decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                            child: Icon(LucideIcons.leaf, size: 11.w, color: const Color(0xFF15803D)),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFDCFCE7),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              LucideIcons.leaf,
+                              size: 11.w,
+                              color: const Color(0xFF15803D),
+                            ),
                           ),
                           Gap.w6,
                           Text(
                             'Our Recommendation',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D)),
+                            style: TextStyle(
+                              fontFamily: InsightV2Theme.fontFamily,
+                              fontSize: 12.5.sp,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF15803D),
+                            ),
                           ),
                         ],
                       ),
                       Gap.h6,
                       Text(
                         'Swap fried sides for roasted or steamed alternatives.',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A), height: 1.25),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w700,
+                          color: context.insightColor(const Color(0xFF0F172A)),
+                          height: 1.25,
+                        ),
                       ),
                     ],
                   ),
@@ -867,17 +1260,32 @@ class HighlightDetailScreen extends StatelessWidget {
                   GestureDetector(
                     onTap: () => context.push(AppRoutes.swapDetail),
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
-                      decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(16.w)),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 6.w,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.insightColor(const Color(0xFF0F172A)),
+                        borderRadius: BorderRadius.circular(16.w),
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             'Plan Better Swaps',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                            style: TextStyle(
+                              fontFamily: InsightV2Theme.fontFamily,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
                           ),
                           Gap.w3,
-                          Icon(Icons.arrow_forward_rounded, size: 10.w, color: Colors.white),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 10.w,
+                            color: Colors.white,
+                          ),
                         ],
                       ),
                     ),
@@ -897,7 +1305,14 @@ class HighlightDetailScreen extends StatelessWidget {
     final triggerFoods = insight?.triggerFoods ?? const <TriggerFood>[];
     if (triggerFoods.isEmpty) return const SizedBox.shrink();
 
-    final relatedFoods = [for (final f in triggerFoods) _RelatedFoodData(title: f.name, subtitle: f.effect.isNotEmpty ? f.effect : 'Observed trigger food', imageKeyword: f.name)];
+    final relatedFoods = [
+      for (final f in triggerFoods)
+        _RelatedFoodData(
+          title: f.name,
+          subtitle: f.effect.isNotEmpty ? f.effect : 'Observed trigger food',
+          imageKeyword: f.name,
+        ),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,9 +1322,16 @@ class HighlightDetailScreen extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: const BoxDecoration(color: Color(0xFFEFF6FF), shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEFF6FF),
+                shape: BoxShape.circle,
+              ),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.link, size: 14.w, color: const Color(0xFF1D4ED8)),
+              child: Icon(
+                LucideIcons.link,
+                size: 14.w,
+                color: const Color(0xFF1D4ED8),
+              ),
             ),
             Gap.w8,
             Expanded(
@@ -918,11 +1340,20 @@ class HighlightDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Related Trigger Foods',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                      color: context.insightColor(const Color(0xFF0F172A)),
+                    ),
                   ),
                   Text(
                     'These foods often show similar patterns for you.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 10.5.sp,
+                      color: context.insightColor(const Color(0xFF64748B)),
+                    ),
                   ),
                 ],
               ),
@@ -936,7 +1367,10 @@ class HighlightDetailScreen extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           child: Row(
             children: [
-              for (final f in relatedFoods) ...[_RelatedFoodCard(data: f), Gap.w8],
+              for (final f in relatedFoods) ...[
+                _RelatedFoodCard(data: f),
+                Gap.w8,
+              ],
             ],
           ),
         ),
@@ -949,14 +1383,19 @@ class HighlightDetailScreen extends StatelessWidget {
     final insight = _insightOf(context);
     final tipText = insight?.topTrigger?.effects.isNotEmpty == true
         ? insight!.topTrigger!.effects
-        : (insight?.triggerTrend?.isNotEmpty == true ? insight!.triggerTrend! : 'Tracking food reactions helps identify patterns and improve your overall digestive well-being.');
+        : (insight?.triggerTrend?.isNotEmpty == true
+              ? insight!.triggerTrend!
+              : 'Tracking food reactions helps identify patterns and improve your overall digestive well-being.');
 
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: const Color(0xFFF4FAF5),
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
+        border: Border.all(
+          color: context.insightColor(const Color(0xFFDCFCE7)),
+          width: 1.w,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -964,9 +1403,16 @@ class HighlightDetailScreen extends StatelessWidget {
           Container(
             width: 28.w,
             height: 28.w,
-            decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: Color(0xFFDCFCE7),
+              shape: BoxShape.circle,
+            ),
             alignment: Alignment.center,
-            child: Icon(LucideIcons.lightbulb, size: 14.w, color: const Color(0xFF15803D)),
+            child: Icon(
+              LucideIcons.lightbulb,
+              size: 14.w,
+              color: const Color(0xFF15803D),
+            ),
           ),
           Gap.w10,
           Expanded(
@@ -975,12 +1421,22 @@ class HighlightDetailScreen extends StatelessWidget {
               children: [
                 Text(
                   'Good to Know',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D)),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 12.5.sp,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF15803D),
+                  ),
                 ),
                 Gap.h3,
                 Text(
                   tipText,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF334155), height: 1.3),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 10.5.sp,
+                    color: context.insightColor(const Color(0xFF334155)),
+                    height: 1.3,
+                  ),
                 ),
               ],
             ),
@@ -1032,7 +1488,10 @@ class _ContributingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFDF7),
         borderRadius: BorderRadius.circular(14.w),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(
+          color: context.insightColor(const Color(0xFFE2E8F0)),
+          width: 1.w,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1044,9 +1503,11 @@ class _ContributingCard extends StatelessWidget {
               width: 94.w,
               height: 60.w,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
+              placeholder: (_, _) => Container(
+                color: context.insightColor(const Color(0xFFF1F5F9)),
+              ),
               errorWidget: (_, _, _) => Container(
-                color: const Color(0xFFDCFCE7),
+                color: context.insightColor(const Color(0xFFDCFCE7)),
                 alignment: Alignment.center,
                 child: Icon(icon, size: 20.w, color: const Color(0xFF15803D)),
               ),
@@ -1055,20 +1516,32 @@ class _ContributingCard extends StatelessWidget {
           Gap.h5,
           Text(
             title,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w700,
+              color: context.insightColor(const Color(0xFF0F172A)),
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
             subtitle,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: const Color(0xFF64748B)),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 9.sp,
+              color: context.insightColor(const Color(0xFF64748B)),
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Gap.h3,
           Container(
             padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
-            decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(10.w)),
+            decoration: BoxDecoration(
+              color: badgeColor,
+              borderRadius: BorderRadius.circular(10.w),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1076,7 +1549,12 @@ class _ContributingCard extends StatelessWidget {
                 Gap.w2,
                 Text(
                   badgeText,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: badgeTextColor),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 8.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: badgeTextColor,
+                  ),
                 ),
               ],
             ),
@@ -1088,7 +1566,14 @@ class _ContributingCard extends StatelessWidget {
 }
 
 class _WeeklyStatTile extends StatelessWidget {
-  const _WeeklyStatTile({required this.icon, required this.iconBg, required this.iconColor, required this.label, required this.value, required this.subtext});
+  const _WeeklyStatTile({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    required this.subtext,
+  });
 
   final IconData icon;
   final Color iconBg;
@@ -1104,7 +1589,10 @@ class _WeeklyStatTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14.w),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(
+          color: context.insightColor(const Color(0xFFE2E8F0)),
+          width: 1.w,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1119,15 +1607,29 @@ class _WeeklyStatTile extends StatelessWidget {
           Gap.h6,
           Text(
             label,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 9.5.sp,
+              color: context.insightColor(const Color(0xFF64748B)),
+              fontWeight: FontWeight.w500,
+            ),
           ),
           Text(
             value,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w800,
+              color: context.insightColor(const Color(0xFF0F172A)),
+            ),
           ),
           Text(
             subtext,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF64748B)),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 8.5.sp,
+              color: context.insightColor(const Color(0xFF64748B)),
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1138,7 +1640,13 @@ class _WeeklyStatTile extends StatelessWidget {
 }
 
 class _HighlightBox extends StatelessWidget {
-  const _HighlightBox({required this.icon, required this.iconBg, required this.iconColor, required this.title, required this.subtitle});
+  const _HighlightBox({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+  });
 
   final IconData icon;
   final Color iconBg;
@@ -1153,7 +1661,10 @@ class _HighlightBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14.w),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(
+          color: context.insightColor(const Color(0xFFE2E8F0)),
+          width: 1.w,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1172,12 +1683,23 @@ class _HighlightBox extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A), height: 1.2),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 10.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: context.insightColor(const Color(0xFF0F172A)),
+                    height: 1.2,
+                  ),
                 ),
                 Gap.h2,
                 Text(
                   subtitle,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF64748B), height: 1.2),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 9.5.sp,
+                    color: context.insightColor(const Color(0xFF64748B)),
+                    height: 1.2,
+                  ),
                 ),
               ],
             ),
@@ -1189,7 +1711,11 @@ class _HighlightBox extends StatelessWidget {
 }
 
 class _NextStepCard extends StatelessWidget {
-  const _NextStepCard({required this.icon, required this.title, required this.body});
+  const _NextStepCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
 
   final IconData icon;
   final String title;
@@ -1202,7 +1728,10 @@ class _NextStepCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF4FAF5),
         borderRadius: BorderRadius.circular(14.w),
-        border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
+        border: Border.all(
+          color: context.insightColor(const Color(0xFFDCFCE7)),
+          width: 1.w,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1213,7 +1742,10 @@ class _NextStepCard extends StatelessWidget {
               Container(
                 width: 22.w,
                 height: 22.w,
-                decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDCFCE7),
+                  shape: BoxShape.circle,
+                ),
                 alignment: Alignment.center,
                 child: Icon(icon, size: 11.w, color: const Color(0xFF15803D)),
               ),
@@ -1222,12 +1754,23 @@ class _NextStepCard extends StatelessWidget {
           Gap.h6,
           Text(
             title,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A), height: 1.2),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 10.5.sp,
+              fontWeight: FontWeight.w700,
+              color: context.insightColor(const Color(0xFF0F172A)),
+              height: 1.2,
+            ),
           ),
           Gap.h2,
           Text(
             body,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569), height: 1.2),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 9.5.sp,
+              color: context.insightColor(const Color(0xFF475569)),
+              height: 1.2,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1238,7 +1781,14 @@ class _NextStepCard extends StatelessWidget {
 }
 
 class _TriggerStatCol extends StatelessWidget {
-  const _TriggerStatCol({required this.icon, required this.iconBg, required this.iconColor, required this.label, required this.value, required this.subtext});
+  const _TriggerStatCol({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    required this.subtext,
+  });
 
   final IconData icon;
   final Color iconBg;
@@ -1262,19 +1812,34 @@ class _TriggerStatCol extends StatelessWidget {
         Gap.h4,
         Text(
           label,
-          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: const Color(0xFFDC2626), fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontFamily: InsightV2Theme.fontFamily,
+            fontSize: 9.sp,
+            color: const Color(0xFFDC2626),
+            fontWeight: FontWeight.w600,
+          ),
         ),
         Gap.h2,
         Text(
           value,
-          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), height: 1.15),
+          style: TextStyle(
+            fontFamily: InsightV2Theme.fontFamily,
+            fontSize: 10.5.sp,
+            fontWeight: FontWeight.w800,
+            color: context.insightColor(const Color(0xFF0F172A)),
+            height: 1.15,
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         Gap.h2,
         Text(
           subtext,
-          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF64748B)),
+          style: TextStyle(
+            fontFamily: InsightV2Theme.fontFamily,
+            fontSize: 8.5.sp,
+            color: context.insightColor(const Color(0xFF64748B)),
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -1290,22 +1855,37 @@ class _OccurrenceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imgUrl = V2Kit.foodImageUrl(occurrence.mealName, imageUrl: occurrence.imageUrl);
+    final imgUrl = V2Kit.foodImageUrl(
+      occurrence.mealName,
+      imageUrl: occurrence.imageUrl,
+    );
 
     return Container(
       padding: EdgeInsets.all(8.w),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.w),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: context.insightColor(const Color(0xFFE2E8F0)),
+        ),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.w),
-            decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(10.w)),
+            decoration: BoxDecoration(
+              color: context.insightColor(const Color(0xFFF1F5F9)),
+              borderRadius: BorderRadius.circular(10.w),
+            ),
             child: Text(
-              occurrence.date.isNotEmpty ? occurrence.date : (occurrence.dateLabel ?? 'Observed'),
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+              occurrence.date.isNotEmpty
+                  ? occurrence.date
+                  : (occurrence.dateLabel ?? 'Observed'),
+              style: TextStyle(
+                fontFamily: InsightV2Theme.fontFamily,
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w600,
+                color: context.insightColor(const Color(0xFF0F172A)),
+              ),
             ),
           ),
           Gap.w8,
@@ -1316,8 +1896,12 @@ class _OccurrenceTile extends StatelessWidget {
               width: 44.w,
               height: 44.w,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
-              errorWidget: (_, _, _) => Container(color: const Color(0xFFFEF3C7)),
+              placeholder: (_, _) => Container(
+                color: context.insightColor(const Color(0xFFF1F5F9)),
+              ),
+              errorWidget: (_, _, _) => Container(
+                color: context.insightColor(const Color(0xFFFEF3C7)),
+              ),
             ),
           ),
           Gap.w8,
@@ -1327,14 +1911,25 @@ class _OccurrenceTile extends StatelessWidget {
               children: [
                 Text(
                   occurrence.mealName,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: context.insightColor(const Color(0xFF0F172A)),
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Gap.h2,
                 Text(
-                  occurrence.reaction.isNotEmpty ? occurrence.reaction : 'Abdominal bloating',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: const Color(0xFF64748B)),
+                  occurrence.reaction.isNotEmpty
+                      ? occurrence.reaction
+                      : 'Abdominal bloating',
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 10.sp,
+                    color: context.insightColor(const Color(0xFF64748B)),
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1343,8 +1938,14 @@ class _OccurrenceTile extends StatelessWidget {
           ),
           Gap.w6,
           Text(
-            occurrence.timeAfter.isNotEmpty ? occurrence.timeAfter : '2 hours after',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569)),
+            occurrence.timeAfter.isNotEmpty
+                ? occurrence.timeAfter
+                : '2 hours after',
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 9.5.sp,
+              color: context.insightColor(const Color(0xFF475569)),
+            ),
           ),
         ],
       ),
@@ -1353,7 +1954,11 @@ class _OccurrenceTile extends StatelessWidget {
 }
 
 class _RelatedFoodData {
-  const _RelatedFoodData({required this.title, required this.subtitle, required this.imageKeyword});
+  const _RelatedFoodData({
+    required this.title,
+    required this.subtitle,
+    required this.imageKeyword,
+  });
   final String title;
   final String subtitle;
   final String imageKeyword;
@@ -1374,7 +1979,9 @@ class _RelatedFoodCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFDF7),
         borderRadius: BorderRadius.circular(14.w),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: context.insightColor(const Color(0xFFE2E8F0)),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1386,21 +1993,33 @@ class _RelatedFoodCard extends StatelessWidget {
               width: 104.w,
               height: 64.w,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
-              errorWidget: (_, _, _) => Container(color: const Color(0xFFFEE2E2)),
+              placeholder: (_, _) => Container(
+                color: context.insightColor(const Color(0xFFF1F5F9)),
+              ),
+              errorWidget: (_, _, _) =>
+                  Container(color: const Color(0xFFFEE2E2)),
             ),
           ),
           Gap.h5,
           Text(
             data.title,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w700,
+              color: context.insightColor(const Color(0xFF0F172A)),
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Gap.h2,
           Text(
             data.subtitle,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: const Color(0xFF64748B)),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 9.sp,
+              color: context.insightColor(const Color(0xFF64748B)),
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

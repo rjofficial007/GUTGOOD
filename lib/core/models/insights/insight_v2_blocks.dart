@@ -1,3 +1,4 @@
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
@@ -25,8 +26,8 @@ class ImprovingBlock extends Equatable {
   factory ImprovingBlock.fromMap(Map<String, dynamic> map) => ImprovingBlock(
     headline: map['headline']?.toString(),
     description: map['description']?.toString(),
-    streakDays: (map['streakDays'] as num?)?.toInt(),
-    streakGoalDays: (map['streakGoalDays'] as num?)?.toInt(),
+    streakDays: InsightValues.integer(map['streakDays']),
+    streakGoalDays: InsightValues.integer(map['streakGoalDays']),
     encouragement: map['encouragement']?.toString(),
     keyFoods: ModelUtils.parseModelList<KeyFoodDriver>(
       map['keyFoods'],
@@ -86,8 +87,8 @@ class KeyFoodDriver extends Equatable {
     final name = (map['name'] ?? map['food'] ?? '').toString();
     return KeyFoodDriver(
       name: name,
-      count: (map['count'] as num?)?.toInt(),
-      delta: (map['delta'] as num?)?.toInt(),
+      count: InsightValues.integer(map['count']),
+      delta: InsightValues.integer(map['delta']),
       emoji: map['emoji']?.toString(),
       imageUrl: (map['userImageUrl'] ?? map['imageUrl'])?.toString(),
     );
@@ -120,7 +121,7 @@ class WatchBlock extends Equatable {
   factory WatchBlock.fromMap(Map<String, dynamic> map) => WatchBlock(
     reactionTime: map['reactionTime']?.toString(),
     riskLevel: map['riskLevel']?.toString(),
-    windowDays: (map['windowDays'] as num?)?.toInt(),
+    windowDays: InsightValues.integer(map['windowDays']),
   );
 
   /// Human delay ("1.5–2h", "~45m").

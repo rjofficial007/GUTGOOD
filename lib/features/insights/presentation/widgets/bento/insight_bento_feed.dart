@@ -123,7 +123,7 @@ class InsightBentoFeed extends StatelessWidget {
             footLeft: AppStrings.bentoSeeAll,
             accentColor: const Color(0xFF14A38F),
             backgroundColor: const Color(0xFFE9F6F3),
-            chartPainter: HealingSparklinePainter(color: const Color(0xFF14A38F)),
+
             onTap: () => context.push(
               AppRoutes.highlightDetail,
               extra: HighlightDetailArgs(
@@ -161,7 +161,7 @@ class InsightBentoFeed extends StatelessWidget {
             footLeft: trigger.timeframe,
             accentColor: const Color(0xFFF08019),
             backgroundColor: const Color(0xFFFDF1E7),
-            chartPainter: TriggerSpikePainter(color: const Color(0xFFF08019)),
+
             onTap: () => context.push(
               AppRoutes.highlightDetail,
               extra: HighlightDetailArgs(
@@ -199,7 +199,7 @@ class InsightBentoFeed extends StatelessWidget {
             footLeft: AppStrings.bentoSeeAll,
             accentColor: const Color(0xFFEFB008),
             backgroundColor: const Color(0xFFFDF6E2),
-            chartPainter: WorkingBarsPainter(color: const Color(0xFFEFB008)),
+
             onTap: () => context.push(
               AppRoutes.highlightDetail,
               extra: HighlightDetailArgs(
@@ -235,7 +235,7 @@ class InsightBentoFeed extends StatelessWidget {
             footLeft: AppStrings.bentoLogToSolve,
             accentColor: const Color(0xFF8B5CF6),
             backgroundColor: const Color(0xFFF5EEFC),
-            chartPainter: CuriosityPulsePainter(color: const Color(0xFF8B5CF6)),
+
             onTap: () => context.push(
               AppRoutes.highlightDetail,
               extra: HighlightDetailArgs(
@@ -315,13 +315,16 @@ class InsightBentoLearning extends StatelessWidget {
     final textColor = scheme.textPrimary;
     final borderColor = scheme.borderSubtle;
 
-    const maxScans = 3;
-    const maxMeals = 3;
+    const maxFoodScans = 3;
     const maxSymptoms = 1;
 
-    final currentScans = scans.clamp(0, maxScans);
-    final currentMeals = meals.clamp(0, maxMeals);
+    // Total food logs = scans + meals
+    final totalFood = scans + meals;
+    final currentFoodScans = totalFood.clamp(0, maxFoodScans);
     final currentSymptoms = symptoms.clamp(0, maxSymptoms);
+
+    final foodDone = currentFoodScans >= maxFoodScans;
+    final symptomsDone = currentSymptoms >= maxSymptoms;
 
     return SliverFillRemaining(
       hasScrollBody: false,
@@ -329,7 +332,7 @@ class InsightBentoLearning extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(AppSizes.p20, AppSizes.p12, AppSizes.p20, AppSizes.p32),
         child: Center(
           child: Container(
-            constraints: BoxConstraints(maxWidth: 400.w),
+            constraints: BoxConstraints(maxWidth: 440.w),
             padding: EdgeInsets.all(AppSizes.p24),
             decoration: BoxDecoration(
               color: scheme.elevatedSurface,
@@ -345,13 +348,13 @@ class InsightBentoLearning extends StatelessWidget {
                   width: 52.w,
                   height: 52.w,
                   decoration: BoxDecoration(color: textColor.withAlpha(12), shape: BoxShape.circle),
-                  child: Icon(AppIcons.salad, size: 24.w, color: textColor),
+                  child: Icon(AppIcons.sparkles, size: 24.w, color: textColor),
                 ),
                 Gap.h16,
 
                 // Title & Eyebrow
                 Text(
-                  AppStrings.bentoMappingEyebrow.toUpperCase(),
+                  'BUILDING YOUR BASELINE — ${AppStrings.bentoMappingEyebrow.toUpperCase()}',
                   textAlign: TextAlign.center,
                   style: context.captionBold.copyWith(color: textColor.withAlpha(153), letterSpacing: 0.8),
                 ),
@@ -359,40 +362,60 @@ class InsightBentoLearning extends StatelessWidget {
                 Text(
                   'Log to Unlock AI Insights',
                   textAlign: TextAlign.center,
-                  style: context.bodyBold.copyWith(color: textColor, fontSize: 18.sp, height: 1.2),
+                  style: context.bodyBold.copyWith(color: textColor, fontSize: 20.sp, height: 1.2),
                 ),
                 Gap.h8,
                 Text(
-                  'Log 3 food scans OR 3 meals + 1 symptom to reveal your personalized gut analysis.',
+                  'Scan 3 food meals and log 1 symptom to generate your personalized AI gut health analysis.',
                   textAlign: TextAlign.center,
                   style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.35),
                 ),
-                Gap.h24,
+                Gap.h20,
 
-                // Usage Rows (AIUsageCard style)
-                InsightUsageRow(label: 'Food Scans', current: currentScans, total: maxScans, color: textColor),
-                Gap.h16,
-                InsightUsageRow(label: 'Meal Logs', current: currentMeals, total: maxMeals, color: textColor),
-                Gap.h16,
-                InsightUsageRow(label: 'Symptom Logs', current: currentSymptoms, total: maxSymptoms, color: textColor),
-                Gap.h24,
-
-                // Primary CTA Button
-                SizedBox(
-                  width: double.infinity,
-                  child: GestureDetector(
-                    onTap: () => context.push(AppRoutes.scannerPath('meal')),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 14.w),
-                      decoration: BoxDecoration(color: textColor, borderRadius: BorderRadius.circular(100)),
-                      child: Text(
-                        'LOG A MEAL',
-                        textAlign: TextAlign.center,
-                        style: context.captionBold.copyWith(color: scheme.cardBackground, fontSize: 11.sp, letterSpacing: 0.5),
-                      ),
-                    ),
+                // Requirements Progress Container
+                Container(
+                  padding: EdgeInsets.all(AppSizes.p16),
+                  decoration: BoxDecoration(
+                    color: scheme.cardBackground,
+                    borderRadius: BorderRadius.circular(AppSizes.r16),
+                    border: Border.all(color: scheme.borderSubtle),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InsightUsageRow(label: 'FOOD SCANS', current: currentFoodScans, total: maxFoodScans, color: foodDone ? scheme.success : textColor),
+                      Gap.h16,
+                      Divider(color: scheme.borderSubtle, height: 1),
+                      Gap.h16,
+                      InsightUsageRow(label: 'SYMPTOM LOGS', current: currentSymptoms, total: maxSymptoms, color: symptomsDone ? scheme.success : textColor),
+                    ],
                   ),
                 ),
+                Gap.h16,
+
+                // Guidance callout
+                Container(
+                  padding: EdgeInsets.all(AppSizes.p12),
+                  decoration: BoxDecoration(
+                    color: scheme.softSuccess.withAlpha(40),
+                    borderRadius: BorderRadius.circular(AppSizes.r12),
+                    border: Border.all(color: scheme.success.withAlpha(60)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(AppIcons.alertCircle, size: 18.sp, color: scheme.success),
+                      Gap.w10,
+                      Expanded(
+                        child: Text(
+                          'AI analyzes your food logs alongside symptoms to calculate your Gut Score and uncover tailored health patterns.',
+                          style: context.caption.copyWith(color: scheme.textSecondary, height: 1.3, fontSize: 11.sp),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Gap.h20,
               ],
             ),
           ),
@@ -734,76 +757,28 @@ class InsightHighlightCard extends StatelessWidget {
 class HealingSparklinePainter extends CustomPainter {
   HealingSparklinePainter({required this.color, this.values = const []});
   final Color color;
-
-  /// Real series data (e.g. per-day progress). Empty falls back to decorative curve.
   final List<double> values;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    if (w <= 0 || h <= 0) return;
-
-    final linePaint = Paint()
-      ..color = color
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final fillPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.0)]).createShader(Rect.fromLTWH(0, 0, w, h));
-
-    if (values.length >= 2) {
-      final data = values.length > 7 ? values.sublist(values.length - 7) : values;
-      final maxV = data.reduce(math.max);
-      final minV = data.reduce(math.min);
-      final range = maxV - minV;
-
-      Offset at(int i) {
-        final x = w * i / (data.length - 1);
-        final t = range <= 0 ? 0.5 : (data[i] - minV) / range;
-        return Offset(x, h * 0.85 - t * (h * 0.7));
-      }
-
-      final path = Path();
-      final points = [for (var i = 0; i < data.length; i++) at(i)];
-      path.moveTo(points.first.dx, points.first.dy);
-
-      for (var i = 0; i < points.length - 1; i++) {
-        final p0 = points[i];
-        final p1 = points[i + 1];
-        final control1 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p0.dy);
-        final control2 = Offset(p0.dx + (p1.dx - p0.dx) / 2, p1.dy);
-        path.cubicTo(control1.dx, control1.dy, control2.dx, control2.dy, p1.dx, p1.dy);
-      }
-
-      final fillPath = Path.from(path)
-        ..lineTo(points.last.dx, h)
-        ..lineTo(points.first.dx, h)
-        ..close();
-
-      canvas
-        ..drawPath(fillPath, fillPaint)
-        ..drawPath(path, linePaint)
-        ..drawCircle(points.last, 3.5, Paint()..color = color);
-      return;
-    }
-
-    final path = Path()
-      ..moveTo(0, h * 0.8)
-      ..cubicTo(w * 0.25, h * 0.75, w * 0.4, h * 0.4, w * 0.65, h * 0.3)
-      ..cubicTo(w * 0.8, h * 0.25, w * 0.9, h * 0.1, w, h * 0.05);
-
-    final fillPath = Path.from(path)
-      ..lineTo(w, h)
-      ..lineTo(0, h)
-      ..close();
-
+    final data = values.where((value) => value.isFinite && value >= 0 && value <= 100).toList();
+    if (data.length < 2 || size.width <= 0 || size.height <= 0) return;
+    final visible = data.length > 7 ? data.sublist(data.length - 7) : data;
+    final min = visible.reduce(math.min);
+    final max = visible.reduce(math.max);
+    final range = max - min;
+    final points = [for (var i = 0; i < visible.length; i++) Offset(
+      size.width * i / (visible.length - 1),
+      size.height * (0.85 - (range == 0 ? .35 : (visible[i] - min) / range * .7)),
+    )];
+    final line = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) { line.lineTo(point.dx, point.dy); }
+    final area = Path.from(line)..lineTo(points.last.dx, size.height)..lineTo(points.first.dx, size.height)..close();
+    final fill = Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: .2), color.withValues(alpha: 0)]).createShader(Offset.zero & size);
     canvas
-      ..drawPath(fillPath, fillPaint)
-      ..drawPath(path, linePaint)
-      ..drawCircle(Offset(w, h * 0.05), 3.5, Paint()..color = color);
+      ..drawPath(area, fill)
+      ..drawPath(line, Paint()..color = color..strokeWidth = 2.5..style = PaintingStyle.stroke..strokeCap = StrokeCap.round)
+      ..drawCircle(points.last, 3.5, Paint()..color = color);
   }
 
   @override
@@ -813,84 +788,24 @@ class HealingSparklinePainter extends CustomPainter {
 class TriggerSpikePainter extends CustomPainter {
   TriggerSpikePainter({required this.color, this.values = const []});
   final Color color;
-
-  /// Real series data (e.g. per-day trigger episodes). Empty falls back to decorative spikes.
   final List<double> values;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    if (w <= 0 || h <= 0) return;
-
-    final linePaint = Paint()
-      ..color = color
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final fillPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: 0.25), color.withValues(alpha: 0.0)]).createShader(Rect.fromLTWH(0, 0, w, h));
-
-    if (values.length >= 2) {
-      final data = values.length > 7 ? values.sublist(values.length - 7) : values;
-      final maxV = data.reduce(math.max);
-      final minV = data.reduce(math.min);
-      final range = maxV - minV;
-
-      Offset at(int i) {
-        final x = w * i / (data.length - 1);
-        final t = range <= 0 ? 0.5 : (data[i] - minV) / range;
-        return Offset(x, h * 0.85 - t * (h * 0.7));
-      }
-
-      final path = Path();
-      final points = [for (var i = 0; i < data.length; i++) at(i)];
-      path.moveTo(points.first.dx, points.first.dy);
-
-      for (var i = 1; i < points.length; i++) {
-        path.lineTo(points[i].dx, points[i].dy);
-      }
-
-      final fillPath = Path.from(path)
-        ..lineTo(points.last.dx, h)
-        ..lineTo(points.first.dx, h)
-        ..close();
-
-      canvas
-        ..drawPath(fillPath, fillPaint)
-        ..drawPath(path, linePaint);
-
-      var maxIdx = 0;
-      for (var i = 1; i < data.length; i++) {
-        if (data[i] > data[maxIdx]) maxIdx = i;
-      }
-      canvas.drawCircle(points[maxIdx], 3.0, Paint()..color = color);
-      return;
-    }
-
-    final path = Path()
-      ..moveTo(0, h * 0.8)
-      ..lineTo(w * 0.2, h * 0.8)
-      ..lineTo(w * 0.3, h * 0.2)
-      ..lineTo(w * 0.4, h * 0.8)
-      ..lineTo(w * 0.6, h * 0.8)
-      ..lineTo(w * 0.75, h * 0.1)
-      ..lineTo(w * 0.85, h * 0.8)
-      ..lineTo(w, h * 0.8);
-
-    final fillPath = Path.from(path)
-      ..lineTo(w, h)
-      ..lineTo(0, h)
-      ..close();
-
-    canvas
-      ..drawPath(fillPath, fillPaint)
-      ..drawPath(path, linePaint)
-      ..drawCircle(Offset(w * 0.3, h * 0.2), 3.0, Paint()..color = color)
-      ..drawCircle(Offset(w * 0.75, h * 0.1), 3.0, Paint()..color = color);
+    final data = values.where((value) => value.isFinite && value >= 0).toList();
+    if (data.length < 2 || size.width <= 0 || size.height <= 0) return;
+    final visible = data.length > 7 ? data.sublist(data.length - 7) : data;
+    final min = visible.reduce(math.min);
+    final max = visible.reduce(math.max);
+    final range = max - min;
+    final points = [for (var i = 0; i < visible.length; i++) Offset(
+      size.width * i / (visible.length - 1),
+      size.height * (0.85 - (range == 0 ? .35 : (visible[i] - min) / range * .7)),
+    )];
+    final line = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) { line.lineTo(point.dx, point.dy); }
+    canvas.drawPath(line, Paint()..color = color..strokeWidth = 2.5..style = PaintingStyle.stroke..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round);
+    canvas.drawCircle(points[visible.indexOf(max)], 3, Paint()..color = color);
   }
 
   @override
@@ -901,11 +816,9 @@ class WorkingBarsPainter extends CustomPainter {
   WorkingBarsPainter({required this.color, this.values = const []});
   final Color color;
 
-  /// Real series (e.g. per-day pattern episodes). Empty falls back to the
-  /// decorative five-bar shape.
+  /// Real series (e.g. per-day pattern episodes). Empty leaves the chart blank.
   final List<double> values;
 
-  static const List<double> _fallback = [0.35, 0.5, 0.48, 0.72, 0.9];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -914,8 +827,9 @@ class WorkingBarsPainter extends CustomPainter {
     if (w <= 0 || h <= 0) return;
     final gap = 6.w;
 
-    if (values.length >= 2) {
-      final data = values.length > 7 ? values.sublist(values.length - 7) : values;
+    final safeValues = values.where((value) => value.isFinite && value >= 0).toList();
+    if (safeValues.length >= 2) {
+      final data = safeValues.length > 7 ? safeValues.sublist(safeValues.length - 7) : safeValues;
       final n = data.length;
       final maxV = data.reduce(math.max);
       final barW = (w - (gap * (n - 1))) / n;
@@ -930,12 +844,7 @@ class WorkingBarsPainter extends CustomPainter {
       return;
     }
 
-    final barCount = _fallback.length;
-    final barW = (w - (gap * (barCount - 1))) / barCount;
-    for (var i = 0; i < barCount; i++) {
-      final rectH = h * _fallback[i];
-      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(i * (barW + gap), h - rectH, barW, rectH), const Radius.circular(4)), Paint()..color = color.withValues(alpha: 0.4 + (i * 0.12)));
-    }
+    return;
   }
 
   @override

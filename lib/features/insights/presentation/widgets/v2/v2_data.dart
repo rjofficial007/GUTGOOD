@@ -141,10 +141,11 @@ abstract final class V2Data {
   }) {
     final ai = insight.improving?.streakDays;
     if (ai != null && ai > 0) return ai.clamp(1, 30).toInt();
-    if ((seriesDerivedDelta ?? 0) <= 0) return 1;
-    var streak = 1;
+    if ((seriesDerivedDelta ?? 0) <= 0) return 0;
     final sorted = [...history]
       ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+    if (sorted.length < 2) return 0;
+    var streak = 1;
     for (var i = sorted.length - 1; i > 0; i--) {
       final d = parseDelta(sorted[i].scoreDiff) ?? 0;
       if (d > 0) {
@@ -297,9 +298,18 @@ abstract final class V2Data {
   static String riskLevel(AIInsight insight, BodyPattern? pattern) {
     final ai = insight.watch?.riskLevel;
     if (ai != null && ai.isNotEmpty) return ai;
-    final ratio = pattern?.evidenceRatio ?? 0;
-    if (ratio >= 0.8) return 'High';
-    if (ratio >= 0.5) return 'Medium';
+    if (pattern == null) return 'Unknown';
+    final ratio = pattern.evidenceRatio;
+    if (ratio.isFinite && ratio > 0) {
+      if (ratio >= 0.8) return 'High';
+      if (ratio >= 0.5) return 'Medium';
+      return 'Low';
+    }
+    final total = pattern.positiveCount + pattern.negativeCount;
+    if (total == 0) return 'Unknown';
+    final measuredRatio = pattern.positiveCount / total;
+    if (measuredRatio >= 0.8) return 'High';
+    if (measuredRatio >= 0.5) return 'Medium';
     return 'Low';
   }
 

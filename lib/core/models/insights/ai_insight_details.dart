@@ -1,3 +1,4 @@
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
@@ -27,10 +28,10 @@ class InsightSummary extends Equatable {
     involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
     strength: map['strength']?.toString(),
     nextSteps: (map['nextSteps'] as List?)?.cast<String>() ?? const [],
-    frequency: (map['frequency'] as num?)?.toInt(),
-    evidenceRatio: (map['evidenceRatio'] as num?)?.toDouble(),
-    positiveCount: (map['positiveCount'] as num?)?.toInt(),
-    negativeCount: (map['negativeCount'] as num?)?.toInt(),
+    frequency: InsightValues.integer(map['frequency']),
+    evidenceRatio: InsightValues.number(map['evidenceRatio'])?.toDouble(),
+    positiveCount: InsightValues.integer(map['positiveCount']),
+    negativeCount: InsightValues.integer(map['negativeCount']),
   );
 
   final String title;
@@ -295,13 +296,13 @@ class WeeklyRecap extends Equatable {
     return WeeklyRecap(
       highlights: parsedHighlights,
       stats: (map['stats'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      gutScoreTrend: (map['gutScoreTrend'] as List?)?.map((e) => (e as num).toInt()).toList(),
+      gutScoreTrend: map['gutScoreTrend'] is List ? (map['gutScoreTrend'] as List).map(InsightValues.integer).whereType<int>().where((score) => score >= 0 && score <= 100).toList() : null,
       summary: map['summary']?.toString() ?? map['weeklyInsight']?.toString(),
-      avgScore: (map['avgScore'] as num?)?.toInt(),
+      avgScore: InsightValues.integer(map['avgScore']),
       dateRange: map['dateRange']?.toString(),
       scoreSub: map['scoreSub']?.toString(),
       bestDay: map['bestDay']?.toString(),
-      foodsLogged: (map['foodsLogged'] as num?)?.toInt(),
+      foodsLogged: InsightValues.integer(map['foodsLogged']),
       loggedSub: map['loggedSub']?.toString(),
     );
   }
@@ -316,6 +317,31 @@ class WeeklyRecap extends Equatable {
   final String? bestDay;
   final int? foodsLogged;
   final String? loggedSub;
+
+  WeeklyRecap copyWith({
+    List<dynamic>? highlights,
+    List<String>? stats,
+    List<int>? gutScoreTrend,
+    String? summary,
+    int? avgScore,
+    String? dateRange,
+    String? scoreSub,
+    String? bestDay,
+    int? foodsLogged,
+    String? loggedSub,
+  }) =>
+      WeeklyRecap(
+        highlights: highlights ?? this.highlights,
+        stats: stats ?? this.stats,
+        gutScoreTrend: gutScoreTrend ?? this.gutScoreTrend,
+        summary: summary ?? this.summary,
+        avgScore: avgScore ?? this.avgScore,
+        dateRange: dateRange ?? this.dateRange,
+        scoreSub: scoreSub ?? this.scoreSub,
+        bestDay: bestDay ?? this.bestDay,
+        foodsLogged: foodsLogged ?? this.foodsLogged,
+        loggedSub: loggedSub ?? this.loggedSub,
+      );
 
   Map<String, dynamic> toMap() => {
     'highlights': highlights.map((e) {
@@ -341,7 +367,7 @@ class GutScoreSummary extends Equatable {
   const GutScoreSummary({required this.score, required this.trend, this.status, this.description});
 
   factory GutScoreSummary.fromMap(Map<String, dynamic> map) =>
-      GutScoreSummary(score: (map['score'] as num?)?.toInt() ?? 0, trend: map['trend']?.toString() ?? '', status: map['status']?.toString() ?? 'Stable', description: map['description']?.toString());
+      GutScoreSummary(score: InsightValues.integer(map['score']) ?? 0, trend: map['trend']?.toString() ?? '', status: map['status']?.toString() ?? 'Stable', description: map['description']?.toString());
 
   final int score;
   final String trend;
@@ -424,9 +450,9 @@ class FoodImpactBalance extends Equatable {
   const FoodImpactBalance({required this.positivePercent, required this.neutralPercent, required this.negativePercent, this.periodLabel = 'Last 4 weeks'});
 
   factory FoodImpactBalance.fromMap(Map<String, dynamic> map) => FoodImpactBalance(
-    positivePercent: (map['positivePercent'] as num?)?.toInt() ?? 0,
-    neutralPercent: (map['neutralPercent'] as num?)?.toInt() ?? 0,
-    negativePercent: (map['negativePercent'] as num?)?.toInt() ?? 0,
+    positivePercent: InsightValues.integer(map['positivePercent']) ?? 0,
+    neutralPercent: InsightValues.integer(map['neutralPercent']) ?? 0,
+    negativePercent: InsightValues.integer(map['negativePercent']) ?? 0,
     periodLabel: map['periodLabel']?.toString() ?? 'Last 4 weeks',
   );
 
@@ -447,7 +473,7 @@ class WeeklyRecapHistoryItem extends Equatable {
   factory WeeklyRecapHistoryItem.fromMap(Map<String, dynamic> map) => WeeklyRecapHistoryItem(
     id: map['id']?.toString() ?? 'week_01',
     weekLabel: map['weekLabel']?.toString() ?? 'Week 1',
-    avgScore: (map['avgScore'] as num?)?.toInt() ?? 75,
+    avgScore: InsightValues.integer(map['avgScore']) ?? 0,
     summary: map['summary']?.toString() ?? 'Great consistency in plant diversity.',
     date: map['date']?.toString(),
   );

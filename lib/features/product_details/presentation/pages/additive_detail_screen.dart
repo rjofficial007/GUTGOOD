@@ -333,13 +333,8 @@ class AdditiveDetailScreen extends StatelessWidget {
 
   Widget _relatedAdditiveRow(BuildContext context, AdditiveConcern additive, {required double width}) {
     final t = context.bentoTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final levelColors = AdditiveLevelColors.of(context, additive.level);
     final dotColor = additiveConcernColor(context, additive.level);
-
-    final isPositive = additive.level == AdditiveConcernLevel.low || additive.level == AdditiveConcernLevel.unknown;
-    final bgColor = isPositive ? t.positive.withAlpha(isDark ? 30 : 12) : t.negative.withAlpha(isDark ? 30 : 12);
-    final iconBgColor = isPositive ? t.positive.withAlpha(isDark ? 40 : 18) : t.negative.withAlpha(isDark ? 40 : 18);
-    final iconColor = isPositive ? t.positive : t.negative;
 
     return Container(
       margin: EdgeInsets.only(bottom: 8.h),
@@ -350,13 +345,13 @@ class AdditiveDetailScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: levelColors.background, borderRadius: BorderRadius.circular(12)),
             child: Row(
               children: [
                 Container(
                   padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-                  child: Icon(AdditiveLevelColors.iconFor(additive.level), size: 18.sp, color: iconColor),
+                  decoration: BoxDecoration(color: levelColors.iconBackground, shape: BoxShape.circle),
+                  child: Icon(AdditiveLevelColors.iconFor(additive.level), size: 18.sp, color: levelColors.accent),
                 ),
                 Gap.w12,
                 Expanded(
@@ -385,7 +380,7 @@ class AdditiveDetailScreen extends StatelessWidget {
                   decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
                 ),
                 Gap.w8,
-                Icon(AppIcons.chevronRight, size: 16.sp, color: iconColor.withAlpha(150)),
+                Icon(AppIcons.chevronRight, size: 16.sp, color: levelColors.accent.withAlpha(150)),
               ],
             ),
           ),

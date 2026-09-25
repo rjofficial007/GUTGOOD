@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/models/insights/pattern_occurrence.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class BodyPattern extends Equatable {
@@ -38,12 +39,12 @@ class BodyPattern extends Equatable {
       type: typeStr,
       trigger: (map['trigger'] ?? map['title'] ?? map['name'] ?? '').toString(),
       reaction: (map['reaction'] ?? map['effect'] ?? '').toString(),
-      frequency: (map['frequency'] as num?)?.toInt() ?? 1,
-      confidence: (map['confidence'] ?? map['strength'] ?? 'Moderate').toString(),
-      confidenceScore: (map['confidenceScore'] as num?)?.toDouble() ?? 0.85,
+      frequency: InsightValues.integer(map['frequency']) ?? 1,
+      confidence: (map['confidence'] ?? map['strength'] ?? '').toString(),
+      confidenceScore: InsightValues.number(map['confidenceScore'])?.toDouble() ?? 0.85,
       description: (map['description'] ?? map['observation'] ?? '').toString(),
-      involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
-      relatedFoodIds: (map['relatedFoodIds'] as List?)?.cast<String>() ??
+      involvedFoods: (map['involvedFoods'] as List?)?.whereType<String>().toList() ?? const [],
+      relatedFoodIds: (map['relatedFoodIds'] as List?)?.whereType<String>().toList() ??
           (map['involvedFoods'] as List?)?.cast<String>() ??
           const [],
       recommendation: (map['recommendation'] ??
@@ -54,17 +55,16 @@ class BodyPattern extends Equatable {
           map['occurrences'], PatternOccurrence.fromMap),
       commonFactors: ModelUtils.parseModelList<CommonFactor>(
           map['commonFactors'], CommonFactor.fromMap),
-      totalSimilarMeals: (map['totalSimilarMeals'] as num?)?.toInt() ?? 0,
-      timeframeDays: (map['timeframeDays'] as num?)?.toInt() ?? 30,
+      totalSimilarMeals: InsightValues.integer(map['totalSimilarMeals']) ?? 0,
+      timeframeDays: InsightValues.integer(map['timeframeDays']) ?? 30,
       typicalTiming: map['typicalTiming']?.toString(),
       typicalDelay: map['typicalDelay']?.toString(),
-      impactDirection: map['impactDirection']?.toString() ??
-          ((map['positiveCount'] as num? ?? 0) > 0 ? 'negative' : 'positive'),
-      impactLevel: map['impactLevel']?.toString() ?? 'high',
-      evidenceRatio: (map['evidenceRatio'] as num?)?.toDouble() ?? 0.0,
-      positiveCount: (map['positiveCount'] as num?)?.toInt() ?? 0,
-      negativeCount: (map['negativeCount'] as num?)?.toInt() ?? 0,
-      schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
+      impactDirection: map['impactDirection']?.toString() ?? 'unknown',
+      impactLevel: map['impactLevel']?.toString() ?? 'unknown',
+      evidenceRatio: InsightValues.number(map['evidenceRatio'])?.toDouble() ?? 0.0,
+      positiveCount: InsightValues.integer(map['positiveCount']) ?? 0,
+      negativeCount: InsightValues.integer(map['negativeCount']) ?? 0,
+      schemaVersion: InsightValues.integer(map['v']) ?? AiVersions.schemaVersion,
     );
   }
 

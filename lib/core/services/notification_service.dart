@@ -308,14 +308,21 @@ class NotificationServiceImpl implements NotificationService {
     final mealCount = await _historyFirestoreService.getMealLogsCountSince(startOfToday);
     final scanCount = await _historyFirestoreService.getScansCountSince(startOfToday);
 
-    if (mealCount < 0 && scanCount < 0) {
-      // Both count queries failed (offline / Firestore error). Leave any existing
-      // schedule untouched rather than guessing that no meal/scan occurred.
-      AppLogger.notifs('NotificationService: meal/scan count unknown; keeping noMealLogged schedule as-is');
+    final symptomCount = await _historyFirestoreService.getSymptomLogsCountSince(startOfToday);
+
+    if (mealCount < 0 && scanCount < 0 && symptomCount < 0) {
+      // All count queries failed (offline / Firestore error). Leave any existing
+      // schedule untouched rather than guessing that no activity occurred.
+      AppLogger.notifs('NotificationService: activity count unknown; keeping noMealLogged schedule as-is');
       return;
     }
 
-    final totalActivityToday = (mealCount > 0 ? mealCount : 0) + (scanCount > 0 ? scanCount : 0);
+    // 🟢 Fix: The user wants this to be a general "no activity" reminder. 
+    // If they have logged a meal, scanned a food, OR logged a symptom,
+    // they have engaged with the app today and we should silence the nudge.
+    final totalActivityToday = (mealCount > 0 ? mealCount : 0) + 
+                               (scanCount > 0 ? scanCount : 0) + 
+                               (symptomCount > 0 ? symptomCount : 0);
 
     if (totalActivityToday == 0) {
       await _scheduleDaily(

@@ -136,7 +136,9 @@ void main() {
     test('insights prompt defines the ZERO PATTERN CASE it references', () {
       const instruction = InsightsPrompt.instruction;
       expect(instruction.contains('ZERO PATTERN CASE'), isTrue, reason: 'The checklist references a ZERO PATTERN CASE; without a definition the model invents patterns from thin data.');
-      expect(instruction.contains('Not enough data yet'), isTrue, reason: 'The zero-pattern case must produce an explicit insufficient-data state, not a generic insight.');
+      expect(instruction, contains('Return status "ready" and emptyState null'));
+      expect(instruction, contains('Generate a personalized topInsight'));
+      expect(instruction, contains('Keep detectedPatterns empty'));
     });
 
     test('insights prompt v2 asks for data only (P2-10: Dart owns presentation)', () {

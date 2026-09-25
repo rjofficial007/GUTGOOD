@@ -36,6 +36,12 @@ void main() {
       ),
     ).thenAnswer((_) async => []);
     when(
+      () => history.getRecentScans(
+        limit: any(named: 'limit'),
+        since: any(named: 'since'),
+      ),
+    ).thenAnswer((_) async => []);
+    when(
       () => history.getRecentSymptomLogs(
         limit: any(named: 'limit'),
         since: any(named: 'since'),
@@ -44,13 +50,19 @@ void main() {
     when(() => insights.savePatternData(any())).thenAnswer((_) async {});
   });
 
-  Future<List<BodyPattern>> runWith({required List<MealLog> meals, required List<SymptomLog> symptoms}) async {
+  Future<List<BodyPattern>> runWith({required List<MealLog> meals, required List<SymptomLog> symptoms, List<ScanResult> scans = const []}) async {
     when(
       () => history.getRecentMealLogs(
         limit: any(named: 'limit'),
         since: any(named: 'since'),
       ),
     ).thenAnswer((_) async => meals);
+    when(
+      () => history.getRecentScans(
+        limit: any(named: 'limit'),
+        since: any(named: 'since'),
+      ),
+    ).thenAnswer((_) async => scans);
     when(
       () => history.getRecentSymptomLogs(
         limit: any(named: 'limit'),

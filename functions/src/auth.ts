@@ -46,3 +46,29 @@ export const sendCustomMagicLink = functions
       throw new functions.https.HttpsError('internal', 'Failed to send login link');
     }
   });
+
+/**
+ * HTTPS Callable: Deletes the current user's Firebase Auth account using Admin SDK.
+ *
+ * Bypasses the client-side `requires-recent-login` re-authentication check while
+ * ensuring the caller is authenticated. Account deletion automatically triggers
+ * `onUserDeleted` in lifecycle.ts to purge Firestore profile and Storage files.
+ */
+export const deleteAccount = functions
+  .region(REGION)
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to delete account.');
+    }
+
+    const uid = context.auth.uid;
+    functions.logger.info(`deleteAccount: deleting user ${uid}`);
+
+    try {
+      await admin.auth().deleteUser(uid);
+      return { success: true };
+    } catch (error) {
+      functions.logger.error(`deleteAccount: failed for ${uid}`, error);
+      throw new functions.https.HttpsError('internal', 'Failed to delete user account.');
+    }
+  });

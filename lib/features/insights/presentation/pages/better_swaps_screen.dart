@@ -27,7 +27,12 @@ class BetterSwapsScreen extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         slivers: [
           // Standard GutSliverAppBar
-          GutSliverAppBar(title: 'BETTER FOOD SWAPS', centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
+          GutSliverAppBar(
+            title: 'BETTER FOOD SWAPS',
+            centerTitle: true,
+            showBrandingIcon: false,
+            backgroundColor: v2.scaffold,
+          ),
 
           // --- Body Content --------------------------------------------------
           SliverPadding(
@@ -45,18 +50,33 @@ class BetterSwapsScreen extends StatelessWidget {
                 // 3. SECTION LABEL
                 Row(
                   children: [
-                    Icon(LucideIcons.sparkles, size: 14.w, color: const Color(0xFF0F172A)),
+                    Icon(
+                      LucideIcons.sparkles,
+                      size: 14.w,
+                      color: context.insightColor(const Color(0xFF0F172A)),
+                    ),
                     Gap.w6,
                     Text(
                       'Recommended Alternatives',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                      style: TextStyle(
+                        fontFamily: InsightV2Theme.fontFamily,
+                        fontSize: 13.5.sp,
+                        fontWeight: FontWeight.w800,
+                        color: context.insightColor(const Color(0xFF0F172A)),
+                      ),
                     ),
                   ],
                 ),
                 Gap.h10,
 
                 // 4. ALTERNATIVES LIST (PatternCard Style)
-                if (swap.alternatives.isEmpty) _buildEmptyState(context) else for (final alt in swap.alternatives) ...[_AlternativePatternStyleCard(alt: alt), Gap.h10],
+                if (swap.alternatives.isEmpty)
+                  _buildEmptyState(context)
+                else
+                  for (final alt in swap.alternatives) ...[
+                    _AlternativePatternStyleCard(alt: alt),
+                    Gap.h10,
+                  ],
 
                 Gap.h20,
 
@@ -82,7 +102,13 @@ class BetterSwapsScreen extends StatelessWidget {
         color: style.cardBg,
         borderRadius: BorderRadius.circular(20.w),
         border: Border.all(color: style.borderColor, width: 1.w),
-        boxShadow: [BoxShadow(color: style.accentColor.withValues(alpha: 0.05), blurRadius: 8.w, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: style.accentColor.withValues(alpha: 0.05),
+            blurRadius: 8.w,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -104,16 +130,32 @@ class BetterSwapsScreen extends StatelessWidget {
                     children: [
                       // Top Tag Pill
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
-                        decoration: BoxDecoration(color: style.tagBg, borderRadius: BorderRadius.circular(14.w)),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.w,
+                        ),
+                        decoration: BoxDecoration(
+                          color: style.tagBg,
+                          borderRadius: BorderRadius.circular(14.w),
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(LucideIcons.alertTriangle, size: 10.w, color: style.tagFg),
+                            Icon(
+                              LucideIcons.alertTriangle,
+                              size: 10.w,
+                              color: style.tagFg,
+                            ),
                             Gap.w4,
                             Text(
                               'TRIGGER FOOD',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, color: style.tagFg, letterSpacing: 0.2),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 8.5.sp,
+                                fontWeight: FontWeight.w800,
+                                color: style.tagFg,
+                                letterSpacing: 0.2,
+                              ),
                             ),
                           ],
                         ),
@@ -125,7 +167,14 @@ class BetterSwapsScreen extends StatelessWidget {
                         foodName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), height: 1.15, letterSpacing: -0.2),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 13.5.sp,
+                          fontWeight: FontWeight.w800,
+                          color: context.insightColor(const Color(0xFF0F172A)),
+                          height: 1.15,
+                          letterSpacing: -0.2,
+                        ),
                       ),
                       Gap.h2,
 
@@ -134,7 +183,13 @@ class BetterSwapsScreen extends StatelessWidget {
                         'Associated with recurring digestive discomfort and bloating.',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w500, color: const Color(0xFF334155), height: 1.25),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 9.5.sp,
+                          fontWeight: FontWeight.w500,
+                          color: context.insightColor(const Color(0xFF334155)),
+                          height: 1.25,
+                        ),
                       ),
                     ],
                   ),
@@ -174,8 +229,17 @@ class BetterSwapsScreen extends StatelessWidget {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18.w),
-      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
-      boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
+      border: Border.all(
+        color: context.insightColor(const Color(0xFFE2E8F0)),
+        width: 1.w,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFF17171B).withValues(alpha: 0.03),
+          blurRadius: 6.w,
+          offset: Offset(0, 2.w),
+        ),
+      ],
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,9 +247,16 @@ class BetterSwapsScreen extends StatelessWidget {
         Container(
           width: 32.w,
           height: 32.w,
-          decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF1F5F9),
+            shape: BoxShape.circle,
+          ),
           alignment: Alignment.center,
-          child: Icon(LucideIcons.info, size: 16.w, color: const Color(0xFF475569)),
+          child: Icon(
+            LucideIcons.info,
+            size: 16.w,
+            color: context.insightColor(const Color(0xFF475569)),
+          ),
         ),
         Gap.w10,
         Expanded(
@@ -194,12 +265,23 @@ class BetterSwapsScreen extends StatelessWidget {
             children: [
               Text(
                 'Why the swap?',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                style: TextStyle(
+                  fontFamily: InsightV2Theme.fontFamily,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w800,
+                  color: context.insightColor(const Color(0xFF0F172A)),
+                ),
               ),
               Gap.h3,
               Text(
                 'Replacing ${swap.source.name} with gentler alternatives can reduce the fermentation load in your gut and prevent inflammatory flare-ups.',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: const Color(0xFF475569), height: 1.3),
+                style: TextStyle(
+                  fontFamily: InsightV2Theme.fontFamily,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w500,
+                  color: context.insightColor(const Color(0xFF475569)),
+                  height: 1.3,
+                ),
               ),
             ],
           ),
@@ -214,12 +296,16 @@ class BetterSwapsScreen extends StatelessWidget {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20.w),
-      border: Border.all(color: const Color(0xFFE2E8F0)),
+      border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
     ),
     child: Center(
       child: Text(
         'No alternatives listed for this item.',
-        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, color: const Color(0xFF64748B)),
+        style: TextStyle(
+          fontFamily: InsightV2Theme.fontFamily,
+          fontSize: 11.5.sp,
+          color: context.insightColor(const Color(0xFF64748B)),
+        ),
       ),
     ),
   );
@@ -227,18 +313,27 @@ class BetterSwapsScreen extends StatelessWidget {
   Widget _buildGuidanceBanner(BuildContext context) => Container(
     padding: EdgeInsets.all(12.w),
     decoration: BoxDecoration(
-      color: const Color(0xFFF8FAFC),
+      color: context.insightColor(const Color(0xFFF8FAFC)),
       borderRadius: BorderRadius.circular(16.w),
-      border: Border.all(color: const Color(0xFFE2E8F0)),
+      border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
     ),
     child: Row(
       children: [
-        Icon(LucideIcons.lightbulb, size: 16.w, color: const Color(0xFF94A3B8)),
+        Icon(
+          LucideIcons.lightbulb,
+          size: 16.w,
+          color: context.insightColor(const Color(0xFF94A3B8)),
+        ),
         Gap.w10,
         Expanded(
           child: Text(
             'Try one swap at a time to accurately observe how your digestion responds.',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: const Color(0xFF64748B), height: 1.3),
+            style: TextStyle(
+              fontFamily: InsightV2Theme.fontFamily,
+              fontSize: 10.sp,
+              color: context.insightColor(const Color(0xFF64748B)),
+              height: 1.3,
+            ),
           ),
         ),
       ],
@@ -264,7 +359,13 @@ class _AlternativePatternStyleCard extends StatelessWidget {
         color: style.cardBg,
         borderRadius: BorderRadius.circular(18.w),
         border: Border.all(color: style.borderColor, width: 1.w),
-        boxShadow: [BoxShadow(color: style.accentColor.withValues(alpha: 0.04), blurRadius: 8.w, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: style.accentColor.withValues(alpha: 0.04),
+            blurRadius: 8.w,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -286,16 +387,32 @@ class _AlternativePatternStyleCard extends StatelessWidget {
                     children: [
                       // Top Tag Pill
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
-                        decoration: BoxDecoration(color: style.tagBg, borderRadius: BorderRadius.circular(14.w)),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.w,
+                        ),
+                        decoration: BoxDecoration(
+                          color: style.tagBg,
+                          borderRadius: BorderRadius.circular(14.w),
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(LucideIcons.leaf, size: 10.w, color: style.tagFg),
+                            Icon(
+                              LucideIcons.leaf,
+                              size: 10.w,
+                              color: style.tagFg,
+                            ),
                             Gap.w4,
                             Text(
                               'RECOMMENDED',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, color: style.tagFg, letterSpacing: 0.2),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 8.5.sp,
+                                fontWeight: FontWeight.w800,
+                                color: style.tagFg,
+                                letterSpacing: 0.2,
+                              ),
                             ),
                           ],
                         ),
@@ -307,16 +424,30 @@ class _AlternativePatternStyleCard extends StatelessWidget {
                         alt.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), height: 1.15, letterSpacing: -0.2),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 13.5.sp,
+                          fontWeight: FontWeight.w800,
+                          color: context.insightColor(const Color(0xFF0F172A)),
+                          height: 1.15,
+                          letterSpacing: -0.2,
+                        ),
                       ),
                       Gap.h2,
 
                       // Description / Reason
                       Text(
-                        alt.reason ?? 'A gut-friendly alternative to support your balance.',
+                        alt.reason ??
+                            'A gut-friendly alternative to support your balance.',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w500, color: const Color(0xFF334155), height: 1.25),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 9.5.sp,
+                          fontWeight: FontWeight.w500,
+                          color: context.insightColor(const Color(0xFF334155)),
+                          height: 1.25,
+                        ),
                       ),
                     ],
                   ),

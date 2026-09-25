@@ -95,7 +95,7 @@ class InsightBentoRecap extends StatelessWidget {
             tag: AppStrings.bentoCulprit,
             title: trigger.food,
             body: trigger.effects,
-            chartPainter: TriggerSpikePainter(color: const Color(0xFFF08019)),
+
             footLeft: AppStrings.bentoWatchDays,
             onTap: src == null
                 ? null
@@ -128,7 +128,7 @@ class InsightBentoRecap extends StatelessWidget {
             tag: AppStrings.bentoRecovery,
             title: healing.food,
             body: healing.effects,
-            chartPainter: WorkingBarsPainter(color: const Color(0xFFEFB008)),
+
             footLeft: healing.timeframe,
             onTap: src == null
                 ? null
@@ -1155,7 +1155,7 @@ class InsightBentoSynergy extends StatelessWidget {
                     meta: drivers[i].evidenceRatio > 0 ? '${(drivers[i].evidenceRatio.clamp(0.0, 1.0) * 100).round()}%' : null,
                     title: drivers[i].trigger,
                     body: drivers[i].description,
-                    chartPainter: WorkingBarsPainter(color: patternAccent(drivers[i].type), values: patternSeries(drivers[i])),
+                    chartPainter: patternSeries(drivers[i]).length >= 2 ? WorkingBarsPainter(color: patternAccent(drivers[i].type), values: patternSeries(drivers[i])) : null,
                     footLeft: '${AppStrings.bentoDriver} ${i + 1}',
                     onTap: () => context.push(AppRoutes.patternDetail, extra: drivers[i]),
                   ),
@@ -1170,7 +1170,7 @@ class InsightBentoSynergy extends StatelessWidget {
                     tag: AppStrings.bentoRescueProtocol,
                     title: summary.observation!,
                     body: summary.strength,
-                    chartPainter: HealingSparklinePainter(color: _teal),
+
                   ),
                 ),
             ],
@@ -1459,7 +1459,30 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       return n;
     }
 
-    // 1. Healing Foods
+    // 1. Healing Summary Foods
+    if (insight.healingSummary?.foods.isNotEmpty == true) {
+      for (final f in insight.healingSummary!.foods) {
+        final key = f.name.toLowerCase().trim();
+        if (key.isEmpty || !seen.add(key)) continue;
+        final occurrences = countOccurrences(f.name);
+        final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
+        final desc = f.effect != null && f.effect!.isNotEmpty ? f.effect! : 'Supports microbiome diversity and gut balance.';
+        list.add(
+          _TopFoodDetailItem(
+            name: f.name,
+            countText: countStr,
+            description: desc,
+            impactLabel: f.impactLevel.toUpperCase() == 'HIGH' ? 'High Impact' : 'Supportive',
+            isPositive: true,
+            category: 'healing',
+            imageKeyword: f.name,
+            isFavorite: true,
+          ),
+        );
+      }
+    }
+
+    // 2. Healing Foods
     for (final f in insight.healingFoods) {
       final key = f.name.toLowerCase().trim();
       if (key.isEmpty || !seen.add(key)) continue;
@@ -1469,8 +1492,11 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       list.add(_TopFoodDetailItem(name: f.name, countText: countStr, description: desc, impactLabel: 'High Impact', isPositive: true, category: 'healing', imageKeyword: f.name, isFavorite: true));
     }
 
-    // 2. Food Impacts (Positive)
-    for (final fi in insight.foodImpacts.where((i) => i.impactType == 'positive')) {
+    // 3. Positive / Good Food Impacts
+    for (final fi in insight.foodImpacts.where((i) {
+      final type = i.impactType.toLowerCase();
+      return type == 'positive' || type == 'healing' || type == 'good' || type == 'supportive';
+    })) {
       final key = fi.food.toLowerCase().trim();
       if (key.isEmpty || !seen.add(key)) continue;
       final occurrences = countOccurrences(fi.food);
@@ -1479,7 +1505,19 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       list.add(_TopFoodDetailItem(name: fi.food, countText: countStr, description: desc, impactLabel: 'Good', isPositive: true, category: 'good', imageKeyword: fi.food, isFavorite: false));
     }
 
-    // 3. Trigger Foods
+    // 4. Trigger Summary Foods
+    if (insight.triggerSummary?.foods.isNotEmpty == true) {
+      for (final f in insight.triggerSummary!.foods) {
+        final key = f.name.toLowerCase().trim();
+        if (key.isEmpty || !seen.add(key)) continue;
+        final occurrences = countOccurrences(f.name);
+        final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
+        final desc = f.effect != null && f.effect!.isNotEmpty ? f.effect! : 'Associated with digestive discomfort.';
+        list.add(_TopFoodDetailItem(name: f.name, countText: countStr, description: desc, impactLabel: 'Watch', isPositive: false, category: 'watch', imageKeyword: f.name, isFavorite: false));
+      }
+    }
+
+    // 5. Trigger Foods
     for (final f in insight.triggerFoods) {
       final key = f.name.toLowerCase().trim();
       if (key.isEmpty || !seen.add(key)) continue;
@@ -1489,8 +1527,11 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       list.add(_TopFoodDetailItem(name: f.name, countText: countStr, description: desc, impactLabel: 'Watch', isPositive: false, category: 'watch', imageKeyword: f.name, isFavorite: false));
     }
 
-    // 4. Food Impacts (Negative)
-    for (final fi in insight.foodImpacts.where((i) => i.impactType == 'negative')) {
+    // 6. Food Impacts (Watch / Negative)
+    for (final fi in insight.foodImpacts.where((i) {
+      final type = i.impactType.toLowerCase();
+      return type == 'negative' || type == 'trigger' || type == 'watch' || type == 'bad';
+    })) {
       final key = fi.food.toLowerCase().trim();
       if (key.isEmpty || !seen.add(key)) continue;
       final occurrences = countOccurrences(fi.food);

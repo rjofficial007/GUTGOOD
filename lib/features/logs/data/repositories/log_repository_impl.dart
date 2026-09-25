@@ -27,6 +27,7 @@ class LogRepositoryImpl implements LogRepository {
   Future<void> logSymptom(SymptomLog log) async {
     await _firestoreService.logSymptom(log);
     await _streakService.markActivityToday();
+    unawaited(_notificationService.scheduleNoMealLoggedReminder());
     await _analyticsService.logEvent(name: 'symptom_logged', parameters: <String, Object?>{'symptom': log.symptom, 'severity': log.severity});
   }
 

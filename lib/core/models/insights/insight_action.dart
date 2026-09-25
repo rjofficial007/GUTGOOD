@@ -1,10 +1,11 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 
 class ActionProgress extends Equatable {
   const ActionProgress({required this.target, required this.completed, required this.unit});
 
   factory ActionProgress.fromMap(Map<String, dynamic> map) =>
-      ActionProgress(target: (map['target'] as num?)?.toInt() ?? 0, completed: (map['completed'] as num?)?.toInt() ?? 0, unit: map['unit']?.toString() ?? '');
+      ActionProgress(target: InsightValues.integer(map['target']) ?? 0, completed: InsightValues.integer(map['completed']) ?? 0, unit: map['unit']?.toString() ?? '');
 
   final int target;
   final int completed;

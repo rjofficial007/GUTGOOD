@@ -17,4 +17,10 @@ class StorageKeys {
   static const String pendingMergeAnonUid = 'pending_merge_anon_uid';
   static const String pendingMergeProvider = 'pending_merge_provider';
   static const String lastFirebaseSync = 'last_firebase_sync_';
+  static const String foodImageThumbCache = 'food_image_thumb_cache_v1';
+  static const String foodImageUrlCache = 'food_image_url_cache_v1';
+  static const String streakCurrent = 'streak_current';
+  static const String streakLongest = 'streak_longest';
+  static const String streakLastActiveDate = 'streak_last_active_date';
+  static const String themeMode = 'theme_mode';
 }

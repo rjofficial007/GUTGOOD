@@ -13,18 +13,13 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 /// Extension to compute the percentage of a [BodyPattern].
 extension BodyPatternPercentage on BodyPattern {
-  int get percentage {
-    if (evidenceRatio > 0) {
-      return (evidenceRatio * 100).clamp(0, 100).round();
-    }
+  /// Returns a percentage only when measured evidence exists.
+  int? get percentage {
+    final ratio = evidenceRatio;
+    if (ratio.isFinite && ratio > 0) return (ratio.clamp(0.0, 1.0) * 100).round();
     final total = positiveCount + negativeCount;
-    if (total > 0) {
-      return ((positiveCount / total) * 100).clamp(0, 100).round();
-    }
-    final c = confidence.toLowerCase();
-    if (c == 'high') return 85;
-    if (c == 'moderate' || c == 'medium') return 65;
-    return 50;
+    if (total <= 0) return null;
+    return ((positiveCount / total) * 100).clamp(0, 100).round();
   }
 }
 
@@ -46,7 +41,7 @@ class ArcPatternCard extends StatelessWidget {
     final accentColor = patternAccent(pattern.type);
     final toneColor = patternTone(pattern.type);
     final percent = pattern.percentage;
-    final progress = (percent / 100.0).clamp(0.0, 1.0);
+    final progress = percent == null ? 0.0 : (percent / 100.0).clamp(0.0, 1.0);
     final radius = 18.w;
 
     return Semantics(
@@ -121,7 +116,7 @@ class ArcPatternCard extends StatelessWidget {
                             ),
                             Gap.h4,
                             Text(
-                              pattern.evidenceRatio > 0 ? '$percent% match' : '$percent%',
+                              percent == null ? 'Not enough evidence' : pattern.evidenceRatio > 0 ? '$percent% match' : '$percent% of observations',
                               style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 36.sp, fontWeight: FontWeight.w800, height: 1.0, letterSpacing: -1.0, color: accentColor),
                             ),
                             Gap.h8,
@@ -133,7 +128,7 @@ class ArcPatternCard extends StatelessWidget {
                                 border: Border.all(color: accentColor.withValues(alpha: 0.3)),
                               ),
                               child: Text(
-                                pattern.confidence,
+                                pattern.confidence.isEmpty ? 'Confidence unavailable' : pattern.confidence,
                                 style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: accentColor),
                               ),
                             ),

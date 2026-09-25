@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 /// P2-10/§H: a citable reference to one engine-detected pattern — the "Why"
@@ -35,11 +36,11 @@ class PatternRef extends Equatable {
     type: map['type']?.toString() ?? '',
     trigger: map['trigger']?.toString() ?? '',
     reaction: map['reaction']?.toString() ?? '',
-    frequency: (map['frequency'] as num?)?.toInt() ?? 0,
+    frequency: InsightValues.integer(map['frequency']) ?? 0,
     confidence: map['confidence']?.toString() ?? '',
-    evidenceRatio: (map['evidenceRatio'] as num?)?.toDouble() ?? 0.0,
-    positiveCount: (map['positiveCount'] as num?)?.toInt() ?? 0,
-    negativeCount: (map['negativeCount'] as num?)?.toInt() ?? 0,
+    evidenceRatio: InsightValues.number(map['evidenceRatio'])?.toDouble() ?? 0.0,
+    positiveCount: InsightValues.integer(map['positiveCount']) ?? 0,
+    negativeCount: InsightValues.integer(map['negativeCount']) ?? 0,
     involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
   );
 
@@ -74,7 +75,7 @@ class SampleSizes extends Equatable {
   const SampleSizes({this.meals = 0, this.symptoms = 0, this.scans = 0});
 
   factory SampleSizes.fromMap(Map<String, dynamic> map) =>
-      SampleSizes(meals: (map['meals'] as num?)?.toInt() ?? 0, symptoms: (map['symptoms'] as num?)?.toInt() ?? 0, scans: (map['scans'] as num?)?.toInt() ?? 0);
+      SampleSizes(meals: InsightValues.integer(map['meals']) ?? 0, symptoms: InsightValues.integer(map['symptoms']) ?? 0, scans: InsightValues.integer(map['scans']) ?? 0);
 
   final int meals;
   final int symptoms;
@@ -94,7 +95,7 @@ class InsightEvidence extends Equatable {
   factory InsightEvidence.fromMap(Map<String, dynamic> map) => InsightEvidence(
     patternRefs: ModelUtils.parseModelList<PatternRef>(map['patternRefs'], PatternRef.fromMap),
     sampleSizes: ModelUtils.parseNestedModel<SampleSizes>(map['sampleSizes'], SampleSizes.fromMap) ?? const SampleSizes(),
-    spanDays: (map['spanDays'] as num?)?.toInt() ?? 0,
+    spanDays: InsightValues.integer(map['spanDays']) ?? 0,
   );
 
   /// Rebuilds evidence from a legacy doc's own patterns (sample sizes unknown

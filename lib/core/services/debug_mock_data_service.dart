@@ -914,7 +914,7 @@ class DebugMockDataService {
     AppLogger.mock('Generating insufficient data state (Learning Grid)...');
     final now = DateTime.now();
 
-    // Just enough to show some progress but not unlock (unlock is scans >= 3 OR (meals >= 3 && symptoms >= 1))
+    // Just enough to show some progress but not unlock (unlock is food >= 3 AND symptoms >= 1)
     await _historyFirestoreService.logMeal(MealLog(items: const ['Morning Oats'], mealType: 'breakfast', createdAt: now, source: 'debug'));
     await _historyFirestoreService.saveToScanHistory(
       ScanResult(

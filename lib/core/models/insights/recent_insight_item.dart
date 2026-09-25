@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 
 class InsightDestination extends Equatable {
   const InsightDestination({
@@ -47,7 +48,7 @@ class RecentInsightItem extends Equatable {
         dateLabel: map['dateLabel']?.toString() ?? '',
         title: (map['title'] ?? '').toString(),
         description: (map['description'] ?? '').toString(),
-        score: (map['score'] as num?)?.toInt(),
+        score: InsightValues.integer(map['score']),
         impactDirection: map['impactDirection']?.toString() ?? 'positive',
         impactLabel: map['impactLabel']?.toString(),
         imageUrl: map['imageUrl']?.toString(),

@@ -22,7 +22,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
   /// the existing (type ==, createdAt orderBy) composite already serves it.
   static const _analysisWindowDays = 30;
   static const _fetchLimit = 150;
-  static const _minFrequency = 3;
+  static const _minFrequency = 2;
 
   /// P1-7: per-detector causality windows, exact [Duration] comparisons (the
   /// old `inHours <= N` checks leaked almost an extra hour via truncation).
@@ -37,7 +37,12 @@ class PatternEngineServiceImpl implements PatternEngineService {
     AppLogger.insights('Starting dynamic analysis...');
 
     final since = DateTime.now().subtract(const Duration(days: _analysisWindowDays));
-    final meals = await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since);
+    final journalMeals = await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since);
+    final scanHistory = await _historyFirestoreService.getRecentScans(limit: _fetchLimit, since: since);
+
+    final scanMeals = scanHistory.map((s) => s.toMealLog()).toList();
+    final meals = [...journalMeals, ...scanMeals];
+
     final allSymptoms = await _historyFirestoreService.getRecentSymptomLogs(limit: _fetchLimit, since: since);
     // P2-4: keyword-guessed symptoms (no structured AI entry, no user numbers)
     // are excluded from corroboration until a confirmation flow exists. They
@@ -626,5 +631,23 @@ class PatternEngineServiceImpl implements PatternEngineService {
     } catch (e) {
       AppLogger.error('PatternEngine: Sync failed', error: e);
     }
+  }
+}
+
+extension ScanResultToMealLog on ScanResult {
+  MealLog toMealLog() {
+    final itemNames = <String>[];
+    if (productName.isNotEmpty && productName.toLowerCase() != 'food' && productName.toLowerCase() != 'meal' && productName.toLowerCase() != 'scanned item') {
+      itemNames.add(productName);
+    }
+    for (final ing in ingredients) {
+      if (ing.name.isNotEmpty && !itemNames.contains(ing.name)) {
+        itemNames.add(ing.name);
+      }
+    }
+    if (itemNames.isEmpty && productName.isNotEmpty) {
+      itemNames.add(productName);
+    }
+    return MealLog(firestoreId: scanId, chatMessageId: chatMessageId, items: itemNames, notes: impact, photoUrl: imageUrl ?? userImageUrl, createdAt: createdAt);
   }
 }

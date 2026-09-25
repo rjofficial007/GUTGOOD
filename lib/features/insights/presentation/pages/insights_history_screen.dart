@@ -13,6 +13,7 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_states.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -59,9 +60,12 @@ class _InsightsHistoryScreenState extends State<InsightsHistoryScreen> {
                   padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      if (sortedHistory.isEmpty) ...[
-                        const _EmptyHistoryView(),
-                      ] else ...[
+                      if (snapshot.hasError) InsightErrorStateCard(onRetry: _reload, hasCachedData: sortedHistory.isNotEmpty),
+                      if (sortedHistory.isEmpty && snapshot.connectionState == ConnectionState.waiting)
+                        const InsightLoadingState()
+                      else if (sortedHistory.isEmpty && !snapshot.hasError)
+                        InsightEmptyStateCard(title: 'Your story starts here', message: 'Your saved insights will appear here as you log meals and symptoms.', actionLabel: 'Back to insights', onAction: () => context.pop())
+                      else ...[
                         for (final insight in sortedHistory) ...[_InsightHistoryTile(insight: insight)],
                       ],
                     ]),
@@ -82,28 +86,6 @@ class _InsightsHistoryScreenState extends State<InsightsHistoryScreen> {
       return const [];
     }
   }
-}
-
-class _EmptyHistoryView extends StatelessWidget {
-  const _EmptyHistoryView();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: EdgeInsets.all(AppSizes.p20),
-    decoration: BoxDecoration(
-      color: context.appColorScheme.elevatedSurface,
-      borderRadius: BorderRadius.circular(AppSizes.r20),
-      border: Border.all(color: context.appColorScheme.borderSubtle),
-    ),
-    child: Center(
-      child: Text(
-        'No insight history recorded yet. Keep logging meals to generate insights.',
-        textAlign: TextAlign.center,
-        style: context.caption.copyWith(color: context.appColorScheme.textMuted),
-      ),
-    ),
-  );
 }
 
 class _InsightHistoryTile extends StatelessWidget {
@@ -176,13 +158,13 @@ class _InsightHistoryTile extends StatelessWidget {
                 alignment: Alignment.center,
                 children: [
                   CircularProgressIndicator(
-                    value: (score / 100.0).clamp(0.0, 1.0),
+                    value: insight.hasGutScore ? (score / 100.0).clamp(0.0, 1.0) : 0,
                     strokeWidth: 4,
                     strokeCap: StrokeCap.round,
                     backgroundColor: trackColor,
                     valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
                   ),
-                  Text('$score', style: context.labelBold),
+                  Text(insight.hasGutScore ? '$score' : '—', style: context.labelBold),
                 ],
               ),
             ),

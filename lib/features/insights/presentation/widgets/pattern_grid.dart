@@ -23,14 +23,25 @@ class PatternGrid extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < patterns.length; i++) ...[if (i > 0) SizedBox(height: gap), PatternCard(pattern: patterns[i])],
+        for (var i = 0; i < patterns.length; i++) ...[
+          if (i > 0) SizedBox(height: gap),
+          PatternCard(pattern: patterns[i]),
+        ],
       ],
     );
   }
 }
 
 class PatternCardStyle {
-  const PatternCardStyle({required this.cardBg, required this.borderColor, required this.tagBg, required this.tagFg, required this.accentColor, required this.icon, required this.label});
+  const PatternCardStyle({
+    required this.cardBg,
+    required this.borderColor,
+    required this.tagBg,
+    required this.tagFg,
+    required this.accentColor,
+    required this.icon,
+    required this.label,
+  });
 
   final Color cardBg;
   final Color borderColor;
@@ -117,21 +128,40 @@ class PatternCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = PatternCardStyle.forType(pattern.type);
-    final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : pattern.trigger;
+    final foodName = pattern.involvedFoods.isNotEmpty
+        ? pattern.involvedFoods.first
+        : pattern.trigger;
     final imageUrl = V2Kit.foodImageUrl(foodName);
 
     final trigger = pattern.trigger.trim();
     final reaction = pattern.reaction.trim();
-    final title = (trigger.isNotEmpty || reaction.isNotEmpty) ? ((trigger.isNotEmpty && reaction.isNotEmpty) ? '$trigger → $reaction' : (trigger.isNotEmpty ? trigger : reaction)) : style.label;
+    final title = (trigger.isNotEmpty || reaction.isNotEmpty)
+        ? ((trigger.isNotEmpty && reaction.isNotEmpty)
+              ? '$trigger → $reaction'
+              : (trigger.isNotEmpty ? trigger : reaction))
+        : style.label;
 
     return Container(
       height: 124.w,
       decoration: BoxDecoration(
-        color: style.cardBg,
+        color: isDark ? v2.card : style.cardBg,
         borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: style.borderColor, width: 1.w),
-        boxShadow: [BoxShadow(color: style.accentColor.withValues(alpha: 0.05), blurRadius: 8.w, offset: const Offset(0, 2))],
+        border: Border.all(
+          color: isDark ? v2.border : style.borderColor,
+          width: 1.w,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isDark ? v2.textPrimary : style.accentColor).withValues(
+              alpha: 0.05,
+            ),
+            blurRadius: 8.w,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(
@@ -160,24 +190,50 @@ class PatternCard extends StatelessWidget {
                           Row(
                             children: [
                               Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
-                                decoration: BoxDecoration(color: style.tagBg, borderRadius: BorderRadius.circular(14.w)),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8.w,
+                                  vertical: 3.w,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark ? v2.cardSubtle : style.tagBg,
+                                  borderRadius: BorderRadius.circular(14.w),
+                                ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(style.icon, size: 10.w, color: style.tagFg),
+                                    Icon(
+                                      style.icon,
+                                      size: 10.w,
+                                      color: isDark
+                                          ? v2.textPrimary
+                                          : style.tagFg,
+                                    ),
                                     Gap.w3,
                                     Text(
                                       style.label,
-                                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: style.tagFg),
+                                      style: TextStyle(
+                                        fontFamily: InsightV2Theme.fontFamily,
+                                        fontSize: 9.5.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark
+                                            ? v2.textPrimary
+                                            : style.tagFg,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
                               Gap.w6,
                               Text(
-                                '${pattern.frequency} logs',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w700, color: style.accentColor),
+                                pattern.frequency > 0 ? '${pattern.frequency} logs' : 'Frequency unavailable',
+                                style: TextStyle(
+                                  fontFamily: InsightV2Theme.fontFamily,
+                                  fontSize: 9.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? v2.textSecondary
+                                      : style.accentColor,
+                                ),
                               ),
                             ],
                           ),
@@ -188,7 +244,14 @@ class PatternCard extends StatelessWidget {
                             title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), height: 1.15, letterSpacing: -0.2),
+                            style: TextStyle(
+                              fontFamily: InsightV2Theme.fontFamily,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w800,
+                              color: v2.textPrimary,
+                              height: 1.15,
+                              letterSpacing: -0.2,
+                            ),
                           ),
                           Gap.h2,
 
@@ -197,24 +260,45 @@ class PatternCard extends StatelessWidget {
                             pattern.description,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w500, color: const Color(0xFF334155), height: 1.2),
+                            style: TextStyle(
+                              fontFamily: InsightV2Theme.fontFamily,
+                              fontSize: 9.5.sp,
+                              fontWeight: FontWeight.w500,
+                              color: v2.textSecondary,
+                              height: 1.2,
+                            ),
                           ),
                         ],
                       ),
 
                       // Dark Pill View Button
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 4.5.w),
-                        decoration: BoxDecoration(color: style.accentColor, borderRadius: BorderRadius.circular(16.w)),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 11.w,
+                          vertical: 4.5.w,
+                        ),
+                        decoration: BoxDecoration(
+                          color: style.accentColor,
+                          borderRadius: BorderRadius.circular(16.w),
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               'View Pattern',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 9.5.sp,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                             ),
                             Gap.w3,
-                            Icon(Icons.arrow_forward_rounded, size: 10.w, color: Colors.white),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 10.w,
+                              color: Colors.white,
+                            ),
                           ],
                         ),
                       ),
@@ -235,10 +319,15 @@ class PatternCard extends StatelessWidget {
                     imageUrl: imageUrl,
                     fit: BoxFit.cover,
                     alignment: Alignment.center,
-                    placeholder: (_, _) => Container(color: style.tagBg),
+                    placeholder: (_, _) =>
+                        Container(color: isDark ? v2.cardSubtle : style.tagBg),
                     errorWidget: (_, _, _) => Container(
-                      color: style.tagBg,
-                      child: Icon(style.icon, color: style.tagFg, size: 24),
+                      color: isDark ? v2.cardSubtle : style.tagBg,
+                      child: Icon(
+                        style.icon,
+                        color: isDark ? v2.textSecondary : style.tagFg,
+                        size: 24,
+                      ),
                     ),
                   ),
                 ),
@@ -298,7 +387,9 @@ class MiniChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final values = patternSeries(pattern);
-    if (pattern.type == BodyPattern.typeEnergy || pattern.type == BodyPattern.typeDigestion || pattern.type == BodyPattern.typeSleep) {
+    if (pattern.type == BodyPattern.typeEnergy ||
+        pattern.type == BodyPattern.typeDigestion ||
+        pattern.type == BodyPattern.typeSleep) {
       return CustomPaint(
         size: Size.infinite,
         painter: LinePainter(color: color, values: values),
@@ -316,7 +407,6 @@ class BarPainter extends CustomPainter {
   final Color color;
   final List<double> values;
 
-  static const List<double> _fallback = [0.2, 0.5, 0.4, 0.7, 0.55, 0.9];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -325,31 +415,39 @@ class BarPainter extends CustomPainter {
     if (w <= 0 || h <= 0) return;
 
     if (values.length >= 2) {
-      final data = values.length > 7 ? values.sublist(values.length - 7) : values;
+      final data = values.length > 7
+          ? values.sublist(values.length - 7)
+          : values;
       final n = data.length;
       final maxV = data.reduce(math.max);
       const gap = 6.0;
       final barW = (w - gap * (n - 1)) / n;
       for (var i = 0; i < n; i++) {
-        final t = maxV <= 0 ? 0.5 : (0.2 + 0.8 * (data[i] / maxV)).clamp(0.0, 1.0);
+        final t = maxV <= 0
+            ? 0.5
+            : (0.2 + 0.8 * (data[i] / maxV)).clamp(0.0, 1.0);
         final rectH = h * t;
         canvas.drawRRect(
-          RRect.fromRectAndRadius(Rect.fromLTWH(i * (barW + gap), h - rectH, barW, rectH), Radius.circular(math.min(5, barW / 2))),
-          Paint()..color = color.withValues(alpha: n == 1 ? 1.0 : 0.45 + 0.55 * (i / (n - 1))),
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(i * (barW + gap), h - rectH, barW, rectH),
+            Radius.circular(math.min(5, barW / 2)),
+          ),
+          Paint()
+            ..color = color.withValues(
+              alpha: n == 1 ? 1.0 : 0.45 + 0.55 * (i / (n - 1)),
+            ),
         );
       }
       return;
     }
 
-    final barW = (w - 30) / 6;
-    for (var i = 0; i < 6; i++) {
-      final rectH = h * _fallback[i];
-      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(i * (barW + 6), h - rectH, barW, rectH), const Radius.circular(5)), Paint()..color = color.withValues(alpha: 0.5 + (i * 0.08)));
-    }
+    // Empty values mean there is no chart to draw.
+    return;
   }
 
   @override
-  bool shouldRepaint(BarPainter old) => old.color != color || !listEquals(old.values, values);
+  bool shouldRepaint(BarPainter old) =>
+      old.color != color || !listEquals(old.values, values);
 }
 
 class LinePainter extends CustomPainter {
@@ -372,12 +470,20 @@ class LinePainter extends CustomPainter {
 
     final List<Offset> points;
     if (values.length >= 2) {
-      final data = values.length > 7 ? values.sublist(values.length - 7) : values;
+      final data = values.length > 7
+          ? values.sublist(values.length - 7)
+          : values;
       final n = data.length;
       final maxV = data.reduce(math.max);
-      points = [for (var i = 0; i < n; i++) Offset(n == 1 ? 0 : w * i / (n - 1), h * (maxV <= 0 ? 0.5 : 0.85 - 0.7 * (data[i] / maxV)))];
+      points = [
+        for (var i = 0; i < n; i++)
+          Offset(
+            n == 1 ? 0 : w * i / (n - 1),
+            h * (maxV <= 0 ? 0.5 : 0.85 - 0.7 * (data[i] / maxV)),
+          ),
+      ];
     } else {
-      points = [Offset(0, h * 0.7), Offset(w * 0.16, h * 0.4), Offset(w * 0.33, h * 0.6), Offset(w * 0.5, h * 0.2), Offset(w * 0.66, h * 0.4), Offset(w * 0.83, h * 0.1), Offset(w, h * 0.3)];
+      return;
     }
 
     final path = Path()..moveTo(points[0].dx, points[0].dy);
@@ -393,5 +499,6 @@ class LinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(LinePainter old) => old.color != color || !listEquals(old.values, values);
+  bool shouldRepaint(LinePainter old) =>
+      old.color != color || !listEquals(old.values, values);
 }

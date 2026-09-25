@@ -237,4 +237,27 @@ extension InsightV2ThemeX on BuildContext {
   /// screen never hard-crashes when the extension is missing from the theme.
   InsightV2Theme get v2Theme =>
       Theme.of(this).extension<InsightV2Theme>() ?? InsightV2Theme.light;
+
+  /// Resolves colors from the original light Insights mock to their semantic
+  /// dark-mode counterpart. This keeps older cards and detail screens readable
+  /// while they share the same feature-level design tokens as the v2 feed.
+  Color insightColor(Color lightColor) {
+    if (Theme.of(this).brightness != Brightness.dark) return lightColor;
+
+    final t = v2Theme;
+    return switch (lightColor.toARGB32()) {
+      0xFFFFFFFF => t.card,
+      0xFFFCFCFD || 0xFFFAF8F5 => t.scaffold,
+      0xFFF8FAFC || 0xFFF6F6F8 || 0xFFF1F5F9 => t.cardSubtle,
+      0xFFE2E8F0 || 0xFFE4E4E8 => t.border,
+      0xFF0A0A0A || 0xFF0F172A || 0xFF1E293B => t.textPrimary,
+      0xFF334155 || 0xFF475569 || 0xFF4A4E5A => t.textSecondary,
+      0xFF64748B || 0xFF6E7280 || 0xFF94A3B8 => t.textTertiary,
+      0xFFF0FDF4 || 0xFFECFDF5 || 0xFFE7F6E7 || 0xFFDCFCE7 => t.successSoft,
+      0xFFFEF2F2 || 0xFFFFF1F0 || 0xFFFFE4E6 || 0xFFFECACA => t.errorSoft,
+      0xFFFFFBEB || 0xFFFFF4E5 || 0xFFFEF3C7 => t.warningSoft,
+      0xFFEDE9FE || 0xFFF5F3FF => t.purple.withValues(alpha: 0.18),
+      _ => lightColor,
+    };
+  }
 }

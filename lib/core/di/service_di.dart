@@ -14,9 +14,11 @@ import 'package:gutgood/core/services/device_info_services.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/gut_score_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/usage_firestore_service.dart';
+import 'package:gutgood/core/services/gut_score_calculator_service.dart';
 import 'package:gutgood/core/services/internet_connection_checker.dart';
 import 'package:gutgood/core/services/link_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
@@ -55,6 +57,8 @@ void initServiceDI() {
     ..registerLazySingleton<ChatFirestoreService>(() => ChatFirestoreServiceImpl(auth: sl(), db: sl()))
     ..registerLazySingleton<HistoryFirestoreService>(() => HistoryFirestoreServiceImpl(auth: sl(), db: sl(), foodImages: sl()))
     ..registerLazySingleton<InsightFirestoreService>(() => InsightFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<GutScoreFirestoreService>(() => GutScoreFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<GutScoreCalculatorService>(GutScoreCalculatorService.new)
     ..registerLazySingleton<UsageFirestoreService>(() => UsageFirestoreServiceImpl(auth: sl(), db: sl()))
     ..registerLazySingleton<NotificationService>(() => NotificationServiceImpl(notifications: sl(), authFirestoreService: sl(), historyFirestoreService: sl(), prefs: sl()))
     ..registerLazySingleton<PatternEngineService>(() => PatternEngineServiceImpl(historyFirestoreService: sl(), insightFirestoreService: sl()))

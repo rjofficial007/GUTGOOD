@@ -20,9 +20,6 @@ import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// Entry point to display the premium paywall screen from anywhere.
-///
-/// Presented as a full-screen modal dialog (covers the bottom navigation
-/// bar, like the old bottom sheet did). Completes when the page is popped.
 Future<void> showPaywallScreen(BuildContext context, {required VoidCallback onProceedWithLimited}) =>
     Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => GutPaywallScreen(onProceedWithLimited: onProceedWithLimited)));
 
@@ -36,7 +33,6 @@ class GutPaywallScreen extends StatelessWidget {
       return;
     }
 
-    // Check internet before purchase
     if (!sl<InternetConnectionChecker>().isInternetAvailable.value) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text(AppStrings.noInternetConnection), backgroundColor: context.appColorScheme.error));
       return;
@@ -46,16 +42,12 @@ class GutPaywallScreen extends StatelessWidget {
     try {
       success = await purchaseProvider.purchasePackage(package);
     } catch (_) {
-      // Real failure (a user cancellation returns false instead, never
-      // throws). Tell the user instead of leaving them guessing.
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text(AppStrings.purchaseFailed), backgroundColor: context.appColorScheme.error));
       }
       return;
     }
 
-    // `false` without an error means the user dismissed the store sheet:
-    // stay silent and let them keep browsing.
     if (!success) return;
 
     if (context.mounted) {
@@ -113,193 +105,213 @@ class GutPaywallScreen extends StatelessWidget {
     final isBusy = purchaseProvider.isLoading || purchaseProvider.isPurchasing;
     final isRestoring = purchaseProvider.isPurchasing && purchaseProvider.actionType == PurchaseActionType.restore;
 
+    Package? monthlyPackage;
+    try {
+      monthlyPackage = packages.firstWhere((p) => p.packageType == PackageType.monthly);
+    } catch (_) {}
+
     return Scaffold(
       backgroundColor: context.appColorScheme.cardBackground,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p8, AppSizes.p16, AppSizes.p24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _PaywallHeader(),
-              Gap.h20,
-              Text(
-                AppStrings.paywallEyebrow,
-                style: context.eyebrow.copyWith(fontSize: AppSizes.s11, fontWeight: .w600),
-              ),
-              Gap.h8,
-              Text(AppStrings.startHealingGut, style: context.displayMd.copyWith(fontSize: 40.0.sp)),
-              Gap.h8,
-              Text(AppStrings.knowWhatHelps, style: context.bodyLg.copyWith(color: context.appColorScheme.textMuted)),
-              Gap.h20,
-
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _FeatureCard(
-                        background: context.appColorScheme.softSuccess,
-                        icon: AppIcons.leaf,
-                        iconColor: context.appColorScheme.success,
-                        title: AppStrings.featureFoodsHurtHeal,
-                        subtitle: AppStrings.featureFoodsHurtHealDesc,
-                      ),
-                    ),
-                    Gap.w10,
-                    Expanded(
-                      child: _FeatureCard(
-                        background: context.appColorScheme.softWarning,
-                        icon: AppIcons.arrowRightLeft,
-                        iconColor: context.appColorScheme.warning,
-                        title: AppStrings.featureInstantSwaps,
-                        subtitle: AppStrings.featureInstantSwapsDesc,
-                      ),
-                    ),
-                    Gap.w10,
-                    Expanded(
-                      child: _FeatureCard(
-                        background: context.appColorScheme.lavender,
-                        icon: AppIcons.barChart,
-                        iconColor: context.appColorScheme.lavenderDark,
-                        title: AppStrings.featurePersonalInsights,
-                        subtitle: AppStrings.featurePersonalInsightsDesc,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Gap.h20,
-
-              // Plan Selection
-              if (isLoaded)
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: packages.length,
-                  separatorBuilder: (_, _) => Gap.h12,
-                  itemBuilder: (context, index) {
-                    final package = packages[index];
-                    final isSelected = package.identifier == selectedId;
-                    final period = _getPeriodString(package);
-
-                    // Find monthly package for savings calculation
-                    Package? monthly;
-                    try {
-                      monthly = packages.firstWhere((p) => p.packageType == PackageType.monthly);
-                    } catch (_) {}
-
-                    return _PaywallPlanCard(package: package, isSelected: isSelected, periodString: period, monthlyPackage: monthly, onTap: () => purchaseProvider.selectPackage(package.identifier));
-                  },
-                )
-              else if (purchaseProvider.isLoading)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 20),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (purchaseProvider.errorMessage != null)
-                // Fetch finished with no plans: show the failure (the
-                // button below switches to Refresh Plans) instead of
-                // spinning forever.
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(AppIcons.alertCircle, size: AppSizes.icon28, color: context.appColorScheme.error),
-                        Gap.h8,
-                        Text(
-                          purchaseProvider.errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: context.body.copyWith(color: context.appColorScheme.error),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                // No plans, not loading, no error: transient while another
-                // action (e.g. restore) superseded the fetch error. Neutral
-                // text — a spinner and an error never appear together.
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Center(
-                    child: Text(
-                      AppStrings.planUnavailable,
-                      textAlign: TextAlign.center,
-                      style: context.body.copyWith(color: context.appColorScheme.textMuted),
-                    ),
-                  ),
-                ),
-              Gap.h16,
-
-              _SubscribeButton(
-                label: isLoaded ? (hasTrial ? AppStrings.startFreeTrial : AppStrings.subscribeNow) : AppStrings.refreshPlans,
-                isLoading: isBusy && !isRestoring,
-                onTap: isBusy
-                    ? null
-                    : () {
-                        if (isLoaded) {
-                          _handlePurchase(context, purchaseProvider, selectedPackage);
-                        } else {
-                          purchaseProvider.retryFetchOfferings();
-                        }
-                      },
-              ),
-              Gap.h8,
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    context.pop();
-                    onProceedWithLimited();
-                  },
-                  child: Text(
-                    AppStrings.continueLimitedAccess,
-                    style: context.bodySm.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
-                  ),
-                ),
-              ),
-              Gap.h10,
-
-              const _TrustRow(),
-              Gap.h16,
-
-              Center(
-                child: isRestoring
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p8, AppSizes.p16, AppSizes.p16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // TOP CONTENT SECTION
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: context.appColorScheme.textMuted)),
-                          Gap.w8,
+                          const _PaywallHeader(),
+                          Gap.h12,
                           Text(
-                            AppStrings.restoringPurchases,
-                            style: context.bodySm.copyWith(fontSize: AppSizes.s12, color: context.appColorScheme.textMuted),
+                            AppStrings.paywallEyebrow,
+                            style: context.eyebrow.copyWith(fontSize: AppSizes.s10, fontWeight: FontWeight.w600),
+                          ),
+                          Gap.h4,
+                          Text(AppStrings.startHealingGut, style: context.displayMd.copyWith(fontSize: 28.0.sp, height: 1.15)),
+                          Gap.h4,
+                          Text(AppStrings.knowWhatHelps, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
+                          Gap.h12,
+
+                          // Features Row
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: _FeatureCard(
+                                    background: context.appColorScheme.softSuccess,
+                                    icon: AppIcons.leaf,
+                                    iconColor: context.appColorScheme.success,
+                                    title: AppStrings.featureFoodsHurtHeal,
+                                    subtitle: AppStrings.featureFoodsHurtHealDesc,
+                                  ),
+                                ),
+                                Gap.w8,
+                                Expanded(
+                                  child: _FeatureCard(
+                                    background: context.appColorScheme.softWarning,
+                                    icon: AppIcons.arrowRightLeft,
+                                    iconColor: context.appColorScheme.warning,
+                                    title: AppStrings.featureInstantSwaps,
+                                    subtitle: AppStrings.featureInstantSwapsDesc,
+                                  ),
+                                ),
+                                Gap.w8,
+                                Expanded(
+                                  child: _FeatureCard(
+                                    background: context.appColorScheme.lavender,
+                                    icon: AppIcons.barChart,
+                                    iconColor: context.appColorScheme.lavenderDark,
+                                    title: AppStrings.featurePersonalInsights,
+                                    subtitle: AppStrings.featurePersonalInsightsDesc,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Gap.h12,
+
+                          // Plan Selection
+                          if (isLoaded)
+                            Column(
+                              children: [
+                                for (int index = 0; index < packages.length; index++) ...[
+                                  if (index > 0) Gap.h8,
+                                  _PaywallPlanCard(
+                                    package: packages[index],
+                                    isSelected: packages[index].identifier == selectedId,
+                                    periodString: _getPeriodString(packages[index]),
+                                    monthlyPackage: monthlyPackage,
+                                    onTap: () => purchaseProvider.selectPackage(packages[index].identifier),
+                                  ),
+                                ],
+                              ],
+                            )
+                          else if (purchaseProvider.isLoading)
+                            const Padding(
+                              padding: EdgeInsets.only(bottom: 12),
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          else if (purchaseProvider.errorMessage != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    Icon(AppIcons.alertCircle, size: AppSizes.icon20, color: context.appColorScheme.error),
+                                    Gap.h4,
+                                    Text(
+                                      purchaseProvider.errorMessage!,
+                                      textAlign: TextAlign.center,
+                                      style: context.bodySm.copyWith(color: context.appColorScheme.error),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Center(
+                                child: Text(
+                                  AppStrings.planUnavailable,
+                                  textAlign: TextAlign.center,
+                                  style: context.bodySm.copyWith(color: context.appColorScheme.textMuted),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      // BOTTOM CONTENT SECTION
+                      Column(
+                        children: [
+                          Gap.h12,
+                          _SubscribeButton(
+                            label: isLoaded ? (hasTrial ? AppStrings.startFreeTrial : AppStrings.subscribeNow) : AppStrings.refreshPlans,
+                            isLoading: isBusy && !isRestoring,
+                            onTap: isBusy
+                                ? null
+                                : () {
+                                    if (isLoaded) {
+                                      _handlePurchase(context, purchaseProvider, selectedPackage);
+                                    } else {
+                                      purchaseProvider.retryFetchOfferings();
+                                    }
+                                  },
+                          ),
+                          Gap.h4,
+                          Center(
+                            child: TextButton(
+                              onPressed: () {
+                                context.pop();
+                                onProceedWithLimited();
+                              },
+                              style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 32)),
+                              child: Text(
+                                AppStrings.continueLimitedAccess,
+                                style: context.bodySm.copyWith(color: context.appColorScheme.textMuted, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
+                              ),
+                            ),
+                          ),
+                          Gap.h8,
+                          const _TrustRow(),
+                          Gap.h10,
+                          Center(
+                            child: isRestoring
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: context.appColorScheme.textMuted)),
+                                      Gap.w6,
+                                      Text(
+                                        AppStrings.restoringPurchases,
+                                        style: context.bodySm.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textMuted),
+                                      ),
+                                    ],
+                                  )
+                                : RichText(
+                                    textAlign: TextAlign.center,
+                                    text: TextSpan(
+                                      style: context.bodySm.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textMuted),
+                                      children: [
+                                        TextSpan(
+                                          text: AppStrings.paywallRestore,
+                                          style: context.underline,
+                                          recognizer: TapGestureRecognizer()..onTap = () => unawaited(_handleRestore(context, purchaseProvider)),
+                                        ),
+                                        const TextSpan(text: '  |  '),
+                                        TextSpan(
+                                          text: AppStrings.paywallTerms,
+                                          style: context.underline,
+                                          recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl)),
+                                        ),
+                                        const TextSpan(text: '  |  '),
+                                        TextSpan(
+                                          text: AppStrings.paywallPrivacy,
+                                          style: context.underline,
+                                          recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                           ),
                         ],
-                      )
-                    : RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          style: context.bodySm.copyWith(fontSize: AppSizes.s12, color: context.appColorScheme.textMuted),
-                          children: [
-                            TextSpan(text: AppStrings.paywallRestore, style: context.underline, recognizer: TapGestureRecognizer()..onTap = () => unawaited(_handleRestore(context, purchaseProvider))),
-                            const TextSpan(text: '  |  '),
-                            TextSpan(
-                              text: AppStrings.paywallTerms,
-                              style: context.underline,
-                              recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().termsConditionUrl)),
-                            ),
-                            const TextSpan(text: '  |  '),
-                            TextSpan(
-                              text: AppStrings.paywallPrivacy,
-                              style: context.underline,
-                              recognizer: TapGestureRecognizer()..onTap = () => unawaited(sl<AppService>().urlLauncher(context, sl<ConfigService>().privacyPolicyUrl)),
-                            ),
-                          ],
-                        ),
                       ),
+                    ],
+                  ),
+                ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -321,18 +333,18 @@ class _PaywallHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(AppStrings.gutgoodTitle, style: context.headingLg),
+        Text(AppStrings.gutgoodTitle, style: context.headingLg.copyWith(fontSize: AppSizes.s18)),
         Semantics(
           button: true,
           label: AppStrings.close,
           child: GestureDetector(
             onTap: () => context.pop(),
             child: Container(
-              width: 36,
-              height: 36,
+              width: 30,
+              height: 30,
               alignment: Alignment.center,
               decoration: BoxDecoration(color: isDark ? AppPalette.darkElevated : AppPalette.gray100, shape: BoxShape.circle),
-              child: Icon(AppIcons.x, size: AppSizes.icon18, color: context.appColorScheme.textPrimary),
+              child: Icon(AppIcons.x, size: AppSizes.icon16, color: context.appColorScheme.textPrimary),
             ),
           ),
         ),
@@ -356,25 +368,22 @@ class _FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(AppSizes.p12),
-    decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(AppSizes.r16)),
+    padding: EdgeInsets.all(AppSizes.p8),
+    decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(AppSizes.r12)),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 36,
-          height: 36,
+          width: 28,
+          height: 28,
           alignment: Alignment.center,
           decoration: BoxDecoration(color: Color.alphaBlend(iconColor.withAlpha(40), background), shape: BoxShape.circle),
-          child: Icon(icon, size: AppSizes.icon18, color: iconColor),
+          child: Icon(icon, size: AppSizes.icon14, color: iconColor),
         ),
-        Gap.h8,
-        Text(title, style: context.bodyBold.copyWith(fontSize: AppSizes.s13)),
-        Gap.h4,
-        Text(
-          subtitle,
-          style: context.caption.copyWith(fontSize: AppSizes.s11, color: context.appColorScheme.textMuted),
-        ),
+        Gap.h6,
+        Text(title, style: context.bodyBold.copyWith(fontSize: AppSizes.s11, height: 1.2)),
+        Gap.h2,
+        Text(subtitle, style: context.caption.copyWith(fontSize: 10.0, color: context.appColorScheme.textMuted, height: 1.15)),
       ],
     ),
   );
@@ -421,81 +430,84 @@ class _PaywallPlanCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? scheme.successSubtle : scheme.cardBackground,
-          borderRadius: BorderRadius.circular(AppSizes.r16),
+          borderRadius: BorderRadius.circular(AppSizes.r12),
           border: Border.all(color: isSelected ? scheme.success : scheme.border, width: isSelected ? 1.5 : 1.0),
         ),
         child: Row(
           children: [
-            // Radio Indicator
             Container(
-              width: 22,
-              height: 22,
+              width: 18,
+              height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: isSelected ? scheme.success : scheme.textMuted.withAlpha(102), width: 1.5),
               ),
               child: Center(
                 child: Container(
-                  width: 12,
-                  height: 12,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(shape: BoxShape.circle, color: isSelected ? scheme.success : AppPalette.transparent),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
 
-            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Text(isAnnual ? AppStrings.yearly : AppStrings.monthly, style: context.bodyBold.copyWith(fontSize: AppSizes.s16)),
+                      Text(isAnnual ? AppStrings.yearly : AppStrings.monthly, style: context.bodyBold.copyWith(fontSize: AppSizes.s15)),
                       if (isAnnual) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(color: scheme.successSubtle, borderRadius: BorderRadius.circular(100)),
-                          child: Text(
-                            AppStrings.bestValue,
-                            style: context.captionBold.copyWith(fontSize: AppSizes.s10, color: scheme.success),
-                          ),
+                          child: Text(AppStrings.bestValue, style: context.captionBold.copyWith(fontSize: 9.0, color: scheme.success)),
                         ),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 2),
                   if (hasFreeTrial)
                     Text(
                       '${intro.periodNumberOfUnits} ${intro.periodUnit.name.toLowerCase()}${intro.periodNumberOfUnits == 1 ? '' : 's'} FREE TRIAL',
-                      style: context.bodyBold.copyWith(color: scheme.success, fontSize: AppSizes.s13, letterSpacing: 0.2),
+                      style: context.bodyBold.copyWith(color: scheme.success, fontSize: AppSizes.s11, letterSpacing: 0.2),
                     ),
                   if (savingsAmt != null)
                     Text(
                       AppStrings.savePercent(savingsAmt),
-                      style: context.bodyBold.copyWith(color: scheme.success, fontSize: AppSizes.s13),
+                      style: context.bodyBold.copyWith(color: scheme.success, fontSize: AppSizes.s11),
                     )
                   else if (!isAnnual)
-                    Text(AppStrings.cancelAnytime, style: context.bodySm.copyWith(color: scheme.textMuted)),
-                  if (monthlyEquivalentText != null) Text(monthlyEquivalentText, style: context.bodySm.copyWith(color: scheme.textMuted)),
+                    Text(
+                      AppStrings.cancelAnytime,
+                      style: context.bodySm.copyWith(color: scheme.textMuted, fontSize: AppSizes.s11),
+                    ),
+                  if (monthlyEquivalentText != null)
+                    Text(
+                      monthlyEquivalentText,
+                      style: context.bodySm.copyWith(color: scheme.textMuted, fontSize: AppSizes.s11),
+                    ),
                 ],
               ),
             ),
 
-            // Price Column
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(storeProduct.priceString, style: context.bodyBold.copyWith(fontSize: AppSizes.s20)),
-                Text(periodString.trim(), style: context.bodySm.copyWith(color: scheme.textMuted)),
+                Text(storeProduct.priceString, style: context.bodyBold.copyWith(fontSize: AppSizes.s16)),
+                Text(
+                  periodString.trim(),
+                  style: context.bodySm.copyWith(color: scheme.textMuted, fontSize: AppSizes.s11),
+                ),
                 if (originalPriceText != null)
                   Text(
                     originalPriceText,
-                    style: context.bodySm.copyWith(color: scheme.textMuted.withAlpha(153), decoration: TextDecoration.lineThrough),
+                    style: context.bodySm.copyWith(color: scheme.textMuted.withAlpha(153), decoration: TextDecoration.lineThrough, fontSize: AppSizes.s10),
                   ),
               ],
             ),
@@ -534,13 +546,13 @@ class _SubscribeButton extends StatelessWidget {
               },
         child: Container(
           width: double.infinity,
-          padding: EdgeInsets.symmetric(vertical: AppSizes.p16),
-          decoration: BoxDecoration(color: colorScheme.textPrimary, borderRadius: BorderRadius.circular(AppSizes.r16)),
+          padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
+          decoration: BoxDecoration(color: colorScheme.textPrimary, borderRadius: BorderRadius.circular(AppSizes.r12)),
           alignment: Alignment.center,
           child: isLoading
               ? SizedBox(
-                  width: AppSizes.icon20,
-                  height: AppSizes.icon20,
+                  width: AppSizes.icon18,
+                  height: AppSizes.icon18,
                   child: CircularProgressIndicator(color: colorScheme.cardBackground, strokeWidth: 2),
                 )
               : Row(
@@ -548,10 +560,10 @@ class _SubscribeButton extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: context.bodyBold.copyWith(fontSize: AppSizes.s18, color: colorScheme.cardBackground),
+                      style: context.bodyBold.copyWith(fontSize: AppSizes.s16, color: colorScheme.cardBackground),
                     ),
-                    Gap.w10,
-                    Icon(AppIcons.arrowRight, size: AppSizes.icon20, color: colorScheme.cardBackground),
+                    Gap.w8,
+                    Icon(AppIcons.arrowRight, size: AppSizes.icon18, color: colorScheme.cardBackground),
                   ],
                 ),
         ),
@@ -575,12 +587,16 @@ class _TrustRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: AppSizes.icon28, color: scheme.textMuted),
-          Gap.w8,
-          Text(
-            label,
-            textAlign: TextAlign.start,
-            style: context.bodySm.copyWith(fontSize: AppSizes.s12, color: scheme.textMuted),
+          Icon(icon, size: AppSizes.icon24, color: scheme.textMuted),
+          Gap.w4,
+          Flexible(
+            child: Text(
+              label,
+              textAlign: TextAlign.start,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: context.bodySm.copyWith(height: 1.1, fontSize: AppSizes.s11, color: scheme.textMuted),
+            ),
           ),
         ],
       ),
@@ -589,9 +605,9 @@ class _TrustRow extends StatelessWidget {
     return Row(
       children: [
         item(AppIcons.lock, AppStrings.trustSecurePayment),
-        Container(width: 1, height: 48, color: scheme.border),
+        Container(width: 1, height: 24, color: scheme.border),
         item(AppIcons.shieldCheck, AppStrings.trustCancelAnytime),
-        Container(width: 1, height: 48, color: scheme.border),
+        Container(width: 1, height: 24, color: scheme.border),
         item(AppIcons.heart, AppStrings.trustHealthierYou),
       ],
     );

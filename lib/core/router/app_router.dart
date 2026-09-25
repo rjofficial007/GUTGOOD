@@ -22,7 +22,6 @@ import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dar
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
-import 'package:gutgood/features/insights/presentation/pages/gut_score_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/highlight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
@@ -162,14 +161,6 @@ class AppRouter {
             navigatorKey: _shellNavigatorInsightsKey,
             routes: [
               GoRoute(path: AppRoutes.insights, builder: (context, state) => const InsightsScreen()),
-              GoRoute(
-                path: AppRoutes.gutScoreDetail,
-                builder: (context, state) {
-                  final insight = state.extra is AIInsight ? state.extra as AIInsight : context.read<InsightsNotifier>().latestInsight;
-                  if (insight == null) return const InsightsHistoryScreen();
-                  return GutScoreDetailScreen(insight: insight);
-                },
-              ),
               GoRoute(
                 path: AppRoutes.insightDetail,
                 builder: (context, state) {

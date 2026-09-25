@@ -21,17 +21,17 @@ class InsightDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var series = [insight.gutScore.toDouble()];
+    var series = insight.hasGutScore ? [insight.gutScore.toDouble()] : <double>[];
     try {
       final notifier = context.read<InsightsNotifier>();
       final sorted = [...notifier.insightHistory]
         ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
       final upto = sorted
-          .where((i) => !i.updatedAt.isAfter(insight.updatedAt))
+          .where((i) => i.hasGutScore && !i.updatedAt.isAfter(insight.updatedAt))
           .toList();
-      if (!upto.any((i) => i.updatedAt == insight.updatedAt)) upto.add(insight);
+      if (insight.hasGutScore && !upto.any((i) => i.updatedAt == insight.updatedAt)) upto.add(insight);
       final window = upto.length > 7 ? upto.sublist(upto.length - 7) : upto;
-      series = [for (final i in window) i.gutScore.toDouble()];
+      series = [for (final i in window) if (i.hasGutScore) i.gutScore.toDouble()];
     } catch (_) {
       // No notifier in scope (e.g. an isolated preview): the chart degrades
       // to a flat line instead of the 7-day trend.

@@ -75,6 +75,8 @@ class PatternDetailScreen extends StatelessWidget {
 
   /// 1. Top Hero Pattern Card (Matching SynergyDetailScreen Hero layout)
   Widget _buildHeroCard(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : (pattern.trigger.isNotEmpty ? pattern.trigger : 'Whole Foods');
     final imageUrl = V2Kit.foodImageUrl(foodName);
     final style = PatternCardStyle.forType(pattern.type);
@@ -86,9 +88,9 @@ class PatternDetailScreen extends StatelessWidget {
     return Container(
       height: 152.w,
       decoration: BoxDecoration(
-        color: style.cardBg,
+        color: isDark ? v2.card : style.cardBg,
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: style.borderColor, width: 1.w),
+        border: Border.all(color: isDark ? v2.border : style.borderColor, width: 1.w),
         boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.04), blurRadius: 6.w, offset: Offset(0, 2.w))],
       ),
       clipBehavior: Clip.antiAlias,
@@ -139,18 +141,22 @@ class PatternDetailScreen extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Tag Pill
+                      // Minimal & Compact Tag Pill
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.w),
-                        decoration: BoxDecoration(color: style.tagBg, borderRadius: BorderRadius.circular(16.w)),
+                        padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.5.w),
+                        decoration: BoxDecoration(
+                          color: isDark ? v2.cardSubtle : style.tagBg.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(100.w),
+                          border: Border.all(color: (isDark ? v2.textPrimary : style.tagFg).withValues(alpha: 0.18), width: 0.8.w),
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(style.icon, size: 10.w, color: style.tagFg),
+                            Icon(style.icon, size: 9.5.w, color: isDark ? v2.textPrimary : style.tagFg),
                             Gap.w4,
                             Text(
                               style.label,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: style.tagFg),
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: isDark ? v2.textPrimary : style.tagFg, height: 1.1),
                             ),
                           ],
                         ),
@@ -162,7 +168,7 @@ class PatternDetailScreen extends StatelessWidget {
                         title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A), height: 1.15, letterSpacing: -0.3),
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: v2.textPrimary, height: 1.15, letterSpacing: -0.3),
                       ),
                       Gap.h4,
 
@@ -171,26 +177,32 @@ class PatternDetailScreen extends StatelessWidget {
                         pattern.description,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w500, color: const Color(0xFF334155), height: 1.25),
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w500, color: v2.textSecondary, height: 1.25),
                       ),
                     ],
                   ),
 
-                  // High Confidence Badge
+                  // Minimal & Compact Confidence Badge
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.w),
-                    decoration: BoxDecoration(color: style.accentColor, borderRadius: BorderRadius.circular(16.w)),
+                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.w),
+                    decoration: BoxDecoration(
+                      color: style.accentColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(100.w),
+                      border: Border.all(color: style.accentColor.withValues(alpha: 0.25), width: 0.8.w),
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(LucideIcons.shieldCheck, size: 11.w, color: Colors.white),
+                        Container(
+                          width: 4.5.w,
+                          height: 4.5.w,
+                          decoration: BoxDecoration(color: style.accentColor, shape: BoxShape.circle),
+                        ),
                         Gap.w4,
                         Text(
-                          '${pattern.confidence} Confidence',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                          '${pattern.confidence.toUpperCase()} CONFIDENCE',
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.2, color: style.accentColor, height: 1.1),
                         ),
-                        Gap.w3,
-                        Icon(Icons.arrow_forward_rounded, size: 10.w, color: Colors.white),
                       ],
                     ),
                   ),
@@ -215,7 +227,7 @@ class PatternDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
         boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
       ),
       child: Row(
@@ -235,12 +247,12 @@ class PatternDetailScreen extends StatelessWidget {
               children: [
                 Text(
                   'What We Observed',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                 ),
                 Gap.h3,
                 Text(
                   text,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: const Color(0xFF475569), height: 1.3),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: context.insightColor(const Color(0xFF475569)), height: 1.3),
                 ),
               ],
             ),
@@ -259,7 +271,7 @@ class PatternDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
         boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
       ),
       child: Column(
@@ -281,11 +293,11 @@ class PatternDetailScreen extends StatelessWidget {
                   children: [
                     Text(
                       'The Evidence',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                     ),
                     Text(
                       'Based on your last ${pattern.timeframeDays} days of data.',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B)),
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
                     ),
                   ],
                 ),
@@ -295,13 +307,13 @@ class PatternDetailScreen extends StatelessWidget {
           Gap.h12,
           Row(
             children: [
-              _buildMetricTile(title: '$evidenceRatio%', label: 'Evidence Ratio', icon: LucideIcons.pieChart, color: style.accentColor, bg: style.tagBg),
+              _buildMetricTile(context, title: '$evidenceRatio%', label: 'Evidence Ratio', icon: LucideIcons.pieChart, color: style.accentColor, bg: style.tagBg),
               Gap.w6,
-              _buildMetricTile(title: '${frequency}x', label: 'Times Logged', icon: LucideIcons.history, color: style.accentColor, bg: style.tagBg),
+              _buildMetricTile(context, title: '${frequency}x', label: 'Times Logged', icon: LucideIcons.history, color: style.accentColor, bg: style.tagBg),
               Gap.w6,
-              _buildMetricTile(title: '$symptomLogs', label: 'Symptom Logs', icon: LucideIcons.thumbsDown, color: const Color(0xFFDC2626), bg: const Color(0xFFFEF2F2)),
+              _buildMetricTile(context, title: '$symptomLogs', label: 'Symptom Logs', icon: LucideIcons.thumbsDown, color: const Color(0xFFDC2626), bg: context.insightColor(const Color(0xFFFEF2F2))),
               Gap.w6,
-              _buildMetricTile(title: '$normalLogs', label: 'Normal Logs', icon: LucideIcons.thumbsUp, color: const Color(0xFF15803D), bg: const Color(0xFFF0FDF4)),
+              _buildMetricTile(context, title: '$normalLogs', label: 'Normal Logs', icon: LucideIcons.thumbsUp, color: const Color(0xFF15803D), bg: context.insightColor(const Color(0xFFF0FDF4))),
             ],
           ),
         ],
@@ -309,44 +321,42 @@ class PatternDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricTile({required String title, required String label, required IconData icon, required Color color, required Color bg}) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(8.w),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12.w),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
-                  child: Icon(icon, size: 10.w, color: color),
-                ),
-              ],
-            ),
-            Gap.h6,
-            Text(
-              title,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-            ),
-            Gap.h2,
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
-            ),
-          ],
-        ),
+  Widget _buildMetricTile(BuildContext context, {required String title, required String label, required IconData icon, required Color color, required Color bg}) => Expanded(
+    child: Container(
+      padding: EdgeInsets.all(8.w),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12.w),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
-    );
-  }
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(4.w),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+                child: Icon(icon, size: 10.w, color: color),
+              ),
+            ],
+          ),
+          Gap.h6,
+          Text(
+            title,
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+          ),
+          Gap.h2,
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF64748B))),
+          ),
+        ],
+      ),
+    ),
+  );
 
   /// 4. "Involved Foods" Horizontal Grid (Harvests from involvedFoods, trigger, and occurrences)
   Widget _buildInvolvedFoodsSection(BuildContext context) {
@@ -389,11 +399,11 @@ class PatternDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Involved Foods',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                   ),
                   Text(
                     'Foods frequently associated with this pattern.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B)),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
                   ),
                 ],
               ),
@@ -428,7 +438,7 @@ class PatternDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
         boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
       ),
       child: Column(
@@ -440,7 +450,7 @@ class PatternDetailScreen extends StatelessWidget {
               Gap.w6,
               Text(
                 'Occurrences & Factors',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
               ),
             ],
           ),
@@ -454,11 +464,15 @@ class PatternDetailScreen extends StatelessWidget {
               children: [
                 for (final factor in pattern.commonFactors)
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
-                    decoration: BoxDecoration(color: style.tagBg, borderRadius: BorderRadius.circular(10.w)),
+                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.5.w),
+                    decoration: BoxDecoration(
+                      color: style.tagBg.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(100.w),
+                      border: Border.all(color: style.tagFg.withValues(alpha: 0.15), width: 0.7.w),
+                    ),
                     child: Text(
                       '${_factorGlyph(factor.icon)} ${factor.label}',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w600, color: style.tagFg),
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w600, color: style.tagFg, height: 1.1),
                     ),
                   ),
               ],
@@ -471,7 +485,7 @@ class PatternDetailScreen extends StatelessWidget {
             Column(
               children: [
                 for (var i = 0; i < pattern.occurrences.take(4).length; i++) ...[
-                  if (i > 0) Divider(height: 12.w, color: const Color(0xFFF1F5F9)),
+                  if (i > 0) Divider(height: 12.w, color: context.insightColor(const Color(0xFFF1F5F9))),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -481,13 +495,13 @@ class PatternDetailScreen extends StatelessWidget {
                           children: [
                             Text(
                               '${pattern.occurrences[i].date} • ${pattern.occurrences[i].mealName}',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
                             ),
                             if (pattern.occurrences[i].reaction.isNotEmpty) ...[
                               Gap.h2,
                               Text(
                                 pattern.occurrences[i].reaction,
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF64748B)),
+                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF64748B))),
                               ),
                             ],
                           ],
@@ -496,10 +510,14 @@ class PatternDetailScreen extends StatelessWidget {
                       if (pattern.occurrences[i].timeAfter.isNotEmpty)
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.w),
-                          decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(6.w)),
+                          decoration: BoxDecoration(
+                            color: context.insightColor(const Color(0xFFF1F5F9)),
+                            borderRadius: BorderRadius.circular(100.w),
+                            border: Border.all(color: context.insightColor(const Color(0xFFCBD5E1)), width: 0.7.w),
+                          ),
                           child: Text(
                             pattern.occurrences[i].timeAfter,
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
+                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF475569)), height: 1.1),
                           ),
                         ),
                     ],
@@ -537,7 +555,7 @@ class PatternDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF4FAF5),
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: const Color(0xFFDCFCE7), width: 1.w),
+        border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7)), width: 1.w),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -559,7 +577,7 @@ class PatternDetailScreen extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Your Next Steps',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                     ),
                   ),
                 ],
@@ -567,7 +585,7 @@ class PatternDetailScreen extends StatelessWidget {
               Gap.h3,
               Text(
                 'Recommended actions for this pattern:',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569), height: 1.2),
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.2),
               ),
               Gap.h10,
 
@@ -596,7 +614,7 @@ class PatternDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF0F7FF),
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -614,7 +632,7 @@ class PatternDetailScreen extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Supporting Evidence',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                 ),
               ),
             ],
@@ -622,7 +640,7 @@ class PatternDetailScreen extends StatelessWidget {
           Gap.h2,
           Text(
             'Based on your logged data.',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569)),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569))),
           ),
           Gap.h10,
 
@@ -667,7 +685,7 @@ class _InvolvedFoodTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFDF7),
         borderRadius: BorderRadius.circular(14.w),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -679,9 +697,9 @@ class _InvolvedFoodTile extends StatelessWidget {
               width: 94.w,
               height: 60.w,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: const Color(0xFFF1F5F9)),
+              placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFF1F5F9))),
               errorWidget: (_, _, _) => Container(
-                color: const Color(0xFFFEF3C7),
+                color: context.insightColor(const Color(0xFFFEF3C7)),
                 alignment: Alignment.center,
                 child: Icon(LucideIcons.utensils, size: 20.w, color: const Color(0xFFD97706)),
               ),
@@ -690,22 +708,26 @@ class _InvolvedFoodTile extends StatelessWidget {
           Gap.h4,
           Text(
             foodName,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Gap.h3,
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
-            decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(10.w)),
+            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.w),
+            decoration: BoxDecoration(
+              color: context.insightColor(const Color(0xFFF0FDF4)),
+              borderRadius: BorderRadius.circular(100.w),
+              border: Border.all(color: const Color(0xFF15803D).withValues(alpha: 0.2), width: 0.7.w),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(LucideIcons.leaf, size: 8.5.w, color: const Color(0xFF15803D)),
+                Icon(LucideIcons.leaf, size: 7.5.w, color: const Color(0xFF15803D)),
                 Gap.w2,
                 Text(
                   'Involved',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D), height: 1.1),
                 ),
               ],
             ),
@@ -741,12 +763,12 @@ class _NextStepCheckRow extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A), height: 1.2),
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A)), height: 1.2),
             ),
             Gap.h2,
             Text(
               subtitle,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: const Color(0xFF475569), height: 1.2),
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.2),
             ),
           ],
         ),
@@ -780,18 +802,18 @@ class _EvidenceMetricRow extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A), height: 1.1),
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A)), height: 1.1),
             ),
             Text(
               subtitle,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: const Color(0xFF64748B), height: 1.1),
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.1),
             ),
           ],
         ),
       ),
       Text(
         value,
-        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
       ),
     ],
   );

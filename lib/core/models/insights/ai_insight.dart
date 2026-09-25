@@ -12,6 +12,7 @@ import 'package:gutgood/core/models/insights/insight_v2_blocks.dart';
 import 'package:gutgood/core/models/insights/recent_insight_item.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 
 /// Represents a holistic snapshot of a user's gut health trends and AI-driven discoveries.
 ///
@@ -24,6 +25,7 @@ class AIInsight extends Equatable {
     this.firestoreId,
     this.uid,
     required this.gutScore,
+    this.hasGutScore = true,
     this.gutScoreSummary,
     this.scoreDiff,
     this.topInsight,
@@ -68,22 +70,37 @@ class AIInsight extends Equatable {
 
   factory AIInsight.fromMap(Map<String, dynamic> map) {
     final rawData = map['data'];
-    final data = rawData is String ? jsonDecode(rawData) as Map<String, dynamic> : (rawData as Map<String, dynamic>? ?? map);
+    var decodedData = <String, dynamic>{};
+    if (rawData is String) {
+      try {
+        final decoded = jsonDecode(rawData);
+        decodedData = decoded is Map ? Map<String, dynamic>.from(decoded) : const {};
+      } on FormatException {
+        decodedData = <String, dynamic>{};
+      }
+    } else if (rawData is Map) {
+      decodedData = Map<String, dynamic>.from(rawData);
+    } else {
+      decodedData = <String, dynamic>{};
+    }
+    final data = decodedData.isEmpty ? map : decodedData;
     final rawId = map['id'] ?? map['firestoreId'];
-    final period = data['period'] as Map<String, dynamic>?;
+    final rawPeriod = data['period'];
+    final period = rawPeriod is Map ? Map<String, dynamic>.from(rawPeriod) : null;
 
     final rawGutScore = data['gutScore'];
-    final parsedScore = rawGutScore is Map<String, dynamic> ? ((rawGutScore['score'] as num?)?.toInt() ?? 0) : ((rawGutScore as num?)?.toInt() ?? 0);
+    final parsedScore = InsightValues.integer(rawGutScore is Map ? rawGutScore['score'] : rawGutScore);
+    final hasScore = parsedScore != null && parsedScore >= 0 && parsedScore <= 100 && data['hasGutScore'] != false;
 
-    final parsedGutScoreSummary = rawGutScore is Map<String, dynamic>
-        ? GutScoreSummary.fromMap(rawGutScore)
-        : (data['gutScoreSummary'] is Map<String, dynamic> ? GutScoreSummary.fromMap(data['gutScoreSummary'] as Map<String, dynamic>) : null);
+    final parsedGutScoreSummary = rawGutScore is Map
+        ? GutScoreSummary.fromMap(Map<String, dynamic>.from(rawGutScore))
+        : (data['gutScoreSummary'] is Map ? GutScoreSummary.fromMap(Map<String, dynamic>.from(data['gutScoreSummary'] as Map)) : null);
 
     final rawHealing = data['healing'];
-    final parsedHealingSummary = rawHealing is Map<String, dynamic> ? HealingSummary.fromMap(rawHealing) : null;
+    final parsedHealingSummary = rawHealing is Map ? HealingSummary.fromMap(Map<String, dynamic>.from(rawHealing)) : null;
 
     final rawTriggers = data['triggers'];
-    final parsedTriggerSummary = rawTriggers is Map<String, dynamic> ? TriggerSummary.fromMap(rawTriggers) : null;
+    final parsedTriggerSummary = rawTriggers is Map ? TriggerSummary.fromMap(Map<String, dynamic>.from(rawTriggers)) : null;
 
     final rawActions = data['actions'];
     final parsedActionStrings = <String>[];
@@ -94,8 +111,8 @@ class AIInsight extends Equatable {
         if (item is String) {
           parsedActionStrings.add(item);
           parsedActionObjects.add(InsightAction(id: 'act_${parsedActionObjects.length + 1}', title: item, description: item));
-        } else if (item is Map<String, dynamic>) {
-          final actionObj = InsightAction.fromMap(item);
+        } else if (item is Map) {
+          final actionObj = InsightAction.fromMap(Map<String, dynamic>.from(item));
           parsedActionObjects.add(actionObj);
           parsedActionStrings.add(actionObj.title);
         }
@@ -106,7 +123,8 @@ class AIInsight extends Equatable {
       id: rawId is int ? rawId : null,
       firestoreId: rawId is String ? rawId : null,
       uid: map['uid'] as String?,
-      gutScore: parsedScore,
+      gutScore: hasScore ? parsedScore : 0,
+      hasGutScore: hasScore,
       gutScoreSummary: parsedGutScoreSummary,
       scoreDiff: data['scoreDiff']?.toString(),
       topInsight: ModelUtils.parseNestedModel<InsightSummary>(data['topInsight'], InsightSummary.fromMap),
@@ -157,6 +175,7 @@ class AIInsight extends Equatable {
   final String? firestoreId;
   final String? uid;
   final int gutScore;
+  final bool hasGutScore;
   final GutScoreSummary? gutScoreSummary;
   final String? scoreDiff;
   final InsightSummary? topInsight;
@@ -208,7 +227,8 @@ class AIInsight extends Equatable {
   Map<String, dynamic> toMap() => {
     'v': schemaVersion,
     'firestoreId': firestoreId,
-    'gutScore': gutScoreSummary?.toMap() ?? gutScore,
+    'gutScore': hasGutScore ? (gutScoreSummary?.toMap() ?? gutScore) : null,
+    'hasGutScore': hasGutScore,
     'scoreDiff': scoreDiff,
     'topInsight': topInsight?.toMap(),
     'healingGoal': healingGoal,
@@ -261,6 +281,7 @@ class AIInsight extends Equatable {
     String? firestoreId,
     String? uid,
     int? gutScore,
+    bool? hasGutScore,
     GutScoreSummary? gutScoreSummary,
     String? scoreDiff,
     InsightSummary? topInsight,
@@ -305,6 +326,7 @@ class AIInsight extends Equatable {
     firestoreId: firestoreId ?? this.firestoreId,
     uid: uid ?? this.uid,
     gutScore: gutScore ?? this.gutScore,
+    hasGutScore: hasGutScore ?? (gutScore != null ? true : this.hasGutScore),
     gutScoreSummary: gutScoreSummary ?? this.gutScoreSummary,
     scoreDiff: scoreDiff ?? this.scoreDiff,
     topInsight: topInsight ?? this.topInsight,
@@ -347,5 +369,5 @@ class AIInsight extends Equatable {
   );
 
   @override
-  List<Object?> get props => [id, firestoreId, gutScore, type, confidenceLevel, status, updatedAt];
+  List<Object?> get props => [id, firestoreId, gutScore, hasGutScore, type, confidenceLevel, status, updatedAt];
 }

@@ -45,13 +45,12 @@ abstract class HistoryFirestoreService {
   /// Returns -1 when the query itself failed (offline, permission, index) so
   /// callers can distinguish "no meals" from "unknown".
   Future<int> getMealLogsCountSince(DateTime since);
+  
+  /// Count of symptom logs with `createdAt >= [since]`.
+  Future<int> getSymptomLogsCountSince(DateTime since);
 
   /// Count of scan history records with `createdAt >= [since]`.
   Future<int> getScansCountSince(DateTime since);
-
-  Future<int> getTotalScansCount();
-  Future<int> getTotalMealLogsCount();
-  Future<int> getTotalSymptomsCount();
 
   /// Reactive history totals, read from the server-maintained
   /// `counters/totals` document (single-doc read). Falls back to cheap
@@ -525,31 +524,17 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
+  Future<int> getSymptomLogsCountSince(DateTime since) async {
+    final doc = _userDoc;
+    if (doc == null) return -1;
+    return _countQuery(doc.collection('journal_logs').where('type', isEqualTo: 'symptom').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)), 'symptoms-since', onError: -1);
+  }
+
+  @override
   Future<int> getScansCountSince(DateTime since) async {
     final doc = _userDoc;
     if (doc == null) return -1;
     return _countQuery(doc.collection('scan_history').where('createdAt', isGreaterThanOrEqualTo: DateTimeUtils.toTimestamp(since)), 'scans-since', onError: -1);
-  }
-
-  @override
-  Future<int> getTotalScansCount() async {
-    final doc = _userDoc;
-    if (doc == null) return 0;
-    return _countQuery(doc.collection('scan_history'), 'scans-total');
-  }
-
-  @override
-  Future<int> getTotalMealLogsCount() async {
-    final doc = _userDoc;
-    if (doc == null) return 0;
-    return _countQuery(doc.collection('journal_logs').where('type', isEqualTo: 'meal'), 'meals-total');
-  }
-
-  @override
-  Future<int> getTotalSymptomsCount() async {
-    final doc = _userDoc;
-    if (doc == null) return 0;
-    return _countQuery(doc.collection('journal_logs').where('type', isEqualTo: 'symptom'), 'symptoms-total');
   }
 
   @override

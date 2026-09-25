@@ -159,7 +159,7 @@ void main() {
       expect(takeRecentChat(chat.take(5).toList()), hasLength(5));
     });
 
-    test('insufficient_data when no candidates or span < 7d', () {
+    test('eligibility depends on logs rather than pattern span', () {
       final noCandidates = stampInsightEnvelope(
         base(),
         candidates: [],
@@ -182,7 +182,7 @@ void main() {
         promptVersion: AiVersions.insightPromptVersion,
         expiresAt: DateTime.utc(2026, 9, 2),
       );
-      expect(thinSpan.status, AIInsight.statusInsufficientData);
+      expect(thinSpan.status, AIInsight.statusReady);
     });
   });
 

@@ -65,6 +65,8 @@ class MockFoodImageService extends Mock implements FoodImageService {}
 Future<void> _noopRecover(String _, Map<int, RecoveredUpload> _) async {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late ChatComposerNotifier notifier;
   late MockChatRepository repository;
   late MockChatHistoryNotifier historyNotifier;
@@ -119,11 +121,16 @@ void main() {
     uploadOutbox = MockImageUploadOutbox();
     foodImages = MockFoodImageService();
 
+    when(() => historyNotifier.messages).thenReturn(<ChatMessage>[]);
     when(() => connectionChecker.isInternetAvailable).thenReturn(ValueNotifier<bool>(true));
     when(() => appStateService.sessionReset).thenReturn(ValueNotifier<bool>(false));
     when(() => outboxService.pending).thenReturn(<QueuedMessage>[]);
     when(() => outboxService.isEmpty).thenReturn(true);
     when(() => uploadOutbox.isEmpty).thenReturn(true);
+    if (sl.isRegistered<ProfileNotifier>()) {
+      sl.unregister<ProfileNotifier>();
+    }
+    sl.registerLazySingleton<ProfileNotifier>(MockProfileNotifier.new);
     when(
       () => foodImages.addLink(
         hash: any(named: 'hash'),
@@ -246,7 +253,6 @@ void main() {
     });
 
     test('image turn streams from bytes when the upload fails (P1-3a)', () async {
-      sl.registerLazySingleton<ProfileNotifier>(MockProfileNotifier.new);
       final messages = <ChatMessage>[];
 
       when(() => auth.currentUser).thenReturn(MockUser());
@@ -450,7 +456,6 @@ void main() {
         ChatMessage(localId: id, role: 'user', text: text, foodMentions: foods, symptomMentions: symptoms, createdAt: DateTime.now());
 
     test('history window holds 12 and dropped entities pin into the prompt', () async {
-      sl.registerLazySingleton<ProfileNotifier>(MockProfileNotifier.new);
       final messages = <ChatMessage>[];
       for (var i = 15; i >= 0; i--) {
         messages.add(textMsg('m$i', i == 0 ? 'oldest-turn-marker' : 'turn $i'));
@@ -518,6 +523,7 @@ void main() {
       ).thenAnswer((_) async {});
 
       final result = await notifier.send(text: 'new question here');
+      await Future<void>.delayed(Duration.zero);
 
       expect(result, isNull);
       final captured = verify(

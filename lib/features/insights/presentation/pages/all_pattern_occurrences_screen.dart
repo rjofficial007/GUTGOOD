@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_states.dart';
 import 'package:gutgood/features/insights/presentation/pages/meal_symptom_detail_screen.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -16,10 +17,18 @@ class _AllPatternOccurrencesScreenState extends State<AllPatternOccurrencesScree
   String _selectedFilter = '30 Days';
 
   List<PatternOccurrence> get _filteredOccurrences {
-    if (_selectedFilter == '7 Days') {
-      return widget.pattern.occurrences.take(3).toList();
-    }
-    return widget.pattern.occurrences;
+    final now = DateTime.now();
+    final sorted = [...widget.pattern.occurrences]..sort((a, b) => b.date.compareTo(a.date));
+    final cutoff = switch (_selectedFilter) {
+      '7 Days' => now.subtract(const Duration(days: 7)),
+      '30 Days' => now.subtract(const Duration(days: 30)),
+      _ => null,
+    };
+    if (cutoff == null) return sorted;
+    return sorted.where((occurrence) {
+      final parsed = DateTime.tryParse(occurrence.date);
+      return parsed != null && !parsed.isBefore(cutoff);
+    }).toList();
   }
 
   @override
@@ -109,9 +118,7 @@ class _AllPatternOccurrencesScreenState extends State<AllPatternOccurrencesScree
             // Occurrences list
             Expanded(
               child: occurrences.isEmpty
-                  ? Center(
-                      child: Text('No occurrences logged for this period.', style: TextStyle(color: Colors.grey[600])),
-                    )
+                  ? const Padding(padding: EdgeInsets.all(20), child: InsightEmptyStateCard(title: 'No occurrences in this period', message: 'Try a wider date range, or keep logging meals and symptoms to see whether a pattern repeats.'))
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: occurrences.length,

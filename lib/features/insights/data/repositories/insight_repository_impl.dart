@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/ai_service.dart';
@@ -180,27 +181,40 @@ class InsightRepositoryImpl implements InsightRepository {
       AppLogger.insights('Generating insight. History: $scoreHistory');
       final startTime = DateTime.now();
 
-      final cleanJson = await _aiService.generateContent(
-        prompt: Prompts.insightsAnalysisPrompt(
-          userGoals: goals,
-          userSensitivities: sensitivities,
-          userLifestyle: lifestyle,
-          cyclePhase: cyclePhase,
-          historyJson: historyJson,
-          historySummary: chatSummary,
-          recentJournalText: recentJournalText,
-          historicalJournalSummary: historicalJournalSummary,
-          scoreHistory: scoreHistory,
-          preComputedPatternCandidates: preComputedPatternCandidates,
-        ),
+      final prompt = Prompts.insightsAnalysisPrompt(
+        userGoals: goals,
+        userSensitivities: sensitivities,
+        userLifestyle: lifestyle,
+        cyclePhase: cyclePhase,
+        historyJson: historyJson,
+        historySummary: chatSummary,
+        recentJournalText: recentJournalText,
+        historicalJournalSummary: historicalJournalSummary,
+        scoreHistory: scoreHistory,
+        preComputedPatternCandidates: preComputedPatternCandidates,
       );
-
-      final jsonStr = ModelUtils.extractJson(cleanJson);
-      if (jsonStr == null) {
-        throw Exception('InsightRepo: Could not parse AI insight result');
+      Map<String, dynamic>? accepted;
+      for (var attempt = 0; attempt < 2; attempt++) {
+        final response = await _aiService.generateContent(
+          prompt: attempt == 0
+              ? prompt
+              : '$prompt\nCORRECTION: The previous response was an empty or insufficient baseline. Eligibility is already met. Return ready with a concrete food and symptom summary and personalized nextSteps. Do not fabricate patterns.',
+          promptVersion: AiVersions.insightPromptVersion,
+        );
+        final jsonStr = ModelUtils.extractJson(response);
+        if (jsonStr == null) continue;
+        final decoded = Map<String, dynamic>.from(jsonDecode(jsonStr) as Map);
+        if (isUsableInsightResponse(decoded)) {
+          accepted = decoded;
+          break;
+        }
       }
-
-      final decoded = Map<String, dynamic>.from(jsonDecode(jsonStr) as Map);
+      if (accepted == null) {
+        throw const FormatException(
+          'AI returned an empty baseline instead of a personalized insight',
+        );
+      }
+      final decoded = accepted;
       final rawGutScore = decoded['gutScore'];
       final newScore = rawGutScore is Map<String, dynamic>
           ? ((rawGutScore['score'] as num?)?.toInt() ?? 0)
@@ -339,4 +353,20 @@ class InsightRepositoryImpl implements InsightRepository {
       return insight;
     }
   }
+}
+
+/// Reject empty baseline responses before they reach the cache or persistence.
+bool isUsableInsightResponse(Map<String, dynamic> data) {
+  final top = data['topInsight'];
+  if (data['status'] != 'ready' || top is! Map) return false;
+  final description = top['description'];
+  final steps = top['nextSteps'];
+  return description is String &&
+      description.trim().isNotEmpty &&
+      !description.toLowerCase().contains(
+        'synthesize a personalized summary',
+      ) &&
+      top['title'] != 'Baseline Assessment Complete' &&
+      steps is List &&
+      steps.any((step) => step is String && step.trim().isNotEmpty);
 }

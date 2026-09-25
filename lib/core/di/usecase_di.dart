@@ -31,6 +31,8 @@ void initUseCaseDI() {
         prefs: sl(),
         notificationService: sl(),
         patternEngineService: sl(),
+        gutScoreCalculatorService: sl(),
+        gutScoreFirestoreService: sl(),
       ),
     );
 }

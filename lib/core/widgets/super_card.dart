@@ -192,20 +192,6 @@ class _SuperFoodGaugeCardState extends State<SuperFoodGaugeCard> {
 
     final currentFood = hasFoods ? widget.foods[_currentIndex] : null;
 
-    if (widget.title.toUpperCase() == 'RECENT LOGS') {
-      debugPrint('--- SuperFoodGaugeCard: RECENT LOGS DEBUG ---');
-      debugPrint('Title: ${widget.title}');
-      debugPrint('Total Pages: $totalPages');
-
-      if (currentFood != null) {
-        debugPrint('Current Food Name: ${currentFood.name}');
-        debugPrint('Current Food Image URL: ${currentFood.imageUrl}');
-        debugPrint('Dynamic Image URL: ${getDynamicImageUrl(currentFood.name)}');
-      }
-
-      debugPrint('----------------------------------------------');
-    }
-
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(

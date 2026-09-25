@@ -15,7 +15,6 @@ dependencies:
     sdk: flutter
 
   # UI & Design System
-  cupertino_icons: ^1.0.9
   flutter_animate: ^4.5.2
   lucide_icons_flutter: ^3.1.17
   shimmer: 3.0.0
@@ -80,7 +79,6 @@ dependencies:
   in_app_review: ^2.0.12
   upgrader: ^13.7.0
   uuid: ^4.6.0
-  logger: ^2.7.0
   rxdart: ^0.28.0
   smooth_page_indicator: ^3.0.0
 

@@ -23,20 +23,8 @@ class WhyScoreSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final score = insight.gutScore.clamp(0, 100);
     final isGood = score >= 70;
-
-    final positiveFactors = <_ScoreFactor>[
-      if (insight.healingFoods.isNotEmpty)
-        _ScoreFactor(title: '${insight.healingFoods.first.name} & supportive foods', description: '${insight.healingFoods.length} gut-soothing items logged', points: '+12', isPositive: true)
-      else if (insight.evidence != null && insight.evidence!.sampleSizes.meals > 0)
-        _ScoreFactor(title: 'Active meal tracking', description: '${insight.evidence!.sampleSizes.meals} meals logged for analysis', points: '+10', isPositive: true),
-      if (score >= 50) _ScoreFactor(title: 'Gut health score baseline', description: 'Current baseline score is $score/100', points: '+$score', isPositive: true),
-    ];
-
-    final negativeFactors = <_ScoreFactor>[
-      if (insight.triggerFoods.isNotEmpty) _ScoreFactor(title: '${insight.triggerFoods.first.name} observation', description: 'Associated with digestive discomfort', points: '-6', isPositive: false),
-      if (insight.triggerSymptom != null && insight.triggerSymptom!.isNotEmpty)
-        _ScoreFactor(title: '${insight.triggerSymptom} tracking', description: 'Symptom patterns being monitored by AI', points: '-4', isPositive: false),
-    ];
+    final sampleSizes = insight.evidence?.sampleSizes;
+    final patternRefs = insight.evidence?.patternRefs ?? const <PatternRef>[];
 
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 32.h),
@@ -65,11 +53,11 @@ class WhyScoreSheet extends StatelessWidget {
               Container(
                 width: 44.w,
                 height: 44.w,
-                decoration: BoxDecoration(color: isGood ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: insight.hasGutScore ? (isGood ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB)) : const Color(0xFFF1F5F9), shape: BoxShape.circle),
                 child: Center(
                   child: Text(
-                    '$score',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: isGood ? const Color(0xFF059669) : const Color(0xFFD97706)),
+                    insight.hasGutScore ? '$score' : '—',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: insight.hasGutScore ? (isGood ? const Color(0xFF059669) : const Color(0xFFD97706)) : const Color(0xFF64748B)),
                   ),
                 ),
               ),
@@ -79,11 +67,11 @@ class WhyScoreSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Why $score?',
+                      insight.hasGutScore ? 'Why $score?' : 'Score unavailable',
                       style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
                     ),
                     Text(
-                      'Base 50 baseline + evidence-backed adjustments',
+                      'Based on your logged food scans and symptoms',
                       style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
                     ),
                   ],
@@ -97,22 +85,18 @@ class WhyScoreSheet extends StatelessWidget {
           ),
           Gap.h20,
 
-          // Positive Factors
-          Text(
-            'HELPING YOUR SCORE',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.1, color: const Color(0xFF059669)),
-          ),
+          Text('WHAT WE KNOW', style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.1, color: const Color(0xFF059669))),
           Gap.h8,
-          ...positiveFactors.map((f) => _FactorTile(factor: f)),
-          Gap.h16,
-
-          // Negative Deductions
-          Text(
-            'AREAS FOR RECOVERY',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.1, color: const Color(0xFFEF4444)),
-          ),
-          Gap.h8,
-          ...negativeFactors.map((f) => _FactorTile(factor: f)),
+          if (sampleSizes == null && patternRefs.isEmpty)
+            const Text('Detailed score evidence is not available for this record. Future reports will include the available inputs.')
+          else ...[
+            if (sampleSizes != null) ...[
+              _FactorTile(factor: _ScoreFactor(title: 'Food logs', description: '${sampleSizes.meals} meals and ${sampleSizes.scans} scans included', points: 'Observed', isPositive: true)),
+              _FactorTile(factor: _ScoreFactor(title: 'Symptom logs', description: '${sampleSizes.symptoms} symptoms included in the analysis', points: 'Observed', isPositive: false)),
+            ],
+            for (final ref in patternRefs.take(4))
+              _FactorTile(factor: _ScoreFactor(title: ref.trigger.isEmpty ? 'Observed pattern' : ref.trigger, description: ref.reaction.isEmpty ? 'Evidence recorded in this analysis' : ref.reaction, points: '${(ref.evidenceRatio.clamp(0.0, 1.0) * 100).round()}% evidence', isPositive: ref.positiveCount > ref.negativeCount)),
+          ],
           Gap.h20,
 
           // Transparency note
@@ -130,7 +114,7 @@ class WhyScoreSheet extends StatelessWidget {
                 Gap.w8,
                 Expanded(
                   child: Text(
-                    'Your score recalibrates dynamically every 24 hours based on 30-day meal frequency, causality windows, and symptoms.',
+                    'This summary shows the log counts and observed patterns available in this saved report. It does not diagnose a medical condition.',
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B), height: 1.4),
                   ),
                 ),

@@ -177,19 +177,19 @@ void main() {
 
   group('Screen 02 — learning grid', () {
     testWidgets('shows the progress card and unlock cards', (tester) async {
-      await pumpBento(tester, const InsightBentoLearning(meals: 2, symptoms: 0, scans: 2));
+      await pumpBento(tester, const InsightBentoLearning(meals: 1, symptoms: 0, scans: 1));
       expect(tester.takeException(), isNull);
       expect(find.textContaining('BUILDING YOUR BASELINE'), findsOneWidget);
       expect(find.text('Log to Unlock AI Insights'), findsOneWidget);
       expect(find.text('FOOD SCANS'), findsOneWidget);
-      expect(find.text('MEAL LOGS'), findsOneWidget);
-      expect(find.text('2 / 3'), findsNWidgets(2));
+      expect(find.text('SYMPTOM LOGS'), findsOneWidget);
+      expect(find.text('2 / 3'), findsOneWidget);
     });
 
     testWidgets('clamps at zero logs cleanly', (tester) async {
       await pumpBento(tester, const InsightBentoLearning(meals: 0, symptoms: 0, scans: 0));
       expect(tester.takeException(), isNull);
-      expect(find.text('0 / 3'), findsNWidgets(2));
+      expect(find.text('0 / 3'), findsOneWidget);
       expect(find.text('0 / 1'), findsOneWidget);
     });
   });

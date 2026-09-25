@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class EmptyStateRequirement extends Equatable {
@@ -13,8 +14,8 @@ class EmptyStateRequirement extends Equatable {
       EmptyStateRequirement(
         key: map['key']?.toString() ?? '',
         label: map['label']?.toString() ?? '',
-        current: (map['current'] as num?)?.toInt() ?? 0,
-        recommended: (map['recommended'] as num?)?.toInt() ?? 0,
+        current: InsightValues.integer(map['current']) ?? 0,
+        recommended: InsightValues.integer(map['recommended']) ?? 0,
       );
 
   final String key;

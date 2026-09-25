@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 
 class ExperimentDailyCheckIn extends Equatable {
   const ExperimentDailyCheckIn({
@@ -63,7 +64,7 @@ class GutExperiment extends Equatable {
       actionId: (map['actionId'] ?? '').toString(),
       title: (map['title'] ?? '').toString(),
       hypothesis: (map['hypothesis'] ?? '').toString(),
-      targetDays: (map['targetDays'] as num?)?.toInt() ?? 7,
+      targetDays: InsightValues.integer(map['targetDays']) ?? 7,
       startDate: DateTime.tryParse(map['startDate']?.toString() ?? '') ?? DateTime.now(),
       endDate: DateTime.tryParse(map['endDate']?.toString() ?? '') ?? DateTime.now().add(const Duration(days: 7)),
       checkIns: parsedCheckIns,

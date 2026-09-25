@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/models/insights/gut_score_record.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
+import 'package:gutgood/core/services/firestore/gut_score_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/network_error_classifier.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
@@ -12,7 +14,7 @@ import 'package:gutgood/features/insights/domain/usecases/generate_insight_useca
 import 'package:rxdart/rxdart.dart';
 
 class InsightsNotifier with ChangeNotifier {
-  InsightsNotifier(this._repository, this._appStateService, this._authRepository, this._analyticsService, this._generateInsightUseCase) {
+  InsightsNotifier(this._repository, this._appStateService, this._authRepository, this._analyticsService, this._generateInsightUseCase, [this._gutScoreFirestoreService]) {
     _initDashboardStream();
     // Client-owned cadence: regenerate (debounced) whenever chat or profile
     // data changes; the dashboard stream below only renders stored state.
@@ -21,10 +23,13 @@ class InsightsNotifier with ChangeNotifier {
     _appStateService.sessionReset.addListener(_onSessionReset);
 
     // 🟢 Reactive Data Loading: Restart stream whenever auth state changes
-    _authRepository.authStateChanges.listen((user) {
+    _authSub = _authRepository.authStateChanges.listen((user) {
       if (user != null) {
+        if (_activeUid != null && _activeUid != user.uid) _onSessionReset();
+        _activeUid = user.uid;
         _initDashboardStream();
       } else {
+        _activeUid = null;
         _onSessionReset();
       }
     });
@@ -35,10 +40,45 @@ class InsightsNotifier with ChangeNotifier {
   final AuthRepository _authRepository;
   final AnalyticsService _analyticsService;
   final GenerateInsightUseCase _generateInsightUseCase;
+  final GutScoreFirestoreService? _gutScoreFirestoreService;
 
   InsightsDashboardState _state = const InsightsDashboardState();
   List<AIInsight> _insightHistory = [];
   GutExperiment? _activeExperiment;
+  GutScoreRecord? _latestScoreRecord;
+
+  GutScoreRecord? get latestScoreRecord => _latestScoreRecord;
+
+  int _todayMeals = 0;
+  bool _todayCountsLoaded = false;
+  String? _countsError;
+  int _todaySymptoms = 0;
+  int _todayScans = 0;
+
+  int get todayMeals => _todayMeals;
+  int get todaySymptoms => _todaySymptoms;
+  int get todayScans => _todayScans;
+  int get todayFoodScans => _todayScans + _todayMeals;
+
+  String? _loadError;
+  String? _generationError;
+  String? get errorMessage => _loadError ?? _countsError ?? _generationError;
+  bool _disposed = false;
+  StreamSubscription<dynamic>? _authSub;
+  String? _activeUid;
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  Future<void> retry() async {
+    if (_isLoading || _isGenerating) return;
+    _todayCountsLoaded = false;
+    _countsError = null;
+    _initDashboardStream();
+    await generateNewInsight();
+  }
 
   bool _isLoading = false;
   bool _isGenerating = false;
@@ -46,16 +86,21 @@ class InsightsNotifier with ChangeNotifier {
   Timer? _generationDebounce;
   StreamSubscription<InsightsDashboardState>? _dashboardSub;
   StreamSubscription<GutExperiment?>? _experimentSub;
+  StreamSubscription<GutScoreRecord?>? _scoreSub;
 
   void _initDashboardStream() {
     _dashboardSub?.cancel();
     _experimentSub?.cancel();
+    _scoreSub?.cancel();
     _isLoading = true;
+    _loadError = null;
     notifyListeners();
 
     _fetchHistory();
+    _fetchTodayCounts();
     _fetchActiveExperiment();
     _initExperimentStream();
+    _initScoreStream();
 
     _dashboardSub = _repository
         .getDashboardStateStream()
@@ -64,6 +109,7 @@ class InsightsNotifier with ChangeNotifier {
           (newState) {
             final oldInsight = _state.latestInsight;
             _state = newState;
+            _loadError = null;
 
             // Release-gated single-line state summary (replaces the old debugPrint
             // dump, which also ran in production builds).
@@ -92,6 +138,7 @@ class InsightsNotifier with ChangeNotifier {
           },
           onError: (e) {
             AppLogger.error('InsightsNotifier: Stream error', error: e);
+            _loadError = 'Could not load insights';
             _isLoading = false;
             notifyListeners();
           },
@@ -104,9 +151,7 @@ class InsightsNotifier with ChangeNotifier {
       await _analyticsService.logEvent(name: 'insight_history_viewed', parameters: {'count': _insightHistory.length});
 
       // If we have history but no stream data yet, notify so UI can show the latest cached insight
-      if (_state.latestInsight == null && _insightHistory.isNotEmpty) {
-        notifyListeners();
-      }
+      notifyListeners();
     } catch (e) {
       AppLogger.error('InsightsNotifier: Failed to fetch history', error: e);
     }
@@ -140,6 +185,22 @@ class InsightsNotifier with ChangeNotifier {
         }
       },
     );
+  }
+
+  void _initScoreStream() {
+    _scoreSub?.cancel();
+    final scoreService = _gutScoreFirestoreService;
+    if (scoreService != null) {
+      _scoreSub = scoreService.watchLatestGutScore().listen(
+        (record) {
+          _latestScoreRecord = record;
+          notifyListeners();
+        },
+        onError: (e) {
+          AppLogger.error('InsightsNotifier: Score stream error', error: e);
+        },
+      );
+    }
   }
 
   AIInsight? get latestInsight => _state.latestInsight ?? (_insightHistory.isNotEmpty ? _insightHistory.first : null);
@@ -182,13 +243,34 @@ class InsightsNotifier with ChangeNotifier {
 
   List<HealthAlert> get healthAlerts => _state.alerts;
 
+  Future<void> _fetchTodayCounts() async {
+    try {
+      final now = DateTime.now();
+      final startOfToday = DateTime(now.year, now.month, now.day);
+      final results = await Future.wait([_repository.getRecentMeals(startOfToday), _repository.getRecentSymptoms(startOfToday), _repository.getRecentScans(startOfToday)]);
+      _todayMeals = (results[0] as List<MealLog>).length;
+      _todaySymptoms = (results[1] as List<SymptomLog>).length;
+      _todayScans = (results[2] as List<ScanResult>).length;
+      _countsError = null;
+      _todayCountsLoaded = true;
+      notifyListeners();
+    } catch (e) {
+      _countsError = 'Could not load today’s log counts';
+      _todayCountsLoaded = true;
+      AppLogger.error('InsightsNotifier: Failed to fetch today counts', error: e);
+      notifyListeners();
+    }
+  }
+
   int get totalMeals => _state.totalMeals;
   int get totalSymptoms => _state.totalSymptoms;
   int get totalScans => _state.totalScans;
+  int get totalFoodScans => _state.totalScans + _state.totalMeals;
 
-  bool get isSufficient => _state.totalScans >= 3 || (_state.totalMeals >= 3 && _state.totalSymptoms >= 1);
+  /// Daily baseline threshold: 3 Food Scans/Meals AND 1 Symptom Log logged today (resets every day).
+  bool get isSufficient => todayFoodScans >= 3 && todaySymptoms >= 1;
 
-  bool get isLoading => _isLoading;
+  bool get isLoading => _isLoading || !_todayCountsLoaded;
   bool get isGenerating => _isGenerating;
 
   Future<void> markAllAlertsAsRead() async {
@@ -295,9 +377,12 @@ class InsightsNotifier with ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _authSub?.cancel();
     _generationDebounce?.cancel();
     _dashboardSub?.cancel();
     _experimentSub?.cancel();
+    _scoreSub?.cancel();
     _appStateService.chatUpdated.removeListener(_onDataUpdated);
     _appStateService.profileUpdated.removeListener(_onDataUpdated);
     _appStateService.sessionReset.removeListener(_onSessionReset);
@@ -310,15 +395,16 @@ class InsightsNotifier with ChangeNotifier {
   Future<void> generateNewInsight() async {
     if (_isGenerating) return;
     _isGenerating = true;
+    _generationError = null;
     notifyListeners();
 
     AppLogger.insights('InsightsNotifier: generation started');
-    await _analyticsService.logEvent(name: 'insight_generation_requested');
-
     try {
+      await _analyticsService.logEvent(name: 'insight_generation_requested');
       await _generateInsightUseCase.execute();
       AppLogger.insights('InsightsNotifier: generation successful');
     } catch (e) {
+      _generationError = 'Could not refresh insights';
       // Background-only generation: the UI keeps showing the cached
       // dashboard. Classify so offline failures read as offline in logs.
       if (isOfflineError(e)) {
@@ -333,6 +419,7 @@ class InsightsNotifier with ChangeNotifier {
   }
 
   void _onDataUpdated() {
+    _fetchTodayCounts();
     _generationDebounce?.cancel();
     _generationDebounce = Timer(const Duration(seconds: 5), () {
       generateNewInsight().catchError((e, st) {
@@ -344,11 +431,21 @@ class InsightsNotifier with ChangeNotifier {
   void _onSessionReset() {
     _generationDebounce?.cancel();
     _bootstrapAttempted = false;
+    _todayMeals = 0;
+    _todayCountsLoaded = false;
+    _countsError = null;
+    _todaySymptoms = 0;
+    _todayScans = 0;
+    _loadError = null;
+    _generationError = null;
+    _isLoading = false;
     _state = const InsightsDashboardState();
     _insightHistory = [];
     _activeExperiment = null;
+    _latestScoreRecord = null;
     _dashboardSub?.cancel();
     _experimentSub?.cancel();
+    _scoreSub?.cancel();
     notifyListeners();
   }
 }

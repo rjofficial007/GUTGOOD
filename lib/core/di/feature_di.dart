@@ -93,7 +93,7 @@ void initFeatureDI() {
         crashlyticsService: sl(),
       ),
     )
-    ..registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl()))
+    ..registerLazySingleton(() => InsightsNotifier(sl(), sl(), sl(), sl(), sl(), sl()))
     // --- Scanner ---
     ..registerLazySingleton<ScannerRepository>(
       () => ScannerRepositoryImpl(
@@ -116,5 +116,5 @@ void initFeatureDI() {
     // --- History ---
     ..registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl()))
     ..registerLazySingleton(() => HistoryNotifier(repository: sl(), appStateService: sl(), auth: sl()))
-    ..registerLazySingleton(() => SavedFoodsProvider(repository: sl(), appStateService: sl()));
+    ..registerLazySingleton(() => SavedFoodsProvider(repository: sl(), appStateService: sl(), authRepository: sl()));
 }

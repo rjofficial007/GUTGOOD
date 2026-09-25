@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class PatternOccurrence extends Equatable {
@@ -38,7 +39,7 @@ class PatternOccurrence extends Equatable {
       reaction: (map['reaction'] ?? map['symptom'] ?? '').toString(),
       symptomId: map['symptomId']?.toString(),
       symptomSeverity: map['symptomSeverity']?.toString(),
-      timeAfterMinutes: (map['timeAfterMinutes'] as num?)?.toInt(),
+      timeAfterMinutes: InsightValues.integer(map['timeAfterMinutes']),
       timeAfterLabel: timeAfterStr,
       timeAfter: timeAfterStr,
       notes: map['notes']?.toString(),

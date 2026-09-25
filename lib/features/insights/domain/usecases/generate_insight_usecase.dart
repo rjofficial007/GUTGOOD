@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
+import 'package:gutgood/core/models/insights/gut_score_record.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/gut_score_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
+import 'package:gutgood/core/services/gut_score_calculator_service.dart';
 import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/pattern_engine_service.dart';
 import 'package:gutgood/core/services/remote_config_service.dart';
@@ -28,6 +31,8 @@ class GenerateInsightUseCase {
     required SharedPreferences prefs,
     required NotificationService notificationService,
     required PatternEngineService patternEngineService,
+    GutScoreCalculatorService gutScoreCalculatorService = const GutScoreCalculatorService(),
+    GutScoreFirestoreService? gutScoreFirestoreService,
   }) : _insightRepository = insightRepository,
        _authFirestoreService = authFirestoreService,
        _historyFirestoreService = historyFirestoreService,
@@ -36,7 +41,9 @@ class GenerateInsightUseCase {
        _summarizeJournal = summarizeJournal,
        _prefs = prefs,
        _notificationService = notificationService,
-       _patternEngineService = patternEngineService;
+       _patternEngineService = patternEngineService,
+       _gutScoreCalculatorService = gutScoreCalculatorService,
+       _gutScoreFirestoreService = gutScoreFirestoreService;
 
   final InsightRepository _insightRepository;
   final AuthFirestoreService _authFirestoreService;
@@ -48,6 +55,8 @@ class GenerateInsightUseCase {
   final SharedPreferences _prefs;
   final NotificationService _notificationService;
   final PatternEngineService _patternEngineService;
+  final GutScoreCalculatorService _gutScoreCalculatorService;
+  final GutScoreFirestoreService? _gutScoreFirestoreService;
 
   Future<void> execute() async {
     final lastRunStr = _prefs.getString(StorageKeys.lastInsightRun);
@@ -101,14 +110,21 @@ class GenerateInsightUseCase {
     final history = dataStreams[3] as List<AIInsight>;
     final allChat = dataStreams[5] as List<ChatMessage>;
 
-    // Check if TODAY's new logs (since lastRun) meet the exact daily threshold:
-    // Exactly: 3 New Scans Today OR (3 New Meals Today AND 1 New Symptom Today)
-    final newMeals = allMeals.where((m) => m.eventTime.isAfter(lastRun)).toList();
-    final newSymptoms = allSymptoms.where((s) => s.eventTime.isAfter(lastRun)).toList();
-    final newScans = allScans.where((s) => s.createdAt.isAfter(lastRun)).toList();
+    // Check if today's logs meet the exact daily threshold matching InsightBentoLearning:
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
 
-    if (!_checkThreshold.execute(scanCount: newScans.length, mealCount: newMeals.length, symptomCount: newSymptoms.length)) {
-      AppLogger.debug('GenerateInsightUseCase: Daily log threshold (3 new scans OR 3 new meals + 1 symptom today) not reached since last run ($lastRun). Skipping insight generation.');
+    final todayMeals = allMeals.where((m) => m.createdAt.isAfter(startOfToday) || m.eventTime.isAfter(startOfToday)).length;
+    final todaySymptoms = allSymptoms.where((s) => s.createdAt.isAfter(startOfToday) || s.eventTime.isAfter(startOfToday)).length;
+    final todayScans = allScans.where((s) => s.createdAt.isAfter(startOfToday)).length;
+
+    final todayFood = todayMeals + todayScans;
+
+    // Baseline daily logging threshold: 3 Food Scans/Meals AND 1 Symptom Log TODAY
+    final hasBaselineLogs = _checkThreshold.execute(scanCount: todayScans, mealCount: todayMeals, symptomCount: todaySymptoms);
+
+    if (!hasBaselineLogs) {
+      AppLogger.debug('GenerateInsightUseCase: Insufficient daily logs today (food: $todayFood/3, symptoms: $todaySymptoms/1). Skipping AI generation until threshold is reached.');
       return;
     }
 
@@ -154,6 +170,38 @@ class GenerateInsightUseCase {
       lastScore: lastScore,
     );
 
+    // Calculate deterministic, non-hallucinated Gut Score from scan/symptom history
+    final exactScore = _gutScoreCalculatorService.calculateGutScore(scans: recentScans.isNotEmpty ? recentScans : allScans, symptoms: recentSymptoms, meals: recentMeals);
+    final avgScanScore = _gutScoreCalculatorService.calculateAvgScanScore(recentScans.isNotEmpty ? recentScans : allScans);
+    final weeklyTrend = _gutScoreCalculatorService.calculateWeeklyTrend(scans: allScans, symptoms: allSymptoms, meals: allMeals, endDate: nowUtc);
+    final weeklyRecap = _gutScoreCalculatorService.calculateWeeklyRecap(
+      recentScans: recentScans,
+      recentSymptoms: recentSymptoms,
+      recentMeals: recentMeals,
+      weeklyTrend: weeklyTrend,
+      exactScore: exactScore,
+    );
+
+    if (_gutScoreFirestoreService != null) {
+      final scoreRecord = GutScoreRecord(
+        id: 'weekly_${nowUtc.year}_W${(nowUtc.day / 7).ceil()}_${nowUtc.millisecondsSinceEpoch}',
+        uid: profile?.uid ?? '',
+        type: 'weekly',
+        gutScore: exactScore,
+        avgScanScore: avgScanScore,
+        symptomPenalty: _gutScoreCalculatorService.calculateSymptomPenalty(recentSymptoms),
+        consistencyBonus: _gutScoreCalculatorService.calculateConsistencyBonus(meals: recentMeals, scans: recentScans),
+        scansCount: recentScans.length,
+        mealsCount: recentMeals.length,
+        symptomsCount: recentSymptoms.length,
+        dailyScores: weeklyTrend,
+        periodFrom: thirtyDaysAgo,
+        periodTo: nowUtc,
+        createdAt: nowUtc,
+      );
+      await _gutScoreFirestoreService.saveGutScore(scoreRecord);
+    }
+
     // P2-10 v2 envelope (period/evidence/provenance/status) at the write edge.
     final stamped = stampInsightEnvelope(
       insight,
@@ -164,11 +212,15 @@ class GenerateInsightUseCase {
       model: RemoteConfigService.instance.openAIModel,
       promptVersion: AiVersions.insightPromptVersion,
       expiresAt: DateTime.now().add(const Duration(hours: 48)),
+      exactGutScore: exactScore,
+      avgScanScore: avgScanScore,
+      weeklyTrend: weeklyTrend,
+      weeklyRecap: weeklyRecap,
     );
 
-    // Side Effects
-    await _prefs.setString(StorageKeys.lastInsightRun, DateTime.now().toUtc().toIso8601String());
+    // Save insight and notify user upon successful generation
     await _insightRepository.saveInsight(stamped);
+    await _prefs.setString(StorageKeys.lastInsightRun, DateTime.now().toUtc().toIso8601String());
 
     unawaited(
       _insightRepository.saveHealthAlert(
@@ -184,13 +236,11 @@ class GenerateInsightUseCase {
     );
 
     unawaited(_notificationService.showInsightGeneratedNotification());
+    AppLogger.insights('GenerateInsightUseCase: Insight generated and user notified successfully.');
   }
 }
 
-/// P2-10: pure v2-envelope stamp. Status honors the minimum-evidence doctrine
-/// (§H): no candidates, or a data span under 7 days, yields
-/// [AIInsight.statusInsufficientData] — a score-trend digest with zero pattern
-/// claims and an explicit "not enough data yet" state downstream.
+/// P2-10: pure v2-envelope stamp. Status marks ready when minimum baseline logs exist.
 AIInsight stampInsightEnvelope(
   AIInsight insight, {
   required List<BodyPattern> candidates,
@@ -200,12 +250,21 @@ AIInsight stampInsightEnvelope(
   required String model,
   required int promptVersion,
   required DateTime expiresAt,
+  int? exactGutScore,
+  int? avgScanScore,
+  List<int>? weeklyTrend,
+  WeeklyRecap? weeklyRecap,
 }) {
-  final spanDays = candidates.isEmpty ? 0 : candidates.first.timeframeDays;
-  final isInsufficient = candidates.isEmpty || spanDays < 7;
+  final totalFood = sampleSizes.meals + sampleSizes.scans;
+  final isInsufficient = totalFood < 3 || sampleSizes.symptoms < 1;
   final status = isInsufficient ? AIInsight.statusInsufficientData : AIInsight.statusReady;
 
+  final updatedScore = exactGutScore ?? insight.gutScore;
+  final updatedRecap = weeklyRecap ?? insight.weeklyRecap;
+
   return insight.copyWith(
+    gutScore: updatedScore,
+    weeklyRecap: updatedRecap,
     periodFrom: periodFrom,
     periodTo: periodTo,
     evidence: InsightEvidence.fromPatterns(candidates, sampleSizes: sampleSizes),

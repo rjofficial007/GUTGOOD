@@ -18,6 +18,7 @@ const READ_LIMIT = 500;
 const ID_COLLECTIONS = ['chat_history', 'journal_logs', 'health_alerts'];
 const SCAN_COLLECTIONS = ['scan_history', 'saved_foods'];
 const INSIGHT_COLLECTION = 'insights';
+const GUT_SCORES_COLLECTION = 'gut_scores';
 const PATTERN_COLLECTION = 'pattern_data';
 const USAGE_COLLECTION = 'daily_usage';
 
@@ -297,6 +298,7 @@ export const mergeAnonymousAccount = functions
       ...ID_COLLECTIONS,
       ...SCAN_COLLECTIONS,
       INSIGHT_COLLECTION,
+      GUT_SCORES_COLLECTION,
     ];
 
     for (const collection of collectionsToMerge) {

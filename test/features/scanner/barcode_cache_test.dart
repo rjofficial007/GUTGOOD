@@ -145,16 +145,19 @@ void main() {
       expect(result.impact, expected.explanation, reason: 'The engine recomposes the explanation fresh.');
     });
 
-    test('fresh hit mints new turn IDs and writes no history/journal docs', () async {
+    test('fresh hit keeps a hydratable scan reference and writes no history/journal docs', () async {
       final cached = _cachedScan().copyWith(scanId: 'original-scan', chatMessageId: 'original-turn');
       when(() => history.getLatestScanByBarcode(any())).thenAnswer((_) async => cached);
 
       final result = await repo.getCachedBarcodeScan(barcode: '111222333', sensitivities: const []);
 
       expect(result, isNotNull);
-      expect(result!.scanId, isNot('original-scan'));
+      expect(result!.scanId, 'original-scan');
       expect(result.chatMessageId, isNot('original-turn'));
       expect(result.chatMessageId, isNotNull);
+      final message = verify(() => chat.saveMessage(captureAny())).captured.single as ChatMessage;
+      final restored = ChatMessage.fromMap(message.toMap());
+      expect(restored.scanData?.scanId, 'original-scan');
       verifyNever(
         () => history.saveToScanHistory(
           any(),

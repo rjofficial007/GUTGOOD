@@ -17,6 +17,7 @@ abstract class AuthFirestoreService {
   Future<void> saveFcmToken(String token);
   Future<void> clearFcmToken();
   Future<String?> uploadProfilePicture(File imageFile);
+  Future<void> deleteUserData();
 }
 
 class AuthFirestoreServiceImpl implements AuthFirestoreService {
@@ -135,7 +136,9 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
-      await doc.update({'fcmToken': FieldValue.delete(), 'updatedAt': FieldValue.serverTimestamp()});
+      final snap = await doc.get();
+      if (!snap.exists) return;
+      await doc.set({'fcmToken': FieldValue.delete(), 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
     } catch (e) {
       AppLogger.error('AuthFirestoreService: Error clearing FCM token', error: e);
     }
@@ -158,6 +161,35 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
     } catch (e) {
       AppLogger.error('AuthFirestoreService: Error uploading profile picture', error: e);
       return null;
+    }
+  }
+
+  @override
+  Future<void> deleteUserData() async {
+    try {
+      final doc = _userDoc;
+      if (doc != null) {
+        final snap = await doc.get();
+        if (snap.exists) {
+          // 1. Delete the root profile document.
+          // Sub-collections like scan_history are handled by the Cloud Function backstop
+          // or recursive delete if we had it, but here we just hit the root for immediate UI effect.
+          await doc.delete();
+        }
+      }
+
+      // 2. Clear Firestore persistence to ensure a fresh start on this device.
+      // FirebaseFirestore requires terminate() before clearPersistence().
+      try {
+        await _db.terminate();
+        await _db.clearPersistence();
+      } catch (e) {
+        AppLogger.error('AuthFirestoreService: Could not clear persistence', error: e);
+      }
+
+      AppLogger.firestore('AuthFirestoreService: User data purged client-side');
+    } catch (e) {
+      AppLogger.error('AuthFirestoreService: Error purging user data', error: e);
     }
   }
 }

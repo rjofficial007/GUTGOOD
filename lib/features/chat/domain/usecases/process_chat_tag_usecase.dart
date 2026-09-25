@@ -82,7 +82,7 @@ class ProcessChatTagUseCase {
       } catch (e) {
         if (isFinal) AppLogger.warning('ProcessChatTagUseCase: Failed to parse unified data', error: e);
       }
-    } else {
+    } else if (!RegExp(r'\[(INTENT|SYMPTOM|MEAL|SCAN|SWAPS|SCAN_CONTEXT)\]', caseSensitive: false).hasMatch(text)) {
       // 🚀 ROBUST FALLBACK: If no tags are found, attempt to parse the entire text as JSON.
       // This handles cases where the AI is forced into JSON mode or ignores instructions.
       try {

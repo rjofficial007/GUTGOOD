@@ -52,7 +52,7 @@ class CommonStrings {
   static const String knowWhatHelps = 'Know what helps vs hurts you — instantly.';
   static const String featureFoodsHurtHeal = 'See what\nfoods hurt vs\nheal you';
   static const String featureFoodsHurtHealDesc = 'Get clear answers about any food or ingredient.';
-  static const String featureInstantSwaps = 'Get instant swaps that\nfeel better';
+  static const String featureInstantSwaps = 'Get instant\nswaps that\nfeel better';
   static const String featureInstantSwapsDesc = "Smarter alternatives you'll actually enjoy.";
   static const String featurePersonalInsights = 'Unlock your personal\ngut insights';
   static const String featurePersonalInsightsDesc = "See patterns, triggers and what's working.";
