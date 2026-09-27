@@ -18,6 +18,7 @@ import 'package:gutgood/features/insights/presentation/widgets/arc_pattern_card.
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/pattern_style.dart';
+import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';
 
 /// Screen 01 — the bento Insights feed.
 ///
@@ -45,13 +46,7 @@ class InsightBentoFeed extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
-          GutScoreCard(
-            score: score,
-            delta: delta,
-            series: series,
-            labels: seriesLabels,
-            onTap: () => context.push(AppRoutes.gutScoreDetail, extra: data),
-          ),
+          GutScoreCard(score: score, delta: delta, series: series, labels: seriesLabels, onTap: () => WhyScoreSheet.show(context, data)),
           Gap.h14,
           BentoGrid(children: _tiles(context, t, foods)),
         ]),
@@ -676,7 +671,7 @@ class InsightHighlightCard extends StatelessWidget {
                 Gap.w8,
                 Expanded(
                   child: Text(
-                    tag,
+                    tag.toUpperCase(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: PatternSurface.ink(context)),
@@ -767,17 +762,27 @@ class HealingSparklinePainter extends CustomPainter {
     final min = visible.reduce(math.min);
     final max = visible.reduce(math.max);
     final range = max - min;
-    final points = [for (var i = 0; i < visible.length; i++) Offset(
-      size.width * i / (visible.length - 1),
-      size.height * (0.85 - (range == 0 ? .35 : (visible[i] - min) / range * .7)),
-    )];
+    final points = [for (var i = 0; i < visible.length; i++) Offset(size.width * i / (visible.length - 1), size.height * (0.85 - (range == 0 ? .35 : (visible[i] - min) / range * .7)))];
     final line = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final point in points.skip(1)) { line.lineTo(point.dx, point.dy); }
-    final area = Path.from(line)..lineTo(points.last.dx, size.height)..lineTo(points.first.dx, size.height)..close();
-    final fill = Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: .2), color.withValues(alpha: 0)]).createShader(Offset.zero & size);
+    for (final point in points.skip(1)) {
+      line.lineTo(point.dx, point.dy);
+    }
+    final area = Path.from(line)
+      ..lineTo(points.last.dx, size.height)
+      ..lineTo(points.first.dx, size.height)
+      ..close();
+    final fill = Paint()
+      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: .2), color.withValues(alpha: 0)]).createShader(Offset.zero & size);
     canvas
       ..drawPath(area, fill)
-      ..drawPath(line, Paint()..color = color..strokeWidth = 2.5..style = PaintingStyle.stroke..strokeCap = StrokeCap.round)
+      ..drawPath(
+        line,
+        Paint()
+          ..color = color
+          ..strokeWidth = 2.5
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round,
+      )
       ..drawCircle(points.last, 3.5, Paint()..color = color);
   }
 
@@ -798,14 +803,22 @@ class TriggerSpikePainter extends CustomPainter {
     final min = visible.reduce(math.min);
     final max = visible.reduce(math.max);
     final range = max - min;
-    final points = [for (var i = 0; i < visible.length; i++) Offset(
-      size.width * i / (visible.length - 1),
-      size.height * (0.85 - (range == 0 ? .35 : (visible[i] - min) / range * .7)),
-    )];
+    final points = [for (var i = 0; i < visible.length; i++) Offset(size.width * i / (visible.length - 1), size.height * (0.85 - (range == 0 ? .35 : (visible[i] - min) / range * .7)))];
     final line = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final point in points.skip(1)) { line.lineTo(point.dx, point.dy); }
-    canvas.drawPath(line, Paint()..color = color..strokeWidth = 2.5..style = PaintingStyle.stroke..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round);
-    canvas.drawCircle(points[visible.indexOf(max)], 3, Paint()..color = color);
+    for (final point in points.skip(1)) {
+      line.lineTo(point.dx, point.dy);
+    }
+    canvas
+      ..drawPath(
+        line,
+        Paint()
+          ..color = color
+          ..strokeWidth = 2.5
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      )
+      ..drawCircle(points[visible.indexOf(max)], 3, Paint()..color = color);
   }
 
   @override
@@ -818,7 +831,6 @@ class WorkingBarsPainter extends CustomPainter {
 
   /// Real series (e.g. per-day pattern episodes). Empty leaves the chart blank.
   final List<double> values;
-
 
   @override
   void paint(Canvas canvas, Size size) {

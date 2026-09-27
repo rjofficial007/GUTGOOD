@@ -28,7 +28,7 @@ class SwapDetailScreen extends StatelessWidget {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          GutSliverAppBar(title: AppStrings.betterSwapsLabel, centerTitle: true, backgroundColor: t.cardBackground.withValues(alpha: 0.8)),
+          GutSliverAppBar(title: AppStrings.betterSwapsLabel, centerTitle: true, backgroundColor: t.cardBackground),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(16.w, 12.w, 16.w, 32.w),

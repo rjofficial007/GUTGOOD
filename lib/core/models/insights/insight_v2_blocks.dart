@@ -1,5 +1,5 @@
-import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 /// v3 prompt blocks backing the "v2 Real Tokens" Insights UI.
@@ -14,14 +14,7 @@ import 'package:gutgood/core/utils/model_utils.dart';
 
 /// `improving` — powers the home feed's "What's Improving" card.
 class ImprovingBlock extends Equatable {
-  const ImprovingBlock({
-    this.headline,
-    this.description,
-    this.streakDays,
-    this.streakGoalDays,
-    this.encouragement,
-    this.keyFoods = const [],
-  });
+  const ImprovingBlock({this.headline, this.description, this.streakDays, this.streakGoalDays, this.encouragement, this.keyFoods = const []});
 
   factory ImprovingBlock.fromMap(Map<String, dynamic> map) => ImprovingBlock(
     headline: map['headline']?.toString(),
@@ -29,10 +22,7 @@ class ImprovingBlock extends Equatable {
     streakDays: InsightValues.integer(map['streakDays']),
     streakGoalDays: InsightValues.integer(map['streakGoalDays']),
     encouragement: map['encouragement']?.toString(),
-    keyFoods: ModelUtils.parseModelList<KeyFoodDriver>(
-      map['keyFoods'],
-      KeyFoodDriver.fromMap,
-    ),
+    keyFoods: ModelUtils.parseModelList<KeyFoodDriver>(map['keyFoods'], KeyFoodDriver.fromMap),
   );
 
   /// One-liner under the card eyebrow ("Gut barrier score is up!").
@@ -63,25 +53,12 @@ class ImprovingBlock extends Equatable {
   };
 
   @override
-  List<Object?> get props => [
-    headline,
-    description,
-    streakDays,
-    streakGoalDays,
-    encouragement,
-    keyFoods,
-  ];
+  List<Object?> get props => [headline, description, streakDays, streakGoalDays, encouragement, keyFoods];
 }
 
 /// One food in [ImprovingBlock.keyFoods].
 class KeyFoodDriver extends Equatable {
-  const KeyFoodDriver({
-    required this.name,
-    this.count,
-    this.delta,
-    this.emoji,
-    this.imageUrl,
-  });
+  const KeyFoodDriver({required this.name, this.count, this.delta, this.emoji, this.imageUrl});
 
   factory KeyFoodDriver.fromMap(Map<String, dynamic> map) {
     final name = (map['name'] ?? map['food'] ?? '').toString();
@@ -102,13 +79,7 @@ class KeyFoodDriver extends Equatable {
   final String? emoji;
   final String? imageUrl;
 
-  Map<String, dynamic> toMap() => {
-    'name': name,
-    'count': count,
-    'delta': delta,
-    'emoji': emoji,
-    'imageUrl': imageUrl,
-  };
+  Map<String, dynamic> toMap() => {'name': name, 'count': count, 'delta': delta, 'emoji': emoji, 'imageUrl': imageUrl};
 
   @override
   List<Object?> get props => [name, count, delta, emoji, imageUrl];
@@ -118,11 +89,8 @@ class KeyFoodDriver extends Equatable {
 class WatchBlock extends Equatable {
   const WatchBlock({this.reactionTime, this.riskLevel, this.windowDays});
 
-  factory WatchBlock.fromMap(Map<String, dynamic> map) => WatchBlock(
-    reactionTime: map['reactionTime']?.toString(),
-    riskLevel: map['riskLevel']?.toString(),
-    windowDays: InsightValues.integer(map['windowDays']),
-  );
+  factory WatchBlock.fromMap(Map<String, dynamic> map) =>
+      WatchBlock(reactionTime: map['reactionTime']?.toString(), riskLevel: map['riskLevel']?.toString(), windowDays: InsightValues.integer(map['windowDays']));
 
   /// Human delay ("1.5–2h", "~45m").
   final String? reactionTime;
@@ -133,11 +101,7 @@ class WatchBlock extends Equatable {
   /// Analysis window the stats refer to (default 7 in the UI).
   final int? windowDays;
 
-  Map<String, dynamic> toMap() => {
-    'reactionTime': reactionTime,
-    'riskLevel': riskLevel,
-    'windowDays': windowDays,
-  };
+  Map<String, dynamic> toMap() => {'reactionTime': reactionTime, 'riskLevel': riskLevel, 'windowDays': windowDays};
 
   @override
   List<Object?> get props => [reactionTime, riskLevel, windowDays];
@@ -145,13 +109,7 @@ class WatchBlock extends Equatable {
 
 /// `smartSwap` — the Before → After swap under "Something to Watch".
 class SmartSwap extends Equatable {
-  const SmartSwap({
-    required this.after,
-    this.benefit,
-    this.tip,
-    this.beforeEmoji,
-    this.afterEmoji,
-  });
+  const SmartSwap({required this.after, this.benefit, this.tip, this.beforeEmoji, this.afterEmoji});
 
   factory SmartSwap.fromMap(Map<String, dynamic> map) => SmartSwap(
     after: map['after']?.toString() ?? '',
@@ -173,13 +131,7 @@ class SmartSwap extends Equatable {
   final String? beforeEmoji;
   final String? afterEmoji;
 
-  Map<String, dynamic> toMap() => {
-    'after': after,
-    'benefit': benefit,
-    'tip': tip,
-    'beforeEmoji': beforeEmoji,
-    'afterEmoji': afterEmoji,
-  };
+  Map<String, dynamic> toMap() => {'after': after, 'benefit': benefit, 'tip': tip, 'beforeEmoji': beforeEmoji, 'afterEmoji': afterEmoji};
 
   @override
   List<Object?> get props => [after, benefit, tip, beforeEmoji, afterEmoji];

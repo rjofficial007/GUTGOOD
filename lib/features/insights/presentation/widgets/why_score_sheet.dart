@@ -25,9 +25,15 @@ class WhyScoreSheet extends StatelessWidget {
     final isGood = score >= 70;
     final sampleSizes = insight.evidence?.sampleSizes;
     final patternRefs = insight.evidence?.patternRefs ?? const <PatternRef>[];
+    final recap = insight.weeklyRecap;
+    final trend = recap?.gutScoreTrend ?? const <int>[];
+    final scoredDays = trend.where((s) => s > 0).length;
+
+    final maxHeight = MediaQuery.of(context).size.height * 0.85;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 32.h),
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28.w)),
@@ -57,7 +63,12 @@ class WhyScoreSheet extends StatelessWidget {
                 child: Center(
                   child: Text(
                     insight.hasGutScore ? '$score' : '—',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: insight.hasGutScore ? (isGood ? const Color(0xFF059669) : const Color(0xFFD97706)) : const Color(0xFF64748B)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w800,
+                      color: insight.hasGutScore ? (isGood ? const Color(0xFF059669) : const Color(0xFFD97706)) : const Color(0xFF64748B),
+                    ),
                   ),
                 ),
               ),
@@ -71,7 +82,7 @@ class WhyScoreSheet extends StatelessWidget {
                       style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
                     ),
                     Text(
-                      'Based on your logged food scans and symptoms',
+                      insight.hasGutScore ? (recap?.scoreSub ?? 'Based on your logged food scans and symptoms this week') : 'Log food scans this week to unlock a gut score',
                       style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
                     ),
                   ],
@@ -83,42 +94,116 @@ class WhyScoreSheet extends StatelessWidget {
               ),
             ],
           ),
-          Gap.h20,
+          Gap.h16,
 
-          Text('WHAT WE KNOW', style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.1, color: const Color(0xFF059669))),
-          Gap.h8,
-          if (sampleSizes == null && patternRefs.isEmpty)
-            const Text('Detailed score evidence is not available for this record. Future reports will include the available inputs.')
-          else ...[
-            if (sampleSizes != null) ...[
-              _FactorTile(factor: _ScoreFactor(title: 'Food logs', description: '${sampleSizes.meals} meals and ${sampleSizes.scans} scans included', points: 'Observed', isPositive: true)),
-              _FactorTile(factor: _ScoreFactor(title: 'Symptom logs', description: '${sampleSizes.symptoms} symptoms included in the analysis', points: 'Observed', isPositive: false)),
-            ],
-            for (final ref in patternRefs.take(4))
-              _FactorTile(factor: _ScoreFactor(title: ref.trigger.isEmpty ? 'Observed pattern' : ref.trigger, description: ref.reaction.isEmpty ? 'Evidence recorded in this analysis' : ref.reaction, points: '${(ref.evidenceRatio.clamp(0.0, 1.0) * 100).round()}% evidence', isPositive: ref.positiveCount > ref.negativeCount)),
-          ],
-          Gap.h20,
-
-          // Transparency note
-          Container(
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(14.w),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(LucideIcons.shieldCheck, size: 16.w, color: const Color(0xFF64748B)),
-                Gap.w8,
-                Expanded(
-                  child: Text(
-                    'This summary shows the log counts and observed patterns available in this saved report. It does not diagnose a medical condition.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B), height: 1.4),
+          // Scrollable Body Content
+          Flexible(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'HOW IT\'S CALCULATED',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.1, color: const Color(0xFF6366F1)),
                   ),
-                ),
-              ],
+                  Gap.h8,
+                  const _FactorTile(
+                    factor: _ScoreFactor(
+                      title: '1. Food Scan Quality',
+                      description: 'Average quality score (0–100) from your scanned foods based on ingredients, Nutri-Score & processing level.',
+                      points: 'Base',
+                      isPositive: true,
+                    ),
+                  ),
+                  const _FactorTile(
+                    factor: _ScoreFactor(
+                      title: '2. Symptom Penalty',
+                      description: 'Deducts 3 to 9 points per logged symptom depending on severity (-3 mild, -6 moderate, -9 severe; max -30 pts).',
+                      points: 'Penalty',
+                      isPositive: false,
+                    ),
+                  ),
+                  const _FactorTile(
+                    factor: _ScoreFactor(
+                      title: '3. Consistency Bonus',
+                      description: 'Adds +2 bonus points for each unique day logged with meals or scans (max +10 pts).',
+                      points: 'Bonus',
+                      isPositive: true,
+                    ),
+                  ),
+                  Gap.h16,
+
+                  Text(
+                    'WHAT WE KNOW',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.1, color: const Color(0xFF059669)),
+                  ),
+                  Gap.h8,
+                  if (recap != null) ...[
+                    _FactorTile(
+                      factor: _ScoreFactor(title: 'Weekly foods logged', description: '${recap.foodsLogged ?? 0} meals and scans in the last 7 days', points: 'Counted', isPositive: true),
+                    ),
+                    _FactorTile(
+                      factor: _ScoreFactor(
+                        title: 'Scored days',
+                        description: scoredDays == 0 ? 'No days with food scans yet — empty days stay at 0' : '$scoredDays of 7 days had scans (empty days are 0, not filled in)',
+                        points: scoredDays == 0 ? '—' : '$scoredDays/7',
+                        isPositive: scoredDays > 0,
+                      ),
+                    ),
+                    if (recap.bestDay != null && recap.bestDay!.isNotEmpty)
+                      _FactorTile(
+                        factor: _ScoreFactor(title: 'Best day', description: 'Highest daily gut score this week', points: recap.bestDay!, isPositive: true),
+                      ),
+                  ],
+                  if (sampleSizes == null && patternRefs.isEmpty && recap == null)
+                    const Text('Detailed score evidence is not available for this record. Future reports will include the available inputs.')
+                  else ...[
+                    if (sampleSizes != null) ...[
+                      _FactorTile(
+                        factor: _ScoreFactor(title: 'Food logs (period)', description: '${sampleSizes.meals} meals and ${sampleSizes.scans} scans included', points: 'Observed', isPositive: true),
+                      ),
+                      _FactorTile(
+                        factor: _ScoreFactor(title: 'Symptom logs (period)', description: '${sampleSizes.symptoms} symptoms included in the analysis', points: 'Observed', isPositive: false),
+                      ),
+                    ],
+                    for (final ref in patternRefs.take(4))
+                      _FactorTile(
+                        factor: _ScoreFactor(
+                          title: ref.trigger.isEmpty ? 'Observed pattern' : ref.trigger,
+                          description: ref.reaction.isEmpty ? 'Evidence recorded in this analysis' : ref.reaction,
+                          points: '${(ref.evidenceRatio.clamp(0.0, 1.0) * 100).round()}% evidence',
+                          isPositive: ref.positiveCount > ref.negativeCount,
+                        ),
+                      ),
+                  ],
+                  Gap.h16,
+
+                  // Transparency note
+                  Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14.w),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(LucideIcons.shieldCheck, size: 16.w, color: const Color(0xFF64748B)),
+                        Gap.w8,
+                        Expanded(
+                          child: Text(
+                            'Daily scores only appear on days you scanned food. Days with no scans stay at 0 — we never invent a baseline. This does not diagnose a medical condition.',
+                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B), height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Gap.h12,
+                ],
+              ),
             ),
           ),
         ],
@@ -129,7 +214,6 @@ class WhyScoreSheet extends StatelessWidget {
 
 class _ScoreFactor {
   const _ScoreFactor({required this.title, required this.description, required this.points, required this.isPositive});
-
   final String title;
   final String description;
   final String points;
@@ -138,44 +222,44 @@ class _ScoreFactor {
 
 class _FactorTile extends StatelessWidget {
   const _FactorTile({required this.factor});
-
   final _ScoreFactor factor;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(vertical: 5.h),
-    child: Row(
-      children: [
-        Container(
-          width: 8.w,
-          height: 8.w,
-          decoration: BoxDecoration(color: factor.isPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444), shape: BoxShape.circle),
-        ),
-        Gap.w10,
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                factor.title,
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-              ),
-              Text(
-                factor.description,
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B)),
-              ),
-            ],
+  Widget build(BuildContext context) {
+    final color = factor.isPositive ? const Color(0xFF059669) : const Color(0xFFD97706);
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8.w,
+            height: 8.w,
+            margin: EdgeInsets.only(top: 5.h),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-        ),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-          decoration: BoxDecoration(color: factor.isPositive ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(100)),
-          child: Text(
+          Gap.w10,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  factor.title,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                ),
+                Text(
+                  factor.description,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: const Color(0xFF64748B), height: 1.35),
+                ),
+              ],
+            ),
+          ),
+          Text(
             factor.points,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: factor.isPositive ? const Color(0xFF059669) : const Color(0xFFDC2626)),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: color),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

@@ -149,7 +149,7 @@ void main() {
       // Card titles keep their casing; only tags are uppercased.
       expect(find.text('Late Iced Coffee'), findsOneWidget);
       expect(find.textContaining('TO WATCH'), findsOneWidget);
-      expect(find.textContaining('TOP FOODS THIS WEEK'), findsOneWidget);
+      expect(find.textContaining(RegExp('Top Foods This Week', caseSensitive: false)), findsOneWidget);
     });
 
     testWidgets('renders in dark mode with the derived palette', (tester) async {
@@ -214,11 +214,11 @@ void main() {
     testWidgets('renders the tick fan with real episode counts', (tester) async {
       await pumpBento(tester, const InsightBentoPattern(pattern: kPattern));
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('94% confidence'), findsOneWidget);
+      expect(find.textContaining('High · 94%'), findsOneWidget);
       expect(find.text('4 / 5'), findsOneWidget);
       expect(find.textContaining('BIOLOGICAL ROOT'), findsOneWidget);
-      expect(find.textContaining('SWAP 1'), findsOneWidget);
-      expect(find.textContaining('SWAP 2'), findsOneWidget);
+      expect(find.text('Chicken Bowl'), findsOneWidget);
+      expect(find.text('Apple & Nuts'), findsOneWidget);
     });
   });
 
@@ -229,11 +229,12 @@ void main() {
         description: 'Combined factors eliminate renal clearance buffering.',
         type: 'Synergy',
         observation: '500ml pre-hydrate, eat before 6:30 PM, add potassium',
+        involvedFoods: ['Fast Food', 'Late Dining', 'Low Water'],
       );
       await pumpBento(tester, const InsightBentoSynergy(summary: summary, patterns: [kPattern, kPattern]));
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('3-WAY MULTIPLIER'), findsOneWidget);
-      expect(find.textContaining('DRIVER 1'), findsOneWidget);
+      expect(find.textContaining('2× RISK'), findsOneWidget);
+      expect(find.textContaining('Driver 1'), findsOneWidget);
       expect(find.textContaining('RESCUE PROTOCOL'), findsOneWidget);
     });
   });
@@ -254,11 +255,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('FOOD INTELLIGENCE'), findsWidgets);
-      // 3 of the 4 logged foods are positive.
-      expect(find.text('3'), findsOneWidget);
-      expect(find.textContaining('4 LOGGED'), findsOneWidget);
-      expect(find.textContaining('Gut Boosters'), findsOneWidget);
+      expect(find.textContaining('TOP FOODS THIS WEEK'), findsWidgets);
       expect(find.text('Berry Oatmeal'), findsOneWidget);
       expect(find.text('French Fries'), findsOneWidget);
     });

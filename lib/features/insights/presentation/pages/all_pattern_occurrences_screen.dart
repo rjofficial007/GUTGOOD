@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/models/insights/body_pattern.dart';
+import 'package:gutgood/core/models/insights/pattern_occurrence.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_states.dart';
-import 'package:gutgood/features/insights/presentation/pages/meal_symptom_detail_screen.dart';
+import 'package:gutgood/features/insights/presentation/widgets/occurrence_tile.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class AllPatternOccurrencesScreen extends StatefulWidget {
@@ -35,18 +37,20 @@ class _AllPatternOccurrencesScreenState extends State<AllPatternOccurrencesScree
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final occurrences = _filteredOccurrences;
+    final bg = context.v2Theme.scaffold;
+    final textPrimary = context.insightColor(const Color(0xFF0F172A));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF8F5),
+      backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFAF8F5),
+        backgroundColor: bg,
         elevation: 0,
         title: Text(
           'Pattern Occurrences',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1E293B)),
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: textPrimary),
         ),
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: Color(0xFF1E293B)),
+          icon: Icon(LucideIcons.arrowLeft, color: textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -59,34 +63,34 @@ class _AllPatternOccurrencesScreenState extends State<AllPatternOccurrencesScree
               padding: const EdgeInsets.all(16),
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.insightColor(Colors.white),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
               ),
               child: Column(
-                crossAxisAlignment: .start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(8)),
+                        decoration: BoxDecoration(color: context.insightColor(const Color(0xFFFEF2F2)), borderRadius: BorderRadius.circular(8)),
                         child: Text(
                           widget.pattern.domain.toUpperCase(),
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: context.insightColor(const Color(0xFFDC2626))),
                         ),
                       ),
                       const Spacer(),
                       Text(
                         '${widget.pattern.frequency}× total',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                        style: TextStyle(fontSize: 12, color: context.insightColor(const Color(0xFF64748B)), fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '${widget.pattern.trigger} → ${widget.pattern.reaction}',
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: textPrimary),
                   ),
                 ],
               ),
@@ -103,9 +107,9 @@ class _AllPatternOccurrencesScreenState extends State<AllPatternOccurrencesScree
                     child: ChoiceChip(
                       label: Text(filter),
                       selected: isSelected,
-                      selectedColor: const Color(0xFF0F172A),
-                      backgroundColor: Colors.white,
-                      labelStyle: TextStyle(color: isSelected ? Colors.white : const Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 12),
+                      selectedColor: context.insightColor(const Color(0xFF0F172A)),
+                      backgroundColor: context.insightColor(Colors.white),
+                      labelStyle: TextStyle(color: isSelected ? Colors.white : context.insightColor(const Color(0xFF64748B)), fontWeight: FontWeight.w600, fontSize: 12),
                       onSelected: (_) {
                         setState(() => _selectedFilter = filter);
                       },
@@ -118,14 +122,17 @@ class _AllPatternOccurrencesScreenState extends State<AllPatternOccurrencesScree
             // Occurrences list
             Expanded(
               child: occurrences.isEmpty
-                  ? const Padding(padding: EdgeInsets.all(20), child: InsightEmptyStateCard(title: 'No occurrences in this period', message: 'Try a wider date range, or keep logging meals and symptoms to see whether a pattern repeats.'))
+                  ? const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: InsightEmptyStateCard(title: 'No occurrences in this period', message: 'Try a wider date range, or keep logging meals and symptoms to see whether a pattern repeats.'),
+                    )
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: occurrences.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final occ = occurrences[index];
-                        return _OccurrenceTile(occurrence: occ, pattern: widget.pattern);
+                        return OccurrenceTile(occurrence: occ, pattern: widget.pattern);
                       },
                     ),
             ),
@@ -134,73 +141,4 @@ class _AllPatternOccurrencesScreenState extends State<AllPatternOccurrencesScree
       ),
     );
   }
-}
-
-class _OccurrenceTile extends StatelessWidget {
-  const _OccurrenceTile({required this.occurrence, required this.pattern});
-
-  final PatternOccurrence occurrence;
-  final BodyPattern pattern;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => MealSymptomDetailScreen(occurrence: occurrence, pattern: pattern),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-                image: occurrence.imageUrl != null && occurrence.imageUrl!.isNotEmpty ? DecorationImage(image: NetworkImage(occurrence.imageUrl!), fit: BoxFit.cover) : null,
-              ),
-              child: occurrence.imageUrl == null || occurrence.imageUrl!.isEmpty ? const Icon(LucideIcons.utensils, color: Color(0xFF64748B), size: 20) : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: .start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        occurrence.dateLabel ?? occurrence.date,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
-                      ),
-                      if (occurrence.mealTime != null) ...[
-                        const Text(' • ', style: TextStyle(color: Color(0xFF94A3B8))),
-                        Text(occurrence.mealTime!, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    occurrence.mealName,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text('Reaction: ${occurrence.reaction} (${occurrence.timeAfter})', style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
-                ],
-              ),
-            ),
-            const Icon(LucideIcons.chevronRight, color: Color(0xFF94A3B8), size: 18),
-          ],
-        ),
-      ),
-    );
 }

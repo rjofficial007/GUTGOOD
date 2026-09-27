@@ -23,7 +23,7 @@ class ActiveExperimentCard extends StatelessWidget {
     return Container(
       margin: EdgeInsets.only(bottom: 14.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: v2.card,
         borderRadius: BorderRadius.circular(20.w),
         border: Border.all(
           color: isCompleted
@@ -60,7 +60,7 @@ class ActiveExperimentCard extends StatelessWidget {
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
                         decoration: BoxDecoration(
-                          color: isCompleted ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
+                          color: isCompleted ? context.insightColor(const Color(0xFFECFDF5)) : context.insightColor(const Color(0xFFFFFBEB)),
                           borderRadius: BorderRadius.circular(100),
                         ),
                         child: Row(
@@ -127,7 +127,7 @@ class ActiveExperimentCard extends StatelessWidget {
                       fontFamily: InsightV2Theme.fontFamily,
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
+                      color: v2.textPrimary,
                       letterSpacing: -0.3,
                       height: 1.25,
                     ),
@@ -141,7 +141,7 @@ class ActiveExperimentCard extends StatelessWidget {
                       fontFamily: InsightV2Theme.fontFamily,
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w400,
-                      color: const Color(0xFF475569),
+                      color: v2.textSecondary,
                       height: 1.35,
                     ),
                   ),
@@ -162,7 +162,7 @@ class ActiveExperimentCard extends StatelessWidget {
                                 ? const Color(0xFF10B981)
                                 : isCurrent
                                     ? (isCheckedIn ? const Color(0xFF10B981) : const Color(0xFFF59E0B))
-                                    : const Color(0xFFE2E8F0),
+                                    : v2.borderSubtle,
                             borderRadius: BorderRadius.circular(3.h),
                           ),
                         ),
@@ -176,9 +176,9 @@ class ActiveExperimentCard extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(12.w),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
+                        color: context.insightColor(const Color(0xFFF0FDF4)),
                         borderRadius: BorderRadius.circular(14.w),
-                        border: Border.all(color: const Color(0xFFDCFCE7)),
+                        border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7))),
                       ),
                       child: Row(
                         children: [
@@ -192,7 +192,7 @@ class ActiveExperimentCard extends StatelessWidget {
                                 fontFamily: InsightV2Theme.fontFamily,
                                 fontSize: 11.5.sp,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF166534),
+                                color: context.insightColor(const Color(0xFF166534)),
                                 height: 1.35,
                               ),
                             ),
@@ -207,7 +207,7 @@ class ActiveExperimentCard extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 10.h),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.w)),
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          side: BorderSide(color: v2.border),
                         ),
                         onPressed: () {
                           context.read<InsightsNotifier>().cancelActiveExperiment();
@@ -218,7 +218,7 @@ class ActiveExperimentCard extends StatelessWidget {
                             fontFamily: InsightV2Theme.fontFamily,
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF64748B),
+                            color: v2.textSecondary,
                           ),
                         ),
                       ),
@@ -228,9 +228,9 @@ class ActiveExperimentCard extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: context.insightColor(const Color(0xFFF8FAFC)),
                         borderRadius: BorderRadius.circular(12.w),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
                       ),
                       child: Row(
                         children: [
@@ -249,7 +249,7 @@ class ActiveExperimentCard extends StatelessWidget {
                                 fontFamily: InsightV2Theme.fontFamily,
                                 fontSize: 11.5.sp,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF334155),
+                                color: v2.textSecondary,
                               ),
                             ),
                           ),
@@ -264,7 +264,7 @@ class ActiveExperimentCard extends StatelessWidget {
                         fontFamily: InsightV2Theme.fontFamily,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF1E293B),
+                        color: v2.textPrimary,
                       ),
                     ),
                     Gap.h8,
@@ -301,9 +301,9 @@ class ActiveExperimentCard extends StatelessWidget {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF64748B),
+                              foregroundColor: v2.textSecondary,
                               padding: EdgeInsets.symmetric(vertical: 10.h),
-                              side: const BorderSide(color: Color(0xFFCBD5E1)),
+                              side: BorderSide(color: v2.border),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.w)),
                             ),
                             icon: const Icon(LucideIcons.alertCircle, size: 16),

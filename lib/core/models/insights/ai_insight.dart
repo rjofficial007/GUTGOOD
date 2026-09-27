@@ -11,8 +11,8 @@ import 'package:gutgood/core/models/insights/insight_evidence.dart';
 import 'package:gutgood/core/models/insights/insight_v2_blocks.dart';
 import 'package:gutgood/core/models/insights/recent_insight_item.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
-import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
+import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Represents a holistic snapshot of a user's gut health trends and AI-driven discoveries.
 ///

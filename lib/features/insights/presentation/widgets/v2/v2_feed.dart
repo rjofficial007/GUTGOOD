@@ -3,15 +3,18 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_score_card.dart';
 import 'package:gutgood/features/insights/presentation/pages/better_swaps_screen.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
+import 'package:gutgood/features/insights/presentation/widgets/top_food_tile.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/v2_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
@@ -36,7 +39,11 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
   @override
   Widget build(BuildContext context) {
     final previous = V2Data.previousScore(widget.series);
-    final delta = !widget.data.hasGutScore ? null : previous != null ? widget.data.gutScore - previous : V2Data.parseDelta(widget.data.scoreDiff);
+    final delta = !widget.data.hasGutScore
+        ? null
+        : previous != null
+        ? widget.data.gutScore - previous
+        : V2Data.parseDelta(widget.data.scoreDiff);
     final improving = V2Data.improving(widget.data, widget.series, widget.history);
     final watch = V2Data.watch(widget.data, widget.patterns);
 
@@ -49,13 +56,10 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
           pinned: true,
           delegate: _StickyTabBarDelegate(
             child: Container(
-              color: context.v2Theme.scaffold, // Prevents content from showing behind the sticky header
-              padding: EdgeInsets.only(top: 8.w, bottom: 12.w, left: 16.w, right: 16.w),
+              color: context.appColorScheme.cardBackground,
+              padding: EdgeInsets.only(top: 0.w, bottom: 8.w, left: 16.w, right: 16.w),
               alignment: Alignment.centerLeft,
-              child: _InsightsHeaderWidget(
-                selectedFilter: _selectedFilter,
-                onFilterSelected: (filter) => setState(() => _selectedFilter = filter),
-              ),
+              child: _InsightsHeaderWidget(selectedFilter: _selectedFilter, onFilterSelected: (filter) => setState(() => _selectedFilter = filter)),
             ),
           ),
         ),
@@ -66,177 +70,166 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
               // -------------------------------------------------------------------
               // TAB: PATTERNS
               // -------------------------------------------------------------------
-          if (isPatternsTab) ...[
-            Gap.h10,
-
-            // Detected Pattern Cards
-            if (widget.patterns.isNotEmpty) ...[
-              for (final pattern in widget.patterns) ...[PatternCard(pattern: pattern), Gap.h10],
-            ] else ...[
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: context.v2Theme.card,
-                  borderRadius: BorderRadius.circular(20.w),
-                  border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              if (isPatternsTab) ...[
+                // Detected Pattern Cards
+                if (widget.patterns.isNotEmpty) ...[
+                  for (final pattern in widget.patterns) ...[PatternCard(pattern: pattern), Gap.h10],
+                ] else ...[
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: context.v2Theme.card,
+                      borderRadius: BorderRadius.circular(20.w),
+                      border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(LucideIcons.sparkles, size: 16.w, color: const Color(0xFF15803D)),
-                        Gap.w8,
+                        Row(
+                          children: [
+                            Icon(LucideIcons.sparkles, size: 16.w, color: const Color(0xFF15803D)),
+                            Gap.w8,
+                            Text(
+                              'No Patterns Detected Yet',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                            ),
+                          ],
+                        ),
+                        Gap.h6,
                         Text(
-                          'No Patterns Detected Yet',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                          'We are still learning from your logs. Keep logging your meals and symptoms to discover recurring body patterns.',
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.4),
                         ),
                       ],
                     ),
-                    Gap.h6,
-                    Text(
-                      'We are still learning from your logs. Keep logging your meals and symptoms to discover recurring body patterns.',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.4),
-                    ),
-                  ],
-                ),
-              ),
-              Gap.h10,
-            ],
-
-            // Side-by-Side Pattern Grid: Positive Pattern & Food Timing
-            Gap.h10,
-
-            // Bottom Banner: Patterns get smarter over time
-            const _PatternsSmarterBannerCard(),
-          ] else if (isFoodImpactTab) ...[
-            // -------------------------------------------------------------------
-            // TAB: FOOD IMPACT
-            // -------------------------------------------------------------------
-
-            // 1. Food Impact Balance Hero Card
-            _FoodImpactBalanceHeroCard(balance: widget.data.foodImpactBalance, foodImpacts: widget.data.foodImpacts),
-            Gap.h10,
-
-            // 2. Side-by-Side: Top Healing Foods & Top Trigger Food
-            _SideBySideHealingAndTriggerCards(insight: widget.data),
-            Gap.h10,
-
-            // 4. Recent Food Impacts List
-            _RecentFoodImpactsSection(impacts: widget.data.foodImpacts),
-            Gap.h10,
-
-            // 5. Your Next Steps Action Cards
-            _YourNextStepsSection(actions: widget.data.actionsList),
-          ] else if (_selectedFilter == 'Weekly Recap') ...[
-            // -------------------------------------------------------------------
-            // TAB: WEEKLY RECAP
-            // -------------------------------------------------------------------
-            V2WeeklyRecapView(data: widget.data, series: widget.data.hasGutScore ? widget.series : const [], patterns: widget.patterns, history: widget.history),
-          ] else ...[
-            // -------------------------------------------------------------------
-            // TAB: FOR YOU
-            // -------------------------------------------------------------------
-            // HERO CARD: Gut Score & On Track
-            Gap.h16,
-
-            if (widget.data.hasGutScore) ...[
-              _ForYouGutScoreCard(data: widget.data, series: widget.series, delta: delta),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () => WhyScoreSheet.show(context, widget.data),
-                  icon: Icon(LucideIcons.info, size: 14.w),
-                  label: Text('How it’s calculated', style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ] else ...[
-              InsightScoreCard(score: null, delta: null, onTap: null, onWhyTap: () => WhyScoreSheet.show(context, widget.data)),
-            ],
-            Gap.h16,
-
-            if (_selectedFilter == 'For You') ...[
-              // TOP INSIGHT CARD (Replaces duplicate PatternCard on For You tab)
-              if (widget.data.topInsight != null)
-                _V2TopInsightCard(
-                  insight: widget.data,
-                  topInsight: widget.data.topInsight!,
-                  onTap: () => context.push(AppRoutes.smartInsightDetail, extra: widget.data),
-                )
-              else if (widget.patterns.isNotEmpty)
-                PatternCard(pattern: widget.patterns.first),
-              Gap.h16,
-
-              // SIDE-BY-SIDE CARDS: What's Improving & Something to Watch
-              _SideBySideImprovingAndWatch(
-                improvingData: improving,
-                series: widget.data.hasGutScore ? widget.series : const [],
-                watchData: watch,
-                onImprovingTap: () => context.push(
-                  AppRoutes.highlightDetail,
-                  extra: HighlightDetailArgs(
-                    tag: 'Healing Trend',
-                    emoji: '🌱',
-                    title: improving.headline,
-                    body: improving.description,
-                    accentColor: 0xFF1F7A3D,
-                    backgroundColor: 0xFFE7F6E7,
-                    chartType: 'healing',
-                    chartValues: widget.series,
-                    footLeft: 'this window',
-                    frequency: improving.deltaPts == 0 ? null : '${improving.deltaPts > 0 ? '+' : ''}${improving.deltaPts} pts',
                   ),
-                ),
-                onWatchTap: (watch == null || watch.pattern == null || watch.title.isEmpty || watch.title == 'No Triggers Detected')
-                    ? null
-                    : () => context.push(
-                        AppRoutes.highlightDetail,
-                        extra: HighlightDetailArgs(
-                          tag: 'Something to Watch',
-                          emoji: '⚠️',
-                          title: watch.title,
-                          body: watch.description,
-                          accentColor: 0xFFC4302B,
-                          backgroundColor: 0xFFFFF1F0,
-                          chartType: 'trigger',
-                          chartValues: const [],
-                          footLeft: watch.windowLabel,
-                          frequency: watch.pattern?.frequency != null ? '${watch.pattern!.frequency} occurrences' : watch.meta,
-                          whyPoints: watch.pattern?.commonFactors.map((f) => f.label).toList() ?? const [],
-                        ),
-                      ),
-              ),
-              Gap.h10,
+                  Gap.h10,
+                ],
 
-              // TOP FOODS THIS WEEK
-              _TopFoodsSection(insight: widget.data),
+                // Side-by-Side Pattern Grid: Positive Pattern & Food Timing
+                Gap.h10,
 
-              Gap.h16,
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: context.insightColor(const Color(0xFFF8FAFC)),
-                  borderRadius: BorderRadius.circular(14.w),
-                  border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
-                ),
-                child: Row(
-                  children: [
-                    Icon(LucideIcons.shieldAlert, size: 16.w, color: context.insightColor(const Color(0xFF94A3B8))),
-                    Gap.w10,
-                    Expanded(
-                      child: Text(
-                        'GutGood Insights reflects statistical correlations from your meal and symptom logs, not permanent allergies or medical diagnoses. Always listen to your body.',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.35),
+                // Bottom Banner: Patterns get smarter over time
+                const _PatternsSmarterBannerCard(),
+              ] else if (isFoodImpactTab) ...[
+                // -------------------------------------------------------------------
+                // TAB: FOOD IMPACT
+                // -------------------------------------------------------------------
+
+                // 1. Food Impact Balance Hero Card
+                _FoodImpactBalanceHeroCard(balance: widget.data.foodImpactBalance, foodImpacts: widget.data.foodImpacts),
+                Gap.h10,
+
+                // 2. Side-by-Side: Top Healing Foods & Top Trigger Food
+                _SideBySideHealingAndTriggerCards(insight: widget.data),
+                Gap.h10,
+
+                // 4. Recent Food Impacts List
+                _RecentFoodImpactsSection(impacts: widget.data.foodImpacts),
+                Gap.h10,
+
+                // 5. Your Next Steps Action Cards
+                _YourNextStepsSection(actions: widget.data.actionsList),
+              ] else if (_selectedFilter == 'Weekly Recap') ...[
+                // -------------------------------------------------------------------
+                // TAB: WEEKLY RECAP
+                // -------------------------------------------------------------------
+                V2WeeklyRecapView(data: widget.data, series: widget.data.hasGutScore ? widget.series : const [], patterns: widget.patterns, history: widget.history),
+              ] else ...[
+                // -------------------------------------------------------------------
+                // TAB: FOR YOU
+                // -------------------------------------------------------------------
+                // HERO CARD: Gut Score & On Track
+
+                if (widget.data.hasGutScore) ...[
+                  _ForYouGutScoreCard(data: widget.data, series: widget.series, delta: delta),
+                ] else ...[
+                  InsightScoreCard(score: null, delta: null, onTap: null, onWhyTap: () => WhyScoreSheet.show(context, widget.data)),
+                ],
+                Gap.h16,
+
+                if (_selectedFilter == 'For You') ...[
+                  // TOP INSIGHT CARD (Replaces duplicate PatternCard on For You tab)
+                  if (widget.data.topInsight != null)
+                    _V2TopInsightCard(
+                      insight: widget.data,
+                      topInsight: widget.data.topInsight!,
+                      onTap: () => context.push(AppRoutes.smartInsightDetail, extra: widget.data),
+                    )
+                  else if (widget.patterns.isNotEmpty)
+                    PatternCard(pattern: widget.patterns.first),
+                  Gap.h16,
+
+                  // SIDE-BY-SIDE CARDS: What's Improving & Something to Watch
+                  _SideBySideImprovingAndWatch(
+                    improvingData: improving,
+                    series: widget.data.hasGutScore ? widget.series : const [],
+                    watchData: watch,
+                    onImprovingTap: () => context.push(
+                      AppRoutes.highlightDetail,
+                      extra: HighlightDetailArgs(
+                        tag: 'Healing Trend',
+                        emoji: '🌱',
+                        title: improving.headline,
+                        body: improving.description,
+                        accentColor: 0xFF1F7A3D,
+                        backgroundColor: 0xFFE7F6E7,
+                        chartType: 'healing',
+                        chartValues: widget.series,
+                        footLeft: 'this window',
+                        frequency: improving.deltaPts == 0 ? null : '${improving.deltaPts > 0 ? '+' : ''}${improving.deltaPts} pts',
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ]),
-      ),
+                    onWatchTap: (watch == null || watch.pattern == null || watch.title.isEmpty || watch.title == 'No Triggers Detected')
+                        ? null
+                        : () => context.push(
+                            AppRoutes.highlightDetail,
+                            extra: HighlightDetailArgs(
+                              tag: 'Something to Watch',
+                              emoji: '⚠️',
+                              title: watch.title,
+                              body: watch.description,
+                              accentColor: 0xFFC4302B,
+                              backgroundColor: 0xFFFFF1F0,
+                              chartType: 'trigger',
+                              chartValues: const [],
+                              footLeft: watch.windowLabel,
+                              frequency: watch.pattern?.frequency != null ? '${watch.pattern!.frequency} occurrences' : watch.meta,
+                              whyPoints: watch.pattern?.commonFactors.map((f) => f.label).toList() ?? const [],
+                            ),
+                          ),
+                  ),
+                  Gap.h10,
+
+                  // TOP FOODS THIS WEEK
+                  _TopFoodsSection(insight: widget.data),
+
+                  Gap.h16,
+                  Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: context.insightColor(const Color(0xFFF8FAFC)),
+                      borderRadius: BorderRadius.circular(14.w),
+                      border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(LucideIcons.shieldAlert, size: 16.w, color: context.insightColor(const Color(0xFF94A3B8))),
+                        Gap.w10,
+                        Expanded(
+                          child: Text(
+                            'GutGood Insights reflects statistical correlations from your meal and symptom logs, not permanent allergies or medical diagnoses. Always listen to your body.',
+                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.35),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ]),
+          ),
         ),
       ],
     );
@@ -248,14 +241,12 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
 
   @override
-  double get minExtent => 64.w; // Fixed height to fit the pill container and padding
+  double get minExtent => 44.w; // Compact height for pill tab bar
   @override
-  double get maxExtent => 64.w;
+  double get maxExtent => 44.w;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return child;
-  }
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => child;
 
   @override
   bool shouldRebuild(_StickyTabBarDelegate oldDelegate) => true;
@@ -272,7 +263,7 @@ class _InsightsHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final filters = ['For You', 'Patterns', 'Food Impact', 'Weekly Recap'];
-    
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
@@ -292,13 +283,8 @@ class _InsightsHeaderWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: filters[i] == selectedFilter ? const Color(0xFF171717) : Colors.transparent,
                   borderRadius: BorderRadius.circular(100.w),
-                  border: Border.all(
-                    color: filters[i] == selectedFilter ? const Color(0xFF171717) : context.insightColor(const Color(0xFFE2E8F0)),
-                    width: 1.w,
-                  ),
-                  boxShadow: filters[i] == selectedFilter 
-                      ? [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.15), blurRadius: 4.w, offset: Offset(0, 2.w))]
-                      : null,
+                  border: Border.all(color: filters[i] == selectedFilter ? const Color(0xFF171717) : context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
+                  boxShadow: filters[i] == selectedFilter ? [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.15), blurRadius: 4.w, offset: Offset(0, 2.w))] : null,
                 ),
                 child: Text(
                   filters[i],
@@ -526,8 +512,7 @@ class _LegendItem extends StatelessWidget {
   final String sub;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context) => Row(
       children: [
         Container(
           width: 7.w,
@@ -559,7 +544,6 @@ class _LegendItem extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 
 // =============================================================================
@@ -617,6 +601,8 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                     .toList()
               : <InsightFood>[]);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -627,9 +613,11 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: context.insightColor(const Color(0xFFF0FDF4)),
+                  color: isDark ? const Color(0xFF102319) : const Color(0xFFF0FDF4),
                   borderRadius: BorderRadius.circular(18.w),
-                  border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7))),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFBBF7D0),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -646,7 +634,12 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Top Healing Foods',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D)),
+                            style: TextStyle(
+                              fontFamily: InsightV2Theme.fontFamily,
+                              fontSize: 12.5.sp,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                            ),
                           ),
                         ),
                       ],
@@ -680,9 +673,19 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: context.insightColor(const Color(0xFFFEF2F2)),
+                  color: isDark ? const Color(0xFF231416) : const Color(0xFFFEF2F2),
                   borderRadius: BorderRadius.circular(18.w),
-                  border: Border.all(color: const Color(0xFFFEE2E2)),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5),
+                    width: 1.2.w,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626)).withValues(alpha: isDark ? 0.08 : 0.04),
+                      blurRadius: 10.w,
+                      offset: Offset(0, 2.w),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -699,7 +702,12 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Top Trigger Food',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF991B1B)),
+                            style: TextStyle(
+                              fontFamily: InsightV2Theme.fontFamily,
+                              fontSize: 12.5.sp,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B),
+                            ),
                           ),
                         ),
                       ],
@@ -747,15 +755,27 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                                 Gap.h3,
                                 Container(
                                   padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.w),
-                                  decoration: BoxDecoration(color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(6.w)),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
+                                    borderRadius: BorderRadius.circular(6.w),
+                                    border: Border.all(
+                                      color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : const Color(0xFFFECACA),
+                                      width: 0.8.w,
+                                    ),
+                                  ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(LucideIcons.triangleAlert, size: 7.w, color: const Color(0xFFB91C1C)),
+                                      Icon(LucideIcons.triangleAlert, size: 7.w, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
                                       Gap.w2,
                                       Text(
                                         '${triggerList.first.impactLevel.toUpperCase()} Impact',
-                                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: const Color(0xFFB91C1C)),
+                                        style: TextStyle(
+                                          fontFamily: InsightV2Theme.fontFamily,
+                                          fontSize: 7.5.sp,
+                                          fontWeight: FontWeight.w700,
+                                          color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -799,16 +819,23 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: context.v2Theme.card,
                           borderRadius: BorderRadius.circular(8.w),
-                          border: Border.all(color: context.insightColor(const Color(0xFFFECACA))),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : context.insightColor(const Color(0xFFFECACA)),
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(LucideIcons.repeat, size: 9.w, color: const Color(0xFFB91C1C)),
+                            Icon(LucideIcons.repeat, size: 9.w, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
                             Gap.w4,
                             Text(
                               'Find Better Swaps',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFFB91C1C)),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 8.5.sp,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+                              ),
                             ),
                           ],
                         ),
@@ -834,8 +861,7 @@ class _HealingFoodItemTile extends StatelessWidget {
   final String badge;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: EdgeInsets.all(6.w),
       decoration: BoxDecoration(color: context.v2Theme.card, borderRadius: BorderRadius.circular(12.w)),
       child: Row(
@@ -881,7 +907,6 @@ class _HealingFoodItemTile extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 // =============================================================================
@@ -983,8 +1008,7 @@ class _FoodImpactRow extends StatelessWidget {
   final bool isPositive;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context) => Row(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(8.w),
@@ -1006,28 +1030,28 @@ class _FoodImpactRow extends StatelessWidget {
             ],
           ),
         ),
-        Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Icon(isPositive ? LucideIcons.leaf : LucideIcons.triangleAlert, size: 10.w, color: isPositive ? const Color(0xFF15803D) : const Color(0xFFB91C1C)),
-            Gap.w3,
+            Row(
+              children: [
+                Icon(isPositive ? LucideIcons.leaf : LucideIcons.triangleAlert, size: 10.w, color: isPositive ? const Color(0xFF15803D) : const Color(0xFFB91C1C)),
+                Gap.w3,
+                Text(
+                  status,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF0F172A))),
+                ),
+              ],
+            ),
+            Gap.h2,
             Text(
-              status,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF0F172A))),
+              isPositive ? 'Positive' : 'Negative',
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w700, color: isPositive ? const Color(0xFF15803D) : const Color(0xFFB91C1C)),
             ),
           ],
         ),
-        Gap.w8,
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.w),
-          decoration: BoxDecoration(color: isPositive ? context.insightColor(const Color(0xFFDCFCE7)) : const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(8.w)),
-          child: Text(
-            isPositive ? 'Positive' : 'Negative',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w700, color: isPositive ? const Color(0xFF15803D) : const Color(0xFFB91C1C)),
-          ),
-        ),
       ],
     );
-  }
 }
 
 // =============================================================================
@@ -1119,8 +1143,7 @@ class _NextStepCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16.w),
       child: Container(
@@ -1164,7 +1187,6 @@ class _NextStepCard extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 // =============================================================================
@@ -1174,8 +1196,7 @@ class _PatternsSmarterBannerCard extends StatelessWidget {
   const _PatternsSmarterBannerCard();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       decoration: BoxDecoration(
         color: context.insightColor(const Color(0xFFF0FDF4)),
         borderRadius: BorderRadius.circular(20.w),
@@ -1215,7 +1236,6 @@ class _PatternsSmarterBannerCard extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 // =============================================================================
@@ -1234,14 +1254,20 @@ class _SideBySideImprovingAndWatch extends StatelessWidget {
   final VoidCallback? onWatchTap;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
-    final improving = _ImprovingCardWidget(data: improvingData, series: series, onTap: onImprovingTap);
-    final watch = _WatchCardWidget(data: watchData, onTap: onWatchTap);
-    if (constraints.maxWidth < 380) {
-      return Column(children: [improving, const SizedBox(height: 12), watch]);
-    }
-    return IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Expanded(child: improving), const SizedBox(width: 10), Expanded(child: watch)]));
-  });
+  Widget build(BuildContext context) => IntrinsicHeight(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _ImprovingCardWidget(data: improvingData, series: series, onTap: onImprovingTap),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: _WatchCardWidget(data: watchData, onTap: onWatchTap),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ImprovingCardWidget extends StatelessWidget {
@@ -1253,19 +1279,30 @@ class _ImprovingCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final cleanSeries = InsightValues.scores(series);
     final startVal = cleanSeries.length > 1 ? cleanSeries.first.round().toString() : (cleanSeries.length == 1 ? cleanSeries.single.round().toString() : '—');
     final endVal = cleanSeries.isNotEmpty ? cleanSeries.last.round().toString() : '—';
 
     final headline = cleanSeries.length < 2 && data.lastWeek == null ? 'Your score baseline' : (data.headline.isNotEmpty ? data.headline : 'Your gut score is steady.');
-    final description = cleanSeries.length < 2 && data.lastWeek == null ? 'One recorded score sets a starting point. Another score will show whether it changed.' : (data.description.isNotEmpty ? data.description : 'Keep logging meals and symptoms to track your gut health progress.');
+    final description = cleanSeries.length < 2 && data.lastWeek == null
+        ? 'One recorded score sets a starting point. Another score will show whether it changed.'
+        : (data.description.isNotEmpty ? data.description : 'Keep logging meals and symptoms to track your gut health progress.');
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF4FAF2),
+        color: isDark ? const Color(0xFF102319) : const Color(0xFFF4FAF2),
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7))),
-        boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
+        border: Border.all(
+          color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isDark ? const Color(0xFF22C55E) : const Color(0xFF17171B)).withValues(alpha: isDark ? 0.06 : 0.03),
+            blurRadius: 6.w,
+            offset: Offset(0, 2.w),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(
@@ -1288,16 +1325,28 @@ class _ImprovingCardWidget extends StatelessWidget {
                         Container(
                           width: 24.w,
                           height: 24.w,
-                          decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.18) : const Color(0xFF16A34A),
+                            shape: BoxShape.circle,
+                          ),
                           child: Center(
-                            child: Icon(Icons.show_chart_rounded, size: 14.w, color: Colors.white),
+                            child: Icon(
+                              Icons.show_chart_rounded,
+                              size: 14.w,
+                              color: isDark ? const Color(0xFF4ADE80) : Colors.white,
+                            ),
                           ),
                         ),
                         Gap.w6,
                         Expanded(
                           child: Text(
-                            'Score history',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D)),
+                            "What's Improving",
+                            style: TextStyle(
+                              fontFamily: InsightV2Theme.fontFamily,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D),
+                            ),
                           ),
                         ),
                       ],
@@ -1307,7 +1356,13 @@ class _ImprovingCardWidget extends StatelessWidget {
                     // Headline
                     Text(
                       headline,
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D), height: 1.2),
+                      style: TextStyle(
+                        fontFamily: InsightV2Theme.fontFamily,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D),
+                        height: 1.2,
+                      ),
                     ),
                     Gap.h3,
 
@@ -1316,7 +1371,12 @@ class _ImprovingCardWidget extends StatelessWidget {
                       description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF334155)), height: 1.25),
+                      style: TextStyle(
+                        fontFamily: InsightV2Theme.fontFamily,
+                        fontSize: 10.5.sp,
+                        color: context.insightColor(const Color(0xFF334155)),
+                        height: 1.25,
+                      ),
                     ),
                     Gap.h8,
 
@@ -1334,12 +1394,22 @@ class _ImprovingCardWidget extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '$startVal',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D), height: 1.0),
+                              startVal,
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 11.5.sp,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D),
+                                height: 1.0,
+                              ),
                             ),
                             Text(
                               'First recorded',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF15803D)),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 8.5.sp,
+                                color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D),
+                              ),
                             ),
                           ],
                         ),
@@ -1348,11 +1418,21 @@ class _ImprovingCardWidget extends StatelessWidget {
                           children: [
                             Text(
                               endVal,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF14532D), height: 1.0),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 11.5.sp,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D),
+                                height: 1.0,
+                              ),
                             ),
                             Text(
                               'Latest',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: const Color(0xFF15803D)),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 8.5.sp,
+                                color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D),
+                              ),
                             ),
                           ],
                         ),
@@ -1368,14 +1448,21 @@ class _ImprovingCardWidget extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: context.v2Theme.card,
                     borderRadius: BorderRadius.circular(20.w),
-                    border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7))),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'See Details',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w700,
+                          color: context.insightColor(const Color(0xFF0F172A)),
+                        ),
                       ),
                       Gap.w4,
                       Icon(Icons.arrow_forward_rounded, size: 12.w, color: context.insightColor(const Color(0xFF0F172A))),
@@ -1399,6 +1486,7 @@ class _WatchCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasTrigger = data != null && data!.pattern != null && data!.title.isNotEmpty && data!.title != 'No Triggers Detected';
 
     final title = hasTrigger ? data!.title : 'No Triggers Detected';
@@ -1422,10 +1510,19 @@ class _WatchCardWidget extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF5F5),
+        color: isDark ? const Color(0xFF231416) : const Color(0xFFFFF5F5),
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: const Color(0xFFFEE2E2)),
-        boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
+        border: Border.all(
+          color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5),
+          width: 1.2.w,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626)).withValues(alpha: isDark ? 0.08 : 0.04),
+            blurRadius: 8.w,
+            offset: Offset(0, 2.w),
+          ),
+        ],
       ),
       child: Material(
         type: MaterialType.transparency,
@@ -1457,7 +1554,12 @@ class _WatchCardWidget extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Something to Watch',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: const Color(0xFF881337)),
+                            style: TextStyle(
+                              fontFamily: InsightV2Theme.fontFamily,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? const Color(0xFFF87171) : const Color(0xFF881337),
+                            ),
                           ),
                         ),
                       ],
@@ -1467,7 +1569,13 @@ class _WatchCardWidget extends StatelessWidget {
                     // Headline
                     Text(
                       title,
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.2),
+                      style: TextStyle(
+                        fontFamily: InsightV2Theme.fontFamily,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w800,
+                        color: context.insightColor(const Color(0xFF0F172A)),
+                        height: 1.2,
+                      ),
                     ),
                     Gap.h3,
 
@@ -1476,7 +1584,12 @@ class _WatchCardWidget extends StatelessWidget {
                       desc,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF334155)), height: 1.25),
+                      style: TextStyle(
+                        fontFamily: InsightV2Theme.fontFamily,
+                        fontSize: 10.5.sp,
+                        color: context.insightColor(const Color(0xFF334155)),
+                        height: 1.25,
+                      ),
                     ),
                     Gap.h8,
 
@@ -1493,10 +1606,16 @@ class _WatchCardWidget extends StatelessWidget {
                                 width: 36.w,
                                 height: 36.w,
                                 fit: BoxFit.cover,
-                                placeholder: (_, _) => Container(color: const Color(0xFFFEE2E2)),
+                                placeholder: (_, _) => Container(
+                                  color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
+                                ),
                                 errorWidget: (_, _, _) => Container(
-                                  color: const Color(0xFFFECDD3),
-                                  child: const Icon(LucideIcons.utensils, size: 14, color: Color(0xFF881337)),
+                                  color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.20) : const Color(0xFFFECDD3),
+                                  child: Icon(
+                                    LucideIcons.utensils,
+                                    size: 14,
+                                    color: isDark ? const Color(0xFFF87171) : const Color(0xFF881337),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1510,15 +1629,31 @@ class _WatchCardWidget extends StatelessWidget {
                     if (hasTrigger) ...[
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
-                        decoration: BoxDecoration(color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(12.w)),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(12.w),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : const Color(0xFFFECACA),
+                            width: 0.8.w,
+                          ),
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(LucideIcons.target, size: 10.w, color: const Color(0xFF881337)),
+                            Icon(
+                              LucideIcons.target,
+                              size: 10.w,
+                              color: isDark ? const Color(0xFFF87171) : const Color(0xFF881337),
+                            ),
                             Gap.w3,
                             Text(
                               '${data?.pattern?.frequency ?? data?.timeline.length ?? 0} Observations',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w700, color: const Color(0xFF881337)),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 9.sp,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? const Color(0xFFF87171) : const Color(0xFF881337),
+                              ),
                             ),
                           ],
                         ),
@@ -1539,14 +1674,21 @@ class _WatchCardWidget extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: context.v2Theme.card,
                           borderRadius: BorderRadius.circular(20.w),
-                          border: Border.all(color: const Color(0xFFFEE2E2)),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : const Color(0xFFFECACA),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               'See Details',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w700,
+                                color: context.insightColor(const Color(0xFF0F172A)),
+                              ),
                             ),
                             Gap.w4,
                             Icon(Icons.arrow_forward_rounded, size: 12.w, color: context.insightColor(const Color(0xFF0F172A))),
@@ -1575,7 +1717,7 @@ class _TopFoodsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foodItems = <_FoodItemData>[];
+    final foodItems = <TopFoodItemData>[];
     final seen = <String>{};
 
     int countOccurrences(String foodName) {
@@ -1594,7 +1736,17 @@ class _TopFoodsSection extends StatelessWidget {
         if (key.isEmpty || !seen.add(key)) continue;
         final n = countOccurrences(f.name);
         final countStr = n > 0 ? '${n}x logged' : 'Active';
-        foodItems.add(_FoodItemData(f.name, countStr, f.impactLevel.toUpperCase() == 'HIGH' ? 'High Impact' : 'Supportive', f.imageUrl ?? V2Kit.foodImageUrl(f.name)));
+        final desc = f.effect != null && f.effect!.isNotEmpty ? f.effect : 'Supports microbiome diversity and gut balance.';
+        foodItems.add(
+          TopFoodItemData(
+            title: f.name,
+            frequency: countStr,
+            badge: f.impactLevel.toUpperCase() == 'HIGH' ? 'High Impact' : 'Supportive',
+            imageUrl: f.imageUrl ?? V2Kit.foodImageUrl(f.name),
+            description: desc,
+            isPositive: true,
+          ),
+        );
       }
     }
 
@@ -1603,7 +1755,8 @@ class _TopFoodsSection extends StatelessWidget {
       if (key.isEmpty || !seen.add(key)) continue;
       final n = countOccurrences(f.name);
       final countStr = n > 0 ? '${n}x logged' : 'Active';
-      foodItems.add(_FoodItemData(f.name, countStr, 'Gut Hero', f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.name)));
+      final desc = f.effect.isNotEmpty ? f.effect : 'Supports microbiome diversity and gut balance.';
+      foodItems.add(TopFoodItemData(title: f.name, frequency: countStr, badge: 'Gut Hero', imageUrl: f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.name), description: desc, isPositive: true));
     }
 
     for (final f in insight.foodImpacts.where((i) {
@@ -1614,7 +1767,8 @@ class _TopFoodsSection extends StatelessWidget {
       if (key.isEmpty || !seen.add(key)) continue;
       final n = countOccurrences(f.food);
       final countStr = n > 0 ? '${n}x logged' : f.dateLabel;
-      foodItems.add(_FoodItemData(f.food, countStr, 'Positive', f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.food)));
+      final desc = f.effect.isNotEmpty ? f.effect : 'Observed positive effect on gut health.';
+      foodItems.add(TopFoodItemData(title: f.food, frequency: countStr, badge: 'Positive', imageUrl: f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.food), description: desc, isPositive: true));
     }
 
     if (foodItems.isEmpty) {
@@ -1696,142 +1850,21 @@ class _TopFoodsSection extends StatelessWidget {
         ),
         Gap.h10,
 
-        // Food Cards Horizontal Carousel in QuickWin style (compact fixed width)
-        SizedBox(
-          height: 110.w,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: foodItems.length,
-            separatorBuilder: (_, _) => Gap.w10,
-            itemBuilder: (context, index) {
-              final item = foodItems[index];
-              return GestureDetector(
+        // Separate List Items (Top 3 foods) using TopFoodTile
+        Column(
+          children: [
+            for (final item in foodItems.take(3)) ...[
+              TopFoodTile(
+                item: item,
                 onTap: () => context.push(AppRoutes.foodIntelligence, extra: insight),
-                child: Container(
-                  width: 235.w,
-                  decoration: BoxDecoration(
-                    color: context.v2Theme.card,
-                    borderRadius: BorderRadius.circular(18.w),
-                    border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
-                    boxShadow: [BoxShadow(color: context.insightColor(const Color(0xFF0F172A)).withValues(alpha: 0.03), blurRadius: 6.w, offset: const Offset(0, 2))],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    children: [
-                      // 1. Left Angled Image
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 95.w,
-                        child: CachedNetworkImage(
-                          imageUrl: item.imageUrl,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                          placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFDCFCE7))),
-                          errorWidget: (_, _, _) => Container(
-                            color: const Color(0xFF86EFAC),
-                            child: const Icon(LucideIcons.leaf, color: Color(0xFF15803D), size: 22),
-                          ),
-                        ),
-                      ),
-
-                      // 2. Right Content Area
-                      Positioned(
-                        left: 100.w,
-                        top: 0,
-                        bottom: 0,
-                        right: 0,
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(4.w, 8.w, 8.w, 8.w),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Top Tag Pill
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.5.w),
-                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.w)),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(LucideIcons.leaf, size: 9.w, color: const Color(0xFF15803D)),
-                                        Gap.w3,
-                                        Text(
-                                          item.badge,
-                                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Gap.h4,
-
-                                  // Title
-                                  Text(
-                                    item.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontFamily: InsightV2Theme.fontFamily,
-                                      fontSize: 12.5.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: context.insightColor(const Color(0xFF0F172A)),
-                                      height: 1.15,
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                  Gap.h2,
-
-                                  // Frequency
-                                  Text(
-                                    item.frequency,
-                                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w600, color: const Color(0xFF15803D)),
-                                  ),
-                                ],
-                              ),
-
-                              // Bottom Dark Pill Button
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.w),
-                                decoration: BoxDecoration(color: context.insightColor(const Color(0xFF0F172A)), borderRadius: BorderRadius.circular(16.w)),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'View Food',
-                                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
-                                    ),
-                                    Gap.w3,
-                                    Icon(Icons.arrow_forward_rounded, size: 10.w, color: Colors.white),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+              ),
+              Gap.h10,
+            ],
+          ],
         ),
       ],
     );
   }
-}
-
-class _FoodItemData {
-  const _FoodItemData(this.title, this.frequency, this.badge, this.imageUrl);
-  final String title;
-  final String frequency;
-  final String badge;
-  final String imageUrl;
 }
 
 // =============================================================================
@@ -1935,14 +1968,18 @@ class _WeeklyAverageScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avgScore = recap?.avgScore ?? data.gutScore;
+    // Prefer scored-day average from recap; never invent a flat series from a
+    // single headline score (that hid empty days as full bars).
     final trendInts = recap?.gutScoreTrend ?? <int>[];
     final trendDoubles = trendInts.map((e) => e.toDouble()).toList();
-    
-    // Calculate the dynamic labels for the past 7 days up to today
+    final scored = trendInts.where((s) => s > 0).toList();
+    final trendAvg = scored.isEmpty ? null : (scored.reduce((a, b) => a + b) / scored.length).round();
+    final avgScore = recap?.avgScore ?? trendAvg ?? (data.hasGutScore ? data.gutScore : 0);
+    final hasAnyScore = data.hasGutScore || scored.isNotEmpty || (recap?.avgScore ?? 0) > 0;
+
     final labels = <String>[];
     final now = DateTime.now();
-    final dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     for (var i = 6; i >= 0; i--) {
       final d = now.subtract(Duration(days: i));
       labels.add(dayNames[d.weekday - 1]);
@@ -1951,9 +1988,10 @@ class _WeeklyAverageScoreCard extends StatelessWidget {
     return GutScoreCard(
       score: avgScore,
       title: 'WEEKLY AVERAGE',
-      subtitle: 'Your gut score trend over the last 7 days.',
+      subtitle: hasAnyScore ? (recap?.scoreSub ?? 'Your gut score trend over the last 7 days.') : 'Log scans this week to unlock your daily gut score trend.',
       showChevron: false,
-      series: trendDoubles.isNotEmpty ? trendDoubles : [avgScore.toDouble()],
+      // Keep empty days as 0 so the chart draws hollow tracks, not fake bars.
+      series: trendDoubles.isNotEmpty ? trendDoubles : (hasAnyScore ? [avgScore.toDouble()] : const []),
       labels: labels,
     );
   }
@@ -1967,22 +2005,29 @@ class _ForYouGutScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate the dynamic labels for the past 7 days up to today
     final labels = <String>[];
     final now = DateTime.now();
-    final dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     for (var i = 6; i >= 0; i--) {
       final d = now.subtract(Duration(days: i));
       labels.add(dayNames[d.weekday - 1]);
     }
 
+    // Prefer the 7-day daily trend (with 0 = no data). History-only series is a
+    // fallback when weeklyRecap.gutScoreTrend was not stamped yet.
+    final trend = data.weeklyRecap?.gutScoreTrend;
+    final chartSeries = (trend != null && trend.isNotEmpty) ? [for (final s in trend) s.toDouble()] : series;
+
+    final displayScore = data.hasGutScore ? data.gutScore : (data.weeklyRecap?.avgScore ?? 0);
+
     return GutScoreCard(
-      score: data.gutScore,
+      score: displayScore,
       delta: delta,
       title: 'YOUR GUT SCORE',
-      subtitle: 'Based on your recent meal and symptom logs.',
-      series: series.isNotEmpty ? series : [data.gutScore.toDouble()],
+      subtitle: data.hasGutScore ? (data.weeklyRecap?.scoreSub ?? 'Based on your recent meal and symptom logs.') : 'Log food scans to build your gut score.',
+      series: chartSeries.isNotEmpty ? chartSeries : (data.hasGutScore ? [displayScore.toDouble()] : const []),
       labels: labels,
+      onTap: () => WhyScoreSheet.show(context, data),
     );
   }
 }
@@ -1995,8 +2040,12 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bestDay = (recap?.bestDay != null && recap!.bestDay!.isNotEmpty) ? recap!.bestDay! : '—';
-    final foodsLogged = recap?.foodsLogged;
+    // Prefer recap counts (7-day). Fall back to evidence sample sizes so the
+    // card never shows a blank "—" when the insight has real logs.
+    final foodsLogged = recap?.foodsLogged ?? ((data.evidence?.sampleSizes.meals ?? 0) + (data.evidence?.sampleSizes.scans ?? 0));
+    final foodsLabel = recap?.loggedSub ?? 'meals and scans';
 
     return IntrinsicHeight(
       child: Row(
@@ -2007,9 +2056,11 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(10.w),
               decoration: BoxDecoration(
-                color: context.insightColor(const Color(0xFFF0FDF4)),
+                color: isDark ? const Color(0xFF102319) : const Color(0xFFF0FDF4),
                 borderRadius: BorderRadius.circular(16.w),
-                border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7))),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2019,14 +2070,26 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
                     children: [
                       Container(
                         padding: EdgeInsets.all(4.w),
-                        decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                        child: Icon(LucideIcons.calendar, size: 11.w, color: const Color(0xFF15803D)),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.18) : const Color(0xFFDCFCE7),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          LucideIcons.calendar,
+                          size: 11.w,
+                          color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                        ),
                       ),
                       Gap.w4,
                       Expanded(
                         child: Text(
                           'Best Day',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                          ),
                         ),
                       ),
                     ],
@@ -2042,17 +2105,31 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
                           children: [
                             Text(
                               bestDay,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.1),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w800,
+                                color: context.insightColor(const Color(0xFF0F172A)),
+                                height: 1.1,
+                              ),
                             ),
                             Gap.h2,
                             Text(
                               recap?.dateRange ?? 'No best day recorded',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 8.5.sp,
+                                color: context.insightColor(const Color(0xFF64748B)),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      Icon(LucideIcons.leaf, size: 20.w, color: const Color(0xFF86EFAC).withValues(alpha: 0.7)),
+                      Icon(
+                        LucideIcons.leaf,
+                        size: 20.w,
+                        color: isDark ? const Color(0xFF4ADE80).withValues(alpha: 0.25) : const Color(0xFF86EFAC).withValues(alpha: 0.7),
+                      ),
                     ],
                   ),
                 ],
@@ -2066,9 +2143,11 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(10.w),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFBF5),
+                color: isDark ? const Color(0xFF231A14) : const Color(0xFFFFFBF5),
                 borderRadius: BorderRadius.circular(16.w),
-                border: Border.all(color: const Color(0xFFFFEDD5)),
+                border: Border.all(
+                  color: isDark ? const Color(0xFFF97316).withValues(alpha: 0.28) : const Color(0xFFFFEDD5),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2078,14 +2157,26 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
                     children: [
                       Container(
                         padding: EdgeInsets.all(4.w),
-                        decoration: const BoxDecoration(color: Color(0xFFFFEDD5), shape: BoxShape.circle),
-                        child: Icon(LucideIcons.utensils, size: 11.w, color: const Color(0xFFC2410C)),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFFF97316).withValues(alpha: 0.18) : const Color(0xFFFFEDD5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          LucideIcons.utensils,
+                          size: 11.w,
+                          color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C),
+                        ),
                       ),
                       Gap.w4,
                       Expanded(
                         child: Text(
                           'Foods Logged',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF9A3412)),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? const Color(0xFFFB923C) : const Color(0xFF9A3412),
+                          ),
                         ),
                       ),
                     ],
@@ -2100,18 +2191,32 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              foodsLogged?.toString() ?? '—',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 17.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.1),
+                              '$foodsLogged',
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 17.sp,
+                                fontWeight: FontWeight.w800,
+                                color: context.insightColor(const Color(0xFF0F172A)),
+                                height: 1.1,
+                              ),
                             ),
                             Gap.h2,
                             Text(
-                              'Meals this week',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+                              foodsLabel,
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 8.5.sp,
+                                color: context.insightColor(const Color(0xFF64748B)),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      Icon(LucideIcons.utensils, size: 18.w, color: const Color(0xFFFED7AA).withValues(alpha: 0.7)),
+                      Icon(
+                        LucideIcons.utensils,
+                        size: 18.w,
+                        color: isDark ? const Color(0xFFFB923C).withValues(alpha: 0.20) : const Color(0xFFFED7AA).withValues(alpha: 0.7),
+                      ),
                     ],
                   ),
                 ],
@@ -2125,9 +2230,11 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(10.w),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0F9FF),
+                color: isDark ? const Color(0xFF111E2E) : const Color(0xFFF0F9FF),
                 borderRadius: BorderRadius.circular(16.w),
-                border: Border.all(color: const Color(0xFFE0F2FE)),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF38BDF8).withValues(alpha: 0.28) : const Color(0xFFE0F2FE),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2140,17 +2247,33 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
                         children: [
                           Container(
                             padding: EdgeInsets.all(4.w),
-                            decoration: const BoxDecoration(color: Color(0xFFE0F2FE), shape: BoxShape.circle),
-                            child: Icon(LucideIcons.barChart2, size: 11.w, color: const Color(0xFF0369A1)),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0284C7).withValues(alpha: 0.20) : const Color(0xFFE0F2FE),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              LucideIcons.barChart2,
+                              size: 11.w,
+                              color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1),
+                            ),
                           ),
                           Gap.w3,
                           Expanded(
                             child: Text(
                               'Your Evidence',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0369A1)),
+                              style: TextStyle(
+                                fontFamily: InsightV2Theme.fontFamily,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1),
+                              ),
                             ),
                           ),
-                          Icon(LucideIcons.info, size: 10.w, color: context.insightColor(const Color(0xFF94A3B8))),
+                          Icon(
+                            LucideIcons.info,
+                            size: 10.w,
+                            color: isDark ? const Color(0xFF64748B) : context.insightColor(const Color(0xFF94A3B8)),
+                          ),
                         ],
                       ),
                       Gap.h6,
@@ -2166,7 +2289,11 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
                     'More data = more insights',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 7.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 7.5.sp,
+                      color: context.insightColor(const Color(0xFF64748B)),
+                    ),
                   ),
                 ],
               ),
@@ -2186,22 +2313,36 @@ class _EvidenceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            Icon(LucideIcons.checkSquare, size: 9.w, color: const Color(0xFF0284C7)),
+            Icon(
+              LucideIcons.checkSquare,
+              size: 9.w,
+              color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+            ),
             Gap.w3,
             Text(
               label,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF334155))),
+              style: TextStyle(
+                fontFamily: InsightV2Theme.fontFamily,
+                fontSize: 9.5.sp,
+                color: context.insightColor(const Color(0xFF334155)),
+              ),
             ),
           ],
         ),
         Text(
           count?.toString() ?? '—',
-          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+          style: TextStyle(
+            fontFamily: InsightV2Theme.fontFamily,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w800,
+            color: context.insightColor(const Color(0xFF0F172A)),
+          ),
         ),
       ],
     );
@@ -2408,6 +2549,8 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2418,9 +2561,11 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: context.insightColor(const Color(0xFFF0FDF4)),
+                  color: isDark ? const Color(0xFF102319) : const Color(0xFFF0FDF4),
                   borderRadius: BorderRadius.circular(18.w),
-                  border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7))),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFBBF7D0),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2440,7 +2585,12 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 'Top Healing Food',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF15803D)),
+                                style: TextStyle(
+                                  fontFamily: InsightV2Theme.fontFamily,
+                                  fontSize: 11.5.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                                ),
                               ),
                             ),
                           ],
@@ -2455,12 +2605,22 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
 
                         Text(
                           topHealing.name,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 11.5.sp,
+                            fontWeight: FontWeight.w800,
+                            color: context.insightColor(const Color(0xFF0F172A)),
+                          ),
                         ),
                         Gap.h2,
                         Text(
                           topHealing.effect ?? 'Supports gut health',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.15),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 9.5.sp,
+                            color: context.insightColor(const Color(0xFF64748B)),
+                            height: 1.15,
+                          ),
                         ),
                       ],
                     ),
@@ -2471,19 +2631,40 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
                       children: [
                         Text(
                           'Observed',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w800,
+                            color: context.insightColor(const Color(0xFF0F172A)),
+                          ),
                         ),
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
-                          decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), borderRadius: BorderRadius.circular(8.w)),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.18) : const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(8.w),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.35) : const Color(0xFFBBF7D0),
+                              width: 0.8.w,
+                            ),
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(LucideIcons.leaf, size: 8.w, color: const Color(0xFF15803D)),
+                              Icon(
+                                LucideIcons.leaf,
+                                size: 8.w,
+                                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                              ),
                               Gap.w2,
                               Text(
                                 '${topHealing.impactLevel.isEmpty ? 'Observed' : topHealing.impactLevel.toUpperCase()} Impact',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                                style: TextStyle(
+                                  fontFamily: InsightV2Theme.fontFamily,
+                                  fontSize: 8.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                                ),
                               ),
                             ],
                           ),
@@ -2503,9 +2684,19 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: context.insightColor(const Color(0xFFFEF2F2)),
+                  color: isDark ? const Color(0xFF231416) : const Color(0xFFFEF2F2),
                   borderRadius: BorderRadius.circular(18.w),
-                  border: Border.all(color: const Color(0xFFFEE2E2)),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5),
+                    width: 1.2.w,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626)).withValues(alpha: isDark ? 0.08 : 0.04),
+                      blurRadius: 10.w,
+                      offset: Offset(0, 2.w),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2525,7 +2716,12 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 'Top Trigger Food',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: const Color(0xFF991B1B)),
+                                style: TextStyle(
+                                  fontFamily: InsightV2Theme.fontFamily,
+                                  fontSize: 11.5.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B),
+                                ),
                               ),
                             ),
                           ],
@@ -2540,12 +2736,22 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
 
                         Text(
                           topTrigger.name,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 11.5.sp,
+                            fontWeight: FontWeight.w800,
+                            color: context.insightColor(const Color(0xFF0F172A)),
+                          ),
                         ),
                         Gap.h2,
                         Text(
                           topTrigger.effect ?? 'Associated with discomfort',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.15),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 9.5.sp,
+                            color: context.insightColor(const Color(0xFF64748B)),
+                            height: 1.15,
+                          ),
                         ),
                       ],
                     ),
@@ -2556,19 +2762,40 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
                       children: [
                         Text(
                           'Observed',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w800,
+                            color: context.insightColor(const Color(0xFF0F172A)),
+                          ),
                         ),
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
-                          decoration: BoxDecoration(color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(8.w)),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(8.w),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : const Color(0xFFFECACA),
+                              width: 0.8.w,
+                            ),
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(LucideIcons.triangleAlert, size: 8.w, color: const Color(0xFFB91C1C)),
+                              Icon(
+                                LucideIcons.triangleAlert,
+                                size: 8.w,
+                                color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+                              ),
                               Gap.w2,
                               Text(
                                 '${topTrigger.impactLevel.isEmpty ? 'Observed' : topTrigger.impactLevel.toUpperCase()} Impact',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: const Color(0xFFB91C1C)),
+                                style: TextStyle(
+                                  fontFamily: InsightV2Theme.fontFamily,
+                                  fontSize: 8.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+                                ),
                               ),
                             ],
                           ),
@@ -2655,102 +2882,86 @@ class _V2TopInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final titleText = InsightValues.text(topInsight.title, fallback: 'Your food and symptom snapshot');
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF171717), // Deep black matching app icon bg
-        borderRadius: BorderRadius.circular(24.w),
-        boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.15), blurRadius: 10.w, offset: Offset(0, 4.w))],
+        borderRadius: BorderRadius.circular(20.w),
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF6F67DD), Color(0xFF8B85EC), Color(0xFF9F98F4)]),
+        boxShadow: [BoxShadow(color: const Color(0xFF6F67DD).withValues(alpha: 0.28), blurRadius: 16.w, offset: Offset(0, 6.w))],
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
           onTap: onTap ?? () => context.push(AppRoutes.smartInsightDetail, extra: insight),
-          borderRadius: BorderRadius.circular(24.w),
-          child: Stack(
-            children: [
-              // Background accent glow using the app icon's minimalist aesthetic
-              Positioned(
-                right: -30.w,
-                bottom: -30.w,
-                child: Container(
-                  width: 150.w,
-                  height: 150.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: 0.08),
-                        Colors.white.withValues(alpha: 0.0),
-                      ],
+          borderRadius: BorderRadius.circular(20.w),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(18.w, 16.w, 14.w, 16.w),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Left Column: Eyebrow, Main Headline Title, Pill CTA Button
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Eyebrow
+                      Text(
+                        'Top Insights & Trends',
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.90), letterSpacing: 0.2),
+                      ),
+                      Gap.h6,
+
+                      // Main Bold Headline Title
+                      Text(
+                        titleText,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.20, letterSpacing: -0.4),
+                      ),
+                      Gap.h16,
+
+                      // Pill CTA Button
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.w),
+                        decoration: BoxDecoration(color: const Color(0xFF43398D).withValues(alpha: 0.85), borderRadius: BorderRadius.circular(24.w)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Explore',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                            Gap.w6,
+                            Icon(Icons.arrow_forward_rounded, size: 14.w, color: Colors.white),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Gap.w5,
+
+                // Right Illustration Graphic Element
+                SizedBox(
+                  width: 80.w,
+                  height: 80.w,
+                  child: Image.asset(
+                    AppAssets.appIconBg,
+                    height: 80.w,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => Container(
+                      width: 70.w,
+                      height: 70.w,
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
+                      child: Icon(LucideIcons.sparkles, size: 36.w, color: Colors.white),
                     ),
                   ),
                 ),
-              ),
-
-              Padding(
-                padding: EdgeInsets.all(24.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Eyebrow Row
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(6.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(LucideIcons.sparkles, size: 14.w, color: Colors.white),
-                        ),
-                        Gap.w8,
-                        Text(
-                          'PERSONAL INSIGHT',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: Colors.white.withValues(alpha: 0.8)),
-                        ),
-                      ],
-                    ),
-                    Gap.h16,
-
-                    // Main Bold Headline
-                    Text(
-                      InsightValues.text(topInsight.title, fallback: 'Your food and symptom snapshot'),
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.2, letterSpacing: -0.5),
-                    ),
-                    Gap.h8,
-
-                    // Description
-                    Text(
-                      InsightValues.text(topInsight.description, fallback: 'Keep logging to add more detail to your personal picture.'),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, color: Colors.white.withValues(alpha: 0.7), height: 1.4),
-                    ),
-                    Gap.h20,
-
-                    // Bottom Action Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Explore insight',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w700, color: Colors.white),
-                        ),
-                        Container(
-                          padding: EdgeInsets.all(6.w),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.arrow_forward_rounded, size: 16.w, color: const Color(0xFF171717)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

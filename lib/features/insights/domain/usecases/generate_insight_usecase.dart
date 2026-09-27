@@ -170,34 +170,47 @@ class GenerateInsightUseCase {
       lastScore: lastScore,
     );
 
-    // Calculate deterministic, non-hallucinated Gut Score from scan/symptom history
-    final exactScore = _gutScoreCalculatorService.calculateGutScore(scans: recentScans.isNotEmpty ? recentScans : allScans, symptoms: recentSymptoms, meals: recentMeals);
-    final avgScanScore = _gutScoreCalculatorService.calculateAvgScanScore(recentScans.isNotEmpty ? recentScans : allScans);
-    final weeklyTrend = _gutScoreCalculatorService.calculateWeeklyTrend(scans: allScans, symptoms: allSymptoms, meals: allMeals, endDate: nowUtc);
+    // Deterministic gut score from the last 7 local days only.
+    // Do NOT fall back to 30-day scans — that inflated gutScore / avgScanScore
+    // and made dailyScores look "full" while mealsCount stayed at the 7-day window.
+    final endLocal = DateTime.now();
+    final weekScans = recentScans;
+    final weekSymptoms = recentSymptoms;
+    final weekMeals = recentMeals;
+    final hasWeekScore = _gutScoreCalculatorService.hasScoreData(weekScans);
+
+    final exactScore = _gutScoreCalculatorService.calculateGutScore(scans: weekScans, symptoms: weekSymptoms, meals: weekMeals);
+    final avgScanScore = _gutScoreCalculatorService.calculateAvgScanScore(weekScans);
+    // Trend uses all loaded logs but buckets only the last 7 local days.
+    final weeklyTrend = _gutScoreCalculatorService.calculateWeeklyTrend(scans: allScans, symptoms: allSymptoms, meals: allMeals, endDate: endLocal);
+    final weeklyAvg = _gutScoreCalculatorService.averageOfScoredDays(weeklyTrend);
+    final displayScore = hasWeekScore ? (weeklyAvg > 0 ? weeklyAvg : exactScore) : 0;
     final weeklyRecap = _gutScoreCalculatorService.calculateWeeklyRecap(
-      recentScans: recentScans,
-      recentSymptoms: recentSymptoms,
-      recentMeals: recentMeals,
+      recentScans: weekScans,
+      recentSymptoms: weekSymptoms,
+      recentMeals: weekMeals,
       weeklyTrend: weeklyTrend,
-      exactScore: exactScore,
+      exactScore: displayScore,
+      endDate: endLocal,
     );
 
     if (_gutScoreFirestoreService != null) {
       final scoreRecord = GutScoreRecord(
-        id: 'weekly_${nowUtc.year}_W${(nowUtc.day / 7).ceil()}_${nowUtc.millisecondsSinceEpoch}',
+        id: 'weekly_${endLocal.year}_W${_isoWeekOf(endLocal)}_${endLocal.millisecondsSinceEpoch}',
         uid: profile?.uid ?? '',
         type: 'weekly',
-        gutScore: exactScore,
+        gutScore: displayScore,
         avgScanScore: avgScanScore,
-        symptomPenalty: _gutScoreCalculatorService.calculateSymptomPenalty(recentSymptoms),
-        consistencyBonus: _gutScoreCalculatorService.calculateConsistencyBonus(meals: recentMeals, scans: recentScans),
-        scansCount: recentScans.length,
-        mealsCount: recentMeals.length,
-        symptomsCount: recentSymptoms.length,
+        symptomPenalty: _gutScoreCalculatorService.calculateSymptomPenalty(weekSymptoms),
+        consistencyBonus: _gutScoreCalculatorService.calculateConsistencyBonus(meals: weekMeals, scans: weekScans),
+        scansCount: weekScans.length,
+        mealsCount: weekMeals.length,
+        symptomsCount: weekSymptoms.length,
         dailyScores: weeklyTrend,
-        periodFrom: thirtyDaysAgo,
-        periodTo: nowUtc,
-        createdAt: nowUtc,
+        // Period matches the weekly window the numbers describe (not 30 days).
+        periodFrom: sevenDaysAgo,
+        periodTo: endLocal.toUtc(),
+        createdAt: endLocal.toUtc(),
       );
       await _gutScoreFirestoreService.saveGutScore(scoreRecord);
     }
@@ -212,7 +225,8 @@ class GenerateInsightUseCase {
       model: RemoteConfigService.instance.openAIModel,
       promptVersion: AiVersions.insightPromptVersion,
       expiresAt: DateTime.now().add(const Duration(hours: 48)),
-      exactGutScore: exactScore,
+      exactGutScore: displayScore,
+      hasGutScore: hasWeekScore,
       avgScanScore: avgScanScore,
       weeklyTrend: weeklyTrend,
       weeklyRecap: weeklyRecap,
@@ -240,6 +254,13 @@ class GenerateInsightUseCase {
   }
 }
 
+/// ISO-like week-of-year helper for stable weekly gut_scores doc ids.
+int _isoWeekOf(DateTime date) {
+  final local = date.toLocal();
+  final dayOfYear = DateTime(local.year, local.month, local.day).difference(DateTime(local.year)).inDays + 1;
+  return ((dayOfYear - local.weekday + 10) / 7).floor().clamp(1, 53);
+}
+
 /// P2-10: pure v2-envelope stamp. Status marks ready when minimum baseline logs exist.
 AIInsight stampInsightEnvelope(
   AIInsight insight, {
@@ -251,6 +272,7 @@ AIInsight stampInsightEnvelope(
   required int promptVersion,
   required DateTime expiresAt,
   int? exactGutScore,
+  bool? hasGutScore,
   int? avgScanScore,
   List<int>? weeklyTrend,
   WeeklyRecap? weeklyRecap,
@@ -261,10 +283,23 @@ AIInsight stampInsightEnvelope(
 
   final updatedScore = exactGutScore ?? insight.gutScore;
   final updatedRecap = weeklyRecap ?? insight.weeklyRecap;
+  // Prefer the deterministic weekly trend on the recap; if the caller passed
+  // [weeklyTrend] and the recap is missing it, fold it in so Insight screens
+  // always see the same 7-day series as gut_scores.dailyScores.
+  final recapWithTrend = updatedRecap == null
+      ? null
+      : (weeklyTrend != null && (updatedRecap.gutScoreTrend == null || updatedRecap.gutScoreTrend!.isEmpty)
+            ? updatedRecap.copyWith(gutScoreTrend: weeklyTrend)
+            : updatedRecap);
+
+  // hasGutScore: explicit flag from calculator wins; otherwise keep prior.
+  // Score 0 with hasGutScore=true means "scored but zero"; false means unknown.
+  final resolvedHasScore = hasGutScore ?? insight.hasGutScore;
 
   return insight.copyWith(
     gutScore: updatedScore,
-    weeklyRecap: updatedRecap,
+    hasGutScore: resolvedHasScore,
+    weeklyRecap: recapWithTrend ?? updatedRecap,
     periodFrom: periodFrom,
     periodTo: periodTo,
     evidence: InsightEvidence.fromPatterns(candidates, sampleSizes: sampleSizes),

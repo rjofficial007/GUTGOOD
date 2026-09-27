@@ -229,17 +229,20 @@ class CompactSeriesBars extends StatelessWidget {
     }
 
     const totalSlots = 7;
-    final data = values.length > totalSlots ? values.sublist(values.length - totalSlots) : values;
-    final ghostCount = totalSlots - data.length;
+    final raw = values.length > totalSlots ? values.sublist(values.length - totalSlots) : values;
+    final ghostCount = totalSlots - raw.length;
+    final data = List<double>.generate(totalSlots, (i) {
+      if (i < ghostCount) return 0.0;
+      return raw[i - ghostCount];
+    });
 
-    var maxIdxInData = -1;
-    if (data.isNotEmpty) {
-      maxIdxInData = 0;
-      for (var i = 1; i < data.length; i++) {
-        if (data[i] >= data[maxIdxInData]) maxIdxInData = i;
+    // Peak label only among scored days (0 = no data).
+    var maxIdxInSlots = -1;
+    for (var i = 0; i < data.length; i++) {
+      if (data[i] > 0 && (maxIdxInSlots < 0 || data[i] >= data[maxIdxInSlots])) {
+        maxIdxInSlots = i;
       }
     }
-    final maxIdxInSlots = maxIdxInData != -1 ? maxIdxInData + ghostCount : -1;
 
     final chartWidth = 110.w;
 
@@ -296,20 +299,29 @@ class _CompactBarsPainter extends CustomPainter {
     final cell = size.width / totalSlots;
     final barW = math.min(6.0, cell * 0.42);
 
-    final data = values.length > totalSlots ? values.sublist(values.length - totalSlots) : values;
-    final ghostCount = totalSlots - data.length;
+    // Pad to 7 slots on the left when fewer than 7 values are provided.
+    final raw = values.length > totalSlots ? values.sublist(values.length - totalSlots) : values;
+    final ghostCount = totalSlots - raw.length;
+    final data = List<double>.generate(totalSlots, (i) {
+      if (i < ghostCount) return 0.0;
+      return raw[i - ghostCount];
+    });
 
-    final lo = data.isEmpty ? 0.0 : data.reduce(math.min);
-    final hi = data.isEmpty ? 0.0 : data.reduce(math.max);
+    // Scale only against scored days (score > 0). 0 = "no data that day" and
+    // must not draw a bar or participate in min/max / peak highlight.
+    final scored = data.where((v) => v > 0).toList();
+    final lo = scored.isEmpty ? 0.0 : scored.reduce(math.min);
+    final hi = scored.isEmpty ? 0.0 : scored.reduce(math.max);
     final range = hi - lo;
-    double scale(double v) => range <= 0 ? 0.60 : (0.25 + 0.75 * ((v - lo) / range)).clamp(0.0, 1.0);
+    double scale(double v) {
+      if (v <= 0) return 0.0;
+      if (scored.length == 1 || range <= 0) return 0.72;
+      return (0.25 + 0.75 * ((v - lo) / range)).clamp(0.0, 1.0);
+    }
 
-    var maxIdxInData = -1;
-    if (data.isNotEmpty) {
-      maxIdxInData = 0;
-      for (var i = 1; i < data.length; i++) {
-        if (data[i] >= data[maxIdxInData]) maxIdxInData = i;
-      }
+    var maxIdx = -1;
+    for (var i = 0; i < data.length; i++) {
+      if (data[i] > 0 && (maxIdx < 0 || data[i] >= data[maxIdx])) maxIdx = i;
     }
 
     final trackPaint = Paint()
@@ -320,35 +332,33 @@ class _CompactBarsPainter extends CustomPainter {
       final x = i * cell + (cell - barW) / 2;
       final trackRRect = RRect.fromRectAndRadius(Rect.fromLTWH(x, topPad, barW, h), Radius.circular(barW / 2));
 
-      // Track capsule
+      // Track capsule always present so empty days still show the day slot.
       canvas.drawRRect(trackRRect, trackPaint);
 
-      final isGhost = i < ghostCount;
-      if (!isGhost) {
-        final dataIdx = i - ghostCount;
-        final rectH = math.max(h * scale(data[dataIdx]), 6.0);
-        final barRect = Rect.fromLTWH(x, topPad + h - rectH, barW, rectH);
-        final barRRect = RRect.fromRectAndRadius(barRect, Radius.circular(barW / 2));
+      final value = data[i];
+      if (value <= 0) continue; // no score that day → empty track only
 
-        final isMax = dataIdx == maxIdxInData;
-        final barPaint = Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isMax ? const [Colors.white, Color(0xFFC084FC)] : [Colors.white.withValues(alpha: 0.85), Colors.white.withValues(alpha: 0.35)],
-          ).createShader(barRect)
-          ..style = PaintingStyle.fill;
+      final rectH = math.max(h * scale(value), 6.0);
+      final barRect = Rect.fromLTWH(x, topPad + h - rectH, barW, rectH);
+      final barRRect = RRect.fromRectAndRadius(barRect, Radius.circular(barW / 2));
 
-        canvas.drawRRect(barRRect, barPaint);
+      final isMax = i == maxIdx;
+      final barPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isMax ? const [Colors.white, Color(0xFFC084FC)] : [Colors.white.withValues(alpha: 0.85), Colors.white.withValues(alpha: 0.35)],
+        ).createShader(barRect)
+        ..style = PaintingStyle.fill;
 
-        // Highlight the peak day with a subtle glowing accent stroke
-        if (isMax) {
-          final glowPaint = Paint()
-            ..color = Colors.white.withValues(alpha: 0.4)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.5;
-          canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x - 1.5, topPad + h - rectH - 1.5, barW + 3, rectH + 3), Radius.circular((barW + 3) / 2)), glowPaint);
-        }
+      canvas.drawRRect(barRRect, barPaint);
+
+      if (isMax) {
+        final glowPaint = Paint()
+          ..color = Colors.white.withValues(alpha: 0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5;
+        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x - 1.5, topPad + h - rectH - 1.5, barW + 3, rectH + 3), Radius.circular((barW + 3) / 2)), glowPaint);
       }
     }
   }

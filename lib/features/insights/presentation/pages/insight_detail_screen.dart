@@ -21,20 +21,23 @@ class InsightDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var series = insight.hasGutScore ? [insight.gutScore.toDouble()] : <double>[];
-    try {
-      final notifier = context.read<InsightsNotifier>();
-      final sorted = [...notifier.insightHistory]
-        ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
-      final upto = sorted
-          .where((i) => i.hasGutScore && !i.updatedAt.isAfter(insight.updatedAt))
-          .toList();
-      if (insight.hasGutScore && !upto.any((i) => i.updatedAt == insight.updatedAt)) upto.add(insight);
-      final window = upto.length > 7 ? upto.sublist(upto.length - 7) : upto;
-      series = [for (final i in window) if (i.hasGutScore) i.gutScore.toDouble()];
-    } catch (_) {
-      // No notifier in scope (e.g. an isolated preview): the chart degrades
-      // to a flat line instead of the 7-day trend.
+    // Prefer this snapshot's own weekly dailyScores trend (0 = no data that day).
+    final trend = insight.weeklyRecap?.gutScoreTrend;
+    var series = (trend != null && trend.isNotEmpty)
+        ? [for (final s in trend) s.toDouble()]
+        : (insight.hasGutScore ? [insight.gutScore.toDouble()] : <double>[]);
+    if (trend == null || trend.isEmpty) {
+      try {
+        final notifier = context.read<InsightsNotifier>();
+        final sorted = [...notifier.insightHistory]..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+        final upto = sorted.where((i) => i.hasGutScore && !i.updatedAt.isAfter(insight.updatedAt)).toList();
+        if (insight.hasGutScore && !upto.any((i) => i.updatedAt == insight.updatedAt)) upto.add(insight);
+        final window = upto.length > 7 ? upto.sublist(upto.length - 7) : upto;
+        series = [for (final i in window) if (i.hasGutScore) i.gutScore.toDouble()];
+      } catch (_) {
+        // No notifier in scope (e.g. an isolated preview): the chart degrades
+        // to a flat line instead of the 7-day trend.
+      }
     }
 
     return Scaffold(

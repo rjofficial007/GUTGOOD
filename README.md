@@ -59,7 +59,7 @@ The project follows a modular, feature-first structure ensuring high testability
 GutGood uses a centralized, unified component architecture to ensure UI consistency:
 
 * **Universal Scroll:** A unified `CustomScrollView` architecture across all screens ensures smooth, native-feeling scroll physics and eliminates "ghost scrolling" artifacts.
-* **Glassmorphic UI:** Standardized `GutAppBar` components feature `BackdropFilter` blur effects for a premium, cohesive visual identity.
+* **Standardized App Bar:** Standardized `GutAppBar` components ensure a clean, cohesive visual identity.
 * **Unified Input:** `GutTextField` manages all input decorations, focus states, and typography.
 * **Standardized Sections:** `GutSection` & `GutSectionCard` enforce a uniform layout pattern with optimized spacing.
 * **Visual Trends:** `GutTrendSparkline` provides lightweight, high-performance data visualization for health scores.

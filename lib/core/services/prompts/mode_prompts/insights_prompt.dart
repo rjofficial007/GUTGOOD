@@ -61,7 +61,7 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
       {
         "foodId": "string",
         "name": "string",
-        "emoji": "🥣",
+        "emoji": "",
         "effect": "string",
         "impactDirection": "positive",
         "impactLevel": "high|moderate|low",
@@ -84,7 +84,7 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
       {
         "foodId": "string",
         "name": "string",
-        "emoji": "🧅",
+        "emoji": "",
         "effect": "string",
         "impactDirection": "negative",
         "impactLevel": "high|moderate|low",
@@ -154,7 +154,7 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
       "dateLabel": "Mon",
       "effect": "string",
       "timeframeLabel": "Breakfast",
-      "emoji": "🥣",
+      "emoji": "",
       "impactDirection": "positive|negative",
       "impactLevel": "high|moderate|low",
       "confidence": "high|medium|low"

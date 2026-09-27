@@ -1,4 +1,3 @@
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -805,8 +804,12 @@ class V2TrendChart extends StatelessWidget {
         height: height,
         width: double.infinity,
         child: valid.isEmpty
-            ? Center(child: Text('No score history yet', style: TextStyle(color: t.textSecondary)))
-            : CustomPaint(painter: _TrendPainter(color: color ?? t.success, gridColor: t.border, values: valid, endDot: endDot)),
+            ? Center(
+                child: Text('No score history yet', style: TextStyle(color: t.textSecondary)),
+              )
+            : CustomPaint(
+                painter: _TrendPainter(color: color ?? t.success, gridColor: t.border, values: valid, endDot: endDot),
+              ),
       ),
     );
   }
@@ -825,25 +828,44 @@ class _TrendPainter extends CustomPainter {
     const padding = 6.0;
     final width = size.width - padding * 2;
     final height = size.height - padding * 2;
-    final grid = Paint()..color = gridColor..strokeWidth = 1;
+    final grid = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
     for (final fraction in [0.0, 0.5, 1.0]) {
       final y = padding + height * fraction;
       canvas.drawLine(Offset(padding, y), Offset(size.width - padding, y), grid);
     }
-    final points = [for (var i = 0; i < values.length; i++) Offset(
-      values.length == 1 ? size.width / 2 : padding + width * i / (values.length - 1),
-      padding + height * (1 - values[i] / 100),
-    )];
+    final points = [for (var i = 0; i < values.length; i++) Offset(values.length == 1 ? size.width / 2 : padding + width * i / (values.length - 1), padding + height * (1 - values[i] / 100))];
     if (points.length == 1) {
       canvas.drawCircle(points.single, 4, Paint()..color = color);
       return;
     }
     final line = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final point in points.skip(1)) { line.lineTo(point.dx, point.dy); }
-    final fill = Path.from(line)..lineTo(points.last.dx, size.height - padding)..lineTo(points.first.dx, size.height - padding)..close();
-    canvas.drawPath(fill, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: .18), color.withValues(alpha: .01)]).createShader(Offset.zero & size));
-    canvas.drawPath(line, Paint()..color = color..strokeWidth = 2.5..style = PaintingStyle.stroke..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round);
-    for (final point in points) { canvas.drawCircle(point, 2.5, Paint()..color = color); }
+    for (final point in points.skip(1)) {
+      line.lineTo(point.dx, point.dy);
+    }
+    final fill = Path.from(line)
+      ..lineTo(points.last.dx, size.height - padding)
+      ..lineTo(points.first.dx, size.height - padding)
+      ..close();
+    canvas
+      ..drawPath(
+        fill,
+        Paint()
+          ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: .18), color.withValues(alpha: .01)]).createShader(Offset.zero & size),
+      )
+      ..drawPath(
+        line,
+        Paint()
+          ..color = color
+          ..strokeWidth = 2.5
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      );
+    for (final point in points) {
+      canvas.drawCircle(point, 2.5, Paint()..color = color);
+    }
     if (endDot) canvas.drawCircle(points.last, 4, Paint()..color = color);
   }
 

@@ -54,8 +54,8 @@ Future<void> initCoreDI() async {
     ..registerLazySingleton(DeviceInfoPlugin.new)
     ..registerLazySingleton(() => Dio(
       BaseOptions(
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
         headers: {'User-Agent': ApiConstants.userAgent},
       ),
     ))

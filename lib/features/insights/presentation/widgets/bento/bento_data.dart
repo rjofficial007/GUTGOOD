@@ -77,7 +77,7 @@ abstract final class BentoData {
               name: impact.food,
               stat: e.value == 1 ? '1 log' : '${e.value} logs',
               isPositive: impact.impactType.toLowerCase() != 'negative',
-              emoji: InsightPresentation.emojiForFood(impact.food),
+              emoji: (impact.emoji.isNotEmpty && impact.emoji != '🥣' && impact.emoji != '🧅') ? impact.emoji : InsightPresentation.emojiForFood(impact.food),
               imageUrl: impact.userImageUrl ?? impact.imageUrl,
               count: e.value,
             ),

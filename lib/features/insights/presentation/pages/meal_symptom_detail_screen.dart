@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/features/insights/presentation/pages/better_swaps_screen.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class MealSymptomDetailScreen extends StatelessWidget {
@@ -13,18 +14,20 @@ class MealSymptomDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bg = context.v2Theme.scaffold;
+    final textPrimary = context.insightColor(const Color(0xFF0F172A));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF8F5),
+      backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFAF8F5),
+        backgroundColor: bg,
         elevation: 0,
         title: Text(
           'Meal & Symptom Breakdown',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1E293B)),
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: textPrimary),
         ),
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: Color(0xFF1E293B)),
+          icon: Icon(LucideIcons.arrowLeft, color: textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -39,12 +42,12 @@ class MealSymptomDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.insightColor(Colors.white),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
                 ),
                 child: Column(
-                  crossAxisAlignment: .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
@@ -52,11 +55,11 @@ class MealSymptomDetailScreen extends StatelessWidget {
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: context.insightColor(const Color(0xFFF1F5F9)),
                             borderRadius: BorderRadius.circular(16),
                             image: occurrence.imageUrl != null && occurrence.imageUrl!.isNotEmpty ? DecorationImage(image: NetworkImage(occurrence.imageUrl!), fit: BoxFit.cover) : null,
                           ),
-                          child: occurrence.imageUrl == null || occurrence.imageUrl!.isEmpty ? const Icon(LucideIcons.utensils, color: Color(0xFF64748B), size: 24) : null,
+                          child: occurrence.imageUrl == null || occurrence.imageUrl!.isEmpty ? Icon(LucideIcons.utensils, color: context.insightColor(const Color(0xFF64748B)), size: 24) : null,
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -65,12 +68,12 @@ class MealSymptomDetailScreen extends StatelessWidget {
                             children: [
                               Text(
                                 '${occurrence.dateLabel ?? occurrence.date} • ${occurrence.mealTime ?? "Logged meal"}',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                                style: TextStyle(fontSize: 12, color: context.insightColor(const Color(0xFF64748B)), fontWeight: FontWeight.w500),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 occurrence.mealName,
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
                               ),
                             ],
                           ),
@@ -88,28 +91,28 @@ class MealSymptomDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
+                  color: context.insightColor(const Color(0xFFFEF2F2)),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFFECACA)),
+                  border: Border.all(color: context.insightColor(const Color(0xFFFECACA))),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(LucideIcons.triangleAlert, color: Color(0xFFDC2626), size: 20),
+                        Icon(LucideIcons.triangleAlert, color: context.insightColor(const Color(0xFFDC2626)), size: 20),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'MATCHED SYMPTOM',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFDC2626), letterSpacing: 0.5),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: context.insightColor(const Color(0xFFDC2626)), letterSpacing: 0.5),
                         ),
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
+                          decoration: BoxDecoration(color: context.insightColor(Colors.white), borderRadius: BorderRadius.circular(6)),
                           child: Text(
                             occurrence.symptomSeverity ?? 'Observed',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: context.insightColor(const Color(0xFFDC2626))),
                           ),
                         ),
                       ],
@@ -117,10 +120,10 @@ class MealSymptomDetailScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       occurrence.reaction,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.insightColor(const Color(0xFF991B1B))),
                     ),
                     const SizedBox(height: 4),
-                    Text('Observed ${occurrence.timeAfterLabel ?? occurrence.timeAfter} after eating', style: const TextStyle(fontSize: 13, color: Color(0xFFB91C1C))),
+                    Text('Observed ${occurrence.timeAfterLabel ?? occurrence.timeAfter} after eating', style: TextStyle(fontSize: 13, color: context.insightColor(const Color(0xFFB91C1C)))),
                   ],
                 ),
               ),
@@ -133,21 +136,21 @@ class MealSymptomDetailScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.insightColor(Colors.white),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Why this happens',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimary),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         pattern!.description.isNotEmpty ? pattern!.description : 'Fried and high-fat items can slow stomach emptying and trigger bloating.',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
+                        style: TextStyle(fontSize: 13, color: context.insightColor(const Color(0xFF475569)), height: 1.4),
                       ),
                     ],
                   ),
@@ -161,21 +164,21 @@ class MealSymptomDetailScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.insightColor(Colors.white),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
                   ),
                   child: Column(
-                    crossAxisAlignment: .start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Your note',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: context.insightColor(const Color(0xFF64748B))),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '"${occurrence.notes}"',
-                        style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF1E293B)),
+                        style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: context.insightColor(const Color(0xFF1E293B))),
                       ),
                     ],
                   ),
@@ -188,7 +191,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A),
+                    backgroundColor: context.insightColor(const Color(0xFF0F172A)),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

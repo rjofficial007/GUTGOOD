@@ -218,6 +218,7 @@ class AiServiceImpl implements AiService {
           options: Options(
             responseType: ResponseType.stream,
             headers: headers,
+            connectTimeout: const Duration(seconds: 30),
             sendTimeout: const Duration(seconds: 30),
             receiveTimeout: const Duration(minutes: 4),
             // 🟢 Removed validateStatus so _isRetryable can catch 5xx and retry the initial connection.
@@ -378,6 +379,7 @@ class AiServiceImpl implements AiService {
           data: body,
           options: Options(
             headers: headers,
+            connectTimeout: const Duration(seconds: 30),
             sendTimeout: const Duration(seconds: 30),
             receiveTimeout: const Duration(seconds: 90),
             // 🟢 REMOVED validateStatus: (_) => true to let Dio throw DioException on non-200.
@@ -450,7 +452,13 @@ class AiServiceImpl implements AiService {
           'idempotencyKey': idempotencyKey,
           'timezoneOffset': DateTime.now().timeZoneOffset.inMinutes,
         }),
-        options: Options(headers: headers, sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(seconds: 60), validateStatus: (_) => true),
+        options: Options(
+          headers: headers,
+          connectTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 60),
+          validateStatus: (_) => true,
+        ),
       );
 
       if (response.statusCode != 200) {

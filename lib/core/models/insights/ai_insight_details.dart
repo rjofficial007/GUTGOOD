@@ -1,9 +1,14 @@
-import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
-String _resolveEmoji(String? stored, String foodName) => (stored == null || stored.isEmpty) ? InsightPresentation.emojiForFood(foodName) : stored;
+String _resolveEmoji(String? stored, String foodName) {
+  if (stored != null && stored.isNotEmpty && stored != '🥣' && stored != '🧅') {
+    return stored;
+  }
+  return InsightPresentation.emojiForFood(foodName);
+}
 
 class InsightSummary extends Equatable {
   const InsightSummary({
@@ -329,19 +334,18 @@ class WeeklyRecap extends Equatable {
     String? bestDay,
     int? foodsLogged,
     String? loggedSub,
-  }) =>
-      WeeklyRecap(
-        highlights: highlights ?? this.highlights,
-        stats: stats ?? this.stats,
-        gutScoreTrend: gutScoreTrend ?? this.gutScoreTrend,
-        summary: summary ?? this.summary,
-        avgScore: avgScore ?? this.avgScore,
-        dateRange: dateRange ?? this.dateRange,
-        scoreSub: scoreSub ?? this.scoreSub,
-        bestDay: bestDay ?? this.bestDay,
-        foodsLogged: foodsLogged ?? this.foodsLogged,
-        loggedSub: loggedSub ?? this.loggedSub,
-      );
+  }) => WeeklyRecap(
+    highlights: highlights ?? this.highlights,
+    stats: stats ?? this.stats,
+    gutScoreTrend: gutScoreTrend ?? this.gutScoreTrend,
+    summary: summary ?? this.summary,
+    avgScore: avgScore ?? this.avgScore,
+    dateRange: dateRange ?? this.dateRange,
+    scoreSub: scoreSub ?? this.scoreSub,
+    bestDay: bestDay ?? this.bestDay,
+    foodsLogged: foodsLogged ?? this.foodsLogged,
+    loggedSub: loggedSub ?? this.loggedSub,
+  );
 
   Map<String, dynamic> toMap() => {
     'highlights': highlights.map((e) {
@@ -366,8 +370,12 @@ class WeeklyRecap extends Equatable {
 class GutScoreSummary extends Equatable {
   const GutScoreSummary({required this.score, required this.trend, this.status, this.description});
 
-  factory GutScoreSummary.fromMap(Map<String, dynamic> map) =>
-      GutScoreSummary(score: InsightValues.integer(map['score']) ?? 0, trend: map['trend']?.toString() ?? '', status: map['status']?.toString() ?? 'Stable', description: map['description']?.toString());
+  factory GutScoreSummary.fromMap(Map<String, dynamic> map) => GutScoreSummary(
+    score: InsightValues.integer(map['score']) ?? 0,
+    trend: map['trend']?.toString() ?? '',
+    status: map['status']?.toString() ?? 'Stable',
+    description: map['description']?.toString(),
+  );
 
   final int score;
   final String trend;

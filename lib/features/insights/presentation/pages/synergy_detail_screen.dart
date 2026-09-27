@@ -36,10 +36,18 @@ class SynergyDetailScreen extends StatelessWidget {
         ? (activePattern.evidenceRatio.clamp(0.0, 1.0) * 100).round()
         : activeInsight?.topInsight?.evidenceRatio != null
         ? (activeInsight!.topInsight!.evidenceRatio!.clamp(0.0, 1.0) * 100).round()
-        : evidenceRef == null ? null : (evidenceRef.evidenceRatio.clamp(0.0, 1.0) * 100).round();
+        : evidenceRef == null
+        ? null
+        : (evidenceRef.evidenceRatio.clamp(0.0, 1.0) * 100).round();
     final frequencyCount = activePattern?.frequency ?? activeInsight?.topInsight?.frequency ?? (activeInsight?.foodImpacts.isNotEmpty == true ? activeInsight!.foodImpacts.length : null);
-    final positiveCount = activePattern?.positiveCount ?? activeInsight?.topInsight?.positiveCount ?? (activeInsight?.foodImpacts.isNotEmpty == true ? activeInsight!.foodImpacts.where((f) => f.impactType == 'positive').length : null);
-    final negativeCount = activePattern?.negativeCount ?? activeInsight?.topInsight?.negativeCount ?? (activeInsight?.foodImpacts.isNotEmpty == true ? activeInsight!.foodImpacts.where((f) => f.impactType == 'negative').length : null);
+    final positiveCount =
+        activePattern?.positiveCount ??
+        activeInsight?.topInsight?.positiveCount ??
+        (activeInsight?.foodImpacts.isNotEmpty == true ? activeInsight!.foodImpacts.where((f) => f.impactType == 'positive').length : null);
+    final negativeCount =
+        activePattern?.negativeCount ??
+        activeInsight?.topInsight?.negativeCount ??
+        (activeInsight?.foodImpacts.isNotEmpty == true ? activeInsight!.foodImpacts.where((f) => f.impactType == 'negative').length : null);
 
     return Scaffold(
       backgroundColor: v2.scaffold,
@@ -114,12 +122,15 @@ class SynergyDetailScreen extends StatelessWidget {
               ? activeInsight!.topInsight!.description
               : (activeInsight?.healingGoal?.isNotEmpty == true ? activeInsight!.healingGoal! : 'Track your daily meals to discover how foods affect your gut.'));
 
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: style.cardBg,
+        color: isDark ? v2.card : style.cardBg,
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: style.borderColor, width: 1.w),
+        border: Border.all(color: isDark ? v2.border : style.borderColor, width: 1.w),
         boxShadow: [BoxShadow(color: style.accentColor.withValues(alpha: 0.06), blurRadius: 10.w, offset: const Offset(0, 3))],
       ),
       child: Row(
@@ -274,7 +285,7 @@ class SynergyDetailScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.insightColor(Colors.white),
         borderRadius: BorderRadius.circular(18.w),
         border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
         boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
@@ -318,7 +329,7 @@ class SynergyDetailScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.insightColor(Colors.white),
         borderRadius: BorderRadius.circular(18.w),
         border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
         boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
@@ -361,11 +372,25 @@ class SynergyDetailScreen extends StatelessWidget {
             children: [
               _buildMetricTile(context, title: evidenceRatio == null ? '—' : '$evidenceRatio%', label: 'Evidence Ratio', icon: LucideIcons.pieChart, color: style.accentColor, bg: style.tagBg),
               Gap.w6,
-              _buildMetricTile(context, title: frequency == null ? '—' : '${frequency}×', label: 'Times Logged', icon: LucideIcons.history, color: style.accentColor, bg: style.tagBg),
+              _buildMetricTile(context, title: frequency == null ? '—' : '$frequency×', label: 'Times Logged', icon: LucideIcons.history, color: style.accentColor, bg: style.tagBg),
               Gap.w6,
-              _buildMetricTile(context, title: positive == null ? '—' : '$positive', label: 'Positive Logs', icon: LucideIcons.thumbsUp, color: const Color(0xFF15803D), bg: context.insightColor(const Color(0xFFF0FDF4))),
+              _buildMetricTile(
+                context,
+                title: positive == null ? '—' : '$positive',
+                label: 'Positive Logs',
+                icon: LucideIcons.thumbsUp,
+                color: const Color(0xFF15803D),
+                bg: context.insightColor(const Color(0xFFF0FDF4)),
+              ),
               Gap.w6,
-              _buildMetricTile(context, title: negative == null ? '—' : '$negative', label: 'Symptom Logs', icon: LucideIcons.thumbsDown, color: const Color(0xFFDC2626), bg: context.insightColor(const Color(0xFFFEF2F2))),
+              _buildMetricTile(
+                context,
+                title: negative == null ? '—' : '$negative',
+                label: 'Symptom Logs',
+                icon: LucideIcons.thumbsDown,
+                color: const Color(0xFFDC2626),
+                bg: context.insightColor(const Color(0xFFFEF2F2)),
+              ),
             ],
           ),
         ],
@@ -373,44 +398,42 @@ class SynergyDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricTile(BuildContext context, {required String title, required String label, required IconData icon, required Color color, required Color bg}) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(8.w),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12.w),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
-                  child: Icon(icon, size: 10.w, color: color),
-                ),
-              ],
-            ),
-            Gap.h6,
-            Text(
-              title,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-            ),
-            Gap.h2,
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF64748B))),
-            ),
-          ],
-        ),
+  Widget _buildMetricTile(BuildContext context, {required String title, required String label, required IconData icon, required Color color, required Color bg}) => Expanded(
+    child: Container(
+      padding: EdgeInsets.all(8.w),
+      decoration: BoxDecoration(
+        color: context.insightColor(bg),
+        borderRadius: BorderRadius.circular(12.w),
+        border: Border.all(color: context.insightColor(color).withValues(alpha: 0.2)),
       ),
-    );
-  }
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(4.w),
+                decoration: BoxDecoration(color: context.insightColor(color).withValues(alpha: 0.15), shape: BoxShape.circle),
+                child: Icon(icon, size: 10.w, color: context.insightColor(color)),
+              ),
+            ],
+          ),
+          Gap.h6,
+          Text(
+            title,
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+          ),
+          Gap.h2,
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF64748B))),
+          ),
+        ],
+      ),
+    ),
+  );
 
   /// 4. "Involved Foods" Horizontal Grid Section
   Widget _buildInvolvedFoodsSection(BuildContext context, BodyPattern? pattern, AIInsight? insight) {
@@ -430,9 +453,9 @@ class SynergyDetailScreen extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: const BoxDecoration(color: Color(0xFFFEF3C7), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: context.insightColor(const Color(0xFFFEF3C7)), shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.utensils, size: 14.w, color: const Color(0xFFB45309)),
+              child: Icon(LucideIcons.utensils, size: 14.w, color: context.insightColor(const Color(0xFFB45309))),
             ),
             Gap.w8,
             Expanded(
@@ -498,7 +521,7 @@ class SynergyDetailScreen extends StatelessWidget {
   Widget _buildYourNextStepsCard(BuildContext context, AIInsight? insight) => Container(
     padding: EdgeInsets.all(10.w),
     decoration: BoxDecoration(
-      color: const Color(0xFFF4FAF5),
+      color: context.insightColor(const Color(0xFFF4FAF5)),
       borderRadius: BorderRadius.circular(16.w),
       border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7)), width: 1.w),
     ),
@@ -514,9 +537,9 @@ class SynergyDetailScreen extends StatelessWidget {
                 Container(
                   width: 24.w,
                   height: 24.w,
-                  decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), shape: BoxShape.circle),
                   alignment: Alignment.center,
-                  child: Icon(LucideIcons.leaf, size: 12.w, color: const Color(0xFF15803D)),
+                  child: Icon(LucideIcons.leaf, size: 12.w, color: context.insightColor(const Color(0xFF15803D))),
                 ),
                 Gap.w6,
                 Expanded(
@@ -556,7 +579,7 @@ class SynergyDetailScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F7FF),
+        color: context.insightColor(const Color(0xFFF0F7FF)),
         borderRadius: BorderRadius.circular(16.w),
         border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
       ),
@@ -568,9 +591,9 @@ class SynergyDetailScreen extends StatelessWidget {
               Container(
                 width: 24.w,
                 height: 24.w,
-                decoration: const BoxDecoration(color: Color(0xFFDBEAFE), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDBEAFE)), shape: BoxShape.circle),
                 alignment: Alignment.center,
-                child: Icon(LucideIcons.fileText, size: 12.w, color: const Color(0xFF1D4ED8)),
+                child: Icon(LucideIcons.fileText, size: 12.w, color: context.insightColor(const Color(0xFF1D4ED8))),
               ),
               Gap.w4,
               Expanded(
@@ -630,7 +653,7 @@ class _InvolvedFoodCard extends StatelessWidget {
       width: 108.w,
       padding: EdgeInsets.all(7.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF7),
+        color: context.insightColor(const Color(0xFFFFFDF7)),
         borderRadius: BorderRadius.circular(14.w),
         border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
       ),
@@ -648,7 +671,7 @@ class _InvolvedFoodCard extends StatelessWidget {
               errorWidget: (_, _, _) => Container(
                 color: context.insightColor(const Color(0xFFFEF3C7)),
                 alignment: Alignment.center,
-                child: Icon(LucideIcons.utensils, size: 20.w, color: const Color(0xFFD97706)),
+                child: Icon(LucideIcons.utensils, size: 20.w, color: context.insightColor(const Color(0xFFD97706))),
               ),
             ),
           ),
@@ -666,11 +689,11 @@ class _InvolvedFoodCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(LucideIcons.leaf, size: 8.5.w, color: const Color(0xFF15803D)),
+                Icon(LucideIcons.leaf, size: 8.5.w, color: context.insightColor(const Color(0xFF15803D))),
                 Gap.w2,
                 Text(
                   'High Impact',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF15803D))),
                 ),
               ],
             ),
@@ -695,7 +718,7 @@ class _NextStepCheckRow extends StatelessWidget {
         width: 16.w,
         height: 16.w,
         margin: EdgeInsets.only(top: 1.w),
-        decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
+        decoration: BoxDecoration(color: context.insightColor(const Color(0xFF16A34A)), shape: BoxShape.circle),
         alignment: Alignment.center,
         child: Icon(LucideIcons.check, size: 10.w, color: Colors.white),
       ),
@@ -734,9 +757,9 @@ class _EvidenceMetricRow extends StatelessWidget {
       Container(
         width: 22.w,
         height: 22.w,
-        decoration: const BoxDecoration(color: Color(0xFFDBEAFE), shape: BoxShape.circle),
+        decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDBEAFE)), shape: BoxShape.circle),
         alignment: Alignment.center,
-        child: Icon(icon, size: 11.w, color: const Color(0xFF1D4ED8)),
+        child: Icon(icon, size: 11.w, color: context.insightColor(const Color(0xFF1D4ED8))),
       ),
       Gap.w6,
       Expanded(

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -41,14 +39,8 @@ class GutAppBar extends StatelessWidget implements PreferredSizeWidget {
     leading: leading,
     centerTitle: centerTitle,
     elevation: elevation,
-    backgroundColor: backgroundColor ?? context.appColorScheme.cardBackground.withAlpha(204),
+    backgroundColor: backgroundColor ?? context.appColorScheme.cardBackground,
     automaticallyImplyLeading: automaticallyImplyLeading,
-    flexibleSpace: ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(color: AppPalette.transparent),
-      ),
-    ),
   );
 
   Widget _buildTitle(BuildContext context) {
@@ -110,15 +102,9 @@ class GutSliverAppBar extends StatelessWidget {
     snap: snap,
     elevation: 0,
     forceElevated: forceElevated,
-    backgroundColor: backgroundColor ?? context.appColorScheme.cardBackground.withAlpha(204),
+    backgroundColor: backgroundColor ?? context.appColorScheme.cardBackground,
     foregroundColor: foregroundColor,
     automaticallyImplyLeading: automaticallyImplyLeading,
-    flexibleSpace: ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(color: AppPalette.transparent),
-      ),
-    ),
   );
 
   Widget _buildTitle(BuildContext context) {
@@ -130,12 +116,7 @@ class GutSliverAppBar extends StatelessWidget {
         // Flexible so a long title ellipsises instead of overflowing the bar on
         // narrow devices; the streak badge keeps its own width.
         Flexible(
-          child: Text(
-            title!.toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.title.copyWith(letterSpacing: 0.1),
-          ),
+          child: Text(title!.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: context.title.copyWith(letterSpacing: 0.1)),
         ),
         if (streak != null) ...[Gap.w12, _StreakBadge(streak: streak!)],
       ],
@@ -160,10 +141,7 @@ class _StreakBadge extends StatelessWidget {
       children: [
         Icon(AppIcons.flame, color: AppPalette.orange, size: 14.0.w),
         Gap.w6,
-        Text(
-          streak.toString(),
-          style: context.labelBold.copyWith(color: AppPalette.orange),
-        ),
+        Text(streak.toString(), style: context.labelBold.copyWith(color: AppPalette.orange)),
       ],
     ),
   );

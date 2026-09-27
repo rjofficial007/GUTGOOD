@@ -224,6 +224,34 @@ class DebugMockDataService {
     // --- GENERATE SCAN HISTORY ---
     final scanProducts = [
       {
+        'name': 'Strawberry Mint Drink',
+        'brand': 'GutGood',
+        'score': 70,
+        'nutri': 'A',
+        'nova': 1,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80',
+      },
+      {
+        'name': 'Meatball Rice Bowl',
+        'brand': 'GutGood',
+        'score': 85,
+        'nutri': 'A',
+        'nova': 1,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+      },
+      {'name': 'Vegetable Pizza', 'brand': 'Artisan Kitchen', 'score': 72, 'nutri': 'B', 'nova': 2, 'cat': 'food', 'img': pizzaPhoto},
+      {
+        'name': 'French Toast',
+        'brand': 'Bistro 24',
+        'score': 65,
+        'nutri': 'C',
+        'nova': 2,
+        'cat': 'food',
+        'img': 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=800&q=80',
+      },
+      {
         'name': 'Greek Yogurt',
         'brand': 'Chobani',
         'score': 62,
@@ -556,6 +584,10 @@ class DebugMockDataService {
         afterEmoji: '🍠',
       ),
       foodImpacts: const [
+        FoodImpact(food: 'Strawberry Mint Drink', dateLabel: 'Sat', effect: 'Hydration & energy boost', timeframeLabel: 'Post-workout', emoji: '🍓', impactType: 'positive'),
+        FoodImpact(food: 'Meatball Rice Bowl', dateLabel: 'Sat', effect: 'Steady energy & satiety', timeframeLabel: 'Lunch', emoji: '🥣', impactType: 'positive'),
+        FoodImpact(food: 'Vegetable Pizza', dateLabel: 'Fri', effect: 'Balanced plant fiber', timeframeLabel: 'Dinner', emoji: '🍕', impactType: 'positive'),
+        FoodImpact(food: 'French Toast', dateLabel: 'Sun', effect: 'Morning carbohydrate boost', timeframeLabel: 'Breakfast', emoji: '🍞', impactType: 'positive'),
         FoodImpact(food: 'Kefir', dateLabel: 'Mon', effect: 'Microbiome support', timeframeLabel: 'Breakfast', emoji: '🥛', impactType: 'positive'),
         FoodImpact(food: 'Kefir', dateLabel: 'Tue', effect: 'Microbiome support', timeframeLabel: 'Breakfast', emoji: '🥛', impactType: 'positive'),
         FoodImpact(food: 'Kefir', dateLabel: 'Wed', effect: 'Microbiome support', timeframeLabel: 'Breakfast', emoji: '🥛', impactType: 'positive'),

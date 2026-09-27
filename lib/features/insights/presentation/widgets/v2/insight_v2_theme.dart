@@ -150,10 +150,7 @@ class InsightV2Theme extends ThemeExtension<InsightV2Theme> {
   );
 
   @override
-  InsightV2Theme lerp(
-    covariant ThemeExtension<InsightV2Theme>? other,
-    double t,
-  ) {
+  InsightV2Theme lerp(covariant ThemeExtension<InsightV2Theme>? other, double t) {
     if (other is! InsightV2Theme) return this;
     Color l(Color a, Color b) => Color.lerp(a, b, t)!;
     return InsightV2Theme(
@@ -235,8 +232,7 @@ class InsightV2Theme extends ThemeExtension<InsightV2Theme> {
 extension InsightV2ThemeX on BuildContext {
   /// The v2 tokens for the current brightness, falling back to light so a
   /// screen never hard-crashes when the extension is missing from the theme.
-  InsightV2Theme get v2Theme =>
-      Theme.of(this).extension<InsightV2Theme>() ?? InsightV2Theme.light;
+  InsightV2Theme get v2Theme => Theme.of(this).extension<InsightV2Theme>() ?? InsightV2Theme.light;
 
   /// Resolves colors from the original light Insights mock to their semantic
   /// dark-mode counterpart. This keeps older cards and detail screens readable
@@ -247,16 +243,27 @@ extension InsightV2ThemeX on BuildContext {
     final t = v2Theme;
     return switch (lightColor.toARGB32()) {
       0xFFFFFFFF => t.card,
-      0xFFFCFCFD || 0xFFFAF8F5 => t.scaffold,
-      0xFFF8FAFC || 0xFFF6F6F8 || 0xFFF1F5F9 => t.cardSubtle,
-      0xFFE2E8F0 || 0xFFE4E4E8 => t.border,
-      0xFF0A0A0A || 0xFF0F172A || 0xFF1E293B => t.textPrimary,
+      0xFFFCFCFD || 0xFFFAF8F5 || 0xFFFFFDF7 => t.scaffold,
+      0xFFF8FAFC || 0xFFF6F6F8 || 0xFFF1F5F9 || 0xFFEFF6FF || 0xFFE0F2FE || 0xFFF0F9FF || 0xFFF0F7FF || 0xFFF4FAF5 || 0xFFF5F7FF || 0xFFF8F5FF || 0xFFFFFDF0 => t.cardSubtle,
+      0xFFE2E8F0 || 0xFFE4E4E8 || 0xFFCBD5E1 => t.border,
+      0xFF0A0A0A || 0xFF0F172A || 0xFF1E293B || 0xFF17171B => t.textPrimary,
       0xFF334155 || 0xFF475569 || 0xFF4A4E5A => t.textSecondary,
       0xFF64748B || 0xFF6E7280 || 0xFF94A3B8 => t.textTertiary,
-      0xFFF0FDF4 || 0xFFECFDF5 || 0xFFE7F6E7 || 0xFFDCFCE7 => t.successSoft,
-      0xFFFEF2F2 || 0xFFFFF1F0 || 0xFFFFE4E6 || 0xFFFECACA => t.errorSoft,
-      0xFFFFFBEB || 0xFFFFF4E5 || 0xFFFEF3C7 => t.warningSoft,
-      0xFFEDE9FE || 0xFFF5F3FF => t.purple.withValues(alpha: 0.18),
+      // Soft green washes & badges
+      0xFFF0FDF4 || 0xFFECFDF5 || 0xFFE7F6E7 || 0xFFDCFCE7 || 0xFFF4FAF2 || 0xFFF4FAF6 => t.successSoft,
+      // Green text & icon accents
+      0xFF14532D || 0xFF15803D || 0xFF16A34A || 0xFF166534 || 0xFF059669 || 0xFF22C55E => t.success,
+      // Soft red / warning washes & badges
+      0xFFFEF2F2 || 0xFFFFF1F0 || 0xFFFFE4E6 || 0xFFFECACA || 0xFFFFF8F6 || 0xFFFFF5F5 || 0xFFFFF5F2 || 0xFFFFF3F2 || 0xFFFECDD3 => t.errorSoft,
+      // Red text & icon accents
+      0xFF881337 || 0xFF991B1B || 0xFFDC2626 || 0xFFB91C1C || 0xFFEF4444 => t.error,
+      // Soft amber / orange washes
+      0xFFFFFBEB || 0xFFFFF4E5 || 0xFFFEF3C7 || 0xFFFFFBF5 || 0xFFFFEDD5 || 0xFFFED7AA || 0xFFFDE68A => t.warningSoft,
+      // Amber text & icon accents
+      0xFFC2410C || 0xFFB45309 || 0xFFD97706 || 0xFFF59E0B => t.warning,
+      // Soft blue & purple accents
+      0xFF0369A1 || 0xFF0284C7 || 0xFF1D4ED8 || 0xFF3730A3 => t.purple,
+      0xFFEDE9FE || 0xFFF5F3FF || 0xFFF3E8FF || 0xFFDBEAFE || 0xFFE0E7FF || 0xFFEADDFF || 0xFFE9D8FD => t.purple.withValues(alpha: 0.18),
       _ => lightColor,
     };
   }

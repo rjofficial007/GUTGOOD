@@ -14,6 +14,7 @@ import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_states.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -38,46 +39,49 @@ class _InsightsHistoryScreenState extends State<InsightsHistoryScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
-      body: FutureBuilder<List<AIInsight>>(
-        future: _future,
-        builder: (context, snapshot) {
-          final history = snapshot.data ?? _getHistoryFromNotifier(context);
-          final sortedHistory = [...history]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: context.appColorScheme.cardBackground,
+    body: FutureBuilder<List<AIInsight>>(
+      future: _future,
+      builder: (context, snapshot) {
+        final history = snapshot.data ?? _getHistoryFromNotifier(context);
+        final sortedHistory = [...history]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
-          return RefreshIndicator(
-            onRefresh: _reload,
-            color: context.appColorScheme.textPrimary,
-            backgroundColor: context.appColorScheme.elevatedSurface,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-              slivers: [
-                const GutSliverAppBar(title: 'INSIGHT HISTORY', centerTitle: true, showBrandingIcon: false),
+        return RefreshIndicator(
+          onRefresh: _reload,
+          color: context.appColorScheme.textPrimary,
+          backgroundColor: context.appColorScheme.elevatedSurface,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            slivers: [
+              const GutSliverAppBar(title: 'INSIGHT HISTORY', centerTitle: true, showBrandingIcon: false),
 
-                SliverPadding(
-                  padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      if (snapshot.hasError) InsightErrorStateCard(onRetry: _reload, hasCachedData: sortedHistory.isNotEmpty),
-                      if (sortedHistory.isEmpty && snapshot.connectionState == ConnectionState.waiting)
-                        const InsightLoadingState()
-                      else if (sortedHistory.isEmpty && !snapshot.hasError)
-                        InsightEmptyStateCard(title: 'Your story starts here', message: 'Your saved insights will appear here as you log meals and symptoms.', actionLabel: 'Back to insights', onAction: () => context.pop())
-                      else ...[
-                        for (final insight in sortedHistory) ...[_InsightHistoryTile(insight: insight)],
-                      ],
-                    ]),
-                  ),
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    if (snapshot.hasError) InsightErrorStateCard(onRetry: _reload, hasCachedData: sortedHistory.isNotEmpty),
+                    if (sortedHistory.isEmpty && snapshot.connectionState == ConnectionState.waiting)
+                      const InsightLoadingState()
+                    else if (sortedHistory.isEmpty && !snapshot.hasError)
+                      InsightEmptyStateCard(
+                        title: 'Your story starts here',
+                        message: 'Your saved insights will appear here as you log meals and symptoms.',
+                        actionLabel: 'Back to insights',
+                        onAction: () => context.pop(),
+                      )
+                    else ...[
+                      for (final insight in sortedHistory) ...[_InsightHistoryTile(insight: insight)],
+                    ],
+                  ]),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
 
   static List<AIInsight> _getHistoryFromNotifier(BuildContext context) {
     try {
@@ -102,8 +106,8 @@ class _InsightHistoryTile extends StatelessWidget {
     final subtitle = '$dateFormatted • $timeFormatted';
     final score = insight.gutScore.clamp(0, 100).toInt();
 
-    final scoreColor = score >= 70 ? const Color(0xFF15803D) : (score >= 50 ? const Color(0xFFB45309) : const Color(0xFFDC2626));
-    final trackColor = score >= 70 ? const Color(0xFFDCFCE7) : (score >= 50 ? const Color(0xFFFEF3C7) : const Color(0xFFFEE2E2));
+    final scoreColor = context.insightColor(score >= 70 ? const Color(0xFF15803D) : (score >= 50 ? const Color(0xFFB45309) : const Color(0xFFDC2626)));
+    final trackColor = context.insightColor(score >= 70 ? const Color(0xFFDCFCE7) : (score >= 50 ? const Color(0xFFFEF3C7) : const Color(0xFFFEE2E2)));
 
     return GestureDetector(
       onTap: () => context.push(AppRoutes.insightDetail, extra: insight),

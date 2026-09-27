@@ -166,7 +166,7 @@ void main() {
       when(() => mockUser.uid).thenReturn('user-123');
       when(() => mockUser.isAnonymous).thenReturn(false);
       when(() => mockUser.providerData).thenReturn(const []);
-      when(() => mockUser.delete()).thenAnswer((_) async {});
+      when(mockUser.delete).thenAnswer((_) async {});
 
       when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
       when(() => mockAppStateService.setLoggingOut(any())).thenAnswer((_) {});
@@ -183,7 +183,7 @@ void main() {
       await repository.deleteAccount();
 
       verify(() => mockFirestoreService.deleteUserData()).called(1);
-      verify(() => mockUser.delete()).called(1);
+      verify(mockUser.delete).called(1);
       verify(() => mockFirebaseAuth.signOut()).called(1);
       verify(() => mockSharedPreferences.remove('streak_current')).called(1);
       verify(() => mockSharedPreferences.remove('streak_longest')).called(1);
