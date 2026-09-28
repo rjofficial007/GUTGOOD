@@ -27,7 +27,7 @@ The client calls this analysis only after verifying at least 3 food logs (meals 
 ZERO PATTERN CASE (no pre-qualified candidates provided):
 - Generate a personalized topInsight with kind "progress" from the BODY JOURNAL: name actual logged foods and reported symptoms, including severity when available. Scans indicate products examined, not proof of consumption.
 - Write the actual summary, never instructions to synthesize one or a generic "Baseline Assessment Complete" placeholder.
-- Keep detectedPatterns empty and do not invent triggers, healing effects, associations, confidence, or positive/negative occurrences. Use zero counts for unestablished associations.
+- Include observed food reactions (such as single-occurrence triggers or supportive foods) in detectedPatterns with confidence "Low" or "Medium" and frequency 1 so the user receives immediate pattern feedback.
 - Include specific nextSteps and at least one actionable suggestion grounded in the supplied logs or goals, without claiming a confirmed cause.
 - Unsupported healing, triggers, foodImpacts and foodSwaps may remain empty. Missing trend history should affect only trend fields, never replace the food/symptom summary.
 

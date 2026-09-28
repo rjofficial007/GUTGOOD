@@ -6,6 +6,7 @@ import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
 import 'package:gutgood/features/history/presentation/providers/history_notifier.dart';
 import 'package:gutgood/features/history/presentation/widgets/journal_timeline_widgets.dart';
@@ -62,9 +63,16 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
           slivers: [
             const GutSliverAppBar(title: AppStrings.history),
 
-            // Filter Bar
-            SliverToBoxAdapter(
-              child: JournalFilterBar(selectedFilter: notifier.currentFilter, onFilterChanged: notifier.setFilter),
+            // Pinned Filter Bar (Stacked/Sticky at the top matching InsightsScreen)
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickyJournalFilterDelegate(
+                child: Container(
+                  color: context.appColorScheme.cardBackground,
+                  alignment: Alignment.centerLeft,
+                  child: JournalFilterBar(selectedFilter: notifier.currentFilter, onFilterChanged: notifier.setFilter),
+                ),
+              ),
             ),
 
             if (notifier.isLoading && notifier.filteredEntries.isEmpty)
@@ -88,6 +96,22 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
       ),
     );
   }
+}
+
+class _StickyJournalFilterDelegate extends SliverPersistentHeaderDelegate {
+  _StickyJournalFilterDelegate({required this.child});
+  final Widget child;
+
+  @override
+  double get minExtent => 44.w;
+  @override
+  double get maxExtent => 44.w;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => child;
+
+  @override
+  bool shouldRebuild(_StickyJournalFilterDelegate oldDelegate) => true;
 }
 
 class _HistoryHubLoading extends StatelessWidget {
@@ -154,7 +178,7 @@ class _TimelineBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.only(left: AppSizes.p16, top: AppSizes.p24, bottom: AppSizes.p16),
+              padding: EdgeInsets.only(left: AppSizes.p14, top: AppSizes.p10, bottom: AppSizes.p16),
               child: Text(key, style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary)),
             ),
             ...groupEntries.asMap().entries.map((e) {

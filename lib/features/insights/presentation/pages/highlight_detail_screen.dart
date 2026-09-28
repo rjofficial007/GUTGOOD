@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/occurrence_tile.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/v2_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -37,7 +40,49 @@ class HighlightDetailScreen extends StatelessWidget {
     final headline = args.title.isNotEmpty ? args.title : 'Your gut score is steady.';
     final bodyText = (args.body ?? '').isNotEmpty ? args.body! : 'Keep logging meals to track your gut health progress.';
 
-    final series = args.chartValues.isNotEmpty ? args.chartValues : (insight?.gutScore != null ? [insight!.gutScore.toDouble()] : const <double>[]);
+    // Dynamic Series Resolution
+    var series = args.chartValues;
+    if (series.isEmpty && insight?.weeklyRecap?.gutScoreTrend != null && insight!.weeklyRecap!.gutScoreTrend!.isNotEmpty) {
+      series = [for (final s in insight.weeklyRecap!.gutScoreTrend!) s.toDouble()];
+    }
+    if (series.isEmpty && insight?.gutScore != null) {
+      series = [insight!.gutScore.toDouble()];
+    }
+
+    final cleanSeries = InsightValues.scores(series);
+    final scoredSeries = cleanSeries.where((s) => s > 0).toList();
+
+    final startVal = scoredSeries.isNotEmpty ? scoredSeries.first.round() : (insight?.gutScore != null && insight!.gutScore > 0 ? insight.gutScore : 0);
+
+    final endVal = scoredSeries.isNotEmpty ? scoredSeries.last.round() : (insight?.gutScore != null && insight!.gutScore > 0 ? insight.gutScore : 0);
+
+    int diff;
+    if (scoredSeries.length > 1) {
+      diff = endVal - startVal;
+    } else if (insight?.scoreDiff != null) {
+      diff = BentoData.parseDelta(insight!.scoreDiff) ?? 0;
+    } else {
+      diff = 0;
+    }
+
+    final isUp = diff >= 0;
+    final absDiff = diff.abs();
+
+    final badgeBgColor = isUp ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2);
+    final badgeIconBgColor = isUp ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+    final badgeTextColor = isUp ? const Color(0xFF15803D) : const Color(0xFF991B1B);
+    final chartLineColor = isUp ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+
+    final rangeText = scoredSeries.length > 1 ? '$startVal → $endVal' : (endVal > 0 ? '$endVal/100' : '—');
+
+    final progressTitle = diff == 0 ? (endVal > 0 ? 'Steady baseline' : 'Building baseline') : (isUp ? 'Positive progress' : 'Area to watch');
+
+    final pct = (startVal > 0 && absDiff > 0) ? ((absDiff / startVal) * 100).round() : 0;
+    final progressDesc = diff == 0
+        ? (endVal > 0 ? 'Your gut score is steady at $endVal points.' : 'Log meals and scans to track your score trend.')
+        : 'Your score has ${isUp ? 'increased' : 'decreased'} by $absDiff point${absDiff == 1 ? '' : 's'}${pct > 0 ? ' ($pct%)' : ''} this week.';
+
+    const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return Scaffold(
       backgroundColor: v2.scaffold,
@@ -57,9 +102,9 @@ class HighlightDetailScreen extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.all(12.w),
                   decoration: BoxDecoration(
-                    color: context.insightColor(const Color(0xFFF4FAF5)),
+                    color: context.insightColor(isUp ? const Color(0xFFF4FAF5) : const Color(0xFFFFF5F5)),
                     borderRadius: BorderRadius.circular(20.w),
-                    border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7)), width: 1.w),
+                    border: Border.all(color: context.insightColor(badgeBgColor), width: 1.w),
                     boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
                   ),
                   child: Column(
@@ -71,35 +116,16 @@ class HighlightDetailScreen extends StatelessWidget {
                         children: [
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.w),
-                            decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), borderRadius: BorderRadius.circular(16.w)),
+                            decoration: BoxDecoration(color: context.insightColor(badgeBgColor), borderRadius: BorderRadius.circular(16.w)),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(LucideIcons.leaf, size: 10.w, color: context.insightColor(const Color(0xFF15803D))),
+                                Icon(LucideIcons.leaf, size: 10.w, color: context.insightColor(badgeTextColor)),
                                 Gap.w4,
                                 Text(
-                                  'Gut Barrier Score',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF15803D))),
+                                  args.tag.isNotEmpty ? args.tag : 'Gut Barrier Score',
+                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: context.insightColor(badgeTextColor)),
                                 ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.w),
-                            decoration: BoxDecoration(
-                              color: context.insightColor(Colors.white),
-                              borderRadius: BorderRadius.circular(16.w),
-                              border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Recorded period',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF0F172A))),
-                                ),
-                                Gap.w4,
-                                Icon(LucideIcons.chevronDown, size: 12.w, color: context.insightColor(const Color(0xFF0F172A))),
                               ],
                             ),
                           ),
@@ -118,21 +144,31 @@ class HighlightDetailScreen extends StatelessWidget {
                       ),
                       Gap.h12,
 
-                      // Chart & Badge Row
+                      // Chart, Weekday Labels & Badge Row
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          // Left Column: 7-Point Trend Chart + Pixel-Aligned Weekday Labels
                           Expanded(
-                            child: SizedBox(
-                              height: 60.w,
-                              child: V2TrendChart(values: series, height: 52, color: context.insightColor(const Color(0xFF16A34A)), endDot: true),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  height: 52.w,
+                                  width: double.infinity,
+                                  child: V2TrendChart(values: series, height: 52, color: context.insightColor(chartLineColor), endDot: true),
+                                ),
+                                Gap.h6,
+                                AlignedDayLabelsRow(labels: dayLabels, todayIndex: DateTime.now().weekday % 7),
+                              ],
                             ),
                           ),
                           Gap.w12,
 
+                          // Right Column: Point Change Badge
                           Container(
                             padding: EdgeInsets.all(10.w),
-                            decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), borderRadius: BorderRadius.circular(16.w)),
+                            decoration: BoxDecoration(color: context.insightColor(badgeBgColor), borderRadius: BorderRadius.circular(16.w)),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
@@ -142,24 +178,24 @@ class HighlightDetailScreen extends StatelessWidget {
                                   children: [
                                     Container(
                                       padding: EdgeInsets.all(3.w),
-                                      decoration: BoxDecoration(color: context.insightColor(const Color(0xFF16A34A)), shape: BoxShape.circle),
-                                      child: const Icon(LucideIcons.arrowUp, size: 10, color: Colors.white),
+                                      decoration: BoxDecoration(color: context.insightColor(badgeIconBgColor), shape: BoxShape.circle),
+                                      child: Icon(isUp ? LucideIcons.arrowUp : LucideIcons.arrowDown, size: 10, color: Colors.white),
                                     ),
                                     Gap.w4,
                                     Text(
-                                      '+4',
-                                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF15803D))),
+                                      '${isUp ? '+' : '-'}$absDiff',
+                                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: context.insightColor(badgeTextColor)),
                                     ),
                                   ],
                                 ),
                                 Gap.h2,
                                 Text(
                                   'points this week',
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF15803D)), fontWeight: FontWeight.w600),
+                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(badgeTextColor), fontWeight: FontWeight.w600),
                                 ),
                                 Gap.h2,
                                 Text(
-                                  series.isNotEmpty ? '${series.first.round()} → ${series.last.round()}' : (insight?.gutScore != null ? '${insight!.gutScore}' : '—'),
+                                  rangeText,
                                   style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                                 ),
                               ],
@@ -167,29 +203,14 @@ class HighlightDetailScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      Gap.h8,
-
-                      // Days Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Mon', style: TextStyle(fontSize: 10, color: context.insightColor(const Color(0xFF64748B)))),
-                          Text('Tue', style: TextStyle(fontSize: 10, color: context.insightColor(const Color(0xFF64748B)))),
-                          Text('Wed', style: TextStyle(fontSize: 10, color: context.insightColor(const Color(0xFF64748B)))),
-                          Text('Thu', style: TextStyle(fontSize: 10, color: context.insightColor(const Color(0xFF64748B)))),
-                          Text('Fri', style: TextStyle(fontSize: 10, color: context.insightColor(const Color(0xFF64748B)))),
-                          Text('Sat', style: TextStyle(fontSize: 10, color: context.insightColor(const Color(0xFF64748B)))),
-                          Text('Sun', style: TextStyle(fontSize: 10, color: context.insightColor(const Color(0xFF64748B)))),
-                        ],
-                      ),
                       Gap.h10,
 
                       Text(
-                        'Steady progress',
+                        progressTitle,
                         style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
                       ),
                       Text(
-                        'Your score has increased by 4 points (5%) this week.',
+                        progressDesc,
                         style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF475569))),
                       ),
                     ],
@@ -591,19 +612,48 @@ class HighlightDetailScreen extends StatelessWidget {
     );
   }
 
-  /// 1. Hero Trigger Card ("Something to Watch")
+  /// 1. Hero Trigger Card ("Something to Watch") in Pattern Card Style
   Widget _buildTriggerHeroCard(BuildContext context, {required String title, required String bodyText, required BodyPattern? pattern}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final foodImageUrl = V2Kit.foodImageUrl(title);
+
+    final foodName = pattern?.involvedFoods.isNotEmpty == true ? pattern!.involvedFoods.first : (pattern?.trigger.isNotEmpty == true ? pattern!.trigger : title);
+
+    final firstOccWithImage = pattern?.occurrences.firstWhere(
+      (o) => o.imageUrl != null && o.imageUrl!.isNotEmpty,
+      orElse: () => const PatternOccurrence(date: '', mealName: '', reaction: '', timeAfter: ''),
+    );
+
+    final foodImageUrl = V2Kit.foodImageUrl(foodName, imageUrl: firstOccWithImage?.imageUrl);
+
+    // Calculate confidence percentage
+    var confidencePct = 85;
+    if (pattern != null) {
+      if (pattern.evidenceRatio > 0) {
+        confidencePct = (pattern.evidenceRatio * 100).round();
+      } else if (pattern.confidenceScore > 0 && pattern.confidenceScore != 0.85) {
+        confidencePct = (pattern.confidenceScore * 100).round();
+      } else if (pattern.confidence.trim().isNotEmpty) {
+        final s = pattern.confidence.trim().replaceAll('%', '');
+        final d = double.tryParse(s);
+        if (d != null) confidencePct = d > 1.0 ? d.round() : (d * 100).round();
+      }
+    }
+
+    final cardBg = isDark ? const Color(0xFF231416) : const Color(0xFFFFF8F6);
+    final cardBorder = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5);
+    final pillBg = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2);
+    final pillFg = isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B);
+
+    final reactionText = pattern?.reaction.isNotEmpty == true ? pattern!.reaction : 'Reaction';
+    final frequencyText = pattern != null && pattern.frequency > 0 ? '${pattern.frequency}x' : '1x';
+    final insight = _insightOf(context);
+    final delayText = V2Data.reactionTime(insight ?? AIInsight(gutScore: 0, updatedAt: DateTime.now()), pattern);
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF231416) : const Color(0xFFFFF8F6),
+        color: cardBg,
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(
-          color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5),
-          width: 1.2.w,
-        ),
+        border: Border.all(color: cardBorder, width: 1.w),
         boxShadow: [
           BoxShadow(
             color: (isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626)).withValues(alpha: isDark ? 0.08 : 0.04),
@@ -616,118 +666,103 @@ class HighlightDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Stack with angled food image on right
-          SizedBox(
-            height: 152.w,
-            child: Stack(
+          // Top Content Section with Side Image
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 14.w),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Right Food Image
-                Positioned.fill(
-                  child: Row(
+                // Left Column: Tag Pill, Headline Title, Description Body, Action Pill
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Spacer(flex: 4),
-                      Expanded(
-                        flex: 4,
-                        child: Stack(
-                          fit: StackFit.expand,
+                      // Tag Pill
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.w),
+                        decoration: BoxDecoration(
+                          color: pillBg,
+                          borderRadius: BorderRadius.circular(16.w),
+                          border: Border.all(color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : const Color(0xFFFECACA), width: 0.8.w),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            CachedNetworkImage(
-                              imageUrl: foodImageUrl,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFF1F5F9))),
-                              errorWidget: (_, _, _) => Container(color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.20) : const Color(0xFFFEE2E2)),
+                            Icon(LucideIcons.triangleAlert, size: 10.w, color: pillFg),
+                            Gap.w4,
+                            Text(
+                              'SOMETHING TO WATCH',
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: pillFg),
                             ),
                           ],
                         ),
                       ),
+                      Gap.h8,
+
+                      // Title
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 17.sp,
+                          fontWeight: FontWeight.w800,
+                          color: context.insightColor(const Color(0xFF0F172A)),
+                          height: 1.15,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      Gap.h4,
+
+                      // Subtitle / Body Description
+                      Text(
+                        bodyText,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w400, color: context.insightColor(const Color(0xFF475569)), height: 1.3),
+                      ),
+                      Gap.h14,
+
+                      // Bottom CTA Pill
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'TRIGGER PATTERN ($confidencePct%)',
+                            style: TextStyle(
+                              fontFamily: InsightV2Theme.fontFamily,
+                              fontSize: 10.5.sp,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                              color: context.insightColor(const Color(0xFF0F172A)),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
+                Gap.w12,
 
-                // Left Angled Clipper
-                Positioned.fill(
-                  child: ClipPath(
-                    clipper: const _HeroAngledClipper(),
-                    child: Container(color: isDark ? const Color(0xFF1C1315) : context.insightColor(const Color(0xFFFFFDF7))),
+                // Right Side Food Image Preview
+                Container(
+                  width: 90.w,
+                  height: 90.w,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18.w),
+                    border: Border.all(color: cardBorder, width: 1.w),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8.w, offset: Offset(0, 2.w))],
                   ),
-                ),
-
-                // Content Left Column
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 195.w,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(12.w, 10.w, 6.w, 10.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Tag Pill
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.w),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
-                            borderRadius: BorderRadius.circular(16.w),
-                            border: Border.all(
-                              color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : const Color(0xFFFECACA),
-                              width: 0.8.w,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                LucideIcons.alertTriangle,
-                                size: 10.w,
-                                color: isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B),
-                              ),
-                              Gap.w4,
-                              Text(
-                                'Something to Watch',
-                                style: TextStyle(
-                                  fontFamily: InsightV2Theme.fontFamily,
-                                  fontSize: 9.5.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Gap.h6,
-
-                        // Title
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: InsightV2Theme.fontFamily,
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w800,
-                            color: context.insightColor(const Color(0xFF0F172A)),
-                            height: 1.15,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        Gap.h4,
-
-                        // Description
-                        Text(
-                          bodyText,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: InsightV2Theme.fontFamily,
-                            fontSize: 10.5.sp,
-                            fontWeight: FontWeight.w500,
-                            color: context.insightColor(const Color(0xFF334155)),
-                            height: 1.25,
-                          ),
-                        ),
-                      ],
+                  clipBehavior: Clip.antiAlias,
+                  child: CachedNetworkImage(
+                    imageUrl: foodImageUrl,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFF1F5F9))),
+                    errorWidget: (_, _, _) => Container(
+                      color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.20) : const Color(0xFFFEE2E2),
+                      child: Icon(LucideIcons.utensils, size: 28.w, color: pillFg),
                     ),
                   ),
                 ),
@@ -737,66 +772,55 @@ class HighlightDetailScreen extends StatelessWidget {
 
           // Bottom Stats Bar (4 columns)
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.w),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1B1113) : const Color(0xFFFFF5F2),
-              border: Border(
-                top: BorderSide(
-                  color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.28) : const Color(0xFFFEE2E2),
-                ),
-              ),
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.w),
+
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Stat 1: High Frequency
                 Expanded(
                   child: _TriggerStatCol(
                     icon: LucideIcons.barChart2,
                     iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                    label: 'Logged occurrences',
-                    value: pattern == null ? '—' : '${pattern.frequency} occurrences',
-                    subtext: pattern?.timeframeDays == null ? 'Period unavailable' : 'Last ${pattern!.timeframeDays} days',
+                    label: 'Occurrences',
+                    value: frequencyText,
+                    subtext: pattern?.timeframeDays != null ? 'Last ${pattern!.timeframeDays} days' : 'Last 30 days',
                   ),
                 ),
                 Gap.w4,
 
-                // Stat 2: Symptom
                 Expanded(
                   child: _TriggerStatCol(
                     icon: LucideIcons.activity,
                     iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                    label: 'Symptom',
-                    value: pattern?.reaction.isNotEmpty == true ? pattern!.reaction : 'Not recorded',
-                    subtext: 'Common reaction',
+                    label: 'Reaction',
+                    value: reactionText,
+                    subtext: 'Observed symptom',
                   ),
                 ),
                 Gap.w4,
 
-                // Stat 3: Typical Delay
                 Expanded(
                   child: _TriggerStatCol(
                     icon: LucideIcons.clock,
                     iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                     label: 'Typical Delay',
-                    value: '~ 2 hours',
+                    value: delayText,
                     subtext: 'After eating',
                   ),
                 ),
                 Gap.w4,
 
-                // Stat 4: Confidence
                 Expanded(
                   child: _TriggerStatCol(
                     icon: LucideIcons.leaf,
                     iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                     label: 'Confidence',
-                    value: pattern?.confidence.isNotEmpty == true ? pattern!.confidence : 'High',
-                    subtext: 'Based on your data',
+                    value: '$confidencePct%',
+                    subtext: 'Evidence score',
                   ),
                 ),
               ],
@@ -1165,21 +1189,11 @@ class _WeeklyStatTile extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isFoodsLogged = label.toLowerCase().contains('foods logged');
 
-    final tileBg = isDark
-        ? (isFoodsLogged ? const Color(0xFF231A14) : const Color(0xFF102319))
-        : context.insightColor(Colors.white);
-    final tileBorder = isDark
-        ? (isFoodsLogged ? const Color(0xFFF97316).withValues(alpha: 0.28) : const Color(0xFF22C55E).withValues(alpha: 0.28))
-        : context.insightColor(const Color(0xFFE2E8F0));
-    final resolvedIconBg = isDark
-        ? (isFoodsLogged ? const Color(0xFFF97316).withValues(alpha: 0.18) : const Color(0xFF22C55E).withValues(alpha: 0.18))
-        : iconBg;
-    final resolvedIconColor = isDark
-        ? (isFoodsLogged ? const Color(0xFFFB923C) : const Color(0xFF4ADE80))
-        : iconColor;
-    final resolvedLabelColor = isDark
-        ? (isFoodsLogged ? const Color(0xFFFB923C) : const Color(0xFF4ADE80))
-        : context.insightColor(const Color(0xFF64748B));
+    final tileBg = isDark ? (isFoodsLogged ? const Color(0xFF231A14) : const Color(0xFF102319)) : context.insightColor(Colors.white);
+    final tileBorder = isDark ? (isFoodsLogged ? const Color(0xFFF97316).withValues(alpha: 0.28) : const Color(0xFF22C55E).withValues(alpha: 0.28)) : context.insightColor(const Color(0xFFE2E8F0));
+    final resolvedIconBg = isDark ? (isFoodsLogged ? const Color(0xFFF97316).withValues(alpha: 0.18) : const Color(0xFF22C55E).withValues(alpha: 0.18)) : iconBg;
+    final resolvedIconColor = isDark ? (isFoodsLogged ? const Color(0xFFFB923C) : const Color(0xFF4ADE80)) : iconColor;
+    final resolvedLabelColor = isDark ? (isFoodsLogged ? const Color(0xFFFB923C) : const Color(0xFF4ADE80)) : context.insightColor(const Color(0xFF64748B));
 
     return Container(
       padding: EdgeInsets.all(10.w),
@@ -1201,29 +1215,15 @@ class _WeeklyStatTile extends StatelessWidget {
           Gap.h6,
           Text(
             label,
-            style: TextStyle(
-              fontFamily: InsightV2Theme.fontFamily,
-              fontSize: 9.5.sp,
-              color: resolvedLabelColor,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: resolvedLabelColor, fontWeight: FontWeight.w600),
           ),
           Text(
             value,
-            style: TextStyle(
-              fontFamily: InsightV2Theme.fontFamily,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: context.insightColor(const Color(0xFF0F172A)),
-            ),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
           ),
           Text(
             subtext,
-            style: TextStyle(
-              fontFamily: InsightV2Theme.fontFamily,
-              fontSize: 8.5.sp,
-              color: context.insightColor(const Color(0xFF64748B)),
-            ),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1355,34 +1355,19 @@ class _TriggerStatCol extends StatelessWidget {
         Gap.h4,
         Text(
           label,
-          style: TextStyle(
-            fontFamily: InsightV2Theme.fontFamily,
-            fontSize: 9.sp,
-            color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), fontWeight: FontWeight.w600),
         ),
         Gap.h2,
         Text(
           value,
-          style: TextStyle(
-            fontFamily: InsightV2Theme.fontFamily,
-            fontSize: 10.5.sp,
-            fontWeight: FontWeight.w800,
-            color: context.insightColor(const Color(0xFF0F172A)),
-            height: 1.15,
-          ),
+          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.15),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         Gap.h2,
         Text(
           subtext,
-          style: TextStyle(
-            fontFamily: InsightV2Theme.fontFamily,
-            fontSize: 8.5.sp,
-            color: context.insightColor(const Color(0xFF64748B)),
-          ),
+          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -1462,4 +1447,50 @@ class _HeroAngledClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class AlignedDayLabelsRow extends StatelessWidget {
+  const AlignedDayLabelsRow({super.key, required this.labels, required this.todayIndex, this.chartPadding = 6.0});
+
+  final List<String> labels;
+  final int todayIndex;
+  final double chartPadding;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final totalW = constraints.maxWidth;
+      if (totalW <= 0) return const SizedBox.shrink();
+
+      final chartW = totalW - (chartPadding * 2);
+      const count = 7;
+      const labelBoxW = 20.0;
+
+      return SizedBox(
+        height: 16,
+        width: totalW,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            for (var i = 0; i < labels.length && i < count; i++)
+              Positioned(
+                left: (chartPadding + (chartW * i / (count - 1))) - (labelBoxW / 2),
+                top: 0,
+                width: labelBoxW,
+                child: Text(
+                  labels[i],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 9.5.sp,
+                    fontWeight: i == todayIndex ? FontWeight.w900 : FontWeight.w700,
+                    color: i == todayIndex ? context.insightColor(const Color(0xFF0F172A)) : context.insightColor(const Color(0xFF64748B)),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    },
+  );
 }

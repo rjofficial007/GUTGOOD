@@ -74,147 +74,201 @@ class PatternDetailScreen extends StatelessWidget {
     );
   }
 
-  /// 1. Top Hero Pattern Card (Matching SynergyDetailScreen Hero layout)
+  /// 1. Top Hero Pattern Card (Matching PatternCard hero layout with dynamic food color blending)
   Widget _buildHeroCard(BuildContext context) {
-    final v2 = context.v2Theme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : (pattern.trigger.isNotEmpty ? pattern.trigger : 'Whole Foods');
-    final imageUrl = V2Kit.foodImageUrl(foodName);
-    final style = PatternCardStyle.forType(pattern.type);
+    final style = PatternCardStyle.forPattern(pattern);
 
-    final trigger = pattern.trigger.trim();
-    final reaction = pattern.reaction.trim();
-    final title = (trigger.isNotEmpty || reaction.isNotEmpty) ? ((trigger.isNotEmpty && reaction.isNotEmpty) ? '$trigger → $reaction' : (trigger.isNotEmpty ? trigger : reaction)) : style.label;
+    final firstOccWithImage = pattern.occurrences.firstWhere(
+      (o) => o.imageUrl != null && o.imageUrl!.isNotEmpty,
+      orElse: () => const PatternOccurrence(date: '', mealName: '', reaction: '', timeAfter: ''),
+    );
+    final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : (pattern.trigger.isNotEmpty ? pattern.trigger : style.label);
+    final imageUrl = V2Kit.foodImageUrl(foodName, imageUrl: firstOccWithImage.imageUrl);
+
+    // Dynamic Headline Title (Line 1)
+    final rawTrigger = pattern.trigger.trim();
+    final rawTypeLabel = style.label;
+    final headlineTitle = rawTrigger.isNotEmpty ? rawTrigger : '$rawTypeLabel Pattern';
+
+    // Dynamic Subtitle (Line 2: Reaction / Timing / Factor + Occurrences count)
+    final rawReaction = pattern.reaction.trim();
+    final baseSubtitle = rawReaction.isNotEmpty
+        ? rawReaction
+        : (pattern.typicalTiming?.trim().isNotEmpty == true ? pattern.typicalTiming!.trim() : (pattern.commonFactors.isNotEmpty ? pattern.commonFactors.first.label : ''));
+
+    // Dynamic Occurrences String
+    final occurrencesCount = pattern.frequency > 0 ? pattern.frequency : (pattern.occurrences.isNotEmpty ? pattern.occurrences.length : 0);
+    final occurrencesStr = occurrencesCount > 0 ? '$occurrencesCount ${occurrencesCount == 1 ? 'occurrence' : 'occurrences'}' : '';
+
+    final subtitleParts = <String>[if (baseSubtitle.isNotEmpty) baseSubtitle, if (occurrencesStr.isNotEmpty) occurrencesStr];
+    final subtitle = subtitleParts.join(' • ');
+
+    // Dynamic Confidence Percentage calculation
+    var confidencePct = 0;
+    if (pattern.evidenceRatio > 0) {
+      confidencePct = (pattern.evidenceRatio * 100).round();
+    } else if (pattern.confidence.trim().isNotEmpty) {
+      final s = pattern.confidence.trim().replaceAll('%', '');
+      final d = double.tryParse(s);
+      if (d != null) {
+        confidencePct = d > 1.0 ? d.round() : (d * 100).round();
+      } else {
+        final lower = s.toLowerCase();
+        if (lower == 'high') {
+          confidencePct = 89;
+        } else if (lower == 'medium' || lower == 'moderate') {
+          confidencePct = 75;
+        } else if (lower == 'low') {
+          confidencePct = 60;
+        }
+      }
+    } else if (pattern.confidenceScore > 0 && pattern.confidenceScore != 0.85) {
+      confidencePct = (pattern.confidenceScore * 100).round();
+    }
+
+    if (confidencePct == 0) {
+      final hash = '${pattern.id}_${pattern.trigger}_${pattern.type}_${pattern.frequency}'.hashCode.abs();
+      confidencePct = 82 + (hash % 13);
+    }
+
+    // Dynamic Description String
+    final descStr = pattern.description.trim();
+
+    // Combined meta parts
+    final metaText = descStr;
+
+    final heroColor = PatternCardStyle.foodHeroColor(foodName, style.heroBg);
 
     return Container(
-      height: 152.w,
-      decoration: BoxDecoration(
-        color: isDark ? v2.card : style.cardBg,
-        borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: isDark ? v2.border : style.borderColor, width: 1.w),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.20) : const Color(0xFF17171B).withValues(alpha: 0.04),
-            blurRadius: 6.w,
-            offset: Offset(0, 2.w),
-          ),
-        ],
-      ),
+      height: 154.w,
+      decoration: BoxDecoration(color: heroColor, borderRadius: BorderRadius.circular(24.w)),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
+      child: Row(
         children: [
-          // Background Food Photo on Right
-          Positioned.fill(
-            child: Row(
-              children: [
-                const Spacer(flex: 4),
-                Expanded(
-                  flex: 4,
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    placeholder: (_, _) => Container(color: isDark ? v2.cardSubtle : context.insightColor(style.tagBg)),
-                    errorWidget: (_, _, _) => Container(
-                      color: isDark ? v2.cardSubtle : context.insightColor(style.tagBg),
-                      child: Icon(style.icon, color: isDark ? v2.textSecondary : context.insightColor(style.tagFg), size: 28),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Angled Background Clipper
-          Positioned.fill(
-            child: ClipPath(
-              clipper: const _HeroAngledClipper(),
-              child: Container(color: isDark ? v2.card : style.cardBg),
-            ),
-          ),
-
-          // Left Content Column
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 190.w,
+          // 1. Left Content Section
+          Expanded(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(12.w, 10.w, 6.w, 10.w),
+              padding: EdgeInsets.fromLTRB(18.w, 16.w, 12.w, 16.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Top Texts
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Minimal & Compact Tag Pill
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.5.w),
-                        decoration: BoxDecoration(
-                          color: isDark ? v2.cardSubtle : style.tagBg.withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(100.w),
-                          border: Border.all(color: (isDark ? v2.textPrimary : style.tagFg).withValues(alpha: 0.18), width: 0.8.w),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(style.icon, size: 9.5.w, color: isDark ? v2.textPrimary : style.tagFg),
-                            Gap.w4,
-                            Text(
-                              style.label,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: isDark ? v2.textPrimary : style.tagFg, height: 1.1),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Gap.h6,
-
-                      // Title
+                      // Line 1: Bold Title
                       Text(
-                        title,
-                        maxLines: 2,
+                        headlineTitle,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: v2.textPrimary, height: 1.15, letterSpacing: -0.3),
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.4),
                       ),
-                      Gap.h4,
-
-                      // Description
-                      Text(
-                        pattern.description,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w500, color: v2.textSecondary, height: 1.25),
-                      ),
+                      if (subtitle.isNotEmpty) ...[
+                        Gap.h2,
+                        // Line 2: Subtitle
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: InsightV2Theme.fontFamily,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.88),
+                            height: 1.2,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                      if (metaText.isNotEmpty) ...[
+                        Gap.h8,
+                        // Line 3: Meta bullet points
+                        Text(
+                          metaText,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w400, color: Colors.white.withValues(alpha: 0.90), height: 1.25),
+                        ),
+                      ],
                     ],
                   ),
 
-                  // Minimal & Compact Confidence Badge
+                  // Bottom Badge Tag Row
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.w),
-                    decoration: BoxDecoration(
-                      color: context.insightColor(style.accentColor).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(100.w),
-                      border: Border.all(color: context.insightColor(style.accentColor).withValues(alpha: 0.25), width: 0.8.w),
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.w),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(100.w)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 4.5.w,
-                          height: 4.5.w,
-                          decoration: BoxDecoration(color: context.insightColor(style.accentColor), shape: BoxShape.circle),
+                          width: 5.w,
+                          height: 5.w,
+                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                         ),
-                        Gap.w4,
+                        Gap.w5,
                         Text(
                           '${pattern.confidence.toUpperCase()} CONFIDENCE',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.2, color: context.insightColor(style.accentColor), height: 1.1),
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
+            ),
+          ),
+
+          // 2. Right Side Image (Seamlessly blended with dynamic food background)
+          SizedBox(
+            width: 148.w,
+            height: double.infinity,
+            child: Stack(
+              children: [
+                // Food Image with ShaderMask for smooth left-edge fading
+                Positioned.fill(
+                  child: ShaderMask(
+                    shaderCallback: (rect) => const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.transparent, Colors.white24, Colors.white],
+                      stops: [0.0, 0.28, 0.65],
+                    ).createShader(rect),
+                    blendMode: BlendMode.dstIn,
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      placeholder: (_, _) => Container(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        child: Center(
+                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.5), size: 28.w),
+                        ),
+                      ),
+                      errorWidget: (_, _, _) => Container(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        child: Center(
+                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.7), size: 28.w),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Soft Hero Color Gradient Overlay
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [heroColor, heroColor.withValues(alpha: 0.55), heroColor.withValues(alpha: 0.0)],
+                        stops: const [0.0, 0.35, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -237,13 +291,7 @@ class PatternDetailScreen extends StatelessWidget {
         color: isDark ? v2.card : Colors.white,
         borderRadius: BorderRadius.circular(18.w),
         border: Border.all(color: isDark ? v2.border : const Color(0xFFE2E8F0), width: 1.w),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.15) : const Color(0xFF17171B).withValues(alpha: 0.03),
-            blurRadius: 6.w,
-            offset: Offset(0, 2.w),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: isDark ? Colors.black.withValues(alpha: 0.15) : const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,16 +299,9 @@ class PatternDetailScreen extends StatelessWidget {
           Container(
             width: 32.w,
             height: 32.w,
-            decoration: BoxDecoration(
-              color: isDark ? v2.cardSubtle : context.insightColor(style.tagBg),
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: isDark ? v2.cardSubtle : context.insightColor(style.tagBg), shape: BoxShape.circle),
             alignment: Alignment.center,
-            child: Icon(
-              style.icon,
-              size: 16.w,
-              color: isDark ? v2.textPrimary : context.insightColor(style.tagFg),
-            ),
+            child: Icon(style.icon, size: 16.w, color: isDark ? v2.textPrimary : context.insightColor(style.tagFg)),
           ),
           Gap.w10,
           Expanded(
@@ -269,23 +310,12 @@ class PatternDetailScreen extends StatelessWidget {
               children: [
                 Text(
                   'What We Observed',
-                  style: TextStyle(
-                    fontFamily: InsightV2Theme.fontFamily,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w800,
-                    color: v2.textPrimary,
-                  ),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                 ),
                 Gap.h3,
                 Text(
                   text,
-                  style: TextStyle(
-                    fontFamily: InsightV2Theme.fontFamily,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w500,
-                    color: v2.textSecondary,
-                    height: 1.3,
-                  ),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: v2.textSecondary, height: 1.3),
                 ),
               ],
             ),
@@ -307,13 +337,7 @@ class PatternDetailScreen extends StatelessWidget {
         color: isDark ? v2.card : Colors.white,
         borderRadius: BorderRadius.circular(18.w),
         border: Border.all(color: isDark ? v2.border : const Color(0xFFE2E8F0), width: 1.w),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.15) : const Color(0xFF17171B).withValues(alpha: 0.03),
-            blurRadius: 6.w,
-            offset: Offset(0, 2.w),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: isDark ? Colors.black.withValues(alpha: 0.15) : const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,16 +347,9 @@ class PatternDetailScreen extends StatelessWidget {
               Container(
                 width: 28.w,
                 height: 28.w,
-                decoration: BoxDecoration(
-                  color: isDark ? v2.cardSubtle : context.insightColor(style.tagBg),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: isDark ? v2.cardSubtle : context.insightColor(style.tagBg), shape: BoxShape.circle),
                 alignment: Alignment.center,
-                child: Icon(
-                  LucideIcons.barChart2,
-                  size: 14.w,
-                  color: isDark ? v2.textPrimary : context.insightColor(style.tagFg),
-                ),
+                child: Icon(LucideIcons.barChart2, size: 14.w, color: isDark ? v2.textPrimary : context.insightColor(style.tagFg)),
               ),
               Gap.w8,
               Expanded(
@@ -341,20 +358,11 @@ class PatternDetailScreen extends StatelessWidget {
                   children: [
                     Text(
                       'The Evidence',
-                      style: TextStyle(
-                        fontFamily: InsightV2Theme.fontFamily,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w800,
-                        color: v2.textPrimary,
-                      ),
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                     ),
                     Text(
                       'Based on your last ${pattern.timeframeDays} days of data.',
-                      style: TextStyle(
-                        fontFamily: InsightV2Theme.fontFamily,
-                        fontSize: 10.5.sp,
-                        color: v2.textSecondary,
-                      ),
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
                     ),
                   ],
                 ),
@@ -406,14 +414,7 @@ class PatternDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricTile(
-    BuildContext context, {
-    required String title,
-    required String label,
-    required IconData icon,
-    required Color color,
-    required Color bg,
-  }) {
+  Widget _buildMetricTile(BuildContext context, {required String title, required String label, required IconData icon, required Color color, required Color bg}) {
     final v2 = context.v2Theme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -435,10 +436,7 @@ class PatternDetailScreen extends StatelessWidget {
               children: [
                 Container(
                   padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(
-                    color: isDark ? resolvedColor.withValues(alpha: 0.18) : resolvedColor.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: isDark ? resolvedColor.withValues(alpha: 0.18) : resolvedColor.withValues(alpha: 0.15), shape: BoxShape.circle),
                   child: Icon(icon, size: 10.w, color: resolvedColor),
                 ),
               ],
@@ -446,24 +444,14 @@ class PatternDetailScreen extends StatelessWidget {
             Gap.h6,
             Text(
               title,
-              style: TextStyle(
-                fontFamily: InsightV2Theme.fontFamily,
-                fontSize: 13.5.sp,
-                fontWeight: FontWeight.w800,
-                color: v2.textPrimary,
-              ),
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
             ),
             Gap.h2,
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: InsightV2Theme.fontFamily,
-                fontSize: 8.5.sp,
-                fontWeight: FontWeight.w600,
-                color: v2.textSecondary,
-              ),
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w600, color: v2.textSecondary),
             ),
           ],
         ),
@@ -504,16 +492,9 @@ class PatternDetailScreen extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.20) : const Color(0xFFFEF3C7),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.20) : const Color(0xFFFEF3C7), shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Icon(
-                LucideIcons.utensils,
-                size: 14.w,
-                color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-              ),
+              child: Icon(LucideIcons.utensils, size: 14.w, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309)),
             ),
             Gap.w8,
             Expanded(
@@ -522,20 +503,11 @@ class PatternDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Involved Foods',
-                    style: TextStyle(
-                      fontFamily: InsightV2Theme.fontFamily,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w800,
-                      color: v2.textPrimary,
-                    ),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                   ),
                   Text(
                     'Foods frequently associated with this pattern.',
-                    style: TextStyle(
-                      fontFamily: InsightV2Theme.fontFamily,
-                      fontSize: 10.5.sp,
-                      color: v2.textSecondary,
-                    ),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
                   ),
                 ],
               ),
@@ -575,25 +547,13 @@ class PatternDetailScreen extends StatelessWidget {
           children: [
             Container(
               padding: EdgeInsets.all(6.w),
-              decoration: BoxDecoration(
-                color: isDark ? style.accentColor.withValues(alpha: 0.20) : style.accentColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                LucideIcons.history,
-                size: 12.w,
-                color: isDark ? v2.textPrimary : style.accentColor,
-              ),
+              decoration: BoxDecoration(color: isDark ? style.accentColor.withValues(alpha: 0.20) : style.accentColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: Icon(LucideIcons.history, size: 12.w, color: isDark ? v2.textPrimary : style.accentColor),
             ),
             Gap.w8,
             Text(
               'Occurrences & Factors',
-              style: TextStyle(
-                fontFamily: InsightV2Theme.fontFamily,
-                fontSize: 13.5.sp,
-                fontWeight: FontWeight.w800,
-                color: v2.textPrimary,
-              ),
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
             ),
           ],
         ),
@@ -608,25 +568,14 @@ class PatternDetailScreen extends StatelessWidget {
               color: v2.card,
               borderRadius: BorderRadius.circular(18.w),
               border: Border.all(color: v2.border, width: 1.w),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark ? Colors.black.withValues(alpha: 0.15) : const Color(0xFF0F172A).withValues(alpha: 0.03),
-                  blurRadius: 8.w,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              boxShadow: [BoxShadow(color: isDark ? Colors.black.withValues(alpha: 0.15) : const Color(0xFF0F172A).withValues(alpha: 0.03), blurRadius: 8.w, offset: const Offset(0, 2))],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Associated Factors',
-                  style: TextStyle(
-                    fontFamily: InsightV2Theme.fontFamily,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w700,
-                    color: v2.textSecondary,
-                  ),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: v2.textSecondary),
                 ),
                 Gap.h8,
                 Wrap(
@@ -639,20 +588,11 @@ class PatternDetailScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isDark ? v2.cardSubtle : style.tagBg.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(100.w),
-                          border: Border.all(
-                            color: isDark ? v2.border : style.tagFg.withValues(alpha: 0.15),
-                            width: 0.7.w,
-                          ),
+                          border: Border.all(color: isDark ? v2.border : style.tagFg.withValues(alpha: 0.15), width: 0.7.w),
                         ),
                         child: Text(
                           '${_factorGlyph(factor.icon)} ${factor.label}',
-                          style: TextStyle(
-                            fontFamily: InsightV2Theme.fontFamily,
-                            fontSize: 9.5.sp,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? v2.textPrimary : style.tagFg,
-                            height: 1.1,
-                          ),
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w600, color: isDark ? v2.textPrimary : style.tagFg, height: 1.1),
                         ),
                       ),
                   ],
@@ -665,10 +605,7 @@ class PatternDetailScreen extends StatelessWidget {
 
         // Recent Occurrences List (Separate Item Cards using OccurrenceTile)
         if (pattern.occurrences.isNotEmpty) ...[
-          for (final occ in pattern.occurrences.take(4)) ...[
-            OccurrenceTile(occurrence: occ, pattern: pattern),
-            Gap.h10,
-          ],
+          for (final occ in pattern.occurrences.take(4)) ...[OccurrenceTile(occurrence: occ, pattern: pattern), Gap.h10],
         ],
       ],
     );
@@ -700,10 +637,7 @@ class PatternDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF102319) : const Color(0xFFF4FAF5),
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(
-          color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7),
-          width: 1.w,
-        ),
+        border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7), width: 1.w),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -717,27 +651,15 @@ class PatternDetailScreen extends StatelessWidget {
                   Container(
                     width: 24.w,
                     height: 24.w,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : context.insightColor(style.tagBg),
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : context.insightColor(style.tagBg), shape: BoxShape.circle),
                     alignment: Alignment.center,
-                    child: Icon(
-                      style.icon,
-                      size: 12.w,
-                      color: isDark ? const Color(0xFF4ADE80) : context.insightColor(style.tagFg),
-                    ),
+                    child: Icon(style.icon, size: 12.w, color: isDark ? const Color(0xFF4ADE80) : context.insightColor(style.tagFg)),
                   ),
                   Gap.w6,
                   Expanded(
                     child: Text(
                       'Your Next Steps',
-                      style: TextStyle(
-                        fontFamily: InsightV2Theme.fontFamily,
-                        fontSize: 12.5.sp,
-                        fontWeight: FontWeight.w800,
-                        color: v2.textPrimary,
-                      ),
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                     ),
                   ),
                 ],
@@ -745,12 +667,7 @@ class PatternDetailScreen extends StatelessWidget {
               Gap.h3,
               Text(
                 'Recommended actions for this pattern:',
-                style: TextStyle(
-                  fontFamily: InsightV2Theme.fontFamily,
-                  fontSize: 9.5.sp,
-                  color: v2.textSecondary,
-                  height: 1.2,
-                ),
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: v2.textSecondary, height: 1.2),
               ),
               Gap.h10,
 
@@ -782,10 +699,7 @@ class PatternDetailScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF111C2E) : const Color(0xFFF0F7FF),
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(
-          color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.28) : const Color(0xFFE2E8F0),
-          width: 1.w,
-        ),
+        border: Border.all(color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.28) : const Color(0xFFE2E8F0), width: 1.w),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,27 +709,15 @@ class PatternDetailScreen extends StatelessWidget {
               Container(
                 width: 24.w,
                 height: 24.w,
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE), shape: BoxShape.circle),
                 alignment: Alignment.center,
-                child: Icon(
-                  LucideIcons.fileText,
-                  size: 12.w,
-                  color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
-                ),
+                child: Icon(LucideIcons.fileText, size: 12.w, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8)),
               ),
               Gap.w4,
               Expanded(
                 child: Text(
                   'Supporting Evidence',
-                  style: TextStyle(
-                    fontFamily: InsightV2Theme.fontFamily,
-                    fontSize: 11.5.sp,
-                    fontWeight: FontWeight.w800,
-                    color: v2.textPrimary,
-                  ),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                 ),
               ),
             ],
@@ -823,11 +725,7 @@ class PatternDetailScreen extends StatelessWidget {
           Gap.h2,
           Text(
             'Based on your logged data.',
-            style: TextStyle(
-              fontFamily: InsightV2Theme.fontFamily,
-              fontSize: 9.5.sp,
-              color: v2.textSecondary,
-            ),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: v2.textSecondary),
           ),
           Gap.h10,
 
@@ -890,23 +788,14 @@ class _InvolvedFoodTile extends StatelessWidget {
               errorWidget: (_, _, _) => Container(
                 color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.20) : const Color(0xFFFEF3C7),
                 alignment: Alignment.center,
-                child: Icon(
-                  LucideIcons.utensils,
-                  size: 20.w,
-                  color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
-                ),
+                child: Icon(LucideIcons.utensils, size: 20.w, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)),
               ),
             ),
           ),
           Gap.h4,
           Text(
             foodName,
-            style: TextStyle(
-              fontFamily: InsightV2Theme.fontFamily,
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w700,
-              color: v2.textPrimary,
-            ),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: v2.textPrimary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -916,29 +805,16 @@ class _InvolvedFoodTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.15) : const Color(0xFFF0FDF4),
               borderRadius: BorderRadius.circular(100.w),
-              border: Border.all(
-                color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.3) : const Color(0xFF15803D).withValues(alpha: 0.2),
-                width: 0.7.w,
-              ),
+              border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.3) : const Color(0xFF15803D).withValues(alpha: 0.2), width: 0.7.w),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  LucideIcons.leaf,
-                  size: 7.5.w,
-                  color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
-                ),
+                Icon(LucideIcons.leaf, size: 7.5.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
                 Gap.w2,
                 Text(
                   'Involved',
-                  style: TextStyle(
-                    fontFamily: InsightV2Theme.fontFamily,
-                    fontSize: 8.sp,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
-                    height: 1.1,
-                  ),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D), height: 1.1),
                 ),
               ],
             ),
@@ -967,10 +843,7 @@ class _NextStepCheckRow extends StatelessWidget {
           width: 16.w,
           height: 16.w,
           margin: EdgeInsets.only(top: 1.w),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF22C55E) : const Color(0xFF16A34A),
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E) : const Color(0xFF16A34A), shape: BoxShape.circle),
           alignment: Alignment.center,
           child: Icon(LucideIcons.check, size: 10.w, color: Colors.white),
         ),
@@ -981,23 +854,12 @@ class _NextStepCheckRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontFamily: InsightV2Theme.fontFamily,
-                  fontSize: 10.5.sp,
-                  fontWeight: FontWeight.w700,
-                  color: v2.textPrimary,
-                  height: 1.2,
-                ),
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: v2.textPrimary, height: 1.2),
               ),
               Gap.h2,
               Text(
                 subtitle,
-                style: TextStyle(
-                  fontFamily: InsightV2Theme.fontFamily,
-                  fontSize: 9.5.sp,
-                  color: v2.textSecondary,
-                  height: 1.2,
-                ),
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: v2.textSecondary, height: 1.2),
               ),
             ],
           ),
@@ -1025,16 +887,9 @@ class _EvidenceMetricRow extends StatelessWidget {
         Container(
           width: 22.w,
           height: 22.w,
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE),
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE), shape: BoxShape.circle),
           alignment: Alignment.center,
-          child: Icon(
-            icon,
-            size: 11.w,
-            color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
-          ),
+          child: Icon(icon, size: 11.w, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8)),
         ),
         Gap.w6,
         Expanded(
@@ -1043,51 +898,20 @@ class _EvidenceMetricRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontFamily: InsightV2Theme.fontFamily,
-                  fontSize: 10.5.sp,
-                  fontWeight: FontWeight.w700,
-                  color: v2.textPrimary,
-                  height: 1.1,
-                ),
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: v2.textPrimary, height: 1.1),
               ),
               Text(
                 subtitle,
-                style: TextStyle(
-                  fontFamily: InsightV2Theme.fontFamily,
-                  fontSize: 9.sp,
-                  color: v2.textSecondary,
-                  height: 1.1,
-                ),
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: v2.textSecondary, height: 1.1),
               ),
             ],
           ),
         ),
         Text(
           value,
-          style: TextStyle(
-            fontFamily: InsightV2Theme.fontFamily,
-            fontSize: 13.5.sp,
-            fontWeight: FontWeight.w800,
-            color: v2.textPrimary,
-          ),
+          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
         ),
       ],
     );
   }
-}
-
-class _HeroAngledClipper extends CustomClipper<Path> {
-  const _HeroAngledClipper();
-
-  @override
-  Path getClip(Size size) => Path()
-    ..moveTo(0, 0)
-    ..lineTo(size.width * 0.62, 0)
-    ..lineTo(size.width * 0.52, size.height)
-    ..lineTo(0, size.height)
-    ..close();
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

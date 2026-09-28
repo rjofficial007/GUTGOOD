@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
@@ -302,10 +301,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
         label: AppStrings.viewFullReportButton,
         onTap: () {
           final result = _analyzedResult!;
-
-          context
-            ..pop()
-            ..go(result.detailRoute, extra: ScanResultArgs(scanData: result));
+          Navigator.of(context).pop(result);
         },
       );
     }
@@ -315,9 +311,9 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
       isLoading: notifier.isAnalyzing,
       onTap: () async {
         final result = await notifier.analyzeBarcodeProduct(widget.product, capturedImage: widget.capturedImage);
-        if (!mounted) return;
+        if (!context.mounted) return;
         if (result != null) {
-          setState(() => _analyzedResult = result);
+          Navigator.of(context).pop(result);
         } else {
           // Previously silent: the button just stopped spinning. Say why.
           final message = notifier.lastErrorWasOffline ? AppStrings.offlineMessage : AppStrings.failedToAnalyzeProduct;

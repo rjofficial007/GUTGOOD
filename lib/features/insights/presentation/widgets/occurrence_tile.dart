@@ -20,18 +20,49 @@ class OccurrenceTile extends StatelessWidget {
     final timeStr = occurrence.mealTime ?? occurrence.timeAfter;
     final reactionStr = occurrence.reaction.isNotEmpty ? occurrence.reaction : 'Symptom logged';
 
+    final lowerReaction = reactionStr.toLowerCase();
+
+    final isEnergy = lowerReaction.contains('energy') || lowerReaction.contains('boost') || lowerReaction.contains('focus') || lowerReaction.contains('vitality') || lowerReaction.contains('alert');
+
+    final isPositive =
+        isEnergy || lowerReaction.contains('good') || lowerReaction.contains('great') || lowerReaction.contains('productive') || lowerReaction.contains('heal') || lowerReaction.contains('happy');
+
+    final isNegative =
+        lowerReaction.contains('bloat') ||
+        lowerReaction.contains('pain') ||
+        lowerReaction.contains('cramp') ||
+        lowerReaction.contains('reflux') ||
+        lowerReaction.contains('headache') ||
+        lowerReaction.contains('nausea') ||
+        lowerReaction.contains('drop') ||
+        lowerReaction.contains('tired') ||
+        lowerReaction.contains('fog') ||
+        lowerReaction.contains('acid') ||
+        lowerReaction.contains('distension');
+
+    final IconData statusIcon;
+    final Color statusColor;
+
+    if (isEnergy) {
+      statusIcon = LucideIcons.zap;
+      statusColor = const Color(0xFFD97706); // Energetic amber/gold
+    } else if (isPositive) {
+      statusIcon = LucideIcons.sparkles;
+      statusColor = const Color(0xFF15803D); // Fresh green
+    } else if (isNegative) {
+      statusIcon = LucideIcons.triangleAlert;
+      statusColor = const Color(0xFFDC2626); // Warning red
+    } else {
+      statusIcon = LucideIcons.activity;
+      statusColor = const Color(0xFF475569); // Neutral slate
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: context.insightColor(Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
-        boxShadow: [
-          BoxShadow(
-            color: context.insightColor(const Color(0xFF0F172A)).withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: context.insightColor(const Color(0xFF0F172A)).withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2))],
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(
@@ -86,14 +117,14 @@ class OccurrenceTile extends StatelessWidget {
                       // Reaction / Symptom Subtitle
                       Row(
                         children: [
-                          Icon(LucideIcons.triangleAlert, size: 10, color: context.insightColor(const Color(0xFFDC2626))),
+                          Icon(statusIcon, size: 10, color: context.insightColor(statusColor)),
                           const SizedBox(width: 3),
                           Expanded(
                             child: Text(
                               reactionStr,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFFDC2626)), height: 1.1),
+                              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: context.insightColor(statusColor), height: 1.1),
                             ),
                           ),
                         ],

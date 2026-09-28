@@ -13,14 +13,7 @@ import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
 
 /// One row of the "Recent timeline" inside the watch card.
 class V2TimelineEntry {
-  const V2TimelineEntry({
-    required this.title,
-    required this.subtitle,
-    required this.trailing,
-    required this.latest,
-    this.imageName,
-    this.imageUrl,
-  });
+  const V2TimelineEntry({required this.title, required this.subtitle, required this.trailing, required this.latest, this.imageName, this.imageUrl});
 
   final String title;
   final String subtitle;
@@ -110,12 +103,11 @@ abstract final class V2Data {
   }
 
   /// "High confidence" / "Moderate confidence" / "Early signals".
-  static String confidenceWord(String confidenceLevel) =>
-      switch (confidenceLevel.toLowerCase()) {
-        'high' => 'High confidence',
-        'moderate' => 'Moderate confidence',
-        _ => 'Early signals',
-      };
+  static String confidenceWord(String confidenceLevel) => switch (confidenceLevel.toLowerCase()) {
+    'high' => 'High confidence',
+    'moderate' => 'Moderate confidence',
+    _ => 'Early signals',
+  };
 
   /// Parses a display delta ("+4", "-3") into a signed int.
   static int? parseDelta(String? raw) {
@@ -134,16 +126,11 @@ abstract final class V2Data {
   /// Streak: the AI's `improving.streakDays`, else derived from how many
   /// consecutive positive score deltas the history ends with (min 1 when a
   /// feed exists at all).
-  static int streakDays(
-    AIInsight insight,
-    List<AIInsight> history, {
-    int? seriesDerivedDelta,
-  }) {
+  static int streakDays(AIInsight insight, List<AIInsight> history, {int? seriesDerivedDelta}) {
     final ai = insight.improving?.streakDays;
     if (ai != null && ai > 0) return ai.clamp(1, 30).toInt();
     if ((seriesDerivedDelta ?? 0) <= 0) return 0;
-    final sorted = [...history]
-      ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+    final sorted = [...history]..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
     if (sorted.length < 2) return 0;
     var streak = 1;
     for (var i = sorted.length - 1; i > 0; i--) {
@@ -159,17 +146,11 @@ abstract final class V2Data {
 
   /// Resolves the "What's Improving" card. [series] is the ≤7-point
   /// chronological score window feeding the chart.
-  static V2ImprovingData improving(
-    AIInsight insight,
-    List<double> series,
-    List<AIInsight> history,
-  ) {
+  static V2ImprovingData improving(AIInsight insight, List<double> series, List<AIInsight> history) {
     final current = insight.gutScore.clamp(0, 100).toInt();
     final last = previousScore(series);
     final ai = insight.improving;
-    final deltaPts = last == null
-        ? (parseDelta(insight.scoreDiff) ?? 0)
-        : current - last;
+    final deltaPts = last == null ? (parseDelta(insight.scoreDiff) ?? 0) : current - last;
 
     final keyFoods = <V2FoodItemData>[
       if (ai != null && ai.keyFoods.isNotEmpty)
@@ -177,20 +158,12 @@ abstract final class V2Data {
           V2FoodItemData(
             name: k.name,
             count: k.count == null ? null : '${k.count}×',
-            delta: k.delta == null || k.delta == 0
-                ? null
-                : (k.delta! > 0 ? '+${k.delta}' : '${k.delta}'),
-            deltaColor: (k.delta ?? 0) < 0
-                ? const Color(0xFFC4302B)
-                : const Color(0xFF1F7A3D),
-            emoji: (k.emoji?.isNotEmpty ?? false)
-                ? k.emoji
-                : InsightPresentation.emojiForFood(k.name),
-            imageUrl: (k.imageUrl?.isNotEmpty ?? false)
-                ? k.imageUrl
-                : _impactImage(insight, k.name),
+            delta: k.delta == null || k.delta == 0 ? null : (k.delta! > 0 ? '+${k.delta}' : '${k.delta}'),
+            deltaColor: (k.delta ?? 0) < 0 ? const Color(0xFFC4302B) : const Color(0xFF1F7A3D),
+            emoji: (k.emoji?.isNotEmpty ?? false) ? k.emoji : InsightPresentation.emojiForFood(k.name),
+            imageUrl: (k.imageUrl?.isNotEmpty ?? false) ? k.imageUrl : _impactImage(insight, k.name),
           )
-      else
+      else if (insight.healingFoods.isNotEmpty)
         for (final f in insight.healingFoods.take(3))
           V2FoodItemData(
             name: f.name,
@@ -202,21 +175,28 @@ abstract final class V2Data {
                 ? f.imageUrl
                 : _impactImage(insight, f.name),
             userImageUrl: f.userImageUrl,
-          ),
+          )
+      else if (insight.healingSummary?.foods.isNotEmpty == true)
+        for (final f in insight.healingSummary!.foods.take(3))
+          V2FoodItemData(name: f.name, count: _loggedCount(insight, f.name), emoji: f.emoji, imageUrl: (f.imageUrl?.isNotEmpty ?? false) ? f.imageUrl : _impactImage(insight, f.name)),
     ];
 
-    final streakGoal =
-        (ai?.streakGoalDays?.clamp(3, 14) ??
-                (ai?.streakDays != null
-                    ? (ai!.streakDays! + 2).clamp(4, 14)
-                    : 5))
-            .toInt();
+    final topHealing =
+        insight.topHealing ??
+        (insight.healingFoods.isNotEmpty
+            ? TopHighlight(food: insight.healingFoods.first.name, emoji: insight.healingFoods.first.emoji, impact: insight.healingFoods.first.effect)
+            : (insight.healingSummary?.foods.isNotEmpty == true
+                  ? TopHighlight(food: insight.healingSummary!.foods.first.name, emoji: insight.healingSummary!.foods.first.emoji, impact: insight.healingSummary!.foods.first.effect ?? '')
+                  : null));
+
+    final streakGoal = (ai?.streakGoalDays?.clamp(3, 14) ?? (ai?.streakDays != null ? (ai!.streakDays! + 2).clamp(4, 14) : 5)).toInt();
 
     return V2ImprovingData(
-      eyebrowSub:
-          'Gut score • ${deltaPts >= 0 ? '+' : ''}$deltaPts pts this window',
+      eyebrowSub: 'Gut score • ${deltaPts >= 0 ? '+' : ''}$deltaPts pts this window',
       headline: (ai?.headline?.isNotEmpty ?? false)
           ? ai!.headline!
+          : (topHealing != null && topHealing.food.isNotEmpty)
+          ? '${topHealing.food}${topHealing.impact.isNotEmpty ? ' • ${topHealing.impact}' : ''}'
           : (insight.healingTrend?.isNotEmpty ?? false)
           ? insight.healingTrend!
           : 'Your gut score is on the move',
@@ -224,15 +204,15 @@ abstract final class V2Data {
           ? ai!.description!
           : (insight.healingGoal?.isNotEmpty ?? false)
           ? insight.healingGoal!
+          : (topHealing != null && topHealing.impact.isNotEmpty)
+          ? '${topHealing.food} is associated with positive gut responses.'
           : 'Keep logging meals and symptoms to sharpen this trend.',
       current: current,
       lastWeek: last,
       deltaPts: deltaPts,
       streakDays: streakDays(insight, history, seriesDerivedDelta: deltaPts),
       streakGoal: streakGoal,
-      encouragement: (ai?.encouragement?.isNotEmpty ?? false)
-          ? ai!.encouragement!
-          : 'Keep it up — consistency builds clearer patterns.',
+      encouragement: (ai?.encouragement?.isNotEmpty ?? false) ? ai!.encouragement! : 'Keep it up — consistency builds clearer patterns.',
       keyFoods: keyFoods,
     );
   }
@@ -321,9 +301,7 @@ abstract final class V2Data {
     final trigger = pattern.trigger.trim();
     final reaction = pattern.reaction.trim();
     final title = (trigger.isEmpty && reaction.isEmpty)
-        ? (pattern.description.isNotEmpty
-              ? pattern.description
-              : 'Pattern detected')
+        ? (pattern.description.isNotEmpty ? pattern.description : 'Pattern detected')
         : reaction.isEmpty
         ? trigger
         : trigger.isEmpty
@@ -331,8 +309,7 @@ abstract final class V2Data {
         : '$trigger → $reaction';
 
     final windowDays = insight.watch?.windowDays ?? pattern.timeframeDays;
-    final occurrences = [...pattern.occurrences]
-      ..sort((a, b) => b.date.compareTo(a.date));
+    final occurrences = [...pattern.occurrences]..sort((a, b) => b.date.compareTo(a.date));
     final timeline = <V2TimelineEntry>[
       for (var i = 0; i < occurrences.take(3).length; i++)
         V2TimelineEntry(
@@ -346,16 +323,12 @@ abstract final class V2Data {
     ];
 
     final swap = insight.smartSwap;
-    final swapAfter = (swap == null || swap.after.trim().isEmpty)
-        ? null
-        : swap.after.trim();
+    final swapAfter = (swap == null || swap.after.trim().isEmpty) ? null : swap.after.trim();
     final beforeName = _primaryTriggerFood(insight, pattern);
 
     return V2WatchData(
       title: title,
-      description: pattern.description.isNotEmpty
-          ? pattern.description
-          : 'This combination keeps repeating in your logs.',
+      description: pattern.description.isNotEmpty ? pattern.description : 'This combination keeps repeating in your logs.',
       meta: 'Pattern • ${pattern.frequency}× in ${windowDays}d',
       reactionTime: reactionTime(insight, pattern),
       riskLevel: riskLevel(insight, pattern),
@@ -365,17 +338,9 @@ abstract final class V2Data {
       swapAfter: swapAfter,
       swapBenefit: swap?.benefit,
       swapTip: swap?.tip,
-      swapBeforeEmoji:
-          swap?.beforeEmoji ??
-          (beforeName == null
-              ? null
-              : InsightPresentation.emojiForFood(beforeName)),
+      swapBeforeEmoji: swap?.beforeEmoji ?? (beforeName == null ? null : InsightPresentation.emojiForFood(beforeName)),
       swapAfterEmoji: swap?.afterEmoji,
-      pillImageName:
-          beforeName ??
-          (pattern.occurrences.isNotEmpty
-              ? pattern.occurrences.first.mealName
-              : null),
+      pillImageName: beforeName ?? (pattern.occurrences.isNotEmpty ? pattern.occurrences.first.mealName : null),
       pillImageUrl: _firstOccurrenceImage(pattern),
     );
   }
@@ -390,6 +355,5 @@ abstract final class V2Data {
   }
 
   /// Pills for the pattern pill row: name, "⏱ delay • n occurrences".
-  static String patternPillSub(V2WatchData watch) =>
-      '⏱ ${watch.reactionTime} • ${watch.timeline.length} occurrence${watch.timeline.length == 1 ? '' : 's'}';
+  static String patternPillSub(V2WatchData watch) => '⏱ ${watch.reactionTime} • ${watch.timeline.length} occurrence${watch.timeline.length == 1 ? '' : 's'}';
 }

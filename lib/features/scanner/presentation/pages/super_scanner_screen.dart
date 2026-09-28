@@ -9,7 +9,8 @@ import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/models/scans/off_product.dart';
+import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -17,7 +18,6 @@ import 'package:gutgood/core/utils/barcode_validator.dart';
 import 'package:gutgood/core/utils/quota_guard.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
-import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
 import 'package:gutgood/features/scanner/presentation/widgets/scan_summary_sheet.dart';
 import 'package:gutgood/features/scanner/presentation/widgets/scanner_overlay.dart';
@@ -183,7 +183,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     final product = await notifier.fetchBarcodeProduct(barcode);
 
     if (product != null) {
-      if (mounted) _showSummarySheet(product, capturedImage);
+      if (mounted) unawaited(_showSummarySheet(product, capturedImage));
     } else {
       if (mounted) {
         // A null product offline means "couldn't reach the database", not
@@ -194,23 +194,33 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     }
   }
 
-  void _showSummarySheet(OffProduct product, Uint8List? capturedImage) {
+  Future<void> _showSummarySheet(OffProduct product, Uint8List? capturedImage) async {
     if (_isSheetOpen) return;
     setState(() => _isSheetOpen = true);
 
-    showModalBottomSheet(
+    final result = await showModalBottomSheet<ScanResult>(
       context: context,
       backgroundColor: AppPalette.transparent,
       isScrollControlled: true,
       builder: (context) => ScanSummarySheet(product: product, capturedImage: capturedImage),
-    ).then((_) {
-      if (mounted) {
-        setState(() {
-          _isSheetOpen = false;
-          _scanningState = ScanningState.searching;
-        });
-      }
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSheetOpen = false;
+      _scanningState = ScanningState.searching;
     });
+
+    if (result != null) {
+      final router = GoRouter.of(context);
+      if (router.canPop()) {
+        router.pop();
+        unawaited(router.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: result)));
+      } else {
+        router.go(AppRoutes.scanResult, extra: ScanResultArgs(scanData: result));
+      }
+    }
   }
 
   Future<Uint8List?> _captureFrameBytes() async {

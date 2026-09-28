@@ -114,8 +114,8 @@ abstract final class BentoData {
       sorted.add(ensure);
     }
     final window = sorted.length > 7 ? sorted.sublist(sorted.length - 7) : sorted;
-    const initials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    return ([for (final i in window) i.gutScore.toDouble()], [for (final i in window) initials[i.updatedAt.weekday - 1]]);
+    const initials = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    return ([for (final i in window) i.gutScore.toDouble()], initials);
   }
 
   /// Gallery-faithful fallback for the heroes' bar charts: the feed and recap
@@ -126,9 +126,8 @@ abstract final class BentoData {
   /// painters in `pattern_grid.dart`.
   static (List<double>, List<String>) fallbackWindow(int score, {int? delta, DateTime? end}) {
     final dir = (delta ?? 1) >= 0 ? 1 : -1;
-    final lastDay = (end ?? DateTime.now()).weekday; // 1 = Monday
-    const initials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    return ([for (var i = 6; i >= 0; i--) (score - dir * i * 2.5).clamp(0.0, 100.0)], [for (var i = 6; i >= 0; i--) initials[(lastDay - 1 - i) % 7]]);
+    const initials = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    return ([for (var i = 6; i >= 0; i--) (score - dir * i * 2.5).clamp(0.0, 100.0)], initials);
   }
 }
 

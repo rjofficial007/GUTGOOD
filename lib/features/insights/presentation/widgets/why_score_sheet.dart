@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -21,6 +22,9 @@ class WhyScoreSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = context.appColorScheme;
+
     final score = insight.gutScore.clamp(0, 100);
     final isGood = score >= 70;
     final sampleSizes = insight.evidence?.sampleSizes;
@@ -31,13 +35,30 @@ class WhyScoreSheet extends StatelessWidget {
 
     final maxHeight = MediaQuery.of(context).size.height * 0.85;
 
+    final badgeBg = insight.hasGutScore
+        ? (isGood ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5)) : (isDark ? const Color(0xFF78350F) : const Color(0xFFFFFBEB)))
+        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9));
+
+    final badgeTextColor = insight.hasGutScore
+        ? (isGood ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669)) : (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)))
+        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B));
+
+    final primaryTextColor = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final secondaryTextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
     return Container(
       constraints: BoxConstraints(maxHeight: maxHeight),
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? scheme.cardBackground : Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28.w)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 24.w, offset: const Offset(0, -4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.12),
+            blurRadius: 24.w,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -48,7 +69,7 @@ class WhyScoreSheet extends StatelessWidget {
             child: Container(
               width: 38.w,
               height: 4.h,
-              decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2.h)),
+              decoration: BoxDecoration(color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2.h)),
             ),
           ),
           Gap.h16,
@@ -59,16 +80,11 @@ class WhyScoreSheet extends StatelessWidget {
               Container(
                 width: 44.w,
                 height: 44.w,
-                decoration: BoxDecoration(color: insight.hasGutScore ? (isGood ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB)) : const Color(0xFFF1F5F9), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: badgeBg, shape: BoxShape.circle),
                 child: Center(
                   child: Text(
                     insight.hasGutScore ? '$score' : '—',
-                    style: TextStyle(
-                      fontFamily: InsightV2Theme.fontFamily,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w800,
-                      color: insight.hasGutScore ? (isGood ? const Color(0xFF059669) : const Color(0xFFD97706)) : const Color(0xFF64748B),
-                    ),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: badgeTextColor),
                   ),
                 ),
               ),
@@ -79,17 +95,17 @@ class WhyScoreSheet extends StatelessWidget {
                   children: [
                     Text(
                       insight.hasGutScore ? 'Why $score?' : 'Score unavailable',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: primaryTextColor),
                     ),
                     Text(
                       insight.hasGutScore ? (recap?.scoreSub ?? 'Based on your logged food scans and symptoms this week') : 'Log food scans this week to unlock a gut score',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, color: secondaryTextColor, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(LucideIcons.x, size: 20, color: Color(0xFF64748B)),
+                icon: Icon(LucideIcons.x, size: 20, color: secondaryTextColor),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -105,7 +121,13 @@ class WhyScoreSheet extends StatelessWidget {
                 children: [
                   Text(
                     'HOW IT\'S CALCULATED',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.1, color: const Color(0xFF6366F1)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                      color: isDark ? const Color(0xFF818CF8) : const Color(0xFF6366F1),
+                    ),
                   ),
                   Gap.h8,
                   const _FactorTile(
@@ -136,7 +158,13 @@ class WhyScoreSheet extends StatelessWidget {
 
                   Text(
                     'WHAT WE KNOW',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.1, color: const Color(0xFF059669)),
+                    style: TextStyle(
+                      fontFamily: InsightV2Theme.fontFamily,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                      color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                    ),
                   ),
                   Gap.h8,
                   if (recap != null) ...[
@@ -157,7 +185,10 @@ class WhyScoreSheet extends StatelessWidget {
                       ),
                   ],
                   if (sampleSizes == null && patternRefs.isEmpty && recap == null)
-                    const Text('Detailed score evidence is not available for this record. Future reports will include the available inputs.')
+                    Text(
+                      'Detailed score evidence is not available for this record. Future reports will include the available inputs.',
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, color: secondaryTextColor),
+                    )
                   else ...[
                     if (sampleSizes != null) ...[
                       _FactorTile(
@@ -183,19 +214,19 @@ class WhyScoreSheet extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(12.w),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(14.w),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(LucideIcons.shieldCheck, size: 16.w, color: const Color(0xFF64748B)),
+                        Icon(LucideIcons.shieldCheck, size: 16.w, color: secondaryTextColor),
                         Gap.w8,
                         Expanded(
                           child: Text(
                             'Daily scores only appear on days you scanned food. Days with no scans stay at 0 — we never invent a baseline. This does not diagnose a medical condition.',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: const Color(0xFF64748B), height: 1.4),
+                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: secondaryTextColor, height: 1.4),
                           ),
                         ),
                       ],
@@ -226,7 +257,12 @@ class _FactorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = factor.isPositive ? const Color(0xFF059669) : const Color(0xFFD97706);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = factor.isPositive ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669)) : (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706));
+
+    final primaryTextColor = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final secondaryTextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
@@ -245,11 +281,11 @@ class _FactorTile extends StatelessWidget {
               children: [
                 Text(
                   factor.title,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w700, color: primaryTextColor),
                 ),
                 Text(
                   factor.description,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: const Color(0xFF64748B), height: 1.35),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: secondaryTextColor, height: 1.35),
                 ),
               ],
             ),

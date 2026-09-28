@@ -19,6 +19,7 @@ import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/pattern_style.dart';
 import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Screen 01 — the bento Insights feed.
 ///
@@ -295,8 +296,8 @@ class InsightBentoFeed extends StatelessWidget {
 
 /// Screen 02 — the empty insight screen shown before enough evidence exists.
 ///
-/// Uses a centered, clean AIUsageCard UI/UX pattern showing only essential progress
-/// and a primary call to action.
+/// Matches the Chat Empty State UI/UX design language: large display headline,
+/// 3-column action card grid with progress bars, and a bottom guidance component.
 class InsightBentoLearning extends StatelessWidget {
   const InsightBentoLearning({super.key, required this.meals, required this.symptoms, required this.scans});
 
@@ -307,13 +308,10 @@ class InsightBentoLearning extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final textColor = scheme.textPrimary;
-    final borderColor = scheme.borderSubtle;
 
     const maxFoodScans = 3;
     const maxSymptoms = 1;
 
-    // Total food logs = scans + meals
     final totalFood = scans + meals;
     final currentFoodScans = totalFood.clamp(0, maxFoodScans);
     final currentSymptoms = symptoms.clamp(0, maxSymptoms);
@@ -321,98 +319,103 @@ class InsightBentoLearning extends StatelessWidget {
     final foodDone = currentFoodScans >= maxFoodScans;
     final symptomsDone = currentSymptoms >= maxSymptoms;
 
-    return SliverFillRemaining(
-      hasScrollBody: false,
+    return SliverToBoxAdapter(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(AppSizes.p20, AppSizes.p12, AppSizes.p20, AppSizes.p32),
+        padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, AppSizes.p16),
         child: Center(
-          child: Container(
-            constraints: BoxConstraints(maxWidth: 440.w),
-            padding: EdgeInsets.all(AppSizes.p24),
-            decoration: BoxDecoration(
-              color: scheme.elevatedSurface,
-              borderRadius: BorderRadius.circular(AppSizes.r28),
-              border: Border.all(color: borderColor),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 16.w, offset: Offset(0, 4.w))],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Top Centered Icon Badge
-                Container(
-                  width: 52.w,
-                  height: 52.w,
-                  decoration: BoxDecoration(color: textColor.withAlpha(12), shape: BoxShape.circle),
-                  child: Icon(AppIcons.sparkles, size: 24.w, color: textColor),
-                ),
-                Gap.h16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Top Centered Display Title (Matching Chat Empty State UI/UX)
+              Text('Your food.\nYour symptoms.\nYour score.', style: context.displayMd.copyWith(height: 1.12, letterSpacing: -0.5), textAlign: TextAlign.center),
+              Gap.h16,
 
-                // Title & Eyebrow
-                Text(
-                  'BUILDING YOUR BASELINE — ${AppStrings.bentoMappingEyebrow.toUpperCase()}',
-                  textAlign: TextAlign.center,
-                  style: context.captionBold.copyWith(color: textColor.withAlpha(153), letterSpacing: 0.8),
-                ),
-                Gap.h4,
-                Text(
-                  'Log to Unlock AI Insights',
-                  textAlign: TextAlign.center,
-                  style: context.bodyBold.copyWith(color: textColor, fontSize: 20.sp, height: 1.2),
-                ),
-                Gap.h8,
-                Text(
-                  'Scan 3 food meals and log 1 symptom to generate your personalized AI gut health analysis.',
-                  textAlign: TextAlign.center,
-                  style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.35),
-                ),
-                Gap.h20,
+              // Subtitle Paragraph
+              Text(
+                'Scan 3 food meals and log 1 symptom to build your baseline and unlock your gut score trend.',
+                style: context.bodyLg.copyWith(color: scheme.textSecondary, height: 1.35),
+                textAlign: TextAlign.center,
+              ),
+              Gap.h24,
 
-                // Requirements Progress Container
-                Container(
-                  padding: EdgeInsets.all(AppSizes.p16),
-                  decoration: BoxDecoration(
-                    color: scheme.cardBackground,
-                    borderRadius: BorderRadius.circular(AppSizes.r16),
-                    border: Border.all(color: scheme.borderSubtle),
+              // 3-Grid Action Cards (Matching Chat Empty State Grid Layout)
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: AppSizes.p8,
+                mainAxisSpacing: AppSizes.p8,
+                childAspectRatio: 1,
+                children: [
+                  _LearningCard(
+                    icon: AppIcons.scan,
+                    title: 'Scan food',
+                    current: currentFoodScans,
+                    total: maxFoodScans,
+                    isDone: foodDone,
+                    accentColor: foodDone ? scheme.success : scheme.textPrimary,
+                    onTap: () => context.push(AppRoutes.scannerPath('meal')),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      InsightUsageRow(label: 'FOOD SCANS', current: currentFoodScans, total: maxFoodScans, color: foodDone ? scheme.success : textColor),
-                      Gap.h16,
-                      Divider(color: scheme.borderSubtle, height: 1),
-                      Gap.h16,
-                      InsightUsageRow(label: 'SYMPTOM LOGS', current: currentSymptoms, total: maxSymptoms, color: symptomsDone ? scheme.success : textColor),
-                    ],
+                  _LearningCard(
+                    icon: AppIcons.heart,
+                    title: 'Track symptoms',
+                    current: currentSymptoms,
+                    total: maxSymptoms,
+                    isDone: symptomsDone,
+                    accentColor: symptomsDone ? scheme.success : scheme.textPrimary,
+                    onTap: () => context.push(AppRoutes.scannerPath('symptom')),
                   ),
-                ),
-                Gap.h16,
+                  // _LearningCard(
+                  //   icon: LucideIcons.lightbulb,
+                  //   title: 'Unlock\ninsights',
+                  //   current: (foodDone && symptomsDone) ? 1 : 0,
+                  //   total: 1,
+                  //   isDone: foodDone && symptomsDone,
+                  //   accentColor: (foodDone && symptomsDone) ? scheme.success : const Color(0xFFD97706),
+                  //   onTap: null,
+                  // ),
+                ],
+              ),
+              Gap.h20,
 
-                // Guidance callout
-                Container(
-                  padding: EdgeInsets.all(AppSizes.p12),
-                  decoration: BoxDecoration(
-                    color: scheme.softSuccess.withAlpha(40),
-                    borderRadius: BorderRadius.circular(AppSizes.r12),
-                    border: Border.all(color: scheme.success.withAlpha(60)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(AppIcons.alertCircle, size: 18.sp, color: scheme.success),
-                      Gap.w10,
-                      Expanded(
-                        child: Text(
-                          'AI analyzes your food logs alongside symptoms to calculate your Gut Score and uncover tailored health patterns.',
-                          style: context.caption.copyWith(color: scheme.textSecondary, height: 1.3, fontSize: 11.sp),
-                        ),
+              // Bottom Guidance Box (Matching Chat Component Container Style)
+              Container(
+                padding: EdgeInsets.all(AppSizes.p14),
+                decoration: BoxDecoration(
+                  color: scheme.cardBackground,
+                  borderRadius: BorderRadius.circular(AppSizes.r20),
+                  border: Border.all(color: scheme.borderSubtle),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 28.w,
+                      height: 28.w,
+                      decoration: BoxDecoration(color: scheme.textPrimary.withValues(alpha: 0.08), shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: Icon(LucideIcons.lightbulb, size: 14.w, color: scheme.textPrimary),
+                    ),
+                    Gap.w10,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Understanding Your Body', style: context.bodyBold.copyWith(fontSize: 12.sp)),
+                          Gap.h2,
+                          Text(
+                            'Your food logs are analyzed alongside symptoms to calculate your Gut Score and uncover tailored health patterns.',
+                            style: context.caption.copyWith(color: scheme.textSecondary, height: 1.35),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Gap.h20,
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -420,34 +423,91 @@ class InsightBentoLearning extends StatelessWidget {
   }
 }
 
-class InsightUsageRow extends StatelessWidget {
-  const InsightUsageRow({super.key, required this.label, required this.current, required this.total, required this.color});
+class _LearningCard extends StatelessWidget {
+  const _LearningCard({required this.icon, required this.title, required this.current, required this.total, required this.isDone, required this.accentColor, this.onTap});
 
-  final String label;
+  final IconData icon;
+  final String title;
   final int current;
   final int total;
-  final Color color;
+  final bool isDone;
+  final Color accentColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = context.appColorScheme;
     final progress = (current / total).clamp(0.0, 1.0);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.all(AppSizes.p12),
+        decoration: BoxDecoration(
+          color: scheme.cardBackground,
+          borderRadius: BorderRadius.circular(AppSizes.r20),
+          border: Border.all(color: isDone ? accentColor.withValues(alpha: 0.4) : scheme.borderSubtle),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(label.toUpperCase(), style: context.captionBold.copyWith(color: context.appColorScheme.textSecondary)),
-            Text('$current / $total', style: context.captionBold.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
+            const Spacer(),
+            // Centered Icon Circle with Checkmark Badge
+            Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 40.w,
+                  height: 40.w,
+                  decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.12), shape: BoxShape.circle),
+                  child: Center(
+                    child: Icon(icon, size: 20.w, color: accentColor),
+                  ),
+                ),
+                if (isDone)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(color: scheme.cardBackground, shape: BoxShape.circle),
+                      child: Icon(Icons.check_circle_rounded, size: 16.w, color: accentColor),
+                    ),
+                  ),
+              ],
+            ),
+            Gap.h10,
+
+            // Centered Title
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: context.bodyBold.copyWith(height: 1.15, fontSize: 13.sp),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Gap.h4,
+
+            // Centered Count
+            Text(
+              '$current / $total',
+              textAlign: TextAlign.center,
+              style: context.captionBold.copyWith(color: scheme.textSecondary, fontSize: 11.sp, fontFeatures: const [FontFeature.tabularFigures()]),
+            ),
+            Gap.h8,
+            const Spacer(),
+            // Centered Progress Bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(100),
+              child: LinearProgressIndicator(value: progress, backgroundColor: scheme.borderSubtle, valueColor: AlwaysStoppedAnimation<Color>(accentColor), minHeight: 5.w),
+            ),
           ],
         ),
-        Gap.h6,
-        ClipRRect(
-          borderRadius: BorderRadius.circular(100),
-          child: LinearProgressIndicator(value: progress, backgroundColor: context.appColorScheme.borderSubtle, valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 6.w),
-        ),
-      ],
+      ),
     );
   }
 }

@@ -84,11 +84,8 @@ class SmartInsightDetailScreen extends StatelessWidget {
     );
   }
 
-  /// 1. Top Hero Insight Card (Matching PatternDetailScreen Hero layout)
+  /// 1. Top Hero Insight Card (Matching PatternCard hero layout with dynamic food color blending)
   Widget _buildHeroCard(BuildContext context) {
-    final v2 = context.v2Theme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     var foodName = 'Whole Foods';
     if (insight.involvedFoods.isNotEmpty) {
       foodName = insight.involvedFoods.first;
@@ -106,124 +103,123 @@ class SmartInsightDetailScreen extends StatelessWidget {
     final style = PatternCardStyle.forType(insight.type);
 
     final title = insight.title.isNotEmpty ? insight.title : 'Top Insight Discovery';
+    final descStr = insight.description.trim();
+
     final confidenceLabel = (insight.strength ?? 'HIGH').toUpperCase();
+    const heroColor = Color(0xFF6F67DD);
 
     return Container(
-      height: 152.w,
-      decoration: BoxDecoration(
-        color: isDark ? v2.card : style.cardBg,
-        borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: isDark ? v2.border : style.borderColor, width: 1.w),
-        boxShadow: [BoxShadow(color: isDark ? Colors.black.withValues(alpha: 0.20) : const Color(0xFF17171B).withValues(alpha: 0.04), blurRadius: 6.w, offset: Offset(0, 2.w))],
-      ),
+      constraints: BoxConstraints(minHeight: 140.w),
+      decoration: BoxDecoration(color: heroColor, borderRadius: BorderRadius.circular(24.w)),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // Background Food Photo on Right
-          Positioned.fill(
-            child: Row(
-              children: [
-                const Spacer(flex: 4),
-                Expanded(
-                  flex: 4,
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    placeholder: (_, _) => Container(color: isDark ? v2.cardSubtle : context.insightColor(style.tagBg)),
-                    errorWidget: (_, _, _) => Container(
-                      color: isDark ? v2.cardSubtle : context.insightColor(style.tagBg),
-                      child: Icon(style.icon, color: isDark ? v2.textSecondary : context.insightColor(style.tagFg), size: 28),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Left Content Section
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(18.w, 16.w, 12.w, 16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Line 1: Bold Title
+                    Text(
+                      title,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.4),
+                    ),
+                    if (descStr.isNotEmpty) ...[
+                      Gap.h6,
+                      // Line 2: Description
+                      Text(
+                        descStr,
+                        maxLines: 6,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w400, color: Colors.white.withValues(alpha: 0.90), height: 1.25),
+                      ),
+                    ],
+                    Gap.h12,
+
+                    // Bottom Badge Tag Row
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.w),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(100.w)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 5.w,
+                            height: 5.w,
+                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                          ),
+                          Gap.w5,
+                          Text(
+                            '$confidenceLabel CONFIDENCE',
+                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // 2. Right Side Image (Seamlessly blended with dynamic food background)
+            SizedBox(
+              width: 138.w,
+              child: Stack(
+                children: [
+                Positioned.fill(
+                  child: ShaderMask(
+                    shaderCallback: (rect) => const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.transparent, Colors.white24, Colors.white],
+                      stops: [0.0, 0.28, 0.65],
+                    ).createShader(rect),
+                    blendMode: BlendMode.dstIn,
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      placeholder: (_, _) => Container(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        child: Center(
+                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.5), size: 28.w),
+                        ),
+                      ),
+                      errorWidget: (_, _, _) => Container(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        child: Center(
+                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.7), size: 28.w),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [heroColor, heroColor.withValues(alpha: 0.55), heroColor.withValues(alpha: 0.0)],
+                        stops: const [0.0, 0.35, 1.0],
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-
-          // Angled Background Clipper
-          Positioned.fill(
-            child: ClipPath(
-              clipper: const _HeroAngledClipper(),
-              child: Container(color: isDark ? v2.card : style.cardBg),
-            ),
-          ),
-
-          // Left Content Column
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 190.w,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(12.w, 10.w, 6.w, 10.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Gap.h6,
-
-                      // Title
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: v2.textPrimary, height: 1.15, letterSpacing: -0.3),
-                      ),
-                      Gap.h4,
-
-                      // Description
-                      if (insight.description.isNotEmpty)
-                        Text(
-                          insight.description,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w500, color: v2.textSecondary, height: 1.25),
-                        ),
-                    ],
-                  ),
-
-                  // Minimal & Compact Confidence Badge
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.w),
-                    decoration: BoxDecoration(
-                      color: context.insightColor(style.accentColor).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(100.w),
-                      border: Border.all(color: context.insightColor(style.accentColor).withValues(alpha: 0.25), width: 0.8.w),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 4.5.w,
-                          height: 4.5.w,
-                          decoration: BoxDecoration(color: context.insightColor(style.accentColor), shape: BoxShape.circle),
-                        ),
-                        Gap.w4,
-                        Text(
-                          '$confidenceLabel CONFIDENCE',
-                          style: TextStyle(
-                            fontFamily: InsightV2Theme.fontFamily,
-                            fontSize: 8.5.sp,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.2,
-                            color: context.insightColor(style.accentColor),
-                            height: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   /// 2. "What We Observed" Card
@@ -925,19 +921,4 @@ class _EvidenceMetricRow extends StatelessWidget {
       ],
     );
   }
-}
-
-class _HeroAngledClipper extends CustomClipper<Path> {
-  const _HeroAngledClipper();
-
-  @override
-  Path getClip(Size size) => Path()
-    ..moveTo(0, 0)
-    ..lineTo(size.width * 0.62, 0)
-    ..lineTo(size.width * 0.52, size.height)
-    ..lineTo(0, size.height)
-    ..close();
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

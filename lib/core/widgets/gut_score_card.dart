@@ -94,6 +94,8 @@ class GutScoreCard extends StatelessWidget {
   }
 
   Widget _buildHeroCard(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final clampedScore = score.clamp(0, 100);
     final d = delta;
     final positive = d != null && d > 0;
@@ -101,12 +103,19 @@ class GutScoreCard extends StatelessWidget {
     final shownLabels = labels.length > 7 ? labels.sublist(labels.length - 7) : labels;
 
     final band = GutScoreBand.fromScore(clampedScore);
-
-    // Identical rich purple gradient colors used in DeepDiscoveryCard
-    const gradientColors = [Colors.black, Colors.black];
-
     final effectiveTitle = title ?? AppStrings.bentoScoreEyebrow;
-    final radius = 20.w; // Matching DeepDiscoveryCard radius
+    final radius = 20.w;
+
+    final cardBg = isDark ? Colors.black : Colors.white;
+    final cardBorder = isDark ? Border.all(color: const Color(0xFF1E293B)) : Border.all(color: const Color(0xFFE2E8F0));
+    final cardShadow = isDark
+        ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))]
+        : [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 4))];
+
+    final titleColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final scoreValueColor = isDark ? Colors.white.withValues(alpha: 0.70) : const Color(0xFF64748B);
+    final subtitleColor = isDark ? Colors.white.withValues(alpha: 0.80) : const Color(0xFF475569);
+    final ctaTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
     return Semantics(
       button: onTap != null,
@@ -117,81 +126,88 @@ class GutScoreCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(radius),
           child: Container(
             clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radius),
-              gradient: const LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: gradientColors),
-            ),
+            decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(radius), border: cardBorder, boxShadow: cardShadow),
             child: Stack(
               children: [
                 Padding(
-                  padding: EdgeInsets.fromLTRB(18.w, 16.w, 16.w, 16.w), // Padding matched to DeepDiscoveryCard
+                  padding: EdgeInsets.fromLTRB(18.w, 16.w, 16.w, 16.w),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Left Column: Eyebrow, Large Bold Title/Score, Dark Pill Button
+                          // Left Column: Headline Title, Score Subtitle, Body Description, Circular CTA Button
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Typography matched exactly to DeepDiscoveryCard subtitle/eyebrow text
+                                // 1. Title (e.g. "YOUR GUT SCORE", "GUTGOOD SCORE", "WEEKLY AVERAGE")
                                 Text(
                                   effectiveTitle.toUpperCase(),
-                                  style: TextStyle(
-                                    fontFamily: InsightBentoTheme.fontFamily,
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white.withValues(alpha: 0.85),
-                                    letterSpacing: 0.2,
-                                  ),
+                                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: titleColor, letterSpacing: -0.2, height: 1.15),
                                 ),
-                                Gap.h6,
+                                Gap.h2,
+
+                                // 2. Subtitle Value (e.g. "52/100")
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.baseline,
                                   textBaseline: TextBaseline.alphabetic,
                                   children: [
-                                    // Typography matched exactly to DeepDiscoveryCard main bold white headline style attributes
                                     Text(
                                       '$clampedScore',
-                                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 28.sp, fontWeight: FontWeight.w800, height: 1.20, letterSpacing: -0.4, color: Colors.white),
+                                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 22.sp, fontWeight: FontWeight.w400, color: scoreValueColor, letterSpacing: -0.3),
                                     ),
                                     Text(
                                       '/100',
-                                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.70)),
+                                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w400, color: scoreValueColor),
                                     ),
                                   ],
                                 ),
                                 if (subtitle != null && subtitle!.isNotEmpty) ...[
-                                  Gap.h4,
+                                  Gap.h6,
+
+                                  // 3. Body Description
                                   Text(
                                     subtitle!,
-                                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, color: Colors.white.withValues(alpha: 0.80), height: 1.3),
-                                    maxLines: 2,
+                                    style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w400, color: subtitleColor, height: 1.3),
+                                    maxLines: 3,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
-                                Gap.h14,
+                                if (showChevron) ...[
+                                  Gap.h12,
 
-                                // Bottom Left Pill CTA Button matching DeepDiscoveryCard layout completely
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      d != null && d != 0 ? '${positive ? '↑ +' : '↓ '}$d pts this week' : band.label,
-                                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: Colors.white),
-                                    ),
-                                    if (showChevron) ...[Gap.w4, Icon(Icons.arrow_forward_rounded, size: 14.w, color: Colors.white)],
-                                  ],
-                                ),
+                                  // 4. Bottom CTA Row (Circular Dark Button + Uppercase Bold Label)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 24.w,
+                                        height: 24.w,
+                                        decoration: BoxDecoration(color: isDark ? Colors.white : const Color(0xFF0F172A), shape: BoxShape.circle),
+                                        child: Center(
+                                          child: Icon(Icons.north_east_rounded, size: 12.w, color: isDark ? const Color(0xFF0F172A) : Colors.white),
+                                        ),
+                                      ),
+                                      Gap.w8,
+                                      Text(
+                                        d != null && d != 0 ? '${positive ? '↑ +' : '↓ '}$d pts this week' : band.label.toUpperCase(),
+                                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.2, color: ctaTextColor),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                           ),
 
-                          // Right Column: Translucent 7-Day Bar Chart Overlay
-                          if (showChart && shownSeries.isNotEmpty) ...[Gap.w16, CompactSeriesBars(values: shownSeries, color: Colors.white, labels: shownLabels, height: 52)],
+                          // Right Column: 7-Day Bar Chart
+                          if (showChart && shownSeries.isNotEmpty) ...[
+                            Gap.w16,
+                            CompactSeriesBars(values: shownSeries, color: isDark ? Colors.white : const Color(0xFF0F172A), labels: shownLabels, height: 52),
+                          ],
                         ],
                       ),
                     ],
@@ -215,36 +231,59 @@ class CompactSeriesBars extends StatelessWidget {
   final List<String> labels;
   final double height;
 
-  @override
-  Widget build(BuildContext context) {
-    final List<String> displayLabels;
-    if (labels.isNotEmpty) {
-      if (labels.length >= 7) {
-        displayLabels = labels.sublist(labels.length - 7);
-      } else {
-        displayLabels = List.filled(7 - labels.length, '') + labels;
-      }
-    } else {
-      displayLabels = const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  static List<double> padSlots(List<double> values) {
+    const totalSlots = 7;
+    if (values.isEmpty) {
+      return List.filled(totalSlots, 0.0);
     }
 
-    const totalSlots = 7;
-    final raw = values.length > totalSlots ? values.sublist(values.length - totalSlots) : values;
-    final ghostCount = totalSlots - raw.length;
-    final data = List<double>.generate(totalSlots, (i) {
-      if (i < ghostCount) return 0.0;
-      return raw[i - ghostCount];
-    });
+    // If values is ALREADY a 7-day calendar week series (Sun..Sat), return as-is
+    if (values.length >= totalSlots) {
+      return values.sublist(values.length - totalSlots);
+    }
 
-    // Peak label only among scored days (0 = no data).
-    var maxIdxInSlots = -1;
-    for (var i = 0; i < data.length; i++) {
-      if (data[i] > 0 && (maxIdxInSlots < 0 || data[i] >= data[maxIdxInSlots])) {
-        maxIdxInSlots = i;
+    final todayIndex = DateTime.now().weekday % 7; // 0 = Sun, 1 = Mon ... 6 = Sat
+    final data = List<double>.filled(totalSlots, 0.0);
+
+    // If a single score is provided as fallback, put it at today's index
+    if (values.length == 1) {
+      data[todayIndex] = values.first;
+      return data;
+    }
+
+    // If K items are provided (ending today), map back from todayIndex
+    final lastIdx = values.length - 1;
+    for (var i = 0; i < values.length; i++) {
+      final daysAgo = lastIdx - i;
+      var slot = (todayIndex - daysAgo) % totalSlots;
+      if (slot < 0) slot += totalSlots;
+      data[slot] = values[i];
+    }
+    return data;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayLabels = labels.length >= 7 ? labels.sublist(labels.length - 7) : const ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+    final data = padSlots(values);
+
+    final todayIndex = DateTime.now().weekday % 7;
+    var activeIdx = -1;
+    if (data[todayIndex] > 0) {
+      activeIdx = todayIndex;
+    } else {
+      for (var i = 0; i < data.length; i++) {
+        if (data[i] > 0 && (activeIdx < 0 || data[i] >= data[activeIdx])) {
+          activeIdx = i;
+        }
       }
     }
 
     final chartWidth = 110.w;
+    final activeLabelColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final inactiveLabelColor = isDark ? Colors.white.withValues(alpha: 0.65) : const Color(0xFF94A3B8);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -253,7 +292,7 @@ class CompactSeriesBars extends StatelessWidget {
           height: height.w,
           width: chartWidth,
           child: CustomPaint(
-            painter: _CompactBarsPainter(values: values, color: color),
+            painter: _CompactBarsPainter(values: values, color: color, isDark: isDark),
           ),
         ),
         SizedBox(height: 6.w),
@@ -270,8 +309,8 @@ class CompactSeriesBars extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: InsightBentoTheme.fontFamily,
                       fontSize: 9.sp,
-                      fontWeight: i == maxIdxInSlots ? FontWeight.w900 : FontWeight.w700,
-                      color: i == maxIdxInSlots ? Colors.white : Colors.white.withValues(alpha: 0.65),
+                      fontWeight: i == activeIdx ? FontWeight.w900 : FontWeight.w700,
+                      color: i == activeIdx ? activeLabelColor : inactiveLabelColor,
                     ),
                   ),
                 ),
@@ -284,10 +323,11 @@ class CompactSeriesBars extends StatelessWidget {
 }
 
 class _CompactBarsPainter extends CustomPainter {
-  const _CompactBarsPainter({required this.values, required this.color});
+  const _CompactBarsPainter({required this.values, required this.color, required this.isDark});
 
   final List<double> values;
   final Color color;
+  final bool isDark;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -299,33 +339,27 @@ class _CompactBarsPainter extends CustomPainter {
     final cell = size.width / totalSlots;
     final barW = math.min(6.0, cell * 0.42);
 
-    // Pad to 7 slots on the left when fewer than 7 values are provided.
-    final raw = values.length > totalSlots ? values.sublist(values.length - totalSlots) : values;
-    final ghostCount = totalSlots - raw.length;
-    final data = List<double>.generate(totalSlots, (i) {
-      if (i < ghostCount) return 0.0;
-      return raw[i - ghostCount];
-    });
+    final data = CompactSeriesBars.padSlots(values);
 
-    // Scale only against scored days (score > 0). 0 = "no data that day" and
-    // must not draw a bar or participate in min/max / peak highlight.
-    final scored = data.where((v) => v > 0).toList();
-    final lo = scored.isEmpty ? 0.0 : scored.reduce(math.min);
-    final hi = scored.isEmpty ? 0.0 : scored.reduce(math.max);
-    final range = hi - lo;
     double scale(double v) {
       if (v <= 0) return 0.0;
-      if (scored.length == 1 || range <= 0) return 0.72;
-      return (0.25 + 0.75 * ((v - lo) / range)).clamp(0.0, 1.0);
+      return (v / 100.0).clamp(0.15, 1.0);
     }
 
-    var maxIdx = -1;
-    for (var i = 0; i < data.length; i++) {
-      if (data[i] > 0 && (maxIdx < 0 || data[i] >= data[maxIdx])) maxIdx = i;
+    final todayIndex = DateTime.now().weekday % 7;
+    var activeIdx = -1;
+    if (data[todayIndex] > 0) {
+      activeIdx = todayIndex;
+    } else {
+      for (var i = 0; i < data.length; i++) {
+        if (data[i] > 0 && (activeIdx < 0 || data[i] >= data[activeIdx])) {
+          activeIdx = i;
+        }
+      }
     }
 
     final trackPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.12)
+      ..color = isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFF1F5F9)
       ..style = PaintingStyle.fill;
 
     for (var i = 0; i < totalSlots; i++) {
@@ -342,20 +376,24 @@ class _CompactBarsPainter extends CustomPainter {
       final barRect = Rect.fromLTWH(x, topPad + h - rectH, barW, rectH);
       final barRRect = RRect.fromRectAndRadius(barRect, Radius.circular(barW / 2));
 
-      final isMax = i == maxIdx;
+      final isMax = i == activeIdx;
+
+      final activeGradient = isDark ? const [Color(0xFFFFFFFF), Color(0xFFD9FF30)] : const [Color(0xFF84CC16), Color(0xFF4D7C0F)];
+
+      final inactiveGradient = isDark
+          ? [const Color(0xFFD9FF30).withValues(alpha: 0.85), const Color(0xFF84CC16).withValues(alpha: 0.40)]
+          : [const Color(0xFF84CC16).withValues(alpha: 0.75), const Color(0xFF65A30D).withValues(alpha: 0.35)];
+
       final barPaint = Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isMax ? const [Colors.white, Color(0xFFC084FC)] : [Colors.white.withValues(alpha: 0.85), Colors.white.withValues(alpha: 0.35)],
-        ).createShader(barRect)
+        ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: isMax ? activeGradient : inactiveGradient).createShader(barRect)
         ..style = PaintingStyle.fill;
 
       canvas.drawRRect(barRRect, barPaint);
 
       if (isMax) {
+        final glowColor = isDark ? const Color(0xFFD9FF30).withValues(alpha: 0.6) : const Color(0xFF65A30D).withValues(alpha: 0.5);
         final glowPaint = Paint()
-          ..color = Colors.white.withValues(alpha: 0.4)
+          ..color = glowColor
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5;
         canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x - 1.5, topPad + h - rectH - 1.5, barW + 3, rectH + 3), Radius.circular((barW + 3) / 2)), glowPaint);
@@ -364,7 +402,7 @@ class _CompactBarsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CompactBarsPainter old) => !listEquals(old.values, values) || old.color != color;
+  bool shouldRepaint(_CompactBarsPainter old) => !listEquals(old.values, values) || old.color != color || old.isDark != isDark;
 }
 
 class _CompactGutScoreCard extends GutScoreCard {

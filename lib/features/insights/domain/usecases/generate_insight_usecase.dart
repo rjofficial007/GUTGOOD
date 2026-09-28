@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
-import 'package:gutgood/core/models/insights/gut_score_record.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/core/services/firestore/gut_score_firestore_service.dart';
@@ -288,9 +287,7 @@ AIInsight stampInsightEnvelope(
   // always see the same 7-day series as gut_scores.dailyScores.
   final recapWithTrend = updatedRecap == null
       ? null
-      : (weeklyTrend != null && (updatedRecap.gutScoreTrend == null || updatedRecap.gutScoreTrend!.isEmpty)
-            ? updatedRecap.copyWith(gutScoreTrend: weeklyTrend)
-            : updatedRecap);
+      : (weeklyTrend != null && (updatedRecap.gutScoreTrend == null || updatedRecap.gutScoreTrend!.isEmpty) ? updatedRecap.copyWith(gutScoreTrend: weeklyTrend) : updatedRecap);
 
   // hasGutScore: explicit flag from calculator wins; otherwise keep prior.
   // Score 0 with hasGutScore=true means "scored but zero"; false means unknown.

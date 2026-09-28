@@ -9,7 +9,9 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
+import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/history/presentation/providers/history_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 
 class JournalFilterBar extends StatelessWidget {
   const JournalFilterBar({super.key, required this.selectedFilter, required this.onFilterChanged});
@@ -17,36 +19,66 @@ class JournalFilterBar extends StatelessWidget {
   final HistoryFilter selectedFilter;
   final ValueChanged<HistoryFilter> onFilterChanged;
 
+  String _filterLabel(HistoryFilter filter) {
+    switch (filter) {
+      case HistoryFilter.all:
+        return 'All';
+      case HistoryFilter.scans:
+        return 'Scans';
+      case HistoryFilter.body:
+        return 'Body & Symptoms';
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => Container(
-    height: 48,
-    margin: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p16, AppSizes.p16, 0),
-    decoration: BoxDecoration(
-      color: context.appColorScheme.cardBackground.withAlpha(204),
-      borderRadius: BorderRadius.circular(AppSizes.r24),
-      border: Border.all(color: context.appColorScheme.borderSubtle),
-    ),
-    child: Row(
-      children: HistoryFilter.values.map((filter) {
-        final isSelected = selectedFilter == filter;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => onFilterChanged(filter),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.all(4),
-              decoration: BoxDecoration(color: isSelected ? context.appColorScheme.textPrimary : AppPalette.transparent, borderRadius: BorderRadius.circular(AppSizes.r20)),
-              alignment: Alignment.center,
-              child: Text(
-                filter.name.toUpperCase()[0] + filter.name.substring(1),
-                style: context.labelBold.copyWith(color: isSelected ? context.appColorScheme.cardBackground : context.appColorScheme.textSecondary),
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final selectedBg = isDark ? Colors.white : const Color(0xFF171717);
+    final selectedFg = isDark ? Colors.black : Colors.white;
+    final unselectedFg = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
+    final unselectedBorder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(16.w, 0.w, 16.w, 4.w),
+      clipBehavior: Clip.none,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < HistoryFilter.values.length; i++) ...[
+            if (i > 0) Gap.w8,
+            GestureDetector(
+              onTap: () => onFilterChanged(HistoryFilter.values[i]),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.w),
+                decoration: BoxDecoration(
+                  color: selectedFilter == HistoryFilter.values[i] ? selectedBg : Colors.transparent,
+                  borderRadius: BorderRadius.circular(100.w),
+                  border: Border.all(color: selectedFilter == HistoryFilter.values[i] ? selectedBg : unselectedBorder, width: 1.w),
+                  boxShadow: selectedFilter == HistoryFilter.values[i] && !isDark ? [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.15), blurRadius: 4.w, offset: Offset(0, 2.w))] : null,
+                ),
+                child: Text(
+                  _filterLabel(HistoryFilter.values[i]),
+                  style: TextStyle(
+                    fontFamily: InsightV2Theme.fontFamily,
+                    fontSize: 12.sp,
+                    fontWeight: selectedFilter == HistoryFilter.values[i] ? FontWeight.w800 : FontWeight.w600,
+                    color: selectedFilter == HistoryFilter.values[i] ? selectedFg : unselectedFg,
+                    letterSpacing: -0.2,
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      }).toList(),
-    ),
-  );
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class JournalTimelineEntry extends StatelessWidget {

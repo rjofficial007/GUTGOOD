@@ -23,11 +23,6 @@ class SymptomDetailScreen extends StatelessWidget {
     final scheme = context.appColorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final hasMetrics =
-        (symptom.energyLevel != null) ||
-        (symptom.mood != null && symptom.mood!.isNotEmpty) ||
-        (symptom.sleep != null && symptom.sleep!.isNotEmpty) ||
-        (symptom.foodName != null && symptom.foodName!.isNotEmpty);
     final hasTriggers = (symptom.foodName != null && symptom.foodName!.isNotEmpty) || (symptom.lastMealFirestoreId != null && symptom.lastMealFirestoreId!.isNotEmpty);
     final hasNotes = symptom.notes != null && symptom.notes!.trim().isNotEmpty;
 
@@ -36,31 +31,32 @@ class SymptomDetailScreen extends StatelessWidget {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          const GutSliverAppBar(title: AppStrings.symptoms, centerTitle: true),
+          const GutSliverAppBar(title: 'Symptom result', centerTitle: true),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Symptom Identity Header (Photo + Severity + Name + Event Date)
+                  // 1. Symptom Identity Header (Photo + Severity Badge + Name + Tags)
                   DashboardEntrance(delay: 50, child: _SymptomHeader(symptom: symptom)),
                   Gap.h20,
 
-                  // 2. Severity Gauge & Band Section
+                  // 2. Severity Gauge & Band Section + Expandable "Why this severity"
                   DashboardEntrance(delay: 100, child: _SymptomSeveritySection(symptom: symptom)),
                   Gap.h20,
 
-                  // 3. Quick-Signal Metrics Row (Energy, Mood, Sleep, Food)
-                  if (hasMetrics) ...[DashboardEntrance(delay: 150, child: _SymptomMetricsRow(symptom: symptom)), Gap.h20],
+                  // 3. Quick-Signal Metric Cards Row (Severity, Energy, Mood, Sleep)
+                  DashboardEntrance(delay: 150, child: _SymptomMetricsRow(symptom: symptom)),
+                  Gap.h20,
 
                   // 4. Potential Triggers & Expert Analysis
                   if (hasTriggers) ...[DashboardEntrance(delay: 200, child: _SymptomTriggerSection(symptom: symptom)), Gap.h20],
 
-                  // 5. Notes & User Observation
+                  // 5. Reaction Memo & User Observation
                   if (hasNotes) ...[DashboardEntrance(delay: 250, child: _SymptomNotesSection(notes: symptom.notes!)), Gap.h20],
 
-                  // 6. Symptom Details Card (Provenance Footer)
+                  // 6. Log Details (Provenance Footer)
                   DashboardEntrance(delay: 300, child: _SymptomDetailsCard(symptom: symptom)),
                   Gap.h20,
 
@@ -146,19 +142,16 @@ class _SymptomHeader extends StatelessWidget {
                   color: t.textPrimary,
                 ),
               ),
-              Gap.h6,
-              if (symptom.foodName != null && symptom.foodName!.isNotEmpty) ...[
-                Text(
-                  'After ${symptom.foodName}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.bodySize.sp, fontWeight: FontWeight.w600, color: t.textPrimary),
-                ),
-                Gap.h4,
-              ],
-              Text(
-                DateFormatter.formatFull(symptom.eventTime),
-                style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
+              Gap.h10,
+              Wrap(
+                spacing: 6.w,
+                runSpacing: 6.h,
+                children: [
+                  _HeaderTag(label: 'Severity ${symptom.severity ?? 0}/10', color: color),
+                  _HeaderTag(label: DateFormatter.formatFull(symptom.eventTime), color: t.textSecondary),
+                  if (symptom.foodName != null && symptom.foodName!.isNotEmpty) _HeaderTag(label: 'After ${symptom.foodName}', color: t.positive, icon: AppIcons.utensils),
+                  if (symptom.source != null && symptom.source!.isNotEmpty) _HeaderTag(label: symptom.source!.toUpperCase(), color: t.textSecondary),
+                ],
               ),
             ],
           ),
@@ -170,17 +163,44 @@ class _SymptomHeader extends StatelessWidget {
   Widget _fallbackTile(Color color, double size) => Container(
     width: size,
     height: size,
-    color: color.withValues(alpha: 0.12),
+    color: color.withValues(alpha: 0.1),
     child: Center(
-      child: Icon(AppIcons.alertCircle, color: color, size: (size * 0.38).sp),
+      child: Icon(AppIcons.alertCircle, color: color, size: (size * 0.36).sp),
     ),
   );
 
   Color _severityColor(int severity) {
-    if (severity <= 3) return const Color(0xFF10B981); // Green
+    if (severity <= 3) return const Color(0xFF10B981);
     if (severity <= 6) return AppPalette.orange;
-    return const Color(0xFFE11D48); // Red
+    return const Color(0xFFE11D48);
   }
+}
+
+class _HeaderTag extends StatelessWidget {
+  const _HeaderTag({required this.label, required this.color, this.icon});
+  final String label;
+  final Color color;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(6.r),
+      border: Border.all(color: color.withValues(alpha: 0.2)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[Icon(icon, size: 10.sp, color: color), Gap.w4],
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: color),
+        ),
+      ],
+    ),
+  );
 }
 
 /// 🌟 Section 2: Severity Gauge & Band Section (matching ScanScoreSection).
@@ -195,6 +215,7 @@ class _SymptomSeveritySection extends StatelessWidget {
     final color = _severityColor(severity);
     final bandLabel = _severityBand(severity);
     final explanation = _severityExplanation(severity, symptom);
+    final factors = _getSeverityFactors(symptom);
 
     return Container(
       decoration: BoxDecoration(
@@ -203,43 +224,49 @@ class _SymptomSeveritySection extends StatelessWidget {
         boxShadow: [BoxShadow(color: color.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 4))],
       ),
       padding: EdgeInsets.all(BentoMetrics.padding.w),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 96.w,
-            child: ScoreGauge(score: (severity * 10).clamp(0, 100), color: color, label: 'SEVERITY', fontSize: 26.sp),
-          ),
-          Gap.w14,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 96.w,
+                child: ScoreGauge(score: (severity * 10).clamp(0, 100), color: color, label: 'SEVERITY', fontSize: 26.sp),
+              ),
+              Gap.w14,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(100.r)),
-                      child: Text(
-                        bandLabel.toUpperCase(),
-                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w900, letterSpacing: 0.8, color: Colors.white),
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(100.r)),
+                          child: Text(
+                            bandLabel.toUpperCase(),
+                            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w900, letterSpacing: 0.8, color: Colors.white),
+                          ),
+                        ),
+                        Gap.w6,
+                        Text(
+                          '$severity/10',
+                          style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: color),
+                        ),
+                      ],
                     ),
-                    Gap.w6,
+                    Gap.h6,
                     Text(
-                      '$severity/10',
-                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: color),
+                      explanation,
+                      style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.bodySize.sp, fontWeight: FontWeight.w500, height: 1.4, color: t.textPrimary),
                     ),
                   ],
                 ),
-                Gap.h6,
-                Text(
-                  explanation,
-                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.bodySize.sp, fontWeight: FontWeight.w500, height: 1.4, color: t.textPrimary),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+          if (factors.isNotEmpty) ...[Gap.h14, _WhySeverityExpander(factors: factors, bandColor: color)],
         ],
       ),
     );
@@ -265,61 +292,192 @@ class _SymptomSeveritySection extends StatelessWidget {
     if (severity <= 6) return 'Moderate reaction recorded. Consider noting nearby meals to pinpoint potential triggers.';
     return 'High severity reaction recorded. Review recent meal logs and consider consulting a gut health specialist.';
   }
+
+  List<_SymptomFactor> _getSeverityFactors(SymptomLog symptom) {
+    final factors = <_SymptomFactor>[];
+    final severity = symptom.severity ?? 0;
+
+    factors.add(
+      _SymptomFactor(
+        label: 'Symptom Intensity · $severity/10',
+        isNegative: severity > 3,
+        phrase: severity <= 3 ? 'low physical discomfort' : (severity <= 6 ? 'moderate gut distress' : 'severe gut reaction'),
+      ),
+    );
+
+    if (symptom.energyLevel != null) {
+      final e = symptom.energyLevel!;
+      factors.add(_SymptomFactor(label: 'Energy Level · $e/10', isNegative: e < 5, phrase: e >= 7 ? 'good vitality retained' : 'reduced energy level'));
+    }
+
+    if (symptom.mood != null && symptom.mood!.isNotEmpty) {
+      factors.add(
+        _SymptomFactor(
+          label: 'Mood State · ${symptom.mood!.toUpperCase()}',
+          isNegative: ['anxious', 'stressed', 'sad', 'irritated', 'low'].contains(symptom.mood!.toLowerCase()),
+          phrase: 'emotional state logged',
+        ),
+      );
+    }
+
+    if (symptom.foodName != null && symptom.foodName!.isNotEmpty) {
+      factors.add(_SymptomFactor(label: 'Associated Food · ${symptom.foodName}', isNegative: true, phrase: 'potential dietary trigger under review'));
+    }
+
+    return factors;
+  }
 }
 
-/// 🌟 Section 3: Quick-Signal Metrics Row (matching ScanMetricsRow).
+class _SymptomFactor {
+  _SymptomFactor({required this.label, required this.isNegative, required this.phrase});
+  final String label;
+  final bool isNegative;
+  final String phrase;
+}
+
+class _WhySeverityExpander extends StatefulWidget {
+  const _WhySeverityExpander({required this.factors, required this.bandColor});
+  final List<_SymptomFactor> factors;
+  final Color bandColor;
+
+  @override
+  State<_WhySeverityExpander> createState() => _WhySeverityExpanderState();
+}
+
+class _WhySeverityExpanderState extends State<_WhySeverityExpander> {
+  var _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.bentoTheme;
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => setState(() => _open = !_open),
+          borderRadius: BorderRadius.circular(10.r),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+            decoration: BoxDecoration(color: widget.bandColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10.r)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(AppIcons.chartPie, size: 14.sp, color: widget.bandColor),
+                Gap.w6,
+                Text(
+                  'WHY THIS SEVERITY',
+                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.bodySize.sp, fontWeight: FontWeight.w700, height: 1.2, color: t.textPrimary),
+                ),
+                Gap.w4,
+                AnimatedRotation(
+                  turns: _open ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(Icons.keyboard_arrow_down_rounded, size: 20.sp, color: t.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_open) ...[
+          Gap.h10,
+          Container(
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(color: t.cardBackground, borderRadius: BorderRadius.circular(12.r)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...widget.factors.map((f) => _SymptomFactorRow(factor: f)),
+                Gap.h8,
+                Divider(color: t.border.withValues(alpha: 0.4), height: 1),
+                Gap.h8,
+                Text(
+                  'Severity is logged on a 1-10 scale based on physical discomfort and associated body signals.',
+                  style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textQuaternary, height: 1.3),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SymptomFactorRow extends StatelessWidget {
+  const _SymptomFactorRow({required this.factor});
+  final _SymptomFactor factor;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.bentoTheme;
+    final isNeg = factor.isNegative;
+    final color = isNeg ? t.negative : t.positive;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 5.h),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+            child: Icon(isNeg ? Icons.remove_rounded : Icons.add_rounded, size: 10.sp, color: color),
+          ),
+          Gap.w10,
+          Expanded(
+            child: Text(
+              factor.label,
+              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.bodySize.sp, fontWeight: FontWeight.w600, color: t.textPrimary),
+            ),
+          ),
+          Text(
+            factor.phrase,
+            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w500, color: t.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 🌟 Section 3: Quick-Signal Metric Cards Row (matching ScanMetricsRow).
 class _SymptomMetricsRow extends StatelessWidget {
   const _SymptomMetricsRow({required this.symptom});
   final SymptomLog symptom;
 
   @override
   Widget build(BuildContext context) {
-    final t = context.bentoTheme;
-    final items = <Widget>[];
+    final severity = symptom.severity ?? 0;
+    final severityColor = _severityColor(severity);
 
-    if (symptom.energyLevel != null) {
-      items.add(
+    return Row(
+      children: [
         Expanded(
-          child: _MetricTile(icon: AppIcons.zap, color: AppPalette.orange, value: '${symptom.energyLevel}/10', label: 'Energy'),
+          child: _MetricCard(icon: AppIcons.activity, color: severityColor, value: '$severity/10', label: 'Severity'),
         ),
-      );
-    }
-
-    if (symptom.mood != null && symptom.mood!.isNotEmpty) {
-      if (items.isNotEmpty) items.add(Gap.w6);
-      items.add(
+        Gap.w6,
         Expanded(
-          child: _MetricTile(icon: AppIcons.smile, color: const Color(0xFF0284C7), value: symptom.mood!.toUpperCase(), label: 'Mood'),
+          child: _MetricCard(icon: AppIcons.zap, color: AppPalette.orange, value: symptom.energyLevel != null ? '${symptom.energyLevel}/10' : '–', label: 'Energy'),
         ),
-      );
-    }
-
-    if (symptom.sleep != null && symptom.sleep!.isNotEmpty) {
-      if (items.isNotEmpty) items.add(Gap.w6);
-      items.add(
+        Gap.w6,
         Expanded(
-          child: _MetricTile(icon: AppIcons.moon, color: const Color(0xFF7C3AED), value: symptom.sleep!.toUpperCase(), label: 'Sleep'),
+          child: _MetricCard(icon: AppIcons.smile, color: const Color(0xFF0284C7), value: symptom.mood != null && symptom.mood!.isNotEmpty ? symptom.mood!.toUpperCase() : '–', label: 'Mood'),
         ),
-      );
-    }
-
-    if (symptom.foodName != null && symptom.foodName!.isNotEmpty) {
-      if (items.isNotEmpty) items.add(Gap.w6);
-      items.add(
+        Gap.w6,
         Expanded(
-          child: _MetricTile(icon: AppIcons.utensils, color: t.positive, value: symptom.foodName!, label: 'Food'),
+          child: _MetricCard(icon: AppIcons.moon, color: const Color(0xFF7C3AED), value: symptom.sleep != null && symptom.sleep!.isNotEmpty ? symptom.sleep!.toUpperCase() : '–', label: 'Sleep'),
         ),
-      );
-    }
+      ],
+    );
+  }
 
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Row(children: items);
+  Color _severityColor(int severity) {
+    if (severity <= 3) return const Color(0xFF10B981);
+    if (severity <= 6) return AppPalette.orange;
+    return const Color(0xFFE11D48);
   }
 }
 
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({required this.icon, required this.color, required this.value, required this.label});
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({required this.icon, required this.color, required this.value, required this.label});
 
   final IconData icon;
   final Color color;
@@ -330,8 +488,9 @@ class _MetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isNumber = RegExp(r'^\d+').hasMatch(value);
     final isLong = value.length > 10;
-    final fontSize = isLong ? 10.sp : 11.5.sp;
+    final fontSize = isNumber ? 15.sp : (isLong ? 9.5.sp : 11.sp);
 
     final bgStart = color.withValues(alpha: isDark ? 0.22 : 0.12);
     final bgEnd = color.withValues(alpha: isDark ? 0.12 : 0.04);
@@ -353,12 +512,12 @@ class _MetricTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withValues(alpha: isDark ? 0.28 : 0.18),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 24.sp, color: color),
+            child: Icon(icon, size: 20.sp, color: color),
           ),
           Gap.h8,
           Center(
@@ -401,7 +560,7 @@ class _SymptomTriggerSection extends StatelessWidget {
     }
 
     if (symptom.lastMealFirestoreId != null && symptom.lastMealFirestoreId!.isNotEmpty) {
-      items.add(_FactorItem(icon: AppIcons.sparkles, color: const Color(0xFF7C3AED), title: 'Linked Meal Record', subtitle: 'Meal log is being cross-referenced with your pattern history'));
+      items.add(_FactorItem(icon: AppIcons.sparkles, color: const Color(0xFF7C3AED), title: 'Linked Meal Record', subtitle: 'Meal log cross-referenced with your pattern history'));
     }
 
     if (items.isEmpty) return const SizedBox.shrink();
@@ -414,7 +573,7 @@ class _SymptomTriggerSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: t.negative.withAlpha(20), shape: BoxShape.circle),
-              child: Icon(AppIcons.sparkles, size: 22.sp, color: t.negative),
+              child: Icon(Icons.warning_amber_rounded, size: 22.sp, color: t.negative),
             ),
             Gap.w12,
             Expanded(
@@ -422,11 +581,11 @@ class _SymptomTriggerSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    AppStrings.expertAnalysis,
+                    'Potential Triggers',
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.titleSize.sp, fontWeight: FontWeight.w700, color: t.textPrimary),
                   ),
                   Text(
-                    'Potential food or environmental triggers linked to this reaction.',
+                    'Food or environmental triggers linked to this reaction.',
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
                   ),
                 ],
@@ -553,6 +712,7 @@ class _SymptomDetailsCard extends StatelessWidget {
           _detailRow(context, 'Source', symptom.source?.toUpperCase() ?? AppStrings.chatSource, AppIcons.database),
           Gap.h8,
           _detailRow(context, 'Severity Level', '${symptom.severity ?? 0} / 10', AppIcons.activity),
+          if (symptom.foodName != null && symptom.foodName!.isNotEmpty) ...[Gap.h8, _detailRow(context, 'Associated Food', symptom.foodName!, AppIcons.utensils)],
         ],
       ),
     );

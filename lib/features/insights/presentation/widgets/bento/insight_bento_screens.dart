@@ -5,6 +5,7 @@ import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
+import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
@@ -41,17 +42,7 @@ class InsightBentoRecap extends StatelessWidget {
     final delta = src == null ? null : BentoData.parseDelta(src.scoreDiff);
     final shown = chartSeries.length > 7 ? chartSeries.sublist(chartSeries.length - 7) : chartSeries;
 
-    // Local weekday labels aligned with calculateWeeklyTrend (last 7 local days).
-    final labels = <String>[];
-    if (seriesLabels.length >= 7) {
-      labels.addAll(seriesLabels.sublist(seriesLabels.length - 7));
-    } else {
-      final now = DateTime.now();
-      const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-      for (var i = 6; i >= 0; i--) {
-        labels.add(dayNames[now.subtract(Duration(days: i)).weekday - 1]);
-      }
-    }
+    const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
@@ -821,7 +812,7 @@ class InsightBentoPattern extends StatelessWidget {
 
   Color _getAccent(String type) => switch (type) {
     BodyPattern.typeBloating => const Color(0xFF8B5CF6),
-    BodyPattern.typeEnergy => const Color(0xFF57B93B),
+    BodyPattern.typeEnergy => const Color(0xFFD97706),
     BodyPattern.typeHeadache => const Color(0xFFF08019),
     BodyPattern.typeDigestion => const Color(0xFF14A38F),
     BodyPattern.typeFullness => const Color(0xFFEFB008),
@@ -831,7 +822,7 @@ class InsightBentoPattern extends StatelessWidget {
 
   Color _getTextAccent(String type) => switch (type) {
     BodyPattern.typeBloating => const Color(0xFF563999),
-    BodyPattern.typeEnergy => const Color(0xFF367325),
+    BodyPattern.typeEnergy => const Color(0xFFB45309),
     BodyPattern.typeHeadache => const Color(0xFF954F10),
     BodyPattern.typeDigestion => const Color(0xFF0C6559),
     BodyPattern.typeFullness => const Color(0xFF946D05),
@@ -1232,7 +1223,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
     final positiveRatio = totalCount > 0 ? ((positiveCount / totalCount) * 100).round() : 100;
 
     return Scaffold(
-      backgroundColor: v2.scaffold,
+      backgroundColor: context.appColorScheme.cardBackground,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -1249,10 +1240,11 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
+                  clipBehavior: Clip.none,
                   child: Row(
                     children: [
                       _FilterChip(label: 'All ($totalCount)', isSelected: _selectedFilter == 'All', onTap: () => setState(() => _selectedFilter = 'All')),
-                      Gap.w6,
+                      Gap.w8,
                       _FilterChip(
                         label: 'Healing ($healingCount)',
                         icon: LucideIcons.sprout,
@@ -1260,7 +1252,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
                         isSelected: _selectedFilter == 'Healing',
                         onTap: () => setState(() => _selectedFilter = 'Healing'),
                       ),
-                      Gap.w6,
+                      Gap.w8,
                       _FilterChip(
                         label: 'Good ($goodCount)',
                         icon: LucideIcons.sparkles,
@@ -1268,7 +1260,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
                         isSelected: _selectedFilter == 'Good',
                         onTap: () => setState(() => _selectedFilter = 'Good'),
                       ),
-                      Gap.w6,
+                      Gap.w8,
                       _FilterChip(
                         label: 'Watch ($watchCount)',
                         icon: LucideIcons.triangleAlert,
@@ -1287,10 +1279,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
                 ] else ...[
                   Column(
                     children: [
-                      for (final food in filteredItems) ...[
-                        TopFoodTile(item: food),
-                        Gap.h10,
-                      ],
+                      for (final food in filteredItems) ...[TopFoodTile(item: food), Gap.h10],
                     ],
                   ),
                 ],
@@ -1358,15 +1347,17 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final occurrences = countOccurrences(f.name);
       final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
       final desc = f.effect.isNotEmpty ? f.effect : 'Supports microbiome diversity and gut balance.';
-      list.add(TopFoodItemData(
-        title: f.name,
-        frequency: countStr,
-        description: desc,
-        badge: 'High Impact',
-        isPositive: true,
-        category: 'healing',
-        imageUrl: f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.name),
-      ));
+      list.add(
+        TopFoodItemData(
+          title: f.name,
+          frequency: countStr,
+          description: desc,
+          badge: 'High Impact',
+          isPositive: true,
+          category: 'healing',
+          imageUrl: f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.name),
+        ),
+      );
     }
 
     // 3. Positive / Good Food Impacts
@@ -1379,15 +1370,17 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final occurrences = countOccurrences(fi.food);
       final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
       final desc = fi.effect.isNotEmpty ? fi.effect : 'Observed positive effect on gut health.';
-      list.add(TopFoodItemData(
-        title: fi.food,
-        frequency: countStr,
-        description: desc,
-        badge: 'Good',
-        isPositive: true,
-        category: 'good',
-        imageUrl: fi.userImageUrl ?? fi.imageUrl ?? V2Kit.foodImageUrl(fi.food),
-      ));
+      list.add(
+        TopFoodItemData(
+          title: fi.food,
+          frequency: countStr,
+          description: desc,
+          badge: 'Good',
+          isPositive: true,
+          category: 'good',
+          imageUrl: fi.userImageUrl ?? fi.imageUrl ?? V2Kit.foodImageUrl(fi.food),
+        ),
+      );
     }
 
     // 4. Trigger Summary Foods
@@ -1398,15 +1391,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
         final occurrences = countOccurrences(f.name);
         final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
         final desc = f.effect != null && f.effect!.isNotEmpty ? f.effect! : 'Associated with digestive discomfort.';
-        list.add(TopFoodItemData(
-          title: f.name,
-          frequency: countStr,
-          description: desc,
-          badge: 'Watch',
-          isPositive: false,
-          category: 'watch',
-          imageUrl: f.imageUrl ?? V2Kit.foodImageUrl(f.name),
-        ));
+        list.add(TopFoodItemData(title: f.name, frequency: countStr, description: desc, badge: 'Watch', isPositive: false, category: 'watch', imageUrl: f.imageUrl ?? V2Kit.foodImageUrl(f.name)));
       }
     }
 
@@ -1417,15 +1402,17 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final occurrences = countOccurrences(f.name);
       final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
       final desc = f.effect.isNotEmpty ? f.effect : 'Associated with digestive symptoms.';
-      list.add(TopFoodItemData(
-        title: f.name,
-        frequency: countStr,
-        description: desc,
-        badge: 'Watch',
-        isPositive: false,
-        category: 'watch',
-        imageUrl: f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.name),
-      ));
+      list.add(
+        TopFoodItemData(
+          title: f.name,
+          frequency: countStr,
+          description: desc,
+          badge: 'Watch',
+          isPositive: false,
+          category: 'watch',
+          imageUrl: f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.name),
+        ),
+      );
     }
 
     // 6. Food Impacts (Watch / Negative)
@@ -1438,15 +1425,17 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final occurrences = countOccurrences(fi.food);
       final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
       final desc = fi.effect.isNotEmpty ? fi.effect : 'Associated with digestive discomfort.';
-      list.add(TopFoodItemData(
-        title: fi.food,
-        frequency: countStr,
-        description: desc,
-        badge: 'Watch',
-        isPositive: false,
-        category: 'watch',
-        imageUrl: fi.userImageUrl ?? fi.imageUrl ?? V2Kit.foodImageUrl(fi.food),
-      ));
+      list.add(
+        TopFoodItemData(
+          title: fi.food,
+          frequency: countStr,
+          description: desc,
+          badge: 'Watch',
+          isPositive: false,
+          category: 'watch',
+          imageUrl: fi.userImageUrl ?? fi.imageUrl ?? V2Kit.foodImageUrl(fi.food),
+        ),
+      );
     }
 
     return list;
@@ -1471,7 +1460,13 @@ class _FoodIntelligenceHeroCard extends StatelessWidget {
         color: isDark ? const Color(0xFF102319) : const Color(0xFFF0FDF4),
         borderRadius: BorderRadius.circular(22.w),
         border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7), width: 1.w),
-        boxShadow: [BoxShadow(color: const Color(0xFF15803D).withValues(alpha: isDark ? 0.10 : 0.05), blurRadius: 12.w, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF15803D).withValues(alpha: isDark ? 0.10 : 0.05),
+            blurRadius: 12.w,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1496,7 +1491,13 @@ class _FoodIntelligenceHeroCard extends StatelessWidget {
                     children: [
                       Text(
                         'Food Intelligence',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF0F172A), letterSpacing: -0.2),
+                        style: TextStyle(
+                          fontFamily: InsightV2Theme.fontFamily,
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF0F172A),
+                          letterSpacing: -0.2,
+                        ),
                       ),
                       Text(
                         'Foods shaping your gut health',
@@ -1557,9 +1558,19 @@ class _FoodIntelligenceHeroCard extends StatelessWidget {
           // Stats Chips Row
           Row(
             children: [
-              _HeroStatPill(icon: LucideIcons.sprout, iconColor: context.insightColor(const Color(0xFF15803D)), bgColor: context.insightColor(const Color(0xFFDCFCE7)), label: '$positiveCount Gut Supporting'),
+              _HeroStatPill(
+                icon: LucideIcons.sprout,
+                iconColor: context.insightColor(const Color(0xFF15803D)),
+                bgColor: context.insightColor(const Color(0xFFDCFCE7)),
+                label: '$positiveCount Gut Supporting',
+              ),
               Gap.w8,
-              _HeroStatPill(icon: LucideIcons.triangleAlert, iconColor: context.insightColor(const Color(0xFF991B1B)), bgColor: context.insightColor(const Color(0xFFFEE2E2)), label: '$watchCount To Monitor'),
+              _HeroStatPill(
+                icon: LucideIcons.triangleAlert,
+                iconColor: context.insightColor(const Color(0xFF991B1B)),
+                bgColor: context.insightColor(const Color(0xFFFEE2E2)),
+                label: '$watchCount To Monitor',
+              ),
             ],
           ),
         ],
@@ -1726,29 +1737,34 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final v2 = context.v2Theme;
-    final selectedBg = isDark ? v2.textPrimary : const Color(0xFF0F172A);
-    final unselectedBg = isDark ? v2.cardSubtle : const Color(0xFFF8FAFC);
-    final selectedFg = isDark ? v2.card : Colors.white;
-    final unselectedFg = v2.textPrimary;
+
+    final selectedBg = isDark ? Colors.white : const Color(0xFF171717);
+    final selectedFg = isDark ? Colors.black : Colors.white;
+    final unselectedFg = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
+    final unselectedBorder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.w),
         decoration: BoxDecoration(
-          color: isSelected ? selectedBg : unselectedBg,
-          borderRadius: BorderRadius.circular(16.w),
-          border: Border.all(color: isSelected ? selectedBg : v2.border),
+          color: isSelected ? selectedBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(100.w),
+          border: Border.all(color: isSelected ? selectedBg : unselectedBorder, width: 1.w),
+          boxShadow: isSelected && !isDark ? [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.15), blurRadius: 4.w, offset: Offset(0, 2.w))] : null,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[Icon(icon, size: 10.w, color: isSelected ? selectedFg : (iconColor ?? unselectedFg)), Gap.w4],
-            Text(
-              label,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: isSelected ? selectedFg : unselectedFg),
-            ),
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: InsightV2Theme.fontFamily,
+            fontSize: 12.sp,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? selectedFg : unselectedFg,
+            letterSpacing: -0.2,
+          ),
         ),
       ),
     );

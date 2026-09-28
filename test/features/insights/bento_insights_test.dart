@@ -179,10 +179,9 @@ void main() {
     testWidgets('shows the progress card and unlock cards', (tester) async {
       await pumpBento(tester, const InsightBentoLearning(meals: 1, symptoms: 0, scans: 1));
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('BUILDING YOUR BASELINE'), findsOneWidget);
-      expect(find.text('Log to Unlock AI Insights'), findsOneWidget);
-      expect(find.text('FOOD SCANS'), findsOneWidget);
-      expect(find.text('SYMPTOM LOGS'), findsOneWidget);
+      expect(find.textContaining('Your food'), findsWidgets);
+      expect(find.textContaining('Scan'), findsWidgets);
+      expect(find.textContaining('Track'), findsWidgets);
       expect(find.text('2 / 3'), findsOneWidget);
     });
 
@@ -190,7 +189,7 @@ void main() {
       await pumpBento(tester, const InsightBentoLearning(meals: 0, symptoms: 0, scans: 0));
       expect(tester.takeException(), isNull);
       expect(find.text('0 / 3'), findsOneWidget);
-      expect(find.text('0 / 1'), findsOneWidget);
+      expect(find.text('0 / 1'), findsWidgets);
     });
   });
 
@@ -255,7 +254,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('TOP FOODS THIS WEEK'), findsWidgets);
+      expect(find.textContaining('FOOD INTELLIGENCE'), findsWidgets);
       expect(find.text('Berry Oatmeal'), findsOneWidget);
       expect(find.text('French Fries'), findsOneWidget);
     });

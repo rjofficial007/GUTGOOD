@@ -96,9 +96,10 @@ class GutScoreCalculatorService {
   List<int> calculateWeeklyTrend({required List<ScanResult> scans, required List<SymptomLog> symptoms, required List<MealLog> meals, required DateTime endDate}) {
     final scores = <int>[];
     final endLocal = startOfLocalDay(endDate);
+    final sunday = endLocal.subtract(Duration(days: endLocal.weekday % 7));
 
-    for (var i = 6; i >= 0; i--) {
-      final dayStart = endLocal.subtract(Duration(days: i));
+    for (var i = 0; i < 7; i++) {
+      final dayStart = sunday.add(Duration(days: i));
       final dayEnd = dayStart.add(const Duration(days: 1));
 
       final dayScans = scans.where((s) {
@@ -152,14 +153,10 @@ class GutScoreCalculatorService {
       }
     }
 
-    final anchor = endDate != null ? startOfLocalDay(endDate) : startOfLocalDay(DateTime.now());
-    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     var bestDayName = '';
-    if (bestDayIndex != -1) {
-      // index 6 is the end day, 5 is day before, etc.
-      final daysAgo = 6 - bestDayIndex;
-      final bestDayDate = anchor.subtract(Duration(days: daysAgo));
-      bestDayName = dayNames[bestDayDate.weekday - 1];
+    if (bestDayIndex != -1 && bestDayIndex < dayNames.length) {
+      bestDayName = dayNames[bestDayIndex];
     }
 
     final trendAvg = averageOfScoredDays(weeklyTrend);
@@ -187,18 +184,8 @@ class GutScoreCalculatorService {
       foodsLogged: totalLogs,
       loggedSub: 'meals and scans',
       highlights: [
-        if (totalLogs > 5)
-          const RecapHighlight(
-            icon: 'sparkles',
-            text: 'Great logging consistency!',
-            color: 'green',
-          ),
-        if (totalSymptoms > 0)
-          const RecapHighlight(
-            icon: 'alertCircle',
-            text: 'Symptom logged. Keep tracking to find triggers.',
-            color: 'purple',
-          ),
+        if (totalLogs > 5) const RecapHighlight(icon: 'sparkles', text: 'Great logging consistency!', color: 'green'),
+        if (totalSymptoms > 0) const RecapHighlight(icon: 'alertCircle', text: 'Symptom logged. Keep tracking to find triggers.', color: 'purple'),
       ],
     );
   }

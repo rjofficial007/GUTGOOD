@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/models/insights/gut_score_record.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/app_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';

@@ -34,6 +34,29 @@ class BodyPattern extends Equatable {
 
   factory BodyPattern.fromMap(Map<String, dynamic> map) {
     final typeStr = (map['domain'] ?? map['type'] ?? map['category'] ?? '').toString();
+
+    final confVal = map['confidenceScore'] ?? map['confidence'] ?? map['strength'];
+    var parsedScore = InsightValues.number(map['confidenceScore'])?.toDouble() ?? 0.85;
+    if (confVal != null) {
+      final s = confVal.toString().replaceAll('%', '').trim();
+      final d = double.tryParse(s);
+      if (d != null) {
+        parsedScore = d > 1.0 ? d / 100.0 : d;
+      } else {
+        final lower = s.toLowerCase();
+        if (lower == 'high') {
+          parsedScore = 0.89;
+        } else if (lower == 'medium' || lower == 'moderate') {
+          parsedScore = 0.75;
+        } else if (lower == 'low') {
+          parsedScore = 0.60;
+        }
+      }
+    } else if (map['evidenceRatio'] != null) {
+      final er = InsightValues.number(map['evidenceRatio'])?.toDouble();
+      if (er != null && er > 0) parsedScore = er;
+    }
+
     return BodyPattern(
       id: map['id']?.toString(),
       type: typeStr,
@@ -41,20 +64,14 @@ class BodyPattern extends Equatable {
       reaction: (map['reaction'] ?? map['effect'] ?? '').toString(),
       frequency: InsightValues.integer(map['frequency']) ?? 1,
       confidence: (map['confidence'] ?? map['strength'] ?? '').toString(),
-      confidenceScore: InsightValues.number(map['confidenceScore'])?.toDouble() ?? 0.85,
+      confidenceScore: parsedScore,
       description: (map['description'] ?? map['observation'] ?? '').toString(),
       involvedFoods: (map['involvedFoods'] as List?)?.whereType<String>().toList() ?? const [],
-      relatedFoodIds: (map['relatedFoodIds'] as List?)?.whereType<String>().toList() ??
-          (map['involvedFoods'] as List?)?.cast<String>() ??
-          const [],
-      recommendation: (map['recommendation'] ??
-              (map['nextSteps'] is List ? (map['nextSteps'] as List).firstOrNull : null))
-          ?.toString(),
+      relatedFoodIds: (map['relatedFoodIds'] as List?)?.whereType<String>().toList() ?? (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
+      recommendation: (map['recommendation'] ?? (map['nextSteps'] is List ? (map['nextSteps'] as List).firstOrNull : null))?.toString(),
       updatedAt: map['updatedAt']?.toString() ?? DateTime.now().toIso8601String(),
-      occurrences: ModelUtils.parseModelList<PatternOccurrence>(
-          map['occurrences'], PatternOccurrence.fromMap),
-      commonFactors: ModelUtils.parseModelList<CommonFactor>(
-          map['commonFactors'], CommonFactor.fromMap),
+      occurrences: ModelUtils.parseModelList<PatternOccurrence>(map['occurrences'], PatternOccurrence.fromMap),
+      commonFactors: ModelUtils.parseModelList<CommonFactor>(map['commonFactors'], CommonFactor.fromMap),
       totalSimilarMeals: InsightValues.integer(map['totalSimilarMeals']) ?? 0,
       timeframeDays: InsightValues.integer(map['timeframeDays']) ?? 30,
       typicalTiming: map['typicalTiming']?.toString(),
@@ -119,57 +136,57 @@ class BodyPattern extends Equatable {
   static const String confidenceHigh = 'High';
 
   Map<String, dynamic> toMap() => {
-        'v': schemaVersion,
-        'id': id,
-        'domain': domain,
-        'type': type,
-        'trigger': trigger,
-        'reaction': reaction,
-        'frequency': frequency,
-        'confidence': confidence,
-        'confidenceScore': confidenceScore,
-        'description': description,
-        'involvedFoods': involvedFoods,
-        'relatedFoodIds': relatedFoodIds,
-        'recommendation': recommendation,
-        'updatedAt': updatedAt,
-        'occurrences': occurrences.map((e) => e.toMap()).toList(),
-        'commonFactors': commonFactors.map((e) => e.toMap()).toList(),
-        'totalSimilarMeals': totalSimilarMeals,
-        'timeframeDays': timeframeDays,
-        'typicalTiming': typicalTiming,
-        'typicalDelay': typicalDelay,
-        'impactDirection': impactDirection,
-        'impactLevel': impactLevel,
-        'evidenceRatio': evidenceRatio,
-        'positiveCount': positiveCount,
-        'negativeCount': negativeCount,
-      };
+    'v': schemaVersion,
+    'id': id,
+    'domain': domain,
+    'type': type,
+    'trigger': trigger,
+    'reaction': reaction,
+    'frequency': frequency,
+    'confidence': confidence,
+    'confidenceScore': confidenceScore,
+    'description': description,
+    'involvedFoods': involvedFoods,
+    'relatedFoodIds': relatedFoodIds,
+    'recommendation': recommendation,
+    'updatedAt': updatedAt,
+    'occurrences': occurrences.map((e) => e.toMap()).toList(),
+    'commonFactors': commonFactors.map((e) => e.toMap()).toList(),
+    'totalSimilarMeals': totalSimilarMeals,
+    'timeframeDays': timeframeDays,
+    'typicalTiming': typicalTiming,
+    'typicalDelay': typicalDelay,
+    'impactDirection': impactDirection,
+    'impactLevel': impactLevel,
+    'evidenceRatio': evidenceRatio,
+    'positiveCount': positiveCount,
+    'negativeCount': negativeCount,
+  };
 
   @override
   List<Object?> get props => [
-        id,
-        type,
-        trigger,
-        reaction,
-        frequency,
-        confidence,
-        confidenceScore,
-        description,
-        involvedFoods,
-        relatedFoodIds,
-        recommendation,
-        updatedAt,
-        occurrences,
-        commonFactors,
-        totalSimilarMeals,
-        timeframeDays,
-        typicalTiming,
-        typicalDelay,
-        impactDirection,
-        impactLevel,
-        evidenceRatio,
-        positiveCount,
-        negativeCount,
-      ];
+    id,
+    type,
+    trigger,
+    reaction,
+    frequency,
+    confidence,
+    confidenceScore,
+    description,
+    involvedFoods,
+    relatedFoodIds,
+    recommendation,
+    updatedAt,
+    occurrences,
+    commonFactors,
+    totalSimilarMeals,
+    timeframeDays,
+    typicalTiming,
+    typicalDelay,
+    impactDirection,
+    impactLevel,
+    evidenceRatio,
+    positiveCount,
+    negativeCount,
+  ];
 }

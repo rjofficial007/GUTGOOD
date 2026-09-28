@@ -96,7 +96,7 @@ class AiServiceImpl implements AiService {
   final AnalyticsService _analyticsService;
   final CrashlyticsService _crashlyticsService;
 
-  static const int _maxRetries = 2;
+  static const int _maxRetries = 3;
 
   bool _lastResponseTruncated = false;
   String? _lastTruncationKind;
@@ -412,14 +412,14 @@ class AiServiceImpl implements AiService {
 
         return (decoded['text'] ?? '').toString();
       } on DioException catch (e, st) {
-        AppLogger.error('content generation failed (attempt $attempts/$_maxRetries)', error: e, stackTrace: st);
-
         if (attempts < _maxRetries && _isRetryable(e)) {
+          AppLogger.ai('content generation transient error (attempt $attempts/$_maxRetries, status: ${e.response?.statusCode}). Retrying in ${attempts * 2}s...');
           await Future.delayed(Duration(seconds: attempts * 2));
           continue;
         }
 
-        // If not retryable or max attempts reached, throw specialized exception
+        AppLogger.error('content generation failed after $attempts attempt(s)', error: e, stackTrace: st);
+
         if (e.response != null) {
           _throwForStatus(e.response!.statusCode ?? 500, e.response!.data?.toString() ?? '');
         }
