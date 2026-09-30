@@ -124,11 +124,15 @@ class SwapDetailScreen extends StatelessWidget {
                             ],
                           ),
                           Gap.h10,
-                          _benefitRow(t, 'Cleaner, whole food ingredients with fewer additives'),
-                          Gap.h6,
-                          _benefitRow(t, 'Supports gut barrier health and easier digestion'),
-                          Gap.h6,
-                          _benefitRow(t, 'Lower inflammatory trigger potential'),
+                          ...((swap.benefits.isNotEmpty
+                                  ? swap.benefits
+                                  : ['Cleaner, whole food ingredients with fewer additives', 'Supports gut barrier health and easier digestion', 'Lower inflammatory trigger potential'])
+                              .map(
+                                (b) => Padding(
+                                  padding: EdgeInsets.only(bottom: 6.h),
+                                  child: _benefitRow(t, b),
+                                ),
+                              )),
                         ],
                       ),
                     ),

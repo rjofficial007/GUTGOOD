@@ -132,28 +132,13 @@ class WhyScoreSheet extends StatelessWidget {
                   Gap.h8,
                   const _FactorTile(
                     factor: _ScoreFactor(
-                      title: '1. Food Scan Quality',
+                      title: 'Food Scan Quality',
                       description: 'Average quality score (0–100) from your scanned foods based on ingredients, Nutri-Score & processing level.',
                       points: 'Base',
                       isPositive: true,
                     ),
                   ),
-                  const _FactorTile(
-                    factor: _ScoreFactor(
-                      title: '2. Symptom Penalty',
-                      description: 'Deducts 3 to 9 points per logged symptom depending on severity (-3 mild, -6 moderate, -9 severe; max -30 pts).',
-                      points: 'Penalty',
-                      isPositive: false,
-                    ),
-                  ),
-                  const _FactorTile(
-                    factor: _ScoreFactor(
-                      title: '3. Consistency Bonus',
-                      description: 'Adds +2 bonus points for each unique day logged with meals or scans (max +10 pts).',
-                      points: 'Bonus',
-                      isPositive: true,
-                    ),
-                  ),
+
                   Gap.h16,
 
                   Text(

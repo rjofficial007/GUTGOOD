@@ -47,20 +47,17 @@ abstract final class InsightV2Strings {
 
   // Learning state (pre-threshold)
   static const String mappingEyebrow = 'Building your baseline';
-  static const String mappingSub =
-      'Log a few more meals and scans to unlock your gut story.';
+  static const String mappingSub = 'Log a few more meals and scans to unlock your gut story.';
   static const String noScorePlaceholder = '--';
   static const String learningChecklistLabel = 'What unlocks your insights';
 
   // What's Working screen
   static const String workingTitle = "What's Working";
-  static const String workingSub =
-      'These foods and habits are supporting your gut health.';
+  static const String workingSub = 'These foods and habits are supporting your gut health.';
   static const String topFoodsTitle = 'Top Foods This Week';
   static const String topFoodsSub = 'Your most consistent gut-friendly foods.';
   static const String patternsNoticedTitle = 'Patterns We Noticed';
-  static const String patternsNoticedSub =
-      "Your gut has a pattern — here's what we found.";
+  static const String patternsNoticedSub = "Your gut has a pattern — here's what we found.";
 
   // Detail screens
   static const String gutHeroBadge = 'Your Gut Hero';
@@ -71,8 +68,7 @@ abstract final class InsightV2Strings {
   static const String frequencyStat = '◷ Frequency';
   static const String seeAlternativesCta = 'See Better Alternatives';
   static const String backToInsightsCta = 'Back to Insights';
-  static const String basedOnLogsFooter =
-      'Based on your logs · insights improve as you log';
+  static const String basedOnLogsFooter = 'Based on your logs · insights improve as you log';
   static const String yourActionsLabel = 'Your Actions';
   static const String highlightsLabel = 'Highlights';
   static const String bestDayStat = '☆ Best Day';

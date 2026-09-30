@@ -181,9 +181,15 @@ class GenerateInsightUseCase {
     final exactScore = _gutScoreCalculatorService.calculateGutScore(scans: weekScans, symptoms: weekSymptoms, meals: weekMeals);
     final avgScanScore = _gutScoreCalculatorService.calculateAvgScanScore(weekScans);
     // Trend uses all loaded logs but buckets only the last 7 local days.
-    final weeklyTrend = _gutScoreCalculatorService.calculateWeeklyTrend(scans: allScans, symptoms: allSymptoms, meals: allMeals, endDate: endLocal);
-    final weeklyAvg = _gutScoreCalculatorService.averageOfScoredDays(weeklyTrend);
-    final displayScore = hasWeekScore ? (weeklyAvg > 0 ? weeklyAvg : exactScore) : 0;
+    final weeklyTrend = List<int>.from(_gutScoreCalculatorService.calculateWeeklyTrend(scans: allScans, symptoms: allSymptoms, meals: allMeals, endDate: endLocal));
+    final displayScore = hasWeekScore ? avgScanScore : 0;
+
+    // Ensure today's slot in dailyScores matches the profile score (displayScore)
+    final todayIndex = endLocal.weekday % 7;
+    if (todayIndex >= 0 && todayIndex < weeklyTrend.length) {
+      weeklyTrend[todayIndex] = displayScore;
+    }
+
     final weeklyRecap = _gutScoreCalculatorService.calculateWeeklyRecap(
       recentScans: weekScans,
       recentSymptoms: weekSymptoms,
@@ -194,21 +200,21 @@ class GenerateInsightUseCase {
     );
 
     if (_gutScoreFirestoreService != null) {
+      final startLocalDay = GutScoreCalculatorService.startOfLocalDay(endLocal);
+      final sunday = startLocalDay.subtract(Duration(days: startLocalDay.weekday % 7));
+      final saturday = sunday.add(const Duration(days: 6));
+
       final scoreRecord = GutScoreRecord(
-        id: 'weekly_${endLocal.year}_W${_isoWeekOf(endLocal)}_${endLocal.millisecondsSinceEpoch}',
+        id: 'weekly_${endLocal.year}_W${_isoWeekOf(endLocal)}',
         uid: profile?.uid ?? '',
         type: 'weekly',
-        gutScore: displayScore,
-        avgScanScore: avgScanScore,
-        symptomPenalty: _gutScoreCalculatorService.calculateSymptomPenalty(weekSymptoms),
-        consistencyBonus: _gutScoreCalculatorService.calculateConsistencyBonus(meals: weekMeals, scans: weekScans),
         scansCount: weekScans.length,
         mealsCount: weekMeals.length,
         symptomsCount: weekSymptoms.length,
         dailyScores: weeklyTrend,
-        // Period matches the weekly window the numbers describe (not 30 days).
-        periodFrom: sevenDaysAgo,
-        periodTo: endLocal.toUtc(),
+        // Period starts from Sunday and ends on Saturday of the current week.
+        periodFrom: sunday.toUtc(),
+        periodTo: saturday.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1)).toUtc(),
         createdAt: endLocal.toUtc(),
       );
       await _gutScoreFirestoreService.saveGutScore(scoreRecord);

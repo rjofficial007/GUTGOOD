@@ -14,9 +14,10 @@ CORE PATTERN RULES:
 3. CANONICAL PATTERN TYPES: Use `domain` / `type` values strictly from the 6 canonical types: `bloating`, `energy`, `headache`, `digestion`, `fullness`, `sleep`. (Other legacy categories like `mood`, `appetite`, `hydration` are secondary).
 4. SLEEP PATTERN RULE: Do NOT generate Sleep patterns based on meal timing alone. Sleep insights require actual user-reported sleep quality/observations. If no sleep data exists in logs, return NO Sleep pattern.
 5. CONFIDENCE: `confidence` MUST be one of High|Medium|Low (or high|medium|low). Provide numeric `confidenceScore` (0.0 - 1.0) derived from evidence.
-6. RATIO & CONTRADICTION AWARENESS:
+6. RATIO & CONTRADICTION AWARENESS & LOW EVIDENCE:
    - If ratio > 0.8 and negativeCount is low: "high" confidence, "Strong association".
    - If ratio < 0.5 or contradictory evidence exists: "medium" or "low" confidence, "Possible but inconsistent association".
+   - For single-occurrence observations (frequency 1): confidence MUST be "Low" or "Medium", labeling it as a "Possible Connection" requiring continued tracking rather than a confirmed cause or definitive trigger.
 7. MULTIPLE PATTERNS: Support zero, one, or multiple patterns coexisting in `detectedPatterns`. Do not limit output to a single pattern if multiple valid candidates exist.
 8. DESTINATION ROUTING: Every item in `recentInsights` MUST include a `destination` object specifying `{ "screen": "pattern_detail"|"food_detail"|"trigger_detail"|"weekly_recap"|"synergy_detail", "id": "string" }`.
 9. DYNAMIC DATA ONLY: All values (impact percentages, counts, food items, dates) MUST be strictly computed from actual user data. NEVER return static mock values unless accurately calculated from user logs.

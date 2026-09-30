@@ -9,10 +9,6 @@ class GutScoreRecord extends Equatable {
     required this.id,
     required this.uid,
     required this.type,
-    required this.gutScore,
-    required this.avgScanScore,
-    required this.symptomPenalty,
-    required this.consistencyBonus,
     required this.scansCount,
     required this.mealsCount,
     required this.symptomsCount,
@@ -30,10 +26,6 @@ class GutScoreRecord extends Equatable {
       id: docId ?? map['id'] ?? '',
       uid: map['uid'] ?? '',
       type: map['type'] ?? 'daily',
-      gutScore: InsightValues.integer(map['gutScore']) ?? 0,
-      avgScanScore: InsightValues.integer(map['avgScanScore']) ?? 0,
-      symptomPenalty: InsightValues.integer(map['symptomPenalty']) ?? 0,
-      consistencyBonus: InsightValues.integer(map['consistencyBonus']) ?? 0,
       scansCount: InsightValues.integer(map['scansCount']) ?? 0,
       mealsCount: InsightValues.integer(map['mealsCount']) ?? 0,
       symptomsCount: InsightValues.integer(map['symptomsCount']) ?? 0,
@@ -47,10 +39,6 @@ class GutScoreRecord extends Equatable {
   final String id;
   final String uid;
   final String type; // 'daily' or 'weekly'
-  final int gutScore;
-  final int avgScanScore;
-  final int symptomPenalty;
-  final int consistencyBonus;
   final int scansCount;
   final int mealsCount;
   final int symptomsCount;
@@ -59,14 +47,17 @@ class GutScoreRecord extends Equatable {
   final DateTime periodTo;
   final DateTime createdAt;
 
+  /// Computed gut score derived from dailyScores (average of scored days > 0).
+  int get gutScore {
+    final scored = dailyScores.where((s) => s > 0).toList();
+    if (scored.isEmpty) return 0;
+    return (scored.fold<int>(0, (a, b) => a + b) / scored.length).round().clamp(0, 100);
+  }
+
   Map<String, dynamic> toMap() => {
     'id': id,
     'uid': uid,
     'type': type,
-    'gutScore': gutScore,
-    'avgScanScore': avgScanScore,
-    'symptomPenalty': symptomPenalty,
-    'consistencyBonus': consistencyBonus,
     'scansCount': scansCount,
     'mealsCount': mealsCount,
     'symptomsCount': symptomsCount,
@@ -77,5 +68,5 @@ class GutScoreRecord extends Equatable {
   };
 
   @override
-  List<Object?> get props => [id, uid, type, gutScore, avgScanScore, symptomPenalty, consistencyBonus, scansCount, mealsCount, symptomsCount, dailyScores, periodFrom, periodTo, createdAt];
+  List<Object?> get props => [id, uid, type, scansCount, mealsCount, symptomsCount, dailyScores, periodFrom, periodTo, createdAt];
 }

@@ -78,7 +78,8 @@ void main() {
       expect(
         instruction.length,
         lessThan(maxSystemChars),
-        reason: 'ai_proxy slices the system instruction to MAX_SYSTEM_CHARS. Anything above it is silently truncated, '
+        reason:
+            'ai_proxy slices the system instruction to MAX_SYSTEM_CHARS. Anything above it is silently truncated, '
             'cutting SCHEMA TYPE RULES / EVIDENCE-AWARE REASONING mid-sentence and producing malformed [GUTGOOD_DATA].',
       );
     });
@@ -138,7 +139,7 @@ void main() {
       expect(instruction.contains('ZERO PATTERN CASE'), isTrue, reason: 'The checklist references a ZERO PATTERN CASE; without a definition the model invents patterns from thin data.');
       expect(instruction, contains('Return status "ready" and emptyState null'));
       expect(instruction, contains('Generate a personalized topInsight'));
-      expect(instruction, contains('Keep detectedPatterns empty'));
+      expect(instruction, contains('Include observed food reactions'));
     });
 
     test('insights prompt v2 asks for data only (P2-10: Dart owns presentation)', () {

@@ -105,7 +105,6 @@ class ProfileNotifier with ChangeNotifier {
     _avgScoreSub = _historyFirestoreService.getAverageFoodScoreStream().listen((avg) {
       if (_avgFoodScore != avg) {
         _avgFoodScore = avg;
-        _syncScoreToProfile(avg);
         notifyListeners();
       }
     }, onError: (e) => AppLogger.error('ProfileNotifier: Avg score stream error', error: e));

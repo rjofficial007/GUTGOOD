@@ -59,7 +59,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-    appBar: const GutAppBar(title: AppStrings.goals),
+    appBar: const GutAppBar(title: AppStrings.goals, centerTitle: true),
     body: Column(
       children: [
         Expanded(

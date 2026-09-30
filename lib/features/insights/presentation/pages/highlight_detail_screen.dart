@@ -7,6 +7,7 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
+import 'package:gutgood/features/insights/presentation/pages/better_swaps_screen.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/occurrence_tile.dart';
@@ -37,9 +38,6 @@ class HighlightDetailScreen extends StatelessWidget {
     final v2 = context.v2Theme;
     final insight = _insightOf(context);
 
-    final headline = args.title.isNotEmpty ? args.title : 'Your gut score is steady.';
-    final bodyText = (args.body ?? '').isNotEmpty ? args.body! : 'Keep logging meals to track your gut health progress.';
-
     // Dynamic Series Resolution
     var series = args.chartValues;
     if (series.isEmpty && insight?.weeklyRecap?.gutScoreTrend != null && insight!.weeklyRecap!.gutScoreTrend!.isNotEmpty) {
@@ -64,6 +62,12 @@ class HighlightDetailScreen extends StatelessWidget {
     } else {
       diff = 0;
     }
+
+    final bool hasEnoughData = scoredSeries.length > 1 && diff != 0;
+    final appBarTitle = hasEnoughData ? 'YOUR PROGRESS' : 'BUILDING BASELINE';
+
+    final headline = hasEnoughData ? (args.title.isNotEmpty ? args.title : 'Your gut score is steady.') : 'Building baseline';
+    final bodyText = hasEnoughData ? ((args.body ?? '').isNotEmpty ? args.body! : 'Keep logging meals to track your gut health progress.') : 'We’re learning what works for you.';
 
     final isUp = diff >= 0;
     final absDiff = diff.abs();
@@ -90,7 +94,7 @@ class HighlightDetailScreen extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         slivers: [
           // Same GutSliverAppBar as other screens
-          GutSliverAppBar(title: 'IMPROVING TREND', centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
+          GutSliverAppBar(title: appBarTitle, centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
 
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 24.w),
@@ -568,17 +572,29 @@ class HighlightDetailScreen extends StatelessWidget {
     final insight = _insightOf(context);
     final pattern = insight?.detectedPatterns.where((p) => p.type.toLowerCase().contains('trigger') || p.reaction.isNotEmpty).firstOrNull;
 
-    final title = args.title.isNotEmpty ? args.title : 'No Triggers Detected';
-    final bodyText = (args.body ?? '').isNotEmpty ? args.body! : 'No trigger patterns observed. Continue logging meals to track how foods affect your gut.';
+    final foodName = pattern?.involvedFoods.isNotEmpty == true
+        ? pattern!.involvedFoods.first
+        : (pattern?.trigger.isNotEmpty == true ? pattern!.trigger : (args.title.isNotEmpty ? args.title : 'Food Item'));
 
     final occurrences = pattern?.occurrences ?? const <PatternOccurrence>[];
+    final observationCount = pattern != null && pattern.frequency > 0 ? pattern.frequency : (occurrences.isNotEmpty ? occurrences.length : 1);
+    final isSingleObservation = observationCount <= 1;
+
+    final reactionText = pattern?.reaction.isNotEmpty == true ? pattern!.reaction : 'Digestive discomfort';
+    final rawDelay = isSingleObservation ? 'Not enough data yet' : V2Data.reactionTime(insight ?? AIInsight(gutScore: 0, updatedAt: DateTime.now()), pattern);
+    final delayText = (rawDelay.toLowerCase() == 'n/a' || rawDelay == '—' || rawDelay.isEmpty) ? 'Still learning your patterns' : rawDelay;
+    final confidenceLabel = isSingleObservation ? 'Building' : '${(pattern != null && pattern.evidenceRatio > 0 ? pattern.evidenceRatio * 100 : 75).round()}%';
+
+    final title = isSingleObservation ? '$foodName → ${reactionText.toLowerCase()}' : (args.title.isNotEmpty ? args.title : 'Trigger Pattern');
+    final bodyText = isSingleObservation
+        ? 'You logged a ${reactionText.toLowerCase()} after eating this once. We\'re watching to see if it happens again.'
+        : ((args.body ?? '').isNotEmpty ? args.body! : 'Observed pattern between $foodName and $reactionText.');
 
     return Scaffold(
       backgroundColor: v2.scaffold,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // Same GutSliverAppBar as other screens
           GutSliverAppBar(title: 'TRIGGER DETAILS', centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
 
           SliverPadding(
@@ -586,23 +602,30 @@ class HighlightDetailScreen extends StatelessWidget {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // 1. HERO TRIGGER CARD
-                _buildTriggerHeroCard(context, title: title, bodyText: bodyText, pattern: pattern),
+                _buildTriggerHeroCard(
+                  context,
+                  foodName: foodName,
+                  title: title,
+                  bodyText: bodyText,
+                  pattern: pattern,
+                  isSingleObservation: isSingleObservation,
+                  observationCount: observationCount,
+                  reactionText: reactionText,
+                  delayText: delayText,
+                  confidenceLabel: confidenceLabel,
+                ),
                 Gap.h10,
 
-                // 2. RECENT OCCURRENCES SECTION
-                _buildRecentOccurrencesSection(context, occurrences: occurrences),
+                // 2. LATEST OBSERVATION SECTION
+                _buildLatestObservationSection(context, occurrences: occurrences),
                 Gap.h10,
 
-                // 3. OUR RECOMMENDATION (SMART SWAP) CARD
-                _buildRecommendationCard(context),
+                // 3. WHAT TO DO NEXT CARD
+                _buildWhatToDoNextCard(context),
                 Gap.h10,
 
-                // 4. RELATED TRIGGER FOODS SECTION
-                _buildRelatedTriggerFoodsSection(context),
-                Gap.h10,
-
-                // 5. GOOD TO KNOW TIP CARD
-                _buildGoodToKnowCard(context),
+                // 4. WANT A DIFFERENT OPTION? (Better Swaps)
+                _buildBetterSwapsOptionCard(context, foodName: foodName),
                 Gap.h12,
               ]),
             ),
@@ -613,10 +636,19 @@ class HighlightDetailScreen extends StatelessWidget {
   }
 
   /// 1. Hero Trigger Card ("Something to Watch") in Pattern Card Style
-  Widget _buildTriggerHeroCard(BuildContext context, {required String title, required String bodyText, required BodyPattern? pattern}) {
+  Widget _buildTriggerHeroCard(
+    BuildContext context, {
+    required String foodName,
+    required String title,
+    required String bodyText,
+    required BodyPattern? pattern,
+    required bool isSingleObservation,
+    required int observationCount,
+    required String reactionText,
+    required String delayText,
+    required String confidenceLabel,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final foodName = pattern?.involvedFoods.isNotEmpty == true ? pattern!.involvedFoods.first : (pattern?.trigger.isNotEmpty == true ? pattern!.trigger : title);
 
     final firstOccWithImage = pattern?.occurrences.firstWhere(
       (o) => o.imageUrl != null && o.imageUrl!.isNotEmpty,
@@ -625,29 +657,12 @@ class HighlightDetailScreen extends StatelessWidget {
 
     final foodImageUrl = V2Kit.foodImageUrl(foodName, imageUrl: firstOccWithImage?.imageUrl);
 
-    // Calculate confidence percentage
-    var confidencePct = 85;
-    if (pattern != null) {
-      if (pattern.evidenceRatio > 0) {
-        confidencePct = (pattern.evidenceRatio * 100).round();
-      } else if (pattern.confidenceScore > 0 && pattern.confidenceScore != 0.85) {
-        confidencePct = (pattern.confidenceScore * 100).round();
-      } else if (pattern.confidence.trim().isNotEmpty) {
-        final s = pattern.confidence.trim().replaceAll('%', '');
-        final d = double.tryParse(s);
-        if (d != null) confidencePct = d > 1.0 ? d.round() : (d * 100).round();
-      }
-    }
-
     final cardBg = isDark ? const Color(0xFF231416) : const Color(0xFFFFF8F6);
     final cardBorder = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5);
     final pillBg = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2);
     final pillFg = isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B);
 
-    final reactionText = pattern?.reaction.isNotEmpty == true ? pattern!.reaction : 'Reaction';
-    final frequencyText = pattern != null && pattern.frequency > 0 ? '${pattern.frequency}x' : '1x';
-    final insight = _insightOf(context);
-    final delayText = V2Data.reactionTime(insight ?? AIInsight(gutScore: 0, updatedAt: DateTime.now()), pattern);
+    final frequencyText = '$observationCount observation${observationCount == 1 ? '' : 's'}';
 
     return Container(
       decoration: BoxDecoration(
@@ -672,7 +687,6 @@ class HighlightDetailScreen extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left Column: Tag Pill, Headline Title, Description Body, Action Pill
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -691,7 +705,7 @@ class HighlightDetailScreen extends StatelessWidget {
                             Icon(LucideIcons.triangleAlert, size: 10.w, color: pillFg),
                             Gap.w4,
                             Text(
-                              'SOMETHING TO WATCH',
+                              isSingleObservation ? 'POSSIBLE CONNECTION' : 'SOMETHING TO WATCH',
                               style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: pillFg),
                             ),
                           ],
@@ -724,22 +738,12 @@ class HighlightDetailScreen extends StatelessWidget {
                       ),
                       Gap.h14,
 
-                      // Bottom CTA Pill
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'TRIGGER PATTERN ($confidencePct%)',
-                            style: TextStyle(
-                              fontFamily: InsightV2Theme.fontFamily,
-                              fontSize: 10.5.sp,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.6,
-                              color: context.insightColor(const Color(0xFF0F172A)),
-                            ),
-                          ),
-                        ],
-                      ),
+                      // Bottom message / Pill
+                      if (isSingleObservation)
+                        Text(
+                          '“Keep logging to see if this happens again.”',
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: pillFg, fontStyle: FontStyle.italic),
+                        ),
                     ],
                   ),
                 ),
@@ -773,7 +777,6 @@ class HighlightDetailScreen extends StatelessWidget {
           // Bottom Stats Bar (4 columns)
           Container(
             padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.w),
-
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -782,9 +785,9 @@ class HighlightDetailScreen extends StatelessWidget {
                     icon: LucideIcons.barChart2,
                     iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                    label: 'Occurrences',
+                    label: 'Observations',
                     value: frequencyText,
-                    subtext: pattern?.timeframeDays != null ? 'Last ${pattern!.timeframeDays} days' : 'Last 30 days',
+                    subtext: isSingleObservation ? 'Last 30 days' : (pattern?.timeframeDays != null ? 'Last ${pattern!.timeframeDays} days' : 'Last 30 days'),
                   ),
                 ),
                 Gap.w4,
@@ -808,7 +811,7 @@ class HighlightDetailScreen extends StatelessWidget {
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                     label: 'Typical Delay',
                     value: delayText,
-                    subtext: 'After eating',
+                    subtext: isSingleObservation ? 'Not enough data yet' : 'After eating',
                   ),
                 ),
                 Gap.w4,
@@ -819,8 +822,8 @@ class HighlightDetailScreen extends StatelessWidget {
                     iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                     label: 'Confidence',
-                    value: '$confidencePct%',
-                    subtext: 'Evidence score',
+                    value: confidenceLabel,
+                    subtext: isSingleObservation ? 'More logs needed' : 'Evidence score',
                   ),
                 ),
               ],
@@ -831,248 +834,198 @@ class HighlightDetailScreen extends StatelessWidget {
     );
   }
 
-  /// 2. Recent Occurrences Section
-  Widget _buildRecentOccurrencesSection(BuildContext context, {required List<PatternOccurrence> occurrences}) => Container(
-    padding: EdgeInsets.all(12.w),
-    decoration: BoxDecoration(
-      color: context.insightColor(Colors.white),
-      borderRadius: BorderRadius.circular(18.w),
-      border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
-    ),
-    child: Column(
+  /// 2. Latest Observation Section
+  Widget _buildLatestObservationSection(BuildContext context, {required List<PatternOccurrence> occurrences}) {
+    if (occurrences.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final latest = occurrences.first;
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              width: 28.w,
-              height: 28.w,
-              decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: Icon(LucideIcons.fileText, size: 14.w, color: context.insightColor(const Color(0xFF0F172A))),
-            ),
-            Gap.w8,
-            Expanded(
-              child: Text(
-                'Recent Occurrences',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-              ),
+            Row(
+              children: [
+                Container(
+                  width: 28.w,
+                  height: 28.w,
+                  decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+                  alignment: Alignment.center,
+                  child: Icon(LucideIcons.fileText, size: 14.w, color: context.insightColor(const Color(0xFF0F172A))),
+                ),
+                Gap.w8,
+                Text(
+                  'Latest Observation',
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                ),
+              ],
             ),
           ],
         ),
         Gap.h10,
-
-        // Timeline items
-        for (final o in occurrences.take(3)) ...[OccurrenceTile(occurrence: o), Gap.h8],
+        if (occurrences.length > 1)
+          for (final o in occurrences.take(3)) ...[OccurrenceTile(occurrence: o), Gap.h8]
+        else
+          OccurrenceTile(occurrence: latest),
       ],
-    ),
-  );
+    );
+  }
 
-  /// 3. Our Recommendation (Smart Swap) Card
-  Widget _buildRecommendationCard(BuildContext context) {
-    final veggiesUrl = V2Kit.foodImageUrl('Steamed Vegetables Bowl');
-
+  /// 3. What to do next Card
+  Widget _buildWhatToDoNextCard(BuildContext context) {
     return Container(
-      height: 140.w,
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
         color: context.insightColor(const Color(0xFFF4FAF5)),
         borderRadius: BorderRadius.circular(20.w),
         border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7)), width: 1.w),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Photo on Right
-          Positioned.fill(
-            child: Row(
-              children: [
-                const Spacer(flex: 4),
-                Expanded(
-                  flex: 4,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: veggiesUrl,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFF1F5F9))),
-                        errorWidget: (_, _, _) => Container(color: context.insightColor(const Color(0xFFDCFCE7))),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          Row(
+            children: [
+              Container(
+                width: 28.w,
+                height: 28.w,
+                decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Icon(LucideIcons.lightbulb, size: 14.w, color: context.insightColor(const Color(0xFF15803D))),
+              ),
+              Gap.w8,
+              Text(
+                'What to do next',
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+              ),
+            ],
           ),
-
-          // Angled Background Clipper
-          Positioned.fill(
-            child: ClipPath(
-              clipper: const _HeroAngledClipper(),
-              child: Container(color: context.insightColor(const Color(0xFFF4FAF5))),
-            ),
+          Gap.h8,
+          Text(
+            'Keep logging this food and how you feel afterward. A few more observations can help GutGood determine if there\'s a consistent pattern.',
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.3),
           ),
-
-          // Content Left
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 200.w,
-            child: Padding(
-              padding: EdgeInsets.all(12.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(4.w),
-                            decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), shape: BoxShape.circle),
-                            child: Icon(LucideIcons.leaf, size: 11.w, color: context.insightColor(const Color(0xFF15803D))),
-                          ),
-                          Gap.w6,
-                          Text(
-                            'Our Recommendation',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF15803D))),
-                          ),
-                        ],
-                      ),
-                      Gap.h6,
-                      Text(
-                        'Swap fried sides for roasted or steamed alternatives.',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A)), height: 1.25),
-                      ),
-                    ],
-                  ),
-
-                  GestureDetector(
-                    onTap: () => context.push(AppRoutes.swapDetail),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
-                      decoration: BoxDecoration(color: context.insightColor(const Color(0xFF0F172A)), borderRadius: BorderRadius.circular(16.w)),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Plan Better Swaps',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: Colors.white),
-                          ),
-                          Gap.w3,
-                          Icon(Icons.arrow_forward_rounded, size: 10.w, color: Colors.white),
-                        ],
-                      ),
+          Gap.h12,
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    context.push(AppRoutes.scannerPath('meal'));
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 14.w),
+                    decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(100.r)),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(LucideIcons.utensils, size: 14.w, color: Colors.white),
+                        Gap.w8,
+                        Text(
+                          'Log a Meal',
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+              Gap.w8,
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    context.push(AppRoutes.scannerPath('symptom'));
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 14.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(100.r),
+                      border: Border.all(color: context.insightColor(const Color(0xFFCBD5E1)), width: 1.w),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(LucideIcons.smile, size: 14.w, color: context.insightColor(const Color(0xFF0F172A))),
+                        Gap.w8,
+                        Text(
+                          'Log a Symptom',
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  /// 4. Related Trigger Foods Section
-  Widget _buildRelatedTriggerFoodsSection(BuildContext context) {
+  /// 4. Better Swaps Option Card ("Want a different option?")
+  Widget _buildBetterSwapsOptionCard(BuildContext context, {required String foodName}) {
     final insight = _insightOf(context);
-    final triggerFoods = insight?.triggerFoods ?? const <TriggerFood>[];
-    if (triggerFoods.isEmpty) return const SizedBox.shrink();
+    FoodSwap? matchingSwap;
+    final targetName = foodName.toLowerCase().trim();
+    for (final s in insight?.foodSwaps ?? <FoodSwap>[]) {
+      if (s.source.name.toLowerCase().trim() == targetName) {
+        matchingSwap = s;
+        break;
+      }
+    }
+    final swapObj =
+        matchingSwap ??
+        FoodSwap(
+          id: 'swap_${foodName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}',
+          source: SwapSource(foodId: 'food_trigger', name: foodName),
+          alternatives: [SwapAlternative(foodId: 'food_alt_01', name: 'Lighter $foodName alternative', reason: 'Try a lighter option and keep tracking how you feel afterward.')],
+        );
 
-    final relatedFoods = [for (final f in triggerFoods) _RelatedFoodData(title: f.name, subtitle: f.effect.isNotEmpty ? f.effect : 'Observed trigger food', imageKeyword: f.name)];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => BetterSwapsScreen(swap: swapObj)));
+      },
+      borderRadius: BorderRadius.circular(18.w),
+      child: Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: context.insightColor(const Color(0xFFF5F3FF)),
+          borderRadius: BorderRadius.circular(18.w),
+          border: Border.all(color: context.insightColor(const Color(0xFFE0E7FF)), width: 1.w),
+        ),
+        child: Row(
           children: [
             Container(
-              width: 28.w,
-              height: 28.w,
-              decoration: BoxDecoration(color: context.insightColor(const Color(0xFFEFF6FF)), shape: BoxShape.circle),
+              width: 36.w,
+              height: 36.w,
+              decoration: BoxDecoration(color: context.insightColor(const Color(0xFFE0E7FF)), shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.link, size: 14.w, color: context.insightColor(const Color(0xFF1D4ED8))),
+              child: Icon(LucideIcons.repeat, size: 16.w, color: context.insightColor(const Color(0xFF4F46E5))),
             ),
-            Gap.w8,
+            Gap.w12,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Related Trigger Foods',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                    'Want a different option?',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                   ),
+                  Gap.h2,
                   Text(
-                    'These foods often show similar patterns for you.',
+                    'Explore better swaps for this food and find options that may work better for you.',
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
                   ),
                 ],
               ),
             ),
+            Gap.w8,
+            Icon(LucideIcons.chevronRight, size: 16.w, color: context.insightColor(const Color(0xFF64748B))),
           ],
         ),
-        Gap.h8,
-
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: [
-              for (final f in relatedFoods) ...[_RelatedFoodCard(data: f), Gap.w8],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 5. Good to Know Card
-  Widget _buildGoodToKnowCard(BuildContext context) {
-    final insight = _insightOf(context);
-    final tipText = insight?.topTrigger?.effects.isNotEmpty == true
-        ? insight!.topTrigger!.effects
-        : (insight?.triggerTrend?.isNotEmpty == true ? insight!.triggerTrend! : 'Tracking food reactions helps identify patterns and improve your overall digestive well-being.');
-
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: context.insightColor(const Color(0xFFF4FAF5)),
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7)), width: 1.w),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28.w,
-            height: 28.w,
-            decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Icon(LucideIcons.lightbulb, size: 14.w, color: context.insightColor(const Color(0xFF15803D))),
-          ),
-          Gap.w10,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Good to Know',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF15803D))),
-                ),
-                Gap.h3,
-                Text(
-                  tipText,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF334155)), height: 1.3),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1317,13 +1270,15 @@ class _NextStepCard extends StatelessWidget {
           title,
           style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A)), height: 1.2),
         ),
-        Gap.h2,
-        Text(
-          body,
-          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.2),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
+        if (body.isNotEmpty && body.trim() != title.trim()) ...[
+          Gap.h2,
+          Text(
+            body,
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.2),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ],
     ),
   );
@@ -1374,79 +1329,6 @@ class _TriggerStatCol extends StatelessWidget {
       ],
     );
   }
-}
-
-class _RelatedFoodData {
-  const _RelatedFoodData({required this.title, required this.subtitle, required this.imageKeyword});
-  final String title;
-  final String subtitle;
-  final String imageKeyword;
-}
-
-class _RelatedFoodCard extends StatelessWidget {
-  const _RelatedFoodCard({required this.data});
-
-  final _RelatedFoodData data;
-
-  @override
-  Widget build(BuildContext context) {
-    final imgUrl = V2Kit.foodImageUrl(data.imageKeyword);
-
-    return Container(
-      width: 118.w,
-      padding: EdgeInsets.all(7.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF7),
-        borderRadius: BorderRadius.circular(14.w),
-        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10.w),
-            child: CachedNetworkImage(
-              imageUrl: imgUrl,
-              width: 104.w,
-              height: 64.w,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFF1F5F9))),
-              errorWidget: (_, _, _) => Container(color: const Color(0xFFFEE2E2)),
-            ),
-          ),
-          Gap.h5,
-          Text(
-            data.title,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Gap.h2,
-          Text(
-            data.subtitle,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: context.insightColor(const Color(0xFF64748B))),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroAngledClipper extends CustomClipper<Path> {
-  const _HeroAngledClipper();
-
-  @override
-  Path getClip(Size size) => Path()
-    ..moveTo(0, 0)
-    ..lineTo(size.width * 0.62, 0)
-    ..lineTo(size.width * 0.52, size.height)
-    ..lineTo(0, size.height)
-    ..close();
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
 class AlignedDayLabelsRow extends StatelessWidget {

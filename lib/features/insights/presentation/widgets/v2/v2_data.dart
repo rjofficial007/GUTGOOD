@@ -262,14 +262,14 @@ abstract final class V2Data {
   /// across the pattern's occurrences, else "—".
   static String reactionTime(AIInsight insight, BodyPattern? pattern) {
     final ai = insight.watch?.reactionTime;
-    if (ai != null && ai.isNotEmpty) return ai;
-    if (pattern == null || pattern.occurrences.isEmpty) return '—';
+    if (ai != null && ai.isNotEmpty && ai.toLowerCase() != 'n/a' && ai != '—') return ai;
+    if (pattern == null || pattern.occurrences.isEmpty) return 'Still learning your patterns';
     final counts = <String, int>{};
     for (final o in pattern.occurrences) {
       final t = o.timeAfter.trim();
-      if (t.isNotEmpty) counts[t] = (counts[t] ?? 0) + 1;
+      if (t.isNotEmpty && t.toLowerCase() != 'n/a' && t != '—') counts[t] = (counts[t] ?? 0) + 1;
     }
-    if (counts.isEmpty) return '—';
+    if (counts.isEmpty) return 'Still learning your patterns';
     final best = counts.entries.reduce((a, b) => a.value >= b.value ? a : b);
     return best.key;
   }

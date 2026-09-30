@@ -17,7 +17,8 @@ class OccurrenceTile extends StatelessWidget {
     final imgUrl = V2Kit.foodImageUrl(occurrence.mealName, imageUrl: occurrence.imageUrl);
 
     final dateStr = occurrence.dateLabel ?? occurrence.date;
-    final timeStr = occurrence.mealTime ?? occurrence.timeAfter;
+    final rawTime = occurrence.mealTime ?? occurrence.timeAfter;
+    final timeStr = (rawTime.toLowerCase() == 'n/a' || rawTime.trim().isEmpty) ? '' : rawTime;
     final reactionStr = occurrence.reaction.isNotEmpty ? occurrence.reaction : 'Symptom logged';
 
     final lowerReaction = reactionStr.toLowerCase();
@@ -40,20 +41,15 @@ class OccurrenceTile extends StatelessWidget {
         lowerReaction.contains('acid') ||
         lowerReaction.contains('distension');
 
-    final IconData statusIcon;
     final Color statusColor;
 
     if (isEnergy) {
-      statusIcon = LucideIcons.zap;
       statusColor = const Color(0xFFD97706); // Energetic amber/gold
     } else if (isPositive) {
-      statusIcon = LucideIcons.sparkles;
       statusColor = const Color(0xFF15803D); // Fresh green
     } else if (isNegative) {
-      statusIcon = LucideIcons.triangleAlert;
       statusColor = const Color(0xFFDC2626); // Warning red
     } else {
-      statusIcon = LucideIcons.activity;
       statusColor = const Color(0xFF475569); // Neutral slate
     }
 
@@ -99,7 +95,7 @@ class OccurrenceTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
 
-                // 2. Info Area (Meal Name & Symptom)
+                // 2. Info Area (Meal Name, Symptom, Date/Time)
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,54 +104,30 @@ class OccurrenceTile extends StatelessWidget {
                       // Meal Name
                       Text(
                         occurrence.mealName,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: context.insightColor(const Color(0xFF0F172A)), height: 1.2),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A)), height: 1.2),
+                      ),
+                      const SizedBox(height: 2),
+
+                      // Reaction / Symptom (Red/Status Color, no icon)
+                      Text(
+                        reactionStr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: context.insightColor(statusColor), height: 1.1),
                       ),
                       const SizedBox(height: 3),
 
-                      // Reaction / Symptom Subtitle
-                      Row(
-                        children: [
-                          Icon(statusIcon, size: 10, color: context.insightColor(statusColor)),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(
-                              reactionStr,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: context.insightColor(statusColor), height: 1.1),
-                            ),
-                          ),
-                        ],
+                      // Date & Time
+                      Text(
+                        timeStr.isNotEmpty ? '$dateStr • $timeStr' : dateStr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: context.insightColor(const Color(0xFF64748B)), height: 1.1),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-
-                // 3. Right Metadata (Date & Time)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Date Badge Pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: context.insightColor(const Color(0xFFF1F5F9)), borderRadius: BorderRadius.circular(8)),
-                      child: Text(
-                        dateStr,
-                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
-                      ),
-                    ),
-                    if (timeStr.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        timeStr,
-                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w500, color: context.insightColor(const Color(0xFF64748B))),
-                      ),
-                    ],
-                  ],
                 ),
 
                 // Trailing Chevron (if interactive)

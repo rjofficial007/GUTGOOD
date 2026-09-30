@@ -11,6 +11,9 @@ import 'package:gutgood/core/utils/image_hash.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/saved_food_key.dart';
 import 'package:uuid/uuid.dart';
+import 'package:gutgood/core/models/insights/gut_score_record.dart';
+import 'package:gutgood/core/services/firestore/gut_score_firestore_service.dart';
+import 'package:gutgood/core/services/gut_score_calculator_service.dart';
 
 abstract class HistoryFirestoreService {
   Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId});
@@ -45,7 +48,7 @@ abstract class HistoryFirestoreService {
   /// Returns -1 when the query itself failed (offline, permission, index) so
   /// callers can distinguish "no meals" from "unknown".
   Future<int> getMealLogsCountSince(DateTime since);
-  
+
   /// Count of symptom logs with `createdAt >= [since]`.
   Future<int> getSymptomLogsCountSince(DateTime since);
 
@@ -108,8 +111,64 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       // images and legacy timestamp uploads, which carry no hash).
       final hash = bestImageUrl == null ? null : imageHashFromFoodUrl(bestImageUrl);
       if (hash != null) await _foodImages.addLink(hash: hash, kind: FoodImageLinks.kindScan, id: finalScanId);
+
+      await _updateGutScoreRealTime();
     } catch (e) {
       AppLogger.firestore('Critical error saving to scan history', error: e);
+    }
+  }
+
+  Future<void> _updateGutScoreRealTime() async {
+    try {
+      final uid = _uid;
+      if (uid == null) return;
+
+      final now = DateTime.now();
+      final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+
+      final scans = await getRecentScans(since: thirtyDaysAgo);
+      final meals = await getRecentMealLogs(since: thirtyDaysAgo);
+      final symptoms = await getRecentSymptomLogs(since: thirtyDaysAgo);
+
+      const calculator = GutScoreCalculatorService();
+      final hasScore = calculator.hasScoreData(scans);
+      final avgScanScore = calculator.calculateAvgScanScore(scans);
+      final weeklyTrend = List<int>.from(calculator.calculateWeeklyTrend(scans: scans, symptoms: symptoms, meals: meals, endDate: now));
+      final displayScore = hasScore ? avgScanScore : 0;
+
+      final todayIndex = now.weekday % 7;
+      if (todayIndex >= 0 && todayIndex < weeklyTrend.length) {
+        weeklyTrend[todayIndex] = displayScore;
+      }
+
+      final startLocalDay = GutScoreCalculatorService.startOfLocalDay(now);
+      final sunday = startLocalDay.subtract(Duration(days: startLocalDay.weekday % 7));
+      final saturday = sunday.add(const Duration(days: 6));
+
+      int isoWeekOf(DateTime date) {
+        final local = date.toLocal();
+        final dayOfYear = DateTime(local.year, local.month, local.day).difference(DateTime(local.year)).inDays + 1;
+        return ((dayOfYear - local.weekday + 10) / 7).floor().clamp(1, 53);
+      }
+
+      final record = GutScoreRecord(
+        id: 'weekly_${now.year}_W${isoWeekOf(now)}',
+        uid: uid,
+        type: 'weekly',
+        scansCount: scans.length,
+        mealsCount: meals.length,
+        symptomsCount: symptoms.length,
+        dailyScores: weeklyTrend,
+        periodFrom: sunday.toUtc(),
+        periodTo: saturday.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1)).toUtc(),
+        createdAt: now.toUtc(),
+      );
+
+      final gutScoreService = GutScoreFirestoreServiceImpl(auth: _auth, db: _db);
+      await gutScoreService.saveGutScore(record);
+      AppLogger.firestore('HistoryFirestoreService: Real-time gut score updated ($displayScore) for both collections.');
+    } catch (e) {
+      AppLogger.firestore('Error updating real-time gut score', error: e);
     }
   }
 

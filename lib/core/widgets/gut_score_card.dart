@@ -192,10 +192,30 @@ class GutScoreCard extends StatelessWidget {
                                         ),
                                       ),
                                       Gap.w8,
-                                      Text(
-                                        d != null && d != 0 ? '${positive ? '↑ +' : '↓ '}$d pts this week' : band.label.toUpperCase(),
-                                        style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.2, color: ctaTextColor),
-                                      ),
+                                      Text(() {
+                                        if (shownSeries.isNotEmpty) {
+                                          final nonZeroIndices = <int>[];
+                                          for (var i = 0; i < shownSeries.length; i++) {
+                                            if (shownSeries[i] > 0) {
+                                              nonZeroIndices.add(i);
+                                            }
+                                          }
+                                          if (nonZeroIndices.length >= 2) {
+                                            final currentIndex = nonZeroIndices.last;
+                                            final previousIndex = nonZeroIndices[nonZeroIndices.length - 2];
+                                            final currentVal = shownSeries[currentIndex];
+                                            final prevVal = shownSeries[previousIndex];
+                                            final diff = (currentVal - prevVal).round();
+                                            if (diff > 0) return '↑ +$diff vs yesterday';
+                                            if (diff < 0) return '↓ $diff vs yesterday';
+                                            return 'No change vs yesterday';
+                                          }
+                                        }
+                                        if (d != null && d != 0 && shownSeries.length <= 1) {
+                                          return '${positive ? '↑ +' : '↓ '}$d pts';
+                                        }
+                                        return 'Great start today!';
+                                      }(), style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.2, color: ctaTextColor)),
                                     ],
                                   ),
                                 ],

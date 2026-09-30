@@ -130,7 +130,7 @@ class CycleTag extends Equatable {
 }
 
 class ProductSwap extends Equatable {
-  const ProductSwap({required this.title, required this.subtitle, required this.imageKeyword, this.imageUrl, required this.tag, this.badge, this.isBlackBadge = false, this.barcode, this.nutriscore});
+  const ProductSwap({required this.title, required this.subtitle, required this.imageKeyword, this.imageUrl, required this.tag, this.badge, this.isBlackBadge = false, this.barcode, this.nutriscore, this.benefits = const []});
 
   factory ProductSwap.fromMap(Map<String, dynamic> map) => ProductSwap(
     title: map['title']?.toString() ?? '',
@@ -144,6 +144,9 @@ class ProductSwap extends Equatable {
     // swap round-trips OFF grounding (echoed barcode + grade).
     barcode: map['barcode']?.toString(),
     nutriscore: map['nutriscore']?.toString(),
+    benefits: map['benefits'] is List 
+        ? (map['benefits'] as List).map((e) => e.toString()).toList() 
+        : (map['reason'] != null ? [map['reason'].toString()] : const []),
   );
   final String title;
   final String subtitle;
@@ -159,6 +162,8 @@ class ProductSwap extends Equatable {
   /// OFF Nutri-Score grade (a-e, lowercase) when the swap is grounded.
   final String? nutriscore;
 
+  final List<String> benefits;
+
   Map<String, dynamic> toMap() => {
     'title': title,
     'subtitle': subtitle,
@@ -169,8 +174,9 @@ class ProductSwap extends Equatable {
     'isBlackBadge': isBlackBadge ? 1 : 0,
     'barcode': barcode,
     'nutriscore': nutriscore,
+    'benefits': benefits,
   };
 
   @override
-  List<Object?> get props => [title, subtitle, tag, badge, imageUrl, barcode, nutriscore];
+  List<Object?> get props => [title, subtitle, tag, badge, imageUrl, barcode, nutriscore, benefits];
 }

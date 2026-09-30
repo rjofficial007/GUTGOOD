@@ -59,7 +59,7 @@ class _LifestyleScreenState extends State<LifestyleScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-    appBar: const GutAppBar(title: AppStrings.lifestyle),
+    appBar: const GutAppBar(title: AppStrings.lifestyle, centerTitle: true),
     body: Column(
       children: [
         Expanded(

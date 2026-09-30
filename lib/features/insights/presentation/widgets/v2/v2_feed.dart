@@ -295,7 +295,7 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
     var pos = balance?.positivePercent ?? 0;
     var neu = balance?.neutralPercent ?? 0;
     var neg = balance?.negativePercent ?? 0;
-    final periodLabel = balance?.periodLabel ?? 'Last 4 weeks';
+    final periodLabel = balance?.periodLabel ?? 'Last weeks';
 
     if (balance == null || (pos == 0 && neu == 0 && neg == 0)) {
       if (foodImpacts.isNotEmpty) {
@@ -320,7 +320,7 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
     if (pos == 0 && neu == 0 && neg == 0) {
       return Container(
         width: double.infinity,
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
           color: context.v2Theme.card,
           borderRadius: BorderRadius.circular(20.w),
@@ -331,18 +331,22 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(LucideIcons.leaf, size: 15.w, color: const Color(0xFF15803D)),
-                Gap.w6,
+                Container(
+                  padding: EdgeInsets.all(5.w),
+                  decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+                  child: Icon(LucideIcons.leaf, size: 14.w, color: const Color(0xFF15803D)),
+                ),
+                Gap.w8,
                 Text(
                   'Food Impact Balance',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                 ),
               ],
             ),
-            Gap.h4,
+            Gap.h8,
             Text(
               'No food impact balance data yet. Keep logging your meals and symptoms to track your food impact ratios.',
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: context.insightColor(const Color(0xFF64748B))),
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.3),
             ),
           ],
         ),
@@ -363,11 +367,11 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
     final negRatio = neg / 100.0;
 
     return Container(
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
         color: context.v2Theme.card,
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
+        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
         boxShadow: [BoxShadow(color: context.insightColor(const Color(0xFF0F172A)).withValues(alpha: 0.03), blurRadius: 8.w, offset: Offset(0, 2.w))],
       ),
       child: Column(
@@ -377,40 +381,42 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(5.w),
+                padding: EdgeInsets.all(6.w),
                 decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                child: Icon(LucideIcons.leaf, size: 13.w, color: const Color(0xFF15803D)),
+                child: Icon(LucideIcons.leaf, size: 14.w, color: const Color(0xFF15803D)),
               ),
               Gap.w8,
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Food Impact Balance',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-                  ),
-                  Text(
-                    'Your food choices over the $periodLabel.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Food Impact Balance',
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                    ),
+                    Text(
+                      'Your food choices over the $periodLabel.',
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          Gap.h10,
+          Gap.h12,
 
-          // Row with Donut Chart + Legend + Recommendation Box
+          // Row with Donut Chart + Legend
           Row(
             children: [
               // Donut Chart
               SizedBox(
-                width: 80.w,
-                height: 80.w,
+                width: 86.w,
+                height: 86.w,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     CustomPaint(
-                      size: Size(80.w, 80.w),
+                      size: Size(86.w, 86.w),
                       painter: _FoodImpactDonutPainter(positiveRatio: posRatio, neutralRatio: neuRatio, negativeRatio: negRatio),
                     ),
                     Column(
@@ -422,18 +428,17 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
                         ),
                         Text(
                           'Positive',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF64748B))),
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF64748B))),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              Gap.w10,
-
-              // Middle Legend
+              Spacer(),
+              // Legend items (Expanded)
               Column(
-                crossAxisAlignment: .start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _LegendItem(color: const Color(0xFF22C55E), percent: '$pos%', label: 'Positive', sub: 'Helping your gut'),
                   Gap.h6,
@@ -441,35 +446,6 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
                   Gap.h6,
                   _LegendItem(color: const Color(0xFFF87171), percent: '$neg%', label: 'Negative', sub: 'May trigger symptoms'),
                 ],
-              ),
-              Gap.w8,
-
-              // Right Message Box
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.all(10.w),
-                  decoration: BoxDecoration(color: context.insightColor(const Color(0xFFF0FDF4)), borderRadius: BorderRadius.circular(16.w)),
-                  child: Column(
-                    crossAxisAlignment: .start,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(4.w),
-                        decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                        child: Icon(LucideIcons.leaf, size: 11.w, color: const Color(0xFF15803D)),
-                      ),
-                      Gap.h4,
-                      Text(
-                        'More good food days ahead!',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.2),
-                      ),
-                      Gap.h3,
-                      Text(
-                        "You're making gut-friendly choices $pos% of the time.",
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF334155)), height: 1.25),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
@@ -1236,13 +1212,9 @@ class _ImprovingCardWidget extends StatelessWidget {
 
     final startVal = scoredSeries.length > 1
         ? scoredSeries.first.round().toString()
-        : (scoredSeries.length == 1
-            ? scoredSeries.single.round().toString()
-            : (data.current > 0 ? data.current.toString() : '—'));
+        : (scoredSeries.length == 1 ? scoredSeries.single.round().toString() : (data.current > 0 ? data.current.toString() : '—'));
 
-    final endVal = scoredSeries.isNotEmpty
-        ? scoredSeries.last.round().toString()
-        : (data.current > 0 ? data.current.toString() : '—');
+    final endVal = scoredSeries.isNotEmpty ? scoredSeries.last.round().toString() : (data.current > 0 ? data.current.toString() : '—');
 
     final headline = (data.headline.isNotEmpty && data.headline != 'Your gut score is on the move')
         ? data.headline
@@ -1251,8 +1223,8 @@ class _ImprovingCardWidget extends StatelessWidget {
     final description = (data.description.isNotEmpty && data.description != 'Keep logging meals and symptoms to sharpen this trend.')
         ? data.description
         : (scoredSeries.length < 2 && data.lastWeek == null
-            ? 'One recorded score sets a starting point. Another score will show whether it changed.'
-            : (data.description.isNotEmpty ? data.description : 'Keep logging meals and symptoms to track your gut health progress.'));
+              ? 'One recorded score sets a starting point. Another score will show whether it changed.'
+              : (data.description.isNotEmpty ? data.description : 'Keep logging meals and symptoms to track your gut health progress.'));
 
     return Container(
       decoration: BoxDecoration(
@@ -1296,7 +1268,7 @@ class _ImprovingCardWidget extends StatelessWidget {
                         Gap.w6,
                         Expanded(
                           child: Text(
-                            "What's Improving",
+                            'Your Progress',
                             style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D)),
                           ),
                         ),
@@ -1676,11 +1648,22 @@ class _TopFoodsSection extends StatelessWidget {
             ),
             Gap.w10,
             Expanded(
-              child: Text(
-                'Top Foods This Week',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Discover Your Top Foods',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                  ),
+                  Gap.h2,
+                  Text(
+                    'Log a few meals and we’ll start finding what works for you.',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: context.insightColor(const Color(0xFF64748B))),
+                  ),
+                ],
               ),
             ),
+            Gap.w8,
             GestureDetector(
               onTap: () => context.push(AppRoutes.scannerPath('meal')),
               child: Container(
@@ -1767,7 +1750,7 @@ class _FoodImpactDonutPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final strokeWidth = 10.w;
+    final strokeWidth = 5.w;
     final radius = (size.width - strokeWidth) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
 

@@ -45,10 +45,7 @@ class _CyclePhaseScreenState extends State<CyclePhaseScreen> {
 
     final notifier = context.read<ProfileNotifier>();
     if (notifier.profile != null) {
-      final updatedProfile = notifier.profile!.copyWith(
-        cyclePhase: phase,
-        updatedAt: DateTime.now(),
-      );
+      final updatedProfile = notifier.profile!.copyWith(cyclePhase: phase, updatedAt: DateTime.now());
       await notifier.updateUserProfile(updatedProfile);
     }
 
@@ -68,7 +65,7 @@ class _CyclePhaseScreenState extends State<CyclePhaseScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: const GutAppBar(title: AppStrings.cyclePhase),
+    appBar: const GutAppBar(title: AppStrings.cyclePhase, centerTitle: true),
     body: Column(
       children: [
         Expanded(
@@ -79,20 +76,12 @@ class _CyclePhaseScreenState extends State<CyclePhaseScreen> {
               children: [
                 const _PhaseHeader(),
                 Gap.h32,
-                SelectionWrap(
-                  options: _phaseOptions,
-                  selectedValues: _selectedPhase,
-                  onToggle: _togglePhase,
-                ),
+                SelectionWrap(options: _phaseOptions, selectedValues: _selectedPhase, onToggle: _togglePhase),
               ],
             ),
           ),
         ),
-        _PhaseFooter(
-          isLoading: _isSaving,
-          isEnabled: _selectedPhase.isNotEmpty,
-          onSave: _save,
-        ),
+        _PhaseFooter(isLoading: _isSaving, isEnabled: _selectedPhase.isNotEmpty, onSave: _save),
       ],
     ),
   );
@@ -105,30 +94,15 @@ class _PhaseHeader extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        AppStrings.selectCyclePhase,
-        style: context.title.copyWith(
-          fontWeight: FontWeight.w800,
-          fontSize: 18,
-        ),
-      ),
+      Text(AppStrings.selectCyclePhase, style: context.title.copyWith(fontWeight: FontWeight.w800, fontSize: 18)),
       Gap.h8,
-      Text(
-        AppStrings.cycleSyncDesc,
-        style: context.bodySm.copyWith(
-          color: context.appColorScheme.textSecondary,
-        ),
-      ),
+      Text(AppStrings.cycleSyncDesc, style: context.bodySm.copyWith(color: context.appColorScheme.textSecondary)),
     ],
   );
 }
 
 class _PhaseFooter extends StatelessWidget {
-  const _PhaseFooter({
-    required this.isLoading,
-    required this.isEnabled,
-    required this.onSave,
-  });
+  const _PhaseFooter({required this.isLoading, required this.isEnabled, required this.onSave});
 
   final bool isLoading;
   final bool isEnabled;
@@ -136,16 +110,7 @@ class _PhaseFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      AppSizes.p24,
-      AppSizes.p16,
-      AppSizes.p24,
-      AppSizes.p32,
-    ),
-    child: GutButton(
-      label: AppStrings.saveChanges,
-      isLoading: isLoading,
-      onTap: isEnabled ? onSave : null,
-    ),
+    padding: EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p16, AppSizes.p24, AppSizes.p32),
+    child: GutButton(label: AppStrings.saveChanges, isLoading: isLoading, onTap: isEnabled ? onSave : null),
   );
 }

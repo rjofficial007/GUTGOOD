@@ -110,7 +110,7 @@ class AIInsight extends Equatable {
       for (final item in rawActions) {
         if (item is String) {
           parsedActionStrings.add(item);
-          parsedActionObjects.add(InsightAction(id: 'act_${parsedActionObjects.length + 1}', title: item, description: item));
+          parsedActionObjects.add(InsightAction(id: 'act_${parsedActionObjects.length + 1}', title: item, description: ''));
         } else if (item is Map) {
           final actionObj = InsightAction.fromMap(Map<String, dynamic>.from(item));
           parsedActionObjects.add(actionObj);

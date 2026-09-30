@@ -4,12 +4,29 @@
 
 ---
 
+## 📚 Product & Technical Documentation Suite
+
+Comprehensive architecture, product specifications, design tokens, security guides, data models, and feature ticket backlogs are located in the [`docs/`](file:///Volumes/Data/SVN/gutgood_app/Source/gutgood_app/docs) directory:
+
+| Document | Description |
+|---|---|
+| **[📑 Docs Master Index](file:///Volumes/Data/SVN/gutgood_app/Source/gutgood_app/docs/README.md)** | Overview and index of all project documentation. |
+| **[1. Product Requirements Document (PRD)](file:///Volumes/Data/SVN/gutgood_app/Source/gutgood_app/docs/1_prd.md)** | Problem statement, target personas, core features, user flows, and key success metrics. |
+| **[2. Technical Architecture Specification](file:///Volumes/Data/SVN/gutgood_app/Source/gutgood_app/docs/2_technical_architecture.md)** | Engineering blueprint, directory layout, Firestore & SQLite database schemas, API contracts, and environment setup. |
+| **[3. Security & Access Specification](file:///Volumes/Data/SVN/gutgood_app/Source/gutgood_app/docs/3_security_and_access.md)** | Auth methods, atomic guest migration, roles, Firestore/Storage security rules, error resiliency, and registered decisions (R1–R9). |
+| **[4. Frontend & Integration Specification](file:///Volumes/Data/SVN/gutgood_app/Source/gutgood_app/docs/4_frontend_and_integration.md)** | Apple HIG design system port, Dynamic Type scale, `InterTight` bento typography, adaptive color tokens, and component contracts. |
+| **[5. Feature Ticket List](file:///Volumes/Data/SVN/gutgood_app/Source/gutgood_app/docs/5_feature_ticket_list.md)** | Actionable engineering backlog across 5 core Epics with acceptance criteria, dependencies, and priority levels. |
+| **[6. App Data & Information Architecture Spec](file:///Volumes/Data/SVN/gutgood_app/Source/gutgood_app/docs/APP_DATA_SPECIFICATION.md)** | Pure data models, JSON samples, information hierarchy, and data points required for AI UI/UX generation across all screens. |
+| **[🔥 Firebase Setup & Deployment Guide](file:///Volumes/Data/SVN/gutgood_app/Source/gutgood_app/docs/FIREBASE_SETUP_GUIDE.md)** | Step-by-step setup guide for Firebase Auth, Firestore rules, Storage rules, Secret Manager, and Cloud Functions deployment. |
+
+---
+
 ## ✨ Key Features
 
-* **💬 AI-Powered Chat Assistant:** Chat naturally about your meals, symptoms, and gut health with persistent history and real-time streaming responses.
+* **💬 AI-Powered Chat Assistant:** Chat naturally about your meals, symptoms, and gut health with persistent history and real-time streaming responses via Server-Sent Events (SSE).
 * **🏷️ Passive Logging:** Automatic extraction of `[MEAL]`, `[SYMPTOM]`, and `[SCAN]` data from chat conversations using advanced tag-parsing UseCases.
-* **📷 Hybrid Vision & Barcode Scanner:** Scan barcodes for instant nutrition data via Open Food Facts, or use Vision-AI to analyze ingredient labels and complex meal photos.
-* **🍽️ Restaurant Survival Mode:** Upload a menu photo to receive instant, gut-friendly recommendations tailored to your specific goals.
+* **📷 Hybrid Vision & Barcode Scanner:** Scan barcodes for instant nutrition data via Open Food Facts, or use Vision-AI to analyze ingredient labels, NOVA groups, and complex meal photos.
+* **🍽️ Restaurant Survival Mode:** Upload a menu photo to receive instant, gut-friendly recommendations tailored to your specific goals and sensitivities.
 * **🔄 Instant Food Swaps:** Receive personalized, healthier food alternatives based on your health profile and sensitivities.
 * **📊 Dynamic Insights Dashboard:** AI-driven analysis of your habits, correlating meals with symptoms to identify triggers and healing foods with historical trend accuracy.
 * **🧠 AI Personalization:** Deeply tailored recommendations and insights that evolve with your health journey, including biological "Body Rhythm" factors.
@@ -20,15 +37,15 @@
 
 ## 🛠 Tech Stack
 
-* **Framework:** [Flutter](https://flutter.dev/) (Dart)
-* **Navigation:** [GoRouter](https://pub.dev/packages/go_router) (StatefulShellRoute architecture)
-* **AI Engine:** [OpenAI API](https://openai.com/) (GPT-4o-mini / GPT-4o) via `openai_dart`
-* **Backend:** [Firebase](https://firebase.google.com/) (Auth, Firestore, Storage, Remote Config)
-* **Local Database:** `sqflite` (SQLite) for robust offline persistence
+* **Framework:** [Flutter](https://flutter.dev/) (Dart 3.11+)
+* **Navigation:** [GoRouter](https://pub.dev/packages/go_router) (`StatefulShellRoute` architecture)
+* **AI Engine:** [OpenAI API](https://openai.com/) (GPT-4o-mini / GPT-4o) via serverless `aiProxy` Cloud Function
+* **Backend:** [Firebase](https://firebase.google.com/) (Auth, Firestore, Storage, Remote Config, Cloud Functions, Messaging)
+* **Local Database:** `sqflite` (SQLite) for robust offline persistence and outbox queuing
 * **Image Handling:** `flutter_image_compress` & `cached_network_image`
 * **Monitoring:** Firebase Crashlytics & Analytics
-* **Subscriptions:** [RevenueCat](https://www.revenuecat.com/)
-* **State Management:** [Provider](https://pub.dev/packages/provider)
+* **Subscriptions:** [RevenueCat](https://www.revenuecat.com/) (`purchases_flutter`)
+* **State Management:** [Provider](https://pub.dev/packages/provider) + `GetIt` Service Locator
 * **Architecture:** Clean Architecture (Feature-First) with Repository & UseCase patterns
 
 ---
@@ -37,98 +54,88 @@
 
 ### 🧱 Clean Architecture
 The project follows a modular, feature-first structure ensuring high testability and separation of concerns:
-- **Presentation:** UI widgets, Notifiers (ChangeNotifier), and state management.
-- **Domain:** Pure business logic entities and UseCases (e.g., `ProcessChatTagUseCase`).
+- **Presentation:** UI widgets, Notifiers (`ChangeNotifier`), and state management.
+- **Domain:** Pure business logic entities and UseCases (e.g., `ProcessChatTagUseCase`, `ProcessChatComposerUseCase`).
 - **Data:** Repository implementations, data sources (Local SQLite + Remote Firestore), and DTO models.
 
 ### 🛡️ Security & Privacy
 - **Account Protection:** Guarded against "silent account switches" to prevent accidental data loss during social login merges.
-- **Atomic Data Merging:** Robust logic to migrate guest (anonymous) data to permanent accounts without loss.
+- **Atomic Data Merging:** Robust logic (`mergeAnonymousAccount` Cloud Function) to migrate guest (anonymous) data to permanent accounts without loss.
 - **Secure Nonces:** Apple Sign-In implements SHA-256 hashed nonces for identity verification.
-- **Safe Deletion:** Irreversible account deletion is sequenced to ensure authentication removal *before* data destruction, preventing unrecoverable data-loss states.
+- **Safe Deletion:** Irreversible account deletion is sequenced via `deleteAccount` to ensure authentication removal *before* data destruction, preventing unrecoverable data-loss states.
 
 ### 💰 Cost & Performance Optimization
-- **Vision Optimization:** Images are compressed locally and sent with specialized, lean vision instructions to minimize token usage and latency.
+- **Vision Optimization:** Images are compressed locally to max 1024px before transmission to minimize token usage and latency.
 - **Rolling Summarization:** Chat history uses a rolling summary approach, folding new information into existing context rather than re-processing full histories.
-- **Fair Metering:** Usage counters (chats/scans) only increment on confirmed successful operations, ensuring a fair experience for all users.
+- **Fair Metering:** Usage counters (chats/scans) only increment on confirmed successful operations, enforcing daily free quotas server-side.
 
 ---
 
 ## 🎨 Design System
 
-GutGood uses a centralized, unified component architecture to ensure UI consistency:
+GutGood uses a centralized, unified component architecture conforming to the Apple Human Interface Guidelines (HIG):
 
-* **Universal Scroll:** A unified `CustomScrollView` architecture across all screens ensures smooth, native-feeling scroll physics and eliminates "ghost scrolling" artifacts.
-* **Standardized App Bar:** Standardized `GutAppBar` components ensure a clean, cohesive visual identity.
+* **Universal Scroll:** A unified `CustomScrollView` architecture across all screens ensures smooth, native-feeling scroll physics.
+* **Standardized App Bar:** Standardized `GutAppBar` components with liquid frosted glass blur.
 * **Unified Input:** `GutTextField` manages all input decorations, focus states, and typography.
-* **Standardized Sections:** `GutSection` & `GutSectionCard` enforce a uniform layout pattern with optimized spacing.
-* **Visual Trends:** `GutTrendSparkline` provides lightweight, high-performance data visualization for health scores.
+* **Standardized Sections:** `GutSection` & `GutSectionCard` enforce a uniform 12pt rounded corner layout pattern with 0.5pt hairline borders.
+* **Bento Feed:** Custom modular bento grid utilizing `InterTight` typography for health score & body pattern visualizations.
 
 ---
 
-## 🚀 Production Readiness
-
-- **Observability:** Full integration with **Firebase Crashlytics** for real-time error reporting and **Analytics** for user funnel tracking.
-- **Diagnostic Logging:** A centralized `Log` utility that forwarded warnings and errors to Crashlytics in production while providing verbose debug info in development.
-- **Update Management:** Integrated with `upgrader` and **Remote Config** for automated update prompts and mandatory "Force Update" control.
-- **User Feedback:** Built-in **In-App Review** triggers to capture platform-native user feedback and improve store visibility.
-- **Accessibility:** 
-    - Unclamped **Dynamic Type** support allowing the app UI to scale with OS font settings.
-    - Integrated `Semantics` and `Tooltip` labels for screen reader compatibility.
-
----
-
-## 🚀 Getting Started
+## 🚀 Quick Start & Deployment
 
 ```bash
-# 1. Dependencies
+# 1. Install Flutter Dependencies
 flutter pub get
 
-# 2. Firebase wiring — generates lib/firebase_options.dart
+# 2. Configure Firebase
 dart pub global activate flutterfire_cli
-flutterfire configure            # select the Firebase project / platforms
+flutterfire configure            # Select project and target platforms
 
-# 3. Backend
+# 3. Deploy Cloud Functions & Database Security Rules
 cd functions
 npm ci
-firebase functions:secrets:set OPENAI_API_KEY   # never shipped to devices
-firebase deploy --only functions
-firebase deploy --only firestore:rules,firestore:indexes,storage
+npm run build
+firebase functions:secrets:set OPENAI_API_KEY   # Secret stored in Secret Manager
+firebase deploy --only functions,firestore:rules,storage
 cd ..
 
-# 4. Verify
-flutter analyze && flutter test
+# 4. Analyze & Run
+flutter analyze
+flutter run
 ```
 
-**Notes**
+---
 
-- `lib/firebase_options.dart` is generated and git-ignored. **Without it the project and the test suite will not compile** — step 2 is mandatory on a fresh clone.
-- Remote Config keys (defaults are safe if unset): `openai_model` (`gpt-4o-mini`), `ai_proxy_url`, `is_force_update`.
-- The OpenAI key lives in Secret Manager only; all AI traffic goes through the `aiProxy` Cloud Function.
-- Daily free-tier limits are enforced server-side (`functions/src/config.ts`).
-
-## 📂 Project Structure
+## 📂 Directory Structure
 
 ```text
-lib/
-├── core/                     # Core utilities and shared logic
-│   ├── constants/            # App-wide constants (Assets, Strings, Sizes)
-│   ├── database/             # Local database (SQLite) implementation
-│   ├── di/                   # Dependency injection (GetIt)
-│   ├── router/               # Centralized GoRouter configuration
-│   ├── services/             # Infrastructure services (AI, Sync, Notifications)
-│   ├── theme/                # Global theme, AppPalette, and ColorScheme
-│   ├── utils/                # Helper functions, extensions, and haptics
-│   └── widgets/              # Reusable UI components (Sections, Inputs, Buttons)
-├── features/                 # Feature-specific modules
-│   ├── auth/                 # Authentication & Onboarding
-│   ├── chat/                 # AI Assistant & Tag parsing UseCases
-│   ├── history/              # Scan history & Saved Foods
-│   ├── insights/             # Health analytics & Trend visualization
-│   ├── profile/              # User settings & Goals
-│   └── scanner/              # Barcode & Vision-AI scanning
-├── main.dart                 # App entry point
-└── firebase_options.dart      # Firebase configuration
+gutgood_app/
+├── docs/                     # Full Documentation Suite
+│   ├── README.md             # Docs Master Index
+│   ├── 1_prd.md              # Product Requirements Document
+│   ├── 2_technical_architecture.md
+│   ├── 3_security_and_access.md
+│   ├── 4_frontend_and_integration.md
+│   ├── 5_feature_ticket_list.md
+│   ├── APP_DATA_SPECIFICATION.md # Data & Information Architecture Specification
+│   └── FIREBASE_SETUP_GUIDE.md # Firebase Setup & Deployment Guide
+│
+├── functions/                # Firebase Cloud Functions (TypeScript)
+│   ├── src/
+│   │   ├── ai_proxy.ts       # OpenAI HTTPS proxy with streaming & quota guard
+│   │   ├── auth.ts           # Magic link & delete account callables
+│   │   ├── merge.ts          # Guest to permanent user account migration
+│   │   └── lifecycle.ts      # User lifecycle triggers & 14-day cron cleanup
+│   └── package.json
+│
+├── lib/                      # Flutter Application Codebase
+│   ├── core/                 # Shared utilities, services, theme, and core widgets
+│   ├── features/             # Feature modules (auth, chat, history, insights, scanner)
+│   └── main.dart             # Application entry point
+│
+└── firebase_options.dart     # Auto-generated Firebase configuration
 ```
 
 ---
