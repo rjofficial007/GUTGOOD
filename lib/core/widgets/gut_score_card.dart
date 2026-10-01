@@ -102,7 +102,6 @@ class GutScoreCard extends StatelessWidget {
     final shownSeries = series.length > 7 ? series.sublist(series.length - 7) : series;
     final shownLabels = labels.length > 7 ? labels.sublist(labels.length - 7) : labels;
 
-    final band = GutScoreBand.fromScore(clampedScore);
     final effectiveTitle = title ?? AppStrings.bentoScoreEyebrow;
     final radius = 20.w;
 

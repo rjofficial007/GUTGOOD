@@ -62,7 +62,7 @@ class GenerateInsightUseCase {
     DateTime lastRun;
 
     if (lastRunStr != null) {
-      lastRun = DateTimeUtils.parseToUtc(lastRunStr);
+      lastRun = DateTimeUtils.tryParse(lastRunStr)?.toUtc() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     } else {
       final latestCloud = await _insightRepository.getLatestInsight();
       lastRun = latestCloud?.updatedAt.toUtc() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
@@ -70,7 +70,7 @@ class GenerateInsightUseCase {
     }
 
     final nowUtc = DateTime.now().toUtc();
-    final isSameDay = lastRun.year == nowUtc.year && lastRun.month == nowUtc.month && lastRun.day == nowUtc.day;
+    final isSameDay = CheckInsightThresholdUseCase.isSameLocalDay(lastRun, nowUtc);
 
     if (isSameDay) {
       AppLogger.debug('GenerateInsightUseCase: Insight was already generated today ($lastRun). Skipping.');
@@ -89,7 +89,7 @@ class GenerateInsightUseCase {
     final userLifestyle = profile?.lifestyle ?? _prefs.getStringList('user_lifestyle') ?? [];
 
     final cycleSyncEnabled = profile?.cycleSyncEnabled ?? _prefs.getBool('cycle_sync_enabled') ?? false;
-    final cyclePhase = cycleSyncEnabled ? (profile?.cyclePhase ?? _prefs.getString('cycle_phase') ?? 'Luteal Phase') : 'Not specified';
+    final cyclePhase = cycleSyncEnabled ? (profile?.cyclePhase ?? _prefs.getString('cycle_phase') ?? 'Not specified') : 'Not specified';
 
     final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
     final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
@@ -99,7 +99,6 @@ class GenerateInsightUseCase {
       _insightRepository.getRecentSymptoms(thirtyDaysAgo),
       _insightRepository.getRecentScans(thirtyDaysAgo),
       _insightRepository.getInsightHistory(),
-      _insightRepository.getLatestPatterns(),
       _insightRepository.getRecentChat(thirtyDaysAgo),
     ]);
 
@@ -107,15 +106,13 @@ class GenerateInsightUseCase {
     final allSymptoms = dataStreams[1] as List<SymptomLog>;
     final allScans = dataStreams[2] as List<ScanResult>;
     final history = dataStreams[3] as List<AIInsight>;
-    final allChat = dataStreams[5] as List<ChatMessage>;
+    final allChat = dataStreams[4] as List<ChatMessage>;
 
     // Check if today's logs meet the exact daily threshold matching InsightBentoLearning:
     final now = DateTime.now();
-    final startOfToday = DateTime(now.year, now.month, now.day);
-
-    final todayMeals = allMeals.where((m) => m.createdAt.isAfter(startOfToday) || m.eventTime.isAfter(startOfToday)).length;
-    final todaySymptoms = allSymptoms.where((s) => s.createdAt.isAfter(startOfToday) || s.eventTime.isAfter(startOfToday)).length;
-    final todayScans = allScans.where((s) => s.createdAt.isAfter(startOfToday)).length;
+    final todayMeals = allMeals.where((m) => CheckInsightThresholdUseCase.isSameLocalDay(m.createdAt, now)).length;
+    final todaySymptoms = allSymptoms.where((s) => CheckInsightThresholdUseCase.isSameLocalDay(s.createdAt, now)).length;
+    final todayScans = allScans.where((s) => CheckInsightThresholdUseCase.isSameLocalDay(s.createdAt, now)).length;
 
     final todayFood = todayMeals + todayScans;
 
@@ -131,9 +128,9 @@ class GenerateInsightUseCase {
     final freshPatterns = await _patternEngineService.runAnalysis();
 
     // 🟢 TIERED JOURNALING: Split into High-Fidelity (7d) and Historical (8-30d)
-    final recentMeals = allMeals.where((m) => m.eventTime.isAfter(sevenDaysAgo)).toList();
-    final recentSymptoms = allSymptoms.where((s) => s.eventTime.isAfter(sevenDaysAgo)).toList();
-    final recentScans = allScans.where((s) => s.createdAt.isAfter(sevenDaysAgo)).toList();
+    final recentMeals = allMeals.where((m) => !m.eventTime.isBefore(sevenDaysAgo)).toList();
+    final recentSymptoms = allSymptoms.where((s) => !s.eventTime.isBefore(sevenDaysAgo)).toList();
+    final recentScans = allScans.where((s) => !s.createdAt.isBefore(sevenDaysAgo)).toList();
 
     final historicalMeals = allMeals.where((m) => m.eventTime.isBefore(sevenDaysAgo)).toList();
     final historicalSymptoms = allSymptoms.where((s) => s.eventTime.isBefore(sevenDaysAgo)).toList();
@@ -142,7 +139,7 @@ class GenerateInsightUseCase {
     final recentJournalText = _buildJournal.execute(meals: recentMeals, symptoms: recentSymptoms, scans: recentScans);
 
     String? historicalJournalSummary;
-    if (historicalMeals.isNotEmpty || historicalScans.isNotEmpty) {
+    if (historicalMeals.isNotEmpty || historicalScans.isNotEmpty || historicalSymptoms.isNotEmpty) {
       final historicalJournalText = _buildJournal.execute(meals: historicalMeals, symptoms: historicalSymptoms, scans: historicalScans);
       historicalJournalSummary = await _summarizeJournal.execute(historicalJournalText);
     }
@@ -151,7 +148,7 @@ class GenerateInsightUseCase {
     // list arrives newest-first, so the head — not the tail — is "recent").
     final recentChat = takeRecentChat(allChat);
 
-    final scoreList = history.take(6).toList().reversed.toList();
+    final scoreList = history.where((i) => i.hasGutScore).take(6).toList().reversed.toList();
     final scoreHistoryString = scoreList.map((i) => i.gutScore).join(', ');
     final lastScore = scoreList.isNotEmpty ? scoreList.last.gutScore : null;
 
@@ -178,7 +175,6 @@ class GenerateInsightUseCase {
     final weekMeals = recentMeals;
     final hasWeekScore = _gutScoreCalculatorService.hasScoreData(weekScans);
 
-    final exactScore = _gutScoreCalculatorService.calculateGutScore(scans: weekScans, symptoms: weekSymptoms, meals: weekMeals);
     final avgScanScore = _gutScoreCalculatorService.calculateAvgScanScore(weekScans);
     // Trend uses all loaded logs but buckets only the last 7 local days.
     final weeklyTrend = List<int>.from(_gutScoreCalculatorService.calculateWeeklyTrend(scans: allScans, symptoms: allSymptoms, meals: allMeals, endDate: endLocal));
@@ -238,7 +234,8 @@ class GenerateInsightUseCase {
     );
 
     // Save insight and notify user upon successful generation
-    await _insightRepository.saveInsight(stamped);
+    final scoreDiff = hasWeekScore && lastScore != null ? displayScore - lastScore : null;
+    await _insightRepository.saveInsight(stamped.copyWith(scoreDiff: scoreDiff == null ? '' : (scoreDiff >= 0 ? '+$scoreDiff' : '$scoreDiff')));
     await _prefs.setString(StorageKeys.lastInsightRun, DateTime.now().toUtc().toIso8601String());
 
     unawaited(
@@ -308,20 +305,6 @@ AIInsight stampInsightEnvelope(
     evidence: InsightEvidence.fromPatterns(candidates, sampleSizes: sampleSizes),
     status: status,
     actions: insight.actions.isNotEmpty ? insight.actions : (insight.topInsight?.nextSteps ?? const []),
-    emptyState: isInsufficient && insight.emptyState == null
-        ? InsightEmptyState(
-            reason: 'insufficient_data',
-            title: 'We\'re still learning about your gut',
-            description: 'Log a few more meals and symptoms to unlock personalized patterns.',
-            requirements: [
-              EmptyStateRequirement(key: 'meals', label: 'Meals logged', current: sampleSizes.meals, recommended: 10),
-              EmptyStateRequirement(key: 'symptoms', label: 'Symptoms logged', current: sampleSizes.symptoms, recommended: 3),
-              EmptyStateRequirement(key: 'scans', label: 'Food scans', current: sampleSizes.scans, recommended: 5),
-            ],
-            primaryAction: const EmptyStateAction(label: 'Log a meal', route: 'meal_log'),
-            secondaryAction: const EmptyStateAction(label: 'Track a symptom', route: 'symptom_log'),
-          )
-        : insight.emptyState,
     model: model,
     promptVersion: promptVersion,
     expiresAt: expiresAt,

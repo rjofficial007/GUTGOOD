@@ -142,7 +142,7 @@ class InsightBentoFeed extends StatelessWidget {
     }
 
     // 3. Watch Card (Trigger Alerts)
-    final trigger = data.topTrigger;
+    final trigger = data.validTopTrigger;
     if (trigger != null) {
       tiles.add(
         BentoTile(
@@ -319,98 +319,82 @@ class InsightBentoLearning extends StatelessWidget {
     final foodDone = currentFoodScans >= maxFoodScans;
     final symptomsDone = currentSymptoms >= maxSymptoms;
 
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, AppSizes.p16),
-        child: Center(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Top Centered Display Title (Matching Chat Empty State UI/UX)
+        Text('Your food.\nYour symptoms.\nYour insights.', style: context.displayMd.copyWith(height: 1.2, letterSpacing: -0.5), textAlign: TextAlign.center),
+        Gap.h16,
+
+        // Subtitle Paragraph
+        Text(
+          'Scan 3 food meals and log 1 symptom to build your baseline and unlock your insights.',
+          style: context.bodyLg.copyWith(color: scheme.textSecondary, height: 1.35),
+          textAlign: TextAlign.center,
+        ),
+        Gap.h24,
+
+        // 3-Grid Action Cards (Matching Chat Empty State Grid Layout)
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: AppSizes.p8,
+          mainAxisSpacing: AppSizes.p8,
+          childAspectRatio: 1.4,
+          children: [
+            _LearningCard(
+              icon: AppIcons.scan,
+              title: 'Scan food',
+              current: currentFoodScans,
+              total: maxFoodScans,
+              isDone: foodDone,
+              accentColor: scheme.textPrimary,
+              onTap: () => context.push(AppRoutes.scannerPath('meal')),
+            ),
+            _LearningCard(
+              icon: AppIcons.heart,
+              title: 'Track symptoms',
+              current: currentSymptoms,
+              total: maxSymptoms,
+              isDone: symptomsDone,
+              accentColor: scheme.textPrimary,
+              onTap: () => context.push(AppRoutes.scannerPath('symptom')),
+            ),
+          ],
+        ),
+        Gap.h20,
+
+        // Bottom Guidance Box (Matching Chat Component Container Style)
+        Container(
+          padding: EdgeInsets.all(AppSizes.p14),
+          decoration: BoxDecoration(
+            color: scheme.cardBackground,
+            borderRadius: BorderRadius.circular(AppSizes.r20),
+            border: Border.all(color: scheme.borderSubtle),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Centered Display Title (Matching Chat Empty State UI/UX)
-              Text('Your food.\nYour symptoms.\nYour score.', style: context.displayMd.copyWith(height: 1.12, letterSpacing: -0.5), textAlign: TextAlign.center),
-              Gap.h16,
-
-              // Subtitle Paragraph
-              Text(
-                'Scan 3 food meals and log 1 symptom to build your baseline and unlock your gut score trend.',
-                style: context.bodyLg.copyWith(color: scheme.textSecondary, height: 1.35),
-                textAlign: TextAlign.center,
-              ),
-              Gap.h24,
-
-              // 3-Grid Action Cards (Matching Chat Empty State Grid Layout)
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: AppSizes.p8,
-                mainAxisSpacing: AppSizes.p8,
-                childAspectRatio: 1,
-                children: [
-                  _LearningCard(
-                    icon: AppIcons.scan,
-                    title: 'Scan food',
-                    current: currentFoodScans,
-                    total: maxFoodScans,
-                    isDone: foodDone,
-                    accentColor: foodDone ? scheme.success : scheme.textPrimary,
-                    onTap: () => context.push(AppRoutes.scannerPath('meal')),
-                  ),
-                  _LearningCard(
-                    icon: AppIcons.heart,
-                    title: 'Track symptoms',
-                    current: currentSymptoms,
-                    total: maxSymptoms,
-                    isDone: symptomsDone,
-                    accentColor: symptomsDone ? scheme.success : scheme.textPrimary,
-                    onTap: () => context.push(AppRoutes.scannerPath('symptom')),
-                  ),
-                  // _LearningCard(
-                  //   icon: LucideIcons.lightbulb,
-                  //   title: 'Unlock\ninsights',
-                  //   current: (foodDone && symptomsDone) ? 1 : 0,
-                  //   total: 1,
-                  //   isDone: foodDone && symptomsDone,
-                  //   accentColor: (foodDone && symptomsDone) ? scheme.success : const Color(0xFFD97706),
-                  //   onTap: null,
-                  // ),
-                ],
-              ),
-              Gap.h20,
-
-              // Bottom Guidance Box (Matching Chat Component Container Style)
               Container(
-                padding: EdgeInsets.all(AppSizes.p14),
-                decoration: BoxDecoration(
-                  color: scheme.cardBackground,
-                  borderRadius: BorderRadius.circular(AppSizes.r20),
-                  border: Border.all(color: scheme.borderSubtle),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
-                ),
-                child: Row(
+                width: 28.w,
+                height: 28.w,
+                decoration: BoxDecoration(color: scheme.textPrimary.withValues(alpha: 0.08), shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Icon(LucideIcons.lightbulb, size: 14.w, color: scheme.textPrimary),
+              ),
+              Gap.w10,
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 28.w,
-                      height: 28.w,
-                      decoration: BoxDecoration(color: scheme.textPrimary.withValues(alpha: 0.08), shape: BoxShape.circle),
-                      alignment: Alignment.center,
-                      child: Icon(LucideIcons.lightbulb, size: 14.w, color: scheme.textPrimary),
-                    ),
-                    Gap.w10,
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Understanding Your Body', style: context.bodyBold.copyWith(fontSize: 12.sp)),
-                          Gap.h2,
-                          Text(
-                            'Your food logs are analyzed alongside symptoms to calculate your Gut Score and uncover tailored health patterns.',
-                            style: context.caption.copyWith(color: scheme.textSecondary, height: 1.35),
-                          ),
-                        ],
-                      ),
+                    Text('Understanding Your Body', style: context.bodyBold.copyWith(fontSize: 12.sp)),
+                    Gap.h2,
+                    Text(
+                      'Your food logs are analyzed alongside symptoms to calculate your Gut Score and uncover tailored health patterns.',
+                      style: context.caption.copyWith(color: scheme.textSecondary, height: 1.35),
                     ),
                   ],
                 ),
@@ -418,7 +402,7 @@ class InsightBentoLearning extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -437,7 +421,6 @@ class _LearningCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.appColorScheme;
-    final progress = (current / total).clamp(0.0, 1.0);
 
     return GestureDetector(
       onTap: onTap,
@@ -463,7 +446,7 @@ class _LearningCard extends StatelessWidget {
                 Container(
                   width: 40.w,
                   height: 40.w,
-                  decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.12), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.05), shape: BoxShape.circle),
                   child: Center(
                     child: Icon(icon, size: 20.w, color: accentColor),
                   ),
@@ -500,11 +483,6 @@ class _LearningCard extends StatelessWidget {
             ),
             Gap.h8,
             const Spacer(),
-            // Centered Progress Bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(100),
-              child: LinearProgressIndicator(value: progress, backgroundColor: scheme.borderSubtle, valueColor: AlwaysStoppedAnimation<Color>(accentColor), minHeight: 5.w),
-            ),
           ],
         ),
       ),

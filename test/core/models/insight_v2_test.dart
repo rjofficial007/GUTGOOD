@@ -31,6 +31,56 @@ BodyPattern _pattern({int timeframeDays = 30, int frequency = 5, double ratio = 
 AIInsight _insight({InsightSummary? top}) => AIInsight(gutScore: 72, topInsight: top, detectedPatterns: [_pattern()], updatedAt: DateTime.now());
 
 void main() {
+  test('baseline foods never become fabricated patterns, and kind is preserved', () {
+    final insight = AIInsight.fromMap(const {
+      'topInsight': {
+        'kind': 'progress',
+        'title': 'First logs',
+        'description': 'Oats and bloating logged.',
+        'involvedFoods': ['Oats'],
+      },
+      'healing': {
+        'foods': [
+          {'name': 'Oats'},
+        ],
+      },
+      'detectedPatterns': [],
+    });
+    expect(insight.detectedPatterns, isEmpty);
+    expect(insight.topInsight?.type, 'progress');
+    expect(AIInsight.fromMap(insight.toMap()).detectedPatterns, isEmpty);
+    expect(insight.healingSummary?.trend, isEmpty);
+    expect(TriggerSummary.fromMap(const {}).primarySymptom, isEmpty);
+  });
+
+  test('baseline summaries discard unsupported confidence and association counts', () {
+    final summary = InsightSummary.fromMap(const {'kind': 'progress', 'strength': 'Medium', 'frequency': 3, 'evidenceRatio': 0.9, 'positiveCount': 3, 'negativeCount': 0});
+    expect(summary.isBaseline, isTrue);
+    expect(summary.strength, isNull);
+    expect(summary.frequency, isNull);
+    expect(summary.evidenceRatio, isNull);
+    expect(summary.positiveCount, isNull);
+    expect(summary.negativeCount, isNull);
+    expect(InsightSummary.fromMap(summary.toMap()).isBaseline, isTrue);
+  });
+
+  test('deterministic score survives serialization over an older score summary', () {
+    final insight = AIInsight.fromMap(const {
+      'gutScore': {'score': 90, 'trend': '+4'},
+    }).copyWith(gutScore: 42);
+    expect(AIInsight.fromMap(insight.toMap()).gutScore, 42);
+  });
+
+  test('missing swap nutrition stays unknown through round-trip', () {
+    final alternative = SwapAlternative.fromMap(const {'name': 'Rice'});
+    final nutrition = SwapAlternative.fromMap(alternative.toMap()).nutrition;
+    expect(nutrition.calories, isNull);
+    expect(nutrition.protein, isNull);
+    expect(nutrition.totalFat, isNull);
+    expect(nutrition.fiber, isNull);
+    expect(SwapNutrition.fromMap(const {'calories': 123.0}).calories, 123);
+  });
+
   group('P2-10 presentation mapping (Dart-side)', () {
     test('emojiForFood resolves keywords case-insensitively with a default', () {
       expect(InsightPresentation.emojiForFood('Pepperoni Pizza'), '🍕');
@@ -246,6 +296,75 @@ void main() {
 
       final roundTripped = InsightEmptyState.fromMap(emptyState.toMap());
       expect(roundTripped, emptyState);
+    });
+
+    test('AIInsight.fromMap parses positive energy response JSON cleanly', () {
+      final jsonMap = {
+        'v': 2,
+        'model': 'gpt-4o-mini',
+        'promptVersion': 5,
+        'status': 'ready',
+        'origin': 'client',
+        'topInsight': {
+          'id': '1',
+          'title': 'Recent Meal Impact on Energy Levels',
+          'description': 'You reported feeling energetic after consuming Paneer Tikka Masala.',
+          'kind': 'progress',
+          'domain': 'energy',
+          'observation': 'Felt energetic after eating Paneer Tikka Masala.',
+          'involvedFoods': ['Paneer Tikka Masala'],
+          'strength': 'low',
+          'confidence': 0.5,
+          'frequency': 1,
+          'positiveCount': 1,
+          'negativeCount': 0,
+          'nextSteps': ['Continue to monitor your energy levels after meals.'],
+        },
+        'healing': {
+          'goal': 'Less bloating',
+          'trend': 'Improving energy levels with balanced meals.',
+          'topFoodId': 'paneer_tikka_masala',
+          'foods': [
+            {
+              'foodId': 'paneer_tikka_masala',
+              'name': 'Paneer Tikka Masala',
+              'effect': 'Boosts energy levels.',
+              'impactDirection': 'positive',
+              'impactLevel': 'high',
+              'confidence': 'medium',
+              'confidenceScore': 0.7,
+            },
+          ],
+        },
+        'triggers': {'primarySymptom': 'bloating', 'trend': 'No specific triggers identified yet.', 'topFoodId': '', 'foods': []},
+        'detectedPatterns': [
+          {
+            'id': '1',
+            'domain': 'energy',
+            'title': 'Positive Energy Response to Paneer Tikka Masala',
+            'trigger': 'Paneer Tikka Masala',
+            'reaction': 'Energetic feeling post-meal.',
+            'frequency': 1,
+            'confidence': 'medium',
+            'confidenceScore': 0.7,
+            'impactDirection': 'positive',
+            'impactLevel': 'high',
+            'commonFactors': [
+              {'label': 'High Protein', 'icon': 'protein'},
+            ],
+          },
+        ],
+        'foodImpactBalance': {'positivePercent': 100, 'neutralPercent': 0, 'negativePercent': 0, 'periodLabel': 'Last 7 days'},
+      };
+
+      final insight = AIInsight.fromMap(jsonMap);
+
+      expect(insight.topInsight?.title, 'Recent Meal Impact on Energy Levels');
+      expect(insight.healingSummary?.foods.first.name, 'Paneer Tikka Masala');
+      expect(insight.detectedPatterns.first.trigger, 'Paneer Tikka Masala');
+      expect(insight.detectedPatterns.first.impactDirection, 'positive');
+      expect(insight.foodImpactBalance?.positivePercent, 100);
+      expect(insight.triggerSummary?.foods, isEmpty);
     });
 
     test('AIInsight.fromMap parses gutScore whether Map or num', () {

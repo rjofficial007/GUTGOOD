@@ -31,8 +31,8 @@ void main() {
     testWidgets('renders pattern title, percentage and confidence pill', (tester) async {
       await tester.pumpWidget(createTestWidget(ArcPatternCard(pattern: testPattern)));
 
-      expect(find.text('Headache'), findsOneWidget);
-      expect(find.text('85%'), findsOneWidget);
+      expect(find.text('Sodium'), findsOneWidget);
+      expect(find.text('85% match'), findsOneWidget);
       expect(find.text('Confidence level'), findsOneWidget);
       expect(find.text('High'), findsOneWidget);
     });
@@ -60,8 +60,8 @@ void main() {
       await tester.pumpWidget(createTestWidget(PatternCarouselWidget(patterns: [testPattern])));
 
       expect(find.byType(ArcPatternCard), findsOneWidget);
-      expect(find.text('Headache'), findsOneWidget);
-      expect(find.text('85%'), findsOneWidget);
+      expect(find.text('Sodium'), findsOneWidget);
+      expect(find.text('85% match'), findsOneWidget);
     });
   });
 }

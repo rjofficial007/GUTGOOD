@@ -60,7 +60,9 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
-    await _insightFirestoreService.saveInsights(insight);
+    final id = await _insightFirestoreService.saveInsights(insight);
+    if (id == null) throw StateError('Insight could not be saved');
+    await _prefs.setString(StorageKeys.gutgoodInsightsCache, ModelUtils.safeJsonEncode(insight.toMap()));
   }
 
   @override
@@ -193,37 +195,42 @@ class InsightRepositoryImpl implements InsightRepository {
         scoreHistory: scoreHistory,
         preComputedPatternCandidates: preComputedPatternCandidates,
       );
-      Map<String, dynamic>? accepted;
+      AIInsight? accepted;
       for (var attempt = 0; attempt < 2; attempt++) {
         final response = await _aiService.generateContent(
           prompt: attempt == 0
               ? prompt
-              : '$prompt\nCORRECTION: The previous response was an empty or insufficient baseline. Eligibility is already met. Return ready with a concrete food and symptom summary and personalized nextSteps. Do not fabricate patterns.',
+              : '$prompt\nCORRECTION: The previous response was invalid or incomplete. Return a valid JSON object matching the schema, with status ready, a concrete food and symptom summary, and non-empty string nextSteps. Do not fabricate evidence.',
           promptVersion: AiVersions.insightPromptVersion,
         );
-        final jsonStr = ModelUtils.extractJson(response);
-        if (jsonStr == null) continue;
-        final decoded = Map<String, dynamic>.from(jsonDecode(jsonStr) as Map);
-        if (isUsableInsightResponse(decoded)) {
-          accepted = decoded;
+        try {
+          final jsonStr = ModelUtils.extractJson(response);
+          if (jsonStr == null) continue;
+          final decoded = jsonDecode(jsonStr);
+          if (decoded is! Map<String, dynamic> || !isUsableInsightResponse(decoded)) {
+            continue;
+          }
+          if (patternCandidates.isEmpty) {
+            decoded['topInsight'] = {...Map<String, dynamic>.from(decoded['topInsight'] as Map), 'kind': 'progress'};
+            for (final field in ['healing', 'triggers', 'topHealing', 'topTrigger', 'foodImpactBalance', 'improving', 'watch', 'smartSwap']) {
+              decoded[field] = null;
+            }
+            for (final field in ['healingFoods', 'triggerFoods', 'foodImpacts', 'foodSwaps']) {
+              decoded[field] = <dynamic>[];
+            }
+          }
+          accepted = AIInsight.fromMap(decoded).copyWith(detectedPatterns: patternCandidates);
           break;
+        } on FormatException {
+          // Malformed JSON gets the same single retry as an empty response.
+        } on TypeError {
+          // Reject incompatible nested model fields before caching anything.
         }
       }
       if (accepted == null) {
-        throw const FormatException(
-          'AI returned an empty baseline instead of a personalized insight',
-        );
+        throw const FormatException('AI returned an invalid or empty personalized insight');
       }
-      final decoded = accepted;
-      final rawGutScore = decoded['gutScore'];
-      final newScore = rawGutScore is Map<String, dynamic>
-          ? ((rawGutScore['score'] as num?)?.toInt() ?? 0)
-          : ((rawGutScore as num?)?.toInt() ?? 0);
-      if (lastScore != null) {
-        final diff = newScore - lastScore;
-        decoded['scoreDiff'] = diff >= 0 ? '+$diff' : '$diff';
-      }
-      var insight = AIInsight.fromMap(decoded);
+      var insight = accepted;
 
       // Enrich synthesized insight with user's uploaded food photos
       insight = await _enrichInsightWithUserPhotos(insight);
@@ -231,7 +238,6 @@ class InsightRepositoryImpl implements InsightRepository {
       final duration = DateTime.now().difference(startTime).inSeconds;
       await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
 
-      await _prefs.setString(StorageKeys.gutgoodInsightsCache, ModelUtils.safeJsonEncode(insight.toMap()));
       return insight;
     } catch (e, st) {
       AppLogger.error('InsightRepo: AI Analysis failed', error: e);
@@ -357,16 +363,20 @@ class InsightRepositoryImpl implements InsightRepository {
 
 /// Reject empty baseline responses before they reach the cache or persistence.
 bool isUsableInsightResponse(Map<String, dynamic> data) {
+  final recap = data['weeklyRecap'];
+  if (recap is Map && recap['foodsLogged'] == 0) return false;
   final top = data['topInsight'];
   if (data['status'] != 'ready' || top is! Map) return false;
+  final title = top['title'];
   final description = top['description'];
   final steps = top['nextSteps'];
-  return description is String &&
+  return title is String &&
+      title.trim().isNotEmpty &&
+      description is String &&
       description.trim().isNotEmpty &&
-      !description.toLowerCase().contains(
-        'synthesize a personalized summary',
-      ) &&
+      !description.toLowerCase().contains('synthesize a personalized summary') &&
       top['title'] != 'Baseline Assessment Complete' &&
       steps is List &&
-      steps.any((step) => step is String && step.trim().isNotEmpty);
+      steps.isNotEmpty &&
+      steps.every((step) => step is String && step.trim().isNotEmpty);
 }

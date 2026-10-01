@@ -58,7 +58,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
                 Gap.h10,
 
                 // 3. THE EVIDENCE DASHBOARD
-                _buildTheEvidenceCard(context, evidenceRatio: evidenceRatio, frequency: frequency, symptomLogs: positiveCount, normalLogs: negativeCount),
+                if (!insight.isBaseline) _buildTheEvidenceCard(context, evidenceRatio: evidenceRatio, frequency: frequency, symptomLogs: positiveCount, normalLogs: negativeCount),
                 Gap.h10,
 
                 // 4. INVOLVED FOODS SECTION
@@ -66,11 +66,11 @@ class SmartInsightDetailScreen extends StatelessWidget {
                 Gap.h10,
 
                 // 5. OCCURRENCES TIMELINE & COMMON FACTORS CARD
-                _buildOccurrencesTimelineCard(context),
+                if (!insight.isBaseline) _buildOccurrencesTimelineCard(context),
                 Gap.h10,
 
                 // 6. RELATED PATTERNS SECTION
-                _buildRelatedPatternsSection(context),
+                if (!insight.isBaseline) _buildRelatedPatternsSection(context),
                 Gap.h10,
 
                 // 7. SPLIT GRID: YOUR NEXT STEPS & SUPPORTING EVIDENCE
@@ -105,7 +105,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
     final title = insight.title.isNotEmpty ? insight.title : 'Top Insight Discovery';
     final descStr = insight.description.trim();
 
-    final confidenceLabel = (insight.strength ?? 'HIGH').toUpperCase();
+    final confidenceLabel = insight.isBaseline ? 'BASELINE SUMMARY' : (insight.strength?.trim().isNotEmpty == true ? '${insight.strength!.toUpperCase()} CONFIDENCE' : 'CONFIDENCE NOT AVAILABLE');
     const heroColor = Color(0xFF6F67DD);
 
     return Container(
@@ -157,7 +157,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
                           ),
                           Gap.w5,
                           Text(
-                            '$confidenceLabel CONFIDENCE',
+                            confidenceLabel,
                             style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
                           ),
                         ],
@@ -173,53 +173,53 @@ class SmartInsightDetailScreen extends StatelessWidget {
               width: 138.w,
               child: Stack(
                 children: [
-                Positioned.fill(
-                  child: ShaderMask(
-                    shaderCallback: (rect) => const LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [Colors.transparent, Colors.white24, Colors.white],
-                      stops: [0.0, 0.28, 0.65],
-                    ).createShader(rect),
-                    blendMode: BlendMode.dstIn,
-                    child: CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      placeholder: (_, _) => Container(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        child: Center(
-                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.5), size: 28.w),
-                        ),
-                      ),
-                      errorWidget: (_, _, _) => Container(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        child: Center(
-                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.7), size: 28.w),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                  Positioned.fill(
+                    child: ShaderMask(
+                      shaderCallback: (rect) => const LinearGradient(
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
-                        colors: [heroColor, heroColor.withValues(alpha: 0.55), heroColor.withValues(alpha: 0.0)],
-                        stops: const [0.0, 0.35, 1.0],
+                        colors: [Colors.transparent, Colors.white24, Colors.white],
+                        stops: [0.0, 0.28, 0.65],
+                      ).createShader(rect),
+                      blendMode: BlendMode.dstIn,
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        placeholder: (_, _) => Container(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          child: Center(
+                            child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.5), size: 28.w),
+                          ),
+                        ),
+                        errorWidget: (_, _, _) => Container(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          child: Center(
+                            child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.7), size: 28.w),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [heroColor, heroColor.withValues(alpha: 0.55), heroColor.withValues(alpha: 0.0)],
+                          stops: const [0.0, 0.35, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   /// 2. "What We Observed" Card

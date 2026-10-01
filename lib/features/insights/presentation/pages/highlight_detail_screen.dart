@@ -63,8 +63,9 @@ class HighlightDetailScreen extends StatelessWidget {
       diff = 0;
     }
 
-    final bool hasEnoughData = scoredSeries.length > 1 && diff != 0;
+    final hasEnoughData = scoredSeries.length > 1 && diff != 0;
     final appBarTitle = hasEnoughData ? 'YOUR PROGRESS' : 'BUILDING BASELINE';
+    final tagLabel = hasEnoughData ? 'Your Progress' : 'Building Baseline';
 
     final headline = hasEnoughData ? (args.title.isNotEmpty ? args.title : 'Your gut score is steady.') : 'Building baseline';
     final bodyText = hasEnoughData ? ((args.body ?? '').isNotEmpty ? args.body! : 'Keep logging meals to track your gut health progress.') : 'We’re learning what works for you.';
@@ -127,7 +128,7 @@ class HighlightDetailScreen extends StatelessWidget {
                                 Icon(LucideIcons.leaf, size: 10.w, color: context.insightColor(badgeTextColor)),
                                 Gap.w4,
                                 Text(
-                                  args.tag.isNotEmpty ? args.tag : 'Gut Barrier Score',
+                                  (args.tag == 'Healing Trend' || args.tag == 'Improving Trend' || args.tag.isEmpty) ? tagLabel : args.tag,
                                   style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: context.insightColor(badgeTextColor)),
                                 ),
                               ],
@@ -139,12 +140,12 @@ class HighlightDetailScreen extends StatelessWidget {
 
                       Text(
                         headline,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                       ),
                       Gap.h3,
                       Text(
                         bodyText,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: context.insightColor(const Color(0xFF475569)), height: 1.25),
+                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: v2.textSecondary, height: 1.25),
                       ),
                       Gap.h12,
 
@@ -251,6 +252,8 @@ class HighlightDetailScreen extends StatelessWidget {
 
   /// 2. What's Contributing? Section
   Widget _buildWhatsContributingSection(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final insight = _insightOf(context);
     final foods = insight?.healingSummary?.foods.isNotEmpty == true
         ? insight!.healingSummary!.foods
@@ -268,9 +271,9 @@ class HighlightDetailScreen extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.sparkles, size: 14.w, color: const Color(0xFF15803D)),
+              child: Icon(LucideIcons.sparkles, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
             ),
             Gap.w8,
             Expanded(
@@ -279,11 +282,11 @@ class HighlightDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     "What's Contributing?",
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                   ),
                   Text(
                     'These foods and habits are making a real difference.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
                   ),
                 ],
               ),
@@ -339,6 +342,8 @@ class HighlightDetailScreen extends StatelessWidget {
 
   /// 3. Weekly Stats Section
   Widget _buildWeeklyStatsSection(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final insight = _insightOf(context);
     final recap = insight?.weeklyRecap;
     final trend = recap?.gutScoreTrend ?? const <int>[];
@@ -358,9 +363,9 @@ class HighlightDetailScreen extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.barChart2, size: 14.w, color: const Color(0xFF15803D)),
+              child: Icon(LucideIcons.barChart2, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
             ),
             Gap.w8,
             Expanded(
@@ -369,11 +374,11 @@ class HighlightDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Weekly Stats',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                   ),
                   Text(
                     'Your progress at a glance.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
                   ),
                 ],
               ),
@@ -423,60 +428,67 @@ class HighlightDetailScreen extends StatelessWidget {
   }
 
   /// 4. Progress Highlights Section
-  Widget _buildProgressHighlightsSection(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          Container(
-            width: 28.w,
-            height: 28.w,
-            decoration: const BoxDecoration(color: Color(0xFFFEF3C7), shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Icon(LucideIcons.star, size: 14.w, color: const Color(0xFFB45309)),
-          ),
-          Gap.w8,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Progress Highlights',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-                ),
-                Text(
-                  'Real changes, real results.',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      Gap.h8,
+  Widget _buildProgressHighlightsSection(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-      Row(
-        children: [
-          const Expanded(
-            child: _HighlightBox(icon: LucideIcons.leaf, iconBg: Color(0xFFDCFCE7), iconColor: Color(0xFF15803D), title: 'Logged meals consistently this week.', subtitle: 'Great logging habit!'),
-          ),
-          Gap.w8,
-          const Expanded(
-            child: _HighlightBox(
-              icon: LucideIcons.arrowDown,
-              iconBg: Color(0xFFDCFCE7),
-              iconColor: Color(0xFF15803D),
-              title: 'Tracking symptoms and food impacts.',
-              subtitle: 'Building your baseline!',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 28.w,
+              height: 28.w,
+              decoration: BoxDecoration(color: isDark ? const Color(0xFFD97706).withValues(alpha: 0.2) : const Color(0xFFFEF3C7), shape: BoxShape.circle),
+              alignment: Alignment.center,
+              child: Icon(LucideIcons.star, size: 14.w, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309)),
             ),
-          ),
-        ],
-      ),
-    ],
-  );
+            Gap.w8,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Progress Highlights',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
+                  ),
+                  Text(
+                    'Real changes, real results.',
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Gap.h8,
+
+        Row(
+          children: [
+            const Expanded(
+              child: _HighlightBox(icon: LucideIcons.leaf, iconBg: Color(0xFFDCFCE7), iconColor: Color(0xFF15803D), title: 'Logged meals consistently this week.', subtitle: 'Great logging habit!'),
+            ),
+            Gap.w8,
+            const Expanded(
+              child: _HighlightBox(
+                icon: LucideIcons.arrowDown,
+                iconBg: Color(0xFFDCFCE7),
+                iconColor: Color(0xFF15803D),
+                title: 'Tracking symptoms and food impacts.',
+                subtitle: 'Building your baseline!',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
   /// 5. Recommended Next Steps Section
   Widget _buildNextStepsSection(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final insight = _insightOf(context);
     final actions = insight?.actionsList ?? const [];
 
@@ -492,9 +504,9 @@ class HighlightDetailScreen extends StatelessWidget {
             Container(
               width: 28.w,
               height: 28.w,
-              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.leaf, size: 14.w, color: const Color(0xFF15803D)),
+              child: Icon(LucideIcons.leaf, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
             ),
             Gap.w8,
             Expanded(
@@ -503,11 +515,11 @@ class HighlightDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Recommended Next Steps',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                   ),
                   Text(
                     'Keep the momentum going.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
                   ),
                 ],
               ),
@@ -531,40 +543,45 @@ class HighlightDetailScreen extends StatelessWidget {
   }
 
   /// 6. Bottom Encouragement Quote Card ("Keep going!")
-  Widget _buildKeepGoingBanner(BuildContext context) => Container(
-    padding: EdgeInsets.all(12.w),
-    decoration: BoxDecoration(
-      color: context.insightColor(const Color(0xFFF4FAF5)),
-      borderRadius: BorderRadius.circular(16.w),
-      border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7)), width: 1.w),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '“',
-          style: TextStyle(fontFamily: InsightV2Theme.displayFont, fontSize: 28.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF15803D)), height: 1.0),
-        ),
-        Gap.w6,
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Keep going!',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF15803D))),
-              ),
-              Gap.h2,
-              Text(
-                "You're building healthier habits, and your gut thanks you.",
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF334155)), height: 1.25),
-              ),
-            ],
+  Widget _buildKeepGoingBanner(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF102319) : const Color(0xFFF4FAF5),
+        borderRadius: BorderRadius.circular(16.w),
+        border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.3) : const Color(0xFFDCFCE7), width: 1.w),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '“',
+            style: TextStyle(fontFamily: InsightV2Theme.displayFont, fontSize: 28.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D), height: 1.0),
           ),
-        ),
-      ],
-    ),
-  );
+          Gap.w6,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Keep going!',
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
+                ),
+                Gap.h2,
+                Text(
+                  "You're building healthier habits, and your gut thanks you.",
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary, height: 1.25),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   /// Trigger / Something to Watch Detail screen
   Widget _buildTriggerDetail(BuildContext context) {
@@ -582,7 +599,7 @@ class HighlightDetailScreen extends StatelessWidget {
 
     final reactionText = pattern?.reaction.isNotEmpty == true ? pattern!.reaction : 'Digestive discomfort';
     final rawDelay = isSingleObservation ? 'Not enough data yet' : V2Data.reactionTime(insight ?? AIInsight(gutScore: 0, updatedAt: DateTime.now()), pattern);
-    final delayText = (rawDelay.toLowerCase() == 'n/a' || rawDelay == '—' || rawDelay.isEmpty) ? 'Still learning your patterns' : rawDelay;
+    final delayText = (rawDelay.toLowerCase() == 'n/a' || rawDelay.toLowerCase() == 'not enough data yet' || rawDelay == '—' || rawDelay.isEmpty) ? 'Building your baseline.' : rawDelay;
     final confidenceLabel = isSingleObservation ? 'Building' : '${(pattern != null && pattern.evidenceRatio > 0 ? pattern.evidenceRatio * 100 : 75).round()}%';
 
     final title = isSingleObservation ? '$foodName → ${reactionText.toLowerCase()}' : (args.title.isNotEmpty ? args.title : 'Trigger Pattern');
@@ -839,7 +856,10 @@ class HighlightDetailScreen extends StatelessWidget {
     if (occurrences.isEmpty) {
       return const SizedBox.shrink();
     }
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final latest = occurrences.first;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -851,14 +871,14 @@ class HighlightDetailScreen extends StatelessWidget {
                 Container(
                   width: 28.w,
                   height: 28.w,
-                  decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: isDark ? v2.cardSubtle : const Color(0xFFF1F5F9), shape: BoxShape.circle),
                   alignment: Alignment.center,
-                  child: Icon(LucideIcons.fileText, size: 14.w, color: context.insightColor(const Color(0xFF0F172A))),
+                  child: Icon(LucideIcons.fileText, size: 14.w, color: v2.textPrimary),
                 ),
                 Gap.w8,
                 Text(
                   'Latest Observation',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                 ),
               ],
             ),
@@ -875,12 +895,15 @@ class HighlightDetailScreen extends StatelessWidget {
 
   /// 3. What to do next Card
   Widget _buildWhatToDoNextCard(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: context.insightColor(const Color(0xFFF4FAF5)),
+        color: isDark ? const Color(0xFF102319) : const Color(0xFFF4FAF5),
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7)), width: 1.w),
+        border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.3) : const Color(0xFFDCFCE7), width: 1.w),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -890,21 +913,21 @@ class HighlightDetailScreen extends StatelessWidget {
               Container(
                 width: 28.w,
                 height: 28.w,
-                decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
                 alignment: Alignment.center,
-                child: Icon(LucideIcons.lightbulb, size: 14.w, color: context.insightColor(const Color(0xFF15803D))),
+                child: Icon(LucideIcons.lightbulb, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
               ),
               Gap.w8,
               Text(
                 'What to do next',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
               ),
             ],
           ),
           Gap.h8,
           Text(
             'Keep logging this food and how you feel afterward. A few more observations can help GutGood determine if there\'s a consistent pattern.',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.3),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: v2.textSecondary, height: 1.3),
           ),
           Gap.h12,
           Row(
@@ -915,16 +938,16 @@ class HighlightDetailScreen extends StatelessWidget {
                     context.push(AppRoutes.scannerPath('meal'));
                   },
                   child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 14.w),
-                    decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(100.r)),
+                    padding: EdgeInsets.symmetric(vertical: 12.w),
+                    decoration: BoxDecoration(color: isDark ? Colors.white : const Color(0xFF0F172A), borderRadius: BorderRadius.circular(100.r)),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(LucideIcons.utensils, size: 14.w, color: Colors.white),
+                        Icon(LucideIcons.utensils, size: 14.w, color: isDark ? const Color(0xFF0F172A) : Colors.white),
                         Gap.w8,
                         Text(
                           'Log a Meal',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF0F172A) : Colors.white),
                         ),
                       ],
                     ),
@@ -938,20 +961,20 @@ class HighlightDetailScreen extends StatelessWidget {
                     context.push(AppRoutes.scannerPath('symptom'));
                   },
                   child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 14.w),
+                    padding: EdgeInsets.symmetric(vertical: 12.w),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? v2.card : Colors.white,
                       borderRadius: BorderRadius.circular(100.r),
-                      border: Border.all(color: context.insightColor(const Color(0xFFCBD5E1)), width: 1.w),
+                      border: Border.all(color: v2.border, width: 1.w),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(LucideIcons.smile, size: 14.w, color: context.insightColor(const Color(0xFF0F172A))),
+                        Icon(LucideIcons.smile, size: 14.w, color: v2.textPrimary),
                         Gap.w8,
                         Text(
                           'Log a Symptom',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
+                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: v2.textPrimary),
                         ),
                       ],
                     ),
@@ -967,6 +990,8 @@ class HighlightDetailScreen extends StatelessWidget {
 
   /// 4. Better Swaps Option Card ("Want a different option?")
   Widget _buildBetterSwapsOptionCard(BuildContext context, {required String foodName}) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final insight = _insightOf(context);
     FoodSwap? matchingSwap;
     final targetName = foodName.toLowerCase().trim();
@@ -978,11 +1003,13 @@ class HighlightDetailScreen extends StatelessWidget {
     }
     final swapObj =
         matchingSwap ??
-        FoodSwap(
-          id: 'swap_${foodName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}',
-          source: SwapSource(foodId: 'food_trigger', name: foodName),
-          alternatives: [SwapAlternative(foodId: 'food_alt_01', name: 'Lighter $foodName alternative', reason: 'Try a lighter option and keep tracking how you feel afterward.')],
-        );
+        (insight?.foodSwaps.isNotEmpty == true
+            ? insight!.foodSwaps.first
+            : FoodSwap(
+                id: 'swap_${foodName.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '_')}',
+                source: SwapSource(foodId: 'food_trigger', name: foodName),
+                alternatives: const [],
+              ));
 
     return InkWell(
       onTap: () {
@@ -992,18 +1019,18 @@ class HighlightDetailScreen extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
-          color: context.insightColor(const Color(0xFFF5F3FF)),
+          color: isDark ? const Color(0xFF1E1B4B) : const Color(0xFFF5F3FF),
           borderRadius: BorderRadius.circular(18.w),
-          border: Border.all(color: context.insightColor(const Color(0xFFE0E7FF)), width: 1.w),
+          border: Border.all(color: isDark ? const Color(0xFF6366F1).withValues(alpha: 0.3) : const Color(0xFFE0E7FF), width: 1.w),
         ),
         child: Row(
           children: [
             Container(
               width: 36.w,
               height: 36.w,
-              decoration: BoxDecoration(color: context.insightColor(const Color(0xFFE0E7FF)), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: isDark ? const Color(0xFF6366F1).withValues(alpha: 0.2) : const Color(0xFFE0E7FF), shape: BoxShape.circle),
               alignment: Alignment.center,
-              child: Icon(LucideIcons.repeat, size: 16.w, color: context.insightColor(const Color(0xFF4F46E5))),
+              child: Icon(LucideIcons.repeat, size: 16.w, color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5)),
             ),
             Gap.w12,
             Expanded(
@@ -1012,18 +1039,18 @@ class HighlightDetailScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Want a different option?',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                   ),
                   Gap.h2,
                   Text(
                     'Explore better swaps for this food and find options that may work better for you.',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
                   ),
                 ],
               ),
             ),
             Gap.w8,
-            Icon(LucideIcons.chevronRight, size: 16.w, color: context.insightColor(const Color(0xFF64748B))),
+            Icon(LucideIcons.chevronRight, size: 16.w, color: v2.textSecondary),
           ],
         ),
       ),
@@ -1064,15 +1091,17 @@ class _ContributingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final imageUrl = V2Kit.foodImageUrl(imageKeyword);
 
     return Container(
       width: 108.w,
       padding: EdgeInsets.all(7.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF7),
+        color: v2.card,
         borderRadius: BorderRadius.circular(14.w),
-        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
+        border: Border.all(color: v2.border, width: 1.w),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1084,39 +1113,39 @@ class _ContributingCard extends StatelessWidget {
               width: 94.w,
               height: 60.w,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFF1F5F9))),
+              placeholder: (_, _) => Container(color: v2.cardSubtle),
               errorWidget: (_, _, _) => Container(
-                color: context.insightColor(const Color(0xFFDCFCE7)),
+                color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7),
                 alignment: Alignment.center,
-                child: Icon(icon, size: 20.w, color: const Color(0xFF15803D)),
+                child: Icon(icon, size: 20.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
               ),
             ),
           ),
           Gap.h5,
           Text(
             title,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: v2.textPrimary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
             subtitle,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: context.insightColor(const Color(0xFF64748B))),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: v2.textSecondary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Gap.h3,
           Container(
             padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
-            decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(10.w)),
+            decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : badgeColor, borderRadius: BorderRadius.circular(10.w)),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 8.5.w, color: badgeTextColor),
+                Icon(icon, size: 8.5.w, color: isDark ? const Color(0xFF4ADE80) : badgeTextColor),
                 Gap.w2,
                 Text(
                   badgeText,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: badgeTextColor),
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : badgeTextColor),
                 ),
               ],
             ),
@@ -1139,14 +1168,15 @@ class _WeeklyStatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final v2 = context.v2Theme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isFoodsLogged = label.toLowerCase().contains('foods logged');
 
-    final tileBg = isDark ? (isFoodsLogged ? const Color(0xFF231A14) : const Color(0xFF102319)) : context.insightColor(Colors.white);
-    final tileBorder = isDark ? (isFoodsLogged ? const Color(0xFFF97316).withValues(alpha: 0.28) : const Color(0xFF22C55E).withValues(alpha: 0.28)) : context.insightColor(const Color(0xFFE2E8F0));
+    final tileBg = isDark ? (isFoodsLogged ? const Color(0xFF231A14) : const Color(0xFF102319)) : v2.card;
+    final tileBorder = isDark ? (isFoodsLogged ? const Color(0xFFF97316).withValues(alpha: 0.28) : const Color(0xFF22C55E).withValues(alpha: 0.28)) : v2.border;
     final resolvedIconBg = isDark ? (isFoodsLogged ? const Color(0xFFF97316).withValues(alpha: 0.18) : const Color(0xFF22C55E).withValues(alpha: 0.18)) : iconBg;
     final resolvedIconColor = isDark ? (isFoodsLogged ? const Color(0xFFFB923C) : const Color(0xFF4ADE80)) : iconColor;
-    final resolvedLabelColor = isDark ? (isFoodsLogged ? const Color(0xFFFB923C) : const Color(0xFF4ADE80)) : context.insightColor(const Color(0xFF64748B));
+    final resolvedLabelColor = isDark ? (isFoodsLogged ? const Color(0xFFFB923C) : const Color(0xFF4ADE80)) : v2.textSecondary;
 
     return Container(
       padding: EdgeInsets.all(10.w),
@@ -1172,11 +1202,11 @@ class _WeeklyStatTile extends StatelessWidget {
           ),
           Text(
             value,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
           ),
           Text(
             subtext,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: v2.textSecondary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1196,43 +1226,48 @@ class _HighlightBox extends StatelessWidget {
   final String subtitle;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(10.w),
-    decoration: BoxDecoration(
-      color: context.insightColor(Colors.white),
-      borderRadius: BorderRadius.circular(14.w),
-      border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 22.w,
-          height: 22.w,
-          decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-          alignment: Alignment.center,
-          child: Icon(icon, size: 11.w, color: iconColor),
-        ),
-        Gap.w6,
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A)), height: 1.2),
-              ),
-              Gap.h2,
-              Text(
-                subtitle,
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.2),
-              ),
-            ],
+  Widget build(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        color: v2.card,
+        borderRadius: BorderRadius.circular(14.w),
+        border: Border.all(color: v2.border, width: 1.w),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 22.w,
+            height: 22.w,
+            decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : iconBg, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 11.w, color: isDark ? const Color(0xFF4ADE80) : iconColor),
           ),
-        ),
-      ],
-    ),
-  );
+          Gap.w6,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: v2.textPrimary, height: 1.2),
+                ),
+                Gap.h2,
+                Text(
+                  subtitle,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: v2.textSecondary, height: 1.2),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _NextStepCard extends StatelessWidget {
@@ -1243,45 +1278,50 @@ class _NextStepCard extends StatelessWidget {
   final String body;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(10.w),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF4FAF5),
-      borderRadius: BorderRadius.circular(14.w),
-      border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7)), width: 1.w),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              width: 22.w,
-              height: 22.w,
-              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: Icon(icon, size: 11.w, color: const Color(0xFF15803D)),
+  Widget build(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF102319) : const Color(0xFFF4FAF5),
+        borderRadius: BorderRadius.circular(14.w),
+        border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.3) : const Color(0xFFDCFCE7), width: 1.w),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 22.w,
+                height: 22.w,
+                decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 11.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
+              ),
+            ],
+          ),
+          Gap.h6,
+          Text(
+            title,
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: v2.textPrimary, height: 1.2),
+          ),
+          if (body.isNotEmpty && body.trim() != title.trim()) ...[
+            Gap.h2,
+            Text(
+              body,
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: v2.textSecondary, height: 1.2),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
-        ),
-        Gap.h6,
-        Text(
-          title,
-          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A)), height: 1.2),
-        ),
-        if (body.isNotEmpty && body.trim() != title.trim()) ...[
-          Gap.h2,
-          Text(
-            body,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.2),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _TriggerStatCol extends StatelessWidget {

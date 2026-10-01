@@ -238,7 +238,7 @@ class InsightStrings {
   static const String scoreUpChip = 'Your score is up!';
   static const String patternWeNoticed = 'PATTERN WE NOTICED';
   static const String exploreThisPattern = 'Explore this pattern';
-  static const String whatsImproving = "What's improving";
+  static const String whatsImproving = 'Your Progress';
   static const String somethingToWatch = 'Something to watch';
   static const String whatsWorking = "What's working";
   static const String topFoodsThisWeek = 'Top Foods This Week';

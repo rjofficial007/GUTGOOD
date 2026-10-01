@@ -227,6 +227,8 @@ class PatternCard extends StatelessWidget {
     var confidencePct = 0;
     if (pattern.evidenceRatio > 0) {
       confidencePct = (pattern.evidenceRatio * 100).round();
+    } else if (pattern.confidenceScore > 0) {
+      confidencePct = (pattern.confidenceScore * 100).round();
     } else if (pattern.confidence.trim().isNotEmpty) {
       final s = pattern.confidence.trim().replaceAll('%', '');
       final d = double.tryParse(s);
@@ -237,34 +239,37 @@ class PatternCard extends StatelessWidget {
         if (lower == 'high') {
           confidencePct = 89;
         } else if (lower == 'medium' || lower == 'moderate') {
-          confidencePct = 75;
+          confidencePct = 72;
         } else if (lower == 'low') {
-          confidencePct = 60;
+          confidencePct = 55;
         }
       }
-    } else if (pattern.confidenceScore > 0 && pattern.confidenceScore != 0.85) {
-      confidencePct = (pattern.confidenceScore * 100).round();
     }
 
     if (confidencePct == 0) {
-      final hash = '${pattern.id}_${pattern.trigger}_${pattern.type}_${pattern.frequency}'.hashCode.abs();
-      confidencePct = 82 + (hash % 13);
+      final lower = pattern.confidence.toLowerCase();
+      confidencePct = lower == 'low'
+          ? 55
+          : (lower == 'medium' || lower == 'moderate')
+          ? 72
+          : lower == 'high'
+          ? 88
+          : 65;
     }
 
     // Dynamic Description String
     final descStr = pattern.description.trim();
 
-    // Combined meta parts
-    final metaText = descStr;
-
     // Dynamic CTA Label
     final ctaText = 'DEEP DIVE ($confidencePct%)';
 
-    final heroColor = PatternCardStyle.foodHeroColor(foodName, style.heroBg);
+    final accentColor = style.accentColor;
+    const cardBgColor = Color(0xFF0F1015);
+    const cardGradient = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF23272F), Color(0xFF0F1015)]);
 
     return Container(
-      height: 154.w,
-      decoration: BoxDecoration(color: heroColor, borderRadius: BorderRadius.circular(24.w)),
+      height: 160.w,
+      decoration: BoxDecoration(gradient: cardGradient, borderRadius: BorderRadius.circular(24.w)),
       clipBehavior: Clip.antiAlias,
       child: Material(
         type: MaterialType.transparency,
@@ -276,21 +281,43 @@ class PatternCard extends StatelessWidget {
               // 1. Left Content Section
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(18.w, 16.w, 12.w, 16.w),
+                  padding: EdgeInsets.fromLTRB(16.w, 14.w, 12.w, 14.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Top Texts
+                      // Top Texts & Tag Pill
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Domain Category Pill Tag
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(100.w),
+                              border: Border.all(color: accentColor.withValues(alpha: 0.40), width: 0.8.w),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(style.icon, size: 10.w, color: accentColor),
+                                Gap.w4,
+                                Text(
+                                  rawTypeLabel.toUpperCase(),
+                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Gap.h6,
+
                           // Line 1: Bold Title
                           Text(
                             headlineTitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.4),
+                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.3),
                           ),
                           if (subtitle.isNotEmpty) ...[
                             Gap.h2,
@@ -300,25 +327,18 @@ class PatternCard extends StatelessWidget {
                               subtitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: InsightV2Theme.fontFamily,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white.withValues(alpha: 0.88),
-                                height: 1.2,
-                                letterSpacing: -0.2,
-                              ),
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w600, color: accentColor, height: 1.2, letterSpacing: -0.1),
                             ),
                           ],
-                          if (metaText.isNotEmpty) ...[
-                            Gap.h8,
+                          if (descStr.isNotEmpty) ...[
+                            Gap.h4,
 
-                            // Line 3: Meta bullet points
+                            // Line 3: Description String
                             Text(
-                              metaText,
+                              descStr,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w400, color: Colors.white.withValues(alpha: 0.90), height: 1.25),
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w400, color: const Color(0xFF94A3B8), height: 1.25),
                             ),
                           ],
                         ],
@@ -330,17 +350,17 @@ class PatternCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
-                            width: 32.w,
-                            height: 32.w,
-                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                            width: 28.w,
+                            height: 28.w,
+                            decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
                             child: Center(
-                              child: Icon(Icons.north_east_rounded, size: 16.w, color: heroColor),
+                              child: Icon(Icons.north_east_rounded, size: 14.w, color: Colors.white),
                             ),
                           ),
-                          Gap.w10,
+                          Gap.w8,
                           Text(
                             ctaText,
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.4),
+                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.3),
                           ),
                         ],
                       ),
@@ -349,9 +369,9 @@ class PatternCard extends StatelessWidget {
                 ),
               ),
 
-              // 2. Right Side Image (Seamlessly blended with dynamic food background)
+              // 2. Right Side Image (Blended with black background)
               SizedBox(
-                width: 148.w,
+                width: 130.w,
                 height: double.infinity,
                 child: Stack(
                   children: [
@@ -370,30 +390,30 @@ class PatternCard extends StatelessWidget {
                           fit: BoxFit.cover,
                           alignment: Alignment.center,
                           placeholder: (_, _) => Container(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: Colors.white.withValues(alpha: 0.05),
                             child: Center(
-                              child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.5), size: 28.w),
+                              child: Icon(style.icon, color: accentColor.withValues(alpha: 0.5), size: 28.w),
                             ),
                           ),
                           errorWidget: (_, _, _) => Container(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: Colors.white.withValues(alpha: 0.05),
                             child: Center(
-                              child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.7), size: 28.w),
+                              child: Icon(style.icon, color: accentColor.withValues(alpha: 0.7), size: 28.w),
                             ),
                           ),
                         ),
                       ),
                     ),
 
-                    // Soft Hero Color Gradient Overlay
+                    // Soft Black Background Overlay
                     Positioned.fill(
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
-                            colors: [heroColor, heroColor.withValues(alpha: 0.55), heroColor.withValues(alpha: 0.0)],
-                            stops: const [0.0, 0.35, 1.0],
+                            colors: [cardBgColor, cardBgColor.withValues(alpha: 0.2), cardBgColor.withValues(alpha: 0.0)],
+                            stops: const [0.0, 0.5, 1.0],
                           ),
                         ),
                       ),

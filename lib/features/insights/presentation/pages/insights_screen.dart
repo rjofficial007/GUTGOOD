@@ -88,22 +88,21 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       child: InsightErrorStateCard(onRetry: notifier.retry, hasCachedData: latestInsight != null),
                     ),
                   ),
-                if (latestInsight != null && latestInsight.status != AIInsight.statusInsufficientData)
-                  V2InsightsFeed(data: latestInsight, patterns: prioritizedPatterns, series: scoreSeries, history: notifier.insightHistory)
-                else if (notifier.errorMessage == null && notifier.isSufficient)
-                  SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: SliverToBoxAdapter(
-                      child: InsightEmptyStateCard(
-                        title: 'Your logs are ready',
-                        message: 'You have enough logs for your first personalized insight.',
-                        actionLabel: 'Generate insights',
-                        onAction: notifier.generateNewInsight,
-                      ),
-                    ),
-                  )
-                else if (notifier.errorMessage == null)
-                  InsightBentoLearning(meals: notifier.todayMeals, symptoms: notifier.todaySymptoms, scans: notifier.todayScans),
+                if (latestInsight != null || notifier.errorMessage == null)
+                  V2InsightsFeed(
+                    data: latestInsight?.status == AIInsight.statusInsufficientData ? null : latestInsight,
+                    patterns: prioritizedPatterns,
+                    series: scoreSeries,
+                    history: notifier.insightHistory,
+                    forYouEmptyState: notifier.isSufficient
+                        ? InsightEmptyStateCard(
+                            title: 'Your logs are ready',
+                            message: 'You have enough logs for your first personalized insight.',
+                            actionLabel: 'Generate insights',
+                            onAction: notifier.generateNewInsight,
+                          )
+                        : InsightBentoLearning(meals: notifier.todayMeals, symptoms: notifier.todaySymptoms, scans: notifier.todayScans),
+                  ),
               ],
             ],
           );

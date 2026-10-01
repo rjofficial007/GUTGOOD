@@ -23,7 +23,7 @@ abstract final class InsightV2Strings {
   static const String patternPill = 'Pattern';
 
   // What's Improving
-  static const String improvingEyebrow = "What's Improving";
+  static const String improvingEyebrow = 'Your Progress';
   static const String liveBadge = 'Live';
   static const String sevenDayTrend = '7-day trend';
   static const String currentStat = 'Current';

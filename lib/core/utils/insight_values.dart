@@ -2,7 +2,11 @@
 /// while a measured zero remains a real value.
 abstract final class InsightValues {
   static num? number(Object? value) {
-    final parsed = value is num ? value : value is String ? num.tryParse(value.trim()) : null;
+    final parsed = value is num
+        ? value
+        : value is String
+        ? num.tryParse(value.trim())
+        : null;
     return parsed != null && parsed.isFinite ? parsed : null;
   }
 
@@ -17,4 +21,45 @@ abstract final class InsightValues {
     for (final value in values)
       if (value.isFinite && value >= 0 && value <= 100) value.toDouble(),
   ];
+
+  static bool isPositiveReaction(String text) {
+    final lower = text.toLowerCase();
+    final positiveKeywords = ['energetic', 'energy', 'refreshed', 'calm', 'good', 'great', 'boost', 'vitality', 'light', 'positive', 'steady', 'balanced', 'comfortable'];
+    final negativeKeywords = [
+      'bloating',
+      'headache',
+      'pain',
+      'gas',
+      'nausea',
+      'cramping',
+      'fatigue',
+      'sluggish',
+      'sleepy',
+      'fulness',
+      'fullness',
+      'diarrhea',
+      'constipation',
+      'discomfort',
+      'acid',
+      'reflux',
+      'heartburn',
+      'indigestion',
+      'heavy',
+      'stuffed',
+    ];
+
+    for (final pos in positiveKeywords) {
+      if (lower.contains(pos)) {
+        var hasNegative = false;
+        for (final neg in negativeKeywords) {
+          if (lower.contains(neg)) {
+            hasNegative = true;
+            break;
+          }
+        }
+        if (!hasNegative) return true;
+      }
+    }
+    return false;
+  }
 }

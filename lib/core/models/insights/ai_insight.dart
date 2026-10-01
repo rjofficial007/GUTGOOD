@@ -6,10 +6,8 @@ import 'package:gutgood/core/models/insights/ai_insight_details.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
 import 'package:gutgood/core/models/insights/food_swap.dart';
 import 'package:gutgood/core/models/insights/insight_action.dart';
-import 'package:gutgood/core/models/insights/insight_empty_state.dart';
 import 'package:gutgood/core/models/insights/insight_evidence.dart';
 import 'package:gutgood/core/models/insights/insight_v2_blocks.dart';
-import 'package:gutgood/core/models/insights/recent_insight_item.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
@@ -55,14 +53,11 @@ class AIInsight extends Equatable {
     this.actions = const [],
     this.actionsList = const [],
     this.foodSwaps = const [],
-    this.recentInsights = const [],
-    this.emptyState,
     this.model,
     this.promptVersion,
     this.status = AIInsight.statusReady,
     this.expiresAt,
     this.origin,
-    // v3 prompt blocks (v2 Real Tokens UI; tolerant reads, null on legacy docs).
     this.improving,
     this.watch,
     this.smartSwap,
@@ -136,16 +131,7 @@ class AIInsight extends Equatable {
       triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
       triggerTrend: data['triggerTrend'] as String? ?? parsedTriggerSummary?.trend,
       triggerSummary: parsedTriggerSummary,
-      detectedPatterns: ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap).isNotEmpty
-          ? ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap)
-          : _synthesizeFallbackPatterns(
-              topInsight: ModelUtils.parseNestedModel<InsightSummary>(data['topInsight'], InsightSummary.fromMap),
-              triggerSummary: parsedTriggerSummary,
-              healingSummary: parsedHealingSummary,
-              triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
-              healingFoods: ModelUtils.parseModelList<HealingFood>(data['healingFoods'], HealingFood.fromMap),
-              updatedAt: DateTimeUtils.parse(map['updatedAt']),
-            ),
+      detectedPatterns: ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap),
       topTrigger: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topTrigger'], TopHighlight.fromMap)),
       topHealing: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topHealing'], TopHighlight.fromMap)),
       foodImpacts: ModelUtils.parseModelList<FoodImpact>(data['foodImpacts'], FoodImpact.fromMap),
@@ -163,8 +149,6 @@ class AIInsight extends Equatable {
       actions: parsedActionStrings,
       actionsList: parsedActionObjects,
       foodSwaps: ModelUtils.parseModelList<FoodSwap>(data['foodSwaps'], FoodSwap.fromMap),
-      recentInsights: ModelUtils.parseModelList<RecentInsightItem>(data['recentInsights'], RecentInsightItem.fromMap),
-      emptyState: ModelUtils.parseNestedModel<InsightEmptyState>(data['emptyState'], InsightEmptyState.fromMap),
       model: data['model'] as String?,
       promptVersion: (data['promptVersion'] as num?)?.toInt(),
       status: (data['status'] as String?) ?? AIInsight.statusReady,
@@ -214,8 +198,6 @@ class AIInsight extends Equatable {
   final List<String> actions;
   final List<InsightAction> actionsList;
   final List<FoodSwap> foodSwaps;
-  final List<RecentInsightItem> recentInsights;
-  final InsightEmptyState? emptyState;
   final String? model;
   final int? promptVersion;
   final String status;
@@ -233,10 +215,20 @@ class AIInsight extends Equatable {
     return highlight;
   }
 
+  TopHighlight? get validTopTrigger {
+    final t = _normalizeHighlight(topTrigger);
+    if (t == null) return null;
+    final eff = '${t.effects} ${t.food}';
+    if (InsightValues.isPositiveReaction(eff)) {
+      return null;
+    }
+    return t;
+  }
+
   Map<String, dynamic> toMap() => {
     'v': schemaVersion,
     'firestoreId': firestoreId,
-    'gutScore': hasGutScore ? (gutScoreSummary?.toMap() ?? gutScore) : null,
+    'gutScore': hasGutScore ? (gutScoreSummary == null ? gutScore : {...gutScoreSummary!.toMap(), 'score': gutScore}) : null,
     'hasGutScore': hasGutScore,
     'scoreDiff': scoreDiff,
     'topInsight': topInsight?.toMap(),
@@ -265,8 +257,6 @@ class AIInsight extends Equatable {
     'evidence': evidence?.toMap(),
     'actions': actionsList.isNotEmpty ? actionsList.map((e) => e.toMap()).toList() : actions,
     'foodSwaps': foodSwaps.map((e) => e.toMap()).toList(),
-    'recentInsights': recentInsights.map((e) => e.toMap()).toList(),
-    'emptyState': emptyState?.toMap(),
     'model': model,
     'promptVersion': promptVersion,
     'status': status,
@@ -320,8 +310,6 @@ class AIInsight extends Equatable {
     List<String>? actions,
     List<InsightAction>? actionsList,
     List<FoodSwap>? foodSwaps,
-    List<RecentInsightItem>? recentInsights,
-    InsightEmptyState? emptyState,
     String? model,
     int? promptVersion,
     String? status,
@@ -365,8 +353,6 @@ class AIInsight extends Equatable {
     actions: actions ?? this.actions,
     actionsList: actionsList ?? this.actionsList,
     foodSwaps: foodSwaps ?? this.foodSwaps,
-    recentInsights: recentInsights ?? this.recentInsights,
-    emptyState: emptyState ?? this.emptyState,
     model: model ?? this.model,
     promptVersion: promptVersion ?? this.promptVersion,
     status: status ?? this.status,
@@ -376,111 +362,6 @@ class AIInsight extends Equatable {
     watch: watch ?? this.watch,
     smartSwap: smartSwap ?? this.smartSwap,
   );
-
-  static List<BodyPattern> _synthesizeFallbackPatterns({
-    InsightSummary? topInsight,
-    TriggerSummary? triggerSummary,
-    HealingSummary? healingSummary,
-    List<TriggerFood> triggerFoods = const [],
-    List<HealingFood> healingFoods = const [],
-    DateTime? updatedAt,
-  }) {
-    final synth = <BodyPattern>[];
-    final seenKeys = <String>{};
-    final dateStr = (updatedAt ?? DateTime.now()).toIso8601String();
-
-    void addPattern(BodyPattern pattern) {
-      final key = '${pattern.type}_${pattern.trigger.toLowerCase().trim()}';
-      if (seenKeys.add(key)) {
-        synth.add(pattern);
-      }
-    }
-
-    if (triggerSummary != null && triggerSummary.foods.isNotEmpty) {
-      for (final f in triggerSummary.foods) {
-        if (f.name.trim().isEmpty) continue;
-        addPattern(
-          BodyPattern(
-            type: 'trigger',
-            trigger: f.name,
-            reaction: triggerSummary.primarySymptom.isNotEmpty ? triggerSummary.primarySymptom : 'Reaction',
-            frequency: 1,
-            confidence: 'Medium',
-            confidenceScore: 0.75,
-            description: (f.effect != null && f.effect!.isNotEmpty) ? f.effect! : 'Associated with ${triggerSummary.primarySymptom}',
-            updatedAt: dateStr,
-          ),
-        );
-      }
-    } else {
-      for (final tf in triggerFoods) {
-        if (tf.name.trim().isEmpty) continue;
-        addPattern(
-          BodyPattern(
-            type: 'trigger',
-            trigger: tf.name,
-            reaction: tf.effect.isNotEmpty ? tf.effect : 'Reaction',
-            frequency: 1,
-            confidence: 'Medium',
-            confidenceScore: 0.75,
-            description: tf.effect.isNotEmpty ? tf.effect : 'Associated with food reaction',
-            updatedAt: dateStr,
-          ),
-        );
-      }
-    }
-
-    if (healingSummary != null && healingSummary.foods.isNotEmpty) {
-      for (final f in healingSummary.foods) {
-        if (f.name.trim().isEmpty) continue;
-        addPattern(
-          BodyPattern(
-            type: 'healing',
-            trigger: f.name,
-            reaction: 'Gut Wellness & Energy',
-            frequency: 1,
-            confidence: 'Medium',
-            confidenceScore: 0.75,
-            description: (f.effect != null && f.effect!.isNotEmpty) ? f.effect! : 'Supports digestive wellness',
-            updatedAt: dateStr,
-          ),
-        );
-      }
-    } else {
-      for (final hf in healingFoods) {
-        if (hf.name.trim().isEmpty) continue;
-        addPattern(
-          BodyPattern(
-            type: 'healing',
-            trigger: hf.name,
-            reaction: 'Gut Wellness & Energy',
-            frequency: 1,
-            confidence: 'Medium',
-            confidenceScore: 0.75,
-            description: hf.effect.isNotEmpty ? hf.effect : 'Supports digestive wellness',
-            updatedAt: dateStr,
-          ),
-        );
-      }
-    }
-
-    if (synth.isEmpty && topInsight != null && topInsight.involvedFoods.isNotEmpty) {
-      synth.add(
-        BodyPattern(
-          type: topInsight.type.isNotEmpty ? topInsight.type : 'observation',
-          trigger: topInsight.involvedFoods.join(' & '),
-          reaction: 'Digestion',
-          frequency: (topInsight.frequency != null && topInsight.frequency! > 0) ? topInsight.frequency! : 1,
-          confidence: (topInsight.strength != null && topInsight.strength!.isNotEmpty) ? topInsight.strength! : 'Medium',
-          confidenceScore: 0.65,
-          description: topInsight.observation ?? topInsight.description,
-          updatedAt: dateStr,
-        ),
-      );
-    }
-
-    return synth;
-  }
 
   @override
   List<Object?> get props => [id, firestoreId, gutScore, hasGutScore, type, confidenceLevel, status, updatedAt];

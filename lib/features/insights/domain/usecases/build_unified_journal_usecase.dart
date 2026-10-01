@@ -15,7 +15,7 @@ class BuildUnifiedJournalUseCase {
     for (final m in meals) {
       allEvents.add(
         _JournalEvent(
-          createdAt: m.createdAt,
+          createdAt: m.eventTime,
           text: 'ATE: ${m.mealType ?? 'Meal'} (${m.items.join(', ')})',
         ),
       );
@@ -24,7 +24,7 @@ class BuildUnifiedJournalUseCase {
     for (final s in symptoms) {
       allEvents.add(
         _JournalEvent(
-          createdAt: s.createdAt,
+          createdAt: s.eventTime,
           text:
               'FEELING: ${s.symptom} (Severity: ${s.severity}${s.energyLevel != null ? ', Energy: ${s.energyLevel}' : ''}${s.sleep != null ? ', Sleep: ${s.sleep}' : ''})',
         ),
@@ -46,6 +46,7 @@ class BuildUnifiedJournalUseCase {
     return allEvents
         .map((e) {
           final timeStr = e.createdAt
+              .toLocal()
               .toIso8601String()
               .substring(0, 16)
               .replaceAll('T', ' ');

@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
-import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
@@ -15,6 +14,7 @@ import 'package:gutgood/core/widgets/gut_score_card.dart';
 import 'package:gutgood/features/insights/presentation/pages/better_swaps_screen.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_score_card.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_states.dart';
 import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
 import 'package:gutgood/features/insights/presentation/widgets/top_food_tile.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
@@ -25,9 +25,10 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 class V2InsightsFeed extends StatefulWidget {
-  const V2InsightsFeed({super.key, required this.data, required this.patterns, this.series = const [], this.history = const []});
+  const V2InsightsFeed({super.key, required this.data, required this.patterns, this.series = const [], this.history = const [], this.forYouEmptyState});
 
-  final AIInsight data;
+  final AIInsight? data;
+  final Widget? forYouEmptyState;
   final List<BodyPattern> patterns;
   final List<double> series;
   final List<AIInsight> history;
@@ -41,14 +42,15 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
 
   @override
   Widget build(BuildContext context) {
+    final data = widget.data;
     final previous = V2Data.previousScore(widget.series);
-    final delta = !widget.data.hasGutScore
+    final delta = data == null || !data.hasGutScore
         ? null
         : previous != null
-        ? widget.data.gutScore - previous
-        : V2Data.parseDelta(widget.data.scoreDiff);
-    final improving = V2Data.improving(widget.data, widget.series, widget.history);
-    final watch = V2Data.watch(widget.data, widget.patterns);
+        ? data.gutScore - previous
+        : V2Data.parseDelta(data.scoreDiff);
+    final improving = data == null ? null : V2Data.improving(data, widget.series, widget.history);
+    final watch = data == null ? null : V2Data.watch(data, widget.patterns);
 
     final isPatternsTab = _selectedFilter == 'Patterns';
     final isFoodImpactTab = _selectedFilter == 'Food Impact';
@@ -58,6 +60,7 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
         SliverPersistentHeader(
           pinned: true,
           delegate: _StickyTabBarDelegate(
+            height: math.max(56, MediaQuery.textScalerOf(context).scale(12.sp) + 36),
             child: Container(
               color: context.appColorScheme.cardBackground,
               padding: EdgeInsets.only(top: 0.w, bottom: 8.w, left: 16.w, right: 16.w),
@@ -73,13 +76,16 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
               // -------------------------------------------------------------------
               // TAB: PATTERNS
               // -------------------------------------------------------------------
-              if (isPatternsTab) ...[
+              if (data == null) ...[
+                Gap.h10,
+                if (_selectedFilter == 'For You' && widget.forYouEmptyState != null) widget.forYouEmptyState! else _InsightTabEmptyState(tab: _selectedFilter),
+              ] else if (isPatternsTab) ...[
                 Gap.h10,
                 // Detected Pattern Cards
                 if (widget.patterns.isNotEmpty) ...[
                   for (final pattern in widget.patterns) ...[PatternCard(pattern: pattern), Gap.h10],
                 ] else ...[
-                  const _EmptyPatternsCard(),
+                  const _InsightTabEmptyState(tab: 'Patterns'),
                   Gap.h10,
                 ],
 
@@ -87,99 +93,123 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
                 Gap.h10,
 
                 // Bottom Banner: Patterns get smarter over time
-                const _PatternsSmarterBannerCard(),
+                if (widget.patterns.isNotEmpty) const _PatternsSmarterBannerCard(),
+              ] else if (isFoodImpactTab &&
+                  data.foodImpacts.isEmpty &&
+                  data.healingFoods.isEmpty &&
+                  data.triggerFoods.isEmpty &&
+                  (data.healingSummary?.foods.isEmpty ?? true) &&
+                  (data.triggerSummary?.foods.isEmpty ?? true) &&
+                  data.topHealing == null &&
+                  data.validTopTrigger == null &&
+                  (data.foodImpactBalance == null || data.foodImpactBalance!.positivePercent + data.foodImpactBalance!.neutralPercent + data.foodImpactBalance!.negativePercent == 0)) ...[
+                Gap.h10,
+                const _InsightTabEmptyState(tab: 'Food Impact'),
               ] else if (isFoodImpactTab) ...[
                 // -------------------------------------------------------------------
                 // TAB: FOOD IMPACT
                 // -------------------------------------------------------------------
                 Gap.h10,
                 // 1. Food Impact Balance Hero Card
-                _FoodImpactBalanceHeroCard(balance: widget.data.foodImpactBalance, foodImpacts: widget.data.foodImpacts),
+                _FoodImpactBalanceHeroCard(balance: data.foodImpactBalance, foodImpacts: data.foodImpacts),
                 Gap.h10,
 
                 // 2. Side-by-Side: Top Healing Foods & Top Trigger Food
-                _SideBySideHealingAndTriggerCards(insight: widget.data),
+                _SideBySideHealingAndTriggerCards(insight: data),
                 Gap.h10,
 
-                // 4. Recent Food Impacts List
-                _RecentFoodImpactsSection(impacts: widget.data.foodImpacts),
+                // 4. Top Foods This Week
+                _TopFoodsSection(insight: data),
                 Gap.h10,
 
-                // 5. Your Next Steps Action Cards
-                _YourNextStepsSection(actions: widget.data.actionsList),
+                // 5. Recent Food Impacts List
+                _RecentFoodImpactsSection(impacts: data.foodImpacts),
+                Gap.h10,
+
+                // 6. Your Next Steps Action Cards
+                _YourNextStepsSection(actions: data.actionsList, insight: data),
               ] else if (_selectedFilter == 'Weekly Recap') ...[
                 // -------------------------------------------------------------------
                 // TAB: WEEKLY RECAP
                 // -------------------------------------------------------------------
-                V2WeeklyRecapView(data: widget.data, series: widget.data.hasGutScore ? widget.series : const [], patterns: widget.patterns, history: widget.history),
+                V2WeeklyRecapView(data: data, series: data.hasGutScore ? widget.series : const [], patterns: widget.patterns, history: widget.history),
+              ] else if (!data.hasGutScore && data.topInsight == null && widget.patterns.isEmpty && data.actionsList.isEmpty && data.actions.isEmpty) ...[
+                Gap.h10,
+                const _InsightTabEmptyState(tab: 'For You'),
               ] else ...[
                 // -------------------------------------------------------------------
                 // TAB: FOR YOU
                 // -------------------------------------------------------------------
                 // HERO CARD: Gut Score & On Track
 
-                if (widget.data.hasGutScore || (widget.data.weeklyRecap?.gutScoreTrend?.any((s) => s > 0) ?? false) || (widget.data.weeklyRecap?.avgScore ?? 0) > 0) ...[
-                  _ForYouGutScoreCard(data: widget.data, series: widget.series, delta: delta),
-                ] else ...[
-                  InsightScoreCard(score: null, delta: null, onTap: null, onWhyTap: () => WhyScoreSheet.show(context, widget.data)),
+                if (data.hasGutScore || (data.weeklyRecap?.gutScoreTrend?.any((s) => s > 0) ?? false) || (data.weeklyRecap?.avgScore ?? 0) > 0) ...[
+                  _ForYouGutScoreCard(data: data, series: widget.series, delta: delta),
                 ],
                 Gap.h10,
 
                 if (_selectedFilter == 'For You') ...[
                   // TOP INSIGHT CARD (Replaces duplicate PatternCard on For You tab)
-                  if (widget.data.topInsight != null)
+                  if (data.topInsight != null)
                     _V2TopInsightCard(
-                      insight: widget.data,
-                      topInsight: widget.data.topInsight!,
-                      onTap: () => context.push(AppRoutes.smartInsightDetail, extra: widget.data),
+                      insight: data,
+                      topInsight: data.topInsight!,
+                      onTap: () => context.push(AppRoutes.smartInsightDetail, extra: data),
                     )
                   else if (widget.patterns.isNotEmpty)
                     PatternCard(pattern: widget.patterns.first),
                   Gap.h10,
 
                   // SIDE-BY-SIDE CARDS: What's Improving & Something to Watch
-                  _SideBySideImprovingAndWatch(
-                    improvingData: improving,
-                    series: widget.data.hasGutScore ? widget.series : const [],
-                    watchData: watch,
-                    onImprovingTap: () => context.push(
-                      AppRoutes.highlightDetail,
-                      extra: HighlightDetailArgs(
-                        tag: 'Healing Trend',
-                        emoji: '🌱',
-                        title: improving.headline,
-                        body: improving.description,
-                        accentColor: 0xFF1F7A3D,
-                        backgroundColor: 0xFFE7F6E7,
-                        chartType: 'healing',
-                        chartValues: widget.series,
-                        footLeft: 'this window',
-                        frequency: improving.deltaPts == 0 ? null : '${improving.deltaPts > 0 ? '+' : ''}${improving.deltaPts} pts',
-                      ),
-                    ),
-                    onWatchTap: (watch == null || watch.pattern == null || watch.title.isEmpty || watch.title == 'No Triggers Detected')
-                        ? null
-                        : () => context.push(
-                            AppRoutes.highlightDetail,
-                            extra: HighlightDetailArgs(
-                              tag: 'Something to Watch',
-                              emoji: '⚠️',
-                              title: watch.title,
-                              body: watch.description,
-                              accentColor: 0xFFC4302B,
-                              backgroundColor: 0xFFFFF1F0,
-                              chartType: 'trigger',
-                              chartValues: const [],
-                              footLeft: watch.windowLabel,
-                              frequency: watch.pattern?.frequency != null ? '${watch.pattern!.frequency} occurrences' : watch.meta,
-                              whyPoints: watch.pattern?.commonFactors.map((f) => f.label).toList() ?? const [],
-                            ),
+                  if (improving != null && (widget.patterns.isNotEmpty || widget.series.where((s) => s > 0).length > 1))
+                    _SideBySideImprovingAndWatch(
+                      improvingData: improving,
+                      series: data.hasGutScore ? widget.series : const [],
+                      watchData: watch,
+                      onImprovingTap: () {
+                        final cleanSeries = InsightValues.scores(widget.series);
+                        final scoredSeries = cleanSeries.where((s) => s > 0).toList();
+                        final hasEnoughData = scoredSeries.length > 1;
+                        context.push(
+                          AppRoutes.highlightDetail,
+                          extra: HighlightDetailArgs(
+                            tag: hasEnoughData ? 'Your Progress' : 'Building Baseline',
+                            emoji: '🌱',
+                            title: improving.headline,
+                            body: hasEnoughData ? improving.encouragement : 'We’re learning what works for you.',
+                            accentColor: 0xFF1F7A3D,
+                            backgroundColor: 0xFFE7F6E7,
+                            chartType: 'healing',
+                            chartValues: widget.series,
+                            footLeft: 'this window',
+                            frequency: improving.deltaPts == 0 ? null : '${improving.deltaPts > 0 ? '+' : ''}${improving.deltaPts} pts',
                           ),
-                  ),
-                  Gap.h10,
-
-                  // TOP FOODS THIS WEEK
-                  _TopFoodsSection(insight: widget.data),
+                        );
+                      },
+                      onWatchTap: (watch == null || watch.pattern == null || watch.title.isEmpty || watch.title == 'No Triggers Detected')
+                          ? null
+                          : () => context.push(
+                              AppRoutes.highlightDetail,
+                              extra: HighlightDetailArgs(
+                                tag: 'Something to Watch',
+                                emoji: '⚠️',
+                                title: watch.title,
+                                body: watch.description,
+                                accentColor: 0xFFC4302B,
+                                backgroundColor: 0xFFFFF1F0,
+                                chartType: 'trigger',
+                                chartValues: const [],
+                                footLeft: watch.windowLabel,
+                                frequency: watch.pattern?.frequency != null ? '${watch.pattern!.frequency} occurrences' : watch.meta,
+                                whyPoints: watch.pattern?.commonFactors.map((f) => f.label).toList() ?? const [],
+                              ),
+                            ),
+                    )
+                  else
+                    _InsightTabEmptyState(tab: 'For You', hasBaseline: data.topInsight != null),
+                  if (data.actionsList.isNotEmpty || data.actions.isNotEmpty || (data.topInsight?.nextSteps.isNotEmpty ?? false)) ...[
+                    Gap.h10,
+                    _YourNextStepsSection(actions: data.actionsList, insight: data),
+                  ],
 
                   Gap.h16,
                   Container(
@@ -213,13 +243,14 @@ class _V2InsightsFeedState extends State<V2InsightsFeed> {
 }
 
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
-  _StickyTabBarDelegate({required this.child});
+  _StickyTabBarDelegate({required this.child, required this.height});
   final Widget child;
+  final double height;
 
   @override
-  double get minExtent => 44.w; // Compact height for pill tab bar
+  double get minExtent => height;
   @override
-  double get maxExtent => 44.w;
+  double get maxExtent => height;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => child;
@@ -238,6 +269,8 @@ class _InsightsHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final v2 = context.v2Theme;
     final filters = ['For You', 'Patterns', 'Food Impact', 'Weekly Recap'];
 
     return SingleChildScrollView(
@@ -249,29 +282,20 @@ class _InsightsHeaderWidget extends StatelessWidget {
         children: [
           for (var i = 0; i < filters.length; i++) ...[
             if (i > 0) Gap.w8,
-            GestureDetector(
-              onTap: () => onFilterSelected(filters[i]),
-              behavior: HitTestBehavior.opaque,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.w),
-                decoration: BoxDecoration(
-                  color: filters[i] == selectedFilter ? const Color(0xFF171717) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(100.w),
-                  border: Border.all(color: filters[i] == selectedFilter ? const Color(0xFF171717) : context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
-                  boxShadow: filters[i] == selectedFilter ? [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.15), blurRadius: 4.w, offset: Offset(0, 2.w))] : null,
-                ),
-                child: Text(
-                  filters[i],
-                  style: TextStyle(
-                    fontFamily: InsightV2Theme.fontFamily,
-                    fontSize: 12.sp,
-                    fontWeight: filters[i] == selectedFilter ? FontWeight.w800 : FontWeight.w600,
-                    color: filters[i] == selectedFilter ? Colors.white : context.insightColor(const Color(0xFF475569)),
-                    letterSpacing: -0.2,
-                  ),
-                ),
+            ChoiceChip(
+              label: Text(filters[i]),
+              selected: filters[i] == selectedFilter,
+              onSelected: (_) => onFilterSelected(filters[i]),
+              showCheckmark: false,
+              selectedColor: isDark ? Colors.white : const Color(0xFF171717),
+              backgroundColor: Colors.transparent,
+              side: BorderSide(color: v2.border),
+              shape: const StadiumBorder(),
+              labelStyle: TextStyle(
+                fontFamily: InsightV2Theme.fontFamily,
+                fontSize: 12.sp,
+                fontWeight: filters[i] == selectedFilter ? FontWeight.w800 : FontWeight.w600,
+                color: filters[i] == selectedFilter ? (isDark ? const Color(0xFF0F172A) : Colors.white) : v2.textSecondary,
               ),
             ),
           ],
@@ -317,6 +341,8 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
       }
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (pos == 0 && neu == 0 && neg == 0) {
       return Container(
         width: double.infinity,
@@ -333,8 +359,8 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
               children: [
                 Container(
                   padding: EdgeInsets.all(5.w),
-                  decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                  child: Icon(LucideIcons.leaf, size: 14.w, color: const Color(0xFF15803D)),
+                  decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
+                  child: Icon(LucideIcons.leaf, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
                 ),
                 Gap.w8,
                 Text(
@@ -382,8 +408,8 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
             children: [
               Container(
                 padding: EdgeInsets.all(6.w),
-                decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                child: Icon(LucideIcons.leaf, size: 14.w, color: const Color(0xFF15803D)),
+                decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
+                child: Icon(LucideIcons.leaf, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
               ),
               Gap.w8,
               Expanded(
@@ -435,17 +461,19 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Spacer(),
+              Gap.w12,
               // Legend items (Expanded)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _LegendItem(color: const Color(0xFF22C55E), percent: '$pos%', label: 'Positive', sub: 'Helping your gut'),
-                  Gap.h6,
-                  _LegendItem(color: const Color(0xFFFBBF24), percent: '$neu%', label: 'Neutral', sub: 'Minimal impact'),
-                  Gap.h6,
-                  _LegendItem(color: const Color(0xFFF87171), percent: '$neg%', label: 'Negative', sub: 'May trigger symptoms'),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _LegendItem(color: const Color(0xFF22C55E), percent: '$pos%', label: 'Positive', sub: 'Helping your gut'),
+                    Gap.h6,
+                    _LegendItem(color: const Color(0xFFFBBF24), percent: '$neu%', label: 'Neutral', sub: 'Minimal impact'),
+                    Gap.h6,
+                    _LegendItem(color: const Color(0xFFF87171), percent: '$neg%', label: 'Negative', sub: 'May trigger symptoms'),
+                  ],
+                ),
               ),
             ],
           ),
@@ -472,27 +500,35 @@ class _LegendItem extends StatelessWidget {
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
       Gap.w4,
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                percent,
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-              ),
-              Gap.w3,
-              Text(
-                label,
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
-              ),
-            ],
-          ),
-          Text(
-            sub,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
-          ),
-        ],
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  percent,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                ),
+                Gap.w3,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              sub,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+            ),
+          ],
+        ),
       ),
     ],
   );
@@ -720,51 +756,60 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Gap.h6,
-                    InkWell(
-                      onTap: () {
-                        FoodSwap? matchingSwap;
-                        final targetName = triggerList.first.name.toLowerCase().trim();
-                        for (final s in insight?.foodSwaps ?? <FoodSwap>[]) {
-                          if (s.source.name.toLowerCase().trim() == targetName) {
-                            matchingSwap = s;
-                            break;
+                    Gap.h8,
+                    Material(
+                      color: isDark ? const Color(0xFF991B1B) : const Color(0xFFDC2626),
+                      borderRadius: BorderRadius.circular(10.w),
+                      child: InkWell(
+                        onTap: () {
+                          FoodSwap? matchingSwap;
+                          final targetName = triggerList.first.name.toLowerCase().trim();
+                          for (final s in insight?.foodSwaps ?? <FoodSwap>[]) {
+                            if (s.source.name.toLowerCase().trim() == targetName) {
+                              matchingSwap = s;
+                              break;
+                            }
                           }
-                        }
-                        final swapObj =
-                            matchingSwap ??
-                            FoodSwap(
-                              id: 'swap_${triggerList.first.name.toLowerCase()}',
-                              source: SwapSource(foodId: 'food_trigger', name: triggerList.first.name),
-                              alternatives: [
-                                SwapAlternative(
-                                  foodId: 'food_alt_01',
-                                  name: 'Gut-Friendly ${triggerList.first.name} Alternative',
-                                  reason: 'Easier to digest with lower fermentation load for your gut balance.',
-                                ),
-                              ],
-                            );
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => BetterSwapsScreen(swap: swapObj)));
-                      },
-                      borderRadius: BorderRadius.circular(8.w),
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.w),
-                        decoration: BoxDecoration(
-                          color: context.v2Theme.card,
-                          borderRadius: BorderRadius.circular(8.w),
-                          border: Border.all(color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : context.insightColor(const Color(0xFFFECACA))),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(LucideIcons.repeat, size: 9.w, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
-                            Gap.w4,
-                            Text(
-                              'Find Better Swaps',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
-                            ),
-                          ],
+                          final swapObj =
+                              matchingSwap ??
+                              (insight?.foodSwaps.isNotEmpty == true
+                                  ? insight!.foodSwaps.first
+                                  : FoodSwap(
+                                      id: 'swap_${triggerList.first.name.toLowerCase()}',
+                                      source: SwapSource(foodId: 'food_trigger', name: triggerList.first.name),
+                                      alternatives: const [],
+                                    ));
+                          Navigator.of(context).push(MaterialPageRoute(builder: (_) => BetterSwapsScreen(swap: swapObj)));
+                        },
+                        borderRadius: BorderRadius.circular(10.w),
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 7.w),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(LucideIcons.repeat, size: 11.w, color: Colors.white),
+                              Gap.w6,
+                              Builder(
+                                builder: (_) {
+                                  FoodSwap? match;
+                                  final name = triggerList.first.name.toLowerCase().trim();
+                                  for (final s in insight?.foodSwaps ?? <FoodSwap>[]) {
+                                    if (s.source.name.toLowerCase().trim() == name) {
+                                      match = s;
+                                      break;
+                                    }
+                                  }
+                                  final count = match?.alternatives.length ?? (insight?.foodSwaps.isNotEmpty == true ? insight!.foodSwaps.first.alternatives.length : 0);
+                                  final label = count > 0 ? 'Find Swaps ($count Options) →' : 'Find Better Swaps →';
+                                  return Text(
+                                    label,
+                                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.2),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -985,13 +1030,24 @@ class _FoodImpactRow extends StatelessWidget {
 // FOOD IMPACT TAB: 5. YOUR NEXT STEPS SECTION
 // =============================================================================
 class _YourNextStepsSection extends StatelessWidget {
-  const _YourNextStepsSection({this.actions = const []});
+  const _YourNextStepsSection({this.actions = const [], this.insight});
 
   final List<InsightAction> actions;
+  final AIInsight? insight;
 
   @override
   Widget build(BuildContext context) {
-    if (actions.isEmpty) {
+    final resolvedActions = actions.isNotEmpty
+        ? actions
+        : [
+            if (insight?.actions.isNotEmpty == true)
+              for (var i = 0; i < insight!.actions.length; i++) InsightAction(id: 'act_${i + 1}', title: insight!.actions[i], description: 'Actionable step grounded in your recent meal logs.')
+            else if (insight?.topInsight?.nextSteps.isNotEmpty == true)
+              for (var i = 0; i < insight!.topInsight!.nextSteps.length; i++)
+                InsightAction(id: 'step_${i + 1}', title: insight!.topInsight!.nextSteps[i], description: 'Recommended next step based on your symptoms.'),
+          ];
+
+    if (resolvedActions.isEmpty) {
       return Container(
         width: double.infinity,
         padding: EdgeInsets.all(12.w),
@@ -1047,10 +1103,15 @@ class _YourNextStepsSection extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (var i = 0; i < actions.take(2).length; i++) ...[
+              for (var i = 0; i < resolvedActions.take(2).length; i++) ...[
                 if (i > 0) Gap.w10,
                 Expanded(
-                  child: _NextStepCard(icon: i == 0 ? LucideIcons.leaf : LucideIcons.milk, title: actions[i].title, sub: actions[i].description, onTap: () {}),
+                  child: _NextStepCard(
+                    icon: i == 0 ? LucideIcons.leaf : LucideIcons.sprout,
+                    title: resolvedActions[i].title,
+                    sub: resolvedActions[i].description.isNotEmpty ? resolvedActions[i].description : 'Actionable guidance derived from your meal history.',
+                    onTap: () {},
+                  ),
                 ),
               ],
             ],
@@ -1070,50 +1131,55 @@ class _NextStepCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(16.w),
-    child: Container(
-      padding: EdgeInsets.all(10.w),
-      decoration: BoxDecoration(
-        color: context.insightColor(const Color(0xFFF0FDF4)),
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7))),
+  Widget build(BuildContext context) {
+    final v2 = context.v2Theme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16.w),
+      child: Container(
+        padding: EdgeInsets.all(10.w),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF102319) : const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(16.w),
+          border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.3) : const Color(0xFFDCFCE7)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 24.w,
+                      height: 24.w,
+                      decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
+                      child: Icon(icon, size: 12.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
+                    ),
+                  ],
+                ),
+                Gap.h6,
+                Text(
+                  title,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: v2.textPrimary, height: 1.2),
+                ),
+                Gap.h3,
+                Text(
+                  sub,
+                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: v2.textSecondary, height: 1.25),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 24.w,
-                    height: 24.w,
-                    decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                    child: Icon(icon, size: 12.w, color: const Color(0xFF15803D)),
-                  ),
-                ],
-              ),
-              Gap.h6,
-              Text(
-                title,
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.2),
-              ),
-              Gap.h3,
-              Text(
-                sub,
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.25),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
+    );
+  }
 }
 
 // =============================================================================
@@ -1308,43 +1374,55 @@ class _ImprovingCardWidget extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              startVal,
-                              style: TextStyle(
-                                fontFamily: InsightV2Theme.fontFamily,
-                                fontSize: 11.5.sp,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D),
-                                height: 1.0,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                startVal,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: InsightV2Theme.fontFamily,
+                                  fontSize: 11.5.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D),
+                                  height: 1.0,
+                                ),
                               ),
-                            ),
-                            Text(
-                              'First recorded',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D)),
-                            ),
-                          ],
+                              Text(
+                                'First recorded',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D)),
+                              ),
+                            ],
+                          ),
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              endVal,
-                              style: TextStyle(
-                                fontFamily: InsightV2Theme.fontFamily,
-                                fontSize: 11.5.sp,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D),
-                                height: 1.0,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                endVal,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: InsightV2Theme.fontFamily,
+                                  fontSize: 11.5.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D),
+                                  height: 1.0,
+                                ),
                               ),
-                            ),
-                            Text(
-                              'Latest',
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D)),
-                            ),
-                          ],
+                              Text(
+                                'Latest',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D)),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -1630,6 +1708,8 @@ class _TopFoodsSection extends StatelessWidget {
       foodItems.add(TopFoodItemData(title: f.food, frequency: countStr, badge: 'Positive', imageUrl: f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.food), description: desc, isPositive: true));
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (foodItems.isEmpty) {
       return Container(
         width: double.infinity,
@@ -1643,8 +1723,8 @@ class _TopFoodsSection extends StatelessWidget {
           children: [
             Container(
               padding: EdgeInsets.all(8.w),
-              decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-              child: Icon(LucideIcons.leaf, size: 16.w, color: const Color(0xFF15803D)),
+              decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
+              child: Icon(LucideIcons.leaf, size: 16.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
             ),
             Gap.w10,
             Expanded(
@@ -1688,20 +1768,27 @@ class _TopFoodsSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(6.w),
-                  decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                  child: Icon(LucideIcons.trophy, size: 12.w, color: const Color(0xFF15803D)),
-                ),
-                Gap.w8,
-                Text(
-                  'Top Foods This Week',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-                ),
-              ],
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(6.w),
+                    decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
+                    child: Icon(LucideIcons.trophy, size: 12.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
+                  ),
+                  Gap.w8,
+                  Flexible(
+                    child: Text(
+                      'Top Foods This Week',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                    ),
+                  ),
+                ],
+              ),
             ),
+            Gap.w8,
             GestureDetector(
               onTap: () => context.push(AppRoutes.foodIntelligence, extra: insight),
               child: Row(
@@ -1804,6 +1891,14 @@ class V2WeeklyRecapView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final recap = data.weeklyRecap;
+    final hasRecap =
+        data.hasGutScore ||
+        (recap?.foodsLogged ?? 0) > 0 ||
+        (recap?.avgScore ?? 0) > 0 ||
+        (recap?.gutScoreTrend?.any((score) => score > 0) ?? false) ||
+        (recap?.highlights.isNotEmpty ?? false) ||
+        (recap?.summary?.trim().isNotEmpty ?? false);
+    if (!hasRecap) return const _InsightTabEmptyState(tab: 'Weekly Recap');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1817,8 +1912,7 @@ class V2WeeklyRecapView extends StatelessWidget {
         Gap.h10,
 
         // 3. Weekly Highlights Card
-        _WeeklyHighlightsCard(recap: recap),
-        Gap.h10,
+        if (recap?.highlights.isNotEmpty ?? false) ...[_WeeklyHighlightsCard(recap: recap), Gap.h10],
 
         // 4. Side-by-Side Top Healing Food & Top Trigger Food
         _WeeklyTopFoodsRow(data: data),
@@ -2158,16 +2252,17 @@ class _WeeklyHighlightsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final highlights = recap?.highlights ?? const [];
 
     final h1 = highlights.isNotEmpty ? highlights.first : null;
     final h2 = highlights.length > 1 ? highlights[1] : null;
 
-    final highlight1 = h1 is RecapHighlight ? h1.text : (h1 is String ? h1 : 'Logged meals consistently this week.');
-    const sub1 = 'Great logging habit!';
+    final highlight1 = h1 is RecapHighlight ? h1.text : (h1 is String ? h1 : '');
+    const sub1 = 'From your journal';
 
-    final highlight2 = h2 is RecapHighlight ? h2.text : (h2 is String ? h2 : 'Tracking symptoms and food impacts.');
-    const sub2 = 'Building your baseline!';
+    final highlight2 = h2 is RecapHighlight ? h2.text : (h2 is String ? h2 : '');
+    const sub2 = 'From your journal';
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -2210,8 +2305,8 @@ class _WeeklyHighlightsCard extends StatelessWidget {
                     children: [
                       Container(
                         padding: EdgeInsets.all(5.w),
-                        decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                        child: Icon(LucideIcons.leaf, size: 12.w, color: const Color(0xFF15803D)),
+                        decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
+                        child: Icon(LucideIcons.leaf, size: 12.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
                       ),
                       Gap.w8,
                       Expanded(
@@ -2240,50 +2335,51 @@ class _WeeklyHighlightsCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Gap.w8,
+              if (h2 != null) Gap.w8,
 
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: context.v2Theme.card,
-                    borderRadius: BorderRadius.circular(14.w),
-                    border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7))),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(5.w),
-                        decoration: const BoxDecoration(color: Color(0xFFDCFCE7), shape: BoxShape.circle),
-                        child: Icon(LucideIcons.arrowDown, size: 12.w, color: const Color(0xFF15803D)),
-                      ),
-                      Gap.w8,
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              highlight2,
-                              style: TextStyle(
-                                fontFamily: InsightV2Theme.fontFamily,
-                                fontSize: 10.5.sp,
-                                fontWeight: FontWeight.w700,
-                                color: context.insightColor(const Color(0xFF0F172A)),
-                                height: 1.2,
-                              ),
-                            ),
-                            Gap.h2,
-                            Text(
-                              sub2,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: context.insightColor(const Color(0xFF64748B))),
-                            ),
-                          ],
+              if (h2 != null)
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.all(8.w),
+                    decoration: BoxDecoration(
+                      color: context.v2Theme.card,
+                      borderRadius: BorderRadius.circular(14.w),
+                      border: Border.all(color: context.insightColor(const Color(0xFFDCFCE7))),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(5.w),
+                          decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
+                          child: Icon(LucideIcons.arrowDown, size: 12.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
                         ),
-                      ),
-                    ],
+                        Gap.w8,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                highlight2,
+                                style: TextStyle(
+                                  fontFamily: InsightV2Theme.fontFamily,
+                                  fontSize: 10.5.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: context.insightColor(const Color(0xFF0F172A)),
+                                  height: 1.2,
+                                ),
+                              ),
+                              Gap.h2,
+                              Text(
+                                sub2,
+                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: context.insightColor(const Color(0xFF64748B))),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ],
@@ -2682,7 +2778,7 @@ class _V2TopInsightCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Top Insights & Trends',
+                        topInsight.isBaseline ? 'Your Journal Snapshot' : 'Top Insights & Trends',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.4),
@@ -2758,173 +2854,30 @@ class _V2TopInsightCard extends StatelessWidget {
   }
 }
 
-class _EmptyPatternsCard extends StatelessWidget {
-  const _EmptyPatternsCard();
+class _InsightTabEmptyState extends StatelessWidget {
+  const _InsightTabEmptyState({required this.tab, this.hasBaseline = false});
+
+  final String tab;
+  final bool hasBaseline;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final primaryTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final secondaryTextColor = isDark ? Colors.white.withValues(alpha: 0.70) : const Color(0xFF64748B);
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16.w, 20.w, 16.w, 24.w),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.black : Colors.white,
-        borderRadius: BorderRadius.circular(28.w),
-        border: Border.all(color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
-        boxShadow: isDark
-            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))]
-            : [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 4))],
+    final (title, message, icon) = switch (tab) {
+      'Patterns' => ('No repeated patterns yet', 'Log what you eat and how you feel, including when it happens. Repeated observations can help reveal associations over time.', LucideIcons.activity),
+      'Food Impact' => (
+        'Food effects are still unknown',
+        'There is not enough evidence to identify supportive foods or possible triggers yet. Log meals you ate and how you felt afterward. A product scan alone does not establish a reaction.',
+        LucideIcons.utensils,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Display Headline (Matching Chat Empty State UI/UX)
-          Text(
-            'Your meals.\nYour reactions.\nYour patterns.',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 26.sp, fontWeight: FontWeight.w800, height: 1.15, letterSpacing: -0.5, color: primaryTextColor),
-            textAlign: TextAlign.center,
-          ),
-          Gap.h12,
-
-          // Subtitle Paragraph
-          Text(
-            'Keep logging your food scans and symptoms to discover recurring body patterns and tailored triggers.',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w400, color: secondaryTextColor, height: 1.35),
-            textAlign: TextAlign.center,
-          ),
-          Gap.h20,
-
-          // 2-Column Action Cards (Scan Food & Track Symptoms)
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: AppSizes.p8,
-            mainAxisSpacing: AppSizes.p8,
-            childAspectRatio: 1.1,
-            children: [
-              _EmptyPatternActionCard(
-                icon: AppIcons.scan,
-                title: 'Scan food',
-                subtitle: 'Log meals',
-                accentColor: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
-                onTap: () => context.push(AppRoutes.scannerPath('meal')),
-              ),
-              _EmptyPatternActionCard(
-                icon: AppIcons.heart,
-                title: 'Track symptoms',
-                subtitle: 'Record reactions',
-                accentColor: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
-                onTap: () => context.push(AppRoutes.scannerPath('symptom')),
-              ),
-            ],
-          ),
-          Gap.h16,
-
-          // Bottom Guidance Callout
-          Container(
-            padding: EdgeInsets.all(AppSizes.p14),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(AppSizes.r20),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 28.w,
-                  height: 28.w,
-                  decoration: BoxDecoration(color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9), shape: BoxShape.circle),
-                  alignment: Alignment.center,
-                  child: Icon(LucideIcons.lightbulb, size: 14.w, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)),
-                ),
-                Gap.w10,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Understanding Your Patterns',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: primaryTextColor),
-                      ),
-                      Gap.h2,
-                      Text(
-                        'Body patterns emerge automatically as you log meals alongside symptoms over time. No guessing—just clear data.',
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: secondaryTextColor, height: 1.35),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      'Weekly Recap' => ('Your weekly recap is taking shape', 'As you log meals, scans, and symptoms, your recorded activity and available score trends will appear here.', LucideIcons.calendarDays),
+      _ => (
+        hasBaseline ? 'Your baseline is taking shape' : 'Your insights start with your journal',
+        hasBaseline
+            ? 'Your first snapshot is ready. More meal and symptom logs can help reveal repeated patterns and changes over time.'
+            : 'Log a meal and how you feel to start building a personal picture. Your summaries and next steps will appear here.',
+        LucideIcons.sprout,
       ),
-    );
-  }
-}
-
-class _EmptyPatternActionCard extends StatelessWidget {
-  const _EmptyPatternActionCard({required this.icon, required this.title, required this.subtitle, required this.accentColor, required this.onTap});
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color accentColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          color: scheme.cardBackground,
-          borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: scheme.borderSubtle),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 38.w,
-              height: 38.w,
-              decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Center(
-                child: Icon(icon, size: 18.w, color: accentColor),
-              ),
-            ),
-            Gap.h8,
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: scheme.textPrimary, height: 1.15),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Gap.h2,
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: scheme.textSecondary),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
+    };
+    return InsightEmptyStateCard(title: title, message: message, icon: icon, actionLabel: 'Log a meal or symptom', onAction: () => context.go(AppRoutes.chat));
   }
 }

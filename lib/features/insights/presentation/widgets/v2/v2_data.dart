@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
 
 /// Deterministic derivations backing the v2 cards.
@@ -202,11 +203,9 @@ abstract final class V2Data {
           : 'Your gut score is on the move',
       description: (ai?.description?.isNotEmpty ?? false)
           ? ai!.description!
-          : (insight.healingGoal?.isNotEmpty ?? false)
-          ? insight.healingGoal!
           : (topHealing != null && topHealing.impact.isNotEmpty)
           ? '${topHealing.food} is associated with positive gut responses.'
-          : 'Keep logging meals and symptoms to sharpen this trend.',
+          : 'Keep logging meals and symptoms to track your gut health progress.',
       current: current,
       lastWeek: last,
       deltaPts: deltaPts,
@@ -253,9 +252,12 @@ abstract final class V2Data {
   /// a symptomatic majority wins, else the first at all).
   static BodyPattern? watchPattern(List<BodyPattern> patterns) {
     for (final p in patterns) {
+      final text = '${p.reaction} ${p.description} ${p.trigger} ${p.type}';
+      if (InsightValues.isPositiveReaction(text) || p.impactDirection == 'positive') continue;
+
       if (p.positiveCount > 0 || p.evidenceRatio >= 0.5) return p;
     }
-    return patterns.isEmpty ? null : patterns.first;
+    return null;
   }
 
   /// Reaction delay: AI `watch.reactionTime`, else the modal `timeAfter`

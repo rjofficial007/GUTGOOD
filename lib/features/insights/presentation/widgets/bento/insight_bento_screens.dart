@@ -100,7 +100,7 @@ class InsightBentoRecap extends StatelessWidget {
       );
     }
 
-    final trigger = src?.topTrigger;
+    final trigger = src?.validTopTrigger;
     if (trigger != null) {
       tiles.add(
         BentoTile(

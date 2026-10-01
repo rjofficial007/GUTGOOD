@@ -424,6 +424,10 @@ class DebugMockDataService {
         positiveCount: 5,
         totalSimilarMeals: 5,
         timeframeDays: 14,
+        commonFactors: const [
+          CommonFactor(label: 'Early Dinner', icon: 'utensils'),
+          CommonFactor(label: 'Evening', icon: 'moon'),
+        ],
       ),
       BodyPattern(
         type: BodyPattern.typeEnergy,
@@ -632,27 +636,60 @@ class DebugMockDataService {
         FoodSwap(
           id: 'swap_01',
           source: SwapSource(foodId: 'f_fries', name: 'French Fries'),
-          alternatives: [SwapAlternative(foodId: 'f_sweet_potato', name: 'Baked Sweet Potato Wedges', reason: 'Far less refined oil and double the fiber.')],
-        ),
-      ],
-      recentInsights: const [
-        RecentInsightItem(
-          id: 'rec_01',
-          kind: 'Pattern',
-          date: 'Today',
-          dateLabel: 'Today',
-          title: 'Fermented Foods Synergy',
-          description: 'Probiotic intake correlates with zero reported bloating episodes.',
-          imageUrl: berriesPhoto,
-        ),
-        RecentInsightItem(
-          id: 'rec_02',
-          kind: 'Trigger Alert',
-          date: 'Yesterday',
-          dateLabel: 'Yesterday',
-          title: 'Sodium & Late Dinners',
-          description: 'Late-night high sodium meals trigger headaches within 2 hours.',
-          imageUrl: friesThumb,
+          alternatives: [
+            SwapAlternative(
+              foodId: 'f_sweet_potato',
+              name: 'Baked Sweet Potato Wedges',
+              reason: 'Far less refined oil and double the fiber.',
+              impactLevel: 'high',
+              category: 'Sides',
+              benefits: [
+                SwapBenefit(title: 'Double Fiber', description: 'Supports healthy gut motility', icon: 'sprout'),
+                SwapBenefit(title: 'Lower Fat', description: 'Gentle on stomach lining', icon: 'leaf'),
+              ],
+              whyBetterOption: 'Baking sweet potatoes avoids heavy frying oils while delivering prebiotic fiber and beta-carotene.',
+              nutrition: SwapNutrition(calories: 220, protein: '4g', totalFat: '4g', fiber: '6g'),
+            ),
+            SwapAlternative(
+              foodId: 'f_air_fried_zucchini',
+              name: 'Air-Fried Zucchini Fries',
+              reason: 'Crispy low-carb alternative made with minimal olive oil.',
+              impactLevel: 'high',
+              category: 'Sides',
+              benefits: [
+                SwapBenefit(title: 'Low Calorie', description: 'Prevents post-meal sluggishness', icon: 'flame'),
+                SwapBenefit(title: 'High Hydration', description: 'Easy on digestion', icon: 'droplet'),
+              ],
+              whyBetterOption: 'Air frying zucchini gives a satisfying crunch without gut-irritating hydrogenated oils.',
+              nutrition: SwapNutrition(calories: 140, protein: '3g', totalFat: '3g', fiber: '4g'),
+            ),
+            SwapAlternative(
+              foodId: 'f_roasted_chickpeas',
+              name: 'Crispy Roasted Chickpeas',
+              reason: 'Prebiotic rich crunch high in plant protein and fiber.',
+              impactLevel: 'moderate',
+              category: 'Sides & Snacks',
+              benefits: [
+                SwapBenefit(title: 'Plant Protein', description: 'Keeps you full longer', icon: 'dumbbell'),
+                SwapBenefit(title: 'Prebiotic Fiber', description: 'Feeds healthy gut flora', icon: 'shield'),
+              ],
+              whyBetterOption: 'Oven roasted chickpeas provide crunch paired with beneficial fibers that feed good gut bacteria.',
+              nutrition: SwapNutrition(calories: 180, protein: '8g', totalFat: '4g', fiber: '7g'),
+            ),
+            SwapAlternative(
+              foodId: 'f_kale_chips',
+              name: 'Sea Salt Kale Chips',
+              reason: 'Nutrient dense greens packed with antioxidants.',
+              impactLevel: 'moderate',
+              category: 'Snacks',
+              benefits: [
+                SwapBenefit(title: 'Antioxidant Rich', description: 'Reduces gut oxidative stress', icon: 'sparkles'),
+                SwapBenefit(title: 'Light Digesting', description: 'Leaves stomach comfortable', icon: 'sun'),
+              ],
+              whyBetterOption: 'Lightly baked kale provides essential vitamins and minerals without heavy saturated fats.',
+              nutrition: SwapNutrition(calories: 110, protein: '3g', totalFat: '5g', fiber: '3g'),
+            ),
+          ],
         ),
       ],
       weeklyRecap: WeeklyRecap(

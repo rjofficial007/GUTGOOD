@@ -10,14 +10,16 @@ import 'package:gutgood/features/insights/presentation/widgets/bento/insight_ben
 
 /// Pumps a bento sliver inside a themed app with the responsive scale
 /// initialised the way `main.dart` does it.
-Future<void> pumpBento(WidgetTester tester, Widget sliver, {Brightness brightness = Brightness.light}) async {
+Future<void> pumpBento(WidgetTester tester, Widget widget, {Brightness brightness = Brightness.light}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: brightness == Brightness.light ? AppTheme.lightTheme : AppTheme.darkTheme,
       home: Builder(
         builder: (context) {
           Responsive.init(context);
-          return Scaffold(body: CustomScrollView(slivers: [sliver]));
+          return Scaffold(
+            body: widget is InsightBentoLearning ? Center(child: SingleChildScrollView(child: widget)) : CustomScrollView(slivers: [widget]),
+          );
         },
       ),
     ),

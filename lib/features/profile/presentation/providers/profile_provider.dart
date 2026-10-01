@@ -120,19 +120,6 @@ class ProfileNotifier with ChangeNotifier {
   int get streak => _streakService.currentStreak;
   int get longestStreak => _streakService.longestStreak;
   String? get lastActivityDate => _streakService.lastActiveDate;
-
-  Future<void> _syncScoreToProfile(int score) async {
-    if (_profile == null || _profile!.gutScore == score) return;
-
-    try {
-      final updatedProfile = _profile!.copyWith(gutScore: score, updatedAt: DateTime.now());
-      await _firestoreService.updateUserProfile(updatedProfile);
-      AppLogger.insights('ProfileNotifier: Synced scan average $score to profile gutScore');
-    } catch (e) {
-      AppLogger.error('ProfileNotifier: Failed to sync score to profile', error: e);
-    }
-  }
-
   Future<void> _syncTimezoneOffset() async {
     if (_profile == null) return;
     final currentOffset = DateTime.now().timeZoneOffset.inMinutes;

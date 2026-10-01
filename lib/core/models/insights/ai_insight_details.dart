@@ -25,23 +25,28 @@ class InsightSummary extends Equatable {
     this.negativeCount,
   });
 
-  factory InsightSummary.fromMap(Map<String, dynamic> map) => InsightSummary(
-    title: map['title']?.toString() ?? 'Insight',
-    description: map['description']?.toString() ?? '',
-    type: map['type']?.toString() ?? 'Pattern',
-    observation: map['observation']?.toString(),
-    involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
-    strength: map['strength']?.toString(),
-    nextSteps: (map['nextSteps'] as List?)?.cast<String>() ?? const [],
-    frequency: InsightValues.integer(map['frequency']),
-    evidenceRatio: InsightValues.number(map['evidenceRatio'])?.toDouble(),
-    positiveCount: InsightValues.integer(map['positiveCount']),
-    negativeCount: InsightValues.integer(map['negativeCount']),
-  );
+  factory InsightSummary.fromMap(Map<String, dynamic> map) {
+    final isBaseline = (map['kind'] ?? map['type'])?.toString().toLowerCase() == 'progress';
+    return InsightSummary(
+      title: map['title']?.toString() ?? 'Insight',
+      description: map['description']?.toString() ?? '',
+      type: (map['kind'] ?? map['type'])?.toString() ?? 'Pattern',
+      observation: map['observation']?.toString(),
+      involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
+      strength: isBaseline ? null : map['strength']?.toString(),
+      nextSteps: (map['nextSteps'] as List?)?.cast<String>() ?? const [],
+      frequency: isBaseline ? null : InsightValues.integer(map['frequency']),
+      evidenceRatio: isBaseline ? null : InsightValues.number(map['evidenceRatio'])?.toDouble(),
+      positiveCount: isBaseline ? null : InsightValues.integer(map['positiveCount']),
+      negativeCount: isBaseline ? null : InsightValues.integer(map['negativeCount']),
+    );
+  }
 
   final String title;
   final String description;
   final String type;
+
+  bool get isBaseline => type.toLowerCase() == 'progress';
   final String? observation;
   final List<String> involvedFoods;
   final String? strength;
@@ -214,13 +219,20 @@ class FoodImpact extends Equatable {
   factory FoodImpact.fromMap(Map<String, dynamic> map) {
     final food = (map['food'] ?? map['title'] ?? map['name'] ?? '').toString();
     final img = map['userImageUrl']?.toString() ?? map['imageUrl']?.toString();
+    final effectStr = (map['effect'] ?? map['impact'] ?? '').toString();
+    var impactType = (map['impactType'] ?? map['type'] ?? 'neutral').toString().toLowerCase();
+
+    if (InsightValues.isPositiveReaction('$effectStr $food')) {
+      impactType = 'positive';
+    }
+
     return FoodImpact(
       food: food,
       dateLabel: (map['dateLabel'] ?? map['date'] ?? '').toString(),
-      effect: (map['effect'] ?? map['impact'] ?? '').toString(),
+      effect: effectStr,
       timeframeLabel: (map['timeframeLabel'] ?? map['timeframe'] ?? '').toString(),
       emoji: _resolveEmoji(map['emoji']?.toString(), food),
-      impactType: (map['impactType'] ?? map['type'] ?? 'neutral').toString(),
+      impactType: impactType,
       imageUrl: map['imageUrl']?.toString() ?? img,
       userImageUrl: img,
       foodScanId: (map['foodScanId'] ?? map['scanId'])?.toString(),
@@ -419,11 +431,8 @@ class InsightFood extends Equatable {
 class HealingSummary extends Equatable {
   const HealingSummary({required this.foods, required this.goal, required this.trend});
 
-  factory HealingSummary.fromMap(Map<String, dynamic> map) => HealingSummary(
-    foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap),
-    goal: map['goal']?.toString() ?? 'Microbiome Diversity',
-    trend: map['trend']?.toString() ?? 'Improving',
-  );
+  factory HealingSummary.fromMap(Map<String, dynamic> map) =>
+      HealingSummary(foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap), goal: map['goal']?.toString() ?? 'Microbiome Diversity', trend: map['trend']?.toString() ?? '');
 
   final List<InsightFood> foods;
   final String goal;
@@ -438,11 +447,8 @@ class HealingSummary extends Equatable {
 class TriggerSummary extends Equatable {
   const TriggerSummary({required this.foods, required this.primarySymptom, required this.trend});
 
-  factory TriggerSummary.fromMap(Map<String, dynamic> map) => TriggerSummary(
-    foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap),
-    primarySymptom: map['primarySymptom']?.toString() ?? 'Bloating',
-    trend: map['trend']?.toString() ?? 'Needs Attention',
-  );
+  factory TriggerSummary.fromMap(Map<String, dynamic> map) =>
+      TriggerSummary(foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap), primarySymptom: map['primarySymptom']?.toString() ?? '', trend: map['trend']?.toString() ?? '');
 
   final List<InsightFood> foods;
   final String primarySymptom;

@@ -1,19 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gutgood/core/models/insights/gut_score_record.dart';
 import 'package:gutgood/core/models/journal/history_counts.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
 import 'package:gutgood/core/models/user/food_image.dart';
 import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
+import 'package:gutgood/core/services/firestore/gut_score_firestore_service.dart';
+import 'package:gutgood/core/services/gut_score_calculator_service.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/image_hash.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/saved_food_key.dart';
 import 'package:uuid/uuid.dart';
-import 'package:gutgood/core/models/insights/gut_score_record.dart';
-import 'package:gutgood/core/services/firestore/gut_score_firestore_service.dart';
-import 'package:gutgood/core/services/gut_score_calculator_service.dart';
 
 abstract class HistoryFirestoreService {
   Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId});

@@ -37,11 +37,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
     AppLogger.insights('Starting dynamic analysis...');
 
     final since = DateTime.now().subtract(const Duration(days: _analysisWindowDays));
-    final journalMeals = await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since);
-    final scanHistory = await _historyFirestoreService.getRecentScans(limit: _fetchLimit, since: since);
-
-    final scanMeals = scanHistory.map((s) => s.toMealLog()).toList();
-    final meals = [...journalMeals, ...scanMeals];
+    // A scan records interest in a product, not consumption.
+    final meals = await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since);
 
     final allSymptoms = await _historyFirestoreService.getRecentSymptomLogs(limit: _fetchLimit, since: since);
     // P2-4: keyword-guessed symptoms (no structured AI entry, no user numbers)
@@ -271,6 +268,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             type: BodyPattern.typeEnergy,
             trigger: _capitalize(food),
             reaction: 'High Energy',
+            impactDirection: 'positive',
             frequency: symptomaticMeals.length,
             confidence: _getConfidence(frequency: symptomaticMeals.length, evidenceRatio: ratio, negativeCount: asymptomatic),
             description: 'Meals containing $food were followed by higher energy levels in ${symptomaticMeals.length} logs.',
@@ -483,6 +481,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             type: BodyPattern.typeFullness,
             trigger: _capitalize(food),
             reaction: 'Satiety',
+            impactDirection: 'positive',
             frequency: symptomaticMeals.length,
             confidence: _getConfidence(frequency: symptomaticMeals.length, evidenceRatio: ratio, negativeCount: asymptomatic),
             description: 'Meals with $food kept you satisfied for significantly longer in ${symptomaticMeals.length} recent logs.',
@@ -580,6 +579,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
           type: BodyPattern.typeSleep,
           trigger: 'Earlier dinners',
           reaction: 'Better Sleep',
+          impactDirection: 'positive',
           frequency: earlyDinnerMeals.length,
           confidence: _getConfidence(frequency: earlyDinnerMeals.length, evidenceRatio: earlyRatio, negativeCount: asymptomatic),
           description: 'Earlier dinners were associated with better sleep quality in ${earlyDinnerMeals.length} of your recent logs.',

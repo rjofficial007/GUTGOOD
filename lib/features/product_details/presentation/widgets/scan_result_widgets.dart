@@ -183,12 +183,12 @@ class ScanScoreHeader extends StatelessWidget {
                 spacing: 6.w,
                 runSpacing: 6.h,
                 children: [
-                  if (scanData.nutriscore != null) _HeaderTag(label: 'Nutri-Score ${scanData.nutriscore}', color: _nutriColor(scanData.nutriscore!)),
-                  if (scanData.novaGroup != null) _HeaderTag(label: 'NOVA ${scanData.novaGroup}', color: _novaColor(context, scanData.novaGroup!)),
+                  if (scanData.nutriscore != null) _HeaderTag(label: _nutriLabel(scanData.nutriscore!), color: _nutriColor(scanData.nutriscore!)),
+                  if (scanData.novaGroup != null) _HeaderTag(label: _novaLabel(scanData.novaGroup!), color: _novaColor(context, scanData.novaGroup!)),
                   if (scanData.isOrganic == true) _HeaderTag(label: 'Organic', color: t.positive, icon: AppIcons.leaf),
-                  if (scanData.servingSize != null && scanData.servingSize!.isNotEmpty) _HeaderTag(label: scanData.servingSize!, color: t.textSecondary),
+                  if (scanData.servingSize != null && scanData.servingSize!.isNotEmpty) _HeaderTag(label: _formatServingSize(scanData.servingSize!), color: t.textSecondary),
                   if (scanData.category != null && scanData.category!.isNotEmpty && scanData.category != 'food' && scanData.category != 'meal')
-                    _HeaderTag(label: scanData.category!, color: t.textSecondary),
+                    _HeaderTag(label: _formatCategory(scanData.category!), color: t.textSecondary),
                 ],
               ),
             ],
@@ -196,6 +196,68 @@ class ScanScoreHeader extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _nutriLabel(String grade) {
+    switch (grade.toUpperCase()) {
+      case 'A':
+        return 'Great Nutrition';
+      case 'B':
+        return 'Good Nutrition';
+      case 'C':
+        return 'Okay Nutrition';
+      case 'D':
+        return 'Fair Nutrition';
+      case 'E':
+        return 'Poor Nutrition';
+      default:
+        return 'Nutri-Score $grade';
+    }
+  }
+
+  String _novaLabel(String group) {
+    switch (group) {
+      case '1':
+        return 'Unprocessed';
+      case '2':
+        return 'Lightly Processed';
+      case '3':
+        return 'Processed';
+      case '4':
+        return 'Ultra-Processed';
+      default:
+        return 'NOVA $group';
+    }
+  }
+
+  String _formatServingSize(String serving) {
+    final s = serving.trim();
+    if (s.toLowerCase().contains('serving') && s.contains('(') && s.contains(')')) {
+      final match = RegExp(r'\(([^)]+)\)').firstMatch(s);
+      if (match != null) {
+        return 'Serving: ${_capitalizeWords(match.group(1)!)}';
+      }
+    }
+    if (RegExp(r'^\d+\s*g$', caseSensitive: false).hasMatch(s)) {
+      return '${s.replaceAll(RegExp(r'\s+'), '').toLowerCase()} Serving';
+    }
+    return _capitalizeWords(s);
+  }
+
+  String _capitalizeWords(String text) {
+    if (text.isEmpty) return text;
+    return text
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return word;
+          return word[0].toUpperCase() + word.substring(1);
+        })
+        .join(' ');
+  }
+
+  String _formatCategory(String cat) {
+    if (cat.isEmpty) return '';
+    return cat[0].toUpperCase() + cat.substring(1).toLowerCase();
   }
 
   Color _nutriColor(String grade) {
@@ -260,7 +322,7 @@ class _HeaderTag extends StatelessWidget {
       children: [
         if (icon != null) ...[Icon(icon, size: 10.sp, color: color), Gap.w4],
         Text(
-          label.toUpperCase(),
+          label,
           style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: color),
         ),
       ],
@@ -333,7 +395,7 @@ class ScanScoreSection extends StatelessWidget {
                           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
                           decoration: BoxDecoration(color: band.color, borderRadius: BorderRadius.circular(100.r)),
                           child: Text(
-                            band.label.toUpperCase(),
+                            band.label,
                             style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w900, letterSpacing: 0.8, color: Colors.white),
                           ),
                         ),
@@ -479,19 +541,19 @@ class ScanMetricsRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: _MetricCard(icon: _impactIcon, color: _impactColor(context), value: _impactWord, label: AppStrings.gutImpact),
+          child: _MetricCard(icon: _impactIcon, color: _impactColor(context), value: _impactWord, label: 'Impact'),
         ),
         Gap.w6,
         Expanded(
-          child: _MetricCard(icon: AppIcons.sparkles, color: _novaColor(context, nova), value: nova == null ? '–' : 'Group ${nova.group}', label: AppStrings.nova),
+          child: _MetricCard(icon: AppIcons.sparkles, color: _novaColor(context, nova), value: _novaWord(nova), label: nova == null ? 'Nova' : 'Nova ${nova.group}'),
         ),
         Gap.w6,
         Expanded(
-          child: _MetricCard(icon: AppIcons.shield, color: _barrierColor(context), value: _barrierWord, label: AppStrings.gutBarrier),
+          child: _MetricCard(icon: AppIcons.shield, color: _barrierColor(context), value: _barrierWord, label: 'Barrier'),
         ),
         Gap.w6,
         Expanded(
-          child: _MetricCard(icon: AppIcons.droplet, color: _processingColor(context, nova), value: nova?.label ?? 'Unknown', label: AppStrings.processing),
+          child: _MetricCard(icon: AppIcons.droplet, color: _processingColor(context, nova), value: _processingWord(nova), label: 'Food Type'),
         ),
       ],
     );
@@ -511,11 +573,27 @@ class ScanMetricsRow extends StatelessWidget {
   String get _impactWord {
     switch (scanData.impactType) {
       case ImpactType.positive:
-        return 'Positive';
+        return 'Gut Friendly';
       case ImpactType.negative:
-        return 'Negative';
+        return 'Gut Heavy';
       case ImpactType.neutral:
         return 'Moderate';
+    }
+  }
+
+  String _novaWord(NovaGroup? nova) {
+    if (nova == null) return '–';
+    switch (nova.group) {
+      case 1:
+        return 'Unprocessed';
+      case 2:
+        return 'Lightly Processed';
+      case 3:
+        return 'Processed';
+      case 4:
+        return 'Ultra-Processed';
+      default:
+        return nova.label;
     }
   }
 
@@ -550,7 +628,7 @@ class ScanMetricsRow extends StatelessWidget {
 
   String get _barrierWord {
     final s = scanData.score;
-    if (s >= 70) return 'Strong';
+    if (s >= 70) return 'Gut Support';
     if (s >= 50) return 'Steady';
     if (s >= 30) return 'Sensitive';
     return 'At risk';
@@ -563,6 +641,22 @@ class ScanMetricsRow extends StatelessWidget {
     if (s >= 50) return const Color(0xFF2563EB);
     if (s >= 30) return AppPalette.orange;
     return t.negative;
+  }
+
+  String _processingWord(NovaGroup? nova) {
+    if (nova == null) return 'Unknown';
+    switch (nova.group) {
+      case 1:
+        return 'Whole Food';
+      case 2:
+        return 'Some Processing';
+      case 3:
+        return 'Processed';
+      case 4:
+        return 'Heavy Processing';
+      default:
+        return nova.label;
+    }
   }
 
   Color _processingColor(BuildContext context, NovaGroup? nova) {
@@ -596,13 +690,13 @@ class _MetricCard extends StatelessWidget {
     final t = context.bentoTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isNumber = RegExp(r'^\d+$').hasMatch(value);
-    final isLong = value.length > 10;
-    final fontSize = isNumber ? 16.sp : (isLong ? 10.sp : 11.5.sp);
+    final fontSize = isNumber ? 16.sp : 10.5.sp;
 
     final bgStart = color.withValues(alpha: isDark ? 0.22 : 0.12);
     final bgEnd = color.withValues(alpha: isDark ? 0.12 : 0.04);
 
     return Container(
+      height: 100.h,
       decoration: BoxDecoration(
         gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [bgStart, bgEnd]),
         borderRadius: BorderRadius.circular(14.r),
@@ -614,31 +708,36 @@ class _MetricCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 4.w),
+      padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 4.w),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: isDark ? 0.28 : 0.18),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 20.sp, color: color),
+            child: Icon(icon, size: 18.sp, color: color),
           ),
-          Gap.h8,
-          Center(
-            child: Text(
-              value,
-              style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: fontSize, fontWeight: FontWeight.w900, height: 1.15, color: color),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          Gap.h2,
+          SizedBox(
+            height: 28.h,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Text(
+                value,
+                style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: fontSize, fontWeight: FontWeight.w900, height: 1.1, color: color),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
           Gap.h2,
           Text(
-            label.toUpperCase(),
+            label,
             style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: t.textSecondary),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -1172,7 +1271,7 @@ class _SwapCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6.r),
               ),
               child: Text(
-                swap.tag.toUpperCase(),
+                swap.tag,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 0.6, color: t.positive),
@@ -1482,7 +1581,7 @@ class ScanDetailsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const BentoCardHeader(title: 'SCAN DETAILS', icon: AppIcons.info),
+          const BentoCardHeader(title: 'SCAN DETAILS'),
           Gap.h12,
           _detailRow(context, AppStrings.analyzedOn, date, AppIcons.calendar),
           Gap.h8,
