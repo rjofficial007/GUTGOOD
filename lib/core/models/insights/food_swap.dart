@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class SwapSource extends Equatable {
@@ -38,7 +37,7 @@ class SwapNutrition extends Equatable {
   const SwapNutrition({this.calories, this.protein, this.totalFat, this.fiber});
 
   factory SwapNutrition.fromMap(Map<String, dynamic> map) => SwapNutrition(
-    calories: InsightValues.integer(map['calories']),
+    calories: map['calories'] is num ? (map['calories'] as num).toInt() : int.tryParse(map['calories']?.toString() ?? ''),
     protein: map['protein']?.toString(),
     totalFat: (map['totalFat'] ?? map['total_fat'])?.toString(),
     fiber: map['fiber']?.toString(),
@@ -48,6 +47,8 @@ class SwapNutrition extends Equatable {
   final String? protein;
   final String? totalFat;
   final String? fiber;
+
+  bool get hasData => calories != null || protein?.trim().isNotEmpty == true || totalFat?.trim().isNotEmpty == true || fiber?.trim().isNotEmpty == true;
 
   Map<String, dynamic> toMap() => {'calories': calories, 'protein': protein, 'totalFat': totalFat, 'fiber': fiber};
 
@@ -61,7 +62,7 @@ class SwapAlternative extends Equatable {
     required this.name,
     this.imageUrl,
     this.reason,
-    this.impactLevel = 'high',
+    this.impactLevel = 'unknown',
     this.category = '',
     this.benefitTags = const [],
     this.benefits = const [],
@@ -74,7 +75,7 @@ class SwapAlternative extends Equatable {
     name: (map['name'] ?? map['food'] ?? '').toString(),
     imageUrl: map['imageUrl']?.toString(),
     reason: map['reason']?.toString(),
-    impactLevel: map['impactLevel']?.toString() ?? 'high',
+    impactLevel: map['impactLevel']?.toString() ?? 'unknown',
     category: map['category']?.toString() ?? '',
     benefitTags: ModelUtils.parseList<String>(map['benefitTags'] ?? map['benefits'] ?? []),
     benefits: ModelUtils.parseModelList<SwapBenefit>(map['structuredBenefits'] ?? map['whyItWorks'], SwapBenefit.fromMap),

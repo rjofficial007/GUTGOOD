@@ -259,7 +259,7 @@ class HighlightDetailScreen extends StatelessWidget {
         ? insight!.healingSummary!.foods
         : (insight?.healingFoods.isNotEmpty == true
               ? insight!.healingFoods
-                    .map((f) => InsightFood(foodId: 'f_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect, impactLevel: 'high'))
+                    .map((f) => InsightFood(foodId: 'f_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
                     .toList()
               : const <InsightFood>[]);
 
@@ -285,7 +285,9 @@ class HighlightDetailScreen extends StatelessWidget {
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                   ),
                   Text(
-                    'These foods and habits are making a real difference.',
+                    foods.isEmpty
+                        ? 'Supportive foods will appear here when your logs provide evidence.'
+                        : 'Foods observed in your logs as supportive.',
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
                   ),
                 ],
@@ -295,37 +297,25 @@ class HighlightDetailScreen extends StatelessWidget {
         ),
         Gap.h8,
 
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: [
-              if (foods.isEmpty) ...[
-                const _ContributingCard(
-                  title: 'Vegetable Fiber',
-                  subtitle: 'More fiber-rich plants',
-                  badgeText: 'High Impact',
-                  badgeColor: Color(0xFFDCFCE7),
-                  badgeTextColor: Color(0xFF15803D),
-                  imageKeyword: 'salad',
-                  icon: LucideIcons.leaf,
-                ),
-                Gap.w8,
-                const _ContributingCard(
-                  title: 'Fermented Foods',
-                  subtitle: 'Supporting good bacteria',
-                  badgeText: 'High Impact',
-                  badgeColor: Color(0xFFDCFCE7),
-                  badgeTextColor: Color(0xFF15803D),
-                  imageKeyword: 'yogurt',
-                  icon: LucideIcons.leaf,
-                ),
-              ] else
+        if (foods.isEmpty)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 12.w),
+            child: Text(
+              'No supportive foods identified from your logs yet. Keep recording meals and how you feel.',
+              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: v2.textSecondary, height: 1.35),
+            ),
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
                 for (final f in foods) ...[
                   _ContributingCard(
                     title: f.name,
-                    subtitle: f.effect ?? 'Supports gut health',
-                    badgeText: f.impactLevel.toUpperCase(),
+                    subtitle: f.effect?.trim().isNotEmpty == true ? f.effect! : 'No effect details recorded.',
+                    badgeText: 'Supportive observation',
                     badgeColor: context.insightColor(const Color(0xFFDCFCE7)),
                     badgeTextColor: const Color(0xFF15803D),
                     imageKeyword: f.name,
@@ -333,9 +323,9 @@ class HighlightDetailScreen extends StatelessWidget {
                   ),
                   Gap.w8,
                 ],
-            ],
+              ],
+            ),
           ),
-        ),
       ],
     );
   }
@@ -431,6 +421,12 @@ class HighlightDetailScreen extends StatelessWidget {
   Widget _buildProgressHighlightsSection(BuildContext context) {
     final v2 = context.v2Theme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final highlights = _insightOf(context)?.weeklyRecap?.highlights
+            .map((item) => item is RecapHighlight ? item.text : item is String ? item : '')
+            .where((text) => text.trim().isNotEmpty)
+            .take(2)
+            .toList() ??
+        const <String>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,7 +450,7 @@ class HighlightDetailScreen extends StatelessWidget {
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                   ),
                   Text(
-                    'Real changes, real results.',
+                    'Highlights from your recent logs.',
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
                   ),
                 ],
@@ -464,23 +460,28 @@ class HighlightDetailScreen extends StatelessWidget {
         ),
         Gap.h8,
 
-        Row(
-          children: [
-            const Expanded(
-              child: _HighlightBox(icon: LucideIcons.leaf, iconBg: Color(0xFFDCFCE7), iconColor: Color(0xFF15803D), title: 'Logged meals consistently this week.', subtitle: 'Great logging habit!'),
-            ),
-            Gap.w8,
-            const Expanded(
-              child: _HighlightBox(
-                icon: LucideIcons.arrowDown,
-                iconBg: Color(0xFFDCFCE7),
-                iconColor: Color(0xFF15803D),
-                title: 'Tracking symptoms and food impacts.',
-                subtitle: 'Building your baseline!',
-              ),
-            ),
-          ],
-        ),
+        if (highlights.isEmpty)
+          Text(
+            'No progress highlights are available for this period yet.',
+            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: v2.textSecondary),
+          )
+        else
+          Row(
+            children: [
+              for (var i = 0; i < highlights.length; i++) ...[
+                if (i > 0) Gap.w8,
+                Expanded(
+                  child: _HighlightBox(
+                    icon: i == 0 ? LucideIcons.leaf : LucideIcons.arrowDown,
+                    iconBg: const Color(0xFFDCFCE7),
+                    iconColor: const Color(0xFF15803D),
+                    title: highlights[i],
+                    subtitle: 'From your logs',
+                  ),
+                ),
+              ],
+            ],
+          ),
       ],
     );
   }
@@ -589,30 +590,43 @@ class HighlightDetailScreen extends StatelessWidget {
     final insight = _insightOf(context);
     final pattern = insight?.detectedPatterns.where((p) => p.type.toLowerCase().contains('trigger') || p.reaction.isNotEmpty).firstOrNull;
 
-    final foodName = pattern?.involvedFoods.isNotEmpty == true
+    final loggedFoodName = pattern?.involvedFoods.isNotEmpty == true
         ? pattern!.involvedFoods.first
-        : (pattern?.trigger.isNotEmpty == true ? pattern!.trigger : (args.title.isNotEmpty ? args.title : 'Food Item'));
+        : (pattern?.trigger.isNotEmpty == true ? pattern!.trigger : '');
+    final foodName = loggedFoodName.isEmpty ? 'Food not identified' : loggedFoodName;
 
     final occurrences = pattern?.occurrences ?? const <PatternOccurrence>[];
-    final observationCount = pattern != null && pattern.frequency > 0 ? pattern.frequency : (occurrences.isNotEmpty ? occurrences.length : 1);
-    final isSingleObservation = observationCount <= 1;
+    final observationCount = pattern == null ? 0 : (pattern.frequency > 0 ? pattern.frequency : occurrences.length);
+    final isSingleObservation = observationCount == 1;
 
-    final reactionText = pattern?.reaction.isNotEmpty == true ? pattern!.reaction : 'Digestive discomfort';
-    final rawDelay = isSingleObservation ? 'Not enough data yet' : V2Data.reactionTime(insight ?? AIInsight(gutScore: 0, updatedAt: DateTime.now()), pattern);
+    final reactionText = pattern?.reaction.trim().isNotEmpty == true ? pattern!.reaction : 'Symptom not specified';
+    final rawDelay = observationCount < 2 ? 'Building your baseline' : V2Data.reactionTime(insight ?? AIInsight(gutScore: 0, updatedAt: DateTime.now()), pattern);
     final delayText = (rawDelay.toLowerCase() == 'n/a' || rawDelay.toLowerCase() == 'not enough data yet' || rawDelay == '—' || rawDelay.isEmpty) ? 'Building your baseline.' : rawDelay;
-    final confidenceLabel = isSingleObservation ? 'Building' : '${(pattern != null && pattern.evidenceRatio > 0 ? pattern.evidenceRatio * 100 : 75).round()}%';
+    final confidenceLabel = pattern == null || observationCount == 0
+        ? 'Not established'
+        : isSingleObservation
+        ? 'Building'
+        : pattern.evidenceRatio > 0
+        ? '${(pattern.evidenceRatio * 100).round()}%'
+        : 'Not established';
 
-    final title = isSingleObservation ? '$foodName → ${reactionText.toLowerCase()}' : (args.title.isNotEmpty ? args.title : 'Trigger Pattern');
-    final bodyText = isSingleObservation
-        ? 'You logged a ${reactionText.toLowerCase()} after eating this once. We\'re watching to see if it happens again.'
-        : ((args.body ?? '').isNotEmpty ? args.body! : 'Observed pattern between $foodName and $reactionText.');
+    final title = pattern == null
+        ? 'Food and symptom details'
+        : isSingleObservation && loggedFoodName.isNotEmpty && reactionText != 'Symptom not specified'
+        ? '$loggedFoodName → ${reactionText.toLowerCase()}'
+        : (args.title.isNotEmpty ? args.title : 'Observed food and symptom pattern');
+    final bodyText = pattern == null || observationCount == 0
+        ? 'There is not enough logged evidence to describe a food and symptom pattern yet.'
+        : isSingleObservation
+        ? 'You reported ${reactionText.toLowerCase()} after logging $loggedFoodName once. One occurrence is not enough to identify a cause.'
+        : ((args.body ?? '').isNotEmpty ? args.body! : 'This association appeared in $observationCount observations. That does not establish that the food caused the symptom.');
 
     return Scaffold(
       backgroundColor: v2.scaffold,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          GutSliverAppBar(title: 'TRIGGER DETAILS', centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
+          GutSliverAppBar(title: 'FOOD & SYMPTOM DETAILS', centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
 
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 24.w),
@@ -625,6 +639,7 @@ class HighlightDetailScreen extends StatelessWidget {
                   title: title,
                   bodyText: bodyText,
                   pattern: pattern,
+                  hasFoodName: loggedFoodName.isNotEmpty,
                   isSingleObservation: isSingleObservation,
                   observationCount: observationCount,
                   reactionText: reactionText,
@@ -642,7 +657,7 @@ class HighlightDetailScreen extends StatelessWidget {
                 Gap.h10,
 
                 // 4. WANT A DIFFERENT OPTION? (Better Swaps)
-                _buildBetterSwapsOptionCard(context, foodName: foodName),
+                if (loggedFoodName.isNotEmpty) _buildBetterSwapsOptionCard(context, foodName: loggedFoodName),
                 Gap.h12,
               ]),
             ),
@@ -659,6 +674,7 @@ class HighlightDetailScreen extends StatelessWidget {
     required String title,
     required String bodyText,
     required BodyPattern? pattern,
+    required bool hasFoodName,
     required bool isSingleObservation,
     required int observationCount,
     required String reactionText,
@@ -672,14 +688,14 @@ class HighlightDetailScreen extends StatelessWidget {
       orElse: () => const PatternOccurrence(date: '', mealName: '', reaction: '', timeAfter: ''),
     );
 
-    final foodImageUrl = V2Kit.foodImageUrl(foodName, imageUrl: firstOccWithImage?.imageUrl);
+    final foodImageUrl = hasFoodName ? V2Kit.foodImageUrl(foodName, imageUrl: firstOccWithImage?.imageUrl) : null;
 
     final cardBg = isDark ? const Color(0xFF231416) : const Color(0xFFFFF8F6);
     final cardBorder = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5);
     final pillBg = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2);
     final pillFg = isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B);
 
-    final frequencyText = '$observationCount observation${observationCount == 1 ? '' : 's'}';
+    final frequencyText = observationCount > 0 ? '$observationCount observation${observationCount == 1 ? '' : 's'}' : 'Not available';
 
     return Container(
       decoration: BoxDecoration(
@@ -722,7 +738,7 @@ class HighlightDetailScreen extends StatelessWidget {
                             Icon(LucideIcons.triangleAlert, size: 10.w, color: pillFg),
                             Gap.w4,
                             Text(
-                              isSingleObservation ? 'POSSIBLE CONNECTION' : 'SOMETHING TO WATCH',
+                              pattern == null ? 'NO MATCHING PATTERN' : isSingleObservation ? 'POSSIBLE CONNECTION' : 'OBSERVED IN LOGS',
                               style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: pillFg),
                             ),
                           ],
@@ -776,7 +792,7 @@ class HighlightDetailScreen extends StatelessWidget {
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8.w, offset: Offset(0, 2.w))],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: CachedNetworkImage(
+                  child: foodImageUrl == null ? Icon(LucideIcons.utensils, size: 28.w, color: pillFg) : CachedNetworkImage(
                     imageUrl: foodImageUrl,
                     fit: BoxFit.cover,
                     alignment: Alignment.center,
@@ -804,7 +820,7 @@ class HighlightDetailScreen extends StatelessWidget {
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                     label: 'Observations',
                     value: frequencyText,
-                    subtext: isSingleObservation ? 'Last 30 days' : (pattern?.timeframeDays != null ? 'Last ${pattern!.timeframeDays} days' : 'Last 30 days'),
+                    subtext: pattern == null ? 'No matching pattern' : (pattern.timeframeDays > 0 ? 'Last ${pattern.timeframeDays} days' : 'Period unavailable'),
                   ),
                 ),
                 Gap.w4,
@@ -816,7 +832,7 @@ class HighlightDetailScreen extends StatelessWidget {
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                     label: 'Reaction',
                     value: reactionText,
-                    subtext: 'Observed symptom',
+                    subtext: pattern == null ? 'No matching pattern' : 'Observed symptom',
                   ),
                 ),
                 Gap.w4,
@@ -828,7 +844,7 @@ class HighlightDetailScreen extends StatelessWidget {
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                     label: 'Typical Delay',
                     value: delayText,
-                    subtext: isSingleObservation ? 'Not enough data yet' : 'After eating',
+                    subtext: observationCount < 2 ? 'More logs needed' : 'Across observations',
                   ),
                 ),
                 Gap.w4,
@@ -840,7 +856,7 @@ class HighlightDetailScreen extends StatelessWidget {
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                     label: 'Confidence',
                     value: confidenceLabel,
-                    subtext: isSingleObservation ? 'More logs needed' : 'Evidence score',
+                    subtext: observationCount < 2 ? 'More logs needed' : 'Evidence score',
                   ),
                 ),
               ],

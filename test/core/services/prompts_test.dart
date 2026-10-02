@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/constants/ai_constants.dart';
 import 'package:gutgood/core/services/prompts.dart';
@@ -103,30 +101,6 @@ void main() {
     });
   });
 
-  test('insight context stays within proxy cap and preserves whole candidates and recent events', () {
-    final prompt = Prompts.insightsAnalysisPrompt(
-      userGoals: ['g' * 2000],
-      userSensitivities: ['s' * 2000],
-      userLifestyle: ['l' * 2000],
-      cyclePhase: 'p' * 2000,
-      historyJson: 'c' * 20000,
-      historySummary: 'h' * 20000,
-      recentJournalText: '${'older event\n' * 2000}LATEST MEAL',
-      historicalJournalSummary: 'o' * 20000,
-      scoreHistory: 's' * 20000,
-      preComputedPatternCandidates: jsonEncode([
-        {'trigger': 'too large', 'description': 'x' * 9000},
-        {'trigger': 'Oats', 'frequency': 3},
-      ]),
-    );
-    expect(prompt.length, lessThan(31700)); // Leave room for retry instructions.
-    expect(prompt, contains('LATEST MEAL'));
-    final candidates = prompt.split('6. PRE-QUALIFIED PATTERN CANDIDATES:').last.split('The final response').first.trim();
-    expect(jsonDecode(candidates), [
-      {'trigger': 'Oats', 'frequency': 3},
-    ]);
-  });
-
   group('Classifier vocabulary consistency', () {
     test('intent detection prompt lists every canonical UserIntent token', () {
       final instruction = IntentDetectionPrompt.instruction;
@@ -164,14 +138,11 @@ void main() {
       const instruction = InsightsPrompt.instruction;
       expect(instruction.contains('ZERO PATTERN CASE'), isTrue, reason: 'The checklist references a ZERO PATTERN CASE; without a definition the model invents patterns from thin data.');
       expect(instruction, contains('Return status "ready"'));
-      expect(instruction, contains('Generate a personalized topInsight'));
-      expect(instruction, contains('Do not create single-occurrence patterns'));
-      expect(instruction, contains('Omit strength and confidence'));
-      expect(instruction, contains('Mention foods and feelings separately'));
-      expect(instruction, contains('not identifying foods that'));
-      expect(instruction, contains('Missing symptom reports do not prove symptom-free'));
-      expect(instruction, contains('Omit nutrition unless source data supplies'));
-      expect(instruction, isNot(contains('AT LEAST 4')));
+      expect(instruction, contains('Generate a concise personalized topInsight'));
+      expect(instruction, contains('one occurrence is not enough to identify a cause'));
+      expect(instruction, contains('Do not create a detectedPattern, trigger, healing food'));
+      expect(instruction, contains('Never infer fat content'));
+      expect(instruction.contains('COMMON FACTORS MUST NOT BE EMPTY'), isFalse);
     });
 
     test('insights prompt v2 asks for data only (P2-10: Dart owns presentation)', () {

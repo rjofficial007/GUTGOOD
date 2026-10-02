@@ -48,22 +48,23 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
     // Dynamic trigger matching
     final matchingTrigger = insight?.triggerFoods.where((f) => f.name.toLowerCase().trim() == foodName.toLowerCase().trim()).firstOrNull;
 
-    // Dynamic Hero Subtitle
+    final hasPersonalEvidence = matchingPattern != null || matchingTrigger != null;
     final heroSubtitle = matchingPattern?.reaction.isNotEmpty == true
         ? 'Linked to ${matchingPattern!.reaction.toLowerCase()} in your logs.'
-        : (matchingTrigger?.effect.isNotEmpty == true ? matchingTrigger!.effect : 'You\'ve noticed this is often linked to headache discomfort.');
+        : (matchingTrigger?.effect.isNotEmpty == true ? matchingTrigger!.effect : 'No personal association has been established from your logs.');
 
-    final tagEffect = (matchingTrigger?.effect.isNotEmpty == true) ? matchingTrigger!.effect : (matchingPattern?.reaction.isNotEmpty == true ? matchingPattern!.reaction : 'Fast Food');
-
-    // Dynamic Hero Tags
-    final heroTags = <String>[if (matchingPattern != null && matchingPattern.frequency > 0) '${matchingPattern.frequency}x Observed' else 'High Impact', tagEffect, 'Processed'];
+    final heroTags = <String>[
+      if (matchingPattern != null && matchingPattern.frequency > 0) '${matchingPattern.frequency}x Observed',
+      if (matchingPattern?.reaction.isNotEmpty == true) matchingPattern!.reaction,
+      if (matchingTrigger?.effect.isNotEmpty == true) matchingTrigger!.effect,
+    ];
 
     // Dynamic Why affect you explanation
     final whyExplanation = (matchingPattern?.description.isNotEmpty == true)
         ? matchingPattern!.description
         : (matchingTrigger?.effect.isNotEmpty == true
               ? '$foodName (${matchingTrigger!.effect}) may place additional strain on your digestive system based on your meal logs.'
-              : 'This food is high in saturated fat, processed ingredients, and additives, which may be harder on your digestion and can contribute to symptoms for you.');
+              : 'This is a general food alternative. Your logs do not yet show enough evidence to explain how the source food affects you.');
 
     final dynamicCategories = widget.swap.alternatives.map((alt) => alt.category.trim()).where((c) => c.isNotEmpty).toSet().toList();
 
@@ -92,11 +93,11 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // 1. TRIGGER FOOD HERO CARD
-                _buildTriggerHeroCard(context, foodName, imageUrl, heroSubtitle, heroTags),
+                _buildTriggerHeroCard(context, foodName, imageUrl, heroSubtitle, heroTags, hasPersonalEvidence: hasPersonalEvidence),
                 Gap.h12,
 
                 // 2. WHY THIS MAY AFFECT YOU CARD
-                _buildWhyAffectYouCard(context, whyExplanation),
+                _buildWhyAffectYouCard(context, whyExplanation, hasPersonalEvidence: hasPersonalEvidence),
                 Gap.h12,
 
                 // 3. CATEGORY FILTER PILLS (Removed the extra Gap.h12 here)
@@ -118,7 +119,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
   }
 
   /// 1. Trigger Food Hero Card
-  Widget _buildTriggerHeroCard(BuildContext context, String foodName, String imageUrl, String subtitle, List<String> tags) => Container(
+  Widget _buildTriggerHeroCard(BuildContext context, String foodName, String imageUrl, String subtitle, List<String> tags, {required bool hasPersonalEvidence}) => Container(
     height: 180.w,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(20.w),
@@ -156,7 +157,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
                         Icon(LucideIcons.triangleAlert, size: 9.w, color: Colors.white),
                         Gap.w4,
                         Text(
-                          'YOUR TRIGGER FOOD',
+                          hasPersonalEvidence ? 'OBSERVED IN YOUR LOGS' : 'GENERAL ALTERNATIVE',
                           style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
                         ),
                       ],
@@ -196,7 +197,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
   );
 
   /// 2. "Why this may affect you" Card
-  Widget _buildWhyAffectYouCard(BuildContext context, String explanation) {
+  Widget _buildWhyAffectYouCard(BuildContext context, String explanation, {required bool hasPersonalEvidence}) {
     final v2 = context.v2Theme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -223,7 +224,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Why this may affect you',
+                  hasPersonalEvidence ? 'What your logs show' : 'About this alternative',
                   style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                 ),
                 Gap.h3,
@@ -432,12 +433,6 @@ class _SwapCardItem extends StatelessWidget {
     if (reasonLower.contains('process') || reasonLower.contains('whole') || reasonLower.contains('natural')) {
       benefits.add(const _BenefitData(label: 'Less processed', icon: LucideIcons.sparkles));
     }
-    if (benefits.isEmpty) {
-      benefits.add(const _BenefitData(label: 'Gut Friendly', icon: LucideIcons.leaf));
-      if (alt.impactLevel.isNotEmpty && alt.impactLevel.toLowerCase() != 'high') {
-        benefits.add(_BenefitData(label: '${alt.impactLevel.toUpperCase()} Impact', icon: LucideIcons.zap));
-      }
-    }
     return benefits.take(2).toList();
   }
 
@@ -499,7 +494,7 @@ class _SwapCardItem extends StatelessWidget {
                         Gap.h2,
                         // Description
                         Text(
-                          alt.reason ?? 'A gentler alternative to support your gut health.',
+                          alt.reason?.trim().isNotEmpty == true ? alt.reason! : 'No comparison details are available for this alternative yet.',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: v2.textSecondary, height: 1.2),

@@ -31,7 +31,17 @@ class ImageMode {
   static const String other = 'OTHER';
   static const String unknown = 'UNKNOWN';
 
-  static const List<String> all = [food, restaurantMenu, productBarcode, ingredientsLabel, nutritionLabel, packagedProduct, foodRecipe, other, unknown];
+  static const List<String> all = [
+    food,
+    restaurantMenu,
+    productBarcode,
+    ingredientsLabel,
+    nutritionLabel,
+    packagedProduct,
+    foodRecipe,
+    other,
+    unknown,
+  ];
 }
 
 class UserIntent {
@@ -95,7 +105,7 @@ class AiVersions {
   /// 2 = de-presented schema: the LLM emits data only, Dart owns visuals.
   /// 3 = v2 Real Tokens UI blocks (`improving`, `watch`, `smartSwap`,
   ///     `topHealing/topTrigger.whyPoints`). All tolerant reads.
-  static const int insightPromptVersion = 1;
+  static const int insightPromptVersion = 6;
 
   /// J-4 §17: chat builder (`Prompts.chatSystemInstruction`) version, stamped
   /// on ChatMessage + the scan/meal/symptom records extracted from chat turns.

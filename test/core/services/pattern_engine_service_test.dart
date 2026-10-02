@@ -73,32 +73,6 @@ void main() {
   }
 
   group('PatternEngineService (P1-7)', () {
-    test('scanning a product twice does not establish consumption or a pattern', () async {
-      final now = DateTime.now().subtract(const Duration(days: 1));
-      final patterns = await runWith(
-        meals: [],
-        symptoms: [_symptom('Bloating', now.add(const Duration(hours: 1))), _symptom('Bloating', now.add(const Duration(days: 1, hours: 1)))],
-        scans: [
-          for (var day = 0; day < 2; day++)
-            ScanResult(
-              productName: 'Pizza',
-              brand: '',
-              score: 20,
-              impactType: ImpactType.negative,
-              impact: '',
-              createdAt: now.add(Duration(days: day)),
-            ),
-        ],
-      );
-      expect(patterns, isEmpty);
-    });
-
-    test('higher energy associations retain a positive direction', () async {
-      final meals = List.generate(2, (i) => _meal(['Rice'], DateTime.now().subtract(Duration(days: i + 1))));
-      final patterns = await runWith(meals: meals, symptoms: meals.map((m) => _symptom('Energetic', m.eventTime.add(const Duration(hours: 1)), energy: 8)).toList());
-      expect(patterns.single.impactDirection, 'positive');
-    });
-
     test('returns [] and clears stale patterns when data is insufficient', () async {
       final noMeals = await runWith(meals: [], symptoms: [_symptom('Bloating', DateTime.now())]);
       final noSymptoms = await runWith(

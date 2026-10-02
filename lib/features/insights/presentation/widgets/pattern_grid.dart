@@ -246,22 +246,11 @@ class PatternCard extends StatelessWidget {
       }
     }
 
-    if (confidencePct == 0) {
-      final lower = pattern.confidence.toLowerCase();
-      confidencePct = lower == 'low'
-          ? 55
-          : (lower == 'medium' || lower == 'moderate')
-          ? 72
-          : lower == 'high'
-          ? 88
-          : 65;
-    }
-
     // Dynamic Description String
     final descStr = pattern.description.trim();
 
     // Dynamic CTA Label
-    final ctaText = 'DEEP DIVE ($confidencePct%)';
+    final ctaText = confidencePct > 0 ? 'DEEP DIVE ($confidencePct%)' : 'VIEW DETAILS';
 
     final accentColor = style.accentColor;
     const cardBgColor = Color(0xFF0F1015);

@@ -198,9 +198,9 @@ abstract final class V2Data {
           ? ai!.headline!
           : (topHealing != null && topHealing.food.isNotEmpty)
           ? '${topHealing.food}${topHealing.impact.isNotEmpty ? ' • ${topHealing.impact}' : ''}'
-          : (insight.healingTrend?.isNotEmpty ?? false)
-          ? insight.healingTrend!
-          : 'Your gut score is on the move',
+          : InsightValues.text(insight.healingTrend, fallback: '').isNotEmpty
+          ? InsightValues.text(insight.healingTrend)
+          : 'Your gut score summary',
       description: (ai?.description?.isNotEmpty ?? false)
           ? ai!.description!
           : (topHealing != null && topHealing.impact.isNotEmpty)
@@ -303,7 +303,7 @@ abstract final class V2Data {
     final trigger = pattern.trigger.trim();
     final reaction = pattern.reaction.trim();
     final title = (trigger.isEmpty && reaction.isEmpty)
-        ? (pattern.description.isNotEmpty ? pattern.description : 'Pattern detected')
+        ? (pattern.description.isNotEmpty ? pattern.description : 'Observed pattern')
         : reaction.isEmpty
         ? trigger
         : trigger.isEmpty
@@ -330,11 +330,11 @@ abstract final class V2Data {
 
     return V2WatchData(
       title: title,
-      description: pattern.description.isNotEmpty ? pattern.description : 'This combination keeps repeating in your logs.',
-      meta: 'Pattern • ${pattern.frequency}× in ${windowDays}d',
+      description: pattern.description.isNotEmpty ? pattern.description : 'This pattern was identified in your logged data.',
+      meta: windowDays > 0 ? 'Pattern • ${pattern.frequency}× in ${windowDays}d' : 'Pattern • ${pattern.frequency} observations',
       reactionTime: reactionTime(insight, pattern),
       riskLevel: riskLevel(insight, pattern),
-      windowLabel: windowDays <= 0 ? '—' : '${windowDays}d',
+      windowLabel: windowDays <= 0 ? 'Period unavailable' : '${windowDays}d',
       timeline: timeline,
       pattern: pattern,
       swapAfter: swapAfter,

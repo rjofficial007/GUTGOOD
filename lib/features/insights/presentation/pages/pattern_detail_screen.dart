@@ -82,8 +82,8 @@ class PatternDetailScreen extends StatelessWidget {
       (o) => o.imageUrl != null && o.imageUrl!.isNotEmpty,
       orElse: () => const PatternOccurrence(date: '', mealName: '', reaction: '', timeAfter: ''),
     );
-    final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : (pattern.trigger.isNotEmpty ? pattern.trigger : style.label);
-    final imageUrl = V2Kit.foodImageUrl(foodName, imageUrl: firstOccWithImage.imageUrl);
+    final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : pattern.trigger;
+    final imageUrl = foodName.isEmpty ? null : V2Kit.foodImageUrl(foodName, imageUrl: firstOccWithImage.imageUrl);
 
     // Dynamic Headline Title (Line 1)
     final rawTrigger = pattern.trigger.trim();
@@ -124,17 +124,6 @@ class PatternDetailScreen extends StatelessWidget {
           confidencePct = 55;
         }
       }
-    }
-
-    if (confidencePct == 0) {
-      final lower = pattern.confidence.toLowerCase();
-      confidencePct = lower == 'low'
-          ? 55
-          : (lower == 'medium' || lower == 'moderate')
-          ? 72
-          : lower == 'high'
-          ? 88
-          : 65;
     }
 
     // Dynamic Description String
@@ -239,7 +228,7 @@ class PatternDetailScreen extends StatelessWidget {
                         ),
                         Gap.w5,
                         Text(
-                          '${pattern.confidence.toUpperCase()} CONFIDENCE ($confidencePct%)',
+                          confidencePct > 0 ? '${pattern.confidence.isEmpty ? 'Estimated' : pattern.confidence.toUpperCase()} CONFIDENCE ($confidencePct%)' : 'CONFIDENCE NOT ESTABLISHED',
                           style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.3),
                         ),
                       ],
@@ -258,7 +247,13 @@ class PatternDetailScreen extends StatelessWidget {
               children: [
                 // Food Image with ShaderMask for smooth left-edge fading
                 Positioned.fill(
-                  child: ShaderMask(
+                  child: imageUrl == null
+                      ? Container(
+                          color: cardBgColor,
+                          alignment: Alignment.center,
+                          child: Icon(style.icon, color: accentColor.withValues(alpha: 0.7), size: 28.w),
+                        )
+                      : ShaderMask(
                     shaderCallback: (rect) => const LinearGradient(
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
@@ -312,9 +307,13 @@ class PatternDetailScreen extends StatelessWidget {
     final v2 = context.v2Theme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = PatternCardStyle.forType(pattern.type);
-    final text = pattern.trigger.isNotEmpty
+    final text = pattern.trigger.isNotEmpty && pattern.typicalDelay?.trim().isNotEmpty == true
         ? 'Repeated log history shows that eating ${pattern.trigger} is associated with a ${pattern.type.toLowerCase()} reaction within ${pattern.typicalDelay}.'
-        : 'Logged evidence indicates a recurring ${pattern.type.toLowerCase()} pattern over the last ${pattern.timeframeDays} days.';
+        : pattern.trigger.isNotEmpty
+        ? 'Your logs show ${pattern.trigger} alongside a ${pattern.type.toLowerCase()} reaction.'
+        : pattern.timeframeDays > 0
+        ? 'Logged evidence indicates a recurring ${pattern.type.toLowerCase()} pattern over the last ${pattern.timeframeDays} days.'
+        : 'Logged evidence indicates a recurring ${pattern.type.toLowerCase()} pattern.';
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -392,7 +391,7 @@ class PatternDetailScreen extends StatelessWidget {
                       style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                     ),
                     Text(
-                      'Based on your last ${pattern.timeframeDays} days of data.',
+                      pattern.timeframeDays > 0 ? 'Based on your last ${pattern.timeframeDays} days of data.' : 'Based on your available logged data.',
                       style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: v2.textSecondary),
                     ),
                   ],

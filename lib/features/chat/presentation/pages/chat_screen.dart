@@ -827,20 +827,8 @@ class _MessageListView extends StatelessWidget {
       builder: (context, state, _) {
         final historyLoading = state.$1;
 
-        final allMessages = context.read<ChatHistoryNotifier>().messages;
-
-        final messages = allMessages.where((m) => !m.isHidden).toList();
-
-        final isLoading = context.select<ChatComposerNotifier, bool>((n) => n.isLoading);
-
         if (historyLoading) {
           return const ChatShimmerLoading();
-        }
-
-        final hasUserMessages = messages.any((m) => m.role == 'user');
-
-        if (!hasUserMessages && !isLoading) {
-          return const ChatEmptyState();
         }
 
         return LayoutBuilder(
@@ -849,7 +837,7 @@ class _MessageListView extends StatelessWidget {
             reverse: false,
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             slivers: [
-              SliverPadding(padding: EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p10, AppSizes.p16, AppSizes.p16), sliver: const _MessageSliverList()),
+              SliverPadding(padding: EdgeInsets.fromLTRB(AppSizes.p16, 0, AppSizes.p16, AppSizes.p16), sliver: const _MessageSliverList()),
 
               /*
                  * Turn-scoped spacer: enabled ONLY between send and turn end.
@@ -1033,6 +1021,12 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                               unawaited(context.push(AppRoutes.scanResult, extra: ScanResultArgs(scanData: msg.scanData!)));
                             }
                           : null,
+                      onScannerModeSelected: (mode) {
+                        final screenState = context.findAncestorStateOfType<ChatScreenState>();
+                        if (screenState != null) {
+                          unawaited(screenState.handleCamera(historyNotifier, composerNotifier, authNotifier, mode: mode));
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -1145,17 +1139,19 @@ class _ChatComposer extends StatelessWidget {
                         ),
 
                         ComposerIconButton(
-                          icon: AppIcons.camera,
-                          label: AppStrings.scanIngredientsMeal,
-                          onTap: composerNotifier.isLoading ? null : () => onCamera(historyNotifier, composerNotifier, authNotifier),
+                          icon: AppIcons.image,
+                          label: AppStrings.attachPhotos,
+                          onTap: composerNotifier.isLoading ? null : () => onGallery(historyNotifier, composerNotifier, authNotifier),
                         ),
 
                         Gap.w4,
 
-                        ComposerIconButton(
-                          icon: AppIcons.image,
-                          label: AppStrings.attachPhotos,
-                          onTap: composerNotifier.isLoading ? null : () => onGallery(historyNotifier, composerNotifier, authNotifier),
+                        ComposerActionCircle(
+                          label: AppStrings.scanIngredientsMeal,
+                          onTap: composerNotifier.isLoading ? null : () => onCamera(historyNotifier, composerNotifier, authNotifier),
+                          enabled: !composerNotifier.isLoading,
+                          borderRadius: BorderRadius.circular(AppSizes.r14),
+                          icon: Icon(AppIcons.camera, color: context.appColorScheme.cardBackground, size: 20),
                         ),
 
                         Gap.w4,

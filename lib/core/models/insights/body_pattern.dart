@@ -13,7 +13,7 @@ class BodyPattern extends Equatable {
     required this.frequency,
     required this.confidence,
     required this.description,
-    this.confidenceScore = 0.85,
+    this.confidenceScore = 0.0,
     this.involvedFoods = const [],
     this.relatedFoodIds = const [],
     this.recommendation,
@@ -21,11 +21,11 @@ class BodyPattern extends Equatable {
     this.occurrences = const [],
     this.commonFactors = const [],
     this.totalSimilarMeals = 0,
-    this.timeframeDays = 30,
+    this.timeframeDays = 0,
     this.typicalTiming,
     this.typicalDelay,
-    this.impactDirection = 'negative',
-    this.impactLevel = 'high',
+    this.impactDirection = 'unknown',
+    this.impactLevel = 'unknown',
     this.evidenceRatio = 0.0,
     this.positiveCount = 0,
     this.negativeCount = 0,
@@ -36,7 +36,7 @@ class BodyPattern extends Equatable {
     final typeStr = (map['domain'] ?? map['type'] ?? map['category'] ?? '').toString();
 
     final confVal = map['confidenceScore'] ?? map['confidence'] ?? map['strength'];
-    var parsedScore = InsightValues.number(map['confidenceScore'])?.toDouble() ?? 0.85;
+    var parsedScore = InsightValues.number(map['confidenceScore'])?.toDouble() ?? 0.0;
     if (confVal != null) {
       final s = confVal.toString().replaceAll('%', '').trim();
       final d = double.tryParse(s);
@@ -62,7 +62,7 @@ class BodyPattern extends Equatable {
       type: typeStr,
       trigger: (map['trigger'] ?? map['title'] ?? map['name'] ?? '').toString(),
       reaction: (map['reaction'] ?? map['effect'] ?? '').toString(),
-      frequency: InsightValues.integer(map['frequency']) ?? 1,
+      frequency: InsightValues.integer(map['frequency']) ?? 0,
       confidence: (map['confidence'] ?? map['strength'] ?? '').toString(),
       confidenceScore: parsedScore,
       description: (map['description'] ?? map['observation'] ?? '').toString(),
@@ -73,7 +73,7 @@ class BodyPattern extends Equatable {
       occurrences: ModelUtils.parseModelList<PatternOccurrence>(map['occurrences'], PatternOccurrence.fromMap),
       commonFactors: ModelUtils.parseModelList<CommonFactor>(map['commonFactors'], CommonFactor.fromMap),
       totalSimilarMeals: InsightValues.integer(map['totalSimilarMeals']) ?? 0,
-      timeframeDays: InsightValues.integer(map['timeframeDays']) ?? 30,
+      timeframeDays: InsightValues.integer(map['timeframeDays']) ?? 0,
       typicalTiming: map['typicalTiming']?.toString(),
       typicalDelay: map['typicalDelay']?.toString(),
       impactDirection: map['impactDirection']?.toString() ?? 'unknown',

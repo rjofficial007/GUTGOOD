@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
@@ -69,6 +70,22 @@ class _InsightsScreenState extends State<InsightsScreen> {
           final scoreSeries = InsightsScreen.scoreWindowFor(notifier, latestInsight);
           final isLoading = latestInsight == null && (notifier.isLoading || notifier.isGenerating);
 
+          if (latestInsight == null && notifier.errorMessage == null && !isLoading && !notifier.isSufficient) {
+            return Scaffold(
+              backgroundColor: context.appColorScheme.cardBackground,
+              appBar: GutAppBar(
+                title: AppStrings.insightsTab,
+                actions: [IconButton(icon: const Icon(LucideIcons.history), tooltip: 'Insight History', onPressed: () => context.push(AppRoutes.insightHistory))],
+              ),
+              body: Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p16),
+                  child: InsightBentoLearning(meals: notifier.todayMeals, symptoms: notifier.todaySymptoms, scans: notifier.todayScans),
+                ),
+              ),
+            );
+          }
+
           return CustomScrollView(
             slivers: [
               GutSliverAppBar(
@@ -88,20 +105,19 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       child: InsightErrorStateCard(onRetry: notifier.retry, hasCachedData: latestInsight != null),
                     ),
                   ),
-                if (latestInsight != null || notifier.errorMessage == null)
-                  V2InsightsFeed(
-                    data: latestInsight?.status == AIInsight.statusInsufficientData ? null : latestInsight,
-                    patterns: prioritizedPatterns,
-                    series: scoreSeries,
-                    history: notifier.insightHistory,
-                    forYouEmptyState: notifier.isSufficient
-                        ? InsightEmptyStateCard(
-                            title: 'Your logs are ready',
-                            message: 'You have enough logs for your first personalized insight.',
-                            actionLabel: 'Generate insights',
-                            onAction: notifier.generateNewInsight,
-                          )
-                        : InsightBentoLearning(meals: notifier.todayMeals, symptoms: notifier.todaySymptoms, scans: notifier.todayScans),
+                if (latestInsight != null && latestInsight.status != AIInsight.statusInsufficientData)
+                  V2InsightsFeed(data: latestInsight, patterns: prioritizedPatterns, series: scoreSeries, history: notifier.insightHistory)
+                else if (notifier.errorMessage == null && notifier.isSufficient)
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverToBoxAdapter(
+                      child: InsightEmptyStateCard(
+                        title: 'Your logs are ready',
+                        message: 'You have enough logs for your first personalized insight.',
+                        actionLabel: 'Generate insights',
+                        onAction: notifier.generateNewInsight,
+                      ),
+                    ),
                   ),
               ],
             ],

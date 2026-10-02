@@ -59,7 +59,6 @@ class MealSymptomDetailScreen extends StatelessWidget {
     final imageUrl = V2Kit.foodImageUrl(occurrence.mealName, imageUrl: occurrence.imageUrl);
     final accentColor = style.accentColor;
     const cardBgColor = Color(0xFF0F1015);
-    const cardGradient = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF23272F), Color(0xFF0F1015)]);
 
     final dateStr = occurrence.dateLabel ?? occurrence.date;
     final timeStr = occurrence.mealTime ?? 'Logged meal';
@@ -223,12 +222,12 @@ class MealSymptomDetailScreen extends StatelessWidget {
     );
   }
 
-  /// 3. Why This Happens (Pattern Explanation Card)
+  /// 3. Pattern Observation Card
   Widget _buildPatternExplanationCard(BuildContext context) {
     final v2 = context.v2Theme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final explanationText = pattern!.description.isNotEmpty ? pattern!.description : 'Logged evidence shows this meal triggers a reaction based on your body data.';
+    final explanationText = pattern!.description.isNotEmpty ? pattern!.description : 'Your logs show this association, but they do not establish why it happened.';
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -252,7 +251,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
               ),
               Gap.w8,
               Text(
-                'Why This Happens',
+                'Pattern Observation',
                 style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
               ),
             ],

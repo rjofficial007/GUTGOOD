@@ -131,7 +131,16 @@ class AIInsight extends Equatable {
       triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
       triggerTrend: data['triggerTrend'] as String? ?? parsedTriggerSummary?.trend,
       triggerSummary: parsedTriggerSummary,
-      detectedPatterns: ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap),
+      detectedPatterns: ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap).isNotEmpty
+          ? ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap)
+          : _synthesizeFallbackPatterns(
+              topInsight: ModelUtils.parseNestedModel<InsightSummary>(data['topInsight'], InsightSummary.fromMap),
+              triggerSummary: parsedTriggerSummary,
+              healingSummary: parsedHealingSummary,
+              triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
+              healingFoods: ModelUtils.parseModelList<HealingFood>(data['healingFoods'], HealingFood.fromMap),
+              updatedAt: DateTimeUtils.parse(map['updatedAt']),
+            ),
       topTrigger: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topTrigger'], TopHighlight.fromMap)),
       topHealing: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topHealing'], TopHighlight.fromMap)),
       foodImpacts: ModelUtils.parseModelList<FoodImpact>(data['foodImpacts'], FoodImpact.fromMap),
@@ -228,7 +237,7 @@ class AIInsight extends Equatable {
   Map<String, dynamic> toMap() => {
     'v': schemaVersion,
     'firestoreId': firestoreId,
-    'gutScore': hasGutScore ? (gutScoreSummary == null ? gutScore : {...gutScoreSummary!.toMap(), 'score': gutScore}) : null,
+    'gutScore': hasGutScore ? (gutScoreSummary?.toMap() ?? gutScore) : null,
     'hasGutScore': hasGutScore,
     'scoreDiff': scoreDiff,
     'topInsight': topInsight?.toMap(),
@@ -362,6 +371,111 @@ class AIInsight extends Equatable {
     watch: watch ?? this.watch,
     smartSwap: smartSwap ?? this.smartSwap,
   );
+
+  static List<BodyPattern> _synthesizeFallbackPatterns({
+    InsightSummary? topInsight,
+    TriggerSummary? triggerSummary,
+    HealingSummary? healingSummary,
+    List<TriggerFood> triggerFoods = const [],
+    List<HealingFood> healingFoods = const [],
+    DateTime? updatedAt,
+  }) {
+    final synth = <BodyPattern>[];
+    final seenKeys = <String>{};
+    final dateStr = (updatedAt ?? DateTime.now()).toIso8601String();
+
+    void addPattern(BodyPattern pattern) {
+      final key = '${pattern.type}_${pattern.trigger.toLowerCase().trim()}';
+      if (seenKeys.add(key)) {
+        synth.add(pattern);
+      }
+    }
+
+    if (triggerSummary != null && triggerSummary.foods.isNotEmpty) {
+      for (final f in triggerSummary.foods) {
+        if (f.name.trim().isEmpty) continue;
+        addPattern(
+          BodyPattern(
+            type: 'trigger',
+            trigger: f.name,
+            reaction: triggerSummary.primarySymptom.isNotEmpty ? triggerSummary.primarySymptom : 'Reaction',
+            frequency: 1,
+            confidence: 'Medium',
+            confidenceScore: 0.75,
+            description: (f.effect != null && f.effect!.isNotEmpty) ? f.effect! : 'Associated with ${triggerSummary.primarySymptom}',
+            updatedAt: dateStr,
+          ),
+        );
+      }
+    } else {
+      for (final tf in triggerFoods) {
+        if (tf.name.trim().isEmpty) continue;
+        addPattern(
+          BodyPattern(
+            type: 'trigger',
+            trigger: tf.name,
+            reaction: tf.effect.isNotEmpty ? tf.effect : 'Reaction',
+            frequency: 1,
+            confidence: 'Medium',
+            confidenceScore: 0.75,
+            description: tf.effect.isNotEmpty ? tf.effect : 'Associated with food reaction',
+            updatedAt: dateStr,
+          ),
+        );
+      }
+    }
+
+    if (healingSummary != null && healingSummary.foods.isNotEmpty) {
+      for (final f in healingSummary.foods) {
+        if (f.name.trim().isEmpty) continue;
+        addPattern(
+          BodyPattern(
+            type: 'healing',
+            trigger: f.name,
+            reaction: 'Gut Wellness & Energy',
+            frequency: 1,
+            confidence: 'Medium',
+            confidenceScore: 0.75,
+            description: (f.effect != null && f.effect!.isNotEmpty) ? f.effect! : 'Supports digestive wellness',
+            updatedAt: dateStr,
+          ),
+        );
+      }
+    } else {
+      for (final hf in healingFoods) {
+        if (hf.name.trim().isEmpty) continue;
+        addPattern(
+          BodyPattern(
+            type: 'healing',
+            trigger: hf.name,
+            reaction: 'Gut Wellness & Energy',
+            frequency: 1,
+            confidence: 'Medium',
+            confidenceScore: 0.75,
+            description: hf.effect.isNotEmpty ? hf.effect : 'Supports digestive wellness',
+            updatedAt: dateStr,
+          ),
+        );
+      }
+    }
+
+    if (synth.isEmpty && topInsight != null && topInsight.involvedFoods.isNotEmpty) {
+      synth.add(
+        BodyPattern(
+          type: topInsight.type.isNotEmpty ? topInsight.type : 'observation',
+          trigger: topInsight.involvedFoods.join(' & '),
+          reaction: 'Digestion',
+          frequency: (topInsight.frequency != null && topInsight.frequency! > 0) ? topInsight.frequency! : 1,
+          confidence: (topInsight.strength != null && topInsight.strength!.isNotEmpty) ? topInsight.strength! : 'Medium',
+          confidenceScore: 0.65,
+          description: topInsight.observation ?? topInsight.description,
+          updatedAt: dateStr,
+        ),
+      );
+    }
+
+    return synth;
+  }
 
   @override
   List<Object?> get props => [id, firestoreId, gutScore, hasGutScore, type, confidenceLevel, status, updatedAt];

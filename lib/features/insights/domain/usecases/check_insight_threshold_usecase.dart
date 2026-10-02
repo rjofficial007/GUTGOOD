@@ -6,13 +6,6 @@
 class CheckInsightThresholdUseCase {
   const CheckInsightThresholdUseCase();
 
-  /// Both cadence and log eligibility use the user's local calendar day.
-  static bool isSameLocalDay(DateTime value, DateTime now) {
-    final local = value.toLocal();
-    final today = now.toLocal();
-    return local.year == today.year && local.month == today.month && local.day == today.day;
-  }
-
   bool execute({
     required int scanCount,
     required int mealCount,

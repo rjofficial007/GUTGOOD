@@ -39,15 +39,13 @@ class SynergyDetailScreen extends StatelessWidget {
         : evidenceRef == null
         ? null
         : (evidenceRef.evidenceRatio.clamp(0.0, 1.0) * 100).round();
-    final frequencyCount = activePattern?.frequency ?? activeInsight?.topInsight?.frequency ?? (activeInsight?.foodImpacts.isNotEmpty == true ? activeInsight!.foodImpacts.length : null);
+    final frequencyCount = activePattern?.frequency ?? activeInsight?.topInsight?.frequency;
     final positiveCount =
         activePattern?.positiveCount ??
-        activeInsight?.topInsight?.positiveCount ??
-        (activeInsight?.foodImpacts.isNotEmpty == true ? activeInsight!.foodImpacts.where((f) => f.impactType == 'positive').length : null);
+        activeInsight?.topInsight?.positiveCount;
     final negativeCount =
         activePattern?.negativeCount ??
-        activeInsight?.topInsight?.negativeCount ??
-        (activeInsight?.foodImpacts.isNotEmpty == true ? activeInsight!.foodImpacts.where((f) => f.impactType == 'negative').length : null);
+        activeInsight?.topInsight?.negativeCount;
 
     return Scaffold(
       backgroundColor: v2.scaffold,
@@ -103,11 +101,11 @@ class SynergyDetailScreen extends StatelessWidget {
 
   /// 1. Top Hero Pattern Card (Ultra-Polished Bento Style)
   Widget _buildHeroCard(BuildContext context, BodyPattern? pattern, AIInsight? activeInsight) {
-    final frequencyCount = pattern?.frequency ?? activeInsight?.topInsight?.frequency ?? (activeInsight?.foodImpacts.isNotEmpty == true ? activeInsight!.foodImpacts.length : 0);
+    final frequencyCount = pattern?.frequency ?? activeInsight?.topInsight?.frequency ?? 0;
     final foodName = pattern?.involvedFoods.isNotEmpty == true
         ? pattern!.involvedFoods.first
-        : (activeInsight?.healingFoods.firstOrNull?.name ?? activeInsight?.topInsight?.involvedFoods.firstOrNull ?? 'Whole Foods');
-    final imageUrl = V2Kit.foodImageUrl(foodName);
+        : (activeInsight?.topInsight?.involvedFoods.firstOrNull ?? '');
+    final imageUrl = foodName.isEmpty ? null : V2Kit.foodImageUrl(foodName);
     final style = PatternCardStyle.forType(pattern?.type ?? 'digestion');
 
     final trigger = pattern?.trigger.trim() ?? '';
@@ -120,7 +118,7 @@ class SynergyDetailScreen extends StatelessWidget {
         ? pattern!.description
         : (activeInsight?.topInsight?.description.isNotEmpty == true
               ? activeInsight!.topInsight!.description
-              : (activeInsight?.healingGoal?.isNotEmpty == true ? activeInsight!.healingGoal! : 'Track your daily meals to discover how foods affect your gut.'));
+              : 'There is not enough evidence yet to describe a repeated pattern.');
 
     final v2 = context.v2Theme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -153,7 +151,7 @@ class SynergyDetailScreen extends StatelessWidget {
                           Icon(style.icon, size: 10.w, color: style.tagFg),
                           Gap.w4,
                           Text(
-                            style.label,
+                            pattern == null ? 'INSIGHT' : style.label,
                             style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: style.tagFg),
                           ),
                         ],
@@ -168,7 +166,7 @@ class SynergyDetailScreen extends StatelessWidget {
                         border: Border.all(color: style.borderColor),
                       ),
                       child: Text(
-                        '${pattern?.confidence ?? "High"} Conf.',
+                        pattern?.confidence ?? activeInsight?.topInsight?.strength ?? 'Early observation',
                         style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: style.tagFg),
                       ),
                     ),
@@ -215,7 +213,7 @@ class SynergyDetailScreen extends StatelessWidget {
                       Icon(LucideIcons.shieldCheck, size: 11.w, color: Colors.white),
                       Gap.w4,
                       Text(
-                        'Pattern Verified',
+                        pattern == null ? 'Insight summary' : 'Observed pattern',
                         style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
                       ),
                     ],
@@ -227,7 +225,7 @@ class SynergyDetailScreen extends StatelessWidget {
           Gap.w12,
 
           // Right Floating Food Photo Card
-          Stack(
+          if (foodName.isNotEmpty && imageUrl != null) Stack(
             clipBehavior: Clip.none,
             children: [
               Container(
@@ -276,11 +274,9 @@ class SynergyDetailScreen extends StatelessWidget {
   /// 2. "What We Observed" Section
   Widget _buildWhatWeObservedCard(BuildContext context, BodyPattern? pattern, AIInsight? activeInsight) {
     final style = PatternCardStyle.forType(pattern?.type ?? 'digestion');
-    final observationText =
-        activeInsight?.topInsight?.description ??
-        (pattern != null
-            ? 'Repeated meal logs show a correlation between your intake and recurring gut responses.'
-            : 'Your logs suggest a meaningful synergy between recent food choices and your gut scores.');
+    final observationText = activeInsight?.topInsight?.description ??
+        pattern?.description ??
+        'There is not enough evidence yet to describe a repeated pattern.';
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -439,7 +435,7 @@ class SynergyDetailScreen extends StatelessWidget {
   Widget _buildInvolvedFoodsSection(BuildContext context, BodyPattern? pattern, AIInsight? insight) {
     final foods = (pattern?.involvedFoods.isNotEmpty == true
         ? pattern!.involvedFoods.map((f) => _FoodCardData(name: f, imageKeyword: f)).toList()
-        : (insight?.healingFoods.isNotEmpty == true ? insight!.healingFoods.map((f) => _FoodCardData(name: f.name, imageKeyword: f.name)).toList() : <_FoodCardData>[]));
+        : <_FoodCardData>[]);
 
     if (foods.isEmpty) {
       return const SizedBox.shrink();
@@ -467,7 +463,7 @@ class SynergyDetailScreen extends StatelessWidget {
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                   ),
                   Text(
-                    'These foods often appear together in your data.',
+                    'Foods included in this observed pattern.',
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
                   ),
                 ],
@@ -552,7 +548,9 @@ class SynergyDetailScreen extends StatelessWidget {
             ),
             Gap.h3,
             Text(
-              'Try these simple actions to keep seeing the benefits.',
+              insight?.actionsList.isNotEmpty == true || insight?.topInsight?.nextSteps.isNotEmpty == true
+                  ? 'Suggestions based on this insight.'
+                  : 'No personalized next steps are available yet.',
               style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.2),
             ),
             Gap.h10,
@@ -562,8 +560,10 @@ class SynergyDetailScreen extends StatelessWidget {
                 if (i > 0) Gap.h8,
                 _NextStepCheckRow(title: insight.actionsList[i].title, subtitle: insight.actionsList[i].description),
               ],
+            ] else if (insight?.topInsight?.nextSteps.isNotEmpty == true) ...[
+              _NextStepCheckRow(title: insight!.topInsight!.nextSteps.first, subtitle: ''),
             ] else ...[
-              _NextStepCheckRow(title: insight?.topInsight?.nextSteps.firstOrNull ?? 'Increase prebiotic fiber intake', subtitle: 'Add whole plant foods to support gut flora.'),
+              Text('No personalized next step is available yet.', style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: context.insightColor(const Color(0xFF64748B)))),
             ],
           ],
         ),
@@ -692,7 +692,7 @@ class _InvolvedFoodCard extends StatelessWidget {
                 Icon(LucideIcons.leaf, size: 8.5.w, color: context.insightColor(const Color(0xFF15803D))),
                 Gap.w2,
                 Text(
-                  'High Impact',
+                  'Supportive observation',
                   style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF15803D))),
                 ),
               ],

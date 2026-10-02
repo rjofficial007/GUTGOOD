@@ -1,7 +1,13 @@
 class ChatStrings {
   const ChatStrings._();
 
-  static const String chatInitialGreeting = 'What’s good? 👋 Scan • Snap • Ask';
+  static const String chatInitialGreeting = 'What’s good? 👋\nSnap it, scan it, or check the ingredients label.';
+  static const String snapFoodTitle = 'Snap Food';
+  static const String snapFoodSubtitle = 'Take a photo';
+  static const String scanBarcodeTitle = 'Scan Barcode';
+  static const String scanBarcodeSubtitle = 'Look up a product';
+  static const String ingredientsLabelTitle = 'Ingredients Label';
+  static const String ingredientsLabelSubtitle = 'Scan ingredients';
   static const String chatAuthMessage = 'Create a free account to save your results and start tracking your GutGood Score.';
   static const String imageUploadAnalysis = 'Image Upload Analysis 📷';
 

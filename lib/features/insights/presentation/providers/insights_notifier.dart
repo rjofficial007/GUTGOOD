@@ -9,7 +9,6 @@ import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/network_error_classifier.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
-import 'package:gutgood/features/insights/domain/usecases/check_insight_threshold_usecase.dart';
 import 'package:gutgood/features/insights/domain/usecases/generate_insight_usecase.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -107,7 +106,6 @@ class InsightsNotifier with ChangeNotifier {
         .debounceTime(const Duration(milliseconds: 500))
         .listen(
           (newState) {
-            final oldState = _state;
             final oldInsight = _state.latestInsight;
             _state = newState;
             _loadError = null;
@@ -122,8 +120,12 @@ class InsightsNotifier with ChangeNotifier {
 
             _appStateService.setInsightsData(_state.latestInsight);
 
-            if (oldState.totalMeals != newState.totalMeals || oldState.totalSymptoms != newState.totalSymptoms || oldState.totalScans != newState.totalScans) {
-              _onDataUpdated();
+            // One-shot bootstrap for users who crossed the threshold but have
+            // no insight yet (reactive listeners cover steady state; this just
+            // shortens first-run latency). Session-flagged, never loops.
+            if (_state.latestInsight == null && !_isGenerating && isSufficient && !_bootstrapAttempted) {
+              _bootstrapAttempted = true;
+              generateNewInsight();
             }
 
             if (oldInsight != _state.latestInsight) {
@@ -245,17 +247,11 @@ class InsightsNotifier with ChangeNotifier {
       final now = DateTime.now();
       final startOfToday = DateTime(now.year, now.month, now.day);
       final results = await Future.wait([_repository.getRecentMeals(startOfToday), _repository.getRecentSymptoms(startOfToday), _repository.getRecentScans(startOfToday)]);
-      _todayMeals = (results[0] as List<MealLog>).where((m) => CheckInsightThresholdUseCase.isSameLocalDay(m.createdAt, now)).length;
-      _todaySymptoms = (results[1] as List<SymptomLog>).where((s) => CheckInsightThresholdUseCase.isSameLocalDay(s.createdAt, now)).length;
-      _todayScans = (results[2] as List<ScanResult>).where((s) => CheckInsightThresholdUseCase.isSameLocalDay(s.createdAt, now)).length;
+      _todayMeals = (results[0] as List<MealLog>).length;
+      _todaySymptoms = (results[1] as List<SymptomLog>).length;
+      _todayScans = (results[2] as List<ScanResult>).length;
       _countsError = null;
       _todayCountsLoaded = true;
-      // Counts may arrive after the dashboard's only emission. Try once here;
-      // the use case owns the daily cadence, including returning users.
-      if (isSufficient && !_bootstrapAttempted) {
-        _bootstrapAttempted = true;
-        unawaited(generateNewInsight());
-      }
       notifyListeners();
     } catch (e) {
       _countsError = 'Could not load today’s log counts';
@@ -271,7 +267,7 @@ class InsightsNotifier with ChangeNotifier {
   int get totalFoodScans => _state.totalScans + _state.totalMeals;
 
   /// Daily baseline threshold: 3 Food Scans/Meals AND 1 Symptom Log logged today (resets every day).
-  bool get isSufficient => const CheckInsightThresholdUseCase().execute(scanCount: todayScans, mealCount: todayMeals, symptomCount: todaySymptoms);
+  bool get isSufficient => todayFoodScans >= 3 && todaySymptoms >= 1;
 
   bool get isLoading => _isLoading || !_todayCountsLoaded;
   bool get isGenerating => _isGenerating;
@@ -392,7 +388,7 @@ class InsightsNotifier with ChangeNotifier {
     super.dispose();
   }
 
-  /// Runs the on-device pipeline (local daily cadence + threshold gates inside the
+  /// Runs the on-device pipeline (24h cadence + threshold gates inside the
   /// use case). Called debounced from data listeners, once from bootstrap,
   /// and directly for manual refresh.
   Future<void> generateNewInsight() async {

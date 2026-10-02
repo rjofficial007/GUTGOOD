@@ -14,7 +14,9 @@ abstract final class InsightValues {
 
   static String text(Object? value, {String fallback = '—'}) {
     final result = value is String ? value.trim() : '';
-    return result.isEmpty || const {'null', 'undefined', 'nan', 'infinity'}.contains(result.toLowerCase()) ? fallback : result;
+    return result.isEmpty || const {'null', 'undefined', 'nan', 'infinity', 'n/a', 'not available'}.contains(result.toLowerCase()) || result == '—'
+        ? fallback
+        : result;
   }
 
   static List<double> scores(Iterable<num> values) => [

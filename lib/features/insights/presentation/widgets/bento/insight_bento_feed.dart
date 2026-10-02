@@ -12,6 +12,7 @@ import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/arc_pattern_card.dart';
@@ -57,6 +58,8 @@ class InsightBentoFeed extends StatelessWidget {
 
   List<BentoTile> _tiles(BuildContext context, InsightBentoTheme t, List<BentoFood> foods) {
     final tiles = <BentoTile>[];
+    String highlightBody(String? trend, String effects, {required String fallback}) =>
+        InsightValues.text(trend, fallback: InsightValues.text(effects, fallback: fallback));
 
     // 0. Smart Insight Card
     if (data.topInsight != null) {
@@ -114,7 +117,7 @@ class InsightBentoFeed extends StatelessWidget {
             imageUrl: healing.imageUrl,
             userImageUrl: healing.userImageUrl,
             title: healing.food,
-            body: (data.healingTrend ?? '').isNotEmpty ? data.healingTrend! : healing.effects,
+            body: highlightBody(data.healingTrend, healing.effects, fallback: 'Keep logging meals to learn which foods support your wellbeing.'),
             bigTitle: true,
             footLeft: AppStrings.bentoSeeAll,
             accentColor: const Color(0xFF14A38F),
@@ -128,7 +131,7 @@ class InsightBentoFeed extends StatelessWidget {
                 imageUrl: healing.imageUrl,
                 userImageUrl: healing.userImageUrl,
                 title: healing.food,
-                body: (data.healingTrend ?? '').isNotEmpty ? data.healingTrend! : healing.effects,
+                body: highlightBody(data.healingTrend, healing.effects, fallback: 'Keep logging meals to learn which foods support your wellbeing.'),
                 accentColor: 0xFF14A38F,
                 backgroundColor: 0xFFE9F6F3,
                 chartType: 'healing',
@@ -152,7 +155,7 @@ class InsightBentoFeed extends StatelessWidget {
             imageUrl: trigger.imageUrl,
             userImageUrl: trigger.userImageUrl,
             title: trigger.food,
-            body: (data.triggerTrend ?? '').isNotEmpty ? data.triggerTrend! : trigger.effects,
+            body: highlightBody(data.triggerTrend, trigger.effects, fallback: 'More logs will help reveal whether this food is linked to your symptoms.'),
             bigTitle: true,
             footLeft: trigger.timeframe,
             accentColor: const Color(0xFFF08019),
@@ -166,7 +169,7 @@ class InsightBentoFeed extends StatelessWidget {
                 imageUrl: trigger.imageUrl,
                 userImageUrl: trigger.userImageUrl,
                 title: trigger.food,
-                body: (data.triggerTrend ?? '').isNotEmpty ? data.triggerTrend! : trigger.effects,
+                body: highlightBody(data.triggerTrend, trigger.effects, fallback: 'More logs will help reveal whether this food is linked to your symptoms.'),
                 accentColor: 0xFFF08019,
                 backgroundColor: 0xFFFDF1E7,
                 chartType: 'trigger',

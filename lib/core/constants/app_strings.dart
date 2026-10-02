@@ -416,6 +416,12 @@ class AppStrings {
 
   // --- Chat ---
   static const String chatInitialGreeting = ChatStrings.chatInitialGreeting;
+  static const String snapFoodTitle = ChatStrings.snapFoodTitle;
+  static const String snapFoodSubtitle = ChatStrings.snapFoodSubtitle;
+  static const String scanBarcodeTitle = ChatStrings.scanBarcodeTitle;
+  static const String scanBarcodeSubtitle = ChatStrings.scanBarcodeSubtitle;
+  static const String ingredientsLabelTitle = ChatStrings.ingredientsLabelTitle;
+  static const String ingredientsLabelSubtitle = ChatStrings.ingredientsLabelSubtitle;
   static const String chatAuthMessage = ChatStrings.chatAuthMessage;
   static const String imageUploadAnalysis = ChatStrings.imageUploadAnalysis;
   static const String visionScanPlaceholder = ChatStrings.visionScanPlaceholder;

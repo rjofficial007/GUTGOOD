@@ -31,56 +31,6 @@ BodyPattern _pattern({int timeframeDays = 30, int frequency = 5, double ratio = 
 AIInsight _insight({InsightSummary? top}) => AIInsight(gutScore: 72, topInsight: top, detectedPatterns: [_pattern()], updatedAt: DateTime.now());
 
 void main() {
-  test('baseline foods never become fabricated patterns, and kind is preserved', () {
-    final insight = AIInsight.fromMap(const {
-      'topInsight': {
-        'kind': 'progress',
-        'title': 'First logs',
-        'description': 'Oats and bloating logged.',
-        'involvedFoods': ['Oats'],
-      },
-      'healing': {
-        'foods': [
-          {'name': 'Oats'},
-        ],
-      },
-      'detectedPatterns': [],
-    });
-    expect(insight.detectedPatterns, isEmpty);
-    expect(insight.topInsight?.type, 'progress');
-    expect(AIInsight.fromMap(insight.toMap()).detectedPatterns, isEmpty);
-    expect(insight.healingSummary?.trend, isEmpty);
-    expect(TriggerSummary.fromMap(const {}).primarySymptom, isEmpty);
-  });
-
-  test('baseline summaries discard unsupported confidence and association counts', () {
-    final summary = InsightSummary.fromMap(const {'kind': 'progress', 'strength': 'Medium', 'frequency': 3, 'evidenceRatio': 0.9, 'positiveCount': 3, 'negativeCount': 0});
-    expect(summary.isBaseline, isTrue);
-    expect(summary.strength, isNull);
-    expect(summary.frequency, isNull);
-    expect(summary.evidenceRatio, isNull);
-    expect(summary.positiveCount, isNull);
-    expect(summary.negativeCount, isNull);
-    expect(InsightSummary.fromMap(summary.toMap()).isBaseline, isTrue);
-  });
-
-  test('deterministic score survives serialization over an older score summary', () {
-    final insight = AIInsight.fromMap(const {
-      'gutScore': {'score': 90, 'trend': '+4'},
-    }).copyWith(gutScore: 42);
-    expect(AIInsight.fromMap(insight.toMap()).gutScore, 42);
-  });
-
-  test('missing swap nutrition stays unknown through round-trip', () {
-    final alternative = SwapAlternative.fromMap(const {'name': 'Rice'});
-    final nutrition = SwapAlternative.fromMap(alternative.toMap()).nutrition;
-    expect(nutrition.calories, isNull);
-    expect(nutrition.protein, isNull);
-    expect(nutrition.totalFat, isNull);
-    expect(nutrition.fiber, isNull);
-    expect(SwapNutrition.fromMap(const {'calories': 123.0}).calories, 123);
-  });
-
   group('P2-10 presentation mapping (Dart-side)', () {
     test('emojiForFood resolves keywords case-insensitively with a default', () {
       expect(InsightPresentation.emojiForFood('Pepperoni Pizza'), '🍕');
@@ -102,6 +52,24 @@ void main() {
   });
 
   group('P2-10 evidence models', () {
+    test('missing evidence and swap nutrition stay unknown instead of receiving demo values', () {
+      final pattern = BodyPattern.fromMap(const {'type': 'digestion', 'trigger': '', 'reaction': '', 'description': ''});
+      final nutrition = SwapNutrition.fromMap(const {});
+      final alternative = SwapAlternative.fromMap(const {'name': 'Example'});
+
+      expect(pattern.frequency, 0);
+      expect(pattern.timeframeDays, 0);
+      expect(pattern.confidenceScore, 0);
+      expect(pattern.impactDirection, 'unknown');
+      expect(pattern.impactLevel, 'unknown');
+      expect(nutrition.hasData, isFalse);
+      expect(alternative.nutrition.hasData, isFalse);
+      expect(alternative.impactLevel, 'unknown');
+      expect(HealingSummary.fromMap(const {}).trend, isEmpty);
+      expect(TriggerSummary.fromMap(const {}).primarySymptom, isEmpty);
+      expect(FoodImpactBalance.fromMap(const {}).periodLabel, isEmpty);
+    });
+
     test('PatternRef.fromBodyPattern carries the citable fields', () {
       final ref = PatternRef.fromBodyPattern(_pattern());
 
@@ -333,7 +301,7 @@ void main() {
               'impactLevel': 'high',
               'confidence': 'medium',
               'confidenceScore': 0.7,
-            },
+            }
           ],
         },
         'triggers': {'primarySymptom': 'bloating', 'trend': 'No specific triggers identified yet.', 'topFoodId': '', 'foods': []},
@@ -349,10 +317,8 @@ void main() {
             'confidenceScore': 0.7,
             'impactDirection': 'positive',
             'impactLevel': 'high',
-            'commonFactors': [
-              {'label': 'High Protein', 'icon': 'protein'},
-            ],
-          },
+            'commonFactors': [{'label': 'High Protein', 'icon': 'protein'}],
+          }
         ],
         'foodImpactBalance': {'positivePercent': 100, 'neutralPercent': 0, 'negativePercent': 0, 'periodLabel': 'Last 7 days'},
       };

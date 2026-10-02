@@ -90,7 +90,7 @@ class InsightBentoRecap extends StatelessWidget {
             backgroundColor: const Color(0xFFF0F8EA),
             emoji: '🌟',
             tag: AppStrings.bentoTopWin,
-            meta: AppStrings.bentoOfDays(recap.foodsLogged ?? 5, 7),
+            meta: recap.foodsLogged == null ? null : AppStrings.bentoOfDays(recap.foodsLogged!, 7),
             title: titleText,
             body: recap.loggedSub,
             chart: shown.length >= 2 ? SparkArea(values: shown, color: const Color(0xFF57B93B), height: 38) : null,
@@ -692,8 +692,11 @@ class InsightBentoPattern extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _getAccent(pattern.type);
-    final confidence = (pattern.evidenceRatio.clamp(0.0, 1.0) * 100).round();
-    final swaps = pattern.involvedFoods.take(2).toList();
+    final confidence = pattern.evidenceRatio > 0
+        ? (pattern.evidenceRatio.clamp(0.0, 1.0) * 100).round()
+        : pattern.confidenceScore > 0
+        ? (pattern.confidenceScore.clamp(0.0, 1.0) * 100).round()
+        : null;
 
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 30.w),
@@ -706,20 +709,20 @@ class InsightBentoPattern extends StatelessWidget {
           // 2. Meta Pills
           Row(
             children: [
-              _MetaPill(label: 'Seen ${pattern.frequency} times · ${pattern.timeframeDays} days', color: accent, filled: false),
+              _MetaPill(label: pattern.timeframeDays > 0 ? 'Seen ${pattern.frequency} times · ${pattern.timeframeDays} days' : 'Seen ${pattern.frequency} times', color: accent, filled: false),
               Gap.w8,
-              _MetaPill(label: '${pattern.confidence} · $confidence%', color: accent, filled: true),
+              _MetaPill(label: confidence == null ? 'Confidence not established' : '${pattern.confidence.isEmpty ? 'Estimated' : pattern.confidence} · $confidence%', color: accent, filled: true),
             ],
           ),
           Gap.h16,
           // 3. Metrics Grid
           Row(
             children: [
-              _MetricCard(value: '${pattern.frequency} / ${pattern.totalSimilarMeals}', label: AppStrings.bentoEpisodes.toUpperCase(), color: accent),
+              _MetricCard(value: pattern.totalSimilarMeals > 0 ? '${pattern.frequency} / ${pattern.totalSimilarMeals}' : (pattern.frequency > 0 ? '${pattern.frequency}' : '—'), label: AppStrings.bentoEpisodes.toUpperCase(), color: accent),
               Gap.w10,
-              _MetricCard(value: '~2 hrs', label: AppStrings.bentoOnsetLag.toUpperCase(), color: accent),
+              _MetricCard(value: pattern.typicalDelay?.trim().isNotEmpty == true ? pattern.typicalDelay! : 'Not recorded', label: AppStrings.bentoOnsetLag.toUpperCase(), color: accent),
               Gap.w10,
-              _MetricCard(value: '$confidence%', label: AppStrings.bentoConfidence.toUpperCase(), color: accent),
+              _MetricCard(value: confidence == null ? '—' : '$confidence%', label: AppStrings.bentoConfidence.toUpperCase(), color: accent),
             ],
           ),
           Gap.h16,
@@ -732,21 +735,6 @@ class InsightBentoPattern extends StatelessWidget {
               style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, color: PatternSurface.isDark(context) ? const Color(0xFFC3C9D4) : const Color(0xFF3A3F47), height: 1.55),
             ),
           ),
-          Gap.h16,
-          // 5. Swaps
-          if (swaps.isNotEmpty)
-            _SectionCard(
-              title: AppStrings.bentoSwap.toUpperCase(),
-              color: accent,
-              child: Column(
-                children: [
-                  for (var i = 0; i < swaps.length; i++) ...[
-                    _SwapRow(food: swaps[i], color: accent, pts: 6 - i * 2),
-                    if (i < swaps.length - 1) Divider(color: accent.withValues(alpha: 0.1), height: 1),
-                  ],
-                ],
-              ),
-            ),
           Gap.h16,
           // 6. Recent Episodes
           if (pattern.occurrences.isNotEmpty)
@@ -796,12 +784,9 @@ class InsightBentoPattern extends StatelessWidget {
             ),
           ),
           Gap.h14,
-          // 10. CTA
-          BentoCta(label: 'Apply this swap', onTap: () {}),
-          Gap.h10,
           Center(
             child: Text(
-              'Based on your logs · last ${pattern.timeframeDays} days',
+              pattern.timeframeDays > 0 ? 'Based on your logs · last ${pattern.timeframeDays} days' : 'Based on your logged data',
               style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, color: PatternSurface.isDark(context) ? const Color(0xFF6E7683) : const Color(0xFF9AA0A8)),
             ),
           ),
@@ -982,51 +967,6 @@ class _SectionCard extends StatelessWidget {
   );
 }
 
-class _SwapRow extends StatelessWidget {
-  const _SwapRow({required this.food, required this.color, required this.pts});
-  final String food;
-  final Color color;
-  final int pts;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(vertical: 10.w),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            food,
-            style: TextStyle(
-              fontFamily: InsightBentoTheme.fontFamily,
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w700,
-              color: PatternSurface.isDark(context) ? const Color(0xFFF5F7FA) : const Color(0xFF1F2430),
-            ),
-          ),
-        ),
-        Icon(Icons.arrow_forward, size: 16, color: color),
-        Gap.w8,
-        Expanded(
-          child: Text(
-            'Alternative',
-            textAlign: TextAlign.end,
-            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w700, color: color),
-          ),
-        ),
-        Gap.w8,
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(8.w)),
-          child: Text(
-            '+$pts pts',
-            style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: color),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 class _EpisodeRow extends StatelessWidget {
   const _EpisodeRow({required this.occurrence, required this.color});
   final PatternOccurrence occurrence;
@@ -1106,7 +1046,7 @@ class _RecommendationCard extends StatelessWidget {
         ),
         Gap.h8,
         Text(
-          pattern.recommendation ?? 'Try reducing intake of triggers.',
+          pattern.recommendation?.trim().isNotEmpty == true ? pattern.recommendation! : 'No specific recommendation is available for this pattern yet.',
           style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.5.sp, color: Colors.white, height: 1.5),
         ),
       ],
@@ -1324,14 +1264,14 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
         final key = f.name.toLowerCase().trim();
         if (key.isEmpty || !seen.add(key)) continue;
         final occurrences = countOccurrences(f.name);
-        final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
-        final desc = f.effect != null && f.effect!.isNotEmpty ? f.effect! : 'Supports microbiome diversity and gut balance.';
+        final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
+        final desc = f.effect?.trim().isNotEmpty == true ? f.effect : null;
         list.add(
           TopFoodItemData(
             title: f.name,
             frequency: countStr,
             description: desc,
-            badge: f.impactLevel.toUpperCase() == 'HIGH' ? 'High Impact' : 'Supportive',
+            badge: 'Supportive',
             isPositive: true,
             category: 'healing',
             imageUrl: f.imageUrl ?? V2Kit.foodImageUrl(f.name),
@@ -1345,14 +1285,14 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final key = f.name.toLowerCase().trim();
       if (key.isEmpty || !seen.add(key)) continue;
       final occurrences = countOccurrences(f.name);
-      final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
-      final desc = f.effect.isNotEmpty ? f.effect : 'Supports microbiome diversity and gut balance.';
+      final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
+      final desc = f.effect.trim().isNotEmpty ? f.effect : null;
       list.add(
         TopFoodItemData(
           title: f.name,
           frequency: countStr,
           description: desc,
-          badge: 'High Impact',
+          badge: 'Supportive',
           isPositive: true,
           category: 'healing',
           imageUrl: f.userImageUrl ?? f.imageUrl ?? V2Kit.foodImageUrl(f.name),
@@ -1368,8 +1308,8 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final key = fi.food.toLowerCase().trim();
       if (key.isEmpty || !seen.add(key)) continue;
       final occurrences = countOccurrences(fi.food);
-      final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
-      final desc = fi.effect.isNotEmpty ? fi.effect : 'Observed positive effect on gut health.';
+      final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
+      final desc = fi.effect.trim().isNotEmpty ? fi.effect : null;
       list.add(
         TopFoodItemData(
           title: fi.food,
@@ -1389,8 +1329,8 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
         final key = f.name.toLowerCase().trim();
         if (key.isEmpty || !seen.add(key)) continue;
         final occurrences = countOccurrences(f.name);
-        final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
-        final desc = f.effect != null && f.effect!.isNotEmpty ? f.effect! : 'Associated with digestive discomfort.';
+        final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
+        final desc = f.effect?.trim().isNotEmpty == true ? f.effect : null;
         list.add(TopFoodItemData(title: f.name, frequency: countStr, description: desc, badge: 'Watch', isPositive: false, category: 'watch', imageUrl: f.imageUrl ?? V2Kit.foodImageUrl(f.name)));
       }
     }
@@ -1400,8 +1340,8 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final key = f.name.toLowerCase().trim();
       if (key.isEmpty || !seen.add(key)) continue;
       final occurrences = countOccurrences(f.name);
-      final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
-      final desc = f.effect.isNotEmpty ? f.effect : 'Associated with digestive symptoms.';
+      final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
+      final desc = f.effect.trim().isNotEmpty ? f.effect : null;
       list.add(
         TopFoodItemData(
           title: f.name,
@@ -1423,8 +1363,8 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final key = fi.food.toLowerCase().trim();
       if (key.isEmpty || !seen.add(key)) continue;
       final occurrences = countOccurrences(fi.food);
-      final countStr = occurrences > 0 ? '${occurrences}x' : '1x';
-      final desc = fi.effect.isNotEmpty ? fi.effect : 'Associated with digestive discomfort.';
+      final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
+      final desc = fi.effect.trim().isNotEmpty ? fi.effect : null;
       list.add(
         TopFoodItemData(
           title: fi.food,

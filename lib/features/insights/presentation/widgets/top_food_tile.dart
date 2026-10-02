@@ -32,7 +32,7 @@ class TopFoodTile extends StatelessWidget {
         ? (context.insightColor(const Color(0xFFDCFCE7)), context.insightColor(const Color(0xFF15803D)), LucideIcons.leaf)
         : (context.insightColor(const Color(0xFFFEE2E2)), context.insightColor(const Color(0xFF991B1B)), LucideIcons.triangleAlert);
 
-    final countStr = item.frequency.contains('logged') ? item.frequency : (item.frequency.endsWith('x') ? '${item.frequency} logged' : item.frequency);
+    final countStr = item.frequency.isEmpty ? '' : (item.frequency.contains('logged') ? item.frequency : (item.frequency.endsWith('x') ? '${item.frequency} logged' : item.frequency));
 
     // Red-shade border for trigger / watch items; emerald for positive
     final borderColor = item.isPositive
@@ -112,11 +112,13 @@ class TopFoodTile extends StatelessWidget {
                               ],
                             ),
                           ),
-                          Gap.w6,
-                          Text(
-                            countStr,
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF64748B))),
-                          ),
+                          if (countStr.isNotEmpty) ...[
+                            Gap.w6,
+                            Text(
+                              countStr,
+                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF64748B))),
+                            ),
+                          ],
                         ],
                       ),
                       Gap.h5,

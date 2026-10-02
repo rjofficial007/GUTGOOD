@@ -16,7 +16,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Swap Details screen matching the exact UI/UX mockup.
 class SwapDetailScreen extends StatelessWidget {
-  const SwapDetailScreen({super.key, required this.alternative, this.sourceFoodName = 'Double Cheeseburger'});
+  const SwapDetailScreen({super.key, required this.alternative, this.sourceFoodName = ''});
 
   final SwapAlternative alternative;
   final String sourceFoodName;
@@ -27,17 +27,13 @@ class SwapDetailScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final imageUrl = alternative.imageUrl ?? V2Kit.foodImageUrl(alternative.name);
 
-    final benefits = alternative.benefits.isNotEmpty
-        ? alternative.benefits
-        : [
-            const SwapBenefit(title: 'Higher Protein', description: 'Helps keep you full longer', icon: 'dumbbell'),
-            const SwapBenefit(title: 'Lower Saturated Fat', description: 'Easier on your digestion', icon: 'arrow_down'),
-            const SwapBenefit(title: 'Fewer Additives', description: 'More whole food ingredients', icon: 'leaf'),
-          ];
+    final benefits = alternative.benefits;
 
-    final whyBetter =
-        alternative.whyBetterOption ??
-        'This ${alternative.name.toLowerCase()} is higher in protein and lower in saturated fat compared to a $sourceFoodName. It also has fewer processed ingredients, which may be easier on your digestion and help reduce headache triggers for you.';
+    final whyBetter = alternative.whyBetterOption?.trim().isNotEmpty == true
+        ? alternative.whyBetterOption!
+        : sourceFoodName.trim().isNotEmpty
+        ? 'No specific comparison details are available for ${alternative.name} and $sourceFoodName.'
+        : 'No specific comparison details are available for this alternative yet.';
 
     final nutrition = alternative.nutrition;
 
@@ -89,13 +85,13 @@ class SwapDetailScreen extends StatelessWidget {
                   ),
                   Gap.h2,
                   Text(
-                    'A better choice for you',
+                    'Suggested alternative',
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w500, color: v2.textSecondary),
                   ),
                   Gap.h12,
 
                   // 3. 3 Feature Highlight Pills Row (Compact)
-                  Row(
+                  if (benefits.isNotEmpty) Row(
                     children: [
                       for (final b in benefits.take(3))
                         Expanded(
@@ -160,7 +156,7 @@ class SwapDetailScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Why this may be a better option',
+                              sourceFoodName.trim().isNotEmpty ? 'About this alternative' : 'Comparison details',
                                 style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                               ),
                               Gap.h4,
@@ -176,8 +172,8 @@ class SwapDetailScreen extends StatelessWidget {
                   ),
                   Gap.h12,
 
-                  // 5. Nutrition Highlights (typical) Card
-                  Container(
+                  // 5. Nutrition Details Card
+                  if (nutrition.hasData) Container(
                     padding: EdgeInsets.all(12.w),
                     decoration: BoxDecoration(
                       color: v2.card,
@@ -188,19 +184,19 @@ class SwapDetailScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Nutrition Highlights (typical)',
+                          'Nutrition details provided',
                           style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
                         ),
                         Gap.h10,
                         Row(
                           children: [
-                            Expanded(child: _nutritionItem(context, nutrition.calories?.toString() ?? '—', 'Calories', valueColor: v2.textPrimary)),
+                            Expanded(child: _nutritionItem(context, nutrition.calories?.toString() ?? 'Not provided', 'Calories', valueColor: v2.textPrimary)),
                             _nutritionDivider(context),
-                            Expanded(child: _nutritionItem(context, nutrition.protein ?? '—', 'Protein', valueColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
+                            Expanded(child: _nutritionItem(context, nutrition.protein ?? 'Not provided', 'Protein', valueColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
                             _nutritionDivider(context),
-                            Expanded(child: _nutritionItem(context, nutrition.totalFat ?? '—', 'Total Fat', valueColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))),
+                            Expanded(child: _nutritionItem(context, nutrition.totalFat ?? 'Not provided', 'Total Fat', valueColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))),
                             _nutritionDivider(context),
-                            Expanded(child: _nutritionItem(context, nutrition.fiber ?? '—', 'Fiber', valueColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
+                            Expanded(child: _nutritionItem(context, nutrition.fiber ?? 'Not provided', 'Fiber', valueColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
                           ],
                         ),
                       ],

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:gutgood/core/services/prompts/mode_prompts.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/full_analysis_prompt.dart';
 import 'package:gutgood/core/services/prompts/mode_prompts/general_rules_prompt.dart';
@@ -325,41 +323,28 @@ Current Cycle Phase: $cyclePhase
     String? scoreHistory,
     String? preComputedPatternCandidates,
   }) {
-    final goals = _cap(_formatList(userGoals, fallback: 'General Health'), 500, 'goals');
-    final sensitivities = _cap(_formatList(userSensitivities, fallback: 'None specified'), 500, 'sensitivities');
-    final lifestyle = _cap(_formatList(userLifestyle, fallback: 'None specified'), 500, 'lifestyle');
-    final phase = _cap(cyclePhase, 100, 'cycle phase');
+    final goals = _formatList(userGoals, fallback: 'General Health');
+    final sensitivities = _formatList(userSensitivities, fallback: 'None specified');
+    final lifestyle = _formatList(userLifestyle, fallback: 'None specified');
 
-    // Keep the full request below ai_proxy's 32,000-character one-shot cap.
-    final cappedSummary = _cap(historySummary, 1000, 'chat summary', fallback: '');
-    final cappedChat = _cap(historyJson, 3000, 'chat history');
-    final cappedHistorical = _cap(historicalJournalSummary, 1000, 'historical journal summary', fallback: '');
-    // The journal is oldest-first; retain the newest events under heavy logging.
-    final recentJournal = recentJournalText != null && recentJournalText.length > 8000
-        ? '[Earlier events omitted]\n${recentJournalText.substring(recentJournalText.length - 8000).split('\n').skip(1).join('\n')}'
-        : recentJournalText;
-    final cappedJournal = _cap(recentJournal, 8100, 'recent journal', fallback: 'No recent journal data yet.');
-    final cappedScores = _cap(scoreHistory, 1000, 'score history', fallback: 'No historical scores yet.');
-    // Preserve complete candidate objects: a partial JSON object loses evidence.
-    final candidates = <dynamic>[];
-    if (preComputedPatternCandidates != null) {
-      final decoded = jsonDecode(preComputedPatternCandidates);
-      if (decoded is List) {
-        for (final candidate in decoded) {
-          if (jsonEncode([...candidates, candidate]).length <= 8000) {
-            candidates.add(candidate);
-          }
-        }
-      }
-    }
-    final cappedPatterns = jsonEncode(candidates);
+    // 🟢 Defensive caps. `ai_proxy` slices `prompt` to MAX_TEXT_CHARS and keeps
+    // the HEAD — and the tail of this template is what carries the deterministic
+    // evidence (score history + pre-qualified pattern candidates) that the
+    // insights engine is built on. Trimming each stream here, predictably, keeps
+    // that evidence inside the request for heavy users instead of letting the
+    // server silently cut it off.
+    final cappedChat = _cap(historyJson, 8000, 'chat history');
+    final cappedHistorical = _cap(historicalJournalSummary, 2000, 'historical journal summary', fallback: '');
+    final cappedJournal = _cap(recentJournalText, 10000, 'recent journal', fallback: 'No recent journal data yet.');
+    final cappedScores = _cap(scoreHistory, 1500, 'score history', fallback: 'No historical scores yet.');
+    final cappedPatterns = _cap(preComputedPatternCandidates, 4000, 'pattern candidates', fallback: '');
 
     return """
 ${InsightsPrompt.instruction}
 
 YOUR JOB
 Analyze the user's logged food, symptoms, conversations, scans, and scores to
-explain supplied associations and summarize actual observations.
+identify meaningful repeated associations.
 
 OUTPUT RULE: Return ONLY the JSON object described above. No Markdown, no
 preamble — this applies even if the data sections below are truncated.
@@ -368,11 +353,11 @@ USER PROFILE
 Health Goals: $goals
 Sensitivities: $sensitivities
 Lifestyle: $lifestyle
-Current Cycle Phase: $phase
+Current Cycle Phase: $cyclePhase
 
 DATA STREAMS
 1. CHAT HISTORY
-${cappedSummary.isNotEmpty ? 'LONG-TERM CHAT SUMMARY:\n$cappedSummary\n' : ''}
+${historySummary != null ? 'LONG-TERM CHAT SUMMARY:\n$historySummary\n' : ''}
 RECENT CHAT LOGS:
 $cappedChat
 

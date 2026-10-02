@@ -7,6 +7,7 @@ import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/chat/chat_message.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
 import 'package:gutgood/core/models/scans/scan_result_details.dart';
+import 'package:gutgood/core/models/scans/scanner_mode.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -15,7 +16,9 @@ import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
 import 'package:gutgood/core/widgets/chat/registry_thumb_image.dart';
 import 'package:gutgood/core/widgets/chat/thinking_indicator.dart';
-import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/core/widgets/gut_chip.dart';
+import 'package:gutgood/core/widgets/scan_result_inline_card.dart';
+import 'package:gutgood/core/widgets/swap_it_container.dart';
 
 class ChatBubble extends StatelessWidget {
   const ChatBubble({
@@ -46,6 +49,7 @@ class ChatBubble extends StatelessWidget {
     this.swapData,
     this.onSeeMoreSwaps,
     this.onViewFullReport,
+    this.onScannerModeSelected,
   });
 
   final String text;
@@ -78,6 +82,9 @@ class ChatBubble extends StatelessWidget {
   final List<ProductSwap>? swapData;
   final VoidCallback? onSeeMoreSwaps;
   final VoidCallback? onViewFullReport;
+  final void Function(ScannerMode)? onScannerModeSelected;
+
+  bool get _isInitialGreeting => !isUser && (text == AppStrings.chatInitialGreeting || text.startsWith('What’s good') || text.startsWith("What's good"));
 
   void _copyToClipboard(BuildContext context) {
     if (text.isEmpty) return;
@@ -249,7 +256,8 @@ class ChatBubble extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildMarkdownContent(context),
+                              if (_isInitialGreeting) _buildGreetingHeader(context) else _buildMarkdownContent(context),
+                              if (_isInitialGreeting) ...[Gap.h12, _buildGreetingActionCards(context)],
                               if (swapData != null && swapData!.isNotEmpty) ...[
                                 Gap.h12,
                                 Divider(color: colorScheme.borderSubtle, height: 1),
@@ -444,6 +452,137 @@ class ChatBubble extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildGreetingHeader(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'What’s good? 👋',
+          style: context.headingSm.copyWith(fontSize: 16, fontWeight: FontWeight.w800, color: colorScheme.textPrimary),
+        ),
+        Gap.h4,
+        Text(
+          'Snap it, scan it, or check the ingredients label.',
+          style: context.body.copyWith(fontSize: 12, color: colorScheme.textMuted, fontWeight: FontWeight.w400),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGreetingActionCards(BuildContext context) {
+    final colorScheme = context.appColorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    const cards = [
+      _GreetingActionCardData(mode: ScannerMode.food, icon: AppIcons.camera, title: AppStrings.snapFoodTitle, subtitle: AppStrings.snapFoodSubtitle, isDarkCard: true),
+      _GreetingActionCardData(mode: ScannerMode.barcode, icon: AppIcons.barcode, title: AppStrings.scanBarcodeTitle, subtitle: AppStrings.scanBarcodeSubtitle, isDarkCard: false),
+      _GreetingActionCardData(mode: ScannerMode.label, icon: AppIcons.fileText, title: AppStrings.ingredientsLabelTitle, subtitle: AppStrings.ingredientsLabelSubtitle, isDarkCard: false),
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: cards.map((card) {
+          final isHighlighted = card.isDarkCard;
+
+          final Color cardBg;
+          final Color borderColor;
+          final Color iconColor;
+          final Color titleColor;
+          final Color subtitleColor;
+
+          if (isDarkMode) {
+            if (isHighlighted) {
+              cardBg = colorScheme.textPrimary;
+              borderColor = colorScheme.textPrimary;
+              iconColor = AppPalette.black;
+              titleColor = AppPalette.black;
+              subtitleColor = AppPalette.gray600;
+            } else {
+              cardBg = colorScheme.elevatedSurface;
+              borderColor = colorScheme.border;
+              iconColor = colorScheme.textPrimary;
+              titleColor = colorScheme.textPrimary;
+              subtitleColor = colorScheme.textMuted;
+            }
+          } else {
+            if (isHighlighted) {
+              cardBg = AppPalette.black;
+              borderColor = AppPalette.black;
+              iconColor = AppPalette.white;
+              titleColor = AppPalette.white;
+              subtitleColor = AppPalette.gray400;
+            } else {
+              cardBg = AppPalette.white;
+              borderColor = colorScheme.borderSubtle;
+              iconColor = colorScheme.textPrimary;
+              titleColor = colorScheme.textPrimary;
+              subtitleColor = colorScheme.textMuted;
+            }
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 5),
+            child: Material(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                onTap: () {
+                  HapticHelper.light();
+                  onScannerModeSelected?.call(card.mode);
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  width: 90,
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: borderColor, width: 1),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(card.icon, size: 22, color: iconColor),
+                      Gap.h6,
+                      Text(
+                        card.title,
+                        style: context.bodyBold.copyWith(color: titleColor, fontSize: 10, fontWeight: FontWeight.w700),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Gap.h2,
+                      Text(
+                        card.subtitle,
+                        style: context.caption.copyWith(color: subtitleColor, fontSize: 8),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _GreetingActionCardData {
+  const _GreetingActionCardData({required this.mode, required this.icon, required this.title, required this.subtitle, required this.isDarkCard});
+
+  final ScannerMode mode;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool isDarkCard;
 }
 
 class _IntelligenceStamp extends StatelessWidget {

@@ -27,6 +27,22 @@ class SmartInsightDetailScreen extends StatelessWidget {
 
   final InsightSummary insight;
 
+  List<BodyPattern> _relatedPatterns(BuildContext context) {
+    List<BodyPattern> candidates;
+    try {
+      candidates = context.read<InsightsNotifier>().prioritizedPatterns;
+    } on ProviderNotFoundException {
+      return const [];
+    }
+
+    final foods = {for (final food in insight.involvedFoods) food.trim().toLowerCase()};
+    final title = insight.title.trim().toLowerCase();
+    return candidates.where((pattern) {
+      final relatedNames = [...pattern.involvedFoods, pattern.trigger].map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty);
+      return relatedNames.any((name) => foods.contains(name) || (title.isNotEmpty && title.contains(name))) || (title.isNotEmpty && title.contains(pattern.type.toLowerCase()));
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final v2 = context.v2Theme;
@@ -58,7 +74,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
                 Gap.h10,
 
                 // 3. THE EVIDENCE DASHBOARD
-                if (!insight.isBaseline) _buildTheEvidenceCard(context, evidenceRatio: evidenceRatio, frequency: frequency, symptomLogs: positiveCount, normalLogs: negativeCount),
+                _buildTheEvidenceCard(context, evidenceRatio: evidenceRatio, frequency: frequency, symptomLogs: positiveCount, normalLogs: negativeCount),
                 Gap.h10,
 
                 // 4. INVOLVED FOODS SECTION
@@ -66,11 +82,11 @@ class SmartInsightDetailScreen extends StatelessWidget {
                 Gap.h10,
 
                 // 5. OCCURRENCES TIMELINE & COMMON FACTORS CARD
-                if (!insight.isBaseline) _buildOccurrencesTimelineCard(context),
+                _buildOccurrencesTimelineCard(context),
                 Gap.h10,
 
                 // 6. RELATED PATTERNS SECTION
-                if (!insight.isBaseline) _buildRelatedPatternsSection(context),
+                _buildRelatedPatternsSection(context),
                 Gap.h10,
 
                 // 7. SPLIT GRID: YOUR NEXT STEPS & SUPPORTING EVIDENCE
@@ -86,26 +102,14 @@ class SmartInsightDetailScreen extends StatelessWidget {
 
   /// 1. Top Hero Insight Card (Matching PatternCard hero layout with dynamic food color blending)
   Widget _buildHeroCard(BuildContext context) {
-    var foodName = 'Whole Foods';
-    if (insight.involvedFoods.isNotEmpty) {
-      foodName = insight.involvedFoods.first;
-    } else if (insight.title.toLowerCase().contains('dairy') || insight.title.toLowerCase().contains('milk')) {
-      foodName = 'Milk';
-    } else if (insight.title.toLowerCase().contains('coffee')) {
-      foodName = 'Coffee';
-    } else if (insight.title.toLowerCase().contains('salad') || insight.title.toLowerCase().contains('fiber')) {
-      foodName = 'Salad';
-    } else if (insight.title.toLowerCase().contains('yogurt')) {
-      foodName = 'Yogurt';
-    }
-
-    final imageUrl = V2Kit.foodImageUrl(foodName);
+    final foodName = insight.involvedFoods.firstOrNull;
+    final imageUrl = foodName == null ? null : V2Kit.foodImageUrl(foodName);
     final style = PatternCardStyle.forType(insight.type);
 
     final title = insight.title.isNotEmpty ? insight.title : 'Top Insight Discovery';
     final descStr = insight.description.trim();
 
-    final confidenceLabel = insight.isBaseline ? 'BASELINE SUMMARY' : (insight.strength?.trim().isNotEmpty == true ? '${insight.strength!.toUpperCase()} CONFIDENCE' : 'CONFIDENCE NOT AVAILABLE');
+    final confidenceLabel = (insight.strength?.trim().isNotEmpty == true ? insight.strength! : 'LIMITED DATA').toUpperCase();
     const heroColor = Color(0xFF6F67DD);
 
     return Container(
@@ -157,7 +161,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
                           ),
                           Gap.w5,
                           Text(
-                            confidenceLabel,
+                            '$confidenceLabel CONFIDENCE',
                             style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
                           ),
                         ],
@@ -169,57 +173,57 @@ class SmartInsightDetailScreen extends StatelessWidget {
             ),
 
             // 2. Right Side Image (Seamlessly blended with dynamic food background)
-            SizedBox(
-              width: 138.w,
+                if (imageUrl != null) SizedBox(
+                  width: 138.w,
               child: Stack(
                 children: [
-                  Positioned.fill(
-                    child: ShaderMask(
-                      shaderCallback: (rect) => const LinearGradient(
+                Positioned.fill(
+                  child: ShaderMask(
+                    shaderCallback: (rect) => const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.transparent, Colors.white24, Colors.white],
+                      stops: [0.0, 0.28, 0.65],
+                    ).createShader(rect),
+                    blendMode: BlendMode.dstIn,
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      placeholder: (_, _) => Container(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        child: Center(
+                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.5), size: 28.w),
+                        ),
+                      ),
+                      errorWidget: (_, _, _) => Container(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        child: Center(
+                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.7), size: 28.w),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
-                        colors: [Colors.transparent, Colors.white24, Colors.white],
-                        stops: [0.0, 0.28, 0.65],
-                      ).createShader(rect),
-                      blendMode: BlendMode.dstIn,
-                      child: CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        placeholder: (_, _) => Container(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          child: Center(
-                            child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.5), size: 28.w),
-                          ),
-                        ),
-                        errorWidget: (_, _, _) => Container(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          child: Center(
-                            child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.7), size: 28.w),
-                          ),
-                        ),
+                        colors: [heroColor, heroColor.withValues(alpha: 0.55), heroColor.withValues(alpha: 0.0)],
+                        stops: const [0.0, 0.35, 1.0],
                       ),
                     ),
                   ),
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [heroColor, heroColor.withValues(alpha: 0.55), heroColor.withValues(alpha: 0.0)],
-                          stops: const [0.0, 0.35, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
+    ),
+  );
   }
 
   /// 2. "What We Observed" Card
@@ -229,7 +233,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
     final style = PatternCardStyle.forType(insight.type);
     final text = (insight.observation != null && insight.observation!.isNotEmpty)
         ? insight.observation!
-        : (insight.description.isNotEmpty ? insight.description : 'Logged evidence indicates a recurring ${insight.type.toLowerCase()} insight.');
+        : (insight.description.isNotEmpty ? insight.description : 'No observation details are available for this insight.');
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -415,22 +419,6 @@ class SmartInsightDetailScreen extends StatelessWidget {
       if (key.isNotEmpty && seen.add(key)) foods.add(f.trim());
     }
 
-    if (foods.isEmpty) {
-      try {
-        final notifier = context.read<InsightsNotifier>();
-        final patterns = notifier.prioritizedPatterns;
-        for (final p in patterns) {
-          for (final f in p.involvedFoods) {
-            final key = f.trim().toLowerCase();
-            if (key.isNotEmpty && seen.add(key)) foods.add(f.trim());
-          }
-          if (p.trigger.trim().isNotEmpty && seen.add(p.trigger.trim().toLowerCase())) {
-            foods.add(p.trigger.trim());
-          }
-        }
-      } catch (_) {}
-    }
-
     if (foods.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -455,7 +443,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                   ),
                   Text(
-                    'Foods frequently associated with this insight.',
+                    'Foods mentioned in this insight.',
                     style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
                   ),
                 ],
@@ -480,14 +468,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
   /// 5. Occurrences Timeline & Common Factors Card
   Widget _buildOccurrencesTimelineCard(BuildContext context) {
     final style = PatternCardStyle.forType(insight.type);
-    BodyPattern? matchingPattern;
-    try {
-      final notifier = context.read<InsightsNotifier>();
-      matchingPattern = notifier.prioritizedPatterns.firstWhere(
-        (p) => p.type.toLowerCase() == insight.type.toLowerCase() || p.trigger.toLowerCase().contains(insight.title.toLowerCase()),
-        orElse: () => notifier.prioritizedPatterns.firstOrNull ?? const BodyPattern(type: 'digestion', trigger: '', reaction: '', frequency: 0, confidence: '', description: '', updatedAt: ''),
-      );
-    } catch (_) {}
+    final matchingPattern = _relatedPatterns(context).firstOrNull;
 
     if (matchingPattern == null || (matchingPattern.commonFactors.isEmpty && matchingPattern.occurrences.isEmpty)) {
       return const SizedBox.shrink();
@@ -567,12 +548,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
 
   /// 6. Related Patterns Section
   Widget _buildRelatedPatternsSection(BuildContext context) {
-    var patterns = <BodyPattern>[];
-    try {
-      patterns = context.read<InsightsNotifier>().prioritizedPatterns;
-    } on ProviderNotFoundException {
-      patterns = [];
-    }
+    final patterns = _relatedPatterns(context);
 
     if (patterns.isEmpty) return const SizedBox.shrink();
 
@@ -639,7 +615,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
     final v2 = context.v2Theme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = PatternCardStyle.forType(insight.type);
-    final steps = insight.nextSteps.isNotEmpty ? insight.nextSteps : ['Log your meals and symptoms consistently to track this trend.'];
+    final steps = insight.nextSteps;
 
     return Container(
       padding: EdgeInsets.all(10.w),
@@ -675,12 +651,15 @@ class SmartInsightDetailScreen extends StatelessWidget {
               ),
               Gap.h3,
               Text(
-                'Recommended actions for this insight:',
+                steps.isEmpty ? 'No personalized next steps are available yet.' : 'Recommended actions for this insight:',
                 style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, color: v2.textSecondary, height: 1.2),
               ),
               Gap.h10,
 
-              for (var i = 0; i < steps.take(3).length; i++) ...[if (i > 0) Gap.h8, _NextStepCheckRow(title: 'Action ${i + 1}', subtitle: steps[i])],
+              if (steps.isEmpty)
+                Text('Log meals and symptoms to help build a useful insight.', style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: v2.textSecondary))
+              else
+                for (var i = 0; i < steps.take(3).length; i++) ...[if (i > 0) Gap.h8, _NextStepCheckRow(title: 'Action ${i + 1}', subtitle: steps[i])],
             ],
           ),
         ],
