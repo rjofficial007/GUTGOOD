@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/theme/insight_bento_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_theme.dart';
 
 /// Brightness-aware surface resolver for the pattern-card language.
 ///

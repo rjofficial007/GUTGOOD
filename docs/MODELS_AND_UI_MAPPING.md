@@ -1,6 +1,10 @@
 # GutGood Data Models, Mock Data & UI Mapping Guide
 
-This document catalogs every data model in `lib/core/models/`, explaining its purpose, fields, **proper mock data examples**, and **how its data is displayed in the app UI**.
+> **Current source alignment:** 2026-10-03
+> **Canonical model paths:** `lib/core/models/` and `lib/core/ai/protocol/`
+> **Canonical presentation paths:** `lib/features/insights/presentation/widgets/insight_feed/` and `lib/features/insights/presentation/widgets/bento/`
+
+This document catalogs shared data models, AI protocol models, and their current presentation mapping, including proper mock data examples and source ownership.
 
 ---
 
@@ -147,7 +151,7 @@ final mockCompleteInsight = AIInsight(
   ],
 );
 ```
-- **UI Display**: Drives the **Insights Tab** (`InsightsScreen`), rendering the V2 Insights Feed (`V2InsightsFeed`) and Bento feed (`InsightBentoFeed`).
+- **UI Display**: Drives the **Insights Tab** (`InsightsScreen`), rendering the semantic `InsightsFeed` from `lib/features/insights/presentation/widgets/insight_feed/` alongside the Bento feed (`InsightBentoFeed`).
 
 ### `BodyPattern` (`body_pattern.dart`)
 - **Purpose**: Observed association between a trigger and a reaction across canonical domains (`bloating`, `energy`, `headache`, `digestion`, `fullness`, `sleep`). Positive patterns (e.g. `energetic`) are filtered out from "Something to Watch" via `InsightValues.isPositiveReaction`.
@@ -256,3 +260,13 @@ final mockUserProfile = UserProfile(
 );
 ```
 - **UI Display**: Profile screen (`ProfileScreen`), preference toggles, and dynamically injected into AI prompt contexts (`ModePrompts`).
+
+---
+
+## 5. Canonical ownership notes
+
+- `AiAnalysisResult` is defined in `lib/core/ai/protocol/ai_analysis_result.dart` and exported through the shared `core/models/models.dart` barrel.
+- Insight blocks are defined in `lib/core/models/insights/insight_blocks.dart`; the source tree uses this semantic path directly.
+- Feed-specific view models and deterministic derivations are owned by `lib/features/insights/presentation/widgets/insight_feed/`.
+- Bento-specific widgets remain under `lib/features/insights/presentation/widgets/bento/`.
+- Persisted `v`/schema-version fields and historical AI payload values remain unchanged. Source naming is semantic and does not add a `v2` presentation directory.

@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/services/ai_classifier_service.dart';
-import 'package:gutgood/core/services/ai_service.dart';
+import 'package:gutgood/core/ai/classification/ai_classifier_service.dart';
+import 'package:gutgood/core/ai/client/ai_client.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockAiService extends Mock implements AiService {}
+class MockAiService extends Mock implements AiClient {}
 
 void main() {
   late MockAiService mockAiService;

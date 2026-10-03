@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/features/insights/presentation/pages/meal_symptom_detail_screen.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ui_kit.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class OccurrenceTile extends StatelessWidget {
@@ -14,7 +14,7 @@ class OccurrenceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imgUrl = V2Kit.foodImageUrl(occurrence.mealName, imageUrl: occurrence.imageUrl);
+    final imgUrl = InsightUiKit.foodImageUrl(occurrence.mealName, imageUrl: occurrence.imageUrl);
 
     final dateStr = occurrence.dateLabel ?? occurrence.date;
     final rawTime = occurrence.mealTime ?? occurrence.timeAfter;

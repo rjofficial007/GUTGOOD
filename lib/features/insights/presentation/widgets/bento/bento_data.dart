@@ -32,14 +32,6 @@ abstract final class BentoData {
     return '${d > 0 ? '↑' : '↓'} ${d.abs()} pts';
   }
 
-  /// `94% match` from a 0..1 confidence/evidence ratio.
-  static String? matchLabel(double? ratio) {
-    if (ratio == null || ratio <= 0) return null;
-    final pct = (ratio.clamp(0.0, 1.0) * 100).round();
-    if (pct <= 0) return null;
-    return '$pct% match';
-  }
-
   /// Sentence used for the pattern hero bento, mirroring the mock's
   /// "Fast food dinners trigger headaches 3.5 hrs later."
   static String patternHeadline(BodyPattern p) {

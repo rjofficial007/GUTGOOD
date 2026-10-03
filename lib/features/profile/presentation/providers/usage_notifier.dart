@@ -1,17 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore/usage_firestore_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/usage_firestore_service.dart';
 
 class UsageNotifier with ChangeNotifier {
-  UsageNotifier(this._firestoreService, this._authRepository) {
+  UsageNotifier(this._firestoreService, this._authRepository, this._appStateService) {
     _initUsageStream();
-    sl<AppStateService>().sessionReset.addListener(_onSessionReset);
-    _authRepository.authStateChanges.listen((user) {
+    _appStateService.sessionReset.addListener(_onSessionReset);
+    _authSub = _authRepository.authStateChanges.listen((user) {
       if (user != null) {
         _initUsageStream();
       } else {
@@ -22,9 +21,11 @@ class UsageNotifier with ChangeNotifier {
 
   final UsageFirestoreService _firestoreService;
   final AuthRepository _authRepository;
+  final AppStateService _appStateService;
 
   DailyUsage? _usage;
   StreamSubscription<DailyUsage?>? _usageSub;
+  StreamSubscription? _authSub;
 
   void _initUsageStream() {
     _usageSub?.cancel();
@@ -52,7 +53,8 @@ class UsageNotifier with ChangeNotifier {
   @override
   void dispose() {
     _usageSub?.cancel();
-    sl<AppStateService>().sessionReset.removeListener(_onSessionReset);
+    _authSub?.cancel();
+    _appStateService.sessionReset.removeListener(_onSessionReset);
     super.dispose();
   }
 

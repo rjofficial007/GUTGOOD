@@ -4,8 +4,8 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:gutgood/core/constants/logger_string.dart';
 import 'package:gutgood/core/di/di_instance.dart';
-import 'package:gutgood/core/services/crashlytics_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
+import 'package:gutgood/infrastructure/firebase/crashlytics_service.dart';
 
 /// Centralized logging utility for the GutGood app.
 /// This class provides categorized logging with custom prefixes and emojis.

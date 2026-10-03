@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
 import 'package:gutgood/features/profile/domain/repositories/profile_repository.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/auth_firestore_service.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
   ProfileRepositoryImpl({required AuthFirestoreService firestoreService}) : _firestoreService = firestoreService;

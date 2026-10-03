@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/constants/ai_constants.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
+import 'package:gutgood/core/ai/validation/ai_response_validator.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/ai_response_validator.dart';
 
 AiAnalysisResult _result({
   double? confidence,

@@ -1,8 +1,9 @@
 # 2. Technical Architecture Document
 
 > **Project Name:** GutGood  
-> **Architecture Pattern:** Clean Architecture (Feature-First) + Repository & UseCase Pattern  
-> **Document Purpose:** Engineering blueprint detailing tech stack, directory layouts, database schemas, API architecture, and environment configuration.
+> **Current source alignment:** 2026-10-03
+> **Architecture Pattern:** Practical Clean Architecture (Feature-First) + Repository & UseCase Pattern
+> **Document Purpose:** Engineering blueprint detailing the current source layout, dependency direction, database schemas, API architecture, and environment configuration.
 
 ---
 
@@ -15,8 +16,8 @@
 | **Dependency Injection** | `get_it` | Service locator & singleton lifecycle management |
 | **Navigation** | `go_router` | Declarative routing with `StatefulShellRoute` architecture |
 | **Backend & Cloud Services** | Firebase (Auth, Firestore, Storage, Remote Config, Cloud Functions, Messaging, Crashlytics, Analytics) | User authentication, cloud database, serverless backend, and telemetry |
-| **Local Persistence** | `sqflite` (SQLite) + `shared_preferences` | Offline outbox, local caching, and key-value preferences |
-| **AI Processing** | OpenAI GPT-4o / GPT-4o-mini via `aiProxy` Cloud Function | Vision analysis, streaming chat responses, and intent detection |
+| **Local Persistence** | Firestore offline persistence + `shared_preferences` + file-backed outbox | Offline Firestore reads, lightweight key-value preferences, and resilient chat/image queues |
+| **AI Processing** | `AiClient` in `lib/core/ai/` with `AiProxyClient` in `lib/infrastructure/ai/` via the `aiProxy` Cloud Function | Vision analysis, streaming chat responses, intent detection, structured validation, and quota-aware error handling |
 | **Nutrition Database** | Open Food Facts API (`openfoodfacts` package) | Global barcode lookup for food products and ingredients |
 | **In-App Purchases** | RevenueCat (`purchases_flutter`) | Cross-platform subscription & entitlement management |
 
@@ -27,30 +28,51 @@
 ```text
 gutgood_app/
 ├── lib/
-│   ├── core/                        # Shared infrastructure & core utilities
-│   │   ├── constants/               # Strings, Sizes, Assets, API endpoints, Prompts
-│   │   ├── database/                # SQLite helper & offline table definitions
-│   │   ├── di/                      # Dependency Injection setup (GetIt)
-│   │   ├── router/                  # GoRouter configuration & route arguments
-│   │   ├── services/                # Infrastructure services (AI, Firestore, Storage, Usage)
-│   │   ├── theme/                   # AppPalette, AppTextStyles, AppTheme (iOS HIG)
-│   │   ├── utils/                   # Logger, Haptics, DateFormatters, QuotaGuard
-│   │   └── widgets/                 # Standardized UI components (GutAppBar, GutTextField, OfflineBanner)
+│   ├── app/                         # Composition root, bootstrap, router, and global theme
+│   │   ├── app.dart
+│   │   ├── bootstrap.dart
+│   │   ├── router/                   # Feature-aware GoRouter and navigation adapter
+│   │   └── theme/                    # Global theme and registered feature extensions
+│   │
+│   ├── core/                        # Shared models, utilities, app services, and widgets
+│   │   ├── ai/                      # Client contract, proxy, prompts, protocol, validation
+│   │   ├── constants/               # App constants and string catalogs
+│   │   ├── data/                    # Shared additive/reference data
+│   │   ├── di/                      # GetIt handle only
+│   │   ├── errors/                  # SDK-neutral failure taxonomy
+│   │   ├── models/                  # Shared domain and persistence models
+│   │   ├── router/                  # Route values, codecs, navigation ports
+│   │   ├── services/                # Shared app state, configuration, and policies
+│   │   ├── theme/                   # AppPalette, AppTextStyles, ThemeExtensions
+│   │   ├── utils/                   # Logger, haptics, date helpers, pure utilities
+│   │   └── widgets/                 # Core-only reusable UI components
+│   │
+│   ├── infrastructure/
+│   │   ├── ai/                       # Concrete AI proxy implementation
+│   │   ├── firebase/                # Shared Firebase adapters and Firestore services
+│   │   │   └── firestore/            # Firestore adapters and contracts
+│   │   ├── open_food_facts/          # Open Food Facts/Dio adapter
+│   │   ├── payments/                # RevenueCat purchase adapter
+│   │   └── platform/                # Device, connectivity, app, and platform adapters
 │   │
 │   ├── features/                    # Modular feature-first architecture
-│   │   ├── auth/                    # Login, Social Auth, Anonymous Migration, Paywall Provider
-│   │   ├── chat/                    # AI Chat Companion, Composer, Outbox, Tag Processing UseCases
-│   │   ├── history/                 # Scan History, Saved Foods, Journal Timeline
-│   │   ├── home/                    # MainShell bottom navigation controller
-│   │   ├── insights/                # Gut Score, Bento Feed, Patterns, Swaps, Experiments
-│   │   ├── logs/                    # Meal & Symptom logging data layer
-│   │   ├── onboarding/              # Onboarding flow, Personalization, Cycle Sync
-│   │   ├── product_details/         # Scan results, Additive detail, Symptom detail
-│   │   ├── profile/                 # User settings, Health goals, Cycle phase, Usage
-│   │   └── scanner/                 # Barcode Scanner, Meal Snap, Menu Scanner, Vision-AI
+│   │   ├── auth/                    # Login, migration, profile access, subscriptions
+│   │   ├── chat/                    # Chat orchestration, composer, outbox, tag use cases
+│   │   ├── history/                 # Scan history, saved foods, journal timeline
+│   │   ├── home/                    # Main shell bottom navigation
+│   │   ├── insights/                # application, data, domain, semantic presentation
+│   │   ├── logs/                    # Meal and symptom logging data layer
+│   │   ├── onboarding/              # Onboarding, personalization, cycle sync
+│   │   ├── product_details/         # Scan, additive, symptom, and swap details
+│   │   ├── profile/                 # Goals, sensitivities, cycle, usage, settings
+│   │   └── scanner/                 # Barcode, Meal Snap, menu, and vision flows
 │   │
-│   └── main.dart                    # Application entry point & service initialization
+│   └── main.dart                    # Minimal process entry point
 │
+├── firebase.json                    # Firebase CLI project/deployment configuration
+├── .firebaserc                       # Firebase project aliases
+├── firestore.rules                   # Firestore security rules
+├── storage.rules                     # Cloud Storage security rules
 ├── functions/                       # Firebase Cloud Functions (TypeScript)
 │   ├── src/
 │   │   ├── index.ts                 # Function exports
@@ -65,6 +87,19 @@ gutgood_app/
 │   │   └── usage.ts                 # Daily usage calculation logic
 │   └── package.json
 ```
+
+### Current dependency boundaries
+
+- `lib/app/` composes the application. Firebase initialization remains in `lib/app/bootstrap.dart`; registration modules under `lib/app/di/` are grouped by AI, Firebase, platform, external, feature services, repositories/providers, and use cases; `lib/core/di/di_instance.dart` only owns the GetIt handle.
+- `lib/infrastructure/firebase/` owns shared Firebase adapters and Firestore services. Feature repositories remain under `lib/features/*/data/repositories` and retain orchestration ownership.
+- `lib/infrastructure/open_food_facts/` owns the concrete Open Food Facts adapter; Scanner and Chat retain feature orchestration and repository ownership.
+- `lib/infrastructure/payments/` owns the concrete RevenueCat purchase adapter; Auth retains entitlement, paywall, and usage orchestration.
+- `lib/infrastructure/platform/` owns concrete device, app-version, connectivity, sharing, review, and URL-launching integrations.
+- `lib/core/ai/client/ai_client.dart` is the neutral AI contract. `lib/infrastructure/ai/ai_proxy_client.dart` is the concrete implementation and is registered as `AiClient`.
+- `lib/core/ai/` contains shared AI protocol, prompt, and validation contracts and does not import feature code. Chat, Scanner, and Insights own AI orchestration, repository decisions, loading/error flows, and persistence decisions.
+- `lib/features/insights/` uses `application/`, `data/`, `domain/`, and `presentation/` layers. The active feed is under `presentation/widgets/insight_feed/`; no standalone legacy-version compatibility directory is retained.
+- `core/models/models.dart` remains a shared barrel for existing model consumers. It exports the canonical AI protocol model from `core/ai/protocol/ai_analysis_result.dart`.
+- Former forwarding/deprecated facade files were removed. Internal imports must use canonical paths directly.
 
 ---
 
@@ -96,24 +131,22 @@ gutgood_app/
 }
 ```
 
-#### Collection: `chat_histories/{uid}/messages/{messageId}`
+#### Subcollection: `user_profiles/{uid}/chat_history/{localId}`
 ```json
 {
-  "id": "string",
-  "sender": "user | assistant",
-  "content": "string",
-  "timestamp": "timestamp",
-  "attachmentUrl": "string?",
-  "tags": [
-    {
-      "type": "MEAL | SYMPTOM | SCAN",
-      "payload": "map"
-    }
-  ]
+  "localId": "string",
+  "role": "user | ai",
+  "text": "string",
+  "createdAt": "timestamp",
+  "imageUrls": ["string"],
+  "mealLogs": ["map"],
+  "symptomLogs": ["map"],
+  "analysisResult": "map?",
+  "promptVersion": "number?"
 }
 ```
 
-#### Collection: `historical_scans/{uid}/scans/{scanId}`
+#### Subcollection: `user_profiles/{uid}/scan_history/{scanId}`
 ```json
 {
   "id": "string",
@@ -136,7 +169,7 @@ gutgood_app/
 }
 ```
 
-#### Collection: `symptom_logs/{uid}/logs/{logId}`
+#### Subcollection: `user_profiles/{uid}/journal_logs/{logId}`
 ```json
 {
   "id": "string",
@@ -147,7 +180,7 @@ gutgood_app/
 }
 ```
 
-#### Collection: `usage_counters/{uid}`
+#### Subcollection: `user_profiles/{uid}/daily_usage/{date}`
 ```json
 {
   "dailyChatsCount": "number",
@@ -156,18 +189,41 @@ gutgood_app/
 }
 ```
 
-### 3.2 Local SQLite Schema (`sqflite`)
+### 3.2 Local persistence
 
-Used for offline message queuing, cached scan offline playback, and outbox resilience.
+The checked-in Flutter application does not currently depend on `sqflite`. Firestore persistence provides the remote document cache; `shared_preferences` stores lightweight preferences, cached summaries, and outbox metadata; image bytes for pending uploads are kept in the OS temporary directory by the upload outbox.
 
-* **`outbox_messages` Table:** `id TEXT PRIMARY KEY, payload TEXT, status TEXT, retries INTEGER, created_at INTEGER`
-* **`cached_scans` Table:** `barcode TEXT PRIMARY KEY, json_data TEXT, cached_at INTEGER`
+* **Firestore cache:** chat, history, profile, usage, and insights documents.
+* **`shared_preferences`:** onboarding flags, preferences, summaries, experiment cache, and serialized chat/outbox metadata.
+* **Temporary upload directory:** pending image bytes; entries are expendable and are dropped gracefully if the OS purges them.
 
 ---
 
 ## 4. API Structure
 
-### 4.1 Cloud Functions API Endpoints
+### 4.1 Flutter AI client boundary
+
+Feature code depends on the SDK-neutral `AiClient` contract:
+
+```text
+Chat / Scanner / Insights orchestration
+                │
+                ▼
+lib/core/ai/client/ai_client.dart (AiClient)
+                │ registered implementation
+                ▼
+lib/infrastructure/ai/ai_proxy_client.dart (AiProxyClient)
+                │ Firebase ID token + quota-aware proxy request
+                ▼
+functions/src/ai_proxy.ts (aiProxy)
+                │
+                ▼
+OpenAI
+```
+
+Prompt construction is centralized under `lib/core/ai/prompts/`, structured results and version constants under `lib/core/ai/protocol/`, and response gating under `lib/core/ai/validation/`. This keeps shared AI infrastructure in one boundary without moving feature-owned orchestration into `core`.
+
+### 4.2 Cloud Functions API Endpoints
 
 ```
 [Flutter App]
@@ -184,7 +240,7 @@ Used for offline message queuing, cached scan offline playback, and outbox resil
                          └── Delete Auth account + trigger cascade deletion in Storage/Firestore
 ```
 
-### 4.2 External Integrations
+### 4.3 External Integrations
 * **Open Food Facts REST API:**
   - `GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json`
   - Fetches product name, brand, ingredients, additives, NOVA group, and images.
@@ -209,3 +265,11 @@ Used for offline message queuing, cached scan offline playback, and outbox resil
 ### Firebase Secret Manager Keys (Cloud Functions Only)
 * `OPENAI_API_KEY`: Strictly isolated on backend serverless environment; never shipped to client devices.
 * `REVENUECAT_SECRET_KEY`: Server secret for validating entitlement webhooks if enabled.
+
+---
+
+## 6. Source alignment and validation
+
+The current source tree contains no standalone export-only compatibility files. Canonical AI imports resolve under `lib/core/ai/`, canonical Insights feed imports resolve under `lib/features/insights/presentation/widgets/insight_feed/`, and scanner mode models resolve under `lib/core/models/scans/scanner_mode.dart`.
+
+The SDK-independent architecture check is available at `tool/check_architecture.py`; it validates package/relative imports, `part` ownership, stale moved paths, feature-domain dependency direction, and duplicate typed DI registrations. The two expected generated `firebase_options.dart` imports require a configured FlutterFire environment. Run `flutter analyze`, `flutter test`, and platform builds in a Flutter-enabled environment before release.

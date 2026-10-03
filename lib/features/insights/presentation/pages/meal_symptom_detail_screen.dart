@@ -2,11 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ui_kit.dart';
 import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Meal & Symptom Breakdown — Synergy-style UI/UX presentation.
@@ -19,15 +19,15 @@ class MealSymptomDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
 
     return Scaffold(
-      backgroundColor: v2.scaffold,
+      backgroundColor: theme.scaffold,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
           // Standard GutSliverAppBar
-          GutSliverAppBar(title: 'MEAL & SYMPTOM', centerTitle: true, showBrandingIcon: false, backgroundColor: v2.scaffold),
+          GutSliverAppBar(title: 'MEAL & SYMPTOM', centerTitle: true, showBrandingIcon: false, backgroundColor: theme.scaffold),
 
           // --- Body Content --------------------------------------------------
           SliverPadding(
@@ -56,7 +56,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
   /// 1. Top Hero Meal Card (Solid Black card layout with dynamic food blending & domain accent)
   Widget _buildHeroCard(BuildContext context) {
     final style = pattern != null ? PatternCardStyle.forPattern(pattern!) : PatternCardStyle.forType('digestion');
-    final imageUrl = V2Kit.foodImageUrl(occurrence.mealName, imageUrl: occurrence.imageUrl);
+    final imageUrl = InsightUiKit.foodImageUrl(occurrence.mealName, imageUrl: occurrence.imageUrl);
     final accentColor = style.accentColor;
     const cardBgColor = Color(0xFF0F1015);
 
@@ -104,7 +104,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
                             Gap.w4,
                             Text(
                               rawTypeLabel.toUpperCase(),
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.5),
+                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.5),
                             ),
                           ],
                         ),
@@ -116,7 +116,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
                         occurrence.mealName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.3),
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.3),
                       ),
                       Gap.h2,
 
@@ -125,7 +125,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
                         subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w600, color: accentColor, height: 1.2, letterSpacing: -0.1),
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w600, color: accentColor, height: 1.2, letterSpacing: -0.1),
                       ),
                       Gap.h4,
 
@@ -134,7 +134,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
                         metaText,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w400, color: const Color(0xFF94A3B8), height: 1.25),
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w400, color: const Color(0xFF94A3B8), height: 1.25),
                       ),
                     ],
                   ),
@@ -158,7 +158,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
                         Gap.w5,
                         Text(
                           '$severityLabel SEVERITY',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.3),
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.3),
                         ),
                       ],
                     ),
@@ -224,7 +224,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
 
   /// 3. Pattern Observation Card
   Widget _buildPatternExplanationCard(BuildContext context) {
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final explanationText = pattern!.description.isNotEmpty ? pattern!.description : 'Your logs show this association, but they do not establish why it happened.';
@@ -232,9 +232,9 @@ class MealSymptomDetailScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: isDark ? v2.card : Colors.white,
+        color: isDark ? theme.card : Colors.white,
         borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: isDark ? v2.border : const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(color: isDark ? theme.border : const Color(0xFFE2E8F0), width: 1.w),
         boxShadow: [BoxShadow(color: isDark ? Colors.black.withValues(alpha: 0.15) : const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
       ),
       child: Column(
@@ -252,14 +252,14 @@ class MealSymptomDetailScreen extends StatelessWidget {
               Gap.w8,
               Text(
                 'Pattern Observation',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
               ),
             ],
           ),
           Gap.h8,
           Text(
             explanationText,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: v2.textSecondary, height: 1.35),
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: theme.textSecondary, height: 1.35),
           ),
         ],
       ),
@@ -268,15 +268,15 @@ class MealSymptomDetailScreen extends StatelessWidget {
 
   /// 4. Your Note Card
   Widget _buildNoteCard(BuildContext context) {
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: isDark ? v2.card : Colors.white,
+        color: isDark ? theme.card : Colors.white,
         borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: isDark ? v2.border : const Color(0xFFE2E8F0), width: 1.w),
+        border: Border.all(color: isDark ? theme.border : const Color(0xFFE2E8F0), width: 1.w),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,21 +286,21 @@ class MealSymptomDetailScreen extends StatelessWidget {
               Container(
                 width: 24.w,
                 height: 24.w,
-                decoration: BoxDecoration(color: isDark ? v2.cardSubtle : const Color(0xFFF1F5F9), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: isDark ? theme.cardSubtle : const Color(0xFFF1F5F9), shape: BoxShape.circle),
                 alignment: Alignment.center,
-                child: Icon(LucideIcons.stickyNote, size: 12.w, color: v2.textSecondary),
+                child: Icon(LucideIcons.stickyNote, size: 12.w, color: theme.textSecondary),
               ),
               Gap.w6,
               Text(
                 'Your Note',
-                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w700, color: v2.textSecondary),
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w700, color: theme.textSecondary),
               ),
             ],
           ),
           Gap.h6,
           Text(
             '"${occurrence.notes}"',
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontStyle: FontStyle.italic, color: v2.textPrimary, height: 1.3),
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontStyle: FontStyle.italic, color: theme.textPrimary, height: 1.3),
           ),
         ],
       ),

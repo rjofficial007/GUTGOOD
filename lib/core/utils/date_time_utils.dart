@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:gutgood/core/constants/ai_constants.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 
 class DateTimeUtils {
   /// Upper sanity bound for AI-estimated event times: 1h of future grace

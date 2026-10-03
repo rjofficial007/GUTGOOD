@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
 import 'package:gutgood/features/insights/presentation/pages/swap_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ui_kit.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
@@ -38,7 +38,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
   Widget build(BuildContext context) {
     final insight = _insightOf(context);
     final foodName = widget.swap.source.name;
-    final imageUrl = widget.swap.source.imageUrl ?? V2Kit.foodImageUrl(foodName);
+    final imageUrl = widget.swap.source.imageUrl ?? InsightUiKit.foodImageUrl(foodName);
 
     // Dynamic pattern matching
     final matchingPattern = insight?.detectedPatterns
@@ -158,7 +158,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
                         Gap.w4,
                         Text(
                           hasPersonalEvidence ? 'OBSERVED IN YOUR LOGS' : 'GENERAL ALTERNATIVE',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
                         ),
                       ],
                     ),
@@ -172,14 +172,14 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
                     foodName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w900, color: Colors.white, height: 1.15, letterSpacing: -0.4),
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w900, color: Colors.white, height: 1.15, letterSpacing: -0.4),
                   ),
                   Gap.h2,
                   Text(
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.9)),
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.9)),
                   ),
                   Gap.h8,
                   Wrap(
@@ -198,15 +198,15 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
 
   /// 2. "Why this may affect you" Card
   Widget _buildWhyAffectYouCard(BuildContext context, String explanation, {required bool hasPersonalEvidence}) {
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: v2.card,
+        color: theme.card,
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: v2.border, width: 1.w),
+        border: Border.all(color: theme.border, width: 1.w),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,12 +225,12 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
               children: [
                 Text(
                   hasPersonalEvidence ? 'What your logs show' : 'About this alternative',
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                 ),
                 Gap.h3,
                 Text(
                   explanation,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: v2.textSecondary, height: 1.3),
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: theme.textSecondary, height: 1.3),
                 ),
               ],
             ),
@@ -243,7 +243,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
   /// 3. Category Filter Pills (Matching exact Insights tab bar style)
   Widget _buildCategoryFilters(BuildContext context, List<String> categories) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -263,7 +263,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
                 decoration: BoxDecoration(
                   color: categories[i] == _selectedCategory ? (isDark ? Colors.white : const Color(0xFF171717)) : Colors.transparent,
                   borderRadius: BorderRadius.circular(100.w),
-                  border: Border.all(color: categories[i] == _selectedCategory ? (isDark ? Colors.white : const Color(0xFF171717)) : v2.border, width: 1.w),
+                  border: Border.all(color: categories[i] == _selectedCategory ? (isDark ? Colors.white : const Color(0xFF171717)) : theme.border, width: 1.w),
                   boxShadow: categories[i] == _selectedCategory
                       ? [BoxShadow(color: (isDark ? Colors.black : const Color(0xFF17171B)).withValues(alpha: 0.15), blurRadius: 4.w, offset: Offset(0, 2.w))]
                       : null,
@@ -271,10 +271,10 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
                 child: Text(
                   categories[i],
                   style: TextStyle(
-                    fontFamily: InsightV2Theme.fontFamily,
+                    fontFamily: InsightTheme.fontFamily,
                     fontSize: 12.sp,
                     fontWeight: categories[i] == _selectedCategory ? FontWeight.w800 : FontWeight.w600,
-                    color: categories[i] == _selectedCategory ? (isDark ? const Color(0xFF0F172A) : Colors.white) : v2.textSecondary,
+                    color: categories[i] == _selectedCategory ? (isDark ? const Color(0xFF0F172A) : Colors.white) : theme.textSecondary,
                     letterSpacing: -0.2,
                   ),
                 ),
@@ -305,34 +305,34 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
   );
 
   Widget _buildEmptyState(BuildContext context) {
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
-        color: v2.card,
+        color: theme.card,
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: v2.border),
+        border: Border.all(color: theme.border),
       ),
       child: Center(
         child: Text(
           'No alternatives found for this category.',
-          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, color: v2.textSecondary),
+          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, color: theme.textSecondary),
         ),
       ),
     );
   }
 
   Widget _buildGuidanceBanner(BuildContext context) {
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: v2.card,
+        color: theme.card,
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: v2.border),
+        border: Border.all(color: theme.border),
       ),
       child: Row(
         children: [
@@ -350,7 +350,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
           Expanded(
             child: Text(
               'Try one swap at a time to accurately observe how your digestion responds.',
-              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: v2.textSecondary, height: 1.3),
+              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: theme.textSecondary, height: 1.3),
             ),
           ),
         ],
@@ -369,7 +369,7 @@ class _HeroTagPill extends StatelessWidget {
     decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(100.w)),
     child: Text(
       label,
-      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
+      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: Colors.white),
     ),
   );
 }
@@ -438,9 +438,9 @@ class _SwapCardItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageUrl = alt.imageUrl ?? V2Kit.foodImageUrl(alt.name);
+    final imageUrl = alt.imageUrl ?? InsightUiKit.foodImageUrl(alt.name);
     final benefits = _deriveBenefits(alt);
 
     return GestureDetector(
@@ -451,9 +451,9 @@ class _SwapCardItem extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: v2.card,
+          color: theme.card,
           borderRadius: BorderRadius.circular(16.w),
-          border: Border.all(color: v2.border, width: 1.w),
+          border: Border.all(color: theme.border, width: 1.w),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02), blurRadius: 4.w, offset: Offset(0, 2.w))],
         ),
         clipBehavior: Clip.antiAlias,
@@ -466,7 +466,7 @@ class _SwapCardItem extends StatelessWidget {
               height: 90.w,
               width: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: v2.cardSubtle),
+              placeholder: (_, _) => Container(color: theme.cardSubtle),
               errorWidget: (_, _, _) => Container(
                 color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7),
                 child: Icon(LucideIcons.utensils, size: 22.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
@@ -489,7 +489,7 @@ class _SwapCardItem extends StatelessWidget {
                           alt.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: v2.textPrimary, height: 1.15),
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: theme.textPrimary, height: 1.15),
                         ),
                         Gap.h2,
                         // Description
@@ -497,7 +497,7 @@ class _SwapCardItem extends StatelessWidget {
                           alt.reason?.trim().isNotEmpty == true ? alt.reason! : 'No comparison details are available for this alternative yet.',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.sp, color: v2.textSecondary, height: 1.2),
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, color: theme.textSecondary, height: 1.2),
                         ),
                         Gap.h4,
                         // Benefit pills row
@@ -527,7 +527,7 @@ class _SwapCardItem extends StatelessWidget {
                             child: Center(
                               child: Text(
                                 '+ Try This Swap',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.1),
+                                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.1),
                               ),
                             ),
                           ),
@@ -552,12 +552,12 @@ class _BenefitPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
-      decoration: BoxDecoration(color: isDark ? v2.cardSubtle : const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(6.w)),
+      decoration: BoxDecoration(color: isDark ? theme.cardSubtle : const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(6.w)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -565,7 +565,7 @@ class _BenefitPill extends StatelessWidget {
           Gap.w4,
           Text(
             label,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: v2.textPrimary),
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: theme.textPrimary),
           ),
         ],
       ),

@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/core/ai/client/ai_client.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/usage_service.dart';
+import 'package:gutgood/features/auth/data/services/usage_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/auth_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,7 +23,7 @@ class MockAuthFirestoreService extends Mock implements AuthFirestoreService {}
 
 class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}
 
-class MockAiService extends Mock implements AiService {}
+class MockAiService extends Mock implements AiClient {}
 
 class MockAppStateService extends Mock implements AppStateService {}
 

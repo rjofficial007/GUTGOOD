@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/app/theme/app_theme.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/theme/app_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart';

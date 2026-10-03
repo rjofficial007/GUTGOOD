@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/v2_feed.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insights_feed.dart';
 import 'package:provider/provider.dart';
 
-/// Historical insight detail — the v2 feed applied to a past snapshot.
+/// Historical insight detail — the Insights feed applied to a past snapshot.
 ///
-/// Renders the same [V2InsightsFeed] as the Insights tab so every
+/// Renders the same [InsightsFeed] as the Insights tab so every
 /// insight-related screen shares one visual language; the data source is the
 /// stored [AIInsight] and its own detected patterns, with the score window
 /// truncated at this insight's date so a past snapshot never charts the
@@ -41,16 +41,16 @@ class InsightDetailScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: context.v2Theme.scaffold,
+      backgroundColor: context.insightTheme.scaffold,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
           GutSliverAppBar(
             title: DateFormatter.formatDate(insight.updatedAt).toUpperCase(),
             centerTitle: true,
-            backgroundColor: context.v2Theme.scaffold,
+            backgroundColor: context.insightTheme.scaffold,
           ),
-          V2InsightsFeed(
+          InsightsFeed(
             data: insight,
             patterns: insight.detectedPatterns,
             series: series,

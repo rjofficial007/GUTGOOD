@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
-import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
-import 'package:gutgood/core/theme/app_text_styles.dart';
 
 /// Shared concern-level palette for the additives list + detail screens.
 class AdditiveLevelColors {
@@ -69,21 +67,3 @@ class AdditiveLevelColors {
 }
 
 /// Label pill used on additive cards and the detail header.
-class AdditiveConcernPill extends StatelessWidget {
-  const AdditiveConcernPill({super.key, required this.label, required this.colors, this.fontSize = 11, this.padding});
-
-  final String label;
-  final AdditiveLevelColors colors;
-  final double fontSize;
-  final EdgeInsets? padding;
-
-  @override
-  Widget build(BuildContext context) => Container(
-      padding: padding ?? EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p6),
-      decoration: BoxDecoration(color: colors.pillBackground, borderRadius: BorderRadius.circular(40)),
-      child: Text(
-        label,
-        style: context.captionBold.copyWith(color: colors.accent, fontSize: fontSize, fontWeight: FontWeight.w800),
-      ),
-    );
-}

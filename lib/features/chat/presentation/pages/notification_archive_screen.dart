@@ -92,7 +92,7 @@ class _AlertTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // 1. Icon Container (Matches InsightHistoryTile w52x52)
+            // 1. Icon container sized consistently with the insights history list
             Container(
               width: AppSizes.w52,
               height: AppSizes.w52,

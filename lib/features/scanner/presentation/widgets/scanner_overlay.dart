@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
+import 'package:gutgood/core/models/scans/scanner_mode.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/features/scanner/domain/models/scanner_mode.dart';
 
 enum ScanningState { searching, detected, ready, scanning, error }
 

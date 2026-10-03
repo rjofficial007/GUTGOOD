@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/app/theme/app_theme.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/models/navigation/route_arguments.dart';
-import 'package:gutgood/core/theme/app_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/highlight_detail_screen.dart';
+import 'package:gutgood/features/insights/presentation/pages/insights_screen.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_feed.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/v2_feed.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insights_feed.dart';
 import 'package:provider/provider.dart';
 
 class FakeInsightsNotifier extends ChangeNotifier implements InsightsNotifier {
@@ -133,7 +132,7 @@ void main() {
     expect(find.textContaining('Fried Foods → Bloating'), findsNothing);
   });
 
-  testWidgets('Existing user with real insight shows V2InsightsFeed with real score', (WidgetTester tester) async {
+  testWidgets('Existing user with real insight shows InsightsFeed with real score', (WidgetTester tester) async {
     final realInsight = AIInsight(gutScore: 85, scoreDiff: '+5', updatedAt: DateTime.now());
 
     final notifier = FakeInsightsNotifier(fakeLatestInsight: realInsight, fakeIsSufficient: true);
@@ -143,7 +142,7 @@ void main() {
 
     // Should NOT show InsightBentoLearning
     expect(find.byType(InsightBentoLearning), findsNothing);
-    expect(find.byType(V2InsightsFeed), findsOneWidget);
+    expect(find.byType(InsightsFeed), findsOneWidget);
 
     // Should display real score 85
     expect(find.text('85'), findsAtLeastNWidgets(1));

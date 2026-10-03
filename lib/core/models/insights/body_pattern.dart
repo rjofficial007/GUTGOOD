@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:gutgood/core/constants/ai_constants.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/insights/pattern_occurrence.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';

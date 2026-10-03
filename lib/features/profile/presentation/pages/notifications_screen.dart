@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
-import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/auth_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationsScreen extends StatefulWidget {

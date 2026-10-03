@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/constants/ai_constants.dart';
+import 'package:gutgood/core/ai/protocol/ai_analysis_result.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/chat/chat_message.dart';
 import 'package:gutgood/core/models/insights/ai_insight.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';
-import 'package:gutgood/core/models/scans/ai_analysis_result.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
 
 void main() {

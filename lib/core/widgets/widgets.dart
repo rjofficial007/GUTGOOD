@@ -1,5 +1,3 @@
-export 'package:gutgood/features/insights/presentation/widgets/arc_pattern_card.dart';
-
 export 'app_switch_tile.dart';
 export 'app_tile.dart';
 export 'auth_option_tile.dart';
@@ -11,17 +9,14 @@ export 'gut_app_bar.dart';
 export 'gut_bottom_sheet.dart';
 export 'gut_button.dart';
 export 'gut_chip.dart';
-export 'gut_score_card.dart';
 export 'gut_score_list_tile.dart';
 export 'gut_section.dart';
 export 'gut_text_field.dart';
 export 'onboarding_header.dart';
-export 'paywall_screen.dart';
 export 'premium_badge.dart';
 export 'scan_result_inline_card.dart';
 export 'selection_wrap.dart';
 export 'shimmer_grid_loader.dart';
 export 'streak_celebration_overlay.dart';
-export 'super_card.dart';
 export 'swap_card.dart';
 export 'swap_it_container.dart';

@@ -8,8 +8,8 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_feed.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insights_feed.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_states.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/v2_feed.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
@@ -106,7 +106,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     ),
                   ),
                 if (latestInsight != null && latestInsight.status != AIInsight.statusInsufficientData)
-                  V2InsightsFeed(data: latestInsight, patterns: prioritizedPatterns, series: scoreSeries, history: notifier.insightHistory)
+                  InsightsFeed(data: latestInsight, patterns: prioritizedPatterns, series: scoreSeries, history: notifier.insightHistory)
                 else if (notifier.errorMessage == null && notifier.isSufficient)
                   SliverPadding(
                     padding: const EdgeInsets.all(16),

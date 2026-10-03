@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:gutgood/core/constants/ai_constants.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
@@ -70,7 +70,7 @@ class MealLog extends Equatable {
     );
   }
 
-  /// Local SQLite primary key.
+  /// Legacy local persistence key, retained for backward-compatible records.
   final int? id;
 
   /// Cloud Firestore unique identifier.

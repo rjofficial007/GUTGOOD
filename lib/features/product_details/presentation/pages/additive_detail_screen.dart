@@ -7,10 +7,10 @@ import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/insight_bento_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
-import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart';
 import 'package:gutgood/features/product_details/presentation/pages/additive_level_colors.dart';
 import 'package:gutgood/features/product_details/presentation/utils/scan_result_utils.dart';
 

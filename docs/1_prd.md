@@ -2,6 +2,7 @@
 
 > **Product Name:** GutGood — AI Health Intelligence  
 > **Target Platform:** iOS & Android (Flutter)  
+> **Current implementation alignment:** 2026-10-03
 > **Document Purpose:** Define what we are building, who it is for, and why it matters to align product, engineering, and design teams.
 
 ---
@@ -101,3 +102,14 @@ Key user pain points:
 | **AI Chat Latency** | < 2.0s Time-To-First-Token | Performance Monitoring on `aiProxy` Cloud Function |
 | **Symptom Reduction Impact** | +15 point avg Gut Score increase in 30 days | User historical Gut Score records |
 | **Paywall Conversion** | > 5% onboarding conversion | RevenueCat Purchase Events |
+
+---
+
+## 6. Current implementation alignment
+
+The product behavior described above is implemented through a feature-first Flutter structure:
+
+- Chat, Scanner, and Insights retain ownership of their orchestration, loading states, persistence decisions, and user-facing error flows.
+- Shared AI infrastructure lives under `lib/core/ai/`; the feature layers depend on the `AiClient` contract rather than a concrete provider SDK.
+- The active Insights feed uses semantic source names under `lib/features/insights/presentation/widgets/insight_feed/`. Historical `v2` schema/version values remain data terminology only.
+- Product contracts—Firestore collections, serialized fields, AI envelopes, API payloads, quotas, and user-facing flows—remain unchanged by the source naming refactor.

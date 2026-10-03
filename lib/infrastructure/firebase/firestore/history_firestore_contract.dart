@@ -1,0 +1,55 @@
+part of 'history_firestore_service.dart';
+
+/// Application-facing history persistence contract.
+
+abstract class HistoryFirestoreService {
+  Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId});
+  Future<ScanResult?> getScanById(String scanId);
+
+  /// Newest scan for [barcode], or null when never scanned. Backs the personal
+  /// barcode cache (P0-3). Requires the (barcode, createdAt) composite index.
+  Future<ScanResult?> getLatestScanByBarcode(String barcode);
+  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since, DateTime? before});
+  Future<List<ScanResult>> getLabelScans({int? limit, DateTime? since, DateTime? before});
+  Future<List<ScanResult>> getMenuScans({int? limit, DateTime? since, DateTime? before});
+
+  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since, DateTime? before});
+
+  /// Saved-foods list (P2-6: single `saved_foods` collection read + lazy
+  /// migration of pre-P2-6 flags). Returns full scans, newest first.
+  Future<List<ScanResult>> getSavedFoods();
+
+  /// Single-doc set/delete in `saved_foods` (no more history-wide batch).
+  Future<void> toggleSaveFood(ScanResult scanData);
+
+  /// Single doc get, with a legacy-flag fallback for unmigrated users.
+  Future<bool> isFoodSaved(String? productName, {String? barcode});
+
+  Future<String?> logMeal(MealLog log, {String? docId});
+  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before});
+
+  Future<String?> logSymptom(SymptomLog log, {String? docId});
+  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before});
+
+  /// Count of meal logs with `createdAt >= [since]`.
+  /// Returns -1 when the query itself failed (offline, permission, index) so
+  /// callers can distinguish "no meals" from "unknown".
+  Future<int> getMealLogsCountSince(DateTime since);
+
+  /// Count of symptom logs with `createdAt >= [since]`.
+  Future<int> getSymptomLogsCountSince(DateTime since);
+
+  /// Count of scan history records with `createdAt >= [since]`.
+  Future<int> getScansCountSince(DateTime since);
+
+  /// Reactive history totals, read from the server-maintained
+  /// `counters/totals` document (single-doc read). Falls back to cheap
+  /// `count()` aggregations while the counters doc does not exist yet.
+  Stream<HistoryCounts> watchHistoryCounts();
+
+  /// Returns a stream of the average food score, updating in real-time.
+  Stream<int> getAverageFoodScoreStream();
+
+  /// Deletes all meal and symptom logs associated with a specific chat message.
+  Future<void> deleteLogsForMessage(String chatMessageId);
+}

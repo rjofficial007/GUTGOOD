@@ -8,18 +8,19 @@ import 'package:gutgood/core/constants/app_config_data.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
-import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
+import 'package:gutgood/features/auth/presentation/pages/paywall_screen.dart';
 import 'package:gutgood/features/onboarding/presentation/widgets/ai_personalization_onboarding_page.dart';
 import 'package:gutgood/features/onboarding/presentation/widgets/cycle_sync_onboarding_page.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/notification_service.dart';
 import 'package:provider/provider.dart';
 
 class OnboardingScreen extends StatefulWidget {

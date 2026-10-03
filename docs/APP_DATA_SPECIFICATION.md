@@ -1,7 +1,9 @@
 # 📊 GutGood — Complete App Data & Information Architecture Specification
 
-> **Document Purpose:** Pure data models, JSON payload samples, data relationships, and information hierarchy specifications for the GutGood application.  
+> **Current source alignment:** 2026-10-03
+> **Document Purpose:** Pure data models, JSON payload samples, data relationships, and information hierarchy specifications for the GutGood application.
 > **Use Case for AI/Engineers:** Feed this document into an AI or UI/UX generator to build data-driven screens with optimal information hierarchy without needing UI visual specifications.
+> **Contract rule:** Persisted Firestore keys, serialized fields, and schema/version values remain stable contracts even when source class or folder names become semantic.
 
 ---
 
@@ -474,3 +476,19 @@ When generating UI/UX from this data, structure the hierarchy based on cognitive
 | **Menu Survival Screen** | Ranked Dishes List (Grouped by Safe/Caution/Avoid) | Custom Ordering Modification Request | Rejection Reasons, Ingredients to Avoid |
 | **Meal/Symptom Journal** | Date/Time, Meal Type / Symptom Name, Severity Rating (1-10) | Photo Thumbnail, Onset Delay | User Personal Notes, Associated Scans |
 | **AI Companion Chat** | Message Markdown Content, Sender Role, Extracted Tag Chips | Image Attachment, Timestamp | Raw Tag Payload details |
+
+---
+
+## 8. Canonical source mapping
+
+| Data responsibility | Current source |
+|---|---|
+| Unified structured AI response | `lib/core/ai/protocol/ai_analysis_result.dart` (`AiAnalysisResult`) |
+| AI constants, intent values, image modes, schema versions | `lib/core/ai/protocol/ai_constants.dart` |
+| Structured response validation | `lib/core/ai/validation/ai_response_validator.dart` |
+| Insight blocks and serialized insight payloads | `lib/core/models/insights/insight_blocks.dart` and `lib/core/models/insights/ai_insight.dart` |
+| Shared model barrel | `lib/core/models/models.dart` |
+| Semantic Insights presentation data | `lib/features/insights/presentation/widgets/insight_feed/insight_feed_derivations.dart` |
+| Scanner mode model | `lib/core/models/scans/scanner_mode.dart` |
+
+The current application source tree contains only canonical model and protocol paths; export-only compatibility files are not retained. Historical schema/version values remain readable through the canonical models.

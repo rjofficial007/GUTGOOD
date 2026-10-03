@@ -1,6 +1,7 @@
 # 5. Feature Ticket List
 
 > **Product Name:** GutGood — AI Health Intelligence  
+> **Current source alignment:** 2026-10-03
 > **Document Purpose:** Break down product requirements into discrete, actionable feature tickets for engineering execution.
 
 ---
@@ -34,6 +35,22 @@
    ├── TICKET-501: RevenueCat Paywall Integration
    └── TICKET-502: Account Deletion & Data Cascade
 ```
+
+---
+
+## Implementation status and ownership
+
+The ticket descriptions remain the product acceptance baseline. The current implementation is organized as follows:
+
+- App bootstrap, composition-root DI, routing, and global theme: `lib/app/`
+- Shared AI contract and infrastructure: `lib/core/ai/`
+- Chat orchestration: `lib/features/chat/`
+- Scanner orchestration: `lib/features/scanner/`
+- Insights application, data, domain, and semantic presentation: `lib/features/insights/`
+- Auth-owned quota and usage behavior: `lib/features/auth/`
+- No standalone `v2` or export-only compatibility directories are part of the active source tree.
+
+A ticket is considered implementation-complete only after behavior, persistence, security, and loading/error flows are verified—not merely after a screen or prompt is added.
 
 ---
 
@@ -92,7 +109,7 @@
 * **Acceptance Criteria:**
   1. User takes meal photo in `Meal Snap` mode.
   2. AI returns identified foods, estimated fiber/quality, and gut score impact.
-  3. Meal entry is saved to `meal_logs` collection automatically.
+  3. Meal entry is saved to the `user_profiles/{uid}/journal_logs` subcollection automatically.
 * **Dependencies:** `aiProxy` Vision API
 * **Priority:** `P1` (High)
 
@@ -121,19 +138,19 @@
 ### `TICKET-302`: Passive Conversation Tag Extractor
 * **Task Description:** Run `ProcessChatTagUseCase` on incoming assistant responses to extract `[MEAL]` and `[SYMPTOM]` tags.
 * **Acceptance Criteria:**
-  1. Conversation mentioning food triggers `[MEAL]` tag and creates entry in `meal_logs`.
-  2. Mentioning bloating/pain triggers `[SYMPTOM]` tag and logs entry in `symptom_logs`.
+  1. Conversation mentioning food triggers `[MEAL]` tag and creates a meal entry in `user_profiles/{uid}/journal_logs`.
+  2. Mentioning bloating/pain triggers `[SYMPTOM]` tag and logs a symptom entry in `user_profiles/{uid}/journal_logs`.
   3. Tag chips appear inside chat bubbles allowing editing.
 * **Dependencies:** `ProcessChatTagUseCase`
 * **Priority:** `P0` (Critical)
 
 ### `TICKET-303`: Offline Outbox Queue
-* **Task Description:** Queue chat messages in local `sqflite` database when device is offline.
+* **Task Description:** Queue chat messages through the existing SharedPreferences-backed outbox when the device is offline.
 * **Acceptance Criteria:**
-  1. Offline messages store in `outbox_messages` table with `status = PENDING`.
-  2. When connection restores, `ChatOutboxService` automatically flushes queue in sequence.
+  1. Offline messages serialize into the SharedPreferences-backed outbox with a pending status.
+  2. When connection restores, `ChatOutboxService` automatically flushes the queue in sequence.
   3. Displays `OfflineBanner` UI feedback when offline.
-* **Dependencies:** `sqflite`, `InternetConnectionChecker`
+* **Dependencies:** `shared_preferences`, `InternetConnectionChecker`
 * **Priority:** `P1` (High)
 
 ---
@@ -194,3 +211,9 @@
   3. Permanently deletes Firebase Auth user, user profile, Firestore subcollections, and Storage images.
 * **Dependencies:** `functions/src/auth.ts`, `deleteAccount`
 * **Priority:** `P0` (Critical)
+
+---
+
+## Current validation gate
+
+Before release, run `flutter analyze`, `flutter test`, and platform builds from a configured Flutter environment. Static repository checks currently cover canonical imports, relative imports, Dart `part` relationships, and removal of stale compatibility paths. The generated `firebase_options.dart` file must be produced by FlutterFire for a local build.

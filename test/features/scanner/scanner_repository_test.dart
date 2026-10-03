@@ -1,25 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/core/ai/classification/ai_classifier_service.dart';
+import 'package:gutgood/core/ai/client/ai_client.dart';
+import 'package:gutgood/core/ai/protocol/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat/chat_message.dart';
-import 'package:gutgood/core/models/scans/ai_analysis_result.dart';
 import 'package:gutgood/core/models/scans/off_product.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
-import 'package:gutgood/core/services/ai_classifier_service.dart';
-import 'package:gutgood/core/services/ai_service.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/domain_event_persister.dart';
-import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/notification_service.dart';
-import 'package:gutgood/core/services/off_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
+import 'package:gutgood/features/logs/data/services/domain_event_persister.dart';
 import 'package:gutgood/features/scanner/data/repositories/scanner_repository_impl.dart';
+import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/notification_service.dart';
+import 'package:gutgood/infrastructure/open_food_facts/off_service.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockOffService extends Mock implements OffService {}
 
-class MockAiService extends Mock implements AiService {}
+class MockAiService extends Mock implements AiClient {}
 
 class MockAiClassifierService extends Mock implements AiClassifierService {}
 

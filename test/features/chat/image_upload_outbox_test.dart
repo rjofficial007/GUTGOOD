@@ -2,9 +2,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/image_hash.dart';
 import 'package:gutgood/features/chat/data/services/image_upload_outbox.dart';
+import 'package:gutgood/infrastructure/firebase/storage_service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

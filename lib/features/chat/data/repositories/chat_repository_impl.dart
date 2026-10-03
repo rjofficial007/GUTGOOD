@@ -1,22 +1,22 @@
 import 'dart:typed_data';
 
+import 'package:gutgood/core/ai/client/ai_client.dart';
 import 'package:gutgood/core/models/chat/chat_message.dart';
 import 'package:gutgood/core/models/user/food_image.dart';
-import 'package:gutgood/core/services/ai_service.dart';
-import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/utils/image_hash.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/food_image_firestore_service.dart';
 
 class ChatRepositoryImpl implements ChatRepository {
-  ChatRepositoryImpl({required ChatFirestoreService firestoreService, required AiService aiService, required StreakService streakService, required FoodImageService foodImages})
+  ChatRepositoryImpl({required ChatFirestoreService firestoreService, required AiClient aiService, required StreakService streakService, required FoodImageService foodImages})
     : _firestoreService = firestoreService,
       _aiService = aiService,
       _streakService = streakService,
       _foodImages = foodImages;
   final ChatFirestoreService _firestoreService;
-  final AiService _aiService;
+  final AiClient _aiService;
   final StreakService _streakService;
   final FoodImageService _foodImages;
 

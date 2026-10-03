@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_states.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
 
 /// Score and comparison are separate: absence of a comparison is not a gain.
 class InsightScoreCard extends StatelessWidget {
@@ -55,37 +53,6 @@ class InsightScoreCard extends StatelessWidget {
               if (onWhyTap != null && value != null) TextButton(onPressed: onWhyTap, child: const Text('How it’s calculated')),
             ]),
           ],
-        ]),
-      ),
-    );
-  }
-}
-
-class InsightScoreTrendCard extends StatelessWidget {
-  const InsightScoreTrendCard({super.key, required this.values, this.title = 'Recorded gut scores', this.caption = 'Scores in recording order · scale 0–100'});
-  final List<double> values;
-  final String title;
-  final String caption;
-
-  @override
-  Widget build(BuildContext context) {
-    final valid = InsightValues.scores(values);
-    if (valid.isEmpty) return const InsightEmptyStateCard(title: 'No score history yet', message: 'Your recorded scores will appear here. Keep logging meals and symptoms to build a trend.');
-    final theme = Theme.of(context);
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: theme.colorScheme.outlineVariant)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(caption, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 20),
-          V2TrendChart(values: valid, height: 112),
-          const SizedBox(height: 12),
-          Text(valid.length < 2 ? 'One recorded score — a trend needs at least two.' : '${valid.length} recorded scores · ${valid.first.round()} → ${valid.last.round()}', style: theme.textTheme.bodyMedium),
         ]),
       ),
     );

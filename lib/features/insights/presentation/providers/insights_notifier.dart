@@ -2,14 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore/gut_score_firestore_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/network_error_classifier.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
+import 'package:gutgood/features/insights/application/usecases/generate_insight_usecase.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
-import 'package:gutgood/features/insights/domain/usecases/generate_insight_usecase.dart';
+import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/gut_score_firestore_service.dart';
 import 'package:rxdart/rxdart.dart';
 
 class InsightsNotifier with ChangeNotifier {

@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/ai/protocol/ai_analysis_result.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';
-import 'package:gutgood/core/models/scans/ai_analysis_result.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
 import 'package:gutgood/core/models/scans/scan_result_details.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
@@ -94,7 +94,7 @@ class ChatMessage extends Equatable {
     );
   }
 
-  /// Local SQLite primary key (legacy, kept for backward compatibility).
+  /// Legacy local persistence key, kept for backward-compatible map parsing.
   final int? id;
 
   /// Cloud Firestore unique identifier.

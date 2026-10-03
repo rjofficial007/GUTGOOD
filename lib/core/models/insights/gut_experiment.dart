@@ -99,19 +99,6 @@ class GutExperiment extends Equatable {
 
   bool get isCompleted => status == 'completed' || currentDayNumber >= targetDays && completedCheckInsCount >= targetDays;
 
-  bool isCheckedInToday() {
-    final todayKey = _dateKey(DateTime.now());
-    return checkIns.containsKey(todayKey);
-  }
-
-  ExperimentDailyCheckIn? todayCheckIn() {
-    final todayKey = _dateKey(DateTime.now());
-    return checkIns[todayKey];
-  }
-
-  static String _dateKey(DateTime dt) =>
-      '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-
   GutExperiment copyWith({
     String? id,
     String? actionId,

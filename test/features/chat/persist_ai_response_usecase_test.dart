@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
-import 'package:gutgood/features/chat/domain/usecases/persist_ai_response_usecase.dart';
+import 'package:gutgood/features/chat/application/usecases/persist_ai_response_usecase.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockHistoryFirestoreService extends Mock implements HistoryFirestoreService {}

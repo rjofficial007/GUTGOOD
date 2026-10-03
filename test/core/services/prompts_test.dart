@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/services/prompts.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/image_classification_prompt.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/insights_prompt.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/intent_detection_prompt.dart';
+import 'package:gutgood/core/ai/prompts/mode_prompts/image_classification_prompt.dart';
+import 'package:gutgood/core/ai/prompts/mode_prompts/insights_prompt.dart';
+import 'package:gutgood/core/ai/prompts/mode_prompts/intent_detection_prompt.dart';
+import 'package:gutgood/core/ai/prompts/prompt_catalog.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 
 void main() {
   group('Prompts.chatSystemInstruction', () {

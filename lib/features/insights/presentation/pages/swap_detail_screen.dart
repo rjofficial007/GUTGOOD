@@ -4,14 +4,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
-import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/notification_service.dart';
+import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/v2_kit.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ui_kit.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/notification_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Swap Details screen matching the exact UI/UX mockup.
@@ -23,9 +23,9 @@ class SwapDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageUrl = alternative.imageUrl ?? V2Kit.foodImageUrl(alternative.name);
+    final imageUrl = alternative.imageUrl ?? InsightUiKit.foodImageUrl(alternative.name);
 
     final benefits = alternative.benefits;
 
@@ -37,7 +37,7 @@ class SwapDetailScreen extends StatelessWidget {
 
     final nutrition = alternative.nutrition;
 
-    final scaffoldBg = v2.scaffold;
+    final scaffoldBg = theme.scaffold;
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -69,10 +69,10 @@ class SwapDetailScreen extends StatelessWidget {
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      placeholder: (_, _) => Container(color: v2.cardSubtle),
+                      placeholder: (_, _) => Container(color: theme.cardSubtle),
                       errorWidget: (_, _, _) => Container(
-                        color: v2.cardSubtle,
-                        child: Icon(LucideIcons.utensils, color: v2.textSecondary),
+                        color: theme.cardSubtle,
+                        child: Icon(LucideIcons.utensils, color: theme.textSecondary),
                       ),
                     ),
                   ),
@@ -81,12 +81,12 @@ class SwapDetailScreen extends StatelessWidget {
                   // 2. Title & Subtitle
                   Text(
                     alternative.name,
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 20.sp, fontWeight: FontWeight.w900, color: v2.textPrimary, height: 1.15),
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 20.sp, fontWeight: FontWeight.w900, color: theme.textPrimary, height: 1.15),
                   ),
                   Gap.h2,
                   Text(
                     'Suggested alternative',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w500, color: v2.textSecondary),
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w500, color: theme.textSecondary),
                   ),
                   Gap.h12,
 
@@ -116,13 +116,13 @@ class SwapDetailScreen extends StatelessWidget {
                                 Text(
                                   b.title,
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, color: v2.textPrimary, height: 1.15),
+                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, color: theme.textPrimary, height: 1.15),
                                 ),
                                 Gap.h2,
                                 Text(
                                   b.description,
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w400, color: v2.textSecondary, height: 1.2),
+                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w400, color: theme.textSecondary, height: 1.2),
                                 ),
                               ],
                             ),
@@ -136,9 +136,9 @@ class SwapDetailScreen extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(12.w),
                     decoration: BoxDecoration(
-                      color: v2.card,
+                      color: theme.card,
                       borderRadius: BorderRadius.circular(16.w),
-                      border: Border.all(color: v2.border),
+                      border: Border.all(color: theme.border),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,12 +157,12 @@ class SwapDetailScreen extends StatelessWidget {
                             children: [
                               Text(
                               sourceFoodName.trim().isNotEmpty ? 'About this alternative' : 'Comparison details',
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
+                                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                               ),
                               Gap.h4,
                               Text(
                                 whyBetter,
-                                style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w400, color: v2.textSecondary, height: 1.35),
+                                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w400, color: theme.textSecondary, height: 1.35),
                               ),
                             ],
                           ),
@@ -176,21 +176,21 @@ class SwapDetailScreen extends StatelessWidget {
                   if (nutrition.hasData) Container(
                     padding: EdgeInsets.all(12.w),
                     decoration: BoxDecoration(
-                      color: v2.card,
+                      color: theme.card,
                       borderRadius: BorderRadius.circular(16.w),
-                      border: Border.all(color: v2.border),
+                      border: Border.all(color: theme.border),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Nutrition details provided',
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: v2.textPrimary),
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                         ),
                         Gap.h10,
                         Row(
                           children: [
-                            Expanded(child: _nutritionItem(context, nutrition.calories?.toString() ?? 'Not provided', 'Calories', valueColor: v2.textPrimary)),
+                            Expanded(child: _nutritionItem(context, nutrition.calories?.toString() ?? 'Not provided', 'Calories', valueColor: theme.textPrimary)),
                             _nutritionDivider(context),
                             Expanded(child: _nutritionItem(context, nutrition.protein ?? 'Not provided', 'Protein', valueColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
                             _nutritionDivider(context),
@@ -238,7 +238,7 @@ class SwapDetailScreen extends StatelessWidget {
                           Gap.w8,
                           Text(
                             'Log This Meal',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800),
+                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800),
                           ),
                         ],
                       ),
@@ -248,7 +248,7 @@ class SwapDetailScreen extends StatelessWidget {
                   Center(
                     child: Text(
                       'Only log if you actually eat it.',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, color: v2.textSecondary, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: theme.textSecondary, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -278,19 +278,19 @@ IconData _getBenefitIcon(String iconStr) {
   }
 }
 
-Widget _nutritionDivider(BuildContext context) => Container(width: 1.w, height: 26.w, color: context.v2Theme.border);
+Widget _nutritionDivider(BuildContext context) => Container(width: 1.w, height: 26.w, color: context.insightTheme.border);
 
 Widget _nutritionItem(BuildContext context, String value, String label, {Color? valueColor}) => Column(
   mainAxisSize: MainAxisSize.min,
   children: [
     Text(
       value,
-      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w900, color: valueColor ?? context.v2Theme.textPrimary),
+      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w900, color: valueColor ?? context.insightTheme.textPrimary),
     ),
     Gap.h2,
     Text(
       label,
-      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w500, color: context.v2Theme.textSecondary),
+      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w500, color: context.insightTheme.textSecondary),
     ),
   ],
 );

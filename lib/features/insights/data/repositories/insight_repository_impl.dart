@@ -1,19 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:gutgood/core/constants/ai_constants.dart';
+import 'package:gutgood/core/ai/client/ai_client.dart';
+import 'package:gutgood/core/ai/prompts/prompt_catalog.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/ai_service.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
-import 'package:gutgood/core/services/crashlytics_service.dart';
-import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/insight_firestore_service.dart';
-import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
+import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/crashlytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/insight_firestore_service.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,7 +22,7 @@ class InsightRepositoryImpl implements InsightRepository {
     required HistoryFirestoreService historyFirestoreService,
     required InsightFirestoreService insightFirestoreService,
     required ChatFirestoreService chatFirestoreService,
-    required AiService aiService,
+    required AiClient aiService,
     required SharedPreferences prefs,
     required AnalyticsService analyticsService,
     required CrashlyticsService crashlyticsService,
@@ -37,7 +37,7 @@ class InsightRepositoryImpl implements InsightRepository {
   final HistoryFirestoreService _historyFirestoreService;
   final InsightFirestoreService _insightFirestoreService;
   final ChatFirestoreService _chatFirestoreService;
-  final AiService _aiService;
+  final AiClient _aiService;
   final SharedPreferences _prefs;
   final AnalyticsService _analyticsService;
   final CrashlyticsService _crashlyticsService;
@@ -48,11 +48,24 @@ class InsightRepositoryImpl implements InsightRepository {
     if (cloud != null) return cloud;
 
     final cached = _prefs.getString(StorageKeys.gutgoodInsightsCache);
-    if (cached != null) {
-      return AIInsight.fromMap(jsonDecode(cached));
-    }
+    if (cached == null) return null;
 
-    return null;
+    try {
+      final decoded = jsonDecode(cached);
+      if (decoded is! Map) throw const FormatException('Insight cache is not a JSON object');
+      return AIInsight.fromMap(Map<String, dynamic>.from(decoded));
+    } catch (_) {
+      // A corrupt local cache must behave like a cache miss rather than
+      // taking down the repository read path. Cloud data remains authoritative
+      // and the invalid entry is removed so subsequent reads recover normally.
+      AppLogger.warning('InsightRepo: ignoring malformed cached insight');
+      try {
+        await _prefs.remove(StorageKeys.gutgoodInsightsCache);
+      } catch (removeError) {
+        AppLogger.warning('InsightRepo: could not remove malformed insight cache: $removeError');
+      }
+      return null;
+    }
   }
 
   @override

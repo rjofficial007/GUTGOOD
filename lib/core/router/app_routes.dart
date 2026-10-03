@@ -13,7 +13,6 @@ class AppRoutes {
   static const String profile = '/home/profile';
 
   // Insights Sub-routes
-  static const String gutScoreDetail = '/gut-score-detail';
   static const String insightDetail = '/insight-detail';
   static const String highlightDetail = '/highlight-detail';
   static const String insightHistory = '/insight-history';

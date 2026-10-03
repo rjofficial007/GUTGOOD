@@ -4,10 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/constants/ai_constants.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/scans/scan_result_details.dart';
-import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
@@ -579,10 +578,4 @@ class ScanResult extends Equatable {
     if (stored.isNotEmpty) return stored;
     return AdditiveConcernDb.parseItems(ModelUtils.parseString(map['additives']));
   }
-
-  /// Professional Routing: every scan type renders in the unified scan
-  /// result screen. (The legacy per-type result destinations were removed
-  /// during the result-screen consolidation, so this getter no longer
-  /// branches on intent/source/category.)
-  String get detailRoute => AppRoutes.scanResult;
 }

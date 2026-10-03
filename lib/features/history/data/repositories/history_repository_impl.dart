@@ -1,6 +1,6 @@
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 
 class HistoryRepositoryImpl implements HistoryRepository {
   HistoryRepositoryImpl({required HistoryFirestoreService firestoreService}) : _firestoreService = firestoreService;

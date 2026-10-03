@@ -1,32 +1,30 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/data/additive_concern_db.dart';
+import 'package:gutgood/core/ai/classification/ai_classifier_service.dart';
+import 'package:gutgood/core/ai/client/ai_client.dart';
+import 'package:gutgood/core/ai/prompts/prompt_catalog.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/ai_classifier_service.dart';
-import 'package:gutgood/core/services/ai_service.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/domain_event_persister.dart';
-import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/notification_service.dart';
-import 'package:gutgood/core/services/off_service.dart';
-import 'package:gutgood/core/services/prompts.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/core/utils/narrative_text.dart';
-import 'package:gutgood/core/utils/yuka_score.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
+import 'package:gutgood/features/logs/data/services/domain_event_persister.dart';
+import 'package:gutgood/features/scanner/data/services/scanner_score_service.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
+import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/notification_service.dart';
+import 'package:gutgood/infrastructure/open_food_facts/off_service.dart';
 import 'package:uuid/uuid.dart';
 
 class ScannerRepositoryImpl implements ScannerRepository {
   ScannerRepositoryImpl({
     required OffService offService,
-    required AiService aiService,
+    required AiClient aiService,
     required AiClassifierService aiClassifierService,
     required ChatFirestoreService chatFirestoreService,
     required HistoryFirestoreService historyFirestoreService,
@@ -36,6 +34,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     required StreakService streakService,
     required ProcessChatTagUseCase processChatTagUseCase,
     required DomainEventPersister eventPersister,
+    ScannerScoreService? scoreService,
   }) : _offService = offService,
        _aiService = aiService,
        _aiClassifierService = aiClassifierService,
@@ -46,9 +45,10 @@ class ScannerRepositoryImpl implements ScannerRepository {
        _analyticsService = analyticsService,
        _streakService = streakService,
        _processChatTagUseCase = processChatTagUseCase,
-       _persister = eventPersister;
+       _persister = eventPersister,
+       _scoreService = scoreService ?? const ScannerScoreService();
   final OffService _offService;
-  final AiService _aiService;
+  final AiClient _aiService;
   final AiClassifierService _aiClassifierService;
   final ChatFirestoreService _chatFirestoreService;
   final HistoryFirestoreService _historyFirestoreService;
@@ -58,6 +58,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
   final StreakService _streakService;
   final ProcessChatTagUseCase _processChatTagUseCase;
   final DomainEventPersister _persister;
+  final ScannerScoreService _scoreService;
 
   @override
   Future<OffProduct?> getProductByBarcode(String barcode) async => _offService.getProduct(barcode);
@@ -76,10 +77,10 @@ class ScannerRepositoryImpl implements ScannerRepository {
       // Engine inputs are persisted verbatim and the engine is deterministic,
       // so a zero-arg re-run reproduces the original score exactly while the
       // explanation is recomposed fresh from the same factors.
-      final rescored = _applyEngineScore(cached, refreshExplanation: true);
+      final rescored = _scoreService.applyEngineScore(cached, refreshExplanation: true, onDiagnostic: AppLogger.ai);
       final turnId = const Uuid().v4();
       final view = rescored.copyWith(
-        flaggedIngredients: _reflagWithSensitivities(rescored, sensitivities),
+        flaggedIngredients: _scoreService.reflagWithSensitivities(rescored, sensitivities),
         // Keep the existing scan reference so the slim chat preview can
         // hydrate its details after a restart. Only the chat turn is new;
         // no scan document is written for a cache hit.
@@ -106,94 +107,6 @@ class ScannerRepositoryImpl implements ScannerRepository {
       AppLogger.error('ScannerRepository: barcode cache lookup failed', error: e);
       return null;
     }
-  }
-
-  /// Merges the AI's stored flags with deterministic matches against the
-  /// CURRENT sensitivities. Union semantics are deliberate: entries are only
-  /// ever added, so a newly added sensitivity can surface a warning the old
-  /// analysis predates, while stale AI flags are never hidden (substring
-  /// matching can't reproduce the model's synonym knowledge — e.g. "dairy" vs
-  /// "whey" — so removal would risk dropping a real warning).
-  List<String> _reflagWithSensitivities(ScanResult scan, List<String> sensitivities) {
-    final flags = <String>{...scan.flaggedIngredients};
-    if (sensitivities.isEmpty) return flags.toList();
-    final haystacks = [...scan.ingredients.map((i) => i.name), ...scan.additiveItems, if (scan.allergens != null) scan.allergens!].map((s) => s.toLowerCase()).toList();
-    for (final term in sensitivities) {
-      final needle = term.toLowerCase().trim();
-      if (needle.isEmpty) continue;
-      if (haystacks.any((h) => h.contains(needle))) flags.add(term);
-    }
-    return flags.toList();
-  }
-
-  /// Runs the deterministic scoring engine and attaches an ENGINE-AUTHORED
-  /// score + explanation to the scan's insight.
-  ///
-  /// Product requirement §7 asks for `Data → Scoring Engine → Score → AI
-  /// Explanation` rather than `Data → LLM → arbitrary score`. The model
-  /// supplies the structured inputs; it never authors the number, and the
-  /// "why" is composed from the engine's own signed factors so the text can
-  /// never contradict the number.
-  ///
-  /// When [nutriscore]/[novaGroup]/[nutrients] are supplied by a trusted source
-  /// (Open Food Facts) they win over the model's estimates.
-  ScanResult _applyEngineScore(
-    ScanResult scan, {
-    String? nutriscore,
-    int? nutriscoreScore,
-    int? novaGroup,
-    num? energyKcal,
-    num? fiberG,
-    num? proteinG,
-    num? sugarG,
-    num? saltG,
-    num? saturatedFatG,
-    List<String>? additiveItems,
-    bool? isOrganic,
-    bool deferToModelWhenNoData = false,
-    bool refreshExplanation = false,
-    List<String>? miscTags,
-  }) {
-    final resolvedAdditives = <String>{...?additiveItems, ...scan.additiveItems};
-    final additiveConcerns = AdditiveConcernDb.resolveAll(resolvedAdditives);
-
-    final breakdown = YukaScore.evaluate(
-      nutriscore: nutriscore ?? scan.nutriscore,
-      // Scan fallbacks let barcode-cache hits re-run the engine with zero
-      // explicit args and still reproduce the original score bit-for-bit.
-      nutriscoreScore: nutriscoreScore ?? scan.nutriscoreScore,
-      energyKcal: energyKcal ?? scan.nutrients?.calories,
-      fiberG: fiberG ?? scan.nutrients?.fiber,
-      proteinG: proteinG ?? scan.nutrients?.proteins,
-      sugarG: sugarG ?? scan.nutrients?.sugars,
-      saltG: saltG ?? scan.nutrients?.salt,
-      saturatedFatG: saturatedFatG ?? scan.nutrients?.saturatedFat,
-      additiveConcerns: additiveConcerns,
-      isOrganic: isOrganic ?? scan.isOrganic,
-    );
-
-    // SAFEGUARD: for a *photo* scan the model has usually reasoned about the
-    // food even where it cannot estimate grams. Overriding its score with a
-    // data-less engine result would make every photo scan look identical, so
-    // when the engine has nothing to go on, callers that opt in keep the
-    // model's score instead.
-    if (!breakdown.hasData && deferToModelWhenNoData) {
-      AppLogger.ai('ScannerRepository: engine had no usable inputs — keeping model score ${scan.score}');
-      return scan;
-    }
-
-    // No signal at all and no model score to defer to: stay neutral — but say
-    // WHY. A bare neutral 50 reads as "the app is broken"; Open Food Facts
-    // usually tells us exactly what is missing, so pass that through.
-    if (!breakdown.hasData) {
-      final reason = ModelUtils.unscorableReason(miscTags);
-      return scan.copyWith(score: 50, impact: reason ?? scan.impact);
-    }
-
-    final score = breakdown.score;
-    AppLogger.ai('ScannerRepository: engine score $score (nutrition ${breakdown.nutritionSubscore}, additives ${breakdown.additiveSubscore}, organic ${breakdown.organicSubscore})');
-
-    return scan.copyWith(score: score, impact: refreshExplanation || scan.impact.isEmpty ? breakdown.explanation : scan.impact);
   }
 
   @override
@@ -258,7 +171,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
       final mergedAdditives = <String>{...scan.additiveItems, ...?product.additives};
 
       // OFF label data is ground truth, so it drives the score (not the model).
-      final updatedScan = _applyEngineScore(
+      final updatedScan = _scoreService.applyEngineScore(
         // Persist OFF's numeric score + organic flag so future cache hits
         // re-run the engine on identical inputs (P0-3).
         scan.copyWith(
@@ -281,6 +194,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
         additiveItems: mergedAdditives.toList(),
         isOrganic: product.isOrganic,
         miscTags: product.miscTags,
+        onDiagnostic: AppLogger.ai,
       );
 
       await _analyticsService.logEvent(name: 'scan_performed', parameters: {'source': 'barcode', 'product_name': updatedScan.productName, 'score': updatedScan.score});
@@ -339,7 +253,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     // (Values are estimates here — `nutritionEstimated` already tells the UI.)
     final visionScan = result.scan;
     if (visionScan != null) {
-      result = result.copyWith(scan: _applyEngineScore(visionScan, deferToModelWhenNoData: true));
+      result = result.copyWith(scan: _scoreService.applyEngineScore(visionScan, deferToModelWhenNoData: true, onDiagnostic: AppLogger.ai));
     }
 
     // Add classification info to result

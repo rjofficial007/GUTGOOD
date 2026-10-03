@@ -1,61 +1,108 @@
 # GutGood AI & Scanner Modes Overview
 
-This document provides a comprehensive overview of all AI analysis modes, scanner modes, and prompt handlers implemented in the GutGood application. It explains their purpose, how they work, and what data they contain/output.
+**Current source alignment:** 2026-10-03
+**Prompt source:** `lib/core/ai/prompts/`
+**AI boundary:** `lib/core/ai/client/`
+**Feature orchestration:** Chat, Scanner, and Insights under `lib/features/`
+
+This document describes the AI analysis modes, scanner modes, prompt handlers, structured protocol, and validation boundary implemented in GutGood. Prompt and schema source files live under `lib/core/ai/`; feature code selects and supplies context for each mode.
 
 ---
 
-## 1. Scanner & Vision Modes
+## 1. Scanner and vision modes
 
-### 📸 Meal Snap Mode (`meal_snap_prompt.dart`)
-- **Purpose**: Provides a comprehensive, personalized analysis of a photographed meal.
-- **How It Works**: Combines image vision analysis with user profile metadata (goals, sensitivities, lifestyle, and cycle phase). It evaluates food processing level (NOVA groups 1–4), nutritional balance, and potential digestive triggers.
-- **Key Contents**: NOVA classification, macronutrient breakdown, personalized gut impact score (1–100), ingredient audit, and actionable recommendations.
+### 📸 Meal Snap Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/meal_snap_prompt.dart`
+**Orchestration:** `lib/features/scanner/`
 
-### 🔍 Ingredient Label Mode (`ingredients_label_prompt.dart`)
-- **Purpose**: Evaluates packaged food ingredient and additive lists for sensitivity risks and gut barrier health.
-- **How It Works**: Scans ingredient labels or ingredient text, cross-referencing against the user's specific food sensitivities and additive concern databases.
-- **Key Contents**: Additive safety ratings, sensitivity warnings, emulsifier/preservative breakdown, and a clean-eating verdict.
+Provides a comprehensive, personalized analysis of a photographed meal. It combines image analysis with goals, sensitivities, lifestyle, and cycle phase, then evaluates processing level, nutritional balance, likely digestive triggers, and actionable recommendations.
 
-### 🍽️ Restaurant Menu Mode (`restaurant_menu_prompt.dart`)
-- **Purpose**: Recommends gut-friendly menu items from restaurant menu photographs.
-- **How It Works**: Analyzes menu options against user goals and sensitivities, highlighting dishes that minimize inflammatory load and digestive strain.
-- **Key Contents**: Best menu choices, modification tips (e.g., dressings on the side), and allergen/irritant warnings.
+### 🔍 Ingredient Label Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/ingredients_label_prompt.dart`
+**Orchestration:** `lib/features/scanner/`
 
-### 📦 Barcode Mode (`barcode_analysis_prompt.dart`)
-- **Purpose**: Instant intelligence on packaged products scanned via barcode (Open Food Facts integration).
-- **How It Works**: Queries product metadata and nutritional databases, calculating a Yuka-style score (60% nutritional quality, 30% processing/NOVA, 10% organic/additives).
-- **Key Contents**: Nutri-Score, ingredient additives list, missing data explanations, and alternative product recommendations.
+Evaluates packaged-food ingredient and additive lists against user sensitivities and the additive concern data under `lib/core/data/`. The structured result can include additive warnings, sensitivity matches, emulsifier/preservative detail, and a clean-eating verdict.
+
+### 🍽️ Restaurant Menu Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/restaurant_menu_prompt.dart`
+**Orchestration:** `lib/features/scanner/`
+
+Analyzes photographed menus against user goals and sensitivities, ranking dishes and suggesting modifications such as dressing on the side or ingredient substitutions.
+
+### 📦 Barcode Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/barcode_analysis_prompt.dart`
+**Data source:** Open Food Facts through `lib/infrastructure/open_food_facts/off_service.dart`
+**Orchestration:** `lib/features/scanner/`
+
+Uses barcode/product metadata, ingredient analysis, NOVA data, additive concerns, and AI explanation to produce a scan result and possible swaps. Barcode cache and persistence remain Scanner-owned.
 
 ---
 
-## 2. Intelligence & Synthesis Modes
+## 2. Chat and intent modes
 
-### 🧠 Insights Synthesis Mode (`insights_prompt.dart`)
-- **Purpose**: Builds personalized gut health patterns and bento dashboard feeds.
-- **How It Works**: Triggered after the user completes baseline requirements (at least 3 food logs and 1 symptom log today). It analyzes repeated associations across canonical domains (`bloating`, `energy`, `headache`, `digestion`, `fullness`, `sleep`).
-- **Key Contents**: Top insights, healing/trigger food summaries, detected pattern correlations with confidence scores, action steps, and better food swaps.
+### 🧭 Image classification
+**Prompt:** `lib/core/ai/prompts/mode_prompts/image_classification_prompt.dart`
+**Service:** `lib/core/ai/classification/ai_classifier_service.dart`
 
-### 🩺 Health Assessment Mode (`health_assessment_prompt.dart`)
-- **Purpose**: Evaluates general dietary habits and gut health readiness.
-- **How It Works**: Synthesizes questionnaire or journal entries into holistic health insights without assigning premature numeric ratings.
-- **Key Contents**: Habit evaluations, lifestyle recommendations, and foundational guidance.
+Resolves a known scanner mode from the UI hint when possible and classifies unknown/gallery images when a vision round trip is required.
 
-### 📅 Meal Planning Mode (`meal_planning_prompt.dart`)
-- **Purpose**: Generates custom gut-healthy meal plans.
-- **How It Works**: Takes user dietary preferences, restrictions, and healing goals into account to generate structured daily or weekly meal options.
-- **Key Contents**: Breakfast, lunch, dinner, and snack suggestions optimized for microbiome diversity and low inflammatory load.
+### 🧭 Text intent detection
+**Prompt:** `lib/core/ai/prompts/mode_prompts/intent_detection_prompt.dart`
+**Service:** `AiClassifierService`
 
-### ⭐️ Meal Rating Mode (`meal_rating_prompt.dart`)
-- **Purpose**: Scores logged meals deterministically and AI-assistively.
-- **How It Works**: Computes score adjustments based on NOVA processing group, fiber/protein content, and user symptom reactions.
-- **Key Contents**: Meal score (1–100), contributory factors breakdown, and explanatory notes.
+Uses local keyword fast paths for common intents and the AI classifier for misses. Canonical intent values are defined in `lib/core/ai/protocol/ai_constants.dart`.
 
-### 🥗 Meal Swaps Mode (`meal_swaps_prompt.dart`)
-- **Purpose**: Recommends better food alternatives to identified trigger or processed foods.
-- **How It Works**: Pairs trigger foods with nutrient-dense, gut-friendly alternatives featuring nutritional comparisons, benefits, and category tags.
-- **Key Contents**: Alternative meal name, hero image, nutrition highlights (calories, protein, fat, fiber), and "Why this may be a better option" rationale.
+### 💬 Chat instruction catalog
+**Catalog:** `lib/core/ai/prompts/prompt_catalog.dart`
+**Feature orchestration:** `lib/features/chat/`
 
-### 🤒 Symptom Analysis Mode (`symptom_analysis_prompt.dart`)
-- **Purpose**: Investigates logged symptoms against recent meals and environmental factors.
-- **How ItWorks**: Correlates symptom timing and severity with preceding food logs to help users identify potential patterns over time.
-- **Key Contents**: Symptom summary, suspected contributory factors, and tracking recommendations.
+Chat builds a system instruction from user profile, recent history, pinned entities, mode, intent, and structured schema rules. Streaming, context-window management, tag extraction, persistence, outbox handling, and UI state remain in Chat rather than in the shared prompt layer.
+
+---
+
+## 3. Intelligence and synthesis modes
+
+### 🧠 Insights Synthesis Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/insights_prompt.dart`
+**Use case:** `lib/features/insights/application/usecases/generate_insight_usecase.dart`
+**Repository:** `lib/features/insights/data/repositories/insight_repository_impl.dart`
+
+Builds personalized patterns and feed blocks from eligible journal data. The AI output is validated, normalized, and persisted through the Insights feature. Deterministic presentation derivations live under `lib/features/insights/presentation/widgets/insight_feed/`.
+
+### 🩺 Health Assessment Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/health_assessment_prompt.dart`
+
+Synthesizes questionnaire or journal information into holistic guidance without forcing unsupported numeric ratings.
+
+### 📅 Meal Planning Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/meal_planning_prompt.dart`
+
+Generates meal plans using dietary preferences, restrictions, health goals, and the shared schema rules.
+
+### ⭐ Meal Rating Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/meal_rating_prompt.dart`
+
+Explains meal quality using processing, fiber/protein, user context, and symptom reactions. Deterministic score and persistence rules remain owned by the feature/model layer.
+
+### 🥗 Meal Swaps Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/meal_swaps_prompt.dart`
+
+Recommends alternatives with nutrition, benefits, category, and grounding information. Chat and Scanner supply real product context where available.
+
+### 🤒 Symptom Analysis Mode
+**Source:** `lib/core/ai/prompts/mode_prompts/symptom_analysis_prompt.dart`
+
+Analyzes symptoms alongside recent meals and timing to provide tracking guidance. The response validator and feature persistence gates prevent unsupported structured records from being silently saved.
+
+---
+
+## 4. Shared protocol and safety rules
+
+- Shared formatting and safety rules: `general_rules_prompt.dart`, `prompt_formatting_rules.dart`, and `vision_safety_prompt.dart`.
+- Structured schemas: `lib/core/ai/prompts/schema_definitions.dart`.
+- Structured result model: `lib/core/ai/protocol/ai_analysis_result.dart`.
+- Constants and version values: `lib/core/ai/protocol/ai_constants.dart`.
+- Response sanitization and persistence gating: `lib/core/ai/validation/ai_response_validator.dart`.
+- Network/auth/quota exceptions: `lib/core/ai/client/ai_exceptions.dart`.
+
+Persisted schema/version values may contain historical `v2` terminology. There is no `v2` prompt or widget compatibility directory in the active source tree.

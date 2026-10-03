@@ -12,12 +12,12 @@ abstract class ChatRepository {
   Stream<String> sendMessageStream({required String systemInstruction, required List<ChatMessage> history, required String userText, List<Uint8List>? images, String? intent, int? promptVersion});
 
   /// P3-4: whether the most recently completed stream was truncated
-  /// (proxied from [AiService.lastResponseTruncated]).
+  /// (proxied from [AiClient.lastResponseTruncated]).
   bool get lastResponseTruncated;
 
-  /// J-4 §17: proxy echo of the sent prompt version (proxied from AiService).
+  /// J-4 §17: proxy echo of the sent prompt version (proxied from AiClient).
   int? get lastPromptVersion;
 
-  /// J-4 §17: serving model id echoed by the proxy (proxied from AiService).
+  /// J-4 §17: serving model id echoed by the proxy (proxied from AiClient).
   String? get lastServedModel;
 }

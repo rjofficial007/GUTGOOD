@@ -17,7 +17,7 @@ class HistoryNotifier with ChangeNotifier {
     _appStateService.chatUpdated.addListener(refreshAll);
     _appStateService.sessionReset.addListener(clearAll);
 
-    _auth.authStateChanges().listen((user) {
+    _authSub = _auth.authStateChanges().listen((user) {
       if (user != null) {
         refreshAll();
       } else {
@@ -31,6 +31,7 @@ class HistoryNotifier with ChangeNotifier {
   final HistoryRepository _repository;
   final AppStateService _appStateService;
   final FirebaseAuth _auth;
+  StreamSubscription<User?>? _authSub;
 
   HistoryFilter _currentFilter = HistoryFilter.all;
   HistoryFilter get currentFilter => _currentFilter;
@@ -141,6 +142,7 @@ class HistoryNotifier with ChangeNotifier {
 
   @override
   void dispose() {
+    _authSub?.cancel();
     _appStateService.chatUpdated.removeListener(refreshAll);
     _appStateService.sessionReset.removeListener(clearAll);
     super.dispose();

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/constants/ai_constants.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/image_classification_prompt.dart';
-import 'package:gutgood/core/services/prompts/mode_prompts/intent_detection_prompt.dart';
-import 'package:gutgood/core/services/prompts/schema_definitions.dart';
+import 'package:gutgood/core/ai/prompts/mode_prompts/image_classification_prompt.dart';
+import 'package:gutgood/core/ai/prompts/mode_prompts/intent_detection_prompt.dart';
+import 'package:gutgood/core/ai/prompts/schema_definitions.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 
 /// Matches ALL_CAPS_WITH_UNDERSCORES tokens of 2+ segments (e.g.
 /// `MEAL_RATING`), which is the shape every intent/image-mode enum value

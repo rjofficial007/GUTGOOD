@@ -4,11 +4,11 @@ import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/theme/insight_bento_theme.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/dashboard_widgets.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
-import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_theme.dart';
 
 /// Detail view for one recommended swap.
 class SwapDetailScreen extends StatelessWidget {

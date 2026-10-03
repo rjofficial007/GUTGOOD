@@ -1,9 +1,10 @@
 # 4. Frontend & Integration Specification
 
-> **Design System Basis:** Apple Human Interface Guidelines (HIG) Port to Flutter  
-> **Theme Engine:** `AppPalette` + `AppColorScheme` (`ThemeExtension`)  
-> **Bento Typography:** Bundled `InterTight` Variable Font Family  
-> **Document Purpose:** Complete frontend design tokens, layout specifications, component rules, and external integration contracts.
+> **Design System Basis:** Apple Human Interface Guidelines (HIG) adapted to Flutter
+> **Theme Engine:** `AppPalette` + `AppColorScheme` (`ThemeExtension`)
+> **Bento Typography:** Bundled `InterTight` Variable Font Family
+> **Current source alignment:** 2026-10-03
+> **Document Purpose:** Complete frontend design tokens, component ownership, layout specifications, and external integration contracts.
 
 ---
 
@@ -98,7 +99,7 @@ MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.35)
                                              │
       ┌────────────────────┬─────────────────┼─────────────────┬───────────────────┐
       ▼                    ▼                 ▼                 ▼                   ▼
- [GutAppBar]         [GutTextField]   [GutSectionCard]    [BentoFeed]       [OfflineBanner]
+ [GutAppBar]         [GutTextField]   [GutSectionCard]   [InsightsFeed]     [OfflineBanner]
  • Frosted Glass     • Focus Border   • 12pt Radius       • Modular Grid    • Non-blocking
  • Dynamic Title     • Clear Button   • Hairline Stroke   • InterTight Type • Connection Alert
 ```
@@ -116,9 +117,12 @@ MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.35)
 * **Border Stroke:** 0.5pt hairline border (`borderSubtle`).
 * **Padding:** 16pt horizontal, 12pt vertical inner padding.
 
-### 3.4 `BentoFeed` & `BentoCard`
-* **Grid Spans:** Supports 1x1 (Compact Metric), 2x1 (Horizontal Pattern), and 2x2 (Hero Gut Score & Experiment) bento blocks.
-* **Theme Styling:** Utilizes `InterTight` typography and `AppColorScheme.lavender` / `elevatedSurface` backgrounds.
+### 3.4 `InsightsFeed`, Bento cards, and semantic feed widgets
+* **Feed shell:** `lib/features/insights/presentation/widgets/insight_feed/insights_feed.dart` and `insights_feed_shell.dart` own the current semantic Insights feed.
+* **Deterministic view models:** `InsightFeedDerivations` builds improving/watch data and applies deterministic fallbacks before widgets render.
+* **Bento surfaces:** `lib/features/insights/presentation/widgets/bento/` owns the separate Bento cards, charts, recap, history, and pattern screens.
+* **Grid spans:** Supports compact metrics, horizontal patterns, and hero Gut Score/experiment blocks.
+* **Theme styling:** Uses `InterTight` typography and shared `InsightTheme` / `InsightBentoTheme` extensions. No standalone legacy-version widget path is retained.
 
 ### 3.5 `ScannerOverlay`
 * **Visuals:** Camera viewfinder with rounded corner target guides, active scanning laser line animation, and flash toggle button.
@@ -126,6 +130,13 @@ MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.35)
 ### 3.6 `OfflineBanner` & `VerificationOverlay`
 * **OfflineBanner:** Top floating banner indicating lost internet connectivity without obstructing app usage.
 * **VerificationOverlay:** Full-screen translucent blur modal indicating guest account migration or secure operation processing.
+
+### 3.7 Ownership and import rules
+
+- App-wide tokens and reusable core widgets live under `lib/core/`.
+- Insights-only cards, feed derivations, pages, and presentation parts live under `lib/features/insights/presentation/`.
+- The app theme is registered from `lib/app/theme/app_theme.dart`, which is the canonical theme composition path.
+- Import semantic canonical paths directly. Do not add export-only compatibility files when moving a widget or model.
 
 ---
 
@@ -164,25 +175,31 @@ Content-Type: application/json
 #### Request Payload:
 ```json
 {
+  "mode": "stream",
+  "systemInstruction": "You are GutGood AI...",
   "messages": [
-    { "role": "system", "content": "You are GutGood AI..." },
-    { "role": "user", "content": "Logged lunch: Grilled salmon salad." }
+    { "role": "user", "content": "Logged lunch: grilled salmon salad." }
   ],
+  "userText": "What should I know about it?",
+  "images": [],
   "model": "gpt-4o-mini",
-  "temperature": 0.3,
-  "stream": true,
-  "userContext": {
-    "sensitivities": ["lactose", "carrageenan"],
-    "healthGoals": ["reduce_bloating"]
-  }
+  "usageType": "chat",
+  "idempotencyKey": "uuid",
+  "timezoneOffset": 330,
+  "promptVersion": 1
 }
 ```
 
 #### Response Stream (Server-Sent Events):
 ```text
-data: {"choices":[{"delta":{"content":"Grilled salmon is rich in Omega-3..."}}]}
+data: {"d":"Grilled salmon is rich in Omega-3..."}
+
+data: {"promptVersion":1,"model":"gpt-4o-mini"}
+
 data: [DONE]
 ```
+
+The Flutter implementation for this contract is `AiProxyClient` in `lib/infrastructure/ai/ai_proxy_client.dart`. It resets truncation/version metadata per request, retries safe transient failures, maps quota/auth errors to typed exceptions, and records the proxy's `promptVersion` and serving model echoes.
 
 ---
 

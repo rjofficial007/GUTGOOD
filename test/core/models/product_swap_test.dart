@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/models/scans/off_product.dart';
 import 'package:gutgood/core/models/scans/scan_result_details.dart';
-import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
+import 'package:gutgood/features/chat/domain/services/chat_prompt_context.dart';
 
 void main() {
   group('P2-11 grounded swaps', () {
@@ -53,7 +53,7 @@ void main() {
         ProductSwap(title: 'Soya Drink', subtitle: 'Alpro', imageKeyword: 'Soya Drink', tag: 'BETTER CHOICE'),
       ];
 
-      final fragment = swapsGroundingFragment('more swaps please', grounded);
+      final fragment = ChatPromptContext.swapsGroundingFragment('more swaps please', grounded);
 
       expect(fragment, startsWith('more swaps please'));
       expect(fragment, contains('Oat Drink (grade a, barcode 12345678)'));

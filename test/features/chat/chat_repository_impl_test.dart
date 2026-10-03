@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/core/ai/client/ai_client.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/ai_service.dart';
-import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/features/chat/data/repositories/chat_repository_impl.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/food_image_firestore_service.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockChatFirestoreService extends Mock implements ChatFirestoreService {}
 
-class MockAiService extends Mock implements AiService {}
+class MockAiService extends Mock implements AiClient {}
 
 class MockStreakService extends Mock implements StreakService {}
 

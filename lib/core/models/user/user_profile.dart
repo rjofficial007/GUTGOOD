@@ -8,7 +8,7 @@ import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Represents the central user identity and health profile in GutGood.
 ///
-/// This model synchronizes between Firebase Auth, Firestore, and Local SQLite.
+/// This model synchronizes between Firebase Auth, Firestore, and local cache state.
 /// It tracks personalization factors (goals, sensitivities, lifestyle) which
 /// drive the AI insight generation engine.
 class UserProfile extends Equatable {

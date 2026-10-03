@@ -1,3 +1,4 @@
+export 'package:gutgood/core/ai/protocol/ai_analysis_result.dart';
 export 'package:gutgood/core/data/additive_concern_db.dart' show AdditiveConcern, AdditiveConcernLevel;
 export 'package:gutgood/features/auth/domain/entities/auth_user.dart';
 
@@ -10,9 +11,9 @@ export 'insights/food_swap.dart';
 export 'insights/gut_experiment.dart';
 export 'insights/gut_score_record.dart';
 export 'insights/insight_action.dart';
+export 'insights/insight_blocks.dart';
 export 'insights/insight_empty_state.dart';
 export 'insights/insight_evidence.dart';
-export 'insights/insight_v2_blocks.dart';
 export 'insights/insights_dashboard_state.dart';
 export 'insights/pattern_occurrence.dart';
 export 'insights/recent_insight_item.dart';
@@ -23,7 +24,6 @@ export 'journal/meal_log.dart';
 export 'journal/symptom_log.dart';
 export 'navigation/route_arguments.dart';
 export 'navigation/scan_list_args.dart';
-export 'scans/ai_analysis_result.dart';
 export 'scans/historical_scan.dart';
 export 'scans/menu_scan_result.dart';
 export 'scans/nova_group.dart';

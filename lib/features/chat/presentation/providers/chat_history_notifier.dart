@@ -2,17 +2,17 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/ai/client/ai_client.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/ai_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/chat_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/usage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/features/auth/data/services/usage_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/auth_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -22,7 +22,7 @@ class ChatHistoryNotifier with ChangeNotifier {
     required ChatFirestoreService chatFirestoreService,
     required AuthFirestoreService authFirestoreService,
     required HistoryFirestoreService historyFirestoreService,
-    required AiService aiService,
+    required AiClient aiService,
     required AppStateService appStateService,
     required SharedPreferences prefs,
     required FirebaseAuth auth,
@@ -41,7 +41,7 @@ class ChatHistoryNotifier with ChangeNotifier {
     _appStateService.profileUpdated.addListener(_onProfileUpdated);
     _appStateService.sessionReset.addListener(clearHistory);
 
-    _auth.authStateChanges().listen((user) {
+    _authSub = _auth.authStateChanges().listen((user) {
       if (user != null) {
         _initChatStream();
       } else {
@@ -54,7 +54,7 @@ class ChatHistoryNotifier with ChangeNotifier {
   final ChatFirestoreService _chatFirestoreService;
   final AuthFirestoreService _authFirestoreService;
   final HistoryFirestoreService _historyFirestoreService;
-  final AiService _aiService;
+  final AiClient _aiService;
   final AppStateService _appStateService;
   final SharedPreferences _prefs;
   final FirebaseAuth _auth;
@@ -83,6 +83,7 @@ class ChatHistoryNotifier with ChangeNotifier {
   bool _isSummarizing = false;
 
   StreamSubscription<List<ChatMessage>>? _chatStreamSub;
+  StreamSubscription<User?>? _authSub;
 
   List<ChatMessage> get messages {
     final combined = <ChatMessage>[..._streamedMessages, ..._paginatedMessages];
@@ -104,6 +105,7 @@ class ChatHistoryNotifier with ChangeNotifier {
   @override
   void dispose() {
     _chatStreamSub?.cancel();
+    _authSub?.cancel();
     _appStateService.profileUpdated.removeListener(_onProfileUpdated);
     _appStateService.sessionReset.removeListener(clearHistory);
     super.dispose();

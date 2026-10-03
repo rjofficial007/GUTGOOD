@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
+import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class WhyScoreSheet extends StatelessWidget {
@@ -84,7 +84,7 @@ class WhyScoreSheet extends StatelessWidget {
                 child: Center(
                   child: Text(
                     insight.hasGutScore ? '$score' : '—',
-                    style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: badgeTextColor),
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: badgeTextColor),
                   ),
                 ),
               ),
@@ -95,11 +95,11 @@ class WhyScoreSheet extends StatelessWidget {
                   children: [
                     Text(
                       insight.hasGutScore ? 'Why $score?' : 'Score unavailable',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: primaryTextColor),
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: primaryTextColor),
                     ),
                     Text(
                       insight.hasGutScore ? (recap?.scoreSub ?? 'Based on your logged food scans and symptoms this week') : 'Log food scans this week to unlock a gut score',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.5.sp, color: secondaryTextColor, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, color: secondaryTextColor, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -122,7 +122,7 @@ class WhyScoreSheet extends StatelessWidget {
                   Text(
                     'HOW IT\'S CALCULATED',
                     style: TextStyle(
-                      fontFamily: InsightV2Theme.fontFamily,
+                      fontFamily: InsightTheme.fontFamily,
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.1,
@@ -144,7 +144,7 @@ class WhyScoreSheet extends StatelessWidget {
                   Text(
                     'WHAT WE KNOW',
                     style: TextStyle(
-                      fontFamily: InsightV2Theme.fontFamily,
+                      fontFamily: InsightTheme.fontFamily,
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.1,
@@ -172,7 +172,7 @@ class WhyScoreSheet extends StatelessWidget {
                   if (sampleSizes == null && patternRefs.isEmpty && recap == null)
                     Text(
                       'Detailed score evidence is not available for this record. Future reports will include the available inputs.',
-                      style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 12.sp, color: secondaryTextColor),
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, color: secondaryTextColor),
                     )
                   else ...[
                     if (sampleSizes != null) ...[
@@ -211,7 +211,7 @@ class WhyScoreSheet extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Daily scores only appear on days you scanned food. Days with no scans stay at 0 — we never invent a baseline. This does not diagnose a medical condition.',
-                            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: secondaryTextColor, height: 1.4),
+                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: secondaryTextColor, height: 1.4),
                           ),
                         ),
                       ],
@@ -266,18 +266,18 @@ class _FactorTile extends StatelessWidget {
               children: [
                 Text(
                   factor.title,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w700, color: primaryTextColor),
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w700, color: primaryTextColor),
                 ),
                 Text(
                   factor.description,
-                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, color: secondaryTextColor, height: 1.35),
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, color: secondaryTextColor, height: 1.35),
                 ),
               ],
             ),
           ),
           Text(
             factor.points,
-            style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: color),
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: color),
           ),
         ],
       ),

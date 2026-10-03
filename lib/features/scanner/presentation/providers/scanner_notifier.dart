@@ -3,51 +3,65 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/errors/app_failure.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
-import 'package:gutgood/core/services/off_service.dart';
-import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/network_error_classifier.dart';
-import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/scanner/domain/repositories/scanner_repository.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/auth_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/storage_service.dart';
+import 'package:gutgood/infrastructure/open_food_facts/off_service.dart';
 import 'package:uuid/uuid.dart';
 
 class ScannerNotifier with ChangeNotifier {
-  ScannerNotifier({required ScannerRepository repository, required AuthFirestoreService authFirestoreService, required OffService offService, required StorageService storageService})
+  ScannerNotifier({required ScannerRepository repository, required AuthFirestoreService authFirestoreService, required OffService offService, required StorageService storageService, VoidCallback? onScanCompleted})
     : _repository = repository,
       _authFirestoreService = authFirestoreService,
       _offService = offService,
-      _storageService = storageService;
+      _storageService = storageService,
+      _onScanCompleted = onScanCompleted;
   final ScannerRepository _repository;
   final AuthFirestoreService _authFirestoreService;
   final OffService _offService;
   final StorageService _storageService;
+  final VoidCallback? _onScanCompleted;
 
   bool _isProcessing = false;
   bool _isAnalyzing = false;
   bool _lastErrorWasOffline = false;
+  AppFailure? _lastFailure;
 
   bool get isProcessing => _isProcessing;
   bool get isAnalyzing => _isAnalyzing;
+  AppFailure? get lastFailure => _lastFailure;
 
   /// True when the most recent scan op failed from a reachability error.
   /// Scan methods return null on ANY failure, erasing the cause — consult
   /// this to show "you're offline" instead of "product not found".
   bool get lastErrorWasOffline => _lastErrorWasOffline;
 
+  void _recordFailure(Object error, StackTrace stackTrace) {
+    final isNetworkFailure = isOfflineError(error);
+    _lastFailure = AppFailure.fromError(
+      error,
+      stackTrace: stackTrace,
+      type: isNetworkFailure ? FailureType.network : FailureType.unknown,
+    );
+    _lastErrorWasOffline = isNetworkFailure;
+  }
+
   /// Fetches ground-truth data from Open Food Facts without performing AI analysis.
   Future<OffProduct?> fetchBarcodeProduct(String barcode) async {
     _isProcessing = true;
     _lastErrorWasOffline = false;
+    _lastFailure = null;
     notifyListeners();
     try {
       final product = await _repository.getProductByBarcode(barcode);
       return product;
-    } catch (e) {
-      _lastErrorWasOffline = isOfflineError(e);
-      AppLogger.error('ScannerNotifier: Failed to fetch product data', error: e);
+    } catch (e, st) {
+      _recordFailure(e, st);
+      AppLogger.error('ScannerNotifier: Failed to fetch product data', error: e, stackTrace: st);
       return null;
     } finally {
       _isProcessing = false;
@@ -59,6 +73,7 @@ class ScannerNotifier with ChangeNotifier {
   Future<ScanResult?> analyzeBarcodeProduct(OffProduct product, {Uint8List? capturedImage}) async {
     _isAnalyzing = true;
     _lastErrorWasOffline = false;
+    _lastFailure = null;
     notifyListeners();
 
     final scanId = const Uuid().v4();
@@ -100,13 +115,13 @@ class ScannerNotifier with ChangeNotifier {
         await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
 
         // 🟢 Trigger streak celebration if one is pending (Scan finished)
-        sl<ProfileNotifier>().triggerPendingCelebration();
+        _onScanCompleted?.call();
 
         return finalScan;
       }
       return null;
     } catch (e, st) {
-      _lastErrorWasOffline = isOfflineError(e);
+      _recordFailure(e, st);
       AppLogger.error('ScannerNotifier: AI analysis failed for product ${product.productName}', error: e, stackTrace: st);
       return null;
     } finally {
@@ -118,6 +133,7 @@ class ScannerNotifier with ChangeNotifier {
   Future<ScanResult?> processImage(Uint8List bytes, {String? mode, String? userText}) async {
     _isProcessing = true;
     _lastErrorWasOffline = false;
+    _lastFailure = null;
     notifyListeners();
 
     final scanId = const Uuid().v4();
@@ -153,14 +169,14 @@ class ScannerNotifier with ChangeNotifier {
         await _repository.saveScanResult(finalResult, userImageUrl: userImageUrl, scanId: scanId);
 
         // 🟢 Trigger streak celebration if one is pending (Scan finished)
-        sl<ProfileNotifier>().triggerPendingCelebration();
+        _onScanCompleted?.call();
 
         return finalScan;
       }
       return null;
-    } catch (e) {
-      _lastErrorWasOffline = isOfflineError(e);
-      AppLogger.error('ScannerNotifier: Image processing failed', error: e);
+    } catch (e, st) {
+      _recordFailure(e, st);
+      AppLogger.error('ScannerNotifier: Image processing failed', error: e, stackTrace: st);
       return null;
     } finally {
       _isProcessing = false;

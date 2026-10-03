@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GutGood — Insights screen redesign</title>
+<title>GutGood — semantic Insights feed reference</title>
 <style>
 :root{
   --scaffold:#FCFCFD; --card:#FFFFFF; --elev:#FFFFFF; --border:#E4E4E8;
@@ -102,10 +102,10 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;ba
 <body>
 <div id="bar">
   <h1>GutGood &mdash; Insights redesign</h1>
-  <div class="sub">Left is the shipped screen, rendered from
-    <code>insight_discover_view.dart</code>. Right is the proposal. Same design tokens
-    (<code>app_palette.dart</code> / <code>app_color_scheme.dart</code>), same 393&times;852 frame,
-    same routes &mdash; nothing here needs a new dependency.</div>
+  <div class="sub">This gallery documents the current semantic Insights experience, rendered from
+    <code>lib/features/insights/presentation/widgets/insight_feed/</code> and the Bento presentation parts.
+    It uses the same design tokens (<code>app_palette.dart</code> / <code>app_color_scheme.dart</code>), the same
+    393&times;852 frame, and the existing routes. It is a visual reference only; the Flutter widgets remain the source of truth.</div>
   <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
     <button class="ct" id="theme" aria-pressed="false">Dark mode</button>
     <button class="ct" id="tall" aria-pressed="false">Full scroll length</button>

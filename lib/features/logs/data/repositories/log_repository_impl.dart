@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/features/logs/domain/repositories/log_repository.dart';
+import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/notification_service.dart';
 
 class LogRepositoryImpl implements LogRepository {
   LogRepositoryImpl({

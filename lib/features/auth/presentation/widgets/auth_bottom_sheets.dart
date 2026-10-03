@@ -7,8 +7,7 @@ import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
-import 'package:gutgood/core/di/injection_container.dart';
-import 'package:gutgood/core/services/app_services.dart';
+import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/config_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
@@ -22,6 +21,7 @@ import 'package:gutgood/features/auth/data/utils/auth_error_handler.dart';
 import 'package:gutgood/features/auth/domain/entities/auth_user.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
+import 'package:gutgood/infrastructure/platform/app_service.dart';
 import 'package:provider/provider.dart';
 
 /// Shows a unified authentication bottom sheet.

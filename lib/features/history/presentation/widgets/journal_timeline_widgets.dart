@@ -7,11 +7,11 @@ import 'package:gutgood/core/models/journal/journal_entry.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/history/presentation/providers/history_notifier.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 
 class JournalFilterBar extends StatelessWidget {
   const JournalFilterBar({super.key, required this.selectedFilter, required this.onFilterChanged});
@@ -65,7 +65,7 @@ class JournalFilterBar extends StatelessWidget {
                 child: Text(
                   _filterLabel(HistoryFilter.values[i]),
                   style: TextStyle(
-                    fontFamily: InsightV2Theme.fontFamily,
+                    fontFamily: InsightTheme.fontFamily,
                     fontSize: 12.sp,
                     fontWeight: selectedFilter == HistoryFilter.values[i] ? FontWeight.w800 : FontWeight.w600,
                     color: selectedFilter == HistoryFilter.values[i] ? selectedFg : unselectedFg,

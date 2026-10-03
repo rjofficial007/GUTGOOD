@@ -3,17 +3,17 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/di/injection_container.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/crashlytics_service.dart';
-import 'package:gutgood/core/services/firestore/auth_firestore_service.dart';
-import 'package:gutgood/core/services/firestore/history_firestore_service.dart';
-import 'package:gutgood/core/services/notification_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
+import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/crashlytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/auth_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/notification_ids.dart';
+import 'package:gutgood/infrastructure/firebase/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileNotifier with ChangeNotifier {
@@ -25,14 +25,18 @@ class ProfileNotifier with ChangeNotifier {
     this._notificationService,
     this._analyticsService,
     this._crashlyticsService,
-    this._streakService,
-  ) {
+    this._streakService, {
+    required FirebaseAuth auth,
+    required SharedPreferences prefs,
+  }) : _auth = auth,
+       _prefs = prefs {
+
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
 
     // 🟢 Reactive Data Loading: Restart stream whenever auth state changes (login/switch)
-    _authRepository.authStateChanges.listen((user) {
+    _authSub = _authRepository.authStateChanges.listen((user) {
       if (user != null) {
         _initProfileStream();
       } else {
@@ -49,6 +53,8 @@ class ProfileNotifier with ChangeNotifier {
   final AnalyticsService _analyticsService;
   final CrashlyticsService _crashlyticsService;
   final StreakService _streakService;
+  final FirebaseAuth _auth;
+  final SharedPreferences _prefs;
 
   UserProfile? _profile;
   int? _previousStreak;
@@ -59,6 +65,7 @@ class ProfileNotifier with ChangeNotifier {
   bool _pendingStreakCelebration = false; // 🟢 Track if a celebration is queued
   StreamSubscription<UserProfile?>? _profileSub;
   StreamSubscription<int>? _avgScoreSub;
+  StreamSubscription? _authSub;
   Timer? _dayRolloverTimer;
 
   void _initProfileStream() {
@@ -166,6 +173,7 @@ class ProfileNotifier with ChangeNotifier {
   void dispose() {
     _profileSub?.cancel();
     _avgScoreSub?.cancel();
+    _authSub?.cancel();
     _dayRolloverTimer?.cancel();
     _appStateService.insightsData.removeListener(_updateInsights);
     _appStateService.sessionReset.removeListener(_onSessionReset);
@@ -191,18 +199,6 @@ class ProfileNotifier with ChangeNotifier {
 
     await _analyticsService.logEvent(name: 'cycle_sync_toggled', parameters: {'enabled': enabled});
     final updatedProfile = _profile!.copyWith(cycleSyncEnabled: enabled, updatedAt: DateTime.now());
-
-    await _firestoreService.updateUserProfile(updatedProfile);
-    _profile = updatedProfile;
-    notifyListeners();
-  }
-
-  /// C-4: per-user kill switch for server insight generation.
-  Future<void> updateInsightsDisabled(bool disabled) async {
-    if (_profile == null) return;
-
-    await _analyticsService.logEvent(name: 'insights_toggled', parameters: {'disabled': disabled});
-    final updatedProfile = _profile!.copyWith(insightsDisabled: disabled, updatedAt: DateTime.now());
 
     await _firestoreService.updateUserProfile(updatedProfile);
     _profile = updatedProfile;
@@ -238,7 +234,7 @@ class ProfileNotifier with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final currentUser = sl<FirebaseAuth>().currentUser;
+    final currentUser = _auth.currentUser;
     if (currentUser == null) {
       AppLogger.warning('ProfileNotifier: Cannot complete onboarding, no active user session.');
       _isLoading = false;
@@ -283,8 +279,7 @@ class ProfileNotifier with ChangeNotifier {
     );
 
     if (markOnboarded) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('onboarded', true);
+      await _prefs.setBool('onboarded', true);
     }
 
     _isLoading = false;
@@ -298,8 +293,7 @@ class ProfileNotifier with ChangeNotifier {
     await _firestoreService.updateUserProfile(updatedProfile);
     _profile = updatedProfile; // 🟢 Optimistic update
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarded', true);
+    await _prefs.setBool('onboarded', true);
 
     notifyListeners();
   }

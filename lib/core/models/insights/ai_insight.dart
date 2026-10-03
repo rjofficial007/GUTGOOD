@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
-import 'package:gutgood/core/constants/ai_constants.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/insights/ai_insight_details.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
 import 'package:gutgood/core/models/insights/food_swap.dart';
 import 'package:gutgood/core/models/insights/insight_action.dart';
+import 'package:gutgood/core/models/insights/insight_blocks.dart';
 import 'package:gutgood/core/models/insights/insight_evidence.dart';
-import 'package:gutgood/core/models/insights/insight_v2_blocks.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';

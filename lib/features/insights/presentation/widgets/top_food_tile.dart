@@ -1,8 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
+import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
-import 'package:gutgood/features/insights/presentation/widgets/v2/insight_v2_theme.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class TopFoodItemData {
@@ -26,7 +26,7 @@ class TopFoodTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final v2 = context.v2Theme;
+    final theme = context.insightTheme;
 
     final (badgeBg, badgeFg, badgeIcon) = item.isPositive
         ? (context.insightColor(const Color(0xFFDCFCE7)), context.insightColor(const Color(0xFF15803D)), LucideIcons.leaf)
@@ -41,8 +41,8 @@ class TopFoodTile extends StatelessWidget {
 
     // Dark mode surface tint: deep red for triggers, deep green for healing
     final cardBg = item.isPositive
-        ? (isDark ? const Color(0xFF102319) : v2.card)
-        : (isDark ? const Color(0xFF231416) : v2.card);
+        ? (isDark ? const Color(0xFF102319) : theme.card)
+        : (isDark ? const Color(0xFF231416) : theme.card);
 
     return Container(
       decoration: BoxDecoration(
@@ -107,7 +107,7 @@ class TopFoodTile extends StatelessWidget {
                                 Gap.w3,
                                 Text(
                                   item.badge,
-                                  style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: badgeFg),
+                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: badgeFg),
                                 ),
                               ],
                             ),
@@ -116,7 +116,7 @@ class TopFoodTile extends StatelessWidget {
                             Gap.w6,
                             Text(
                               countStr,
-                              style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF64748B))),
+                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w600, color: context.insightColor(const Color(0xFF64748B))),
                             ),
                           ],
                         ],
@@ -129,7 +129,7 @@ class TopFoodTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontFamily: InsightV2Theme.fontFamily,
+                          fontFamily: InsightTheme.fontFamily,
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w800,
                           color: !item.isPositive && isDark
@@ -147,7 +147,7 @@ class TopFoodTile extends StatelessWidget {
                           item.description!,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightV2Theme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.3),
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.3),
                         ),
                       ],
                     ],

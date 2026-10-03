@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:gutgood/core/services/storage_service.dart';
 import 'package:gutgood/core/utils/image_hash.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/infrastructure/firebase/storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// One attachment awaiting (re)upload. Bytes live on disk (cache dir —

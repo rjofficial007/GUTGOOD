@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -13,6 +12,7 @@ import 'package:gutgood/features/history/presentation/providers/saved_foods_prov
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_view.dart';
 import 'package:gutgood/features/product_details/presentation/widgets/scan_result_widgets.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
 import 'package:provider/provider.dart';
 
 class ScanResultScreen extends StatefulWidget {

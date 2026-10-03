@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/history/presentation/widgets/scan_history_tile.dart';
 
@@ -28,7 +29,7 @@ class HistorySection extends StatelessWidget {
 
               unawaited(
                 context.push(
-                  resultWithImage.detailRoute,
+                  AppRoutes.scanResult,
                   extra: ScanResultArgs(scanData: resultWithImage, heroTag: tag),
                 ),
               );

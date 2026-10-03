@@ -51,7 +51,6 @@ class AppSizes {
   static double get icon40 => 40.0.w;
   static double get icon44 => 44.0.w;
   static double get icon48 => 48.0.w;
-
   static double get icon60 => 60.0.w;
 
   // Text Sizes (sp)
@@ -68,8 +67,8 @@ class AppSizes {
   static double get s20 => 20.0.sp;
   static double get s22 => 22.0.sp;
   static double get s24 => 24.0.sp;
-
   static double get s40 => 40.0.sp;
+
   static double get s120 => 120.0.sp;
 
   // Misc Heights/Widths

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GutGood — every screen, rendered from the real widget code</title>
+<title>GutGood — current screen gallery and design reference</title>
 <style>:root{--z:.72}
 
 /* ============ GutGood design tokens — mirrored from app_palette.dart / app_color_scheme.dart ============ */
@@ -287,12 +287,12 @@ body.tall .phone.fixedh .scr [style*="overflow:hidden"]{overflow:hidden !importa
 
 <div id="bar">
   <h1>GutGood &mdash; screen gallery</h1>
-  <div class="sub">Every screen below is rebuilt from the actual Flutter widget trees in
-    <code>lib/features/**/presentation/</code> and <code>lib/core/widgets/</code> &mdash; real radii, real
-    paddings, real type scale, real string constants. 393&times;852 (iPhone&nbsp;14/15/16 base), no external assets.
-    <br>Re-synced to <code>main</code> @ 6ee85af: the bento Insights feed (observed-patterns grid +
-    weekly-highlight cards), the new <code>/patterns</code> gallery screen and the overhauled,
-    colour-washed pattern detail.</div>
+  <div class="sub">Every screen below is a static reference for the current Flutter widget trees in
+    <code>lib/features/**/presentation/</code>, <code>lib/core/widgets/</code>, and the app-owned theme in
+    <code>lib/app/theme/</code> &mdash; real radii, spacing, type scale, and product copy. 393&times;852 (iPhone&nbsp;14/15/16 base), no external assets.
+    <br>Updated 2026-10-03: the Insights references use the semantic feed under
+    <code>lib/features/insights/presentation/widgets/insight_feed/</code> and the separate Bento widgets under
+    <code>lib/features/insights/presentation/widgets/bento/</code>. This gallery is visual documentation, not a second UI implementation.</div>
   <div id="ctrls">
     <button class="ct" id="theme" aria-pressed="false">Dark mode</button>
     <button class="ct" id="tall" aria-pressed="false">Full scroll length</button>

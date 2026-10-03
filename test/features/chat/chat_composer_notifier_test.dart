@@ -5,32 +5,33 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/di/injection_container.dart';
+import 'package:gutgood/core/ai/classification/ai_classifier_service.dart';
+import 'package:gutgood/core/ai/client/ai_client.dart';
+import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/services/ai_classifier_service.dart';
-import 'package:gutgood/core/services/ai_service.dart';
-import 'package:gutgood/core/services/analytics_service.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
-import 'package:gutgood/core/services/firestore/food_image_firestore_service.dart';
-import 'package:gutgood/core/services/internet_connection_checker.dart';
-import 'package:gutgood/core/services/off_service.dart';
-import 'package:gutgood/core/services/storage_service.dart';
+import 'package:gutgood/features/chat/application/usecases/persist_ai_response_usecase.dart';
 import 'package:gutgood/features/chat/data/services/chat_outbox_service.dart';
 import 'package:gutgood/features/chat/data/services/image_upload_outbox.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
-import 'package:gutgood/features/chat/domain/usecases/persist_ai_response_usecase.dart';
+import 'package:gutgood/features/chat/domain/services/chat_prompt_context.dart';
 import 'package:gutgood/features/chat/domain/usecases/process_chat_tag_usecase.dart';
 import 'package:gutgood/features/chat/domain/usecases/send_message_stream_usecase.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/food_image_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/storage_service.dart';
+import 'package:gutgood/infrastructure/open_food_facts/off_service.dart';
+import 'package:gutgood/infrastructure/platform/internet_connection_checker.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockChatRepository extends Mock implements ChatRepository {}
 
 class MockChatHistoryNotifier extends Mock implements ChatHistoryNotifier {}
 
-class MockAiService extends Mock implements AiService {}
+class MockAiService extends Mock implements AiClient {}
 
 class MockAiClassifierService extends Mock implements AiClassifierService {}
 
@@ -571,9 +572,9 @@ void main() {
         ),
       ];
 
-      expect(buildPinnedEntities(dropped), 'foods: Pizza, Salad\nsymptoms: Bloating\nscans: Test Cola');
-      expect(buildPinnedEntities([]), isNull);
-      expect(buildPinnedEntities([ChatMessage(localId: 'c', role: 'user', text: 'plain', createdAt: DateTime.now())]), isNull);
+      expect(ChatPromptContext.buildPinnedEntities(dropped), 'foods: Pizza, Salad\nsymptoms: Bloating\nscans: Test Cola');
+      expect(ChatPromptContext.buildPinnedEntities([]), isNull);
+      expect(ChatPromptContext.buildPinnedEntities([ChatMessage(localId: 'c', role: 'user', text: 'plain', createdAt: DateTime.now())]), isNull);
     });
 
     test('dedupes case-insensitively and caps each bucket', () {
@@ -581,7 +582,7 @@ void main() {
         ChatMessage(localId: 'a', role: 'user', text: 'x', foodMentions: ['Egg', 'egg', 'EGG', ...List.generate(10, (i) => 'food$i')], createdAt: DateTime.now()),
       ];
 
-      expect(buildPinnedEntities(dropped), 'foods: Egg, food0, food1, food2, food3, food4, food5, food6');
+      expect(ChatPromptContext.buildPinnedEntities(dropped), 'foods: Egg, food0, food1, food2, food3, food4, food5, food6');
     });
   });
 }
