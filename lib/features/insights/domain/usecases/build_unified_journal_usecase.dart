@@ -31,7 +31,11 @@ class BuildUnifiedJournalUseCase {
       );
     }
 
-    for (final s in scans) {
+    // A current scan also has a consumed meal projection in journal_logs.
+    // Keep the standalone scan line only for legacy scan records that do not
+    // yet have that meal projection, otherwise the AI receives duplicate food
+    // exposures in the same journal.
+    for (final s in standaloneScanRecords(meals: meals, scans: scans)) {
       allEvents.add(
         _JournalEvent(
           createdAt: s.createdAt,

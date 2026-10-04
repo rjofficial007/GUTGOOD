@@ -1,3 +1,4 @@
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/models.dart';
 
 /// Applies the deterministic envelope rules to an AI-generated insight.
@@ -45,6 +46,7 @@ AIInsight stampInsightEnvelope(
     evidence: InsightEvidence.fromPatterns(candidates, sampleSizes: sampleSizes),
     status: status,
     actions: insight.actions.isNotEmpty ? insight.actions : (insight.topInsight?.nextSteps ?? const []),
+    schemaVersion: AiVersions.schemaVersion,
     model: model,
     promptVersion: promptVersion,
     expiresAt: expiresAt,

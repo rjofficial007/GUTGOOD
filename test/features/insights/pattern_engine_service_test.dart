@@ -243,16 +243,19 @@ void main() {
       expect(patterns.first.description, contains('migraines'));
     });
 
-    test('co-occurring items join the trigger in involvedFoods', () async {
+    test('co-occurring items remain one combination exposure', () async {
       final now = DateTime.now();
       final meals = List.generate(3, (i) => _meal(['Pizza', 'Garlic bread'], now.subtract(Duration(days: 3 - i))));
       final symptoms = meals.map((m) => _symptom('Bloating', m.createdAt.add(const Duration(hours: 2)))).toList();
 
       final patterns = await runWith(meals: meals, symptoms: symptoms);
 
-      // One pattern per trigger food; the pizza one carries garlic bread too.
-      final pizza = patterns.firstWhere((p) => p.trigger == 'Pizza');
-      expect(pizza.involvedFoods, ['pizza', 'garlic bread']);
+      // The exact combination is one exposure; neither food is published as
+      // an independently causal trigger.
+      expect(patterns, hasLength(1));
+      expect(patterns.first.trigger, 'Pizza + Garlic bread');
+      expect(patterns.first.involvedFoods, ['pizza', 'garlic bread']);
+      expect(patterns.first.frequency, 3);
     });
 
     test('timeframeDays reports the honest span (no 7-day floor)', () async {
@@ -275,6 +278,41 @@ void main() {
       final symptoms = meals.map((m) => _symptom('Bloating', m.createdAt.add(const Duration(hours: 2)), provenance: RecordProvenance.keywordFallback)).toList();
 
       expect(await runWith(meals: meals, symptoms: symptoms), isEmpty);
+    });
+
+    test('scan journal projection is not counted again from scan_history', () async {
+      final now = DateTime.now();
+      final scans = List.generate(
+        3,
+        (i) => ScanResult(
+          productName: 'Scan Oats',
+          brand: 'Brand',
+          category: 'food',
+          scanId: 'scan-$i',
+          score: 80,
+          impactType: ImpactType.positive,
+          impact: 'Good',
+          createdAt: now.subtract(Duration(days: 3 - i)),
+        ),
+      );
+      final meals = scans
+          .map(
+            (scan) => MealLog(
+              firestoreId: '${scan.scanId}_meal',
+              journalEntryId: '${scan.scanId}_meal',
+              scanId: scan.scanId,
+              items: const ['Scan Oats'],
+              createdAt: scan.createdAt,
+            ),
+          )
+          .toList();
+      final symptoms = meals.map((meal) => _symptom('Bloating', meal.createdAt.add(const Duration(hours: 2)))).toList();
+
+      final patterns = await runWith(meals: meals, symptoms: symptoms, scans: scans);
+
+      expect(patterns, hasLength(1));
+      expect(patterns.first.frequency, 3);
+      expect(patterns.first.totalSimilarMeals, 3);
     });
 
     test('patterns sort High-first, then by frequency', () async {

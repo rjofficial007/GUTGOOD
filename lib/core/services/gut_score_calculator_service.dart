@@ -1,4 +1,5 @@
 import 'package:gutgood/core/models/insights/ai_insight_details.dart';
+import 'package:gutgood/core/models/journal/food_event_linking.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
@@ -140,7 +141,9 @@ class GutScoreCalculatorService {
     required int exactScore,
     DateTime? endDate,
   }) {
-    final totalLogs = recentMeals.length + recentScans.length;
+    // A scan is now also a journal meal. Count the event once in the recap,
+    // while retaining standalone legacy scans that have no meal projection.
+    final totalLogs = uniqueFoodEventCount(meals: recentMeals, scans: recentScans);
     final totalSymptoms = recentSymptoms.length;
 
     // Best day = highest real score only. 0 means "no score that day".

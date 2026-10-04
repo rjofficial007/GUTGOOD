@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/models.dart';
 
 ScanResult _testScan() => ScanResult(
@@ -12,6 +13,8 @@ ScanResult _testScan() => ScanResult(
   nutriscore: 'B',
   nutriscoreScore: -2,
   isOrganic: true,
+  scanConfidence: 0.91,
+  scanVerdict: Verdict.food,
   createdAt: DateTime(2026, 5, 1),
   rawData: {
     'intent': 'COMPLETE_ANALYSIS',
@@ -31,6 +34,8 @@ void main() {
       expect(persisted['nutriscore'], 'B');
       expect(persisted['nutriscoreScore'], -2);
       expect(persisted['isOrganic'], isTrue);
+      expect(persisted['scanConfidence'], 0.91);
+      expect(persisted['scanVerdict'], Verdict.food);
       expect(persisted['rawDataHash'], _testScan().rawDataHash);
     });
 
@@ -77,6 +82,8 @@ void main() {
       expect(hydrated.productName, 'Test Yogurt');
       expect(hydrated.nutriscoreScore, -2);
       expect(hydrated.isOrganic, isTrue);
+      expect(hydrated.scanConfidence, 0.91);
+      expect(hydrated.scanVerdict, Verdict.food);
       expect(hydrated.isLoggableProduct, _testScan().isLoggableProduct);
     });
 

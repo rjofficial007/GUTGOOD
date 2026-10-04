@@ -96,6 +96,8 @@ class AIInsight extends Equatable {
 
     final rawTriggers = data['triggers'];
     final parsedTriggerSummary = rawTriggers is Map ? TriggerSummary.fromMap(Map<String, dynamic>.from(rawTriggers)) : null;
+    final parsedDetectedPatterns = ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap);
+    final hasExplicitDetectedPatterns = data.containsKey('detectedPatterns');
 
     final rawActions = data['actions'];
     final parsedActionStrings = <String>[];
@@ -131,16 +133,21 @@ class AIInsight extends Equatable {
       triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
       triggerTrend: data['triggerTrend'] as String? ?? parsedTriggerSummary?.trend,
       triggerSummary: parsedTriggerSummary,
-      detectedPatterns: ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap).isNotEmpty
-          ? ModelUtils.parseModelList<BodyPattern>(data['detectedPatterns'], BodyPattern.fromMap)
-          : _synthesizeFallbackPatterns(
-              topInsight: ModelUtils.parseNestedModel<InsightSummary>(data['topInsight'], InsightSummary.fromMap),
-              triggerSummary: parsedTriggerSummary,
-              healingSummary: parsedHealingSummary,
-              triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
-              healingFoods: ModelUtils.parseModelList<HealingFood>(data['healingFoods'], HealingFood.fromMap),
-              updatedAt: DateTimeUtils.parse(map['updatedAt']),
-            ),
+      // An explicit empty list means the current response intentionally found
+      // no patterns. Only legacy documents that omit the field may use the
+      // tolerant fallback synthesis from older healing/trigger blocks.
+      detectedPatterns: parsedDetectedPatterns.isNotEmpty
+          ? parsedDetectedPatterns
+          : (hasExplicitDetectedPatterns
+                ? const []
+                : _synthesizeFallbackPatterns(
+                    topInsight: ModelUtils.parseNestedModel<InsightSummary>(data['topInsight'], InsightSummary.fromMap),
+                    triggerSummary: parsedTriggerSummary,
+                    healingSummary: parsedHealingSummary,
+                    triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
+                    healingFoods: ModelUtils.parseModelList<HealingFood>(data['healingFoods'], HealingFood.fromMap),
+                    updatedAt: DateTimeUtils.parse(map['updatedAt']),
+                  )),
       topTrigger: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topTrigger'], TopHighlight.fromMap)),
       topHealing: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topHealing'], TopHighlight.fromMap)),
       foodImpacts: ModelUtils.parseModelList<FoodImpact>(data['foodImpacts'], FoodImpact.fromMap),

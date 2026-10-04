@@ -389,6 +389,25 @@ When generating UI/UX from this data, structure the hierarchy based on cognitive
 ```
 
 ---
+### 4.3 Scan consumption and typed journal-event linking
+
+Scans are treated as consumed-food events. Each completed scan remains in
+`scan_history` and also has a typed meal projection in `journal_logs` with
+`type: "meal"`. The projection carries `scanId` so insight and journal
+consumers can deduplicate the scan-history representation. Barcode cache hits
+reuse the existing scan-history record and ensure the corresponding meal
+projection exists. Scan evidence is retained on both representations through
+`scanCategory`, `scanConfidence`, and `scanVerdict` when the AI reports it;
+invalid confidence values are treated as unknown rather than trusted.
+
+Meals and symptoms remain separate typed `journal_logs` documents. They share a
+stable `journalEntryId`; symptom documents also retain
+`lastMealFirestoreId` for detail screens and legacy readers. Same-turn symptoms
+link directly to the meal. Otherwise, an unlinked symptom links to the nearest
+earlier meal within four hours; if no candidate exists, both relation fields
+remain absent.
+
+---
 
 ## 5. AI Chat Companion Data Models
 

@@ -165,7 +165,9 @@ gutgood_app/
   ],
   "ingredientList": ["string"],
   "aiSummary": "string",
-  "timestamp": "timestamp"
+  "timestamp": "timestamp",
+  "scanConfidence": "number (0..1)?",
+  "scanVerdict": "food | non_food | uncertain?"
 }
 ```
 

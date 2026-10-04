@@ -187,7 +187,7 @@ Scanner UI
        -> scan result UI and history
 ```
 
-Barcode cache hits avoid Open Food Facts and AI calls, re-run deterministic scoring, re-apply current sensitivities, create a fresh chat turn, and do not write another scan document. Barcode persistence has an explicit fallback that forces a verified product into scan history if generic event gating declines it.
+Barcode cache hits avoid Open Food Facts and AI calls, re-run deterministic scoring, re-apply current sensitivities, create a fresh chat turn, and reuse the existing scan-history document while ensuring its idempotent consumed-meal projection exists. Normal chat and scanner scans share the `DomainEventPersister`; every concrete scan, including label/menu/non-product and low-confidence variants, writes scan history plus a typed meal projection. A label/menu response with no scan remains chat-only.
 
 ### 3.4 Insights
 

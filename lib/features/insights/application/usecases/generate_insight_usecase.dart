@@ -53,7 +53,7 @@ class GenerateInsightUseCase {
   final GutScoreCalculatorService _gutScoreCalculatorService;
   final GutScoreFirestoreService? _gutScoreFirestoreService;
 
-  Future<void> execute() async {
+  Future<void> execute({bool force = false}) async {
     final lastRunStr = _prefs.getString(StorageKeys.lastInsightRun);
     DateTime lastRun;
 
@@ -68,9 +68,12 @@ class GenerateInsightUseCase {
     final nowUtc = DateTime.now().toUtc();
     final isSameDay = lastRun.year == nowUtc.year && lastRun.month == nowUtc.month && lastRun.day == nowUtc.day;
 
-    if (isSameDay) {
+    if (isSameDay && !force) {
       AppLogger.debug('GenerateInsightUseCase: Insight was already generated today ($lastRun). Skipping.');
       return;
+    }
+    if (force && isSameDay) {
+      AppLogger.insights('GenerateInsightUseCase: manual refresh bypassed the daily generation guard');
     }
 
     final profile = await _authFirestoreService.getUserMetadata();
@@ -109,14 +112,17 @@ class GenerateInsightUseCase {
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
 
-    final todayMeals = allMeals.where((m) => m.createdAt.isAfter(startOfToday) || m.eventTime.isAfter(startOfToday)).length;
+    final todayMealLogs = allMeals.where((m) => m.createdAt.isAfter(startOfToday) || m.eventTime.isAfter(startOfToday)).toList();
+    final todayMeals = todayMealLogs.length;
     final todaySymptoms = allSymptoms.where((s) => s.createdAt.isAfter(startOfToday) || s.eventTime.isAfter(startOfToday)).length;
-    final todayScans = allScans.where((s) => s.createdAt.isAfter(startOfToday)).length;
-
-    final todayFood = todayMeals + todayScans;
+    final todayScanLogs = allScans.where((s) => s.createdAt.isAfter(startOfToday)).toList();
+    // New scans have a meal projection. Count only legacy scan-only records in
+    // the scan leg so the daily threshold does not count one scan twice.
+    final todayStandaloneScans = standaloneScanRecords(meals: todayMealLogs, scans: todayScanLogs);
+    final todayFood = uniqueFoodEventCount(meals: todayMealLogs, scans: todayScanLogs);
 
     // Baseline daily logging threshold: 3 Food Scans/Meals AND 1 Symptom Log TODAY
-    final hasBaselineLogs = _checkThreshold.execute(scanCount: todayScans, mealCount: todayMeals, symptomCount: todaySymptoms);
+    final hasBaselineLogs = _checkThreshold.execute(scanCount: todayStandaloneScans.length, mealCount: todayMeals, symptomCount: todaySymptoms);
 
     if (!hasBaselineLogs) {
       AppLogger.debug('GenerateInsightUseCase: Insufficient daily logs today (food: $todayFood/3, symptoms: $todaySymptoms/1). Skipping AI generation until threshold is reached.');
@@ -216,14 +222,15 @@ class GenerateInsightUseCase {
     }
 
     // P2-10 theme envelope (period/evidence/provenance/status) at the write edge.
+    final standaloneScans = standaloneScanRecords(meals: allMeals, scans: allScans);
     final stamped = stampInsightEnvelope(
       insight,
       candidates: freshPatterns,
       periodFrom: thirtyDaysAgo,
       periodTo: nowUtc,
-      sampleSizes: SampleSizes(meals: allMeals.length, symptoms: allSymptoms.length, scans: allScans.length),
-      model: RemoteConfigService.instance.openAIModel,
-      promptVersion: AiVersions.insightPromptVersion,
+      sampleSizes: SampleSizes(meals: allMeals.length, symptoms: allSymptoms.length, scans: standaloneScans.length),
+      model: insight.model ?? RemoteConfigService.instance.openAIModel,
+      promptVersion: insight.promptVersion ?? AiVersions.insightPromptVersion,
       expiresAt: DateTime.now().add(const Duration(hours: 48)),
       exactGutScore: displayScore,
       hasGutScore: hasWeekScore,
@@ -231,9 +238,14 @@ class GenerateInsightUseCase {
       weeklyTrend: weeklyTrend,
       weeklyRecap: weeklyRecap,
     );
+    // The score is calculated locally after the AI response. Use that same
+    // score for the displayed delta instead of a model/missing-score value.
+    final finalizedInsight = lastScore != null && hasWeekScore
+        ? stamped.copyWith(scoreDiff: _formatScoreDiff(displayScore - lastScore))
+        : stamped;
 
     // Save insight and notify user upon successful generation
-    await _insightRepository.saveInsight(stamped);
+    await _insightRepository.saveInsight(finalizedInsight);
     await _prefs.setString(StorageKeys.lastInsightRun, DateTime.now().toUtc().toIso8601String());
 
     unawaited(
@@ -260,3 +272,5 @@ int _isoWeekOf(DateTime date) {
   final dayOfYear = DateTime(local.year, local.month, local.day).difference(DateTime(local.year)).inDays + 1;
   return ((dayOfYear - local.weekday + 10) / 7).floor().clamp(1, 53);
 }
+
+String _formatScoreDiff(int diff) => diff >= 0 ? '+$diff' : '$diff';

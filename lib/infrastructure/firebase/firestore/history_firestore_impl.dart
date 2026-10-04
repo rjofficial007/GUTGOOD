@@ -24,10 +24,15 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
 
   @override
   Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId}) async {
+    await trySaveToScanHistory(scanData, userImageUrl: userImageUrl, scanId: scanId);
+  }
+
+  @override
+  Future<bool> trySaveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId}) async {
     try {
       final doc = _userDoc;
       final uid = _uid;
-      if (doc == null || uid == null) return;
+      if (doc == null || uid == null) return false;
 
       final finalScanId = scanId ?? scanData.scanId ?? const Uuid().v4();
 
@@ -54,8 +59,10 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       if (hash != null) await _foodImages.addLink(hash: hash, kind: FoodImageLinks.kindScan, id: finalScanId);
 
       await _updateGutScoreRealTime();
+      return true;
     } catch (e) {
       AppLogger.firestore('Critical error saving to scan history', error: e);
+      return false;
     }
   }
 
@@ -406,9 +413,11 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       if (doc == null) return null;
       // 🚀 PRD §13 & §14: Support deterministic IDs for idempotency.
       final docRef = doc.collection('journal_logs').doc(docId);
+      final journalEntryId = log.journalEntryId ?? docRef.id;
       final data = {
         ...log.toMap(),
         'firestoreId': docRef.id,
+        'journalEntryId': journalEntryId,
         'type': 'meal',
         'source': log.source ?? 'chat',
         'createdAt': log.createdAt, // Log time (ordering clock); AI estimates live in occurredAt
@@ -447,7 +456,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       }
 
       final snapshot = await query.get();
-      final results = snapshot.docs.map((doc) => MealLog.fromMap(doc.data())).toList();
+      final results = snapshot.docs.map((doc) => MealLog.fromMap({...doc.data(), 'id': doc.id})).toList();
       return results;
     } catch (e) {
       AppLogger.firestore('Error getting recent meal logs', error: e);
@@ -455,14 +464,39 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     }
   }
 
+  /// Finds the nearest earlier meal in the same four-hour window used by the
+  /// insight correlation engine. This is the persistence-boundary fallback for
+  /// manually entered symptoms that do not carry an explicit meal reference.
+  Future<String?> _nearestMealJournalEntryId(DateTime symptomTime) async {
+    final meals = await getRecentMealLogs(
+      limit: 50,
+      since: symptomTime.subtract(journalSymptomMealLinkWindow),
+      before: symptomTime.add(const Duration(seconds: 1)),
+    );
+    return nearestMealJournalEntryId(symptomTime: symptomTime, meals: meals);
+  }
+
   @override
   Future<String?> logSymptom(SymptomLog log, {String? docId}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return null;
+      // Keep the typed meal and symptom documents queryable independently, but
+      // stamp the same journalEntryId so they form one journal event. Existing
+      // callers may still provide the legacy lastMealFirestoreId field.
+      final journalEntryId = log.journalEntryId ?? log.lastMealFirestoreId ?? await _nearestMealJournalEntryId(log.eventTime);
       // 🚀 PRD §13 & §14: Support deterministic IDs for idempotency.
       final docRef = doc.collection('journal_logs').doc(docId);
-      final data = {...log.toMap(), 'firestoreId': docRef.id, 'type': 'symptom', 'source': log.source ?? 'manual', 'createdAt': log.createdAt, 'loggedAt': FieldValue.serverTimestamp()};
+      final data = {
+        ...log.toMap(),
+        'firestoreId': docRef.id,
+        'journalEntryId': journalEntryId,
+        'lastMealFirestoreId': journalEntryId ?? log.lastMealFirestoreId,
+        'type': 'symptom',
+        'source': log.source ?? 'manual',
+        'createdAt': log.createdAt,
+        'loggedAt': FieldValue.serverTimestamp(),
+      };
       await docRef.set(data, SetOptions(merge: true));
       return docRef.id;
     } catch (e) {

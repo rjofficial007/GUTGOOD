@@ -51,6 +51,7 @@ The refactor was intentionally incremental. It changes structure and dependency 
 31. Extracted notification payload-to-route mapping into `lib/infrastructure/firebase/notification_payload_router.dart` and added focused route-behavior tests; notification scheduling, payload values, and navigation outcomes remain unchanged.
 32. Split the app composition registrations into explicit AI, Firebase, platform, external, feature-service, repository/provider, and use-case DI modules while preserving registration types, singleton lifetimes, and initialization order.
 33. Extracted local notification scheduling, reminder preferences, cancellation, and stable notification IDs into `NotificationScheduler` and `NotificationIds`; `NotificationService` retains the existing public contract and Firebase Messaging initialization.
+34. Added a dependency-free Insights response validator that removes unqualified healing/trigger/impact claims when no deterministic pattern candidate exists, caps one-occurrence evidence at low confidence, normalizes top-level confidence/schema fields, prevents explicit empty pattern lists from synthesizing fallback patterns, and caches only the final stamped Insight envelope.
 
 ### Validation status
 
@@ -71,6 +72,11 @@ Static repository checks completed:
 - Notification payload routing has focused coverage for chat, Insights, archive, unknown, and absent payloads.
 - The notification service contract still has implementations for all 22 public asynchronous methods after scheduler extraction.
 - DI registration types and counts remain present across the grouped `app/di/` modules; the composition root still initializes core, services, features, and use cases in the same order.
+- Insight responses now pass through a feature-owned semantic validator before parsing; zero-candidate responses cannot persist healing foods, triggers, detected patterns, food impacts, swaps, or positive/negative balance claims.
+- The validator projects evidence-bearing pattern fields from deterministic candidates, caps one-occurrence confidence/impact, removes unsupported mechanisms, and recomputes balance from retained impacts.
+- Multi-food exposures are represented as combination candidates rather than independent causal foods.
+- Explicit `detectedPatterns: []` remains empty instead of being converted into synthesized one-occurrence patterns; legacy documents that omit the field retain tolerant fallback parsing.
+- Final stamped Insight envelopes, including schema version and proxy-echoed model/prompt metadata, are now the values written to both Firestore and the local cache.
 - No remaining `sl<ProfileNotifier>()` calls exist in presentation notifiers.
 - Scanner scoring, chat safety, prompt-context, failure-taxonomy, and large-file decomposition part references resolve; the new pure policy tests are present but cannot be executed without Flutter.
 - All 19 remaining Dart libraries decomposed with `part` directives point to existing matching `part of` files and occur before declarations; the package import scan covered 467 current Dart files across `lib/` and `test/`.

@@ -20,6 +20,7 @@ export 'insights/recent_insight_item.dart';
 export 'journal/history_counts.dart';
 export 'journal/history_item.dart';
 export 'journal/journal_entry.dart';
+export 'journal/food_event_linking.dart';
 export 'journal/meal_log.dart';
 export 'journal/symptom_log.dart';
 export 'navigation/route_arguments.dart';

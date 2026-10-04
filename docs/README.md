@@ -28,6 +28,7 @@ This documentation describes the current GutGood product and implementation. The
 | Document | Description |
 |---|---|
 | [Architecture Refactor Report](ARCHITECTURE_REFACTOR_REPORT.md) | Detailed behavior-preserving refactor record and validation history. |
+| [Application Codebase Guide](APP_CODEBASE_GUIDE.md) | Practical walkthrough of startup, architecture, DI, feature flows, persistence, notifications, and navigation. |
 | [Senior Engineering Architecture Review](SENIOR_ENGINEERING_ARCHITECTURE_REVIEW.md) | Risk assessment, dependency review, scalability concerns, and follow-up plan. |
 
 ## 🎨 Visual references

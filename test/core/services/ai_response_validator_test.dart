@@ -160,5 +160,25 @@ void main() {
         expect(out.persistRecords, isTrue, reason: '$intent');
       }
     });
+
+    test('scan persistence override keeps concrete scan records through old gates', () {
+      final out = AiResponseValidator.validate(
+        _result(
+          confidence: 0.2,
+          verdict: Verdict.nonFood,
+          intent: UserIntent.ingredientAnalysis,
+          scan: _scan(),
+          meal: _meal(),
+          symptoms: [_symptom()],
+        ),
+        preserveScanRecords: true,
+      );
+
+      expect(out.persistRecords, isTrue);
+      expect(out.result.scan, isNotNull);
+      expect(out.result.meal, isNotNull);
+      expect(out.result.symptoms, hasLength(1));
+      expect(out.reasons.join(' '), contains('scan persistence override'));
+    });
   });
 }

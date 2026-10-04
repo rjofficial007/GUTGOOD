@@ -49,6 +49,8 @@ class ScanResult extends Equatable {
     this.flaggedIngredients = const [],
     this.isSaved = false,
     this.scanId,
+    this.scanConfidence,
+    this.scanVerdict,
     this.chatMessageId,
     this.servingSize,
     required this.createdAt,
@@ -164,6 +166,8 @@ class ScanResult extends Equatable {
       isSaved: ModelUtils.parseBool(map['isSaved']),
       // 🚀 Robust ID Parsing: Supports both 'scanId' and legacy 'id' keys
       scanId: (map['scanId'] ?? map['id'])?.toString(),
+      scanConfidence: _parseScanConfidence(map['scanConfidence']),
+      scanVerdict: map['scanVerdict']?.toString(),
       chatMessageId: map['chatMessageId']?.toString(),
       servingSize: map['servingSize']?.toString(),
       createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['timestamp'] ?? map['time']),
@@ -277,6 +281,14 @@ class ScanResult extends Equatable {
   /// Unique identifier for this specific scan event.
   final String? scanId;
 
+  /// AI confidence attached to this scan, when reported by the structured
+  /// response. Kept on the scan as well as its meal projection.
+  final double? scanConfidence;
+
+  /// AI verdict attached to this scan, when reported by the structured
+  /// response. Kept on the scan as well as its meal projection.
+  final String? scanVerdict;
+
   /// The localId of the ChatMessage that triggered this log.
   final String? chatMessageId;
 
@@ -308,6 +320,12 @@ class ScanResult extends Equatable {
 
   /// Returns the theme-appropriate color for the scan's score impact.
   Color get impactColor => GutScoreUtils.getScoreColor(score);
+
+  static double? _parseScanConfidence(Object? raw) {
+    final parsed = raw is num ? raw.toDouble() : double.tryParse(raw?.toString() ?? '');
+    if (parsed == null || parsed.isNaN || parsed < 0 || parsed > 1) return null;
+    return parsed;
+  }
 
   static String _extractProductName(Map<String, dynamic> map) {
     final direct = map['productName']?.toString() ?? map['name']?.toString() ?? map['title']?.toString();
@@ -359,10 +377,12 @@ class ScanResult extends Equatable {
     return 'Meal Scan';
   }
 
-  /// Returns true if this result represents a specific food product suitable for history.
+  /// Returns true if this result is product-shaped for product-scan views and
+  /// score aggregates. It is not a persistence gate: every completed scan is
+  /// stored in `scan_history` and receives a consumed meal projection.
   ///
-  /// Filters out generic utility scans like "Restaurant Menus" or "Ingredient Labels"
-  /// which are analyzed for immediate feedback but shouldn't clutter the Pattern Engine.
+  /// Generic utility scans such as restaurant menus or ingredient labels can
+  /// still be separated into their dedicated history views.
   bool get isLoggableProduct {
     // 1. Barcode scans are always legitimate products from the database.
     if (barcode != null && barcode!.isNotEmpty) return true;
@@ -429,6 +449,8 @@ class ScanResult extends Equatable {
     List<String>? flaggedIngredients,
     bool? isSaved,
     String? scanId,
+    double? scanConfidence,
+    String? scanVerdict,
     String? chatMessageId,
     String? servingSize,
     DateTime? createdAt,
@@ -466,6 +488,8 @@ class ScanResult extends Equatable {
     flaggedIngredients: flaggedIngredients ?? this.flaggedIngredients,
     isSaved: isSaved ?? this.isSaved,
     scanId: scanId ?? this.scanId,
+    scanConfidence: scanConfidence ?? this.scanConfidence,
+    scanVerdict: scanVerdict ?? this.scanVerdict,
     chatMessageId: chatMessageId ?? this.chatMessageId,
     servingSize: servingSize ?? this.servingSize,
     createdAt: createdAt ?? this.createdAt,
@@ -508,6 +532,8 @@ class ScanResult extends Equatable {
     'flaggedIngredients': flaggedIngredients,
     'isSaved': isSaved,
     'scanId': scanId,
+    if (scanConfidence != null) 'scanConfidence': scanConfidence,
+    if (scanVerdict != null) 'scanVerdict': scanVerdict,
     'chatMessageId': chatMessageId,
     'servingSize': servingSize,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
@@ -564,6 +590,8 @@ class ScanResult extends Equatable {
     flaggedIngredients,
     isSaved,
     scanId,
+    scanConfidence,
+    scanVerdict,
     chatMessageId,
     servingSize,
     createdAt,

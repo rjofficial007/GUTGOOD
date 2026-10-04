@@ -87,7 +87,7 @@ class FakeInsightsNotifier extends ChangeNotifier implements InsightsNotifier {
   GutExperiment? get activeExperiment => null;
 
   @override
-  Future<void> generateNewInsight() async {}
+  Future<void> generateNewInsight({bool force = false}) async {}
 
   @override
   Future<void> markAllAlertsAsRead() async {}

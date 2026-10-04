@@ -13,6 +13,11 @@ class MealLog extends Equatable {
     this.firestoreId,
     this.uid,
     this.chatMessageId,
+    this.journalEntryId,
+    this.scanId,
+    this.scanCategory,
+    this.scanConfidence,
+    this.scanVerdict,
     required this.items,
     this.notes,
     this.mealType,
@@ -54,6 +59,11 @@ class MealLog extends Equatable {
       firestoreId: rawId is String ? rawId : null,
       uid: map['uid'] as String?,
       chatMessageId: map['chatMessageId'] as String?,
+      journalEntryId: map['journalEntryId']?.toString() ?? map['journalId']?.toString(),
+      scanId: map['scanId']?.toString(),
+      scanCategory: map['scanCategory']?.toString(),
+      scanConfidence: _parseScanConfidence(map['scanConfidence']),
+      scanVerdict: map['scanVerdict']?.toString(),
       items: items,
       notes: map['notes'],
       mealType: map['mealType'],
@@ -81,6 +91,23 @@ class MealLog extends Equatable {
 
   /// The localId of the ChatMessage that triggered this log via passive logging.
   final String? chatMessageId;
+
+  /// Stable id shared by all typed records belonging to one journal event.
+  /// For a meal record this is normally the meal document id itself.
+  final String? journalEntryId;
+
+  /// Originating scan id when this meal was created from a scan. This lets
+  /// readers avoid counting the scan twice (scan_history + journal_logs).
+  final String? scanId;
+
+  /// Original scan classification retained for evidence-quality decisions.
+  final String? scanCategory;
+
+  /// AI confidence attached to the originating scan, when reported.
+  final double? scanConfidence;
+
+  /// AI verdict attached to the originating scan, when reported.
+  final String? scanVerdict;
 
   /// List of specific items or dishes consumed.
   final List<String> items;
@@ -126,11 +153,33 @@ class MealLog extends Equatable {
   /// Best-known moment of the meal for display + correlation windows.
   DateTime get eventTime => occurredAt ?? createdAt;
 
+  /// True when this meal is the journal projection of [candidateScanId].
+  ///
+  /// The aliases cover current records and the stable IDs used by legacy
+  /// projections, so Insights and journal views cannot drift into different
+  /// deduplication rules.
+  bool representsScanId(String? candidateScanId) {
+    final id = candidateScanId?.trim();
+    if (id == null || id.isEmpty) return false;
+    return scanId == id || chatMessageId == id || firestoreId == id || firestoreId == '${id}_meal' || journalEntryId == id || journalEntryId == '${id}_meal';
+  }
+
+  static double? _parseScanConfidence(Object? raw) {
+    final parsed = raw is num ? raw.toDouble() : double.tryParse(raw?.toString() ?? '');
+    if (parsed == null || parsed.isNaN || parsed < 0 || parsed > 1) return null;
+    return parsed;
+  }
+
   MealLog copyWith({
     int? id,
     String? firestoreId,
     String? uid,
     String? chatMessageId,
+    String? journalEntryId,
+    String? scanId,
+    String? scanCategory,
+    double? scanConfidence,
+    String? scanVerdict,
     List<String>? items,
     String? notes,
     String? mealType,
@@ -149,6 +198,11 @@ class MealLog extends Equatable {
     firestoreId: firestoreId ?? this.firestoreId,
     uid: uid ?? this.uid,
     chatMessageId: chatMessageId ?? this.chatMessageId,
+    journalEntryId: journalEntryId ?? this.journalEntryId,
+    scanId: scanId ?? this.scanId,
+    scanCategory: scanCategory ?? this.scanCategory,
+    scanConfidence: scanConfidence ?? this.scanConfidence,
+    scanVerdict: scanVerdict ?? this.scanVerdict,
     items: items ?? this.items,
     notes: notes ?? this.notes,
     mealType: mealType ?? this.mealType,
@@ -170,6 +224,11 @@ class MealLog extends Equatable {
     'model': model,
     'firestoreId': firestoreId,
     'chatMessageId': chatMessageId,
+    'journalEntryId': journalEntryId,
+    'scanId': scanId,
+    if (scanCategory != null) 'scanCategory': scanCategory,
+    if (scanConfidence != null) 'scanConfidence': scanConfidence,
+    if (scanVerdict != null) 'scanVerdict': scanVerdict,
     'items': items,
     'notes': notes,
     'mealType': mealType,
@@ -197,5 +256,5 @@ class MealLog extends Equatable {
   };
 
   @override
-  List<Object?> get props => [id, firestoreId, chatMessageId, items, createdAt, occurredAt, occurredAtProvenance, source];
+  List<Object?> get props => [id, firestoreId, chatMessageId, journalEntryId, scanId, scanCategory, scanConfidence, scanVerdict, items, createdAt, occurredAt, occurredAtProvenance, source];
 }

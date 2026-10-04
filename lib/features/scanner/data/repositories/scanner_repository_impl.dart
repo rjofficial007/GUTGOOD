@@ -79,14 +79,44 @@ class ScannerRepositoryImpl implements ScannerRepository {
       // explanation is recomposed fresh from the same factors.
       final rescored = _scoreService.applyEngineScore(cached, refreshExplanation: true, onDiagnostic: AppLogger.ai);
       final turnId = const Uuid().v4();
+      // A cache hit still represents a new intentional scan. Reuse the cached
+      // analysis, but give this consumption its own scan-history and meal IDs
+      // so repeated purchases of the same barcode remain countable events.
+      final stableScanId = '${turnId}_scan';
+      final stableMealId = '${stableScanId}_meal';
       final view = rescored.copyWith(
         flaggedIngredients: _scoreService.reflagWithSensitivities(rescored, sensitivities),
-        // Keep the existing scan reference so the slim chat preview can
-        // hydrate its details after a restart. Only the chat turn is new;
-        // no scan document is written for a cache hit.
+        scanId: stableScanId,
         chatMessageId: turnId,
+        source: rescored.source ?? 'barcode_cache',
         createdAt: DateTime.now(),
       );
+
+      final didPersistScan = await _historyFirestoreService.trySaveToScanHistory(
+        view,
+        userImageUrl: view.userImageUrl,
+        scanId: stableScanId,
+      );
+      if (!didPersistScan) {
+        AppLogger.warning('ScannerRepository: cached scan history write failed; continuing with meal projection');
+      }
+      final cacheMeal = _persister
+          .mealFromScan(
+            view,
+            chatMessageId: turnId,
+            source: view.source ?? 'barcode_cache',
+            scanId: stableScanId,
+          )
+          .copyWith(journalEntryId: stableMealId);
+      var hydratedMeal = cacheMeal;
+      try {
+        final mealId = await _historyFirestoreService.logMeal(cacheMeal, docId: stableMealId);
+        hydratedMeal = cacheMeal.copyWith(firestoreId: mealId ?? stableMealId, journalEntryId: mealId ?? stableMealId);
+      } catch (e) {
+        // A cache hit must keep its existing resilient UX even if the additive
+        // meal projection cannot be written while offline.
+        AppLogger.warning('ScannerRepository: cached scan meal projection failed', error: e);
+      }
 
       await _chatFirestoreService.saveMessage(
         ChatMessage(
@@ -94,6 +124,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
           role: 'ai',
           text: 'Welcome back — **${view.productName}**, from your scan history with a fresh score ✨\n\n${NarrativeText.ratingLine(view.score)}',
           scanData: view,
+          mealLogs: [hydratedMeal],
           source: view.source,
           createdAt: DateTime.now(),
         ),
@@ -284,32 +315,13 @@ class ScannerRepositoryImpl implements ScannerRepository {
     AppLogger.info('ScannerRepository: Processing scan result persistence for: ${scan.productName}');
     final finalScanId = scanId ?? scan.scanId ?? const Uuid().v4();
 
-    // P1-4: record writes go through the shared persister — same validation,
-    // label/menu gating, consumption gating, and stable IDs as the chat path
-    // (this also fixes phantom meal logs on "is this healthy?" scans and
-    // missing confidence gating here). The returned result carries hydrated
-    // IDs, and cleared records for chat-only turns, which the bubble embeds.
+    // P1-4: record writes go through the shared persister — the same
+    // validation override, universal scan-as-consumption projection, and
+    // stable IDs as the chat path. The returned result carries hydrated IDs
+    // which the bubble embeds.
     final outcome = await _persister.persist(result, chatMessageId: finalScanId, imageUrl: userImageUrl, source: scan.source);
-    var hydrated = outcome.result;
-    var hydratedScan = hydrated.scan ?? scan;
-
-    // Barcode turns: the product identity is OFF ground truth, so an AI
-    // verdict (non_food / uncertain / low-confidence) must not veto the
-    // history record. If the persister declined the write, force it here so
-    // every completed barcode analysis lands in scan_history. (Vision/label/
-    // menu turns keep their chat-only gating — those categories are guessed,
-    // not scanned.) Stable ID convention matches the persister exactly.
-    if (!outcome.persistedScan && scan.source == 'barcode' && (scan.barcode ?? '').isNotEmpty) {
-      final stableScanId = '${finalScanId}_scan';
-      AppLogger.warning(
-        'ScannerRepository: persister skipped scan_history for barcode turn '
-        '(${outcome.chatOnlyReason ?? 'unknown'}; ${outcome.validationReasons.join('; ')}) — forcing write for verified OFF product',
-      );
-      final forcedScan = hydratedScan.copyWith(scanId: stableScanId, chatMessageId: finalScanId);
-      await _historyFirestoreService.saveToScanHistory(forcedScan, userImageUrl: userImageUrl, scanId: stableScanId);
-      hydrated = hydrated.copyWith(scan: forcedScan);
-      hydratedScan = forcedScan;
-    }
+    final hydrated = outcome.result;
+    final hydratedScan = hydrated.scan ?? scan;
 
     // 🚀 Consistent UX: Use the AI's actual conversational text in the chat bubble.
     // Bracket-emoji decorations are stripped and the engine rating is spliced

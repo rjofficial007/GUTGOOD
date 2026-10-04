@@ -115,7 +115,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         title: 'Your logs are ready',
                         message: 'You have enough logs for your first personalized insight.',
                         actionLabel: 'Generate insights',
-                        onAction: notifier.generateNewInsight,
+                        onAction: () => notifier.generateNewInsight(force: true),
                       ),
                     ),
                   ),

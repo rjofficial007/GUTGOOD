@@ -76,7 +76,7 @@ class InsightsNotifier with ChangeNotifier {
     _todayCountsLoaded = false;
     _countsError = null;
     _initDashboardStream();
-    await generateNewInsight();
+    await generateNewInsight(force: true);
   }
 
   bool _isLoading = false;
@@ -247,9 +247,15 @@ class InsightsNotifier with ChangeNotifier {
       final now = DateTime.now();
       final startOfToday = DateTime(now.year, now.month, now.day);
       final results = await Future.wait([_repository.getRecentMeals(startOfToday), _repository.getRecentSymptoms(startOfToday), _repository.getRecentScans(startOfToday)]);
-      _todayMeals = (results[0] as List<MealLog>).length;
+      final todayMealLogs = results[0] as List<MealLog>;
+      final todayScans = results[2] as List<ScanResult>;
+      // Scan-derived meal projections are already represented by their scan
+      // card when the scan is in the product scan stream. Keep the counters
+      // disjoint without hiding label/menu projections that are intentionally
+      // returned through their separate history streams.
+      _todayMeals = standaloneMealRecords(meals: todayMealLogs, scans: todayScans).length;
       _todaySymptoms = (results[1] as List<SymptomLog>).length;
-      _todayScans = (results[2] as List<ScanResult>).length;
+      _todayScans = todayScans.length;
       _countsError = null;
       _todayCountsLoaded = true;
       notifyListeners();
@@ -264,7 +270,12 @@ class InsightsNotifier with ChangeNotifier {
   int get totalMeals => _state.totalMeals;
   int get totalSymptoms => _state.totalSymptoms;
   int get totalScans => _state.totalScans;
-  int get totalFoodScans => _state.totalScans + _state.totalMeals;
+  /// Unique-ish consumed-food baseline: current scans also have meal projections,
+  /// so summing both collections would double count them. The larger side keeps
+  /// legacy scan-only records visible until an exact event counter is available.
+  // ponytail: replace this bounded heuristic with a server-maintained unique
+  // food-event counter once the historical-counter policy is defined.
+  int get totalFoodScans => _state.totalScans >= _state.totalMeals ? _state.totalScans : _state.totalMeals;
 
   /// Daily baseline threshold: 3 Food Scans/Meals AND 1 Symptom Log logged today (resets every day).
   bool get isSufficient => todayFoodScans >= 3 && todaySymptoms >= 1;
@@ -391,7 +402,7 @@ class InsightsNotifier with ChangeNotifier {
   /// Runs the on-device pipeline (24h cadence + threshold gates inside the
   /// use case). Called debounced from data listeners, once from bootstrap,
   /// and directly for manual refresh.
-  Future<void> generateNewInsight() async {
+  Future<void> generateNewInsight({bool force = false}) async {
     if (_isGenerating) return;
     _isGenerating = true;
     _generationError = null;
@@ -400,7 +411,7 @@ class InsightsNotifier with ChangeNotifier {
     AppLogger.insights('InsightsNotifier: generation started');
     try {
       await _analyticsService.logEvent(name: 'insight_generation_requested');
-      await _generateInsightUseCase.execute();
+      await _generateInsightUseCase.execute(force: force);
       AppLogger.insights('InsightsNotifier: generation successful');
     } catch (e) {
       _generationError = 'Could not refresh insights';

@@ -10,6 +10,9 @@ class MockHistoryFirestoreService extends Mock implements HistoryFirestoreServic
 ScanResult _scan() =>
     ScanResult(productName: 'Persist Yogurt', brand: 'Persist Brand', category: 'food', barcode: '999000111', score: 70, impactType: ImpactType.positive, impact: 'Good', createdAt: DateTime.now());
 
+ScanResult _menuScan() =>
+    ScanResult(productName: 'Restaurant Menu', brand: 'Persist Brand', category: 'menu', source: 'menu', score: 70, impactType: ImpactType.neutral, impact: 'Menu analysis', createdAt: DateTime.now());
+
 MealLog _meal() => MealLog(items: const ['Dal', 'Rice'], mealType: 'dinner', createdAt: DateTime.now());
 
 SymptomLog _symptom() => SymptomLog(symptom: 'Bloating', severity: 6, createdAt: DateTime.now());
@@ -29,96 +32,250 @@ void main() {
     persister = DomainEventPersister(historyFirestoreService: history);
 
     when(
-      () => history.saveToScanHistory(
+      () => history.trySaveToScanHistory(
         any(),
         userImageUrl: any(named: 'userImageUrl'),
         scanId: any(named: 'scanId'),
       ),
-    ).thenAnswer((_) async {});
+    ).thenAnswer((_) async => true);
     when(() => history.logMeal(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'meal-id');
     when(() => history.logSymptom(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'sym-id');
   });
 
   group('DomainEventPersister', () {
-    test('label intent goes chat-only: no writes, records cleared', () async {
-      final result = AiAnalysisResult(text: 'label', intent: UserIntent.ingredientAnalysis, scan: _scan(), meal: _meal(), symptoms: [_symptom()]);
+    test('label/menu scan is still consumed and persisted as typed records', () async {
+      final result = AiAnalysisResult(text: 'label', intent: UserIntent.ingredientAnalysis, scan: _menuScan(), symptoms: [_symptom()]);
 
       final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
 
-      expect(outcome.chatOnlyReason, ChatOnlyReason.labelMenu);
-      expect(outcome.hasPersistedAnything, isFalse);
-      expect(outcome.result.meal, isNull);
-      expect(outcome.result.symptoms, isEmpty);
-      verifyNever(
-        () => history.saveToScanHistory(
-          any(),
-          userImageUrl: any(named: 'userImageUrl'),
-          scanId: any(named: 'scanId'),
-        ),
-      );
-      verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
-      verifyNever(() => history.logSymptom(any(), docId: any(named: 'docId')));
-    });
-
-    test('low confidence goes chat-only without writes', () async {
-      final result = AiAnalysisResult(text: 'x', scan: _scan(), confidence: 0.2);
-
-      final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
-
-      expect(outcome.chatOnlyReason, ChatOnlyReason.validationFailed);
-      expect(outcome.validationReasons.join(' '), contains('confidence'));
-      verifyNever(
-        () => history.saveToScanHistory(
-          any(),
-          userImageUrl: any(named: 'userImageUrl'),
-          scanId: any(named: 'scanId'),
-        ),
-      );
-    });
-
-    test('non_food verdict goes chat-only without writes', () async {
-      final result = AiAnalysisResult(text: 'x', scan: _scan(), verdict: Verdict.nonFood);
-
-      final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
-
-      expect(outcome.chatOnlyReason, ChatOnlyReason.validationFailed);
-      verifyNever(
-        () => history.saveToScanHistory(
-          any(),
-          userImageUrl: any(named: 'userImageUrl'),
-          scanId: any(named: 'scanId'),
-        ),
-      );
-    });
-
-    test('consumption gate: question-about-food persists scan but NOT a phantom meal', () async {
-      final result = AiAnalysisResult(text: 'x', intent: UserIntent.healthAssessment, scan: _scan(), meal: _meal());
-
-      final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
-
+      expect(outcome.chatOnlyReason, isNull);
       expect(outcome.persistedScan, isTrue);
-      expect(outcome.persistedMeal, isFalse);
+      expect(outcome.persistedMeal, isTrue);
+      expect(outcome.persistedSymptoms, isTrue);
+      expect(outcome.result.meal, isNotNull);
+      expect(outcome.result.symptoms.single.journalEntryId, 'meal-id');
       verify(
-        () => history.saveToScanHistory(
+        () => history.trySaveToScanHistory(
           any(),
           userImageUrl: any(named: 'userImageUrl'),
           scanId: 'msg1_scan',
         ),
       ).called(1);
+      verify(() => history.logMeal(any(), docId: 'msg1_meal')).called(1);
+      verify(() => history.logSymptom(any(), docId: 'msg1_symptom_0')).called(1);
+    });
+
+    test('label/menu response without a scan remains chat-only', () async {
+      final outcome = await persister.persist(
+        AiAnalysisResult(text: 'label', intent: UserIntent.ingredientAnalysis, meal: _meal(), symptoms: [_symptom()]),
+        chatMessageId: 'msg1',
+        persistedTagBlocks: <String>{},
+      );
+
+      expect(outcome.chatOnlyReason, ChatOnlyReason.labelMenu);
+      expect(outcome.hasPersistedAnything, isFalse);
+      expect(outcome.result.meal, isNull);
+      expect(outcome.result.symptoms, isEmpty);
       verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
+      verifyNever(() => history.logSymptom(any(), docId: any(named: 'docId')));
+    });
+
+    test('low-confidence scan still creates scan and consumed meal records', () async {
+      final result = AiAnalysisResult(text: 'x', scan: _scan(), confidence: 0.2);
+
+      final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
+
+      expect(outcome.chatOnlyReason, isNull);
+      expect(outcome.persistedScan, isTrue);
+      expect(outcome.persistedMeal, isTrue);
+      expect(outcome.validationReasons.join(' '), contains('confidence'));
+      final persistedScan = verify(
+        () => history.trySaveToScanHistory(
+          captureAny(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: 'msg1_scan',
+        ),
+      ).captured.single as ScanResult;
+      expect(persistedScan.scanConfidence, 0.2);
+      final meal = verify(() => history.logMeal(captureAny(), docId: 'msg1_meal')).captured.single as MealLog;
+      expect(meal.scanConfidence, 0.2);
+      expect(meal.scanCategory, 'food');
+    });
+
+    test('non-food verdict scan still creates scan and consumed meal records', () async {
+      final result = AiAnalysisResult(text: 'x', scan: _scan(), verdict: Verdict.nonFood);
+
+      final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
+
+      expect(outcome.chatOnlyReason, isNull);
+      expect(outcome.persistedScan, isTrue);
+      expect(outcome.persistedMeal, isTrue);
+      expect(outcome.validationReasons.join(' '), contains('non_food'));
+      final persistedScan = verify(
+        () => history.trySaveToScanHistory(
+          captureAny(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: 'msg1_scan',
+        ),
+      ).captured.single as ScanResult;
+      expect(persistedScan.scanVerdict, Verdict.nonFood);
+      final meal = verify(() => history.logMeal(captureAny(), docId: 'msg1_meal')).captured.single as MealLog;
+      expect(meal.scanVerdict, Verdict.nonFood);
+    });
+
+    test('uncertain scans also create a meal projection with evidence metadata', () async {
+      final outcome = await persister.persist(
+        AiAnalysisResult(text: 'x', scan: _scan(), verdict: Verdict.uncertain),
+        chatMessageId: 'uncertain-msg',
+        persistedTagBlocks: <String>{},
+      );
+
+      expect(outcome.persistedScan, isTrue);
+      expect(outcome.persistedMeal, isTrue);
+      final meal = verify(() => history.logMeal(captureAny(), docId: 'uncertain-msg_meal')).captured.single as MealLog;
+      expect(meal.scanVerdict, Verdict.uncertain);
+    });
+
+    test('every scan creates a consumed meal projection', () async {
+      final result = AiAnalysisResult(text: 'x', intent: UserIntent.healthAssessment, scan: _scan(), meal: _meal(), confidence: 0.88, verdict: Verdict.food);
+
+      final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
+
+      expect(outcome.persistedScan, isTrue);
+      expect(outcome.persistedMeal, isTrue);
+      final persistedScan = verify(
+        () => history.trySaveToScanHistory(
+          captureAny(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: 'msg1_scan',
+        ),
+      ).captured.single as ScanResult;
+      expect(persistedScan.scanConfidence, 0.88);
+      expect(persistedScan.scanVerdict, Verdict.food);
+      final meal = verify(() => history.logMeal(captureAny(), docId: 'msg1_meal')).captured.single as MealLog;
+      expect(meal.scanId, 'msg1_scan');
+      expect(meal.scanCategory, 'food');
+      expect(meal.scanConfidence, 0.88);
+      expect(meal.scanVerdict, Verdict.food);
+    });
+
+    test('failed scan writes are reported while the consumed meal still persists', () async {
+      when(
+        () => history.trySaveToScanHistory(
+          any(),
+          userImageUrl: any(named: 'userImageUrl'),
+          scanId: any(named: 'scanId'),
+        ),
+      ).thenAnswer((_) async => false);
+
+      final outcome = await persister.persist(
+        AiAnalysisResult(text: 'x', scan: _scan()),
+        chatMessageId: 'failed-scan',
+        persistedTagBlocks: <String>{},
+      );
+
+      expect(outcome.persistedScan, isFalse);
+      expect(outcome.persistedMeal, isTrue);
+      expect(outcome.persistenceFailures, ['scan']);
+      verify(() => history.trySaveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: 'failed-scan_scan')).called(1);
+    });
+
+    test('failed meal writes are not reported as persisted and remain retryable', () async {
+      when(() => history.logMeal(any(), docId: any(named: 'docId'))).thenAnswer((_) async => null);
+
+      final outcome = await persister.persist(
+        AiAnalysisResult(text: 'x', meal: _meal()),
+        chatMessageId: 'failed-meal',
+        persistedTagBlocks: <String>{},
+      );
+
+      expect(outcome.persistedMeal, isFalse);
+      expect(outcome.hasPersistedAnything, isFalse);
+      expect(outcome.persistenceFailures, ['meal']);
+      verify(() => history.logMeal(any(), docId: 'failed-meal_meal')).called(1);
+    });
+
+    test('failed symptom writes are not reported as persisted and remain retryable', () async {
+      when(
+        () => history.getRecentMealLogs(
+          limit: any(named: 'limit'),
+          since: any(named: 'since'),
+          before: any(named: 'before'),
+        ),
+      ).thenAnswer((_) async => const []);
+      when(() => history.logSymptom(any(), docId: any(named: 'docId'))).thenAnswer((_) async => null);
+
+      final outcome = await persister.persist(
+        AiAnalysisResult(text: 'x', symptoms: [_symptom()]),
+        chatMessageId: 'failed-symptom',
+        persistedTagBlocks: <String>{},
+      );
+
+      expect(outcome.persistedSymptoms, isFalse);
+      expect(outcome.hasPersistedAnything, isFalse);
+      expect(outcome.persistenceFailures, ['symptom:Bloating']);
+      verify(() => history.logSymptom(any(), docId: 'failed-symptom_symptom_0')).called(1);
     });
 
     test('consumption intent persists meal + symptoms with stable IDs and hydration', () async {
-      final result = AiAnalysisResult(text: 'x', intent: UserIntent.completeAnalysis, meal: _meal(), symptoms: [_symptom()]);
+      final result = AiAnalysisResult(text: 'x', intent: UserIntent.completeAnalysis, meal: _meal(), symptoms: [_symptom(), _symptom().copyWith(symptom: 'Gas')]);
 
       final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
 
       expect(outcome.persistedMeal, isTrue);
       expect(outcome.persistedSymptoms, isTrue);
       verify(() => history.logMeal(any(), docId: 'msg1_meal')).called(1);
-      verify(() => history.logSymptom(any(), docId: 'msg1_symptom_0')).called(1);
+      final symptom = verify(() => history.logSymptom(captureAny(), docId: 'msg1_symptom_0')).captured.single as SymptomLog;
+      expect(symptom.journalEntryId, 'meal-id');
+      expect(symptom.lastMealFirestoreId, 'meal-id');
+      final secondSymptom = verify(() => history.logSymptom(captureAny(), docId: 'msg1_symptom_1')).captured.single as SymptomLog;
+      expect(secondSymptom.journalEntryId, 'meal-id');
+      expect(outcome.result.symptoms.every((s) => s.journalEntryId == 'meal-id'), isTrue);
       expect(outcome.result.meal!.firestoreId, 'meal-id');
+      expect(outcome.result.meal!.journalEntryId, 'meal-id');
       expect(outcome.result.symptoms.first.firestoreId, 'sym-id');
+    });
+
+    test('unattached symptom links to the nearest earlier meal within four hours', () async {
+      final mealTime = DateTime.now().subtract(const Duration(hours: 1));
+      when(
+        () => history.getRecentMealLogs(
+          limit: any(named: 'limit'),
+          since: any(named: 'since'),
+          before: any(named: 'before'),
+        ),
+      ).thenAnswer((_) async => [MealLog(firestoreId: 'nearest-meal', items: const ['Oats'], createdAt: mealTime)]);
+
+      final outcome = await persister.persist(
+        AiAnalysisResult(text: 'x', symptoms: [SymptomLog(symptom: 'Bloating', createdAt: DateTime.now())]),
+        chatMessageId: 'msg1',
+        persistedTagBlocks: <String>{},
+      );
+
+      expect(outcome.result.symptoms.single.journalEntryId, 'nearest-meal');
+      final symptom = verify(() => history.logSymptom(captureAny(), docId: 'msg1_symptom_0')).captured.single as SymptomLog;
+      expect(symptom.journalEntryId, 'nearest-meal');
+      expect(symptom.lastMealFirestoreId, 'nearest-meal');
+    });
+
+    test('symptom remains standalone when no earlier meal is within four hours', () async {
+      when(
+        () => history.getRecentMealLogs(
+          limit: any(named: 'limit'),
+          since: any(named: 'since'),
+          before: any(named: 'before'),
+        ),
+      ).thenAnswer((_) async => const []);
+
+      final outcome = await persister.persist(
+        AiAnalysisResult(text: 'x', symptoms: [SymptomLog(symptom: 'Bloating', createdAt: DateTime.now())]),
+        chatMessageId: 'msg1',
+        persistedTagBlocks: <String>{},
+      );
+
+      expect(outcome.result.symptoms.single.journalEntryId, isNull);
+      expect(outcome.result.symptoms.single.lastMealFirestoreId, isNull);
+      verify(() => history.logSymptom(any(), docId: 'msg1_symptom_0')).called(1);
     });
 
     test('dedup set prevents double writes for the same turn', () async {
@@ -134,12 +291,13 @@ void main() {
       );
 
       verify(
-        () => history.saveToScanHistory(
+        () => history.trySaveToScanHistory(
           any(),
           userImageUrl: any(named: 'userImageUrl'),
           scanId: any(named: 'scanId'),
         ),
       ).called(1);
+      verify(() => history.logMeal(any(), docId: 'msg1_meal')).called(1);
     });
 
     test('isLabelOrMenuTurn unifies source, category, and intent signals', () {

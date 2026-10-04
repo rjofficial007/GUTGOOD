@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/ai/protocol/ai_constants.dart';
+import 'package:gutgood/core/models/journal/food_event_linking.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';
+import 'package:gutgood/core/models/scans/scan_result.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 
 void main() {
@@ -72,6 +74,108 @@ void main() {
 
       expect(hydrated.occurredAt, at);
       expect(hydrated.occurredAtProvenance, OccurrenceProvenance.user);
+    });
+  });
+
+  group('journal event linking', () {
+    test('meal and symptom preserve the shared journalEntryId and scanId', () {
+      final now = DateTime.now();
+      final meal = MealLog(
+        items: const ['Yogurt'],
+        createdAt: now,
+        firestoreId: 'scan-1_meal',
+        journalEntryId: 'scan-1_meal',
+        scanId: 'scan-1',
+        scanCategory: 'label',
+        scanConfidence: 0.42,
+        scanVerdict: 'uncertain',
+      );
+      final symptom = SymptomLog(symptom: 'Bloating', createdAt: now.add(const Duration(hours: 1)), journalEntryId: 'scan-1_meal', lastMealFirestoreId: 'scan-1_meal');
+
+      final mealRoundTrip = MealLog.fromMap(meal.toMap());
+      final symptomRoundTrip = SymptomLog.fromMap(symptom.toMap());
+
+      expect(mealRoundTrip.journalEntryId, 'scan-1_meal');
+      expect(mealRoundTrip.scanId, 'scan-1');
+      expect(mealRoundTrip.scanCategory, 'label');
+      expect(mealRoundTrip.scanConfidence, 0.42);
+      expect(mealRoundTrip.scanVerdict, 'uncertain');
+      expect(symptomRoundTrip.journalEntryId, 'scan-1_meal');
+      expect(symptomRoundTrip.lastMealFirestoreId, 'scan-1_meal');
+    });
+
+    test('legacy lastMealFirestoreId remains a usable journal link', () {
+      final symptom = SymptomLog.fromMap(const {'symptom': 'Gas', 'lastMealFirestoreId': 'legacy-meal'});
+
+      expect(symptom.journalEntryId, isNull);
+      expect(symptom.lastMealFirestoreId, 'legacy-meal');
+    });
+
+    test('meal recognizes all stable scan projection identifiers', () {
+      final meal = MealLog(
+        items: const ['Yogurt'],
+        createdAt: DateTime.now(),
+        scanId: 'scan-1',
+        firestoreId: 'scan-1_meal',
+        journalEntryId: 'scan-1_meal',
+      );
+
+      expect(meal.representsScanId('scan-1'), isTrue);
+      expect(meal.representsScanId(''), isFalse);
+      expect(meal.representsScanId(null), isFalse);
+      expect(MealLog(items: const ['x'], createdAt: DateTime.now(), chatMessageId: 'scan-2').representsScanId('scan-2'), isTrue);
+    });
+
+    test('unique food event helpers count scan projections once', () {
+      final now = DateTime.now();
+      final projectedScan = ScanResult(
+        productName: 'Oats',
+        brand: 'Brand',
+        scanId: 'scan-1',
+        score: 80,
+        impactType: ImpactType.positive,
+        impact: 'Good',
+        createdAt: now,
+      );
+      final legacyScan = projectedScan.copyWith(scanId: 'scan-2', productName: 'Rice');
+      final projectedMeal = MealLog(items: const ['Oats'], scanId: 'scan-1', journalEntryId: 'scan-1_meal', createdAt: now);
+      final manualMeal = MealLog(items: const ['Dal'], createdAt: now);
+
+      expect(standaloneScanRecords(meals: [projectedMeal, manualMeal], scans: [projectedScan, legacyScan]), [legacyScan]);
+      expect(standaloneMealRecords(meals: [projectedMeal, manualMeal], scans: [projectedScan, legacyScan]), [manualMeal]);
+      expect(uniqueFoodEventCount(meals: [projectedMeal, manualMeal], scans: [projectedScan, legacyScan]), 3);
+    });
+
+    test('nearest meal linking honors the earlier-four-hour window', () {
+      final symptomTime = DateTime(2026, 1, 2, 12);
+      final nearest = MealLog(
+        items: const ['Oats'],
+        createdAt: symptomTime.subtract(const Duration(hours: 1)),
+        firestoreId: 'nearest-meal',
+      );
+      final farther = MealLog(
+        items: const ['Rice'],
+        createdAt: symptomTime.subtract(const Duration(hours: 3)),
+        firestoreId: 'farther-meal',
+      );
+      final boundary = MealLog(
+        items: const ['Soup'],
+        createdAt: symptomTime.subtract(const Duration(hours: 4)),
+        firestoreId: 'boundary-meal',
+      );
+      final tooOld = MealLog(
+        items: const ['Dal'],
+        createdAt: symptomTime.subtract(const Duration(hours: 4, seconds: 1)),
+        firestoreId: 'old-meal',
+      );
+      final future = MealLog(
+        items: const ['Fruit'],
+        createdAt: symptomTime.add(const Duration(minutes: 1)),
+        firestoreId: 'future-meal',
+      );
+
+      expect(nearestMealJournalEntryId(symptomTime: symptomTime, meals: [farther, future, tooOld, boundary, nearest]), 'nearest-meal');
+      expect(nearestMealJournalEntryId(symptomTime: symptomTime, meals: [future, tooOld, boundary]), 'boundary-meal');
     });
   });
 

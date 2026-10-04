@@ -1,3 +1,5 @@
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
+
 class InsightsPrompt {
   InsightsPrompt._();
 
@@ -27,15 +29,17 @@ CORE PATTERN RULES:
    - `triggers.topFoodId` MUST exist inside `triggers.foods` when non-empty.
    - `foodImpactBalance` percentages (`positivePercent`, `neutralPercent`, `negativePercent`) MUST mathematically match actual `impactDirection` classifications across all evaluated foods.
 9. GROUNDED NEXT STEPS: `nextSteps` in `topInsight` and `actions` MUST strictly reference symptoms actually mentioned in the `observation` or meal logs. NEVER mention a symptom that is absent from the underlying observation.
-10. GROUNDED FACTORS AND TIMING: Only report common factors, meal type, time, severity, or symptom delay when those values are explicitly present in the supplied logs or qualified candidates. Never infer fat content, ingredients, a mechanism, or symptom timing from a food name. Leave optional factor lists empty when no factor is supported.
-11. AT LEAST 4 FOOD SWAP ALTERNATIVES: For every item in `foodSwaps`, the `alternatives` array MUST contain AT LEAST 4 distinct healthier or easier-to-digest food alternative options with complete structured details (`foodId`, `name`, `imageUrl`, `reason`, `impactLevel`, `category`, `structuredBenefits`, `whyBetterOption`, and `nutrition`).
+10. GROUNDED FACTORS, MECHANISMS, AND TIMING: Only report common factors, meal type, time, severity, or symptom delay when those values are explicitly present in the supplied logs or qualified candidates. Never infer fat content, ingredients, a mechanism, or symptom timing from a food name. Leave optional factor lists, `whyItWorks`, pairings, and mechanism details empty unless the exact claim is explicitly supported by supplied evidence.
+11. AT LEAST 4 FOOD SWAP ALTERNATIVES: For every item in `foodSwaps`, the `alternatives` array MUST contain AT LEAST 4 distinct healthier or easier-to-digest food alternative options with complete structured details (`foodId`, `name`, `imageUrl`, `reason`, `impactLevel`, `category`, `structuredBenefits`, `whyBetterOption`, and `nutrition`). Leave benefit/mechanism fields empty when the supplied evidence does not explicitly support them.
 12. DYNAMIC DATA ONLY: All values (impact percentages, counts, food items, dates) MUST be strictly computed from actual user data. NEVER return static mock values unless accurately calculated from user logs.
+13. APPLICATION-OWNED METADATA: The application stamps `v`, `model`, `promptVersion`, `status`, and `origin` before persistence. Return the requested values when present, but never invent a version or treat model-provided metadata as authoritative.
+14. ONE-OCCURRENCE LIMIT: A single occurrence may support a low-confidence observation only. It MUST NOT produce `impactLevel: "high"`, a healing/trigger classification, a causal explanation, or a positive/negative balance percentage.
 
 BASELINE ELIGIBILITY:
 The client calls this analysis only after verifying at least 3 food logs (meals + scans) and 1 symptom log today. Return status "ready". Missing qualified patterns does NOT mean insufficient data.
 
 ZERO PATTERN CASE (no pre-qualified candidates provided):
-- Generate a concise personalized topInsight with kind "progress" from the BODY JOURNAL: name only actual logged foods and reported symptoms, including severity when available. Scans indicate products examined, not proof of consumption.
+- Generate a concise personalized topInsight with type "progress" from the BODY JOURNAL: name only actual logged foods and reported symptoms, including severity when available. Scans indicate products examined, not proof of consumption.
 - Write the actual summary, never instructions to synthesize one or a generic "Baseline Assessment Complete" placeholder.
 - A single meal followed by a symptom is a chronological observation, not evidence that the food caused it. Describe it as "you reported [symptom] after [meal]" and explicitly say one occurrence is not enough to identify a cause.
 - Do not create a detectedPattern, trigger, healing food, foodImpact, causal factor, or impact percentage without a pre-qualified candidate or other explicit repeated evidence in the supplied data. For one-off observations, leave those collections empty and avoid positive/negative food classifications.
@@ -44,21 +48,22 @@ ZERO PATTERN CASE (no pre-qualified candidates provided):
 
 OUTPUT SCHEMA (STRICT JSON ONLY):
 {
-  "v": 2,
+  "v": ${AiVersions.schemaVersion},
   "model": "gpt-4o-mini",
-  "promptVersion": 5,
+  "promptVersion": ${AiVersions.insightPromptVersion},
   "status": "ready|insufficient_data",
   "origin": "client",
   "topInsight": {
     "id": "string",
     "title": "string",
     "description": "string",
-    "kind": "pattern|food_impact|trigger_alert|weekly_recap|progress|product_scan|action",
+    "type": "pattern|food_impact|trigger_alert|weekly_recap|progress|product_scan|action",
     "domain": "bloating|energy|headache|digestion|fullness|sleep",
     "observation": "string",
     "involvedFoods": ["string"],
     "strength": "high|medium|low",
-    "confidence": 0.85,
+    "confidence": "low|medium|high",
+    "confidenceScore": 0.5,
     "frequency": 3,
     "positiveCount": 3,
     "negativeCount": 0,
@@ -74,16 +79,7 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
         "name": "string",
         "emoji": "",
         "effect": "string",
-        "impactDirection": "positive",
-        "impactLevel": "high|moderate|low",
-        "frequencyCount": 0,
-        "frequencyLabel": "string",
-        "bestTimeLabel": "string",
-        "observedEffect": "string",
-        "confidence": "high|medium|low",
-        "confidenceScore": 0.85,
-        "whyItWorks": [{ "title": "string", "description": "string", "icon": "string" }],
-        "pairings": [{ "foodId": "string", "name": "string", "impactLevel": "high" }]
+        "impactLevel": "high|moderate|low"
       }
     ]
   },
@@ -97,16 +93,7 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
         "name": "string",
         "emoji": "",
         "effect": "string",
-        "impactDirection": "negative",
-        "impactLevel": "high|moderate|low",
-        "frequencyCount": 2,
-        "frequencyLabel": "2x this week",
-        "bestTimeLabel": "Dinner",
-        "observedEffect": "string",
-        "confidence": "high|medium|low",
-        "confidenceScore": 0.9,
-        "whyItWorks": [{ "title": "string", "description": "string", "icon": "string" }],
-        "pairings": []
+        "impactLevel": "high|moderate|low"
       }
     ]
   },
@@ -114,8 +101,8 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
     {
       "id": "string",
       "domain": "digestion|energy|sleep|mood|appetite|food_tolerance|bowel_movement|hydration|other",
-      "title": "string",
       "trigger": "string",
+      "involvedFoods": ["string"],
       "reaction": "string",
       "frequency": 3,
       "confidence": "high|medium|low",
@@ -158,17 +145,12 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
   },
   "foodImpacts": [
     {
-      "id": "string",
-      "foodId": "string",
       "food": "string",
-      "date": "YYYY-MM-DD",
       "dateLabel": "Mon",
       "effect": "string",
       "timeframeLabel": "Breakfast",
       "emoji": "",
-      "impactDirection": "positive|negative",
-      "impactLevel": "high|moderate|low",
-      "confidence": "high|medium|low"
+      "impactDirection": "positive|negative|neutral"
     }
   ],
   "actions": [
@@ -199,10 +181,8 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
           "reason": "string",
           "impactLevel": "high|moderate|low",
           "category": "Burgers & Sandwiches|Bowls|Breakfast|Sides",
-          "structuredBenefits": [
-            { "title": "Lower Fat", "description": "Helps reduce bloating", "icon": "leaf" }
-          ],
-          "whyBetterOption": "Detailed explanation comparing this option to the trigger food.",
+          "structuredBenefits": [],
+          "whyBetterOption": "",
           "nutrition": { "calories": 350, "protein": "32g", "totalFat": "6g", "fiber": "2g" }
         },
         {
@@ -212,10 +192,8 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
           "reason": "string",
           "impactLevel": "high|moderate|low",
           "category": "Burgers & Sandwiches|Bowls|Breakfast|Sides",
-          "structuredBenefits": [
-            { "title": "High Fiber", "description": "Supports digestion", "icon": "leaf" }
-          ],
-          "whyBetterOption": "Detailed explanation comparing this option to the trigger food.",
+          "structuredBenefits": [],
+          "whyBetterOption": "",
           "nutrition": { "calories": 280, "protein": "25g", "totalFat": "5g", "fiber": "6g" }
         },
         {
@@ -225,10 +203,8 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
           "reason": "string",
           "impactLevel": "high|moderate|low",
           "category": "Burgers & Sandwiches|Bowls|Breakfast|Sides",
-          "structuredBenefits": [
-            { "title": "Lean Protein", "description": "Easy on digestion", "icon": "dumbbell" }
-          ],
-          "whyBetterOption": "Detailed explanation comparing this option to the trigger food.",
+          "structuredBenefits": [],
+          "whyBetterOption": "",
           "nutrition": { "calories": 310, "protein": "28g", "totalFat": "7g", "fiber": "3g" }
         },
         {
@@ -238,10 +214,8 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
           "reason": "string",
           "impactLevel": "high|moderate|low",
           "category": "Burgers & Sandwiches|Bowls|Breakfast|Sides",
-          "structuredBenefits": [
-            { "title": "Prebiotic Rich", "description": "Feeds healthy gut bacteria", "icon": "shield" }
-          ],
-          "whyBetterOption": "Detailed explanation comparing this option to the trigger food.",
+          "structuredBenefits": [],
+          "whyBetterOption": "",
           "nutrition": { "calories": 380, "protein": "16g", "totalFat": "8g", "fiber": "9g" }
         }
       ],

@@ -118,7 +118,11 @@ class HistoryNotifier with ChangeNotifier {
     }
 
     if (_currentFilter == HistoryFilter.all) {
-      for (final m in _meals) {
+      // Scan-derived meals are persisted for journal/pattern evidence, but
+      // their matching scan entry already represents the same event in this
+      // timeline. Keep standalone meals visible when a legacy/filtered scan
+      // has no corresponding presentation entry.
+      for (final m in standaloneMealRecords(meals: _meals, scans: allScans)) {
         final id = m.firestoreId ?? m.id?.toString() ?? 'meal_${m.createdAt.millisecondsSinceEpoch}';
         entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.meal, createdAt: m.eventTime, meal: m);
       }

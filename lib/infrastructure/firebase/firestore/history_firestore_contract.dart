@@ -4,6 +4,12 @@ part of 'history_firestore_service.dart';
 
 abstract class HistoryFirestoreService {
   Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId});
+
+  /// Same write as [saveToScanHistory], but reports whether the scan document
+  /// write completed. The void method remains for existing callers that keep
+  /// the historical best-effort contract.
+  Future<bool> trySaveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId});
+
   Future<ScanResult?> getScanById(String scanId);
 
   /// Newest scan for [barcode], or null when never scanned. Backs the personal

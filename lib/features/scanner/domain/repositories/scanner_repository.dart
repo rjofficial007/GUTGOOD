@@ -9,12 +9,12 @@ abstract class ScannerRepository {
 
   Future<OffProduct?> getProductByBarcode(String barcode);
 
-  /// Returns the stored scan for [barcode] when a fresh-enough entry exists,
-  /// re-scored by the deterministic engine and re-flagged against the current
-  /// [sensitivities]. Records a chat message + analytics only — no new
-  /// scan_history or journal docs (a cache hit is a view, not a new log).
-  /// Returns null on miss/staleness/error: callers fall through to the full
-  /// pipeline. Never throws.
+  /// Returns the stored analysis for [barcode] when a fresh-enough entry
+  /// exists, re-scored by the deterministic engine and re-flagged against the
+  /// current [sensitivities]. A cache hit still represents a new intentional
+  /// scan, so it receives new scan-history, meal, and chat IDs without another
+  /// OFF or AI request. Returns null on miss/staleness/error: callers fall
+  /// through to the full pipeline. Never throws.
   Future<ScanResult?> getCachedBarcodeScan({required String barcode, required List<String> sensitivities});
   Future<AiAnalysisResult> analyzeProductWithAi({
     required OffProduct product,

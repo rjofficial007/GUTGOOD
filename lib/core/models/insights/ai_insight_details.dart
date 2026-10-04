@@ -15,9 +15,12 @@ class InsightSummary extends Equatable {
     required this.title,
     required this.description,
     required this.type,
+    this.id,
+    this.domain,
     this.observation,
     this.involvedFoods = const [],
     this.strength,
+    this.confidenceScore,
     this.nextSteps = const [],
     this.frequency,
     this.evidenceRatio,
@@ -25,26 +28,35 @@ class InsightSummary extends Equatable {
     this.negativeCount,
   });
 
-  factory InsightSummary.fromMap(Map<String, dynamic> map) => InsightSummary(
-    title: map['title']?.toString() ?? 'Insight',
-    description: map['description']?.toString() ?? '',
-    type: map['type']?.toString() ?? 'Pattern',
-    observation: map['observation']?.toString(),
-    involvedFoods: (map['involvedFoods'] as List?)?.cast<String>() ?? const [],
-    strength: map['strength']?.toString(),
-    nextSteps: (map['nextSteps'] as List?)?.cast<String>() ?? const [],
-    frequency: InsightValues.integer(map['frequency']),
-    evidenceRatio: InsightValues.number(map['evidenceRatio'])?.toDouble(),
-    positiveCount: InsightValues.integer(map['positiveCount']),
-    negativeCount: InsightValues.integer(map['negativeCount']),
-  );
+  factory InsightSummary.fromMap(Map<String, dynamic> map) {
+    final rawConfidence = map['confidence'];
+    return InsightSummary(
+      id: map['id']?.toString(),
+      title: map['title']?.toString() ?? 'Insight',
+      description: map['description']?.toString() ?? '',
+      type: (map['type'] ?? map['kind'])?.toString() ?? 'Pattern',
+      domain: map['domain']?.toString(),
+      observation: map['observation']?.toString(),
+      involvedFoods: (map['involvedFoods'] as List?)?.whereType<String>().toList() ?? const [],
+      strength: map['strength']?.toString() ?? (rawConfidence is String ? rawConfidence : null),
+      confidenceScore: InsightValues.number(map['confidenceScore'] ?? (rawConfidence is num ? rawConfidence : null))?.toDouble(),
+      nextSteps: (map['nextSteps'] as List?)?.whereType<String>().toList() ?? const [],
+      frequency: InsightValues.integer(map['frequency']),
+      evidenceRatio: InsightValues.number(map['evidenceRatio'])?.toDouble(),
+      positiveCount: InsightValues.integer(map['positiveCount']),
+      negativeCount: InsightValues.integer(map['negativeCount']),
+    );
+  }
 
+  final String? id;
   final String title;
   final String description;
   final String type;
+  final String? domain;
   final String? observation;
   final List<String> involvedFoods;
   final String? strength;
+  final double? confidenceScore;
   final List<String> nextSteps;
   final int? frequency;
   final double? evidenceRatio;
@@ -52,12 +64,16 @@ class InsightSummary extends Equatable {
   final int? negativeCount;
 
   Map<String, dynamic> toMap() => {
+    'id': id,
     'title': title,
     'description': description,
     'type': type,
+    'domain': domain,
     'observation': observation,
     'involvedFoods': involvedFoods,
     'strength': strength,
+    'confidence': strength,
+    'confidenceScore': confidenceScore,
     'nextSteps': nextSteps,
     'frequency': frequency,
     'evidenceRatio': evidenceRatio,
@@ -66,7 +82,7 @@ class InsightSummary extends Equatable {
   };
 
   @override
-  List<Object?> get props => [title, description, type, observation, strength, frequency];
+  List<Object?> get props => [id, title, description, type, domain, observation, strength, confidenceScore, frequency];
 }
 
 class HealingFood extends Equatable {
@@ -215,9 +231,10 @@ class FoodImpact extends Equatable {
     final food = (map['food'] ?? map['title'] ?? map['name'] ?? '').toString();
     final img = map['userImageUrl']?.toString() ?? map['imageUrl']?.toString();
     final effectStr = (map['effect'] ?? map['impact'] ?? '').toString();
-    var impactType = (map['impactType'] ?? map['type'] ?? 'neutral').toString().toLowerCase();
+    final rawImpactType = map['impactType'] ?? map['impactDirection'] ?? map['type'];
+    var impactType = (rawImpactType ?? 'neutral').toString().toLowerCase();
 
-    if (InsightValues.isPositiveReaction('$effectStr $food')) {
+    if (rawImpactType == null && InsightValues.isPositiveReaction('$effectStr $food')) {
       impactType = 'positive';
     }
 
@@ -251,6 +268,7 @@ class FoodImpact extends Equatable {
     'timeframeLabel': timeframeLabel,
     'emoji': emoji,
     'impactType': impactType,
+    'impactDirection': impactType,
     'imageUrl': imageUrl,
     'userImageUrl': userImageUrl,
     'foodScanId': foodScanId,

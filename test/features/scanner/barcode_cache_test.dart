@@ -94,6 +94,14 @@ void main() {
         parameters: any(named: 'parameters'),
       ),
     ).thenAnswer((_) async {});
+    when(() => history.logMeal(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'cached-meal-id');
+    when(
+      () => history.trySaveToScanHistory(
+        any(),
+        userImageUrl: any(named: 'userImageUrl'),
+        scanId: any(named: 'scanId'),
+      ),
+    ).thenAnswer((_) async => true);
   });
 
   group('getCachedBarcodeScan (P0-3)', () {
@@ -145,27 +153,34 @@ void main() {
       expect(result.impact, expected.explanation, reason: 'The engine recomposes the explanation fresh.');
     });
 
-    test('fresh hit keeps a hydratable scan reference and writes no history/journal docs', () async {
+    test('fresh hit creates a new scan event and consumed meal projection', () async {
       final cached = _cachedScan().copyWith(scanId: 'original-scan', chatMessageId: 'original-turn');
       when(() => history.getLatestScanByBarcode(any())).thenAnswer((_) async => cached);
 
       final result = await repo.getCachedBarcodeScan(barcode: '111222333', sensitivities: const []);
 
       expect(result, isNotNull);
-      expect(result!.scanId, 'original-scan');
-      expect(result.chatMessageId, isNot('original-turn'));
-      expect(result.chatMessageId, isNotNull);
+      final cachedResult = result!;
+      final scanId = cachedResult.scanId!;
+      expect(scanId, isNot('original-scan'));
+      expect(scanId, endsWith('_scan'));
+      expect(cachedResult.chatMessageId, isNot('original-turn'));
+      expect(cachedResult.chatMessageId, isNotNull);
       final message = verify(() => chat.saveMessage(captureAny())).captured.single as ChatMessage;
       final restored = ChatMessage.fromMap(message.toMap());
-      expect(restored.scanData?.scanId, 'original-scan');
-      verifyNever(
-        () => history.saveToScanHistory(
+      expect(restored.scanData?.scanId, scanId);
+      expect(message.mealLogs, hasLength(1));
+      expect(message.mealLogs.single.scanId, scanId);
+      expect(message.mealLogs.single.journalEntryId, 'cached-meal-id');
+      expect(message.mealLogs.single.createdAt, cachedResult.createdAt);
+      verify(
+        () => history.trySaveToScanHistory(
           any(),
           userImageUrl: any(named: 'userImageUrl'),
-          scanId: any(named: 'scanId'),
+          scanId: scanId,
         ),
-      );
-      verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
+      ).called(1);
+      verify(() => history.logMeal(any(), docId: '${scanId}_meal')).called(1);
       verifyNever(() => history.logSymptom(any(), docId: any(named: 'docId')));
     });
 

@@ -52,6 +52,24 @@ void main() {
   });
 
   group('P2-10 evidence models', () {
+    test('InsightSummary accepts canonical and legacy confidence/type fields', () {
+      final summary = InsightSummary.fromMap(const {
+        'id': 'insight_1',
+        'domain': 'energy',
+        'title': 'Energy',
+        'description': 'Observed energy change',
+        'kind': 'progress',
+        'confidence': 0.8,
+      });
+
+      expect(summary.id, 'insight_1');
+      expect(summary.domain, 'energy');
+      expect(summary.type, 'progress');
+      expect(summary.strength, isNull);
+      expect(summary.confidenceScore, 0.8);
+      expect(summary.toMap()['type'], 'progress');
+    });
+
     test('missing evidence and swap nutrition stay unknown instead of receiving demo values', () {
       final pattern = BodyPattern.fromMap(const {'type': 'digestion', 'trigger': '', 'reaction': '', 'description': ''});
       final nutrition = SwapNutrition.fromMap(const {});
@@ -68,6 +86,8 @@ void main() {
       expect(HealingSummary.fromMap(const {}).trend, isEmpty);
       expect(TriggerSummary.fromMap(const {}).primarySymptom, isEmpty);
       expect(FoodImpactBalance.fromMap(const {}).periodLabel, isEmpty);
+      expect(FoodImpact.fromMap(const {'food': 'Oats', 'impactDirection': 'positive', 'effect': 'High Energy'}).impactType, 'positive');
+      expect(FoodImpact.fromMap(const {'food': 'Oats', 'impactDirection': 'neutral', 'effect': 'High Energy'}).impactType, 'neutral');
     });
 
     test('PatternRef.fromBodyPattern carries the citable fields', () {
@@ -331,6 +351,21 @@ void main() {
       expect(insight.detectedPatterns.first.impactDirection, 'positive');
       expect(insight.foodImpactBalance?.positivePercent, 100);
       expect(insight.triggerSummary?.foods, isEmpty);
+    });
+
+    test('explicit empty detectedPatterns do not synthesize a pattern from healing foods', () {
+      final insight = AIInsight.fromMap(const {
+        'detectedPatterns': [],
+        'healing': {
+          'goal': 'Increase energy',
+          'foods': [
+            {'foodId': 'chicken', 'name': 'Roasted Chicken', 'effect': 'Felt energetic after eating'},
+          ],
+        },
+      });
+
+      expect(insight.detectedPatterns, isEmpty);
+      expect(insight.healingSummary?.foods, hasLength(1));
     });
 
     test('AIInsight.fromMap parses gutScore whether Map or num', () {

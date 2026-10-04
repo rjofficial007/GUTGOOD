@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/models/insights/gut_score_record.dart';
+import 'package:gutgood/core/models/journal/food_event_linking.dart';
 import 'package:gutgood/core/models/journal/history_counts.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';

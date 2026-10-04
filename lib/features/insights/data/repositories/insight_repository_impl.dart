@@ -9,6 +9,7 @@ import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
+import 'package:gutgood/features/insights/domain/services/insight_response_validator.dart';
 import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
 import 'package:gutgood/infrastructure/firebase/crashlytics_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
@@ -74,6 +75,9 @@ class InsightRepositoryImpl implements InsightRepository {
   @override
   Future<void> saveInsight(AIInsight insight) async {
     await _insightFirestoreService.saveInsights(insight);
+    // Cache the final stamped envelope, not the raw model response. This keeps
+    // local fallback metadata aligned with the Firestore document.
+    await _prefs.setString(StorageKeys.gutgoodInsightsCache, ModelUtils.safeJsonEncode(insight.toMap()));
   }
 
   @override
@@ -216,9 +220,26 @@ class InsightRepositoryImpl implements InsightRepository {
         );
         final jsonStr = ModelUtils.extractJson(response);
         if (jsonStr == null) continue;
-        final decoded = Map<String, dynamic>.from(jsonDecode(jsonStr) as Map);
-        if (isUsableInsightResponse(decoded)) {
-          accepted = decoded;
+
+        // A malformed or non-object response should consume this attempt and
+        // let the correction prompt run, not escape the loop and abort the
+        // whole generation pipeline before its retry.
+        final rawDecoded = _tryDecodeJson(jsonStr);
+        if (rawDecoded == null) {
+          AppLogger.warning('InsightRepo: AI response was not parseable JSON; retrying');
+          continue;
+        }
+        if (rawDecoded is! Map) {
+          AppLogger.warning('InsightRepo: AI response was valid JSON but not an object; retrying');
+          continue;
+        }
+        final decoded = Map<String, dynamic>.from(rawDecoded);
+        final validation = InsightResponseValidator.normalize(decoded, patternCandidates: patternCandidates);
+        if (validation.reasons.isNotEmpty) {
+          AppLogger.insights('Insight response normalized: ${validation.reasons.join('; ')}');
+        }
+        if (isUsableInsightResponse(validation.data)) {
+          accepted = validation.data;
           break;
         }
       }
@@ -227,12 +248,28 @@ class InsightRepositoryImpl implements InsightRepository {
       }
       final decoded = accepted;
       final rawGutScore = decoded['gutScore'];
-      final newScore = rawGutScore is Map<String, dynamic> ? ((rawGutScore['score'] as num?)?.toInt() ?? 0) : ((rawGutScore as num?)?.toInt() ?? 0);
-      if (lastScore != null) {
-        final diff = newScore - lastScore;
+      final modelScore = rawGutScore is Map<String, dynamic>
+          ? (rawGutScore['score'] as num?)?.toInt()
+          : rawGutScore is num
+              ? rawGutScore.toInt()
+              : null;
+      // The current prompt leaves gut-score calculation to the deterministic
+      // calculator in GenerateInsightUseCase. Only honor a model-provided
+      // score when it actually exists; never turn a missing score into a
+      // misleading negative delta from zero.
+      if (lastScore != null && modelScore != null) {
+        final diff = modelScore - lastScore;
         decoded['scoreDiff'] = diff >= 0 ? '+$diff' : '$diff';
       }
-      var insight = AIInsight.fromMap(decoded);
+      // Model/protocol metadata comes from the authenticated proxy response,
+      // not from fields the language model may echo inside its JSON payload.
+      final servedModel = _aiService.lastServedModel;
+      final servedPromptVersion = _aiService.lastPromptVersion;
+      decoded
+        ..remove('model')
+        ..remove('promptVersion')
+        ..remove('origin');
+      var insight = AIInsight.fromMap(decoded).copyWith(model: servedModel, promptVersion: servedPromptVersion);
 
       // Enrich synthesized insight with user's uploaded food photos
       insight = await _enrichInsightWithUserPhotos(insight);
@@ -240,7 +277,6 @@ class InsightRepositoryImpl implements InsightRepository {
       final duration = DateTime.now().difference(startTime).inSeconds;
       await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
 
-      await _prefs.setString(StorageKeys.gutgoodInsightsCache, ModelUtils.safeJsonEncode(insight.toMap()));
       return insight;
     } catch (e, st) {
       AppLogger.error('InsightRepo: AI Analysis failed', error: e);
@@ -364,12 +400,24 @@ class InsightRepositoryImpl implements InsightRepository {
   }
 }
 
+Object? _tryDecodeJson(String value) {
+  try {
+    return jsonDecode(value);
+  } catch (_) {
+    return null;
+  }
+}
+
 /// Reject empty baseline responses before they reach the cache or persistence.
 bool isUsableInsightResponse(Map<String, dynamic> data) {
   final recap = data['weeklyRecap'];
   if (recap is Map && recap['foodsLogged'] == 0) return false;
   final top = data['topInsight'];
-  if (data['status'] != 'ready' || top is! Map) return false;
+  // `status` is application-owned metadata and is stamped after this
+  // eligibility check. Older/model responses may omit it; an explicit
+  // non-ready status still rejects the response.
+  final status = data['status']?.toString().trim().toLowerCase();
+  if ((status != null && status != 'ready') || top is! Map) return false;
   final description = top['description'];
   final steps = top['nextSteps'];
   return description is String &&

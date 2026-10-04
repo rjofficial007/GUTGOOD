@@ -286,7 +286,10 @@ class ChatMessage extends Equatable {
             'intent': scanData!.rawData?['intent'], // 🚀 Fixed: Include intent for smart routing
           }
         : null,
-    'journalEntryIds': [...mealLogs.map((e) => e.firestoreId).whereType<String>(), ...symptomLogs.map((e) => e.firestoreId).whereType<String>()],
+    'journalEntryIds': <String>{
+      ...mealLogs.map((e) => e.journalEntryId ?? e.firestoreId).whereType<String>(),
+      ...symptomLogs.map((e) => e.journalEntryId ?? e.firestoreId).whereType<String>(),
+    }.toList(),
     // P2-1 slim docs: NO `mealLogs` (nothing renders them; the AI keeps text
     // + foodMentions + the rolling summary) and NO `analysisResult` (zero
     // readers — it re-stored scan+meal+symptoms+swaps a third time).

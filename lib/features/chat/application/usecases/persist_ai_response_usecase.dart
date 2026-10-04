@@ -6,8 +6,9 @@ import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_serv
 
 /// Chat-path entry point for AI-turn persistence.
 ///
-/// Thin wrapper since Phase 2: all record-write policy (validation, label/menu
-/// gating, consumption gating, stable IDs, dedup) lives in the shared
+/// Thin wrapper since Phase 2: all record-write policy (validation,
+/// no-scan label/menu policy, explicit-meal consumption gating, stable IDs,
+/// and dedup) lives in the shared
 /// [DomainEventPersister] so the chat and scanner paths can no longer diverge.
 /// This wrapper preserves the chat path's exact observable behavior —
 /// including its streak/UI side effects — on top of the shared outcome.

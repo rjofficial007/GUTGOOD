@@ -3,6 +3,8 @@ import 'package:gutgood/core/ai/classification/ai_classifier_service.dart';
 import 'package:gutgood/core/ai/client/ai_client.dart';
 import 'package:gutgood/core/ai/protocol/ai_analysis_result.dart';
 import 'package:gutgood/core/models/chat/chat_message.dart';
+import 'package:gutgood/core/models/journal/meal_log.dart';
+import 'package:gutgood/core/models/journal/symptom_log.dart';
 import 'package:gutgood/core/models/scans/off_product.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -52,6 +54,8 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(ScanResult(productName: '', brand: '', score: 0, impactType: ImpactType.neutral, impact: '', createdAt: DateTime.now()));
+    registerFallbackValue(MealLog(items: const [], createdAt: DateTime.now()));
+    registerFallbackValue(SymptomLog(symptom: '', createdAt: DateTime.now()));
     registerFallbackValue(ChatMessage(localId: '', role: '', text: '', createdAt: DateTime.now()));
   });
 
@@ -99,12 +103,13 @@ void main() {
 
       when(() => mockChatFirestoreService.saveMessage(any())).thenAnswer((_) async => 'msg_id');
       when(
-        () => mockHistoryFirestoreService.saveToScanHistory(
+        () => mockHistoryFirestoreService.trySaveToScanHistory(
           any(),
           userImageUrl: any(named: 'userImageUrl'),
           scanId: any(named: 'scanId'),
         ),
-      ).thenAnswer((_) async {});
+      ).thenAnswer((_) async => true);
+      when(() => mockHistoryFirestoreService.logMeal(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'meal_id');
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
       when(() => mockNotificationService.scheduleNoMealLoggedReminder()).thenAnswer((_) async {});
       when(() => mockNotificationService.schedulePostMealCheckIn()).thenAnswer((_) async {});
@@ -112,14 +117,17 @@ void main() {
 
       await repository.saveScanResult(result);
 
-      verify(() => mockChatFirestoreService.saveMessage(any())).called(2);
+      verify(() => mockChatFirestoreService.saveMessage(any())).called(1);
       verify(
-        () => mockHistoryFirestoreService.saveToScanHistory(
+        () => mockHistoryFirestoreService.trySaveToScanHistory(
           any(),
           userImageUrl: any(named: 'userImageUrl'),
           scanId: any(named: 'scanId'),
         ),
       ).called(1);
+      final meal = verify(() => mockHistoryFirestoreService.logMeal(captureAny(), docId: any(named: 'docId'))).captured.single as MealLog;
+      expect(meal.scanId, isNotNull);
+      expect(meal.journalEntryId, endsWith('_meal'));
       verify(() => mockAppStateService.notifyChatUpdated()).called(1);
     });
   });

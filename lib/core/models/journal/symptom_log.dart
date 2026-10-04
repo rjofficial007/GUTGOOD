@@ -13,6 +13,7 @@ class SymptomLog extends Equatable {
     this.firestoreId,
     this.uid,
     this.chatMessageId,
+    this.journalEntryId,
     required this.symptom,
     this.severity,
     this.notes,
@@ -73,13 +74,14 @@ class SymptomLog extends Equatable {
       firestoreId: rawId is String ? rawId : null,
       uid: map['uid'] as String?,
       chatMessageId: map['chatMessageId'] as String?,
+      journalEntryId: map['journalEntryId']?.toString() ?? map['journalId']?.toString(),
       symptom: symptomName,
       severity: int.tryParse(map['severity']?.toString() ?? ''),
       notes: map['notes']?.toString(),
       energyLevel: energyLevel,
       mood: map['mood']?.toString(),
       sleep: map['sleep']?.toString(),
-      lastMealFirestoreId: map['lastMealFirestoreId']?.toString() ?? map['lastMealId']?.toString(),
+      lastMealFirestoreId: map['lastMealFirestoreId']?.toString() ?? map['lastMealId']?.toString() ?? map['journalEntryId']?.toString(),
       foodName: map['foodName']?.toString() ?? map['lastMealName']?.toString() ?? map['mealName']?.toString() ?? map['food']?.toString(),
       imageUrl: parsedImageUrl,
       source: map['source']?.toString(),
@@ -104,6 +106,10 @@ class SymptomLog extends Equatable {
 
   /// The localId of the ChatMessage that triggered this log via passive logging.
   final String? chatMessageId;
+
+  /// Stable id shared by all typed records belonging to one journal event.
+  /// A symptom uses the linked meal/journal document id when available.
+  final String? journalEntryId;
 
   /// The primary symptom reported (e.g., "Bloating", "Gas", "Fatigue").
   final String symptom;
@@ -168,6 +174,7 @@ class SymptomLog extends Equatable {
     String? firestoreId,
     String? uid,
     String? chatMessageId,
+    String? journalEntryId,
     String? symptom,
     int? severity,
     String? notes,
@@ -194,6 +201,7 @@ class SymptomLog extends Equatable {
     firestoreId: firestoreId ?? this.firestoreId,
     uid: uid ?? this.uid,
     chatMessageId: chatMessageId ?? this.chatMessageId,
+    journalEntryId: journalEntryId ?? this.journalEntryId,
     symptom: symptom ?? this.symptom,
     severity: clearSeverity ? null : (severity ?? this.severity),
     notes: notes ?? this.notes,
@@ -219,6 +227,7 @@ class SymptomLog extends Equatable {
     'model': model,
     'firestoreId': firestoreId,
     'chatMessageId': chatMessageId,
+    'journalEntryId': journalEntryId,
     'symptom': symptom,
     'severity': severity,
     'notes': notes,
@@ -259,5 +268,5 @@ class SymptomLog extends Equatable {
   };
 
   @override
-  List<Object?> get props => [id, firestoreId, chatMessageId, symptom, severity, createdAt, occurredAt, occurredAtProvenance, energyLevel, lastMealFirestoreId, foodName, imageUrl, provenance];
+  List<Object?> get props => [id, firestoreId, chatMessageId, journalEntryId, symptom, severity, createdAt, occurredAt, occurredAtProvenance, energyLevel, lastMealFirestoreId, foodName, imageUrl, provenance];
 }

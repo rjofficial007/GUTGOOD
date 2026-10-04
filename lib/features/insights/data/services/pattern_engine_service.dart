@@ -40,7 +40,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final journalMeals = await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since);
     final scanHistory = await _historyFirestoreService.getRecentScans(limit: _fetchLimit, since: since);
 
-    final scanMeals = scanHistory.map((s) => s.toMealLog()).toList();
+    // Scans are now persisted as consumed meal projections. Keep the legacy
+    // scan-to-meal fallback for older scan_history documents, but never count a
+    // scan twice when its journal meal already carries the originating scanId.
+    final scanMeals = standaloneScanRecords(meals: journalMeals, scans: scanHistory).map((s) => s.toMealLog()).toList();
     final meals = [...journalMeals, ...scanMeals];
 
     final allSymptoms = await _historyFirestoreService.getRecentSymptomLogs(limit: _fetchLimit, since: since);
@@ -63,7 +66,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final earliest = earliestMeal.isBefore(earliestSymptom) ? earliestMeal : earliestSymptom;
     final timeframeDays = DateTime.now().difference(earliest).inDays.clamp(1, _analysisWindowDays);
 
-    final allPatterns = [
+    final rawPatterns = [
       ..._detectBloatingPatterns(meals, symptoms, timeframeDays: timeframeDays),
       ..._detectEnergyPatterns(meals, symptoms, timeframeDays: timeframeDays),
       ..._detectHeadachePatterns(meals, symptoms, timeframeDays: timeframeDays),
@@ -71,6 +74,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
       ..._detectFullnessPatterns(meals, symptoms, timeframeDays: timeframeDays),
       ..._detectSleepPatterns(meals, symptoms, timeframeDays: timeframeDays),
     ];
+    // A symptom after a meal containing several foods does not establish that
+    // each item was independently causal. Collapse those exposures into one
+    // conservative combination candidate before handing evidence to Insights.
+    final allPatterns = _collapseCoOccurringPatterns(rawPatterns, meals);
 
     if (allPatterns.isNotEmpty) {
       // Sort by confidence (High first) and frequency. Rank map: the old
@@ -108,15 +115,27 @@ class PatternEngineServiceImpl implements PatternEngineService {
   static final _whitespaceRun = RegExp(r'\s+');
   String _foodKey(String item) => item.toLowerCase().replaceAll(_quantityPrefix, '').replaceAll(_whitespaceRun, ' ').trim();
 
-  /// P1-7: symptoms strictly after [mealTime] within [window], sorted
-  /// ASCENDING by event time. Firestore returns newest-first, so callers must
-  /// never rely on list order (`.first` used to mean "latest in window").
-  List<SymptomLog> _symptomsAfter(List<SymptomLog> logs, DateTime mealTime, Duration window) =>
-      logs.where((s) => s.eventTime.isAfter(mealTime) && s.eventTime.difference(mealTime) <= window).toList()..sort((a, b) => a.eventTime.compareTo(b.eventTime));
+  /// P1-7: unlinked symptoms must be strictly after [meal.eventTime] within
+  /// [window], sorted ASCENDING by event time. An explicit same-turn or
+  /// nearest-meal journal link is authoritative over clock-only matching.
+  List<SymptomLog> _symptomsAfter(List<SymptomLog> logs, MealLog meal, Duration window) {
+    final mealId = meal.journalEntryId ?? meal.firestoreId;
+    return logs.where((s) {
+      final symptomLink = s.journalEntryId ?? s.lastMealFirestoreId;
+      if (symptomLink != null && symptomLink.isNotEmpty) {
+        // A persisted link is authoritative: do not reuse the same symptom as
+        // a time-window match for a different nearby meal.
+        return mealId != null && symptomLink == mealId;
+      }
+      final gap = s.eventTime.difference(meal.eventTime);
+      return !gap.isNegative && gap <= window;
+    }).toList()
+      ..sort((a, b) => a.eventTime.compareTo(b.eventTime));
+  }
 
-  /// P1-7: co-occurring items graduate from single-item triggers: items
-  /// present in at least half the symptomatic meals join the trigger (cap 3
-  /// total, trigger first, by co-occurrence count).
+  /// Finds co-occurring items that should be treated as one exposure
+  /// candidate. The final collapse step uses this list to avoid publishing
+  /// each ingredient from the same meal as an independent cause (cap 3 total).
   List<String> _involvedFoods(String triggerKey, List<MealLog> symptomaticMeals) {
     final counts = <String, int>{};
     for (final meal in symptomaticMeals) {
@@ -128,6 +147,81 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final threshold = (symptomaticMeals.length / 2).ceil();
     final co = counts.entries.where((e) => e.value >= threshold).map((e) => e.key).toList()..sort((a, b) => counts[b]!.compareTo(counts[a]!));
     return [triggerKey, ...co.take(2)];
+  }
+
+  List<BodyPattern> _collapseCoOccurringPatterns(List<BodyPattern> patterns, List<MealLog> meals) {
+    final collapsed = <BodyPattern>[];
+    final seen = <String>{};
+
+    for (final pattern in patterns) {
+      final involvedKeys = <String>[];
+      for (final food in pattern.involvedFoods.map(_foodKey)) {
+        if (food.isNotEmpty && !involvedKeys.contains(food)) involvedKeys.add(food);
+      }
+      if (involvedKeys.length < 2) {
+        collapsed.add(pattern);
+        continue;
+      }
+
+      final combinationMeals = meals.where((meal) => _mealContainsAll(meal, involvedKeys)).toList();
+      final combinationMealNames = combinationMeals.map((meal) => _mealKey(meal.items)).toSet();
+      final combinationOccurrences = pattern.occurrences.where((occurrence) => combinationMealNames.contains(_mealKey(occurrence.mealName.split(',')))).toList();
+      if (combinationOccurrences.length < _minFrequency) {
+        // The individual trigger did not have enough exact combination
+        // evidence. Suppress it rather than publishing an independent claim.
+        continue;
+      }
+
+      final sortedKeys = List<String>.from(involvedKeys)..sort();
+      final groupKey = '${pattern.type}|${pattern.reaction}|${sortedKeys.join('|')}';
+      if (!seen.add(groupKey)) continue;
+
+      final frequency = combinationOccurrences.length;
+      final totalSimilarMeals = combinationMeals.length;
+      final negativeCount = (totalSimilarMeals - frequency).clamp(0, totalSimilarMeals).toInt();
+      final evidenceRatio = totalSimilarMeals == 0 ? 0.0 : frequency / totalSimilarMeals;
+      final label = involvedKeys.map(_capitalize).join(' + ');
+
+      collapsed.add(
+        BodyPattern(
+          id: pattern.id,
+          type: pattern.type,
+          trigger: label,
+          reaction: pattern.reaction,
+          frequency: frequency,
+          confidence: _getConfidence(frequency: frequency, evidenceRatio: evidenceRatio, negativeCount: negativeCount),
+          confidenceScore: pattern.confidenceScore,
+          description: 'Meals containing $label were followed by ${pattern.reaction.toLowerCase()} in $frequency recent logs.',
+          involvedFoods: involvedKeys,
+          relatedFoodIds: pattern.relatedFoodIds,
+          recommendation: pattern.recommendation,
+          updatedAt: pattern.updatedAt,
+          occurrences: combinationOccurrences,
+          commonFactors: pattern.commonFactors,
+          totalSimilarMeals: totalSimilarMeals,
+          timeframeDays: pattern.timeframeDays,
+          typicalTiming: pattern.typicalTiming,
+          typicalDelay: pattern.typicalDelay,
+          impactDirection: pattern.impactDirection,
+          impactLevel: pattern.impactLevel,
+          evidenceRatio: evidenceRatio,
+          positiveCount: frequency,
+          negativeCount: negativeCount,
+          schemaVersion: pattern.schemaVersion,
+        ),
+      );
+    }
+    return collapsed;
+  }
+
+  bool _mealContainsAll(MealLog meal, List<String> foodKeys) {
+    final mealKeys = meal.items.map(_foodKey).where((key) => key.isNotEmpty).toSet();
+    return foodKeys.every(mealKeys.contains);
+  }
+
+  String _mealKey(Iterable<String> items) {
+    final keys = items.map(_foodKey).where((key) => key.isNotEmpty).toList()..sort();
+    return keys.join('|');
   }
 
   String _formatDate(DateTime date) {
@@ -192,7 +286,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final bloatingLogs = symptoms.where((s) => s.symptom.toLowerCase().contains('bloat')).toList();
 
     for (final meal in meals) {
-      if (_symptomsAfter(bloatingLogs, meal.eventTime, _bloatWindow).isNotEmpty) {
+      if (_symptomsAfter(bloatingLogs, meal, _bloatWindow).isNotEmpty) {
         for (final item in meal.items) {
           final key = _foodKey(item);
           if (key.isEmpty) continue;
@@ -224,7 +318,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
         positiveCount: symptomaticMeals.length,
         negativeCount: asymptomatic,
         occurrences: symptomaticMeals.map((m) {
-          final s = _symptomsAfter(bloatingLogs, m.eventTime, _bloatWindow).first;
+          final s = _symptomsAfter(bloatingLogs, m, _bloatWindow).first;
           return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Bloating', timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
         }).toList(),
         commonFactors: _extractCommonFactors(symptomaticMeals),
@@ -243,7 +337,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     for (final meal in meals) {
       // P1-7: the NEAREST reading after the meal (ascending sort), not
       // Firestore's newest-first `.first`.
-      final nextSymptom = _symptomsAfter(energyLogs, meal.eventTime, _energyWindow);
+      final nextSymptom = _symptomsAfter(energyLogs, meal, _energyWindow);
 
       if (nextSymptom.isNotEmpty) {
         final log = nextSymptom.first;
@@ -282,7 +376,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             positiveCount: symptomaticMeals.length,
             negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
-              final s = _symptomsAfter(energyLogs, m.eventTime, _energyWindow).first;
+              final s = _symptomsAfter(energyLogs, m, _energyWindow).first;
               return PatternOccurrence(
                 date: _formatDate(m.eventTime),
                 mealName: m.items.join(', '),
@@ -318,7 +412,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             positiveCount: symptomaticMeals.length,
             negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
-              final s = _symptomsAfter(energyLogs, m.eventTime, _energyWindow).first;
+              final s = _symptomsAfter(energyLogs, m, _energyWindow).first;
               return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Sluggish', timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
             }).toList(),
             commonFactors: _extractCommonFactors(symptomaticMeals),
@@ -349,7 +443,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final headacheLogs = symptoms.where((s) => keywords.any((k) => s.symptom.toLowerCase().contains(k))).toList();
 
     for (final meal in meals) {
-      if (_symptomsAfter(headacheLogs, meal.eventTime, _headacheWindow).isNotEmpty) {
+      if (_symptomsAfter(headacheLogs, meal, _headacheWindow).isNotEmpty) {
         for (final item in meal.items) {
           final key = _foodKey(item);
           if (key.isEmpty) continue;
@@ -381,7 +475,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
         positiveCount: symptomaticMeals.length,
         negativeCount: asymptomatic,
         occurrences: symptomaticMeals.map((m) {
-          final s = _symptomsAfter(headacheLogs, m.eventTime, _headacheWindow).first;
+          final s = _symptomsAfter(headacheLogs, m, _headacheWindow).first;
           return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: reaction, timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
         }).toList(),
         commonFactors: _extractCommonFactors(symptomaticMeals),
@@ -396,7 +490,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final digestionLogs = symptoms.where((s) => digestiveKeywords.any((k) => s.symptom.toLowerCase().contains(k))).toList();
 
     for (final meal in meals) {
-      if (_symptomsAfter(digestionLogs, meal.eventTime, _digestionWindow).isNotEmpty) {
+      if (_symptomsAfter(digestionLogs, meal, _digestionWindow).isNotEmpty) {
         for (final item in meal.items) {
           final key = _foodKey(item);
           if (key.isEmpty) continue;
@@ -428,7 +522,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
         positiveCount: symptomaticMeals.length,
         negativeCount: asymptomatic,
         occurrences: symptomaticMeals.map((m) {
-          final s = _symptomsAfter(digestionLogs, m.eventTime, _digestionWindow).first;
+          final s = _symptomsAfter(digestionLogs, m, _digestionWindow).first;
           return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Discomfort', timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
         }).toList(),
         commonFactors: _extractCommonFactors(symptomaticMeals),
@@ -449,7 +543,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     for (final meal in meals) {
       // P1-7: nearest reading after the meal (ascending sort), not Firestore's
       // newest-first `.first`.
-      final nextSymptom = _symptomsAfter(fullnessLogs, meal.eventTime, _fullnessWindow);
+      final nextSymptom = _symptomsAfter(fullnessLogs, meal, _fullnessWindow);
 
       if (nextSymptom.isNotEmpty) {
         final log = nextSymptom.first;
@@ -494,7 +588,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             positiveCount: symptomaticMeals.length,
             negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
-              final s = _symptomsAfter(fullnessLogs, m.eventTime, _fullnessWindow).first;
+              final s = _symptomsAfter(fullnessLogs, m, _fullnessWindow).first;
               return PatternOccurrence(
                 date: _formatDate(m.eventTime),
                 mealName: m.items.join(', '),
@@ -530,7 +624,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             positiveCount: symptomaticMeals.length,
             negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
-              final s = _symptomsAfter(fullnessLogs, m.eventTime, _fullnessWindow).first;
+              final s = _symptomsAfter(fullnessLogs, m, _fullnessWindow).first;
               return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Hungry', timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
             }).toList(),
             commonFactors: _extractCommonFactors(symptomaticMeals),
@@ -648,6 +742,17 @@ extension ScanResultToMealLog on ScanResult {
     if (itemNames.isEmpty && productName.isNotEmpty) {
       itemNames.add(productName);
     }
-    return MealLog(firestoreId: scanId, chatMessageId: chatMessageId, items: itemNames, notes: impact, photoUrl: imageUrl ?? userImageUrl, createdAt: createdAt);
+    return MealLog(
+      firestoreId: scanId == null ? null : '${scanId}_meal',
+      journalEntryId: scanId == null ? null : '${scanId}_meal',
+      scanId: scanId,
+      chatMessageId: chatMessageId,
+      items: itemNames,
+      notes: impact,
+      photoUrl: imageUrl ?? userImageUrl,
+      source: source ?? 'scan',
+      mealType: 'scan',
+      createdAt: createdAt,
+    );
   }
 }

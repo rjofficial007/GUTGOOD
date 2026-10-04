@@ -1,20 +1,18 @@
 /// Confidence-gating thresholds for AI-derived data.
 ///
-/// GutGood auto-saves AI-extracted scan/meal/symptom data straight into the
-/// user's permanent history (scan_history / journal_logs) with no manual
-/// confirmation step. If the model itself reports low confidence in what it
-/// extracted (e.g. a blurry photo, an unidentifiable product), we must NOT
-/// silently treat that guess as confirmed ground truth — it would corrupt
-/// gut-health pattern detection and insights built on top of it.
+/// GutGood auto-saves AI-extracted data straight into the user's permanent
+/// history (scan_history / journal_logs) with no manual confirmation step.
+/// For ordinary meal/symptom extraction, low confidence is kept chat-only so
+/// it cannot silently corrupt gut-health pattern detection; concrete scans are
+/// the deliberate consumed-food exception and retain their evidence metadata.
 class AiConfidenceThresholds {
   AiConfidenceThresholds._();
 
-  /// Minimum `metadata.confidence` (0.0-1.0) required before a scan/meal/
-  /// symptom extracted by the AI is auto-persisted as confirmed history.
-  /// Below this, the data is still shown to the user in chat (so nothing is
-  /// hidden), but it is not written to scan_history/journal_logs, and the
-  /// gut-health pattern engine's independent 3+ occurrence corroboration
-  /// requirement (see PatternEngineService) is left untouched.
+  /// Minimum `metadata.confidence` (0.0-1.0) required before non-scan
+  /// meal/symptom data extracted by the AI is auto-persisted as confirmed
+  /// history. Concrete scans intentionally bypass this gate: the product
+  /// records every completed scan as both scan history and consumed food,
+  /// while retaining the confidence value as provenance.
   static const double minPersistenceConfidence = 0.6;
 }
 
@@ -105,7 +103,9 @@ class AiVersions {
   /// 2 = de-presented schema: the LLM emits data only, Dart owns visuals.
   /// 3 = v2 Real Tokens UI blocks (`improving`, `watch`, `smartSwap`,
   ///     `topHealing/topTrigger.whyPoints`). All tolerant reads.
-  static const int insightPromptVersion = 6;
+  /// 7 = evidence-gated Insights output: combination candidates, deterministic
+  ///     food-impact balance, and no unsupported mechanism fields.
+  static const int insightPromptVersion = 7;
 
   /// J-4 §17: chat builder (`Prompts.chatSystemInstruction`) version, stamped
   /// on ChatMessage + the scan/meal/symptom records extracted from chat turns.
