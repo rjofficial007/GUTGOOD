@@ -192,6 +192,8 @@ class GutScoreCard extends StatelessWidget {
                                       ),
                                       Gap.w8,
                                       Text(() {
+                                        final scoredCount = shownSeries.where((value) => value > 0).length;
+                                        if (scoredCount == 1) return 'Starting baseline';
                                         if (shownSeries.isNotEmpty) {
                                           final nonZeroIndices = <int>[];
                                           for (var i = 0; i < shownSeries.length; i++) {

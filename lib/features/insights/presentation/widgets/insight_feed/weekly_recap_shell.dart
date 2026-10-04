@@ -2,6 +2,26 @@ part of 'insights_feed.dart';
 
 /// Weekly recap shell and summary presentation components.
 
+bool _hasCompletedWeeklyRecap(WeeklyRecap? recap) {
+  if (recap == null) return false;
+  final hasFoodEvidence = (recap.foodsLogged ?? 0) > 0;
+  final hasScoreEvidence = recap.gutScoreTrend?.any((score) => score > 0) ?? false;
+  if (!hasFoodEvidence && !hasScoreEvidence) return false;
+
+  // A recap without an explicit period is an unbounded/current snapshot, not
+  // a validated weekly result. Only render a complete Sunday–Saturday window.
+  final periodFrom = recap.periodFrom?.toLocal();
+  final periodTo = recap.periodTo?.toLocal();
+  if (periodFrom == null || periodTo == null) return false;
+
+  final fromDay = DateTime(periodFrom.year, periodFrom.month, periodFrom.day);
+  final toDay = DateTime(periodTo.year, periodTo.month, periodTo.day);
+  final isSundayThroughSaturday =
+      fromDay.weekday == DateTime.sunday && toDay.weekday == DateTime.saturday && toDay.difference(fromDay).inDays == 6;
+
+  return isSundayThroughSaturday && periodTo.isBefore(DateTime.now());
+}
+
 class WeeklyRecapView extends StatelessWidget {
   const WeeklyRecapView({super.key, required this.data, this.series = const [], this.patterns = const [], this.history = const []});
 
@@ -14,6 +34,22 @@ class WeeklyRecapView extends StatelessWidget {
   Widget build(BuildContext context) {
     final recap = data.weeklyRecap;
 
+    if (!_hasCompletedWeeklyRecap(recap)) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _InsightsEmptyState(
+            headline: 'Your week.\nYour score.\nYour recap.',
+            description: 'Keep logging meals and symptoms this week. Your completed Sunday–Saturday recap will appear here once the week ends.',
+            banner: _InsightsLearningBannerCard(
+              title: 'Your weekly recap gets clearer over time',
+              description: 'Keep logging meals and symptoms to unlock a more meaningful weekly summary.',
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -21,7 +57,7 @@ class WeeklyRecapView extends StatelessWidget {
         _WeeklyAverageScoreCard(recap: recap, data: data),
         Gap.h10,
 
-        // 2. Row of 3 Stat Cards (Best Day, Foods Logged, Your Evidence)
+        // 2. Row of 3 Stat Cards (Best/Only Scored Day, Foods Logged, Your Evidence)
         _WeeklyRecapStatCardsRow(recap: recap, data: data),
         Gap.h10,
 
@@ -52,8 +88,9 @@ class _WeeklyAverageScoreCard extends StatelessWidget {
       scoreRecord = context.read<InsightsNotifier>().latestScoreRecord;
     } catch (_) {}
 
+    final isCompletedRecap = recap?.periodTo != null;
     var trendInts = const <int>[];
-    if (scoreRecord != null && scoreRecord.dailyScores.isNotEmpty) {
+    if (!isCompletedRecap && scoreRecord != null && scoreRecord.dailyScores.isNotEmpty) {
       trendInts = scoreRecord.dailyScores;
     } else if (recap?.gutScoreTrend != null && recap!.gutScoreTrend!.isNotEmpty) {
       trendInts = recap!.gutScoreTrend!;
@@ -63,10 +100,12 @@ class _WeeklyAverageScoreCard extends StatelessWidget {
     final scored = trendInts.where((s) => s > 0).toList();
     final trendAvg = scored.isEmpty ? null : (scored.reduce((a, b) => a + b) / scored.length).round();
 
-    final recordScore = scoreRecord?.gutScore;
-    final avgScore = (recordScore != null && recordScore > 0) ? recordScore : (recap?.avgScore ?? trendAvg ?? (data.hasGutScore ? data.gutScore : 0));
+    final recordScore = isCompletedRecap ? null : scoreRecord?.gutScore;
+    final avgScore = (recordScore != null && recordScore > 0) ? recordScore : (recap?.avgScore ?? trendAvg ?? (isCompletedRecap ? 0 : (data.hasGutScore ? data.gutScore : 0)));
 
-    final hasAnyScore = (recordScore != null && recordScore > 0) || data.hasGutScore || scored.isNotEmpty || (recap?.avgScore ?? 0) > 0;
+    final hasAnyScore = isCompletedRecap
+        ? scored.isNotEmpty || (recap?.avgScore ?? 0) > 0
+        : (recordScore != null && recordScore > 0) || data.hasGutScore || scored.isNotEmpty || (recap?.avgScore ?? 0) > 0;
 
     if (!hasAnyScore) {
       return InsightScoreCard(score: null, delta: null, onTap: null, onWhyTap: () => WhyScoreSheet.show(context, data));
@@ -98,11 +137,14 @@ class _ForYouGutScoreCard extends StatelessWidget {
       scoreRecord = context.read<InsightsNotifier>().latestScoreRecord;
     } catch (_) {}
 
+    final isCompletedRecap = data.weeklyRecap?.periodTo != null;
     var trendInts = const <int>[];
     if (scoreRecord != null && scoreRecord.dailyScores.isNotEmpty) {
       trendInts = scoreRecord.dailyScores;
-    } else if (data.weeklyRecap?.gutScoreTrend != null && data.weeklyRecap!.gutScoreTrend!.isNotEmpty) {
+    } else if (!isCompletedRecap && data.weeklyRecap?.gutScoreTrend != null && data.weeklyRecap!.gutScoreTrend!.isNotEmpty) {
       trendInts = data.weeklyRecap!.gutScoreTrend!;
+    } else if (data.hasGutScore) {
+      trendInts = [data.gutScore];
     }
 
     final trendDoubles = trendInts.map((e) => e.toDouble()).toList();
@@ -119,14 +161,17 @@ class _ForYouGutScoreCard extends StatelessWidget {
     }
 
     final chartSeries = trendDoubles.isNotEmpty ? trendDoubles : (series.isNotEmpty ? series : [displayScore.toDouble()]);
+    final isBaseline = scored.length < 2;
 
     const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return GutScoreCard(
       score: displayScore,
       delta: delta,
-      title: 'GUTGOOD SCORE',
-      subtitle: data.weeklyRecap?.scoreSub ?? 'Based on your recent meal and symptom logs.',
+      title: isBaseline ? 'BASELINE SCORE' : 'GUTGOOD SCORE',
+      subtitle: isBaseline
+          ? 'This is your starting point. Log more days to see a reliable trend.'
+          : (data.weeklyRecap?.periodTo != null ? 'Based on your current meal and symptom logs.' : (data.weeklyRecap?.scoreSub ?? 'Based on your recent meal and symptom logs.')),
       series: chartSeries,
       labels: labels,
       onTap: () => WhyScoreSheet.show(context, data),
@@ -144,16 +189,29 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bestDay = (recap?.bestDay != null && recap!.bestDay!.isNotEmpty) ? recap!.bestDay! : '—';
+    final scoredDayCount = recap?.gutScoreTrend?.where((score) => score > 0).length ?? 0;
+    final bestDayTitle = scoredDayCount == 1 ? 'Only Scored Day' : 'Best Day';
     // Prefer recap counts (7-day). Fall back to evidence sample sizes so the
     // card never shows a blank "—" when the insight has real logs.
-    final foodsLogged = recap?.foodsLogged ?? ((data.evidence?.sampleSizes.meals ?? 0) + (data.evidence?.sampleSizes.scans ?? 0));
-    final foodsLabel = recap?.loggedSub ?? 'meals and scans';
+    final isCompletedRecap = recap?.periodTo != null;
+    final mealCount = isCompletedRecap ? 0 : (data.evidence?.sampleSizes.meals ?? 0);
+    final scanCount = isCompletedRecap ? 0 : (data.evidence?.sampleSizes.scans ?? 0);
+    final foodsLogged = recap?.foodsLogged ?? (mealCount + scanCount);
+    final foodsLabel = isCompletedRecap
+        ? (recap?.loggedSub ?? (foodsLogged == 1 ? 'meal' : 'meals'))
+        : mealCount > 0 && scanCount > 0
+            ? 'meals and scans'
+            : scanCount > 0
+                ? (scanCount == 1 ? 'scan' : 'scans')
+                : mealCount > 0
+                    ? (mealCount == 1 ? 'meal' : 'meals')
+                    : (recap?.loggedSub ?? 'foods');
 
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Best Day Card
+          // 1. Best/Only Scored Day Card
           Expanded(
             child: Container(
               padding: EdgeInsets.all(10.w),
@@ -176,7 +234,7 @@ class _WeeklyRecapStatCardsRow extends StatelessWidget {
                       Gap.w4,
                       Expanded(
                         child: Text(
-                          'Best Day',
+                          bestDayTitle,
                           style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
                         ),
                       ),

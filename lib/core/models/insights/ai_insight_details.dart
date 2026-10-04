@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
@@ -306,6 +307,8 @@ class WeeklyRecap extends Equatable {
     this.bestDay,
     this.foodsLogged,
     this.loggedSub,
+    this.periodFrom,
+    this.periodTo,
   });
 
   factory WeeklyRecap.fromMap(Map<String, dynamic> map) {
@@ -334,6 +337,8 @@ class WeeklyRecap extends Equatable {
       bestDay: map['bestDay']?.toString(),
       foodsLogged: InsightValues.integer(map['foodsLogged']),
       loggedSub: map['loggedSub']?.toString(),
+      periodFrom: DateTimeUtils.tryParse(map['periodFrom']),
+      periodTo: DateTimeUtils.tryParse(map['periodTo']),
     );
   }
 
@@ -348,6 +353,11 @@ class WeeklyRecap extends Equatable {
   final int? foodsLogged;
   final String? loggedSub;
 
+  /// Calendar window represented by this recap. New deterministic recaps use
+  /// an explicit completed-week window; legacy AI recaps may leave these null.
+  final DateTime? periodFrom;
+  final DateTime? periodTo;
+
   WeeklyRecap copyWith({
     List<dynamic>? highlights,
     List<String>? stats,
@@ -359,6 +369,8 @@ class WeeklyRecap extends Equatable {
     String? bestDay,
     int? foodsLogged,
     String? loggedSub,
+    DateTime? periodFrom,
+    DateTime? periodTo,
   }) => WeeklyRecap(
     highlights: highlights ?? this.highlights,
     stats: stats ?? this.stats,
@@ -370,6 +382,8 @@ class WeeklyRecap extends Equatable {
     bestDay: bestDay ?? this.bestDay,
     foodsLogged: foodsLogged ?? this.foodsLogged,
     loggedSub: loggedSub ?? this.loggedSub,
+    periodFrom: periodFrom ?? this.periodFrom,
+    periodTo: periodTo ?? this.periodTo,
   );
 
   Map<String, dynamic> toMap() => {
@@ -386,10 +400,12 @@ class WeeklyRecap extends Equatable {
     'bestDay': bestDay,
     'foodsLogged': foodsLogged,
     'loggedSub': loggedSub,
+    'periodFrom': periodFrom?.toIso8601String(),
+    'periodTo': periodTo?.toIso8601String(),
   };
 
   @override
-  List<Object?> get props => [highlights, stats, gutScoreTrend, summary, avgScore, dateRange, scoreSub, bestDay, foodsLogged, loggedSub];
+  List<Object?> get props => [highlights, stats, gutScoreTrend, summary, avgScore, dateRange, scoreSub, bestDay, foodsLogged, loggedSub, periodFrom, periodTo];
 }
 
 class GutScoreSummary extends Equatable {

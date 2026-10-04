@@ -56,6 +56,7 @@ class _ImprovingCardWidget extends StatelessWidget {
         : (scoredSeries.length < 2 && data.lastWeek == null
               ? 'One recorded score sets a starting point. Another score will show whether it changed.'
               : (data.description.isNotEmpty ? data.description : 'Keep logging meals and symptoms to track your gut health progress.'));
+    final sectionLabel = scoredSeries.length < 2 ? 'Building Baseline' : 'Your Progress';
 
     return Container(
       decoration: BoxDecoration(
@@ -99,7 +100,7 @@ class _ImprovingCardWidget extends StatelessWidget {
                         Gap.w6,
                         Expanded(
                           child: Text(
-                            'Your Progress',
+                            sectionLabel,
                             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF14532D)),
                           ),
                         ),
@@ -133,7 +134,7 @@ class _ImprovingCardWidget extends StatelessWidget {
                     SizedBox(
                       height: 38.w,
                       width: double.infinity,
-                      child: InsightTrendChart(values: series),
+                      child: InsightTrendChart(values: cleanSeries),
                     ),
                     Gap.h2,
                     Row(
@@ -223,8 +224,16 @@ class _WatchCardWidget extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasTrigger = data != null && data!.pattern != null && data!.title.isNotEmpty && data!.title != 'No Triggers Detected';
 
-    final title = hasTrigger ? data!.title : 'No Triggers Detected';
+    final title = hasTrigger ? data!.title : 'No triggers yet';
     final desc = hasTrigger && data!.description.isNotEmpty ? data!.description : 'Repeated food and symptom associations have not been established yet. Keep logging to build enough evidence.';
+    final cardBackground = hasTrigger
+        ? (isDark ? const Color(0xFF231416) : const Color(0xFFFFF5F5))
+        : (isDark ? const Color(0xFF111E2E) : const Color(0xFFF8FAFC));
+    final cardBorder = hasTrigger
+        ? (isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5))
+        : (isDark ? const Color(0xFF38BDF8).withValues(alpha: 0.28) : const Color(0xFFE2E8F0));
+    final headerColor = hasTrigger ? (isDark ? const Color(0xFFF87171) : const Color(0xFF881337)) : (isDark ? const Color(0xFF7DD3FC) : const Color(0xFF334155));
+    final iconBackground = hasTrigger ? const Color(0xFFDC2626) : (isDark ? const Color(0xFF0369A1) : const Color(0xFF64748B));
 
     final thumbnails = hasTrigger && data?.pattern?.involvedFoods.isNotEmpty == true
         ? data!.pattern!.involvedFoods.take(3).map(InsightUiKit.foodImageUrl).toList()
@@ -244,12 +253,12 @@ class _WatchCardWidget extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF231416) : const Color(0xFFFFF5F5),
+        color: cardBackground,
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5), width: 1.2.w),
+        border: Border.all(color: cardBorder, width: 1.2.w),
         boxShadow: [
           BoxShadow(
-            color: (isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626)).withValues(alpha: isDark ? 0.08 : 0.04),
+            color: (hasTrigger ? (isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626)) : (isDark ? const Color(0xFF38BDF8) : const Color(0xFF64748B))).withValues(alpha: isDark ? 0.08 : 0.04),
             blurRadius: 8.w,
             offset: Offset(0, 2.w),
           ),
@@ -276,16 +285,16 @@ class _WatchCardWidget extends StatelessWidget {
                         Container(
                           width: 24.w,
                           height: 24.w,
-                          decoration: const BoxDecoration(color: Color(0xFFDC2626), shape: BoxShape.circle),
+                          decoration: BoxDecoration(color: iconBackground, shape: BoxShape.circle),
                           child: Center(
-                            child: Icon(LucideIcons.triangleAlert, size: 13.w, color: Colors.white),
+                            child: Icon(hasTrigger ? LucideIcons.triangleAlert : LucideIcons.info, size: 13.w, color: Colors.white),
                           ),
                         ),
                         Gap.w6,
                         Expanded(
                           child: Text(
-                            'Something to Watch',
-                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFFF87171) : const Color(0xFF881337)),
+                            hasTrigger ? 'Something to Watch' : 'Pattern Check',
+                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: headerColor),
                           ),
                         ),
                       ],

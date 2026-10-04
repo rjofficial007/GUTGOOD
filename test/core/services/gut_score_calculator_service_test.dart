@@ -41,5 +41,56 @@ void main() {
       final score = service.calculateGutScore(scans: scans, symptoms: symptoms, meals: meals);
       expect(score, 84);
     });
+
+    test('calculateWeeklyRecap pluralizes foods and symptoms and labels one meal', () {
+      final now = DateTime.now();
+      final recap = service.calculateWeeklyRecap(
+        recentScans: const [],
+        recentSymptoms: [SymptomLog(symptom: 'Bloating', createdAt: now)],
+        recentMeals: [MealLog(items: const ['Oats'], createdAt: now)],
+        weeklyTrend: const [0, 70, 0, 0, 0, 0, 0],
+        exactScore: 70,
+      );
+
+      expect(recap.summary, startsWith('You logged 1 food and 1 symptom this week.'));
+      expect(recap.loggedSub, 'meal');
+      expect(recap.scoreSub, '1 of 7 days scored');
+    });
+
+    test('calculateWeeklyRecap uses plural labels for multiple records', () {
+      final now = DateTime.now();
+      final recap = service.calculateWeeklyRecap(
+        recentScans: const [],
+        recentSymptoms: [
+          SymptomLog(symptom: 'Bloating', createdAt: now),
+          SymptomLog(symptom: 'Gas', createdAt: now),
+        ],
+        recentMeals: [
+          MealLog(items: const ['Oats'], createdAt: now),
+          MealLog(items: const ['Rice'], createdAt: now.add(const Duration(minutes: 1))),
+        ],
+        weeklyTrend: const [0, 70, 0, 80, 0, 0, 0],
+        exactScore: 75,
+      );
+
+      expect(recap.summary, startsWith('You logged 2 foods and 2 symptoms this week.'));
+      expect(recap.loggedSub, 'meals');
+    });
+
+    test('calculateWeeklyRecap preserves the completed calendar-week window', () {
+      final recap = service.calculateWeeklyRecap(
+        recentScans: const [],
+        recentSymptoms: const [],
+        recentMeals: [MealLog(items: const ['Oats'], createdAt: DateTime(2026, 9, 28))],
+        weeklyTrend: const [0, 70, 0, 0, 0, 0, 0],
+        exactScore: 70,
+        periodFrom: DateTime(2026, 9, 27),
+        periodTo: DateTime(2026, 10, 3, 23, 59, 59),
+      );
+
+      expect(recap.periodFrom, DateTime(2026, 9, 27));
+      expect(recap.periodTo, DateTime(2026, 10, 3, 23, 59, 59));
+      expect(recap.dateRange, 'Sep 27–Oct 3');
+    });
   });
 }

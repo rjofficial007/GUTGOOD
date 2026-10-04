@@ -104,6 +104,11 @@ class _TopInsightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final titleText = InsightValues.text(topInsight.title, fallback: 'Your food and symptom snapshot');
+    final observationCount = (topInsight.frequency ?? 1) < 1 ? 1 : (topInsight.frequency ?? 1);
+    final isEarlyObservation = observationCount <= 1;
+    final eyebrow = isEarlyObservation
+        ? 'Early observation · $observationCount observation${observationCount == 1 ? '' : 's'}'
+        : 'Top Insights & Trends';
 
     return Container(
       decoration: BoxDecoration(
@@ -128,7 +133,7 @@ class _TopInsightCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Top Insights & Trends',
+                        eyebrow,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.4),
@@ -204,173 +209,65 @@ class _TopInsightCard extends StatelessWidget {
   }
 }
 
-class _EmptyPatternsCard extends StatelessWidget {
-  const _EmptyPatternsCard();
+/// Reusable centered empty state and learning banner for Insights tabs that
+/// do not yet have enough evidence to render a trustworthy chart or pattern card.
+class _InsightsEmptyState extends StatelessWidget {
+  const _InsightsEmptyState({required this.headline, required this.description, required this.banner});
+
+  final String headline;
+  final String description;
+  final Widget banner;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final foreground = isDark ? Colors.white : Colors.black;
 
-    final primaryTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final secondaryTextColor = isDark ? Colors.white.withValues(alpha: 0.70) : const Color(0xFF64748B);
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16.w, 20.w, 16.w, 24.w),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.black : Colors.white,
-        borderRadius: BorderRadius.circular(28.w),
-        border: Border.all(color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
-        boxShadow: isDark
-            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))]
-            : [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Display Headline (Matching Chat Empty State UI/UX)
-          Text(
-            'Your meals.\nYour reactions.\nYour patterns.',
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 26.sp, fontWeight: FontWeight.w800, height: 1.15, letterSpacing: -0.5, color: primaryTextColor),
-            textAlign: TextAlign.center,
-          ),
-          Gap.h12,
-
-          // Subtitle Paragraph
-          Text(
-            'Keep logging your food scans and symptoms to discover recurring body patterns and tailored triggers.',
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w400, color: secondaryTextColor, height: 1.35),
-            textAlign: TextAlign.center,
-          ),
-          Gap.h20,
-
-          // 2-Column Action Cards (Scan Food & Track Symptoms)
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: AppSizes.p8,
-            mainAxisSpacing: AppSizes.p8,
-            childAspectRatio: 1.1,
+    final centeredCopy = Padding(
+      padding: EdgeInsets.only(left: 16.w, top: 24.w, right: 16.w),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 335.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _EmptyPatternActionCard(
-                icon: AppIcons.scan,
-                title: 'Scan food',
-                subtitle: 'Log meals',
-                accentColor: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
-                onTap: () => context.push(AppRoutes.scannerPath('meal')),
+              Text(
+                headline,
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 30.sp, fontWeight: FontWeight.w800, height: 1.12, letterSpacing: -0.7, color: foreground),
+                textAlign: TextAlign.center,
               ),
-              _EmptyPatternActionCard(
-                icon: AppIcons.heart,
-                title: 'Track symptoms',
-                subtitle: 'Record reactions',
-                accentColor: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
-                onTap: () => context.push(AppRoutes.scannerPath('symptom')),
+              Gap.h12,
+              Text(
+                description,
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w400, color: foreground, height: 1.4),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
-          Gap.h16,
+        ),
+      ),
+    );
 
-          // Bottom Guidance Callout
-          Container(
-            padding: EdgeInsets.all(AppSizes.p14),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(AppSizes.r20),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 28.w,
-                  height: 28.w,
-                  decoration: BoxDecoration(color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9), shape: BoxShape.circle),
-                  alignment: Alignment.center,
-                  child: Icon(LucideIcons.lightbulb, size: 14.w, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)),
-                ),
-                Gap.w10,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Understanding Your Patterns',
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: primaryTextColor),
-                      ),
-                      Gap.h2,
-                      Text(
-                        'Body patterns emerge automatically as you log meals alongside symptoms over time. No guessing—just clear data.',
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: secondaryTextColor, height: 1.35),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height * 0.68),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [centeredCopy, Gap.h20, banner],
       ),
     );
   }
 }
 
-class _EmptyPatternActionCard extends StatelessWidget {
-  const _EmptyPatternActionCard({required this.icon, required this.title, required this.subtitle, required this.accentColor, required this.onTap});
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color accentColor;
-  final VoidCallback onTap;
+class _EmptyPatternsState extends StatelessWidget {
+  const _EmptyPatternsState();
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = context.appColorScheme;
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.all(AppSizes.p12),
-        decoration: BoxDecoration(
-          color: scheme.cardBackground,
-          borderRadius: BorderRadius.circular(AppSizes.r20),
-          border: Border.all(color: scheme.borderSubtle),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 38.w,
-              height: 38.w,
-              decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Center(
-                child: Icon(icon, size: 18.w, color: accentColor),
-              ),
-            ),
-            Gap.h8,
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: scheme.textPrimary, height: 1.15),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Gap.h2,
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: scheme.textSecondary),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const _InsightsEmptyState(
+    headline: 'Your meals.\nYour reactions.\nYour patterns.',
+    description: 'Keep logging your food scans and symptoms to discover recurring body patterns and tailored triggers.',
+    banner: _PatternsSmarterBannerCard(),
+  );
 }
+

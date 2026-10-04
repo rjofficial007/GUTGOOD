@@ -478,8 +478,12 @@ extension DebugMockThirtyDays on DebugMockDataService {
     await _insightFirestoreService.savePatternData(patterns);
 
     final rangeStart = now.subtract(const Duration(days: 6));
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final currentWeekStart = todayStart.subtract(Duration(days: now.weekday % 7));
+    final previousWeekStart = currentWeekStart.subtract(const Duration(days: 7));
+    final previousWeekEnd = currentWeekStart.subtract(const Duration(microseconds: 1));
     const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    final bestDay = weekdays[now.subtract(const Duration(days: 2)).weekday - 1];
+    final bestDay = weekdays[previousWeekStart.add(const Duration(days: 2)).weekday - 1];
 
     final latestInsight = AIInsight(
       gutScore: 52,
@@ -667,9 +671,12 @@ extension DebugMockThirtyDays on DebugMockDataService {
         ),
       ],
       weeklyRecap: WeeklyRecap(
-        dateRange: '${rangeStart.month}/${rangeStart.day} - ${now.month}/${now.day}',
+        dateRange: '${previousWeekStart.month}/${previousWeekStart.day} - ${previousWeekEnd.month}/${previousWeekEnd.day}',
+        periodFrom: previousWeekStart,
+        periodTo: previousWeekEnd,
+        gutScoreTrend: const [0, 48, 52, 0, 58, 60, 62],
         avgScore: 52,
-        scoreSub: "You're trending upwards! Your probiotic consistency is making a visible impact.",
+        scoreSub: '5 of 7 days scored',
         summary: "You're trending upwards! Your probiotic consistency is making a visible impact.",
         bestDay: bestDay,
         foodsLogged: 42,
@@ -704,20 +711,20 @@ extension DebugMockThirtyDays on DebugMockDataService {
           hadSymptoms: false,
         ),
         '${expStart.add(const Duration(days: 1)).year}-${expStart.add(const Duration(days: 1)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 1)).day.toString().padLeft(2, '0')}':
-            ExperimentDailyCheckIn(
-              date:
-                  '${expStart.add(const Duration(days: 1)).year}-${expStart.add(const Duration(days: 1)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 1)).day.toString().padLeft(2, '0')}',
-              adhered: true,
-              hadSymptoms: false,
-            ),
+        ExperimentDailyCheckIn(
+          date:
+          '${expStart.add(const Duration(days: 1)).year}-${expStart.add(const Duration(days: 1)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 1)).day.toString().padLeft(2, '0')}',
+          adhered: true,
+          hadSymptoms: false,
+        ),
         '${expStart.add(const Duration(days: 2)).year}-${expStart.add(const Duration(days: 2)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 2)).day.toString().padLeft(2, '0')}':
-            ExperimentDailyCheckIn(
-              date:
-                  '${expStart.add(const Duration(days: 2)).year}-${expStart.add(const Duration(days: 2)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 2)).day.toString().padLeft(2, '0')}',
-              adhered: false,
-              hadSymptoms: true,
-              notes: 'Had some cheese at dinner accidentally.',
-            ),
+        ExperimentDailyCheckIn(
+          date:
+          '${expStart.add(const Duration(days: 2)).year}-${expStart.add(const Duration(days: 2)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 2)).day.toString().padLeft(2, '0')}',
+          adhered: false,
+          hadSymptoms: true,
+          notes: 'Had some cheese at dinner accidentally.',
+        ),
       },
     );
     await _insightFirestoreService.saveActiveExperiment(mockExperiment);

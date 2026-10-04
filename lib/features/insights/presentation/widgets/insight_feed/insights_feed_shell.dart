@@ -2,6 +2,17 @@ part of 'insights_feed.dart';
 
 /// Insights feed shell and filter controls.
 
+bool _hasFoodImpactEvidence(AIInsight insight) {
+  final balance = insight.foodImpactBalance;
+  final hasBalance = balance != null && (balance.positivePercent > 0 || balance.neutralPercent > 0 || balance.negativePercent > 0);
+  return hasBalance ||
+      insight.foodImpacts.isNotEmpty ||
+      insight.healingFoods.isNotEmpty ||
+      insight.healingSummary?.foods.isNotEmpty == true ||
+      insight.triggerFoods.isNotEmpty ||
+      insight.triggerSummary?.foods.isNotEmpty == true;
+}
+
 class InsightsFeed extends StatefulWidget {
   const InsightsFeed({super.key, required this.data, required this.patterns, this.series = const [], this.history = const []});
 
@@ -30,6 +41,7 @@ class _InsightsFeedState extends State<InsightsFeed> {
 
     final isPatternsTab = _selectedFilter == 'Patterns';
     final isFoodImpactTab = _selectedFilter == 'Food Impact';
+    final hasFoodImpactEvidence = _hasFoodImpactEvidence(widget.data);
 
     return SliverMainAxisGroup(
       slivers: [
@@ -57,38 +69,43 @@ class _InsightsFeedState extends State<InsightsFeed> {
                 if (widget.patterns.isNotEmpty) ...[
                   for (final pattern in widget.patterns) ...[PatternCard(pattern: pattern), Gap.h10],
                 ] else ...[
-                  const _EmptyPatternsCard(),
-                  Gap.h10,
+                  const _EmptyPatternsState(),
                 ],
 
-                // Side-by-Side Pattern Grid: Positive Pattern & Food Timing
-                Gap.h10,
-
-                // Bottom Banner: Patterns get smarter over time
-                const _PatternsSmarterBannerCard(),
               ] else if (isFoodImpactTab) ...[
                 // -------------------------------------------------------------------
                 // TAB: FOOD IMPACT
                 // -------------------------------------------------------------------
                 Gap.h10,
-                // 1. Food Impact Balance Hero Card
-                _FoodImpactBalanceHeroCard(balance: widget.data.foodImpactBalance, foodImpacts: widget.data.foodImpacts),
-                Gap.h10,
+                if (!hasFoodImpactEvidence) ...[
+                  const _InsightsEmptyState(
+                    headline: 'Your foods.\nYour impacts.\nYour insights.',
+                    description: 'Keep scanning foods and logging meals and symptoms to understand how they affect your gut.',
+                    banner: _InsightsLearningBannerCard(
+                      title: 'Food impacts get clearer over time',
+                      description: 'Keep logging to unlock more personalized food impact insights.',
+                    ),
+                  ),
+                ] else ...[
+                  // 1. Food Impact Balance Hero Card
+                  _FoodImpactBalanceHeroCard(balance: widget.data.foodImpactBalance, foodImpacts: widget.data.foodImpacts),
+                  Gap.h10,
 
-                // 2. Side-by-Side: Top Healing Foods & Top Trigger Food
-                _SideBySideHealingAndTriggerCards(insight: widget.data),
-                Gap.h10,
+                  // 2. Side-by-Side: Top Healing Foods & Top Trigger Food
+                  _SideBySideHealingAndTriggerCards(insight: widget.data),
+                  Gap.h10,
 
-                // 4. Top Foods This Week
-                _TopFoodsSection(insight: widget.data),
-                Gap.h10,
+                  // 4. Top Foods This Week
+                  _TopFoodsSection(insight: widget.data),
+                  Gap.h10,
 
-                // 5. Recent Food Impacts List
-                _RecentFoodImpactsSection(impacts: widget.data.foodImpacts),
-                Gap.h10,
+                  // 5. Recent Food Impacts List
+                  _RecentFoodImpactsSection(impacts: widget.data.foodImpacts),
+                  Gap.h10,
 
-                // 6. Your Next Steps Action Cards
-                _YourNextStepsSection(actions: widget.data.actionsList, insight: widget.data),
+                  // 6. Your Next Steps Action Cards
+                  _YourNextStepsSection(actions: widget.data.actionsList, insight: widget.data),
+                ],
               ] else if (_selectedFilter == 'Weekly Recap') ...[
                 // -------------------------------------------------------------------
                 // TAB: WEEKLY RECAP

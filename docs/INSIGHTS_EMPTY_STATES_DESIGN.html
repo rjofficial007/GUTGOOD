@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GutGood Insights — Empty States Design Preview</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --soft: #f8fafc;
+      --green: #15803d;
+      --green-soft: #f0fdf4;
+      --green-line: #dcfce7;
+      --blue: #0284c7;
+      --purple: #7c3aed;
+      --lavender: #f3e8ff;
+      --shadow: 0 14px 34px rgba(15, 23, 42, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #eef2f7;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button { font: inherit; }
+    .page {
+      width: min(1160px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 54px;
+    }
+    .intro {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 44px);
+      letter-spacing: -.055em;
+      line-height: 1;
+    }
+    .intro p {
+      max-width: 570px;
+      margin: 12px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    .legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .legend span, .state-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 11px;
+      color: #475569;
+      background: rgba(255,255,255,.72);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .legend .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+    .workbench {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 430px;
+      gap: 28px;
+      align-items: start;
+    }
+    .explanation {
+      min-height: 720px;
+      padding: 24px;
+      border: 1px solid rgba(226,232,240,.95);
+      border-radius: 24px;
+      background: rgba(255,255,255,.76);
+      box-shadow: var(--shadow);
+    }
+    .explanation h2 { margin: 0; font-size: 21px; letter-spacing: -.025em; }
+    .explanation > p { margin: 9px 0 20px; color: var(--muted); line-height: 1.55; }
+    .mode-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .mode-tabs button {
+      cursor: pointer;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #475569;
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .mode-tabs button.active { border-color: #172033; background: #172033; color: #fff; }
+    .change-card {
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: #fff;
+      margin-bottom: 14px;
+    }
+    .change-card h3 { margin: 0 0 6px; font-size: 15px; }
+    .change-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .change-card ul { margin: 11px 0 0; padding-left: 18px; color: #334155; font-size: 13px; line-height: 1.75; }
+    .change-card strong { color: var(--ink); }
+    .note {
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .phone-wrap { position: sticky; top: 20px; }
+    .phone {
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 9px solid #111827;
+      border-radius: 38px;
+      background: #fff;
+      box-shadow: 0 24px 60px rgba(15,23,42,.22);
+    }
+    .statusbar {
+      height: 34px;
+      padding: 9px 18px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 800;
+      color: #0b1220;
+    }
+    .status-icons { display: flex; gap: 7px; align-items: center; font-size: 10px; }
+    .app-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 22px 16px;
+    }
+    .app-head h2 { margin: 0; font-size: 26px; letter-spacing: -.06em; }
+    .history { width: 27px; height: 27px; border: 3px solid #111827; border-left-color: transparent; border-radius: 50%; position: relative; }
+    .history:before { content: ""; position: absolute; left: -6px; top: -5px; width: 9px; height: 9px; border-top: 3px solid #111827; border-left: 3px solid #111827; transform: rotate(-15deg); }
+    .history:after { content: ""; position: absolute; left: 10px; top: 5px; width: 7px; height: 3px; background: #111827; transform: rotate(38deg); transform-origin: left center; }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 0 13px 13px;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tabs button {
+      flex: 0 0 auto;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #475569;
+      padding: 10px 15px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .tabs button.active { background: #171717; border-color: #171717; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,.13); }
+    .app-body { padding: 16px 13px 22px; background: #fff; min-height: 650px; }
+    .state-chip { margin: 0 0 12px 2px; padding: 6px 9px; font-size: 10px; background: #f8fafc; }
+    .state-chip .green-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .empty-state {
+      min-height: 360px;
+      padding: 48px 16px;
+      text-align: center;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .empty-state h3 { margin: 0; white-space: pre-line; font-size: 27px; letter-spacing: -.055em; line-height: 1.12; }
+    .empty-state > p { margin: 15px auto 20px; max-width: 335px; color: var(--muted); font-size: 13px; line-height: 1.42; }
+    .learning-banner {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--green-line);
+      border-radius: 20px;
+      background: var(--green-soft);
+    }
+    .chart-icon {
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: var(--green-line);
+      color: var(--green);
+      font-size: 21px;
+    }
+    .learning-banner strong { display: block; font-size: 13px; }
+    .learning-banner p { margin: 3px 0 0; color: #475569; font-size: 10px; line-height: 1.35; }
+    .completed {
+      padding: 17px;
+      border: 1px solid var(--green-line);
+      border-radius: 22px;
+      background: linear-gradient(145deg, #f8fff9, #fff);
+    }
+    .completed-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .completed-label { color: var(--green); font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .completed-date { color: var(--muted); font-size: 11px; }
+    .score-row { display: flex; align-items: end; gap: 7px; margin-top: 12px; }
+    .score { font-size: 52px; font-weight: 900; letter-spacing: -.08em; line-height: .9; }
+    .score-denom { padding-bottom: 5px; color: var(--muted); font-size: 14px; }
+    .score-note { margin: 10px 0 0; color: #475569; font-size: 12px; line-height: 1.4; }
+    .mini-chart { display: flex; align-items: end; gap: 7px; height: 58px; margin: 18px 2px 8px; padding: 0 4px; border-bottom: 1px solid var(--line); }
+    .bar { width: 100%; max-width: 22px; border-radius: 7px 7px 0 0; background: #bbf7d0; }
+    .bar.active { background: var(--green); }
+    .recap-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
+    .stat { padding: 11px 8px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
+    .stat small { display: block; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+    .stat strong { display: block; margin-top: 7px; font-size: 18px; letter-spacing: -.04em; }
+    .stat span { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+    .bottom-nav { display: grid; grid-template-columns: repeat(4,1fr); padding: 12px 8px 9px; border-top: 1px solid #edf0f3; color: #64748b; text-align: center; }
+    .bottom-nav div { font-size: 10px; }
+    .bottom-nav b { display: block; margin-bottom: 4px; font-size: 20px; font-weight: 400; line-height: 1; }
+    .bottom-nav .selected { color: #111827; font-weight: 800; }
+    .home-indicator { width: 105px; height: 5px; margin: 0 auto 7px; border-radius: 999px; background: #111827; }
+    .hidden { display: none !important; }
+    @media (max-width: 850px) {
+      .page { width: min(520px, calc(100% - 22px)); padding-top: 22px; }
+      .intro { display: block; }
+      .legend { justify-content: flex-start; margin-top: 15px; }
+      .workbench { display: block; }
+      .explanation { min-height: auto; margin-bottom: 22px; }
+      .phone-wrap { position: static; }
+      .phone { max-width: 430px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="intro">
+      <div>
+        <p class="eyebrow">GutGood · Insights design preview</p>
+        <h1>Clear states when data is still building.</h1>
+        <p>This preview shows the new Food Impact empty state and the Weekly Recap behavior. Use the controls to switch between the states that were changed.</p>
+      </div>
+      <div class="legend"><span><i class="dot"></i> Reusable empty-state shell</span><span>Sunday–Saturday recap window</span></div>
+    </section>
+
+    <section class="workbench">
+      <aside class="explanation">
+        <h2 id="explanation-title">Food Impact · no meaningful data</h2>
+        <p id="explanation-copy">Instead of empty charts, percentages, or warning cards, the user receives the same calm centered layout as the Patterns screen.</p>
+        <div class="mode-tabs" role="tablist" aria-label="Preview states">
+          <button class="active" data-mode="food-empty">Food Impact empty</button>
+          <button data-mode="weekly-empty">Weekly Recap waiting</button>
+          <button data-mode="weekly-complete">Completed recap</button>
+        </div>
+        <div id="change-details">
+          <article class="change-card">
+            <h3>Food Impact</h3>
+            <p>The visual shell stays familiar. Only the content becomes specific to food impact.</p>
+            <ul>
+              <li><strong>Empty state:</strong> centered headline and explanation with no enclosing card or action cards.</li>
+              <li><strong>Learning banner:</strong> Food impact patterns become clearer over time.</li>
+            </ul>
+          </article>
+          <div class="note"><strong>Why this is better:</strong> no false 0% balance, no empty-looking chart, and no red warning state when the user has simply not logged enough evidence yet.</div>
+        </div>
+      </aside>
+
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="statusbar"><span>5:23</span><span class="status-icons">⌁ &nbsp;▴ &nbsp; 4G &nbsp;▮ 64%</span></div>
+          <div class="app-head"><h2>INSIGHTS</h2><span class="history" aria-label="Insight history"></span></div>
+          <nav class="tabs" aria-label="Insight sections">
+            <button data-tab="for-you">For You</button>
+            <button data-tab="patterns">Patterns</button>
+            <button class="active" data-tab="food-impact">Food Impact</button>
+            <button data-tab="weekly-recap">Weekly Recap</button>
+          </nav>
+          <div class="app-body">
+            <div id="food-view">
+              <span class="state-chip"><i class="green-dot"></i> Food Impact · learning state</span>
+              <div class="empty-state">
+                <h3>Your foods.\nYour impacts.\nYour insights.</h3>
+                <p>Keep scanning foods and logging meals and symptoms to understand how they affect your gut.</p>
+              </div>
+              <div class="learning-banner"><div class="chart-icon">▥</div><div><strong>Food impacts get clearer over time</strong><p>Keep logging to unlock more personalized food impact insights.</p></div></div>
+            </div>
+
+            <div id="weekly-empty-view" class="hidden">
+              <span class="state-chip"><i class="green-dot"></i> Weekly Recap · waiting for a completed week</span>
+              <div class="empty-state">
+                <h3>Your week.\nYour score.\nYour recap.</h3>
+                <p>Keep logging meals and symptoms this week. Your completed Sunday–Saturday recap will appear here once the week ends.</p>
+              </div>
+              <div class="learning-banner"><div class="chart-icon">▥</div><div><strong>Your weekly recap gets clearer over time</strong><p>Keep logging meals and symptoms to unlock a more meaningful weekly summary.</p></div></div>
+            </div>
+
+            <div id="weekly-complete-view" class="hidden">
+              <span class="state-chip"><i class="green-dot"></i> Previous completed week</span>
+              <div class="completed">
+                <div class="completed-top"><span class="completed-label">Weekly average</span><span class="completed-date">Sep 27–Oct 3</span></div>
+                <div class="score-row"><span class="score">70</span><span class="score-denom">/100</span></div>
+                <p class="score-note">A completed week is shown here instead of a partial current-week trend.</p>
+                <div class="mini-chart" aria-label="Weekly score trend"><i class="bar" style="height: 12px"></i><i class="bar active" style="height: 39px"></i><i class="bar" style="height: 12px"></i><i class="bar" style="height: 12px"></i><i class="bar" style="height: 12px"></i><i class="bar" style="height: 12px"></i><i class="bar" style="height: 12px"></i></div>
+                <div class="recap-stats"><div class="stat"><small>Day</small><strong>Mon</strong><span>Only scored day</span></div><div class="stat"><small>Logged</small><strong>4</strong><span>meals</span></div><div class="stat"><small>Status</small><strong>Clearer</strong><span>week complete</span></div></div>
+              </div>
+              <div class="learning-banner"><div class="chart-icon">▥</div><div><strong>Keep building your next week</strong><p>More complete weeks make comparisons more meaningful.</p></div></div>
+            </div>
+
+            <div id="reference-view" class="hidden">
+              <span class="state-chip"><i class="green-dot"></i> Reference state</span>
+              <div class="empty-state"><h3>Your meals.\nYour reactions.\nYour patterns.</h3><p>Keep logging your food scans and symptoms to discover recurring body patterns and tailored triggers.</p></div>
+              <div class="learning-banner"><div class="chart-icon">▥</div><div><strong>Patterns get smarter over time</strong><p>The more you log, the more personalized your insights become.</p></div></div>
+            </div>
+          </div>
+          <div class="bottom-nav"><div><b>◯</b>Chat</div><div class="selected"><b>▥</b>Insights</div><div><b>◔</b>History</div><div><b>♙</b>Profile</div></div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const modes = document.querySelectorAll('[data-mode]');
+    const tabs = document.querySelectorAll('[data-tab]');
+    const foodView = document.getElementById('food-view');
+    const weeklyEmptyView = document.getElementById('weekly-empty-view');
+    const weeklyCompleteView = document.getElementById('weekly-complete-view');
+    const referenceView = document.getElementById('reference-view');
+    const title = document.getElementById('explanation-title');
+    const copy = document.getElementById('explanation-copy');
+    const details = document.getElementById('change-details');
+
+    function show(mode) {
+      foodView.classList.toggle('hidden', mode !== 'food-empty');
+      weeklyEmptyView.classList.toggle('hidden', mode !== 'weekly-empty');
+      weeklyCompleteView.classList.toggle('hidden', mode !== 'weekly-complete');
+      referenceView.classList.add('hidden');
+      modes.forEach(button => button.classList.toggle('active', button.dataset.mode === mode));
+      tabs.forEach(button => button.classList.toggle('active', button.dataset.tab === (mode === 'food-empty' ? 'food-impact' : 'weekly-recap')));
+      if (mode === 'food-empty') {
+        title.textContent = 'Food Impact · no meaningful data';
+        copy.textContent = 'Instead of empty charts, percentages, or warning cards, the user receives the same calm centered layout as the Patterns screen.';
+        details.innerHTML = '<article class="change-card"><h3>Food Impact</h3><p>The visual shell stays familiar. Only the content becomes specific to food impact.</p><ul><li><strong>Empty state:</strong> centered headline and explanation with no enclosing card or action cards.</li><li><strong>Learning banner:</strong> Food impact patterns become clearer over time.</li></ul></article><div class="note"><strong>Why this is better:</strong> no false 0% balance, no empty-looking chart, and no red warning state when the user has simply not logged enough evidence yet.</div>';
+      } else if (mode === 'weekly-empty') {
+        title.textContent = 'Weekly Recap · before the week is complete';
+        copy.textContent = 'The user sees an explanation instead of a partial 1-of-7 recap that could look like a validated weekly trend.';
+        details.innerHTML = '<article class="change-card"><h3>Weekly Recap waiting state</h3><p>The recap is based on the previous completed Sunday–Saturday window.</p><ul><li><strong>Before completion:</strong> show the same empty-state shell.</li><li><strong>Copy:</strong> clearly explains that the recap appears once the week ends.</li><li><strong>Current score:</strong> stays separate in the For You tab.</li></ul></article><div class="note"><strong>Why this is better:</strong> users understand that the app is waiting for a complete comparison window, not failing to calculate a result.</div>';
+      } else {
+        title.textContent = 'Weekly Recap · completed previous week';
+        copy.textContent = 'Once a Sunday–Saturday window is complete, the recap shows the completed period with its own date range and evidence.';
+        details.innerHTML = '<article class="change-card"><h3>Completed recap</h3><p>The app shows the previous completed calendar week, not the current partial week.</p><ul><li><strong>Window:</strong> Sep 27–Oct 3</li><li><strong>Score:</strong> 70/100 with zero days treated as gaps</li><li><strong>Label:</strong> Only scored day when one day contains a score</li></ul></article><div class="note"><strong>Important:</strong> the current For You score remains current; the Weekly Recap uses the completed previous week.</div>';
+      }
+    }
+    modes.forEach(button => button.addEventListener('click', () => show(button.dataset.mode)));
+    tabs.forEach(button => button.addEventListener('click', () => {
+      const tab = button.dataset.tab;
+      tabs.forEach(item => item.classList.toggle('active', item === button));
+      if (tab === 'food-impact') show('food-empty');
+      else if (tab === 'weekly-recap') show('weekly-empty');
+      else {
+        foodView.classList.add('hidden'); weeklyEmptyView.classList.add('hidden'); weeklyCompleteView.classList.add('hidden'); referenceView.classList.remove('hidden');
+        modes.forEach(item => item.classList.remove('active'));
+        title.textContent = tab === 'patterns' ? 'Patterns · reference empty state' : 'For You · outside this preview';
+        copy.textContent = 'The screenshot reference shell remains available so the new tab-specific states can be compared visually.';
+        details.innerHTML = '<article class="change-card"><h3>Reference view</h3><p>Use the app tabs above to compare the shared visual language with the new contextual copy.</p></article>';
+      }
+    }));
+  </script>
+</body>
+</html>

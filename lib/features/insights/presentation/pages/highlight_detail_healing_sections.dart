@@ -313,6 +313,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
     final foodsLogged = recap?.foodsLogged ?? ((insight?.evidence?.sampleSizes.meals ?? 0) + (insight?.evidence?.sampleSizes.scans ?? 0));
     final avgLabel = avgScore == null ? '—' : '$avgScore';
     final foodsLabel = foodsLogged == 0 && recap?.foodsLogged == null ? '—' : '$foodsLogged';
+    final foodsSubtext = recap?.loggedSub ?? (foodsLogged == 1 ? 'meal' : 'meals');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,7 +378,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
                 iconColor: const Color(0xFFB45309),
                 label: 'Foods Logged',
                 value: foodsLabel,
-                subtext: recap?.loggedSub ?? 'meals and scans',
+                subtext: foodsSubtext,
               ),
             ),
           ],

@@ -19,14 +19,21 @@ class InsightsScreen extends StatefulWidget {
 
   /// 7-day chart series for score cards.
   ///
-  /// Prefers the deterministic `weeklyRecap.gutScoreTrend` / gut_scores
-  /// `dailyScores` (0 = no data that day). Falls back to insight-history
-  /// points only when the weekly trend is missing.
+  /// Prefers the current deterministic gut_scores `dailyScores` (0 = no data
+  /// that day). A completed Weekly Recap belongs to the previous calendar
+  /// week, so it is never reused as the current For You trend.
   static List<double> scoreWindowFor(InsightsNotifier notifier, AIInsight? insight) {
     try {
       final record = notifier.latestScoreRecord;
       if (record != null && record.dailyScores.isNotEmpty) {
         return [for (final s in record.dailyScores) s.toDouble()];
+      }
+
+      // Weekly Recap represents the previous completed week. If no score
+      // record is available, do not reuse that completed-week trend for the
+      // current For You chart; show the current insight score as a baseline.
+      if (insight != null && insight.weeklyRecap?.periodTo != null && insight.hasGutScore) {
+        return [insight.gutScore.toDouble()];
       }
 
       final trend = insight?.weeklyRecap?.gutScoreTrend;

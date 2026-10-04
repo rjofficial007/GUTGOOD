@@ -12,7 +12,14 @@ class InsightTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final valid = values.where((value) => value.isFinite && value >= 0 && value <= 100).toList();
+    // Zero is the persisted placeholder for an unscored day, not a real point
+    // on the trend. Keep those positions so gaps remain visible in a weekly
+    // series instead of drawing a misleading drop to zero.
+    final plotted = [
+      for (final value in values)
+        value.isFinite && value > 0 && value <= 100 ? value : null,
+    ];
+    final valid = plotted.whereType<double>().toList();
     final t = context.insightTheme;
     return Semantics(
       label: valid.isEmpty ? 'No recorded scores' : 'Gut scores out of 100, in recording order: ${valid.map((value) => value.round()).join(', ')}',
@@ -24,7 +31,7 @@ class InsightTrendChart extends StatelessWidget {
                 child: Text('No score history yet', style: TextStyle(color: t.textSecondary)),
               )
             : CustomPaint(
-                painter: _TrendPainter(color: color ?? t.success, gridColor: t.border, values: valid, endDot: endDot),
+                painter: _TrendPainter(color: color ?? t.success, gridColor: t.border, values: plotted, endDot: endDot),
               ),
       ),
     );
@@ -35,7 +42,7 @@ class _TrendPainter extends CustomPainter {
   const _TrendPainter({required this.color, required this.gridColor, required this.values, required this.endDot});
   final Color color;
   final Color gridColor;
-  final List<double> values;
+  final List<double?> values;
   final bool endDot;
 
   @override
@@ -51,38 +58,63 @@ class _TrendPainter extends CustomPainter {
       final y = padding + height * fraction;
       canvas.drawLine(Offset(padding, y), Offset(size.width - padding, y), grid);
     }
-    final points = [for (var i = 0; i < values.length; i++) Offset(values.length == 1 ? size.width / 2 : padding + width * i / (values.length - 1), padding + height * (1 - values[i] / 100))];
-    if (points.length == 1) {
-      canvas.drawCircle(points.single, 4, Paint()..color = color);
-      return;
+
+    Offset pointFor(int index, double value) => Offset(
+      values.length == 1 ? size.width / 2 : padding + width * index / (values.length - 1),
+      padding + height * (1 - value / 100),
+    );
+
+    final points = [
+      for (var i = 0; i < values.length; i++)
+        values[i] == null ? null : pointFor(i, values[i]!),
+    ];
+
+    final linePaint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final fillPaint = Paint()
+      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: .18), color.withValues(alpha: .01)]).createShader(Offset.zero & size);
+
+    // Draw each contiguous run independently. Missing days remain gaps and do
+    // not get connected to the next recorded score.
+    var start = 0;
+    while (start < points.length) {
+      if (points[start] == null) {
+        start++;
+        continue;
+      }
+      var end = start;
+      while (end + 1 < points.length && points[end + 1] != null) {
+        end++;
+      }
+      final run = [for (var i = start; i <= end; i++) points[i]!];
+      if (run.length == 1) {
+        canvas.drawCircle(run.single, 4, Paint()..color = color);
+      } else {
+        final line = Path()..moveTo(run.first.dx, run.first.dy);
+        for (final point in run.skip(1)) {
+          line.lineTo(point.dx, point.dy);
+        }
+        final fill = Path.from(line)
+          ..lineTo(run.last.dx, size.height - padding)
+          ..lineTo(run.first.dx, size.height - padding)
+          ..close();
+        canvas
+          ..drawPath(fill, fillPaint)
+          ..drawPath(line, linePaint);
+      }
+      start = end + 1;
     }
-    final line = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final point in points.skip(1)) {
-      line.lineTo(point.dx, point.dy);
-    }
-    final fill = Path.from(line)
-      ..lineTo(points.last.dx, size.height - padding)
-      ..lineTo(points.first.dx, size.height - padding)
-      ..close();
-    canvas
-      ..drawPath(
-        fill,
-        Paint()
-          ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [color.withValues(alpha: .18), color.withValues(alpha: .01)]).createShader(Offset.zero & size),
-      )
-      ..drawPath(
-        line,
-        Paint()
-          ..color = color
-          ..strokeWidth = 2.5
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round,
-      );
-    for (final point in points) {
+
+    final validPoints = points.whereType<Offset>().toList();
+    if (validPoints.isEmpty) return;
+    for (final point in validPoints) {
       canvas.drawCircle(point, 2.5, Paint()..color = color);
     }
-    if (endDot) canvas.drawCircle(points.last, 4, Paint()..color = color);
+    if (endDot) canvas.drawCircle(validPoints.last, 4, Paint()..color = color);
   }
 
   @override

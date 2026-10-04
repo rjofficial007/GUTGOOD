@@ -101,13 +101,21 @@ void main() {
   Future<GenerateInsightUseCase> createUseCase() async {
     SharedPreferences.setMockInitialValues({StorageKeys.lastInsightRun: now.toUtc().toIso8601String()});
     final prefs = await SharedPreferences.getInstance();
+    final currentWeekStart = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday % 7));
+    final previousWeekAt = currentWeekStart.add(const Duration(days: 1, hours: 9));
     final meals = [
-      MealLog(items: const ['Oats'], scanId: 'scan-1', journalEntryId: 'scan-1_meal', createdAt: now),
-      MealLog(items: const ['Rice'], createdAt: now),
-      MealLog(items: const ['Dal'], createdAt: now),
+      MealLog(items: const ['Previous oats'], scanId: 'scan-1', journalEntryId: 'scan-1_meal', createdAt: previousWeekAt),
+      MealLog(items: const ['Previous rice'], createdAt: previousWeekAt.add(const Duration(hours: 1))),
+      MealLog(items: const ['Previous dal'], createdAt: previousWeekAt.add(const Duration(hours: 2))),
+      MealLog(items: const ['Today oats'], scanId: 'current-scan', journalEntryId: 'current-scan_meal', createdAt: now),
+      MealLog(items: const ['Today rice'], createdAt: now),
+      MealLog(items: const ['Today dal'], createdAt: now),
     ];
-    final scans = [_scan('scan-1', 80, now), _scan('legacy-scan', 70, now)];
-    final symptoms = [SymptomLog(symptom: 'Bloating', severity: 3, createdAt: now.add(const Duration(hours: 1)))];
+    final scans = [_scan('scan-1', 80, previousWeekAt), _scan('legacy-scan', 70, previousWeekAt), _scan('current-scan', 85, now)];
+    final symptoms = [
+      SymptomLog(symptom: 'Previous bloating', severity: 3, createdAt: previousWeekAt.add(const Duration(hours: 3))),
+      SymptomLog(symptom: 'Today bloating', severity: 3, createdAt: now.add(const Duration(hours: 1))),
+    ];
 
     when(() => repository.getRecentMeals(any())).thenAnswer((_) async => meals);
     when(() => repository.getRecentSymptoms(any())).thenAnswer((_) async => symptoms);
@@ -162,10 +170,13 @@ void main() {
     final saved = verify(() => repository.saveInsight(captureAny())).captured.single as AIInsight;
 
     expect(saved.status, AIInsight.statusReady);
+    // The recap uses the completed previous week, while the current-week logs
+    // remain part of the broader insight evidence envelope.
     expect(saved.weeklyRecap?.foodsLogged, 4);
-    expect(saved.evidence?.sampleSizes.meals, 3);
+    expect(saved.weeklyRecap?.periodTo, isNotNull);
+    expect(saved.evidence?.sampleSizes.meals, 6);
     expect(saved.evidence?.sampleSizes.scans, 1);
-    expect(saved.evidence?.sampleSizes.symptoms, 1);
+    expect(saved.evidence?.sampleSizes.symptoms, 2);
     verify(() => patternEngine.runAnalysis()).called(1);
     verify(() => notifications.showInsightGeneratedNotification()).called(1);
   });

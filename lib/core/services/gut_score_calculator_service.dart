@@ -128,6 +128,16 @@ class GutScoreCalculatorService {
     return scores;
   }
 
+  static String _formatDateRange(DateTime from, DateTime to) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final start = from.toLocal();
+    final end = to.toLocal();
+    if (start.year == end.year && start.month == end.month) {
+      return '${months[start.month - 1]} ${start.day}–${end.day}';
+    }
+    return '${months[start.month - 1]} ${start.day}–${months[end.month - 1]} ${end.day}';
+  }
+
   /// Deterministically generates the complete WeeklyRecap data structure.
   ///
   /// [exactScore] is the period gut score shown as the headline number.
@@ -140,6 +150,8 @@ class GutScoreCalculatorService {
     required List<int> weeklyTrend,
     required int exactScore,
     DateTime? endDate,
+    DateTime? periodFrom,
+    DateTime? periodTo,
   }) {
     // A scan is now also a journal meal. Count the event once in the recap,
     // while retaining standalone legacy scans that have no meal projection.
@@ -168,7 +180,19 @@ class GutScoreCalculatorService {
     final scoredDays = weeklyTrend.where((s) => s > 0).length;
     final scoreSub = scoredDays == 0 ? 'No scored days yet' : '$scoredDays of 7 days scored';
 
-    var summary = 'You logged $totalLogs foods and $totalSymptoms symptoms this week.';
+    final foodLabel = totalLogs == 1 ? 'food' : 'foods';
+    final symptomLabel = totalSymptoms == 1 ? 'symptom' : 'symptoms';
+    final standaloneScans = standaloneScanRecords(meals: recentMeals, scans: recentScans);
+    final loggedLabel = totalLogs == 0
+        ? 'foods'
+        : recentMeals.isNotEmpty && standaloneScans.isNotEmpty
+            ? 'meals and scans'
+            : standaloneScans.isNotEmpty
+                ? (standaloneScans.length == 1 ? 'scan' : 'scans')
+                : recentMeals.length == 1
+                    ? 'meal'
+                    : 'meals';
+    var summary = 'You logged $totalLogs $foodLabel and $totalSymptoms $symptomLabel this week.';
     if (highestScore > 80) {
       summary += ' Great job maintaining a high gut score!';
     } else if (highestScore > 0) {
@@ -177,15 +201,21 @@ class GutScoreCalculatorService {
       summary += ' Log more foods to see your score!';
     }
 
+    final resolvedPeriodFrom = periodFrom?.toLocal();
+    final resolvedPeriodTo = periodTo?.toLocal();
+    final dateRange = resolvedPeriodFrom != null && resolvedPeriodTo != null ? _formatDateRange(resolvedPeriodFrom, resolvedPeriodTo) : 'This Week';
+
     return WeeklyRecap(
-      dateRange: 'This Week',
+      dateRange: dateRange,
       avgScore: displayAvg,
       gutScoreTrend: weeklyTrend,
       summary: summary,
       scoreSub: scoreSub,
       bestDay: bestDayName.isNotEmpty ? bestDayName : null,
       foodsLogged: totalLogs,
-      loggedSub: 'meals and scans',
+      loggedSub: loggedLabel,
+      periodFrom: resolvedPeriodFrom,
+      periodTo: resolvedPeriodTo,
       highlights: [
         if (totalLogs > 5) const RecapHighlight(icon: 'sparkles', text: 'Great logging consistency!', color: 'green'),
         if (totalSymptoms > 0) const RecapHighlight(icon: 'alertCircle', text: 'Symptom logged. Keep tracking to find triggers.', color: 'purple'),

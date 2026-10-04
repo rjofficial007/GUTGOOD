@@ -108,6 +108,46 @@ class GenerateInsightUseCase {
     final history = dataStreams[3] as List<AIInsight>;
     final allChat = dataStreams[5] as List<ChatMessage>;
 
+    // Weekly Recap is a completed calendar-week artifact, not a rolling
+    // partial snapshot. Build it before the daily AI threshold so opening the
+    // app on Sunday can reveal the week that just ended even when the user has
+    // not logged anything today.
+    final endLocal = DateTime.now();
+    final currentWeekStart = GutScoreCalculatorService.startOfLocalDay(endLocal).subtract(Duration(days: endLocal.weekday % 7));
+    final previousWeekStart = currentWeekStart.subtract(const Duration(days: 7));
+    final previousWeekEnd = currentWeekStart.subtract(const Duration(microseconds: 1));
+
+    final completedWeekMeals = allMeals.where((meal) {
+      final eventTime = meal.eventTime.toLocal();
+      return !eventTime.isBefore(previousWeekStart) && eventTime.isBefore(currentWeekStart);
+    }).toList();
+    final completedWeekSymptoms = allSymptoms.where((symptom) {
+      final eventTime = symptom.eventTime.toLocal();
+      return !eventTime.isBefore(previousWeekStart) && eventTime.isBefore(currentWeekStart);
+    }).toList();
+    final completedWeekScans = allScans.where((scan) {
+      final createdAt = scan.createdAt.toLocal();
+      return !createdAt.isBefore(previousWeekStart) && createdAt.isBefore(currentWeekStart);
+    }).toList();
+    final completedWeekTrend = List<int>.from(
+      _gutScoreCalculatorService.calculateWeeklyTrend(
+        scans: allScans,
+        symptoms: allSymptoms,
+        meals: allMeals,
+        endDate: previousWeekEnd,
+      ),
+    );
+    final completedWeekRecap = _gutScoreCalculatorService.calculateWeeklyRecap(
+      recentScans: completedWeekScans,
+      recentSymptoms: completedWeekSymptoms,
+      recentMeals: completedWeekMeals,
+      weeklyTrend: completedWeekTrend,
+      exactScore: _gutScoreCalculatorService.calculateAvgScanScore(completedWeekScans),
+      endDate: previousWeekEnd,
+      periodFrom: previousWeekStart,
+      periodTo: previousWeekEnd,
+    );
+
     // Check if today's logs meet the exact daily threshold matching InsightBentoLearning:
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
@@ -126,6 +166,15 @@ class GenerateInsightUseCase {
 
     if (!hasBaselineLogs) {
       AppLogger.debug('GenerateInsightUseCase: Insufficient daily logs today (food: $todayFood/3, symptoms: $todaySymptoms/1). Skipping AI generation until threshold is reached.');
+
+      // Keep the completed-week recap current without bypassing the existing
+      // daily AI threshold or sending a misleading "new insight" notification.
+      final latestInsight = await _insightRepository.getLatestInsight();
+      final storedPeriodTo = latestInsight?.weeklyRecap?.periodTo;
+      final recapPeriodChanged = storedPeriodTo == null || !storedPeriodTo.isAtSameMomentAs(completedWeekRecap.periodTo!);
+      if (latestInsight != null && recapPeriodChanged) {
+        await _insightRepository.saveInsight(latestInsight.copyWith(weeklyRecap: completedWeekRecap));
+      }
       return;
     }
 
@@ -174,7 +223,6 @@ class GenerateInsightUseCase {
     // Deterministic gut score from the last 7 local days only.
     // Do NOT fall back to 30-day scans — that inflated gutScore / avgScanScore
     // and made dailyScores look "full" while mealsCount stayed at the 7-day window.
-    final endLocal = DateTime.now();
     final weekScans = recentScans;
     final weekSymptoms = recentSymptoms;
     final weekMeals = recentMeals;
@@ -191,14 +239,7 @@ class GenerateInsightUseCase {
       weeklyTrend[todayIndex] = displayScore;
     }
 
-    final weeklyRecap = _gutScoreCalculatorService.calculateWeeklyRecap(
-      recentScans: weekScans,
-      recentSymptoms: weekSymptoms,
-      recentMeals: weekMeals,
-      weeklyTrend: weeklyTrend,
-      exactScore: displayScore,
-      endDate: endLocal,
-    );
+    final weeklyRecap = completedWeekRecap;
 
     if (_gutScoreFirestoreService != null) {
       final startLocalDay = GutScoreCalculatorService.startOfLocalDay(endLocal);
