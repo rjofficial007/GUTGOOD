@@ -75,9 +75,13 @@ class _ContributingCard extends StatelessWidget {
               children: [
                 Icon(icon, size: 8.5.w, color: isDark ? const Color(0xFF4ADE80) : badgeTextColor),
                 Gap.w2,
-                Text(
-                  badgeText,
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : badgeTextColor),
+                Flexible(
+                  child: Text(
+                    badgeText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : badgeTextColor),
+                  ),
                 ),
               ],
             ),

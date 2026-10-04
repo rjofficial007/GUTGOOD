@@ -41,18 +41,18 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
     final healingList = insight?.healingSummary?.foods.isNotEmpty == true
         ? insight!.healingSummary!.foods
         : (insight?.healingFoods.isNotEmpty == true
-              ? insight!.healingFoods
-                    .map((f) => InsightFood(foodId: 'h_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
-                    .toList()
-              : <InsightFood>[]);
+        ? insight!.healingFoods
+        .map((f) => InsightFood(foodId: 'h_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
+        .toList()
+        : <InsightFood>[]);
 
     final triggerList = insight?.triggerSummary?.foods.isNotEmpty == true
         ? insight!.triggerSummary!.foods
         : (insight?.triggerFoods.isNotEmpty == true
-              ? insight!.triggerFoods
-                    .map((f) => InsightFood(foodId: 't_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
-                    .toList()
-              : <InsightFood>[]);
+        ? insight!.triggerFoods
+        .map((f) => InsightFood(foodId: 't_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
+        .toList()
+        : <InsightFood>[]);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -144,7 +144,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         Gap.w4,
                         Expanded(
                           child: Text(
-                      'Food Observed Near Symptoms',
+                            'Food Observed Near Symptoms',
                             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B)),
                           ),
                         ),
@@ -184,7 +184,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                                   ),
                                 ),
                                 Gap.h2,
-                                  if (triggerList.first.effect?.trim().isNotEmpty == true) Text(
+                                if (triggerList.first.effect?.trim().isNotEmpty == true) Text(
                                   triggerList.first.effect!,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -203,13 +203,17 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                                     children: [
                                       Icon(LucideIcons.triangleAlert, size: 7.w, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
                                       Gap.w2,
-                                      Text(
-                                        'Symptom observation',
-                                        style: TextStyle(
-                                          fontFamily: InsightTheme.fontFamily,
-                                          fontSize: 7.5.sp,
-                                          fontWeight: FontWeight.w700,
-                                          color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+                                      Flexible(
+                                        child: Text(
+                                          'Symptom observation',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontFamily: InsightTheme.fontFamily,
+                                            fontSize: 7.5.sp,
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -237,13 +241,13 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                           }
                           final swapObj =
                               matchingSwap ??
-                              (insight?.foodSwaps.isNotEmpty == true
-                                  ? insight!.foodSwaps.first
-                                  : FoodSwap(
-                                      id: 'swap_${triggerList.first.name.toLowerCase()}',
-                                      source: SwapSource(foodId: 'food_trigger', name: triggerList.first.name),
-                                      alternatives: const [],
-                                    ));
+                                  (insight?.foodSwaps.isNotEmpty == true
+                                      ? insight!.foodSwaps.first
+                                      : FoodSwap(
+                                    id: 'swap_${triggerList.first.name.toLowerCase()}',
+                                    source: SwapSource(foodId: 'food_trigger', name: triggerList.first.name),
+                                    alternatives: const [],
+                                  ));
                           Navigator.of(context).push(MaterialPageRoute(builder: (_) => BetterSwapsScreen(swap: swapObj)));
                         },
                         borderRadius: BorderRadius.circular(10.w),
@@ -331,9 +335,13 @@ class _HealingFoodItemTile extends StatelessWidget {
                   children: [
                     Icon(LucideIcons.leaf, size: 7.w, color: const Color(0xFF15803D)),
                     Gap.w2,
-                    Text(
-                      badge,
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                    Flexible(
+                      child: Text(
+                        badge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
+                      ),
                     ),
                   ],
                 ),

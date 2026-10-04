@@ -128,230 +128,279 @@ class PatternCardStyle {
 
 class PatternCard extends StatelessWidget {
   const PatternCard({super.key, required this.pattern});
+
   final BodyPattern pattern;
 
   @override
   Widget build(BuildContext context) {
     final style = PatternCardStyle.forPattern(pattern);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryText = isDark ? Colors.white : const Color(0xFF0F172A);
+    final secondaryText = isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF64748B);
+    final surface = isDark ? const Color(0xFF17181C) : style.cardBg;
+    final border = isDark ? style.accentColor.withValues(alpha: 0.34) : style.borderColor;
 
-    final firstOccWithImage = pattern.occurrences.firstWhere(
-      (o) => o.imageUrl != null && o.imageUrl!.isNotEmpty,
-      orElse: () => const PatternOccurrence(date: '', mealName: '', reaction: '', timeAfter: ''),
-    );
-    final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : (pattern.trigger.isNotEmpty ? pattern.trigger : style.label);
-    final imageUrl = InsightUiKit.foodImageUrl(foodName, imageUrl: firstOccWithImage.imageUrl);
-
-    // Dynamic Headline Title (Line 1)
-    final rawTrigger = pattern.trigger.trim();
-    final rawTypeLabel = style.label;
-    final headlineTitle = rawTrigger.isNotEmpty ? rawTrigger : '$rawTypeLabel Pattern';
-
-    // Dynamic Subtitle (Line 2: Reaction / Timing / Factor + Occurrences count)
-    final rawReaction = pattern.reaction.trim();
-    final baseSubtitle = rawReaction.isNotEmpty
-        ? rawReaction
-        : (pattern.typicalTiming?.trim().isNotEmpty == true ? pattern.typicalTiming!.trim() : (pattern.commonFactors.isNotEmpty ? pattern.commonFactors.first.label : ''));
-
-    // Dynamic Occurrences String
-    final occurrencesCount = pattern.frequency > 0 ? pattern.frequency : (pattern.occurrences.isNotEmpty ? pattern.occurrences.length : 0);
-    final occurrencesStr = occurrencesCount > 0 ? '$occurrencesCount ${occurrencesCount == 1 ? 'occurrence' : 'occurrences'}' : '';
-
-    final subtitleParts = <String>[if (baseSubtitle.isNotEmpty) baseSubtitle, if (occurrencesStr.isNotEmpty) occurrencesStr];
-    final subtitle = subtitleParts.join(' • ');
-
-    // Dynamic Confidence Percentage calculation
-    var confidencePct = 0;
-    if (pattern.evidenceRatio > 0) {
-      confidencePct = (pattern.evidenceRatio * 100).round();
-    } else if (pattern.confidenceScore > 0) {
-      confidencePct = (pattern.confidenceScore * 100).round();
-    } else if (pattern.confidence.trim().isNotEmpty) {
-      final s = pattern.confidence.trim().replaceAll('%', '');
-      final d = double.tryParse(s);
-      if (d != null) {
-        confidencePct = d > 1.0 ? d.round() : (d * 100).round();
-      } else {
-        final lower = s.toLowerCase();
-        if (lower == 'high') {
-          confidencePct = 89;
-        } else if (lower == 'medium' || lower == 'moderate') {
-          confidencePct = 72;
-        } else if (lower == 'low') {
-          confidencePct = 55;
-        }
+    final trigger = pattern.trigger.trim().isNotEmpty ? pattern.trigger.trim() : 'Logged meal';
+    final reaction = pattern.reaction.trim().isNotEmpty ? pattern.reaction.trim() : '${style.label} response';
+    String? occurrenceImage;
+    for (final occurrence in pattern.occurrences) {
+      if (occurrence.imageUrl != null && occurrence.imageUrl!.isNotEmpty) {
+        occurrenceImage = occurrence.imageUrl;
+        break;
       }
     }
+    final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : trigger;
+    final foodImageUrl = InsightUiKit.foodImageUrl(foodName, imageUrl: occurrenceImage);
+    final occurrenceCount = pattern.frequency > 0 ? pattern.frequency : pattern.occurrences.length;
+    final observationText = occurrenceCount == 1 ? '1 observation' : '$occurrenceCount observations';
+    final timeframeText = pattern.timeframeDays > 0 ? '${pattern.timeframeDays} days' : null;
+    final confidencePct = _patternConfidencePercent(pattern);
+    final evidenceText = confidencePct > 0
+        ? '$confidencePct% match'
+        : (pattern.confidence.trim().isNotEmpty ? pattern.confidence.trim() : 'Building evidence');
+    final description = pattern.description.trim();
 
-    // Dynamic Description String
-    final descStr = pattern.description.trim();
-
-    // Dynamic CTA Label
-    final ctaText = confidencePct > 0 ? 'DEEP DIVE ($confidencePct%)' : 'VIEW DETAILS';
-
-    final accentColor = style.accentColor;
-    const cardBgColor = Color(0xFF0F1015);
-    const cardGradient = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF23272F), Color(0xFF0F1015)]);
-
-    return Container(
-      height: 160.w,
-      decoration: BoxDecoration(gradient: cardGradient, borderRadius: BorderRadius.circular(24.w)),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: () => context.push(AppRoutes.patternDetail, extra: pattern),
-          borderRadius: BorderRadius.circular(24.w),
-          child: Row(
-            children: [
-              // 1. Left Content Section
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 14.w, 12.w, 14.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Semantics(
+      button: true,
+      label: '${style.label} pattern. $trigger may be linked to $reaction.',
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(20.w),
+          border: Border.all(color: border, width: 1.w),
+          boxShadow: isDark ? const [] : [BoxShadow(color: style.accentColor.withValues(alpha: 0.08), blurRadius: 18.w, offset: Offset(0, 7.w))],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: () => context.push(AppRoutes.patternDetail, extra: pattern),
+            borderRadius: BorderRadius.circular(20.w),
+            child: Padding(
+              padding: EdgeInsets.all(14.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      // Top Texts & Tag Pill
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Domain Category Pill Tag
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.w),
-                            decoration: BoxDecoration(
-                              color: accentColor.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(100.w),
-                              border: Border.all(color: accentColor.withValues(alpha: 0.40), width: 0.8.w),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(style.icon, size: 10.w, color: accentColor),
-                                Gap.w4,
-                                Text(
-                                  rawTypeLabel.toUpperCase(),
-                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.5),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Gap.h6,
-
-                          // Line 1: Bold Title
-                          Text(
-                            headlineTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.3),
-                          ),
-                          if (subtitle.isNotEmpty) ...[
-                            Gap.h2,
-
-                            // Line 2: Subtitle
+                      Container(
+                        width: 34.w,
+                        height: 34.w,
+                        decoration: BoxDecoration(color: style.accentColor, borderRadius: BorderRadius.circular(11.w)),
+                        child: Icon(style.icon, size: 18.w, color: Colors.white),
+                      ),
+                      Gap.w10,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              subtitle,
+                              '${style.label} pattern',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w600, color: accentColor, height: 1.2, letterSpacing: -0.1),
+                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: primaryText),
                             ),
-                          ],
-                          if (descStr.isNotEmpty) ...[
-                            Gap.h4,
-
-                            // Line 3: Description String
+                            Gap.h2,
                             Text(
-                              descStr,
-                              maxLines: 2,
+                              'Detected from your logs',
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w400, color: const Color(0xFF94A3B8), height: 1.25),
+                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w500, color: secondaryText),
                             ),
                           ],
-                        ],
+                        ),
                       ),
-
-                      // Bottom CTA Row
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 28.w,
-                            height: 28.w,
-                            decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
-                            child: Center(
-                              child: Icon(Icons.north_east_rounded, size: 14.w, color: Colors.white),
-                            ),
-                          ),
-                          Gap.w8,
-                          Text(
-                            ctaText,
-                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.3),
-                          ),
-                        ],
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 4.w),
+                        decoration: BoxDecoration(
+                          color: style.accentColor.withValues(alpha: isDark ? 0.18 : 0.12),
+                          borderRadius: BorderRadius.circular(100.w),
+                          border: Border.all(color: style.accentColor.withValues(alpha: 0.28), width: 0.8.w),
+                        ),
+                        child: Text(
+                          evidenceText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, color: style.accentColor),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ),
-
-              // 2. Right Side Image (Blended with black background)
-              SizedBox(
-                width: 130.w,
-                height: double.infinity,
-                child: Stack(
-                  children: [
-                    // Food Image with ShaderMask for smooth left-edge fading
-                    Positioned.fill(
-                      child: ShaderMask(
-                        shaderCallback: (rect) => const LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [Colors.transparent, Colors.white24, Colors.white],
-                          stops: [0.0, 0.28, 0.65],
-                        ).createShader(rect),
-                        blendMode: BlendMode.dstIn,
-                        child: CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                          placeholder: (_, _) => Container(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            child: Center(
-                              child: Icon(style.icon, color: accentColor.withValues(alpha: 0.5), size: 28.w),
-                            ),
-                          ),
-                          errorWidget: (_, _, _) => Container(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            child: Center(
-                              child: Icon(style.icon, color: accentColor.withValues(alpha: 0.7), size: 28.w),
-                            ),
-                          ),
+                  Gap.h14,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _PatternIdentityNode(
+                          label: 'TRIGGER',
+                          value: trigger,
+                          imageUrl: foodImageUrl,
+                          icon: style.icon,
+                          accentColor: style.accentColor,
+                          primaryText: primaryText,
+                          isDark: isDark,
                         ),
                       ),
-                    ),
-
-                    // Soft Black Background Overlay
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [cardBgColor, cardBgColor.withValues(alpha: 0.2), cardBgColor.withValues(alpha: 0.0)],
-                            stops: const [0.0, 0.5, 1.0],
-                          ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 22.w),
+                        child: Icon(Icons.arrow_forward_rounded, size: 16.w, color: secondaryText),
+                      ),
+                      Expanded(
+                        child: _PatternIdentityNode(
+                          label: 'RESPONSE',
+                          value: reaction,
+                          icon: style.icon,
+                          accentColor: style.accentColor,
+                          primaryText: primaryText,
+                          isDark: isDark,
                         ),
                       ),
+                    ],
+                  ),
+                  if (description.isNotEmpty) ...[
+                    Gap.h10,
+                    Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w400, color: secondaryText, height: 1.3),
                     ),
                   ],
-                ),
+                  Gap.h12,
+                  Row(
+                    children: [
+                      Icon(Icons.insights_outlined, size: 14.w, color: secondaryText),
+                      Gap.w4,
+                      Expanded(
+                        child: Text(
+                          timeframeText == null ? observationText : '$observationText • $timeframeText',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: secondaryText),
+                        ),
+                      ),
+                      Gap.w8,
+                      Text(
+                        'View pattern',
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: style.accentColor),
+                      ),
+                      Gap.w3,
+                      Icon(Icons.arrow_forward_rounded, size: 14.w, color: style.accentColor),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+class _PatternIdentityNode extends StatelessWidget {
+  const _PatternIdentityNode({required this.label, required this.value, this.imageUrl, this.icon, required this.accentColor, required this.primaryText, required this.isDark});
+
+  final String label;
+  final String value;
+  final String? imageUrl;
+  final IconData? icon;
+  final Color accentColor;
+  final Color primaryText;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.w),
+    decoration: BoxDecoration(
+      color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.78),
+      borderRadius: BorderRadius.circular(13.w),
+      border: Border.all(color: accentColor.withValues(alpha: isDark ? 0.25 : 0.18)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w800, letterSpacing: 0.7, color: accentColor),
+        ),
+        Gap.h3,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _visual,
+            Gap.w5,
+            Expanded(child: _valueText()),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  Widget get _visual {
+    final size = 38.w;
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(9.w),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          placeholder: (_, _) => _PatternImageFallback(color: accentColor, icon: icon ?? Icons.restaurant_outlined, size: size),
+          errorWidget: (_, _, _) => _PatternImageFallback(color: accentColor, icon: icon ?? Icons.restaurant_outlined, size: size),
+        ),
+      );
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: accentColor.withValues(alpha: isDark ? 0.18 : 0.12), borderRadius: BorderRadius.circular(9.w)),
+      child: Icon(icon ?? Icons.auto_awesome_outlined, size: 19.w, color: accentColor),
+    );
+  }
+
+  Widget _valueText() => Text(
+    value,
+    maxLines: 2,
+    overflow: TextOverflow.ellipsis,
+    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, height: 1.18, color: primaryText),
+  );
+}
+
+class _PatternImageFallback extends StatelessWidget {
+  const _PatternImageFallback({required this.color, required this.icon, required this.size});
+
+  final Color color;
+  final IconData icon;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    color: color.withValues(alpha: 0.12),
+    child: Icon(icon, size: size * 0.5, color: color),
+  );
+}
+
+int _patternConfidencePercent(BodyPattern pattern) {
+  if (pattern.evidenceRatio > 0) return (pattern.evidenceRatio * 100).round();
+  if (pattern.confidenceScore > 0) return (pattern.confidenceScore * 100).round();
+
+  final raw = pattern.confidence.trim().replaceAll('%', '');
+  final value = double.tryParse(raw);
+  if (value != null) return value > 1 ? value.round() : (value * 100).round();
+
+  return switch (raw.toLowerCase()) {
+    'high' => 89,
+    'medium' || 'moderate' => 72,
+    'low' => 55,
+    _ => 0,
+  };
 }
 
 /// Pattern identity helpers — shared by [PatternCard] and other pattern surfaces.

@@ -200,27 +200,27 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final topHealing =
         data.healingSummary?.foods.firstOrNull ??
-        (data.healingFoods.isNotEmpty
-            ? InsightFood(
-                foodId: 'h_${data.healingFoods.first.name}',
-                name: data.healingFoods.first.name,
-                emoji: data.healingFoods.first.emoji,
-                imageUrl: data.healingFoods.first.userImageUrl ?? data.healingFoods.first.imageUrl,
-                effect: data.healingFoods.first.effect,
-              )
-            : null);
+            (data.healingFoods.isNotEmpty
+                ? InsightFood(
+              foodId: 'h_${data.healingFoods.first.name}',
+              name: data.healingFoods.first.name,
+              emoji: data.healingFoods.first.emoji,
+              imageUrl: data.healingFoods.first.userImageUrl ?? data.healingFoods.first.imageUrl,
+              effect: data.healingFoods.first.effect,
+            )
+                : null);
 
     final topTrigger =
         data.triggerSummary?.foods.firstOrNull ??
-        (data.triggerFoods.isNotEmpty
-            ? InsightFood(
-                foodId: 't_${data.triggerFoods.first.name}',
-                name: data.triggerFoods.first.name,
-                emoji: data.triggerFoods.first.emoji,
-                imageUrl: data.triggerFoods.first.userImageUrl ?? data.triggerFoods.first.imageUrl,
-                effect: data.triggerFoods.first.effect,
-              )
-            : null);
+            (data.triggerFoods.isNotEmpty
+                ? InsightFood(
+              foodId: 't_${data.triggerFoods.first.name}',
+              name: data.triggerFoods.first.name,
+              emoji: data.triggerFoods.first.emoji,
+              imageUrl: data.triggerFoods.first.userImageUrl ?? data.triggerFoods.first.imageUrl,
+              effect: data.triggerFoods.first.effect,
+            )
+                : null);
 
     if (topHealing == null && topTrigger == null) {
       return Container(
@@ -313,30 +313,40 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
                     ),
                     Gap.h6,
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6.w,
+                      runSpacing: 4.w,
                       children: [
                         Text(
                           'Observed',
                           style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                         ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.18) : const Color(0xFFDCFCE7),
-                            borderRadius: BorderRadius.circular(8.w),
-                            border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.35) : const Color(0xFFBBF7D0), width: 0.8.w),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(LucideIcons.leaf, size: 8.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-                              Gap.w2,
-                              Text(
-                                'Supportive observation',
-                                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-                              ),
-                            ],
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: 140.w),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.18) : const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(8.w),
+                              border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.35) : const Color(0xFFBBF7D0), width: 0.8.w),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(LucideIcons.leaf, size: 8.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
+                                Gap.w2,
+                                Flexible(
+                                  child: Text(
+                                    'Supportive observation',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -414,30 +424,40 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
                     ),
                     Gap.h6,
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6.w,
+                      runSpacing: 4.w,
                       children: [
                         Text(
                           'Observed',
                           style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                         ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
-                            borderRadius: BorderRadius.circular(8.w),
-                            border: Border.all(color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : const Color(0xFFFECACA), width: 0.8.w),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(LucideIcons.triangleAlert, size: 8.w, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
-                              Gap.w2,
-                              Text(
-                                'Symptom observation',
-                                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
-                              ),
-                            ],
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: 140.w),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.w),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(8.w),
+                              border: Border.all(color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : const Color(0xFFFECACA), width: 0.8.w),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(LucideIcons.triangleAlert, size: 8.w, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
+                                Gap.w2,
+                                Flexible(
+                                  child: Text(
+                                    'Symptom observation',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
