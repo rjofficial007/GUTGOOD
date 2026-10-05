@@ -15,7 +15,6 @@ import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widge
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_feed.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/pattern_style.dart';
 import 'package:gutgood/features/insights/presentation/widgets/gut_score_card.dart';
-import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ui_kit.dart';
 import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
 import 'package:gutgood/features/insights/presentation/widgets/top_food_tile.dart';
 import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';

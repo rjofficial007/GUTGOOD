@@ -30,7 +30,7 @@ CORE PATTERN RULES:
    - `foodImpactBalance` percentages (`positivePercent`, `neutralPercent`, `negativePercent`) MUST mathematically match actual `impactDirection` classifications across all evaluated foods.
 9. GROUNDED NEXT STEPS: `nextSteps` in `topInsight` and `actions` MUST strictly reference symptoms actually mentioned in the `observation` or meal logs. NEVER mention a symptom that is absent from the underlying observation.
 10. GROUNDED FACTORS, MECHANISMS, AND TIMING: Only report common factors, meal type, time, severity, or symptom delay when those values are explicitly present in the supplied logs or qualified candidates. Never infer fat content, ingredients, a mechanism, or symptom timing from a food name. Leave optional factor lists, `whyItWorks`, pairings, and mechanism details empty unless the exact claim is explicitly supported by supplied evidence.
-11. AT LEAST 4 FOOD SWAP ALTERNATIVES: For every item in `foodSwaps`, the `alternatives` array MUST contain AT LEAST 4 distinct healthier or easier-to-digest food alternative options with complete structured details (`foodId`, `name`, `imageUrl`, `reason`, `impactLevel`, `category`, `structuredBenefits`, `whyBetterOption`, and `nutrition`). Leave benefit/mechanism fields empty when the supplied evidence does not explicitly support them.
+11. FOOD SWAPS AND FILTER CATEGORIES: For every item in `foodSwaps`, provide at least 4 distinct healthier or easier-to-digest alternatives with complete structured details (`foodId`, `name`, `imageUrl`, `reason`, `impactLevel`, `category`, `benefitTags`, `structuredBenefits`, `whyBetterOption`, and `nutrition`). Populate `benefitTags` with 1–3 concise tags and `structuredBenefits` with 1–3 `{title, description, icon}` objects for every alternative. Ground these benefits in explicit differences between the source and alternative names, supplied reasons, or supplied nutrition; do not invent ingredients, nutrition values, medical effects, or symptom mechanisms. If a health advantage is not supported, describe a neutral practical difference (such as preparation style) or omit that claim. `whyBetterOption` must explain the supported comparison in one short sentence. Set each alternative's `category` from its own food type, not the source meal or the swap context. Use exactly one consistent category from: `Protein`, `Plant-Based`, `Grains & Bread`, `Vegetables & Fruit`, `Dairy & Alternatives`, `Meals & Bowls`, `Snacks & Sides`, `Breakfast`, or `Other`. Examples: grilled chicken → `Protein`; plant-based patty → `Plant-Based`; whole-grain bun → `Grains & Bread`; baked puris → `Snacks & Sides`. Use different categories when the alternatives are genuinely different food types; never put every alternative in the source meal's category just to reuse its label, and never misclassify an item to create more filters.
 12. DYNAMIC DATA ONLY: All values (impact percentages, counts, food items, dates) MUST be strictly computed from actual user data. NEVER return static mock values unless accurately calculated from user logs.
 13. APPLICATION-OWNED METADATA: The application stamps `v`, `model`, `promptVersion`, `status`, and `origin` before persistence. Return the requested values when present, but never invent a version or treat model-provided metadata as authoritative.
 14. ONE-OCCURRENCE LIMIT: A single occurrence may support a low-confidence observation only. It MUST NOT produce `impactLevel: "high"`, a healing/trigger classification, a causal explanation, or a positive/negative balance percentage.
@@ -180,8 +180,9 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
           "imageUrl": "string",
           "reason": "string",
           "impactLevel": "high|moderate|low",
-          "category": "Burgers & Sandwiches|Bowls|Breakfast|Sides",
-          "structuredBenefits": [],
+          "category": "Protein|Plant-Based|Grains & Bread|Vegetables & Fruit|Dairy & Alternatives|Meals & Bowls|Snacks & Sides|Breakfast|Other",
+          "benefitTags": ["string"],
+          "structuredBenefits": [{"title": "string", "description": "string", "icon": "leaf"}],
           "whyBetterOption": "",
           "nutrition": { "calories": 350, "protein": "32g", "totalFat": "6g", "fiber": "2g" }
         },
@@ -191,8 +192,9 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
           "imageUrl": "string",
           "reason": "string",
           "impactLevel": "high|moderate|low",
-          "category": "Burgers & Sandwiches|Bowls|Breakfast|Sides",
-          "structuredBenefits": [],
+          "category": "Protein|Plant-Based|Grains & Bread|Vegetables & Fruit|Dairy & Alternatives|Meals & Bowls|Snacks & Sides|Breakfast|Other",
+          "benefitTags": ["string"],
+          "structuredBenefits": [{"title": "string", "description": "string", "icon": "leaf"}],
           "whyBetterOption": "",
           "nutrition": { "calories": 280, "protein": "25g", "totalFat": "5g", "fiber": "6g" }
         },
@@ -202,8 +204,9 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
           "imageUrl": "string",
           "reason": "string",
           "impactLevel": "high|moderate|low",
-          "category": "Burgers & Sandwiches|Bowls|Breakfast|Sides",
-          "structuredBenefits": [],
+          "category": "Protein|Plant-Based|Grains & Bread|Vegetables & Fruit|Dairy & Alternatives|Meals & Bowls|Snacks & Sides|Breakfast|Other",
+          "benefitTags": ["string"],
+          "structuredBenefits": [{"title": "string", "description": "string", "icon": "leaf"}],
           "whyBetterOption": "",
           "nutrition": { "calories": 310, "protein": "28g", "totalFat": "7g", "fiber": "3g" }
         },
@@ -213,8 +216,9 @@ OUTPUT SCHEMA (STRICT JSON ONLY):
           "imageUrl": "string",
           "reason": "string",
           "impactLevel": "high|moderate|low",
-          "category": "Burgers & Sandwiches|Bowls|Breakfast|Sides",
-          "structuredBenefits": [],
+          "category": "Protein|Plant-Based|Grains & Bread|Vegetables & Fruit|Dairy & Alternatives|Meals & Bowls|Snacks & Sides|Breakfast|Other",
+          "benefitTags": ["string"],
+          "structuredBenefits": [{"title": "string", "description": "string", "icon": "leaf"}],
           "whyBetterOption": "",
           "nutrition": { "calories": 380, "protein": "16g", "totalFat": "8g", "fiber": "9g" }
         }

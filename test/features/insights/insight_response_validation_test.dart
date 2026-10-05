@@ -58,7 +58,9 @@ void main() {
         ...baseline()['topInsight'] as Map,
         'kind': 'progress',
         'confidence': 0.5,
-        'frequency': 1,
+        'frequency': 4,
+        'description': 'Bloating happened after fried chicken burgers on multiple occasions.',
+        'observation': 'Bloating followed the burger repeatedly.',
       },
       'healing': {
         'goal': 'Increase energy levels',
@@ -101,8 +103,89 @@ void main() {
     expect(top['type'], 'progress');
     expect(top['confidence'], 'low');
     expect(top['confidenceScore'], 0.5);
+    expect(top['frequency'], 1);
     expect(top['description'], contains('early observation'));
+    expect(top['description'], isNot(contains('multiple occasions')));
+    expect(top['observation'], top['description']);
   });
+
+  test('grounds top insight frequency and narrative in its matching pattern candidate', () {
+    const candidate = BodyPattern(
+      type: BodyPattern.typeBloating,
+      trigger: 'Fried Chicken Burger',
+      reaction: 'Bloating',
+      frequency: 2,
+      confidence: BodyPattern.confidenceMedium,
+      confidenceScore: 0.65,
+      description: 'You reported bloating after 2 recent meals containing fried chicken burger.',
+      involvedFoods: ['fried chicken burger'],
+      positiveCount: 2,
+      negativeCount: 1,
+      evidenceRatio: 2 / 3,
+      updatedAt: '2026-10-07T00:00:00.000Z',
+    );
+    final response = {
+      ...baseline(),
+      'topInsight': {
+        'title': 'Bloating After Fried Foods',
+        'domain': 'bloating',
+        'involvedFoods': ['Fried Chicken Burger'],
+        'frequency': 4,
+        'confidence': 'high',
+        'confidenceScore': 0.9,
+        'description': 'Bloating followed this food on four occasions.',
+      },
+    };
+
+    final top = InsightResponseValidator.normalize(response, patternCandidates: [candidate]).data['topInsight'] as Map;
+
+    expect(top['frequency'], 2);
+    expect(top['positiveCount'], 2);
+    expect(top['negativeCount'], 1);
+    expect(top['confidence'], 'medium');
+    expect(top['description'], candidate.description);
+  });
+
+  test(
+    'keeps legacy trigger fields aligned with validated nested trigger evidence',
+    () {
+      const candidate = BodyPattern(
+        type: BodyPattern.typeBloating,
+        trigger: 'Fried Chicken Burger',
+        reaction: 'Bloating',
+        frequency: 2,
+        confidence: BodyPattern.confidenceMedium,
+        description: 'Bloating followed two recent fried chicken burger meals.',
+        involvedFoods: ['fried chicken burger'],
+        updatedAt: '2026-10-08T00:00:00.000Z',
+      );
+      final response = {
+        ...baseline(),
+        'triggerSymptom': '',
+        'triggerTrend': '',
+        'triggerFoods': <dynamic>[],
+        'triggers': {
+          'primarySymptom': 'bloating',
+          'trend': 'Increasing',
+          'foods': [
+            {'foodId': 'fried_chicken_burger', 'name': 'Fried Chicken Burger'},
+          ],
+        },
+      };
+
+      final normalized = InsightResponseValidator.normalize(
+        response,
+        patternCandidates: [candidate],
+      ).data;
+      final nested = (normalized['triggers'] as Map)['foods'] as List;
+      final legacy = normalized['triggerFoods'] as List;
+
+      expect(normalized['triggerSymptom'], 'bloating');
+      expect(normalized['triggerTrend'], 'Increasing');
+      expect(legacy, nested);
+      expect((legacy.single as Map)['name'], 'Fried Chicken Burger');
+    },
+  );
 
   test('caps one-occurrence food evidence at low confidence', () {
     const candidate = BodyPattern(

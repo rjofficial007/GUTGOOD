@@ -1,216 +1,124 @@
 part of 'highlight_detail_screen.dart';
 
 /// Healing and progress sections for the highlight detail page.
+///
+/// This screen is deliberately evidence-aware: a one-day score is presented as
+/// a starting point, not as a positive or negative trend. The layout keeps the
+/// useful next step visible while avoiding empty section chrome and misleading
+/// "+0" progress language.
 
 extension HighlightHealingSections on HighlightDetailScreen {
   Widget _buildHealingTrendDetail(BuildContext context) {
     final theme = context.insightTheme;
     final insight = _highlightInsightOf(context);
 
-    // Dynamic Series Resolution
-    var series = args.chartValues;
-    if (series.isEmpty && insight?.weeklyRecap?.gutScoreTrend != null && insight!.weeklyRecap!.gutScoreTrend!.isNotEmpty) {
-      series = [for (final s in insight.weeklyRecap!.gutScoreTrend!) s.toDouble()];
+    var series = [...args.chartValues];
+    if (series.isEmpty && insight?.weeklyRecap?.gutScoreTrend?.isNotEmpty == true) {
+      series = [for (final score in insight!.weeklyRecap!.gutScoreTrend!) score.toDouble()];
     }
-    if (series.isEmpty && insight?.gutScore != null) {
+    if (series.isEmpty && insight?.hasGutScore == true) {
       series = [insight!.gutScore.toDouble()];
     }
 
     final cleanSeries = InsightValues.scores(series);
-    final scoredSeries = cleanSeries.where((s) => s > 0).toList();
+    final scoredSeries = cleanSeries.where((score) => score > 0).toList(growable: false);
+    final hasScore = insight?.hasGutScore == true || scoredSeries.isNotEmpty;
+    final scoredDayCount = scoredSeries.isEmpty && insight?.hasGutScore == true ? 1 : scoredSeries.length;
+    final hasHistory = scoredSeries.length > 1;
+    final currentScore = insight?.hasGutScore == true
+        ? insight!.gutScore.clamp(0, 100).toInt()
+        : scoredSeries.isNotEmpty
+        ? scoredSeries.last.round()
+        : 0;
 
-    final startVal = scoredSeries.isNotEmpty ? scoredSeries.first.round() : (insight?.gutScore != null && insight!.gutScore > 0 ? insight.gutScore : 0);
+    // A single score is a baseline regardless of scoreDiff. Do not turn a
+    // persisted "+0" into a green progress state.
+    final diff = hasHistory ? scoredSeries.last.round() - scoredSeries.first.round() : 0;
+    final isImproving = hasHistory && diff > 0;
+    final isDeclining = hasHistory && diff < 0;
+    final isBaseline = !hasHistory;
 
-    final endVal = scoredSeries.isNotEmpty ? scoredSeries.last.round() : (insight?.gutScore != null && insight!.gutScore > 0 ? insight.gutScore : 0);
+    final accent = isBaseline
+        ? theme.success
+        : isImproving
+        ? theme.success
+        : isDeclining
+        ? theme.error
+        : theme.textSecondary;
+    final accentSoft = isBaseline
+        ? theme.successSoft
+        : isImproving
+        ? theme.successSoft
+        : isDeclining
+        ? theme.errorSoft
+        : theme.cardSubtle;
 
-    int diff;
-    if (scoredSeries.length > 1) {
-      diff = endVal - startVal;
-    } else if (insight?.scoreDiff != null) {
-      diff = BentoData.parseDelta(insight!.scoreDiff) ?? 0;
-    } else {
-      diff = 0;
+    final appBarTitle = isBaseline ? 'BUILDING BASELINE' : 'YOUR PROGRESS';
+    final statusLabel = isBaseline
+        ? 'FIRST BASELINE'
+        : isImproving
+        ? 'IMPROVING'
+        : isDeclining
+        ? 'AREA TO WATCH'
+        : 'STEADY';
+    final headline = isBaseline ? (hasScore ? 'Your starting point is here.' : 'Your baseline is taking shape.') : (args.title.isNotEmpty ? args.title : 'Your gut score is steady.');
+    final body = isBaseline
+        ? hasScore
+              ? 'We have ${scoredDayCount == 1 ? 'one scored day' : '$scoredDayCount scored days'} so far. Keep logging to make the next comparison more useful.'
+              : 'Log meals and symptoms to create your first meaningful baseline.'
+        : (args.body?.trim().isNotEmpty == true ? args.body! : 'Your score is now based on more than one recorded day.');
+    final rangeLabel = hasHistory ? '${scoredSeries.first.round()} → ${scoredSeries.last.round()}' : (hasScore ? '$currentScore/100' : '—');
+    final coverageLabel = scoredSeries.isEmpty ? '0 / 7' : '${scoredSeries.length} / 7';
+    final coverageDetail = scoredDayCount == 1 ? '1 day scored' : '$scoredDayCount days scored';
+    final scoreDetail = hasScore ? 'Current score' : 'Awaiting first score';
+
+    // Keep the chart on a stable seven-day coordinate system. A one-value
+    // series is anchored to today instead of being drawn in the middle of the
+    // chart, while shorter histories are right-aligned to the current week.
+    final chartSeries = _normalizeChartSeries(series, anchorIndex: DateTime.now().weekday % 7);
+
+    final foods = _healingFoods(insight);
+    final highlights = _progressHighlights(insight);
+    final nextSteps = [..._nextStepLabels(insight)];
+    if (isBaseline && nextSteps.isEmpty) {
+      nextSteps.add(hasScore ? 'Log one more day of meals and symptoms to compare with this starting point.' : 'Log a full day of meals and symptoms to create your starting point.');
     }
-
-    final hasEnoughData = scoredSeries.length > 1 && diff != 0;
-    final appBarTitle = hasEnoughData ? 'YOUR PROGRESS' : 'BUILDING BASELINE';
-    final tagLabel = hasEnoughData ? 'Your Progress' : 'Building Baseline';
-
-    final headline = hasEnoughData ? (args.title.isNotEmpty ? args.title : 'Your gut score is steady.') : 'Building baseline';
-    final bodyText = hasEnoughData ? ((args.body ?? '').isNotEmpty ? args.body! : 'Keep logging meals to track your gut health progress.') : 'We’re learning what works for you.';
-
-    final isUp = diff >= 0;
-    final absDiff = diff.abs();
-
-    final badgeBgColor = isUp ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2);
-    final badgeIconBgColor = isUp ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
-    final badgeTextColor = isUp ? const Color(0xFF15803D) : const Color(0xFF991B1B);
-    final chartLineColor = isUp ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
-
-    final rangeText = scoredSeries.length > 1 ? '$startVal → $endVal' : (endVal > 0 ? '$endVal/100' : '—');
-
-    final progressTitle = diff == 0 ? (endVal > 0 ? 'Steady baseline' : 'Building baseline') : (isUp ? 'Positive progress' : 'Area to watch');
-
-    final pct = (startVal > 0 && absDiff > 0) ? ((absDiff / startVal) * 100).round() : 0;
-    final progressDesc = diff == 0
-        ? (endVal > 0 ? 'Your gut score is steady at $endVal points.' : 'Log meals and scans to track your score trend.')
-        : 'Your score has ${isUp ? 'increased' : 'decreased'} by $absDiff point${absDiff == 1 ? '' : 's'}${pct > 0 ? ' ($pct%)' : ''} this week.';
-
-    const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
     return Scaffold(
       backgroundColor: theme.scaffold,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // Same GutSliverAppBar as other screens
           GutSliverAppBar(title: appBarTitle, centerTitle: true, showBrandingIcon: false, backgroundColor: theme.scaffold),
-
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 24.w),
+            padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 28.w),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                Gap.h10,
-
-                // 1. HERO SCORE CARD (Gut Barrier Score)
-                Container(
-                  padding: EdgeInsets.all(12.w),
-                  decoration: BoxDecoration(
-                    color: context.insightColor(isUp ? const Color(0xFFF4FAF5) : const Color(0xFFFFF5F5)),
-                    borderRadius: BorderRadius.circular(20.w),
-                    border: Border.all(color: context.insightColor(badgeBgColor), width: 1.w),
-                    boxShadow: [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Row: Badge + Timeframe
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.w),
-                            decoration: BoxDecoration(color: context.insightColor(badgeBgColor), borderRadius: BorderRadius.circular(16.w)),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(LucideIcons.leaf, size: 10.w, color: context.insightColor(badgeTextColor)),
-                                Gap.w4,
-                                Text(
-                                  (args.tag == 'Healing Trend' || args.tag == 'Improving Trend' || args.tag.isEmpty) ? tagLabel : args.tag,
-                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: context.insightColor(badgeTextColor)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      Gap.h8,
-
-                      Text(
-                        headline,
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
-                      ),
-                      Gap.h3,
-                      Text(
-                        bodyText,
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: theme.textSecondary, height: 1.25),
-                      ),
-                      Gap.h12,
-
-                      // Chart, Weekday Labels & Badge Row
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Left Column: 7-Point Trend Chart + Pixel-Aligned Weekday Labels
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  height: 52.w,
-                                  width: double.infinity,
-                                  child: InsightTrendChart(values: series, height: 52, color: context.insightColor(chartLineColor), endDot: true),
-                                ),
-                                Gap.h6,
-                                AlignedDayLabelsRow(labels: dayLabels, todayIndex: DateTime.now().weekday % 7),
-                              ],
-                            ),
-                          ),
-                          Gap.w12,
-
-                          // Right Column: Point Change Badge
-                          Container(
-                            padding: EdgeInsets.all(10.w),
-                            decoration: BoxDecoration(color: context.insightColor(badgeBgColor), borderRadius: BorderRadius.circular(16.w)),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.all(3.w),
-                                      decoration: BoxDecoration(color: context.insightColor(badgeIconBgColor), shape: BoxShape.circle),
-                                      child: Icon(isUp ? LucideIcons.arrowUp : LucideIcons.arrowDown, size: 10, color: Colors.white),
-                                    ),
-                                    Gap.w4,
-                                    Text(
-                                      '${isUp ? '+' : '-'}$absDiff',
-                                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: context.insightColor(badgeTextColor)),
-                                    ),
-                                  ],
-                                ),
-                                Gap.h2,
-                                Text(
-                                  'points this week',
-                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(badgeTextColor), fontWeight: FontWeight.w600),
-                                ),
-                                Gap.h2,
-                                Text(
-                                  rangeText,
-                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      Gap.h10,
-
-                      Text(
-                        progressTitle,
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
-                      ),
-                      Text(
-                        progressDesc,
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF475569))),
-                      ),
-                    ],
-                  ),
+                _buildProgressHero(
+                  context,
+                  theme: theme,
+                  chartSeries: chartSeries,
+                  hasScore: hasScore,
+                  currentScore: currentScore,
+                  hasHistory: hasHistory,
+                  diff: diff,
+                  statusLabel: statusLabel,
+                  headline: headline,
+                  body: body,
+                  rangeLabel: rangeLabel,
+                  coverageLabel: coverageLabel,
+                  coverageDetail: coverageDetail,
+                  scoreDetail: scoreDetail,
+                  accent: accent,
+                  accentSoft: accentSoft,
                 ),
-                Gap.h10,
-
-                // 2. WHAT'S CONTRIBUTING? SECTION
-                _buildWhatsContributingSection(context),
-                Gap.h10,
-
-                // 3. WEEKLY STATS SECTION
-                _buildWeeklyStatsSection(context),
-                Gap.h10,
-
-                // 4. PROGRESS HIGHLIGHTS SECTION
-                _buildProgressHighlightsSection(context),
-                Gap.h10,
-
-                // 5. RECOMMENDED NEXT STEPS SECTION
-                _buildNextStepsSection(context),
-                Gap.h10,
-
-                // 6. BOTTOM ENCOURAGEMENT BANNER ("Keep going!")
-                _buildKeepGoingBanner(context),
-                Gap.h12,
+                Gap.h16,
+                _buildObservationStatusCard(context, insight: insight, isBaseline: isBaseline, scoredDayCount: scoredDayCount),
+                if (foods.isNotEmpty) ...[Gap.h16, _buildWhatsContributingSection(context, foods)],
+                if (highlights.isNotEmpty) ...[Gap.h16, _buildProgressHighlightsSection(context, highlights)],
+                if (nextSteps.isNotEmpty) ...[Gap.h16, _buildNextStepsSection(context, nextSteps, isBaseline: isBaseline)],
+                Gap.h16,
+                _buildKeepGoingBanner(context, isBaseline: isBaseline),
               ]),
             ),
           ),
@@ -219,332 +127,98 @@ extension HighlightHealingSections on HighlightDetailScreen {
     );
   }
 
-  /// 2. What's Contributing? Section
-  Widget _buildWhatsContributingSection(BuildContext context) {
-    final theme = context.insightTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final insight = _highlightInsightOf(context);
-    final foods = insight?.healingSummary?.foods.isNotEmpty == true
-        ? insight!.healingSummary!.foods
-        : (insight?.healingFoods.isNotEmpty == true
-              ? insight!.healingFoods
-                    .map((f) => InsightFood(foodId: 'f_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
-                    .toList()
-              : const <InsightFood>[]);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 28.w,
-              height: 28.w,
-              decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: Icon(LucideIcons.sparkles, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-            ),
-            Gap.w8,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "What's Contributing?",
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
-                  ),
-                  Text(
-                    foods.isEmpty
-                        ? 'Supportive foods will appear here when your logs provide evidence.'
-                        : 'Foods observed in your logs as supportive.',
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        Gap.h8,
-
-        if (foods.isEmpty)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.w),
-            child: Text(
-              'No supportive foods identified from your logs yet. Keep recording meals and how you feel.',
-              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, color: theme.textSecondary, height: 1.35),
-            ),
-          )
-        else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: [
-                for (final f in foods) ...[
-                  _ContributingCard(
-                    title: f.name,
-                    subtitle: f.effect?.trim().isNotEmpty == true ? f.effect! : 'No effect details recorded.',
-                    badgeText: 'Supportive observation',
-                    badgeColor: context.insightColor(const Color(0xFFDCFCE7)),
-                    badgeTextColor: const Color(0xFF15803D),
-                    imageKeyword: f.name,
-                    icon: LucideIcons.leaf,
-                  ),
-                  Gap.w8,
-                ],
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  /// 3. Weekly Stats Section
-  Widget _buildWeeklyStatsSection(BuildContext context) {
-    final theme = context.insightTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final insight = _highlightInsightOf(context);
-    final recap = insight?.weeklyRecap;
-    final trend = recap?.gutScoreTrend ?? const <int>[];
-    final scoredDays = trend.where((s) => s > 0).toList();
-    final trendAvg = scoredDays.isEmpty ? null : (scoredDays.reduce((a, b) => a + b) / scoredDays.length).round();
-    final avgScore = recap?.avgScore ?? trendAvg ?? (insight?.hasGutScore == true ? insight!.gutScore : null);
-    final bestDay = (recap?.bestDay != null && recap!.bestDay!.isNotEmpty) ? recap.bestDay! : '—';
-    final foodsLogged = recap?.foodsLogged ?? ((insight?.evidence?.sampleSizes.meals ?? 0) + (insight?.evidence?.sampleSizes.scans ?? 0));
-    final avgLabel = avgScore == null ? '—' : '$avgScore';
-    final foodsLabel = foodsLogged == 0 && recap?.foodsLogged == null ? '—' : '$foodsLogged';
-    final foodsSubtext = recap?.loggedSub ?? (foodsLogged == 1 ? 'meal' : 'meals');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 28.w,
-              height: 28.w,
-              decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: Icon(LucideIcons.barChart2, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-            ),
-            Gap.w8,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Weekly Stats',
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
-                  ),
-                  Text(
-                    'Your progress at a glance.',
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        Gap.h8,
-
-        Row(
-          children: [
-            Expanded(
-              child: _WeeklyStatTile(
-                icon: LucideIcons.trophy,
-                iconBg: context.insightColor(const Color(0xFFDCFCE7)),
-                iconColor: const Color(0xFF15803D),
-                label: 'Average Score',
-                value: avgLabel,
-                subtext: recap?.scoreSub ?? 'Gut health score',
-              ),
-            ),
-            Gap.w6,
-            Expanded(
-              child: _WeeklyStatTile(
-                icon: LucideIcons.calendarCheck,
-                iconBg: context.insightColor(const Color(0xFFDCFCE7)),
-                iconColor: const Color(0xFF15803D),
-                label: 'Recorded window',
-                value: bestDay,
-                subtext: bestDay == '—' ? 'No scored day yet' : 'Highest score',
-              ),
-            ),
-            Gap.w6,
-            Expanded(
-              child: _WeeklyStatTile(
-                icon: LucideIcons.utensils,
-                iconBg: context.insightColor(const Color(0xFFFEF3C7)),
-                iconColor: const Color(0xFFB45309),
-                label: 'Foods Logged',
-                value: foodsLabel,
-                subtext: foodsSubtext,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// 4. Progress Highlights Section
-  Widget _buildProgressHighlightsSection(BuildContext context) {
-    final theme = context.insightTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final highlights = _highlightInsightOf(context)?.weeklyRecap?.highlights
-            .map((item) => item is RecapHighlight ? item.text : item is String ? item : '')
-            .where((text) => text.trim().isNotEmpty)
-            .take(2)
-            .toList() ??
-        const <String>[];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 28.w,
-              height: 28.w,
-              decoration: BoxDecoration(color: isDark ? const Color(0xFFD97706).withValues(alpha: 0.2) : const Color(0xFFFEF3C7), shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: Icon(LucideIcons.star, size: 14.w, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309)),
-            ),
-            Gap.w8,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Progress Highlights',
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
-                  ),
-                  Text(
-                    'Highlights from your recent logs.',
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        Gap.h8,
-
-        if (highlights.isEmpty)
-          Text(
-            'No progress highlights are available for this period yet.',
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, color: theme.textSecondary),
-          )
-        else
-          Row(
-            children: [
-              for (var i = 0; i < highlights.length; i++) ...[
-                if (i > 0) Gap.w8,
-                Expanded(
-                  child: _HighlightBox(
-                    icon: i == 0 ? LucideIcons.leaf : LucideIcons.arrowDown,
-                    iconBg: const Color(0xFFDCFCE7),
-                    iconColor: const Color(0xFF15803D),
-                    title: highlights[i],
-                    subtitle: 'From your logs',
-                  ),
-                ),
-              ],
-            ],
-          ),
-      ],
-    );
-  }
-
-  /// 5. Recommended Next Steps Section
-  Widget _buildNextStepsSection(BuildContext context) {
-    final theme = context.insightTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final insight = _highlightInsightOf(context);
-    final actions = insight?.actionsList ?? const [];
-
-    if (actions.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 28.w,
-              height: 28.w,
-              decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: Icon(LucideIcons.leaf, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-            ),
-            Gap.w8,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Recommended Next Steps',
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
-                  ),
-                  Text(
-                    'Keep the momentum going.',
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        Gap.h8,
-
-        Row(
-          children: [
-            for (var i = 0; i < actions.take(2).length; i++) ...[
-              if (i > 0) Gap.w8,
-              Expanded(
-                child: _NextStepCard(icon: i == 0 ? LucideIcons.leaf : LucideIcons.sprout, title: actions[i].title, body: actions[i].description),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// 6. Bottom Encouragement Quote Card ("Keep going!")
-  Widget _buildKeepGoingBanner(BuildContext context) {
-    final theme = context.insightTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildBaselineHero({
+    required InsightTheme theme,
+    required bool hasScore,
+    required String statusLabel,
+    required String headline,
+    required String body,
+    required Color accent,
+    required Color accentSoft,
+  }) {
+    final statusDetail = hasScore ? 'Starting point recorded' : 'Waiting for first scored day';
+    final statusNote = hasScore ? 'The next logged day will give us a useful comparison.' : 'Log a meal and how you feel to start your baseline.';
 
     return Container(
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.all(18.w),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF102319) : const Color(0xFFF4FAF5),
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.3) : const Color(0xFFDCFCE7), width: 1.w),
+        color: accentSoft,
+        borderRadius: BorderRadius.circular(24.w),
+        border: Border.all(color: accent.withValues(alpha: 0.22)),
+        boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.08), blurRadius: 18.w, offset: Offset(0, 7.w))],
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '“',
-            style: TextStyle(fontFamily: InsightTheme.displayFont, fontSize: 28.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D), height: 1.0),
+          Row(
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(color: accent.withValues(alpha: 0.16), shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Icon(LucideIcons.calendar, size: 18.w, color: accent),
+              ),
+              Gap.w10,
+              Expanded(
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w900, letterSpacing: 0.65, color: accent),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.w),
+                decoration: BoxDecoration(color: theme.card.withValues(alpha: 0.72), borderRadius: BorderRadius.circular(999.w)),
+                child: Text(
+                  hasScore ? 'NO TREND YET' : 'READY TO LOG',
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.35, color: accent),
+                ),
+              ),
+            ],
           ),
-          Gap.w6,
-          Expanded(
-            child: Column(
+          Gap.h16,
+          Text(
+            headline,
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 24.sp, fontWeight: FontWeight.w900, height: 1.05, letterSpacing: -0.5, color: theme.textPrimary),
+          ),
+          Gap.h8,
+          Text(
+            body,
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, height: 1.4, color: theme.textSecondary),
+          ),
+          Gap.h16,
+          Container(
+            padding: EdgeInsets.all(11.w),
+            decoration: BoxDecoration(
+              color: theme.card.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(15.w),
+              border: Border.all(color: accent.withValues(alpha: 0.12)),
+            ),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Keep going!',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-                ),
-                Gap.h2,
-                Text(
-                  "You're building healthier habits, and your gut thanks you.",
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary, height: 1.25),
+                Icon(LucideIcons.checkCircle, size: 17.w, color: accent),
+                Gap.w8,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'BASELINE STATUS',
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 0.55, color: accent),
+                      ),
+                      Gap.h3,
+                      Text(
+                        statusDetail,
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
+                      ),
+                      Gap.h2,
+                      Text(
+                        statusNote,
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, height: 1.3, color: theme.textSecondary),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -554,5 +228,561 @@ extension HighlightHealingSections on HighlightDetailScreen {
     );
   }
 
-  /// Trigger / Something to Watch Detail screen
+  Widget _buildProgressHero(
+    BuildContext context, {
+    required InsightTheme theme,
+    required List<double> chartSeries,
+    required bool hasScore,
+    required int currentScore,
+    required bool hasHistory,
+    required int diff,
+    required String statusLabel,
+    required String headline,
+    required String body,
+    required String rangeLabel,
+    required String coverageLabel,
+    required String coverageDetail,
+    required String scoreDetail,
+    required Color accent,
+    required Color accentSoft,
+  }) {
+    if (!hasHistory) {
+      return _buildBaselineHero(theme: theme, hasScore: hasScore, statusLabel: statusLabel, headline: headline, body: body, accent: accent, accentSoft: accentSoft);
+    }
+
+    const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    final scoreText = hasScore ? '$currentScore' : '—';
+    final deltaText = hasHistory ? '${diff > 0 ? '+' : ''}$diff pts' : 'Baseline';
+
+    return Container(
+      padding: EdgeInsets.all(18.w),
+      decoration: BoxDecoration(
+        color: theme.card,
+        borderRadius: BorderRadius.circular(24.w),
+        border: Border.all(color: theme.border),
+        boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.045), blurRadius: 18.w, offset: Offset(0, 7.w))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 6.w),
+                decoration: BoxDecoration(color: accentSoft, borderRadius: BorderRadius.circular(999.w)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(hasHistory ? LucideIcons.trendingUp : LucideIcons.sparkles, size: 13.w, color: accent),
+                    Gap.w5,
+                    Text(
+                      statusLabel,
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: accent),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                deltaText,
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: theme.textTertiary),
+              ),
+            ],
+          ),
+          Gap.h14,
+          Text(
+            headline,
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 22.sp, fontWeight: FontWeight.w900, height: 1.05, letterSpacing: -0.45, color: theme.textPrimary),
+          ),
+          Gap.h6,
+          Text(
+            body,
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, height: 1.35, color: theme.textSecondary),
+          ),
+          Gap.h16,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              SizedBox(
+                width: 92.w,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      scoreText,
+                      style: TextStyle(fontFamily: InsightTheme.displayFont, fontSize: 46.sp, height: 0.9, color: theme.textPrimary),
+                    ),
+                    Gap.h6,
+                    Text(
+                      scoreDetail,
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: theme.textTertiary),
+                    ),
+                  ],
+                ),
+              ),
+              Gap.w14,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '7-DAY SCORE',
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: theme.textTertiary),
+                        ),
+                        const Spacer(),
+                        Text(
+                          hasHistory ? 'Trend' : 'Starting point',
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: accent),
+                        ),
+                      ],
+                    ),
+                    Gap.h5,
+                    SizedBox(
+                      height: 68.w,
+                      child: InsightTrendChart(values: chartSeries, height: 68, color: accent, endDot: true),
+                    ),
+                    Gap.h6,
+                    AlignedDayLabelsRow(labels: dayLabels, todayIndex: DateTime.now().weekday % 7),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Gap.h16,
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              color: theme.cardSubtle,
+              borderRadius: BorderRadius.circular(14.w),
+              border: Border.all(color: theme.borderSubtle),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _BaselineMetric(label: 'WEEKLY COVERAGE', value: coverageLabel, detail: coverageDetail, color: accent),
+                ),
+                Container(width: 1.w, height: 30.w, color: theme.border),
+                Expanded(
+                  child: _BaselineMetric(label: 'SCORE RANGE', value: rangeLabel, detail: hasHistory ? 'This period' : 'Starting point', color: theme.textPrimary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildObservationStatusCard(BuildContext context, {required AIInsight? insight, required bool isBaseline, required int scoredDayCount}) {
+    final theme = context.insightTheme;
+    final top = insight?.topInsight;
+    final title = isBaseline
+        ? 'No recurring pattern yet'
+        : top?.title.trim().isNotEmpty == true
+        ? top!.title
+        : 'No recurring pattern yet';
+    final description = isBaseline
+        ? scoredDayCount == 0
+              ? 'There is not enough logged evidence yet. Keep recording meals and symptoms so we can learn what is typical for you.'
+              : 'One scored day gives us a starting point. More logs are needed before we can compare patterns.'
+        : top?.description.trim().isNotEmpty == true
+        ? top!.description
+        : 'Your first logs are being used to learn what is typical for you.';
+    final observationCount = isBaseline ? scoredDayCount : (top?.frequency ?? 1);
+    final accent = isBaseline ? theme.success : theme.purple;
+    final accentSoft = isBaseline ? theme.successSoft : theme.purplePastel.withValues(alpha: 0.18);
+
+    return Container(
+      padding: EdgeInsets.all(15.w),
+      decoration: BoxDecoration(
+        color: theme.card,
+        borderRadius: BorderRadius.circular(20.w),
+        border: Border.all(color: theme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(color: accentSoft, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Icon(LucideIcons.radar, size: 18.w, color: accent),
+              ),
+              Gap.w10,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isBaseline ? 'WHAT WE\'RE LEARNING' : 'EVIDENCE SNAPSHOT',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.65, color: accent),
+                    ),
+                    Gap.h3,
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, height: 1.15, color: theme.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Gap.h10,
+          Text(
+            description,
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, height: 1.35, color: theme.textSecondary),
+          ),
+          Gap.h12,
+          Wrap(
+            spacing: 7.w,
+            runSpacing: 7.w,
+            children: [
+              _EvidencePill(
+                icon: LucideIcons.listChecks,
+                label: observationCount == 0
+                    ? 'No observations yet'
+                    : observationCount == 1
+                    ? '1 observation'
+                    : '$observationCount observations',
+                color: accent,
+                background: accentSoft.withValues(alpha: 0.72),
+              ),
+              _EvidencePill(icon: LucideIcons.info, label: observationCount <= 1 ? 'Needs more evidence' : 'Pattern developing', color: theme.textSecondary, background: theme.cardSubtle),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhatsContributingSection(BuildContext context, List<InsightFood> foods) {
+    final theme = context.insightTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _BaselineSectionHeader(
+          icon: LucideIcons.leaf,
+          iconColor: theme.success,
+          iconBackground: theme.successSoft,
+          title: 'What\'s contributing?',
+          subtitle: 'Foods supported by repeated observations.',
+        ),
+        Gap.h10,
+        SizedBox(
+          height: 150.w,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: foods.length,
+            separatorBuilder: (_, _) => Gap.w10,
+            itemBuilder: (context, index) {
+              final food = foods[index];
+              return _ContributingCard(
+                title: food.name,
+                subtitle: food.effect?.trim().isNotEmpty == true ? food.effect! : 'Observed in your logs.',
+                badgeText: 'Supportive observation',
+                badgeColor: theme.successSoft,
+                badgeTextColor: theme.success,
+                imageKeyword: food.name,
+                icon: LucideIcons.leaf,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProgressHighlightsSection(BuildContext context, List<String> highlights) {
+    final theme = context.insightTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _BaselineSectionHeader(icon: LucideIcons.star, iconColor: theme.warning, iconBackground: theme.warningSoft, title: 'Progress highlights', subtitle: 'Signals from your recent logs.'),
+        Gap.h10,
+        for (var index = 0; index < highlights.length; index++) ...[
+          if (index > 0) Gap.h8,
+          _HighlightBox(icon: index == 0 ? LucideIcons.leaf : LucideIcons.sparkles, iconBg: theme.successSoft, iconColor: theme.success, title: highlights[index], subtitle: 'From your logs'),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildNextStepsSection(BuildContext context, List<String> nextSteps, {required bool isBaseline}) {
+    final theme = context.insightTheme;
+    final accent = isBaseline ? theme.success : theme.purple;
+    final accentSoft = isBaseline ? theme.successSoft : theme.purplePastel.withValues(alpha: 0.18);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _BaselineSectionHeader(
+          icon: LucideIcons.arrowUpRight,
+          iconColor: accent,
+          iconBackground: accentSoft,
+          title: 'Your next best step',
+          subtitle: 'One small log makes the next comparison stronger.',
+        ),
+        Gap.h10,
+        for (var index = 0; index < nextSteps.length && index < 2; index++) ...[
+          if (index > 0) Gap.h8,
+          _BaselineNextStepCard(number: index + 1, text: nextSteps[index], accent: accent, accentSoft: accentSoft),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildKeepGoingBanner(BuildContext context, {required bool isBaseline}) {
+    final theme = context.insightTheme;
+
+    return Container(
+      padding: EdgeInsets.all(15.w),
+      decoration: BoxDecoration(
+        color: theme.successSoft,
+        borderRadius: BorderRadius.circular(20.w),
+        border: Border.all(color: theme.success.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32.w,
+            height: 32.w,
+            decoration: BoxDecoration(color: theme.card.withValues(alpha: 0.72), shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Icon(LucideIcons.sprout, size: 17.w, color: theme.success),
+          ),
+          Gap.w10,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isBaseline ? 'Your baseline is taking shape' : 'Keep the momentum going',
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: theme.success),
+                ),
+                Gap.h3,
+                Text(
+                  isBaseline ? 'Each meal and symptom log helps us make your next insight more useful.' : 'Consistent logging makes your progress easier to understand.',
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, height: 1.3, color: theme.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<double> _normalizeChartSeries(List<double> raw, {required int anchorIndex}) {
+    if (raw.isEmpty) return const [];
+
+    // Daily score records are already seven-slot Sunday–Saturday arrays. For
+    // longer legacy series, keep the latest seven values for this detail view.
+    if (raw.length >= 7) {
+      return raw.length == 7 ? [...raw] : raw.sublist(raw.length - 7);
+    }
+
+    final slots = List<double>.filled(7, 0);
+    final safeAnchor = anchorIndex.clamp(0, 6).toInt();
+    final start = (safeAnchor - raw.length + 1).clamp(0, 7 - raw.length).toInt();
+    for (var index = 0; index < raw.length; index++) {
+      slots[start + index] = raw[index];
+    }
+    return slots;
+  }
+
+  List<InsightFood> _healingFoods(AIInsight? insight) {
+    if (insight == null) return const [];
+    if (insight.healingSummary?.foods.isNotEmpty == true) {
+      return insight.healingSummary!.foods;
+    }
+    return [for (final food in insight.healingFoods) InsightFood(foodId: 'f_${food.name}', name: food.name, emoji: food.emoji, imageUrl: food.userImageUrl ?? food.imageUrl, effect: food.effect)];
+  }
+
+  List<String> _progressHighlights(AIInsight? insight) =>
+      insight?.weeklyRecap?.highlights
+          .map(
+            (item) => item is RecapHighlight
+                ? item.text
+                : item is String
+                ? item
+                : '',
+          )
+          .where((text) => text.trim().isNotEmpty)
+          .take(2)
+          .toList() ??
+      const [];
+
+  List<String> _nextStepLabels(AIInsight? insight) {
+    if (insight == null) return const [];
+    final actionLabels = insight.actionsList.map((action) => action.title.trim()).where((title) => title.isNotEmpty).toList();
+    if (actionLabels.isNotEmpty) return actionLabels;
+    return insight.topInsight?.nextSteps.where((step) => step.trim().isNotEmpty).toList() ?? const [];
+  }
+}
+
+class _BaselineMetric extends StatelessWidget {
+  const _BaselineMetric({required this.label, required this.value, required this.detail, required this.color});
+
+  final String label;
+  final String value;
+  final String detail;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.insightTheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.45, color: theme.textTertiary),
+          ),
+          Gap.h3,
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w900, color: color),
+          ),
+          Text(
+            detail,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, color: theme.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EvidencePill extends StatelessWidget {
+  const _EvidencePill({required this.icon, required this.label, required this.color, required this.background});
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.w),
+    decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(999.w)),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12.w, color: color),
+        Gap.w4,
+        Text(
+          label,
+          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w700, color: color),
+        ),
+      ],
+    ),
+  );
+}
+
+class _BaselineSectionHeader extends StatelessWidget {
+  const _BaselineSectionHeader({required this.icon, required this.iconColor, required this.iconBackground, required this.title, required this.subtitle});
+
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBackground;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.insightTheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 34.w,
+          height: 34.w,
+          decoration: BoxDecoration(color: iconBackground, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 17.w, color: iconColor),
+        ),
+        Gap.w10,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.5.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
+              ),
+              Gap.h2,
+              Text(
+                subtitle,
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BaselineNextStepCard extends StatelessWidget {
+  const _BaselineNextStepCard({required this.number, required this.text, required this.accent, required this.accentSoft});
+
+  final int number;
+  final String text;
+  final Color accent;
+  final Color accentSoft;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.insightTheme;
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: theme.card,
+        borderRadius: BorderRadius.circular(18.w),
+        border: Border.all(color: theme.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28.w,
+            height: 28.w,
+            decoration: BoxDecoration(color: accentSoft, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Text(
+              '$number',
+              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w900, color: accent),
+            ),
+          ),
+          Gap.w10,
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w700, height: 1.3, color: theme.textPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

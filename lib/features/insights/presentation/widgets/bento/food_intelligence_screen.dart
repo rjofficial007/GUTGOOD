@@ -147,7 +147,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
             badge: 'Supportive',
             isPositive: true,
             category: 'healing',
-            imageUrl: f.imageUrl ?? InsightUiKit.foodImageUrl(f.name),
+            imageUrl: f.imageUrl,
           ),
         );
       }
@@ -168,7 +168,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
           badge: 'Supportive',
           isPositive: true,
           category: 'healing',
-          imageUrl: f.userImageUrl ?? f.imageUrl ?? InsightUiKit.foodImageUrl(f.name),
+          imageUrl: f.userImageUrl ?? f.imageUrl,
         ),
       );
     }
@@ -191,7 +191,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
           badge: 'Good',
           isPositive: true,
           category: 'good',
-          imageUrl: fi.userImageUrl ?? fi.imageUrl ?? InsightUiKit.foodImageUrl(fi.food),
+          imageUrl: fi.userImageUrl ?? fi.imageUrl,
         ),
       );
     }
@@ -204,7 +204,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
         final occurrences = countOccurrences(f.name);
         final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
         final desc = f.effect?.trim().isNotEmpty == true ? f.effect : null;
-        list.add(TopFoodItemData(title: f.name, frequency: countStr, description: desc, badge: 'Watch', isPositive: false, category: 'watch', imageUrl: f.imageUrl ?? InsightUiKit.foodImageUrl(f.name)));
+        list.add(TopFoodItemData(title: f.name, frequency: countStr, description: desc, badge: 'Watch', isPositive: false, category: 'watch', imageUrl: f.imageUrl));
       }
     }
 
@@ -223,7 +223,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
           badge: 'Watch',
           isPositive: false,
           category: 'watch',
-          imageUrl: f.userImageUrl ?? f.imageUrl ?? InsightUiKit.foodImageUrl(f.name),
+          imageUrl: f.userImageUrl ?? f.imageUrl,
         ),
       );
     }
@@ -246,7 +246,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
           badge: 'Watch',
           isPositive: false,
           category: 'watch',
-          imageUrl: fi.userImageUrl ?? fi.imageUrl ?? InsightUiKit.foodImageUrl(fi.food),
+          imageUrl: fi.userImageUrl ?? fi.imageUrl,
         ),
       );
     }

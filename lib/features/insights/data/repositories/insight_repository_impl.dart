@@ -74,7 +74,7 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
-    await _insightFirestoreService.saveInsights(insight);
+    await _insightFirestoreService.saveInsights(insight, useServerTimestamp: false);
     // Cache the final stamped envelope, not the raw model response. This keeps
     // local fallback metadata aligned with the Firestore document.
     await _prefs.setString(StorageKeys.gutgoodInsightsCache, ModelUtils.safeJsonEncode(insight.toMap()));

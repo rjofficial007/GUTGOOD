@@ -71,7 +71,6 @@ class _InsightsFeedState extends State<InsightsFeed> {
                 ] else ...[
                   const _EmptyPatternsState(),
                 ],
-
               ] else if (isFoodImpactTab) ...[
                 // -------------------------------------------------------------------
                 // TAB: FOOD IMPACT
@@ -81,10 +80,7 @@ class _InsightsFeedState extends State<InsightsFeed> {
                   const _InsightsEmptyState(
                     headline: 'Your foods.\nYour impacts.\nYour insights.',
                     description: 'Keep scanning foods and logging meals and symptoms to understand how they affect your gut.',
-                    banner: _InsightsLearningBannerCard(
-                      title: 'Food impacts get clearer over time',
-                      description: 'Keep logging to unlock more personalized food impact insights.',
-                    ),
+                    banner: _InsightsLearningBannerCard(title: 'Food impacts get clearer over time', description: 'Keep logging to unlock more personalized food impact insights.'),
                   ),
                 ] else ...[
                   // 1. Food Impact Balance Hero Card
@@ -127,10 +123,9 @@ class _InsightsFeedState extends State<InsightsFeed> {
                 if (_selectedFilter == 'For You') ...[
                   // TOP INSIGHT CARD (Replaces duplicate PatternCard on For You tab)
                   if (widget.data.topInsight != null)
-                    _TopInsightCard(
-                      insight: widget.data,
+                    TopInsightCard(
                       topInsight: widget.data.topInsight!,
-                      onTap: () => context.push(AppRoutes.smartInsightDetail, extra: widget.data),
+                      onTap: () => context.push(AppRoutes.smartInsightDetail, extra: widget.data.topInsight),
                     )
                   else if (widget.patterns.isNotEmpty)
                     PatternCard(pattern: widget.patterns.first),
@@ -140,6 +135,7 @@ class _InsightsFeedState extends State<InsightsFeed> {
                   _SideBySideImprovingAndWatch(
                     improvingData: improving,
                     series: widget.data.hasGutScore ? widget.series : const [],
+                    observationCount: widget.data.topInsight?.frequency,
                     watchData: watch,
                     onImprovingTap: () {
                       final cleanSeries = InsightValues.scores(widget.series);

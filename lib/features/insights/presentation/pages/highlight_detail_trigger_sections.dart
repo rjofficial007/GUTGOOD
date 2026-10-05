@@ -106,7 +106,7 @@ extension HighlightTriggerSections on HighlightDetailScreen {
       orElse: () => const PatternOccurrence(date: '', mealName: '', reaction: '', timeAfter: ''),
     );
 
-    final foodImageUrl = hasFoodName ? InsightUiKit.foodImageUrl(foodName, imageUrl: firstOccWithImage?.imageUrl) : null;
+    final foodImageUrl = firstOccWithImage?.imageUrl;
 
     final cardBg = isDark ? const Color(0xFF231416) : const Color(0xFFFFF8F6);
     final cardBorder = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5);
@@ -210,12 +210,13 @@ extension HighlightTriggerSections on HighlightDetailScreen {
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8.w, offset: Offset(0, 2.w))],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: foodImageUrl == null ? Icon(LucideIcons.utensils, size: 28.w, color: pillFg) : CachedNetworkImage(
+                  child: !hasFoodName ? Icon(LucideIcons.utensils, size: 28.w, color: pillFg) : InsightUiKit.foodImage(
+                    foodName,
                     imageUrl: foodImageUrl,
                     fit: BoxFit.cover,
                     alignment: Alignment.center,
-                    placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFF1F5F9))),
-                    errorWidget: (_, _, _) => Container(
+                    placeholder: Container(color: context.insightColor(const Color(0xFFF1F5F9))),
+                    errorWidget: Container(
                       color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.20) : const Color(0xFFFEE2E2),
                       child: Icon(LucideIcons.utensils, size: 28.w, color: pillFg),
                     ),
@@ -369,7 +370,7 @@ extension HighlightTriggerSections on HighlightDetailScreen {
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    context.push(AppRoutes.scannerPath('meal'));
+                    context.go(AppRoutes.chat);
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 12.w),
@@ -392,7 +393,7 @@ extension HighlightTriggerSections on HighlightDetailScreen {
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    context.push(AppRoutes.scannerPath('symptom'));
+                    context.go(AppRoutes.chat);
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 12.w),

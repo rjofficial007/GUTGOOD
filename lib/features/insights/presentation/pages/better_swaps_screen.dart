@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
@@ -38,7 +37,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
   Widget build(BuildContext context) {
     final insight = _insightOf(context);
     final foodName = widget.swap.source.name;
-    final imageUrl = widget.swap.source.imageUrl ?? InsightUiKit.foodImageUrl(foodName);
+    final imageUrl = widget.swap.source.imageUrl;
 
     // Dynamic pattern matching
     final matchingPattern = insight?.detectedPatterns
@@ -119,7 +118,7 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
   }
 
   /// 1. Trigger Food Hero Card
-  Widget _buildTriggerHeroCard(BuildContext context, String foodName, String imageUrl, String subtitle, List<String> tags, {required bool hasPersonalEvidence}) => Container(
+  Widget _buildTriggerHeroCard(BuildContext context, String foodName, String? imageUrl, String subtitle, List<String> tags, {required bool hasPersonalEvidence}) => Container(
     height: 180.w,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(20.w),
@@ -129,11 +128,12 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
     child: Stack(
       fit: StackFit.expand,
       children: [
-        CachedNetworkImage(
+        InsightUiKit.foodImage(
+          foodName,
           imageUrl: imageUrl,
           fit: BoxFit.cover,
-          placeholder: (_, _) => Container(color: const Color(0xFF1E293B)),
-          errorWidget: (_, _, _) => Container(color: const Color(0xFF1E293B)),
+          placeholder: Container(color: const Color(0xFF1E293B)),
+          errorWidget: Container(color: const Color(0xFF1E293B)),
         ),
         DecoratedBox(
           decoration: BoxDecoration(
@@ -440,7 +440,7 @@ class _SwapCardItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageUrl = alt.imageUrl ?? InsightUiKit.foodImageUrl(alt.name);
+    final imageUrl = alt.imageUrl;
     final benefits = _deriveBenefits(alt);
 
     return GestureDetector(
@@ -461,13 +461,14 @@ class _SwapCardItem extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Food Image
-            CachedNetworkImage(
+            InsightUiKit.foodImage(
+              alt.name,
               imageUrl: imageUrl,
               height: 90.w,
               width: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: theme.cardSubtle),
-              errorWidget: (_, _, _) => Container(
+              placeholder: Container(color: theme.cardSubtle),
+              errorWidget: Container(
                 color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7),
                 child: Icon(LucideIcons.utensils, size: 22.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
               ),

@@ -711,20 +711,20 @@ extension DebugMockThirtyDays on DebugMockDataService {
           hadSymptoms: false,
         ),
         '${expStart.add(const Duration(days: 1)).year}-${expStart.add(const Duration(days: 1)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 1)).day.toString().padLeft(2, '0')}':
-        ExperimentDailyCheckIn(
-          date:
-          '${expStart.add(const Duration(days: 1)).year}-${expStart.add(const Duration(days: 1)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 1)).day.toString().padLeft(2, '0')}',
-          adhered: true,
-          hadSymptoms: false,
-        ),
+            ExperimentDailyCheckIn(
+              date:
+                  '${expStart.add(const Duration(days: 1)).year}-${expStart.add(const Duration(days: 1)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 1)).day.toString().padLeft(2, '0')}',
+              adhered: true,
+              hadSymptoms: false,
+            ),
         '${expStart.add(const Duration(days: 2)).year}-${expStart.add(const Duration(days: 2)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 2)).day.toString().padLeft(2, '0')}':
-        ExperimentDailyCheckIn(
-          date:
-          '${expStart.add(const Duration(days: 2)).year}-${expStart.add(const Duration(days: 2)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 2)).day.toString().padLeft(2, '0')}',
-          adhered: false,
-          hadSymptoms: true,
-          notes: 'Had some cheese at dinner accidentally.',
-        ),
+            ExperimentDailyCheckIn(
+              date:
+                  '${expStart.add(const Duration(days: 2)).year}-${expStart.add(const Duration(days: 2)).month.toString().padLeft(2, '0')}-${expStart.add(const Duration(days: 2)).day.toString().padLeft(2, '0')}',
+              adhered: false,
+              hadSymptoms: true,
+              notes: 'Had some cheese at dinner accidentally.',
+            ),
       },
     );
     await _insightFirestoreService.saveActiveExperiment(mockExperiment);

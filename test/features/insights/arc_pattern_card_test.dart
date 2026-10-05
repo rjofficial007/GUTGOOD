@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/insights/presentation/widgets/arc_pattern_card.dart';
+import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
 
 void main() {
   Widget createTestWidget(Widget child) => MaterialApp(
@@ -62,6 +63,16 @@ void main() {
       expect(find.byType(ArcPatternCard), findsOneWidget);
       expect(find.text('Sodium'), findsOneWidget);
       expect(find.text('85% match'), findsOneWidget);
+    });
+
+    testWidgets('renders the pattern as a banner with its signal and action', (tester) async {
+      await tester.pumpWidget(createTestWidget(PatternCard(pattern: testPattern)));
+
+      expect(find.text('HEADACHE PATTERN'), findsOneWidget);
+      expect(find.text('Sodium'), findsOneWidget);
+      expect(find.text('Followed by Headache'), findsOneWidget);
+      expect(find.text('Explore pattern'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 }

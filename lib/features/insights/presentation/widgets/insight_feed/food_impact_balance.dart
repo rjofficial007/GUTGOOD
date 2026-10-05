@@ -1,223 +1,236 @@
 part of 'insights_feed.dart';
 
-/// Food impact balance presentation components.
-
 class _FoodImpactBalanceHeroCard extends StatelessWidget {
   const _FoodImpactBalanceHeroCard({this.balance, this.foodImpacts = const []});
 
   final FoodImpactBalance? balance;
   final List<FoodImpact> foodImpacts;
 
+  static const _positive = Color(0xFF22C55E);
+  static const _neutral = Color(0xFFF59E0B);
+  static const _negative = Color(0xFFEF4444);
+
   @override
   Widget build(BuildContext context) {
-    var pos = balance?.positivePercent ?? 0;
-    var neu = balance?.neutralPercent ?? 0;
-    var neg = balance?.negativePercent ?? 0;
-    final periodLabel = balance?.periodLabel.trim().isNotEmpty == true ? balance!.periodLabel : 'Based on available logs';
+    var positive = balance?.positivePercent ?? 0;
+    var neutral = balance?.neutralPercent ?? 0;
+    var negative = balance?.negativePercent ?? 0;
 
-    if (balance == null || (pos == 0 && neu == 0 && neg == 0)) {
-      if (foodImpacts.isNotEmpty) {
-        var posCount = 0;
-        var negCount = 0;
-        for (final f in foodImpacts) {
-          if (f.impactType == 'positive') {
-            posCount++;
-          } else if (f.impactType == 'negative') {
-            negCount++;
-          }
-        }
-        final total = foodImpacts.length;
-        if (total > 0) {
-          pos = ((posCount / total) * 100).round();
-          neg = ((negCount / total) * 100).round();
-          neu = (100 - pos - neg).clamp(0, 100);
-        }
+    if ((balance == null || (positive == 0 && neutral == 0 && negative == 0)) && foodImpacts.isNotEmpty) {
+      var positiveCount = 0;
+      var negativeCount = 0;
+      for (final impact in foodImpacts) {
+        if (impact.impactType == 'positive') positiveCount++;
+        if (impact.impactType == 'negative') negativeCount++;
       }
+      positive = (positiveCount * 100 / foodImpacts.length).round();
+      negative = (negativeCount * 100 / foodImpacts.length).round();
+      neutral = (100 - positive - negative).clamp(0, 100);
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    if (pos == 0 && neu == 0 && neg == 0) {
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: context.insightTheme.card,
-          borderRadius: BorderRadius.circular(20.w),
-          border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(5.w),
-                  decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
-                  child: Icon(LucideIcons.leaf, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-                ),
-                Gap.w8,
-                Text(
-                  'Food Impact Balance',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-                ),
-              ],
-            ),
-            Gap.h8,
-            Text(
-              'No food impact balance data yet. Keep logging your meals and symptoms to track your food impact ratios.',
-              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.3),
-            ),
-          ],
-        ),
-      );
+    positive = positive.clamp(0, 100);
+    neutral = neutral.clamp(0, 100);
+    negative = negative.clamp(0, 100);
+    final total = positive + neutral + negative;
+    if (total > 0 && total != 100) {
+      positive = (positive * 100 / total).round();
+      negative = (negative * 100 / total).round();
+      neutral = 100 - positive - negative;
     }
 
-    pos = pos.clamp(0, 100);
-    neu = neu.clamp(0, 100);
-    neg = neg.clamp(0, 100);
-    final totalPercent = pos + neu + neg;
-    if (totalPercent > 0 && totalPercent != 100) {
-      pos = (pos * 100 / totalPercent).round();
-      neg = (neg * 100 / totalPercent).round();
-      neu = 100 - pos - neg;
-    }
-    final posRatio = pos / 100.0;
-    final neuRatio = neu / 100.0;
-    final negRatio = neg / 100.0;
+    final border = context.insightColor(const Color(0xFFE2E8F0));
+    final secondary = context.insightColor(const Color(0xFF64748B));
+    final hasData = positive + neutral + negative > 0;
 
     return Container(
-      padding: EdgeInsets.all(14.w),
+      width: double.infinity,
       decoration: BoxDecoration(
         color: context.insightTheme.card,
-        borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0)), width: 1.w),
-        boxShadow: [BoxShadow(color: context.insightColor(const Color(0xFF0F172A)).withValues(alpha: 0.03), blurRadius: 8.w, offset: Offset(0, 2.w))],
+        borderRadius: BorderRadius.circular(16.w),
+        border: Border.all(color: border),
+        boxShadow: [BoxShadow(color: context.insightColor(const Color(0xFF0F172A)).withValues(alpha: 0.03), blurRadius: 10.w, offset: Offset(0, 2.w))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(6.w),
-                decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
-                child: Icon(LucideIcons.leaf, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-              ),
-              Gap.w8,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Food Impact Balance',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+          // --- Card Content ---
+          if (hasData)
+            Padding(
+              padding: EdgeInsets.all(20.w),
+              child: Row(
+                children: [
+                  // Left Donut Chart
+                  Expanded(
+                    flex: 5,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final size = constraints.maxWidth;
+                        return SizedBox(
+                          width: size,
+                          height: size,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CustomPaint(
+                                size: Size(size, size),
+                                painter: _FoodImpactDonutPainter(
+                                  positiveRatio: positive / 100,
+                                  neutralRatio: neutral / 100,
+                                  negativeRatio: negative / 100,
+                                  positiveColor: _positive,
+                                  neutralColor: _neutral,
+                                  negativeColor: _negative,
+                                  emptyColor: border,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                    Text(
-                      'Your food choices over the $periodLabel.',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          Gap.h12,
-
-          // Row with Donut Chart + Legend
-          Row(
-            children: [
-              // Donut Chart
-              SizedBox(
-                width: 86.w,
-                height: 86.w,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CustomPaint(
-                      size: Size(86.w, 86.w),
-                      painter: _FoodImpactDonutPainter(positiveRatio: posRatio, neutralRatio: neuRatio, negativeRatio: negRatio),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
+                  ),
+                  Gap.w20,
+                  // Right Vertical Legend Stack
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '$pos%',
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 20.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.0),
-                        ),
-                        Text(
-                          'Positive',
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF64748B))),
-                        ),
+                        _ImpactBalanceLegend(color: _positive, label: 'Positive Impact', value: positive),
+                        Gap.h16,
+                        _ImpactBalanceLegend(color: _neutral, label: 'Neutral Impact', value: neutral),
+                        Gap.h16,
+                        _ImpactBalanceLegend(color: _negative, label: 'Negative Impact', value: negative),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              // Legend items (Expanded)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _LegendItem(color: const Color(0xFF22C55E), percent: '$pos%', label: 'Positive', sub: 'Helping your gut'),
-                  Gap.h6,
-                  _LegendItem(color: const Color(0xFFFBBF24), percent: '$neu%', label: 'Neutral', sub: 'Minimal impact'),
-                  Gap.h6,
-                  _LegendItem(color: const Color(0xFFF87171), percent: '$neg%', label: 'Negative', sub: 'May trigger symptoms'),
+                  ),
                 ],
               ),
-            ],
-          ),
+            )
+          else
+            Padding(
+              padding: EdgeInsets.all(20.w),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.pieChart, size: 20.w, color: secondary),
+                  Gap.w12,
+                  Expanded(
+                    child: Text(
+                      'Log meals and how you feel to build your food impact analytics view.',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, height: 1.35, color: secondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _LegendItem extends StatelessWidget {
-  const _LegendItem({required this.color, required this.percent, required this.label, required this.sub});
+class _ImpactBalanceLegend extends StatelessWidget {
+  const _ImpactBalanceLegend({required this.color, required this.label, required this.value});
 
   final Color color;
-  final String percent;
   final String label;
-  final String sub;
+  final int value;
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Container(
-        width: 7.w,
-        height: 7.w,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      ),
-      Gap.w4,
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      Row(
         children: [
-          Row(
-            children: [
-              Text(
-                percent,
-                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-              ),
-              Gap.w3,
-              Text(
-                label,
-                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF0F172A))),
-              ),
-            ],
+          Container(
+            width: 8.w,
+            height: 8.w,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          Text(
-            sub,
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
+          Gap.w6,
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w500, color: context.insightColor(const Color(0xFF64748B))),
+            ),
           ),
         ],
+      ),
+      Padding(
+        padding: EdgeInsets.only(left: 14.w, top: 2.w),
+        child: Text(
+          '$value%',
+          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+        ),
       ),
     ],
   );
 }
 
-// =============================================================================
-// FOOD IMPACT TAB: 2. SIDE-BY-SIDE TOP HEALING & TOP TRIGGER FOOD CARDS
-// =============================================================================
+class _FoodImpactDonutPainter extends CustomPainter {
+  _FoodImpactDonutPainter({
+    required this.positiveRatio,
+    required this.neutralRatio,
+    required this.negativeRatio,
+    required this.positiveColor,
+    required this.neutralColor,
+    required this.negativeColor,
+    required this.emptyColor,
+  });
+
+  final double positiveRatio;
+  final double neutralRatio;
+  final double negativeRatio;
+  final Color positiveColor;
+  final Color neutralColor;
+  final Color negativeColor;
+  final Color emptyColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokeWidth = size.width * 0.22;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (math.min(size.width, size.height) - strokeWidth) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt;
+
+    final totalRatio = positiveRatio + neutralRatio + negativeRatio;
+
+    if (totalRatio <= 0) {
+      paint.color = emptyColor;
+      canvas.drawArc(rect, 0, 2 * math.pi, false, paint);
+      return;
+    }
+
+    var startAngle = -math.pi / 2; // Top center angle
+
+    void drawArcSegment(double ratio, Color color) {
+      if (ratio <= 0) return;
+      final sweepAngle = 2 * math.pi * ratio;
+      paint.color = color;
+      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
+      startAngle += sweepAngle;
+    }
+
+    drawArcSegment(positiveRatio, positiveColor);
+    drawArcSegment(neutralRatio, neutralColor);
+    drawArcSegment(negativeRatio, negativeColor);
+  }
+
+  @override
+  bool shouldRepaint(covariant _FoodImpactDonutPainter oldDelegate) =>
+      oldDelegate.positiveRatio != positiveRatio ||
+      oldDelegate.neutralRatio != neutralRatio ||
+      oldDelegate.negativeRatio != negativeRatio ||
+      oldDelegate.positiveColor != positiveColor ||
+      oldDelegate.neutralColor != neutralColor ||
+      oldDelegate.negativeColor != negativeColor ||
+      oldDelegate.emptyColor != emptyColor;
+}

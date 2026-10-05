@@ -151,5 +151,14 @@ void main() {
       expect(instruction.contains('NO PRESENTATION'), isTrue, reason: 'The schema must carry an explicit no-emoji/no-icon/no-color rule.');
       expect(instruction.contains('High|Medium|Low'), isTrue, reason: 'Pattern confidence must mirror the engine vocabulary.');
     });
+
+    test('food swaps classify alternatives by their own type for useful filters', () {
+      const instruction = InsightsPrompt.instruction;
+      expect(instruction, contains('FOOD SWAPS AND FILTER CATEGORIES'));
+      expect(instruction, contains('grilled chicken → `Protein`'));
+      expect(instruction, contains('plant-based patty → `Plant-Based`'));
+      expect(instruction, contains('whole-grain bun → `Grains & Bread`'));
+      expect(instruction, isNot(contains('Burgers & Sandwiches|Bowls|Breakfast|Sides')));
+    });
   });
 }

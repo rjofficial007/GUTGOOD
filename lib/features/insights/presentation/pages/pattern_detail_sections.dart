@@ -12,7 +12,7 @@ extension PatternDetailSections on PatternDetailScreen {
       orElse: () => const PatternOccurrence(date: '', mealName: '', reaction: '', timeAfter: ''),
     );
     final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : pattern.trigger;
-    final imageUrl = foodName.isEmpty ? null : InsightUiKit.foodImageUrl(foodName, imageUrl: firstOccWithImage.imageUrl);
+    final imageUrl = firstOccWithImage.imageUrl;
 
     // Dynamic Headline Title (Line 1)
     final rawTrigger = pattern.trigger.trim();
@@ -176,7 +176,7 @@ extension PatternDetailSections on PatternDetailScreen {
               children: [
                 // Food Image with ShaderMask for smooth left-edge fading
                 Positioned.fill(
-                  child: imageUrl == null
+                  child: foodName.isEmpty
                       ? Container(
                           color: cardBgColor,
                           alignment: Alignment.center,
@@ -190,17 +190,18 @@ extension PatternDetailSections on PatternDetailScreen {
                       stops: [0.0, 0.28, 0.65],
                     ).createShader(rect),
                     blendMode: BlendMode.dstIn,
-                    child: CachedNetworkImage(
+                    child: InsightUiKit.foodImage(
+                      foodName,
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       alignment: Alignment.center,
-                      placeholder: (_, _) => Container(
+                      placeholder: Container(
                         color: Colors.white.withValues(alpha: 0.05),
                         child: Center(
                           child: Icon(style.icon, color: accentColor.withValues(alpha: 0.5), size: 28.w),
                         ),
                       ),
-                      errorWidget: (_, _, _) => Container(
+                      errorWidget: Container(
                         color: Colors.white.withValues(alpha: 0.05),
                         child: Center(
                           child: Icon(style.icon, color: accentColor.withValues(alpha: 0.7), size: 28.w),

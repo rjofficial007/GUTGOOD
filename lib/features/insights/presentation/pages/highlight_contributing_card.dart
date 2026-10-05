@@ -25,7 +25,6 @@ class _ContributingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageUrl = InsightUiKit.foodImageUrl(imageKeyword);
 
     return Container(
       width: 108.w,
@@ -40,13 +39,13 @@ class _ContributingCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10.w),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
+            child: InsightUiKit.foodImage(
+              imageKeyword,
               width: 94.w,
               height: 60.w,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: theme.cardSubtle),
-              errorWidget: (_, _, _) => Container(
+              placeholder: Container(color: theme.cardSubtle),
+              errorWidget: Container(
                 color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7),
                 alignment: Alignment.center,
                 child: Icon(icon, size: 20.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
@@ -91,4 +90,3 @@ class _ContributingCard extends StatelessWidget {
     );
   }
 }
-

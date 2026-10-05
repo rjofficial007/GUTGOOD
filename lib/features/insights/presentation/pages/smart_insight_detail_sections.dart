@@ -3,137 +3,13 @@ part of 'smart_insight_detail_screen.dart';
 /// Smart insight detail sections and evidence presentation.
 
 extension SmartInsightDetailSections on SmartInsightDetailScreen {
-  /// 1. Top Hero Insight Card (Matching PatternCard hero layout with dynamic food color blending)
-  Widget _buildHeroCard(BuildContext context) {
-    final foodName = insight.involvedFoods.firstOrNull;
-    final imageUrl = foodName == null ? null : InsightUiKit.foodImageUrl(foodName);
-    final style = PatternCardStyle.forType(insight.type);
-
-    final title = insight.title.isNotEmpty ? insight.title : 'Top Insight Discovery';
-    final descStr = insight.description.trim();
-
-    final confidenceLabel = (insight.strength?.trim().isNotEmpty == true ? insight.strength! : 'LIMITED DATA').toUpperCase();
-    const heroColor = Color(0xFF6F67DD);
-
-    return Container(
-      constraints: BoxConstraints(minHeight: 140.w),
-      decoration: BoxDecoration(color: heroColor, borderRadius: BorderRadius.circular(24.w)),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. Left Content Section
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(18.w, 16.w, 12.w, 16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Line 1: Bold Title
-                    Text(
-                      title,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.4),
-                    ),
-                    if (descStr.isNotEmpty) ...[
-                      Gap.h6,
-                      // Line 2: Description
-                      Text(
-                        descStr,
-                        maxLines: 6,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w400, color: Colors.white.withValues(alpha: 0.90), height: 1.25),
-                      ),
-                    ],
-                    Gap.h12,
-
-                    // Bottom Badge Tag Row
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.w),
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(100.w)),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 5.w,
-                            height: 5.w,
-                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                          ),
-                          Gap.w5,
-                          Text(
-                            '$confidenceLabel CONFIDENCE',
-                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 2. Right Side Image (Seamlessly blended with dynamic food background)
-                if (imageUrl != null) SizedBox(
-                  width: 138.w,
-              child: Stack(
-                children: [
-                Positioned.fill(
-                  child: ShaderMask(
-                    shaderCallback: (rect) => const LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [Colors.transparent, Colors.white24, Colors.white],
-                      stops: [0.0, 0.28, 0.65],
-                    ).createShader(rect),
-                    blendMode: BlendMode.dstIn,
-                    child: CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      placeholder: (_, _) => Container(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        child: Center(
-                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.5), size: 28.w),
-                        ),
-                      ),
-                      errorWidget: (_, _, _) => Container(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        child: Center(
-                          child: Icon(style.icon, color: Colors.white.withValues(alpha: 0.7), size: 28.w),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [heroColor, heroColor.withValues(alpha: 0.55), heroColor.withValues(alpha: 0.0)],
-                        stops: const [0.0, 0.35, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-  }
-
   /// 2. "What We Observed" Card
-  Widget _buildWhatWeObservedCard(BuildContext context) {
+  Widget _buildWhatWeObservedCard(BuildContext context, {required bool isEarlyObservation}) {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final style = PatternCardStyle.forType(insight.type);
+    final style = PatternCardStyle.forType(insight.domain ?? insight.type);
+    final observationAccent = isEarlyObservation ? theme.warning : style.accentColor;
+    final observationSurface = isEarlyObservation ? theme.warningSoft : context.insightColor(style.cardBg);
     final text = (insight.observation != null && insight.observation!.isNotEmpty)
         ? insight.observation!
         : (insight.description.isNotEmpty ? insight.description : 'No observation details are available for this insight.');
@@ -141,10 +17,10 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: isDark ? theme.card : Colors.white,
+        color: isEarlyObservation ? observationSurface : (isDark ? theme.card : Colors.white),
         borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: isDark ? theme.border : const Color(0xFFE2E8F0), width: 1.w),
-        boxShadow: [BoxShadow(color: isDark ? Colors.black.withValues(alpha: 0.15) : const Color(0xFF17171B).withValues(alpha: 0.03), blurRadius: 6.w, offset: Offset(0, 2.w))],
+        border: Border.all(color: isEarlyObservation ? observationAccent.withValues(alpha: 0.24) : (isDark ? theme.border : const Color(0xFFE2E8F0)), width: 1.w),
+        boxShadow: [BoxShadow(color: observationAccent.withValues(alpha: 0.06), blurRadius: 12.w, offset: Offset(0, 4.w))],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,23 +28,33 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
           Container(
             width: 32.w,
             height: 32.w,
-            decoration: BoxDecoration(color: isDark ? theme.cardSubtle : context.insightColor(style.tagBg), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: observationAccent.withValues(alpha: isDark ? 0.18 : 0.12),
+              shape: BoxShape.circle,
+            ),
             alignment: Alignment.center,
-            child: Icon(style.icon, size: 16.w, color: isDark ? theme.textPrimary : context.insightColor(style.tagFg)),
+            child: Icon(isEarlyObservation ? LucideIcons.info : style.icon, size: 16.w, color: observationAccent),
           ),
           Gap.w10,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'What We Observed',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'What We Observed',
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
+                      ),
+                    ),
+                    if (isEarlyObservation) const InsightBadge('REPORTED', tone: InsightTone.warning, withDot: false, size: 8),
+                  ],
                 ),
-                Gap.h3,
+                Gap.h4,
                 Text(
                   text,
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: theme.textSecondary, height: 1.3),
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w500, color: theme.textSecondary, height: 1.35),
                 ),
               ],
             ),
@@ -179,10 +65,10 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
   }
 
   /// 3. "The Evidence" Metric Dashboard Card
-  Widget _buildTheEvidenceCard(BuildContext context, {required int? evidenceRatio, required int? frequency, required int? symptomLogs, required int? normalLogs}) {
+  Widget _buildTheEvidenceCard(BuildContext context, {required int? evidenceRatio, required int? frequency, required int? symptomLogs, required int? normalLogs, required bool isEarlyObservation}) {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final style = PatternCardStyle.forType(insight.type);
+    final style = PatternCardStyle.forType(insight.domain ?? insight.type);
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -214,8 +100,8 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                     ),
                     Text(
-                      'Based on your logged historical data.',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary),
+                      isEarlyObservation ? 'One reported observation — comparison data is not available yet.' : 'Based on your logged historical data.',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary, height: 1.25),
                     ),
                   ],
                 ),
@@ -223,45 +109,84 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
             ],
           ),
           Gap.h12,
-          Row(
-            children: [
-              _buildMetricTile(
-                context,
-                title: evidenceRatio == null ? '—' : '$evidenceRatio%',
-                label: 'Evidence Ratio',
-                icon: LucideIcons.pieChart,
-                color: isDark ? theme.purple : style.accentColor,
-                bg: isDark ? theme.cardSubtle : style.tagBg,
+          if (isEarlyObservation) ...[
+            Container(
+              padding: EdgeInsets.all(11.w),
+              decoration: BoxDecoration(
+                color: isDark ? theme.warningSoft : const Color(0xFFFFF8E8),
+                borderRadius: BorderRadius.circular(14.w),
+                border: Border.all(color: isDark ? theme.warning.withValues(alpha: 0.24) : const Color(0xFFF5D99A)),
               ),
-              Gap.w6,
-              _buildMetricTile(
-                context,
-                title: frequency == null ? '—' : '$frequency×',
-                label: 'Times Logged',
-                icon: LucideIcons.history,
-                color: isDark ? theme.purple : style.accentColor,
-                bg: isDark ? theme.cardSubtle : style.tagBg,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 28.w,
+                    height: 28.w,
+                    decoration: BoxDecoration(color: isDark ? theme.warning.withValues(alpha: 0.16) : const Color(0xFFFFEDC2), shape: BoxShape.circle),
+                    alignment: Alignment.center,
+                    child: Icon(LucideIcons.history, size: 14.w, color: isDark ? theme.warning : const Color(0xFF9A5B00)),
+                  ),
+                  Gap.w8,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          frequency == null ? 'One observation recorded' : '$frequency observation${frequency == 1 ? '' : 's'} recorded',
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
+                        ),
+                        Gap.h3,
+                        Text(
+                          'Keep logging to see whether this repeats. A comparison is not available yet.',
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: theme.textSecondary, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              Gap.w6,
-              _buildMetricTile(
-                context,
-                title: symptomLogs == null ? '—' : '$symptomLogs',
-                label: 'Symptom Logs',
-                icon: LucideIcons.thumbsDown,
-                color: isDark ? theme.error : const Color(0xFFDC2626),
-                bg: isDark ? theme.errorSoft : const Color(0xFFFEF2F2),
-              ),
-              Gap.w6,
-              _buildMetricTile(
-                context,
-                title: normalLogs == null ? '—' : '$normalLogs',
-                label: 'Normal Logs',
-                icon: LucideIcons.thumbsUp,
-                color: isDark ? theme.success : const Color(0xFF15803D),
-                bg: isDark ? theme.successSoft : const Color(0xFFF0FDF4),
-              ),
-            ],
-          ),
+            ),
+          ] else
+            Row(
+              children: [
+                _buildMetricTile(
+                  context,
+                  title: evidenceRatio == null ? '—' : '$evidenceRatio%',
+                  label: 'Evidence Ratio',
+                  icon: LucideIcons.pieChart,
+                  color: isDark ? theme.purple : style.accentColor,
+                  bg: isDark ? theme.cardSubtle : style.tagBg,
+                ),
+                Gap.w6,
+                _buildMetricTile(
+                  context,
+                  title: frequency == null ? '—' : '$frequency×',
+                  label: 'Times Logged',
+                  icon: LucideIcons.history,
+                  color: isDark ? theme.purple : style.accentColor,
+                  bg: isDark ? theme.cardSubtle : style.tagBg,
+                ),
+                Gap.w6,
+                _buildMetricTile(
+                  context,
+                  title: symptomLogs == null ? '—' : '$symptomLogs',
+                  label: 'Symptom Logs',
+                  icon: LucideIcons.thumbsDown,
+                  color: isDark ? theme.error : const Color(0xFFDC2626),
+                  bg: isDark ? theme.errorSoft : const Color(0xFFFEF2F2),
+                ),
+                Gap.w6,
+                _buildMetricTile(
+                  context,
+                  title: normalLogs == null ? '—' : '$normalLogs',
+                  label: 'Normal Logs',
+                  icon: LucideIcons.thumbsUp,
+                  color: isDark ? theme.success : const Color(0xFF15803D),
+                  bg: isDark ? theme.successSoft : const Color(0xFFF0FDF4),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -313,7 +238,7 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
   }
 
   /// 4. "Involved Foods" Horizontal Grid
-  Widget _buildInvolvedFoodsSection(BuildContext context) {
+  Widget _buildInvolvedFoodsSection(BuildContext context, {required bool isEarlyObservation}) {
     final foods = <String>[];
     final seen = <String>{};
 
@@ -342,11 +267,11 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Involved Foods',
+                    isEarlyObservation ? 'Mentioned Food' : 'Involved Foods',
                     style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                   ),
                   Text(
-                    'Foods mentioned in this insight.',
+                    isEarlyObservation ? 'Named in your report — not a confirmed trigger.' : 'Foods mentioned in this insight.',
                     style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
                   ),
                 ],
@@ -369,9 +294,9 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
   }
 
   /// 5. Occurrences Timeline & Common Factors Card
-  Widget _buildOccurrencesTimelineCard(BuildContext context) {
-    final style = PatternCardStyle.forType(insight.type);
-    final matchingPattern = _relatedPatterns(context).firstOrNull;
+  Widget _buildOccurrencesTimelineCard(BuildContext context, List<BodyPattern> relatedPatterns) {
+    final style = PatternCardStyle.forType(insight.domain ?? insight.type);
+    final matchingPattern = relatedPatterns.where((pattern) => pattern.commonFactors.isNotEmpty || pattern.occurrences.isNotEmpty).firstOrNull;
 
     if (matchingPattern == null || (matchingPattern.commonFactors.isEmpty && matchingPattern.occurrences.isEmpty)) {
       return const SizedBox.shrink();
@@ -450,12 +375,7 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
   }
 
   /// 6. Related Patterns Section
-  Widget _buildRelatedPatternsSection(BuildContext context) {
-    final patterns = _relatedPatterns(context);
-
-    if (patterns.isEmpty) return const SizedBox.shrink();
-
-    return Column(
+  Widget _buildRelatedPatternsSection(BuildContext context, List<BodyPattern> patterns) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -497,83 +417,118 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
         ],
       ],
     );
-  }
 
-  /// 7. Split Grid Section ("Your Next Steps" & "Supporting Evidence")
-  Widget _buildSplitGridSection(BuildContext context) => IntrinsicHeight(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Left Column: Your Next Steps
-        Expanded(child: _buildYourNextStepsCard(context)),
-        Gap.w10,
-
-        // Right Column: Supporting Evidence
-        Expanded(child: _buildSupportingEvidenceCard(context)),
-      ],
-    ),
-  );
-
-  Widget _buildYourNextStepsCard(BuildContext context) {
+  /// The first follow-up action for this insight.
+  Widget _buildYourNextStepsCard(BuildContext context, {required bool isEarlyObservation}) {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final style = PatternCardStyle.forType(insight.type);
-    final steps = insight.nextSteps;
+    const accent = Color(0xFF6F67DD);
+    final background = isDark ? const Color(0xFF211F31) : const Color(0xFFF7F5FF);
+    final border = isDark ? accent.withValues(alpha: 0.28) : const Color(0xFFE7E2FF);
+    final steps = insight.nextSteps.take(3).toList(growable: false);
 
     return Container(
-      padding: EdgeInsets.all(10.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF102319) : const Color(0xFFF4FAF5),
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7), width: 1.w),
+        color: background,
+        borderRadius: BorderRadius.circular(20.w),
+        border: Border.all(color: border, width: 1.w),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 24.w,
-                    height: 24.w,
-                    decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : context.insightColor(style.tagBg), shape: BoxShape.circle),
-                    alignment: Alignment.center,
-                    child: Icon(style.icon, size: 12.w, color: isDark ? const Color(0xFF4ADE80) : context.insightColor(style.tagFg)),
-                  ),
-                  Gap.w6,
-                  Expanded(
-                    child: Text(
-                      'Your Next Steps',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
+              Container(
+                width: 34.w,
+                height: 34.w,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(LucideIcons.listChecks, size: 17.w, color: isDark ? const Color(0xFFB9AEFF) : accent),
+              ),
+              Gap.w10,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your next step',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      isEarlyObservation ? 'A simple way to learn more' : 'A practical action from this insight',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: theme.textSecondary),
+                    ),
+                  ],
+                ),
               ),
-              Gap.h3,
-              Text(
-                steps.isEmpty ? 'No personalized next steps are available yet.' : 'Recommended actions for this insight:',
-                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: theme.textSecondary, height: 1.2),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.w),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: isDark ? 0.18 : 0.10),
+                  borderRadius: BorderRadius.circular(999.w),
+                ),
+                child: Text(
+                  'START HERE',
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w800, letterSpacing: 0.45, color: isDark ? const Color(0xFFB9AEFF) : accent),
+                ),
               ),
-              Gap.h10,
-
-              if (steps.isEmpty)
-                Text('Log meals and symptoms to help build a useful insight.', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: theme.textSecondary))
-              else
-                for (var i = 0; i < steps.take(3).length; i++) ...[
-                  if (i > 0) Gap.h8,
-                  InsightNextStepCheckRow(
-                    title: 'Action ${i + 1}',
-                    subtitle: steps[i],
-                    accentColor: isDark ? const Color(0xFF22C55E) : const Color(0xFF16A34A),
-                    titleColor: theme.textPrimary,
-                    subtitleColor: theme.textSecondary,
-                  ),
-                ],
             ],
           ),
+          SizedBox(height: 12.w),
+          if (steps.isEmpty)
+            Text(
+              'Log meals and symptoms to build a more useful insight.',
+              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, color: theme.textSecondary, height: 1.4),
+            )
+          else ...[
+            for (var i = 0; i < steps.length; i++) ...[
+              if (i > 0) ...[SizedBox(height: 10.w), Divider(height: 1, color: border), SizedBox(height: 10.w)],
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 11.w),
+                decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white, borderRadius: BorderRadius.circular(14.w)),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 24.w,
+                      height: 24.w,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: isDark ? 0.18 : 0.1),
+                        borderRadius: BorderRadius.circular(8.w),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${i + 1}',
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFFB9AEFF) : accent),
+                      ),
+                    ),
+                    Gap.w10,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            i == 0 && isEarlyObservation ? 'Track this' : 'Action ${i + 1}',
+                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
+                          ),
+                          SizedBox(height: 3.w),
+                          Text(
+                            steps[i],
+                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary, height: 1.35),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -581,7 +536,6 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
 
   Widget _buildSupportingEvidenceCard(BuildContext context) {
     final theme = context.insightTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     AIInsight? latestInsight;
     try {
@@ -590,16 +544,51 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
       latestInsight = null;
     }
 
-    final mealsCount = latestInsight?.evidence?.sampleSizes.meals;
-    final symptomsCount = latestInsight?.evidence?.sampleSizes.symptoms ?? insight.positiveCount;
-    final scansCount = latestInsight?.evidence?.sampleSizes.scans;
+    final sameInsight = insight.id != null && latestInsight?.topInsight?.id == insight.id;
+    final samples = sameInsight ? latestInsight?.evidence?.sampleSizes : null;
+    if (samples == null || (samples.meals == 0 && samples.symptoms == 0 && samples.scans == 0)) {
+      return const SizedBox.shrink();
+    }
+
+    Widget metric({required IconData icon, required String title, required String subtitle, required int value, required Color color, required Color soft}) => Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 11.w),
+      decoration: BoxDecoration(
+        color: soft,
+        borderRadius: BorderRadius.circular(14.w),
+        border: Border.all(color: color.withValues(alpha: 0.14)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 13.w, color: color),
+              Gap.w5,
+              Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: theme.textPrimary))),
+            ],
+          ),
+          Gap.h8,
+          Text('$value', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 21.sp, fontWeight: FontWeight.w800, color: color, height: 1)),
+          Gap.h3,
+          Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, color: theme.textSecondary)),
+        ],
+      ),
+    );
+
+    final metrics = <Widget>[
+      if (samples.meals > 0) metric(icon: LucideIcons.utensils, title: 'Meals', subtitle: 'reviewed', value: samples.meals, color: theme.warning, soft: theme.warningSoft),
+      if (samples.symptoms > 0) metric(icon: LucideIcons.activity, title: 'Symptoms', subtitle: 'logged', value: samples.symptoms, color: theme.error, soft: theme.errorSoft),
+      if (samples.scans > 0) metric(icon: LucideIcons.scan, title: 'Scans', subtitle: 'reviewed', value: samples.scans, color: theme.purple, soft: theme.purple.withValues(alpha: 0.08)),
+    ];
+    final totalSamples = samples.meals + samples.symptoms + samples.scans;
 
     return Container(
-      padding: EdgeInsets.all(10.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF111C2E) : const Color(0xFFF0F7FF),
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.28) : const Color(0xFFE2E8F0), width: 1.w),
+        color: theme.card,
+        borderRadius: BorderRadius.circular(20.w),
+        border: Border.all(color: theme.border),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.12 : 0.035), blurRadius: 12.w, offset: Offset(0, 4.w))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -607,64 +596,32 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
           Row(
             children: [
               Container(
-                width: 24.w,
-                height: 24.w,
-                decoration: BoxDecoration(color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE), shape: BoxShape.circle),
+                width: 34.w,
+                height: 34.w,
+                decoration: BoxDecoration(color: theme.purple.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12.w)),
                 alignment: Alignment.center,
-                child: Icon(LucideIcons.fileText, size: 12.w, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8)),
+                child: Icon(LucideIcons.fileText, size: 17.w, color: theme.purple),
               ),
-              Gap.w4,
+              Gap.w10,
               Expanded(
-                child: Text(
-                  'Supporting Evidence',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'What this insight used',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
+                    ),
+                    Text('$totalSamples data points considered', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: theme.textSecondary)),
+                  ],
                 ),
               ),
             ],
           ),
-          Gap.h2,
-          Text(
-            'Based on your logged data.',
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: theme.textSecondary),
-          ),
-          Gap.h10,
 
-          InsightEvidenceMetricRow(
-            icon: LucideIcons.utensils,
-            title: 'Meals',
-            subtitle: 'Similar meals analyzed',
-            value: mealsCount?.toString() ?? '—',
-            iconBackground: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE),
-            iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
-            titleColor: theme.textPrimary,
-            subtitleColor: theme.textSecondary,
-            valueColor: theme.textPrimary,
-          ),
-          Gap.h8,
-
-          InsightEvidenceMetricRow(
-            icon: LucideIcons.clipboardList,
-            title: 'Symptoms',
-            subtitle: 'Pattern occurrences',
-            value: symptomsCount?.toString() ?? '—',
-            iconBackground: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE),
-            iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
-            titleColor: theme.textPrimary,
-            subtitleColor: theme.textSecondary,
-            valueColor: theme.textPrimary,
-          ),
-          Gap.h8,
-
-          InsightEvidenceMetricRow(
-            icon: LucideIcons.fileText,
-            title: 'Scans',
-            subtitle: 'Total scans',
-            value: scansCount?.toString() ?? '—',
-            iconBackground: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE),
-            iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
-            titleColor: theme.textPrimary,
-            subtitleColor: theme.textSecondary,
-            valueColor: theme.textPrimary,
+          Gap.h14,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [for (var i = 0; i < metrics.length; i++) ...[if (i > 0) Gap.w8, Expanded(child: metrics[i])]],
           ),
         ],
       ),

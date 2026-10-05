@@ -34,11 +34,17 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
   @override
   Future<List<BodyPattern>> runAnalysis() async {
-    AppLogger.insights('Starting dynamic analysis...');
+    final startedAt = DateTime.now();
+    final stopwatch = Stopwatch()..start();
+    AppLogger.insights(
+      '========== PATTERN GENERATION START ========== deviceTime=$startedAt (${startedAt.timeZoneName}, UTC${startedAt.timeZoneOffset}); windowDays=$_analysisWindowDays; fetchLimit=$_fetchLimit; minFrequency=$_minFrequency; mealSymptomWindows={bloating:$_bloatWindow, energy:$_energyWindow, headache:$_headacheWindow, digestion:$_digestionWindow, fullness:$_fullnessWindow}',
+    );
 
-    final since = DateTime.now().subtract(const Duration(days: _analysisWindowDays));
-    final journalMeals = await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since);
-    final scanHistory = await _historyFirestoreService.getRecentScans(limit: _fetchLimit, since: since);
+    final since = startedAt.subtract(const Duration(days: _analysisWindowDays));
+    final fetchedMeals = await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since);
+    final fetchedScans = await _historyFirestoreService.getRecentScans(limit: _fetchLimit, since: since);
+    final journalMeals = fetchedMeals.where((meal) => !meal.createdAt.isAfter(startedAt) && !meal.eventTime.isAfter(startedAt)).toList();
+    final scanHistory = fetchedScans.where((scan) => !scan.createdAt.isAfter(startedAt)).toList();
 
     // Scans are now persisted as consumed meal projections. Keep the legacy
     // scan-to-meal fallback for older scan_history documents, but never count a
@@ -46,15 +52,58 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final scanMeals = standaloneScanRecords(meals: journalMeals, scans: scanHistory).map((s) => s.toMealLog()).toList();
     final meals = [...journalMeals, ...scanMeals];
 
-    final allSymptoms = await _historyFirestoreService.getRecentSymptomLogs(limit: _fetchLimit, since: since);
+    final fetchedSymptoms = await _historyFirestoreService.getRecentSymptomLogs(limit: _fetchLimit, since: since);
+    final allSymptoms = fetchedSymptoms.where((symptom) => !symptom.createdAt.isAfter(startedAt) && !symptom.eventTime.isAfter(startedAt)).toList();
     // P2-4: keyword-guessed symptoms (no structured AI entry, no user numbers)
     // are excluded from corroboration until a confirmation flow exists. They
     // still render in chat/history and still feed the insight journal text.
     final symptoms = allSymptoms.where((s) => s.provenance != RecordProvenance.keywordFallback).toList();
 
+    AppLogger.data('PATTERN GENERATION INPUT', {
+      'startedAtDeviceLocal': startedAt.toIso8601String(),
+      'windowStart': since.toIso8601String(),
+      'windowDays': _analysisWindowDays,
+      'fetchLimitPerCollection': _fetchLimit,
+      'minimumFrequency': _minFrequency,
+      'counts': {
+        'journalMeals': journalMeals.length,
+        'excludedFutureMeals': fetchedMeals.length - journalMeals.length,
+        'scans': scanHistory.length,
+        'excludedFutureScans': fetchedScans.length - scanHistory.length,
+        'legacyStandaloneScanMeals': scanMeals.length,
+        'combinedMeals': meals.length,
+        'allSymptoms': allSymptoms.length,
+        'excludedFutureSymptoms': fetchedSymptoms.length - allSymptoms.length,
+        'excludedKeywordFallbackSymptoms': allSymptoms.length - symptoms.length,
+        'correlationSymptoms': symptoms.length,
+      },
+      'mealEvents': meals.map((meal) => {
+        'id': meal.journalEntryId ?? meal.firestoreId,
+        'items': meal.items,
+        'foodTags': meal.foodTags,
+        'createdAt': meal.createdAt.toIso8601String(),
+        'eventTime': meal.eventTime.toIso8601String(),
+        'occurredAtProvenance': meal.occurredAtProvenance,
+      }).toList(),
+      'symptomEvents': allSymptoms.map((symptom) => {
+        'id': symptom.journalEntryId ?? symptom.firestoreId,
+        'symptom': symptom.symptom,
+        'severity': symptom.severity,
+        'energyLevel': symptom.energyLevel,
+        'mood': symptom.mood,
+        'sleep': symptom.sleep,
+        'createdAt': symptom.createdAt.toIso8601String(),
+        'eventTime': symptom.eventTime.toIso8601String(),
+        'provenance': symptom.provenance,
+        'occurredAtProvenance': symptom.occurredAtProvenance,
+      }).toList(),
+    });
+
     if (meals.isEmpty || symptoms.isEmpty) {
-      AppLogger.insights('Insufficient data for correlation.');
+      AppLogger.insights('Pattern generation skipped: meals=${meals.length}, eligibleSymptoms=${symptoms.length}; clearing stale patterns.');
       await _savePatterns([]); // P1-7: clear stale patterns, same as no-match
+      AppLogger.data('PATTERN GENERATION OUTPUT', const <BodyPattern>[]);
+      AppLogger.insights('Pattern generation complete: 0 patterns; elapsed=${stopwatch.elapsedMilliseconds}ms');
       return [];
     }
 
@@ -79,6 +128,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
     // conservative combination candidate before handing evidence to Insights.
     final allPatterns = _collapseCoOccurringPatterns(rawPatterns, meals);
 
+    AppLogger.insights(
+      'Detector results: raw=${rawPatterns.length}, afterCoOccurrenceCollapse=${allPatterns.length}, timeframeDays=$timeframeDays; detectors=bloating,energy,headache,digestion,fullness,sleep',
+    );
     if (allPatterns.isNotEmpty) {
       // Sort by confidence (High first) and frequency. Rank map: the old
       // two-level comparator is inconsistent once Low exists.
@@ -96,6 +148,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
       await _savePatterns([]); // Clear stale patterns if any
     }
 
+    AppLogger.data('PATTERN GENERATION OUTPUT', allPatterns.map((pattern) => pattern.toMap()).toList());
+    AppLogger.insights('Pattern generation complete: ${allPatterns.length} patterns saved; elapsed=${stopwatch.elapsedMilliseconds}ms');
     return allPatterns;
   }
 
@@ -144,7 +198,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
         counts[item] = (counts[item] ?? 0) + 1;
       }
     }
-    final threshold = (symptomaticMeals.length / 2).ceil();
+    // ponytail: never infer a shared ingredient from a single exposure; if
+    // this later fragments legitimate combinations, compare stable meal IDs.
+    final threshold = (symptomaticMeals.length / 2).ceil().clamp(_minFrequency, symptomaticMeals.length);
     final co = counts.entries.where((e) => e.value >= threshold).map((e) => e.key).toList()..sort((a, b) => counts[b]!.compareTo(counts[a]!));
     return [triggerKey, ...co.take(2)];
   }

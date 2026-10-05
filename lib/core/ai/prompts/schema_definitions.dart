@@ -141,7 +141,7 @@ $ingredientSchema
       "subtitle": "string",
       "tag": "BETTER CHOICE",
       "badge": "string",
-      "imageKeyword": "string",
+      "imageKeyword": "grilled chicken breast",
       "isBlackBadge": true
     }
   ],
@@ -185,6 +185,7 @@ SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - nutriscore: "A","B","C","D","E", or JSON null.
 - time: ALWAYS ISO 8601 format string.
 - symptoms: ALWAYS an array of OBJECTS (not strings). Each object MUST have at minimum a "symptom" field.
+- swaps[].imageKeyword: provide a real food name/search phrase matching swaps[].title; never output the placeholder word "string".
 - Any value you cannot determine uses JSON null (or [] for arrays).
 - To prevent response truncation, limit ingredients to top 10 items.
 - scan.additiveItems: array of short labels, ONE per additive found (prefer E-codes/INS numbers like "E621" when known, else plain names like "Palm Oil"). Use [] when none are detected. This powers per-additive detail screens, so never merge items into one string.

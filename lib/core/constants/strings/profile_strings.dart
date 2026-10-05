@@ -88,6 +88,8 @@ class ProfileStrings {
   static const String aboutUs = 'About Us';
   static const String termsAndConditions = 'Terms & Conditions';
   static const String premiumStatusDebug = 'Premium Status (Debug)';
+  static const String pexelsImagesDebug = 'Use Pexels food images';
+  static const String pexelsImagesDebugDescription = 'Turn off to use the current image search.';
   static const String resetDailyUsage = 'Reset Daily Usage';
   static const String limitsReset = 'Limits reset!';
   static const String semanticsAppearancePrefix = 'Select ';
@@ -111,6 +113,8 @@ class ProfileStrings {
   static const String fcmTokenCopied = 'FCM Token copied to clipboard!';
   static const String generateMockData = 'Generate 30 Days Mock Data';
   static const String generateMockDataSubtitle = 'Adds meal logs, symptoms, and insights';
+  static const String generateInsightDebug = 'Generate Insight';
+  static const String generateInsightDebugSubtitle = 'Force a fresh insight from current journal data';
   static const String mockDataGenerated = '2 weeks of mock data generated!';
   static const String guestAiActivity = 'GUEST ACTIVITY';
   static const String dailyAiActivity = 'DAILY ACTIVITY';

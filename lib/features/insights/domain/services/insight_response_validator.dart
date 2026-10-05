@@ -28,7 +28,8 @@ class InsightResponseValidator {
     final hasCandidates = qualifiedCandidates.isNotEmpty;
 
     _normalizeTopInsight(data, reasons);
-    if (!hasCandidates) _normalizeTopInsightWithoutCandidates(data, reasons);
+    final topInsightMatched = hasCandidates && _normalizeTopInsightToCandidate(data, reasons, qualifiedCandidates);
+    if (!topInsightMatched) _normalizeTopInsightWithoutCandidates(data, reasons);
     _normalizeDetectedPatterns(data, reasons, qualifiedCandidates, hasCandidates: hasCandidates);
     _normalizeHealing(data, reasons, qualifiedCandidates, hasCandidates: hasCandidates);
     _normalizeTriggers(data, reasons, qualifiedCandidates, hasCandidates: hasCandidates);
@@ -117,19 +118,38 @@ class InsightResponseValidator {
     top['confidence'] = 'low';
     final existingScore = _number(top['confidenceScore']) ?? 0.5;
     top['confidenceScore'] = _clamp01(existingScore > 0.5 ? 0.5 : existingScore);
+    top['frequency'] = 1;
     top
       ..remove('evidenceRatio')
       ..remove('positiveCount')
       ..remove('negativeCount');
-    final description = top['description']?.toString() ?? '';
-    final lowerDescription = description.toLowerCase();
-    if (description.isNotEmpty &&
-        !lowerDescription.contains('not a confirmed') &&
-        !lowerDescription.contains('early observation') &&
-        !lowerDescription.contains('not enough evidence')) {
-      top['description'] = '$description No repeated food pattern is confirmed yet.';
-    }
+    top['description'] = 'This is an early observation. More logs are needed before confirming a repeated food pattern.';
+    top['observation'] = top['description'];
+    reasons.add('topInsight had no matching qualified pattern: capped frequency and removed unsupported repetition claims');
     data['topInsight'] = top;
+  }
+
+  static bool _normalizeTopInsightToCandidate(Map<String, dynamic> data, List<String> reasons, List<BodyPattern> candidates) {
+    final top = _asMap(data['topInsight']);
+    if (top == null) return false;
+    final candidate = _matchingCandidate(top, candidates);
+    if (candidate == null) return false;
+
+    top
+      ..['domain'] = candidate.type
+      ..['involvedFoods'] = candidate.involvedFoods
+      ..['frequency'] = candidate.frequency
+      ..['evidenceRatio'] = candidate.evidenceRatio
+      ..['positiveCount'] = candidate.positiveCount
+      ..['negativeCount'] = candidate.negativeCount
+      ..['strength'] = _candidateConfidence(candidate, candidate.frequency)
+      ..['confidence'] = _candidateConfidence(candidate, candidate.frequency)
+      ..['confidenceScore'] = candidate.frequency <= 1 ? 0.5 : _candidateConfidenceScore(candidate)
+      ..['description'] = candidate.description
+      ..['observation'] = candidate.description;
+    data['topInsight'] = top;
+    reasons.add('grounded topInsight frequency and narrative in matching deterministic pattern');
+    return true;
   }
 
   static void _normalizeDetectedPatterns(Map<String, dynamic> data, List<String> reasons, List<BodyPattern> candidates, {required bool hasCandidates}) {
@@ -221,7 +241,10 @@ class InsightResponseValidator {
       healing['trend'] = 'No supported healing pattern yet';
     }
     data['healing'] = healing;
-    data['healingFoods'] = _normalizeSparseFoods(data['healingFoods'], reasons, candidates: candidates, positive: true);
+    // Keep the legacy top-level fields aligned with the validated nested block.
+    data['healingGoal'] = healing['goal']?.toString() ?? '';
+    data['healingTrend'] = healing['trend']?.toString() ?? '';
+    data['healingFoods'] = healingFoods;
   }
 
   static void _normalizeTriggers(Map<String, dynamic> data, List<String> reasons, List<BodyPattern> candidates, {required bool hasCandidates}) {
@@ -247,14 +270,36 @@ class InsightResponseValidator {
       return;
     }
 
-    final triggerFoods = _normalizeSparseFoods(triggers['foods'], reasons, candidates: candidates, positive: false);
+    var triggerFoods = _normalizeSparseFoods(triggers['foods'], reasons, candidates: candidates, positive: false);
+    if (triggerFoods.isEmpty) {
+      triggerFoods = [
+        for (final candidate in candidates.where((candidate) => _candidateSupportsDirection(candidate, false)))
+          {
+            'foodId': _canonicalFoodId(candidate.trigger),
+            'name': candidate.trigger,
+            'effect': candidate.reaction,
+            'impactDirection': 'negative',
+            'impactLevel': _candidateImpactLevel(candidate),
+            'frequencyCount': candidate.frequency,
+            'frequencyLabel': '${candidate.frequency} occurrences',
+            'confidence': _candidateConfidence(candidate, candidate.frequency),
+            'confidenceScore': _candidateConfidenceScore(candidate),
+          },
+      ];
+      if (triggerFoods.isNotEmpty) reasons.add('restored trigger foods from qualified negative patterns');
+    }
     triggers['foods'] = triggerFoods;
     if (triggerFoods.isEmpty) {
       triggers['topFoodId'] = '';
       triggers['trend'] = 'No supported trigger pattern yet';
+    } else if (!triggerFoods.any((food) => (food as Map<String, dynamic>)['foodId'] == triggers['topFoodId'])) {
+      triggers['topFoodId'] = (triggerFoods.first as Map<String, dynamic>)['foodId'];
     }
     data['triggers'] = triggers;
-    data['triggerFoods'] = _normalizeSparseFoods(data['triggerFoods'], reasons, candidates: candidates, positive: false);
+    // Keep the legacy top-level fields aligned with the validated nested block.
+    data['triggerSymptom'] = triggers['primarySymptom']?.toString() ?? '';
+    data['triggerTrend'] = triggers['trend']?.toString() ?? '';
+    data['triggerFoods'] = triggerFoods;
   }
 
   static List<dynamic> _normalizeSparseFoods(Object? value, List<String> reasons, {required List<BodyPattern> candidates, required bool positive}) {
@@ -273,7 +318,8 @@ class InsightResponseValidator {
         food['name'] = candidate.trigger;
         food['foodId'] = _canonicalFoodId(candidate.trigger);
       }
-      final frequency = candidate.frequency;
+      final reportedFrequency = _integer(food['frequencyCount']);
+      final frequency = reportedFrequency == null || reportedFrequency > candidate.frequency ? candidate.frequency : reportedFrequency;
       food['frequencyCount'] = frequency;
       food['frequencyLabel'] = frequency == 1 ? '1 occurrence' : '$frequency occurrences';
       food['confidence'] = _candidateConfidence(candidate, frequency);
@@ -422,7 +468,7 @@ class InsightResponseValidator {
     if (explicit == 'negative') return !positive;
 
     final reaction = '${candidate.reaction} ${candidate.description}'.toLowerCase();
-    if (RegExp(r'\b(bloat|headache|pain|fatigue|sluggish|sleepy|nausea|negative|drop|low|hunger|hungry|discomfort|poor|interrupted)\b').hasMatch(reaction)) return !positive;
+    if (RegExp(r'\b(bloat(?:ing)?|headache|pain|fatigue|sluggish|sleepy|nausea|negative|drop|low|hunger|hungry|discomfort|poor|interrupted)\b').hasMatch(reaction)) return !positive;
     if (RegExp(r'\b(energ(y|ized)|refreshed|comfortable|comfort|positive|good|great|steady|balanced|satiet(y|ed)|satisfied|wellness|better)\b').hasMatch(reaction)) return positive;
     return false;
   }
@@ -453,19 +499,9 @@ class InsightResponseValidator {
         source['foodId'] = _canonicalFoodId(candidate.trigger);
       }
 
-      final alternatives = swap['alternatives'];
-      if (alternatives is List) {
-        for (final alternativeValue in alternatives) {
-          final alternative = _asMap(alternativeValue);
-          if (alternative == null) continue;
-          if (!_hasSupportedMechanism(alternative, candidate)) {
-            for (final key in ['structuredBenefits', 'whyItWorks', 'whyBetterOption', 'mechanism', 'mechanismDetails']) {
-              alternative.remove(key);
-            }
-            reasons.add('removed unsupported mechanism details from food swap');
-          }
-        }
-      }
+      // Swap benefits compare the alternative with its source. Pattern
+      // evidence describes the user's reaction, so matching benefit text
+      // against it incorrectly removes valid swap details.
       if (candidate.id != null && candidate.id!.isNotEmpty) swap['relatedPatternId'] = candidate.id;
       normalized.add(swap);
     }

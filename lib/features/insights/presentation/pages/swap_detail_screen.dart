@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/insight_theme.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ui_kit.dart';
@@ -15,17 +15,33 @@ import 'package:gutgood/infrastructure/firebase/notification_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Swap Details screen matching the exact UI/UX mockup.
-class SwapDetailScreen extends StatelessWidget {
+class SwapDetailScreen extends StatefulWidget {
   const SwapDetailScreen({super.key, required this.alternative, this.sourceFoodName = ''});
 
   final SwapAlternative alternative;
   final String sourceFoodName;
 
   @override
+  State<SwapDetailScreen> createState() => _SwapDetailScreenState();
+}
+
+class _SwapDetailScreenState extends State<SwapDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AppLogger.data('SwapDetailScreen', {
+      'sourceFoodName': widget.sourceFoodName,
+      'alternative': widget.alternative.toMap(),
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final alternative = widget.alternative;
+    final sourceFoodName = widget.sourceFoodName;
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageUrl = alternative.imageUrl ?? InsightUiKit.foodImageUrl(alternative.name);
+    final imageUrl = alternative.imageUrl;
 
     final benefits = alternative.benefits;
 
@@ -65,12 +81,13 @@ class SwapDetailScreen extends StatelessWidget {
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: CachedNetworkImage(
+                    child: InsightUiKit.foodImage(
+                      alternative.name,
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      placeholder: (_, _) => Container(color: theme.cardSubtle),
-                      errorWidget: (_, _, _) => Container(
+                      placeholder: Container(color: theme.cardSubtle),
+                      errorWidget: Container(
                         color: theme.cardSubtle,
                         child: Icon(LucideIcons.utensils, color: theme.textSecondary),
                       ),

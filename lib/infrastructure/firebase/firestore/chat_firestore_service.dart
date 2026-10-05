@@ -48,7 +48,7 @@ class ChatFirestoreServiceImpl implements ChatFirestoreService {
       final docRef = doc.collection('chat_history').doc(message.localId);
 
       final cloudSafeData = message.toMap()..remove('id');
-      final data = {...cloudSafeData, 'firestoreId': docRef.id, 'source': message.source ?? 'chat', 'createdAt': FieldValue.serverTimestamp()};
+      final data = {...cloudSafeData, 'firestoreId': docRef.id, 'source': message.source ?? 'chat'};
 
       // Use set with merge: true to allow partial updates (e.g. feedback)
       // while preserving the original document if it already exists.

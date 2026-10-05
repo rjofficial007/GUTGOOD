@@ -22,18 +22,11 @@ class PremiumBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            AppIcons.sparkles,
-            color: context.appColorScheme.textPrimary,
-            size: 12.0.w,
-          ),
+          Icon(AppIcons.crown, color: context.appColorScheme.textPrimary, size: 12.0.w),
           Gap.w4,
           Text(
             AppStrings.premium,
-            style: AppTextStyles.overline.copyWith(
-              color: context.appColorScheme.textPrimary,
-              fontSize: 10.0.sp,
-            ),
+            style: AppTextStyles.overline.copyWith(color: context.appColorScheme.textPrimary, fontSize: 10.0.sp),
           ),
         ],
       ),

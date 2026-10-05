@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
@@ -56,7 +55,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
   /// 1. Top Hero Meal Card (Solid Black card layout with dynamic food blending & domain accent)
   Widget _buildHeroCard(BuildContext context) {
     final style = pattern != null ? PatternCardStyle.forPattern(pattern!) : PatternCardStyle.forType('digestion');
-    final imageUrl = InsightUiKit.foodImageUrl(occurrence.mealName, imageUrl: occurrence.imageUrl);
+    final imageUrl = occurrence.imageUrl;
     final accentColor = style.accentColor;
     const cardBgColor = Color(0xFF0F1015);
 
@@ -183,17 +182,18 @@ class MealSymptomDetailScreen extends StatelessWidget {
                       stops: [0.0, 0.28, 0.65],
                     ).createShader(rect),
                     blendMode: BlendMode.dstIn,
-                    child: CachedNetworkImage(
+                    child: InsightUiKit.foodImage(
+                      occurrence.mealName,
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       alignment: Alignment.center,
-                      placeholder: (_, _) => Container(
+                      placeholder: Container(
                         color: Colors.white.withValues(alpha: 0.05),
                         child: Center(
                           child: Icon(style.icon, color: accentColor.withValues(alpha: 0.5), size: 28.w),
                         ),
                       ),
-                      errorWidget: (_, _, _) => Container(
+                      errorWidget: Container(
                         color: Colors.white.withValues(alpha: 0.05),
                         child: Center(
                           child: Icon(style.icon, color: accentColor.withValues(alpha: 0.7), size: 28.w),

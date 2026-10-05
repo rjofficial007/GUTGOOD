@@ -172,9 +172,9 @@ class NotificationScheduler {
 
     final symptomCount = await _historyFirestoreService.getSymptomLogsCountSince(startOfToday);
 
-    if (mealCount < 0 && scanCount < 0 && symptomCount < 0) {
-      // All count queries failed (offline / Firestore error). Leave any existing
-      // schedule untouched rather than guessing that no activity occurred.
+    if (mealCount < 0 || scanCount < 0 || symptomCount < 0) {
+      // Any count query failed (offline / Firestore error). Leave the existing
+      // schedule untouched rather than treating an unknown count as zero.
       AppLogger.notifs('NotificationService: activity count unknown; keeping noMealLogged schedule as-is');
       return;
     }

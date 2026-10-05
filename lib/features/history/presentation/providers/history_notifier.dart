@@ -7,7 +7,7 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 
-enum HistoryFilter { all, scans, body }
+enum HistoryFilter { all, scans, meals, body }
 
 class HistoryNotifier with ChangeNotifier {
   HistoryNotifier({required HistoryRepository repository, required AppStateService appStateService, required FirebaseAuth auth})
@@ -59,7 +59,8 @@ class HistoryNotifier with ChangeNotifier {
   // Meals
   final List<MealLog> _meals = [];
   bool _mealsLoading = true;
-  final bool _mealsLoadingMore = false;
+  bool _mealsLoadingMore = false;
+  bool _mealsHasMore = true;
 
   // Symptoms
   final List<SymptomLog> _symptoms = [];
@@ -126,6 +127,11 @@ class HistoryNotifier with ChangeNotifier {
         final id = m.firestoreId ?? m.id?.toString() ?? 'meal_${m.createdAt.millisecondsSinceEpoch}';
         entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.meal, createdAt: m.eventTime, meal: m);
       }
+    } else if (_currentFilter == HistoryFilter.meals) {
+      for (final meal in _meals) {
+        final id = meal.firestoreId ?? meal.id?.toString() ?? 'meal_${meal.createdAt.millisecondsSinceEpoch}';
+        entriesMap[id] = JournalEntry(id: id, type: JournalEntryType.meal, createdAt: meal.eventTime, meal: meal);
+      }
     }
 
     if (_currentFilter == HistoryFilter.all || _currentFilter == HistoryFilter.body) {
@@ -164,6 +170,7 @@ class HistoryNotifier with ChangeNotifier {
     _mealsLoading = false;
     _symptomsLoading = false;
     _scansHasMore = true;
+    _mealsHasMore = true;
     _symptomsHasMore = true;
     notifyListeners();
   }
@@ -246,6 +253,7 @@ class HistoryNotifier with ChangeNotifier {
 
   Future<void> refreshMeals() async {
     _mealsLoading = true;
+    _mealsHasMore = true;
     notifyListeners();
 
     try {
@@ -253,10 +261,27 @@ class HistoryNotifier with ChangeNotifier {
       _meals
         ..clear()
         ..addAll(results);
+      if (results.length < _pageSize) _mealsHasMore = false;
     } catch (e) {
       AppLogger.error('HistoryNotifier: Failed to refresh meals', error: e);
     } finally {
       _mealsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMoreMeals() async {
+    if (_mealsLoadingMore || !_mealsHasMore || _meals.isEmpty) return;
+
+    _mealsLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final results = await _repository.getRecentMealLogs(limit: _pageSize, before: _meals.last.createdAt);
+      if (results.length < _pageSize) _mealsHasMore = false;
+      _meals.addAll(results);
+    } finally {
+      _mealsLoadingMore = false;
       notifyListeners();
     }
   }

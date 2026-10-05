@@ -41,18 +41,18 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
     final healingList = insight?.healingSummary?.foods.isNotEmpty == true
         ? insight!.healingSummary!.foods
         : (insight?.healingFoods.isNotEmpty == true
-        ? insight!.healingFoods
-        .map((f) => InsightFood(foodId: 'h_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
-        .toList()
-        : <InsightFood>[]);
+              ? insight!.healingFoods
+                    .map((f) => InsightFood(foodId: 'h_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
+                    .toList()
+              : <InsightFood>[]);
 
     final triggerList = insight?.triggerSummary?.foods.isNotEmpty == true
         ? insight!.triggerSummary!.foods
         : (insight?.triggerFoods.isNotEmpty == true
-        ? insight!.triggerFoods
-        .map((f) => InsightFood(foodId: 't_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
-        .toList()
-        : <InsightFood>[]);
+              ? insight!.triggerFoods
+                    .map((f) => InsightFood(foodId: 't_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
+                    .toList()
+              : <InsightFood>[]);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -95,12 +95,12 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                       'Foods listed as supportive in this insight.',
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569))),
                     ),
-                    Gap.h8,
+                      Gap.h8,
 
-                    for (var i = 0; i < healingList.take(2).length; i++) ...[
-                      if (i > 0) Gap.h6,
+                      for (var i = 0; i < healingList.take(2).length; i++) ...[
+                        if (i > 0) Gap.h6,
                       _HealingFoodItemTile(
-                        imageUrl: healingList[i].imageUrl ?? InsightUiKit.foodImageUrl(healingList[i].name),
+                        imageUrl: healingList[i].imageUrl,
                         title: healingList[i].name,
                         sub: healingList[i].effect ?? 'No effect details available.',
                         badge: 'Supportive observation',
@@ -144,7 +144,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         Gap.w4,
                         Expanded(
                           child: Text(
-                            'Food Observed Near Symptoms',
+                      'Food Observed Near Symptoms',
                             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B)),
                           ),
                         ),
@@ -164,7 +164,13 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8.w),
-                            child: CachedNetworkImage(imageUrl: triggerList.first.imageUrl ?? InsightUiKit.foodImageUrl(triggerList.first.name), width: 40.w, height: 40.w, fit: BoxFit.cover),
+                            child: DynamicFoodImage(
+                              keyword: triggerList.first.name,
+                              imageUrl: triggerList.first.imageUrl,
+                              width: 40.w,
+                              height: 40.w,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                           Gap.w6,
                           Expanded(
@@ -184,7 +190,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                                   ),
                                 ),
                                 Gap.h2,
-                                if (triggerList.first.effect?.trim().isNotEmpty == true) Text(
+                                  if (triggerList.first.effect?.trim().isNotEmpty == true) Text(
                                   triggerList.first.effect!,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -241,13 +247,13 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                           }
                           final swapObj =
                               matchingSwap ??
-                                  (insight?.foodSwaps.isNotEmpty == true
-                                      ? insight!.foodSwaps.first
-                                      : FoodSwap(
-                                    id: 'swap_${triggerList.first.name.toLowerCase()}',
-                                    source: SwapSource(foodId: 'food_trigger', name: triggerList.first.name),
-                                    alternatives: const [],
-                                  ));
+                              (insight?.foodSwaps.isNotEmpty == true
+                                  ? insight!.foodSwaps.first
+                                  : FoodSwap(
+                                      id: 'swap_${triggerList.first.name.toLowerCase()}',
+                                      source: SwapSource(foodId: 'food_trigger', name: triggerList.first.name),
+                                      alternatives: const [],
+                                    ));
                           Navigator.of(context).push(MaterialPageRoute(builder: (_) => BetterSwapsScreen(swap: swapObj)));
                         },
                         borderRadius: BorderRadius.circular(10.w),
@@ -296,7 +302,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
 class _HealingFoodItemTile extends StatelessWidget {
   const _HealingFoodItemTile({required this.imageUrl, required this.title, required this.sub, required this.badge});
 
-  final String imageUrl;
+  final String? imageUrl;
   final String title;
   final String sub;
   final String badge;
@@ -309,7 +315,13 @@ class _HealingFoodItemTile extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(8.w),
-          child: CachedNetworkImage(imageUrl: imageUrl, width: 36.w, height: 36.w, fit: BoxFit.cover),
+          child: DynamicFoodImage(
+            keyword: title,
+            imageUrl: imageUrl,
+            width: 36.w,
+            height: 36.w,
+            fit: BoxFit.cover,
+          ),
         ),
         Gap.w6,
         Expanded(

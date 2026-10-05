@@ -7,12 +7,38 @@ part of 'insight_ui_kit.dart';
 /// These widgets map directly to the image, badge, pattern, and card surfaces
 /// used by the active Insights feed.
 abstract final class InsightUiKit {
-  /// Food-image resolution chain, shared by every Insights tile: a scan/user image
-  /// wins, otherwise the app-wide [getDynamicImageUrl] keyword lookup.
+  static Widget foodImage(
+    String name, {
+    String? userImageUrl,
+    String? imageUrl,
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+    Alignment alignment = Alignment.center,
+    Widget? placeholder,
+    Widget? errorWidget,
+  }) => DynamicFoodImage(
+    keyword: name,
+    imageUrl: userImageUrl?.trim().isNotEmpty == true ? userImageUrl : imageUrl,
+    width: width,
+    height: height,
+    fit: fit,
+    alignment: alignment,
+    placeholder: placeholder,
+    errorWidget: errorWidget,
+  );
+
+  /// Legacy synchronous URL selection; image widgets should use [foodImage]
+  /// so Pexels can resolve asynchronously.
   static String foodImageUrl(String name, {String? userImageUrl, String? imageUrl}) {
     if (userImageUrl != null && userImageUrl.isNotEmpty) return userImageUrl;
-    if (imageUrl != null && imageUrl.isNotEmpty && !imageUrl.contains('unsplash.com')) return imageUrl;
-    return getDynamicImageUrl(name);
+    if (imageUrl != null && imageUrl.isNotEmpty && !_isPlaceholderUrl(imageUrl)) return imageUrl;
+    return getFallbackFoodImageUrl(name);
+  }
+
+  static bool _isPlaceholderUrl(String url) {
+    final host = Uri.tryParse(url)?.host.toLowerCase();
+    return host == 'example.com' || host?.endsWith('.example.com') == true || url.contains('unsplash.com');
   }
 
   /// Insights card shadow: `0 1px 2px rgba(23,23,27,.04)`.
@@ -112,18 +138,19 @@ class InsightFoodImage extends StatelessWidget {
       InsightTone.purple => t.purplePastel.withValues(alpha: 0.18),
       InsightTone.neutral => t.surfaceSubtle,
     };
-    final url = InsightUiKit.foodImageUrl(name, userImageUrl: userImageUrl, imageUrl: imageUrl);
+    final suppliedImageUrl = userImageUrl ?? imageUrl;
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius.w),
       child: SizedBox(
         width: size.w,
         height: size.w,
-        child: CachedNetworkImage(
-          imageUrl: url,
+        child: DynamicFoodImage(
+          keyword: name,
+          imageUrl: suppliedImageUrl,
           fit: BoxFit.cover,
           width: size.w,
           height: size.w,
-          placeholder: (_, _) => ColoredBox(
+          placeholder: ColoredBox(
             color: bg,
             child: Shimmer.fromColors(
               baseColor: t.border.withValues(alpha: 0.4),
@@ -133,7 +160,7 @@ class InsightFoodImage extends StatelessWidget {
               ),
             ),
           ),
-          errorWidget: (_, _, _) => ColoredBox(
+          errorWidget: ColoredBox(
             color: bg,
             child: Center(
               child: (emoji != null && emoji!.isNotEmpty)
@@ -177,5 +204,3 @@ class InsightCard extends StatelessWidget {
     );
   }
 }
-
-

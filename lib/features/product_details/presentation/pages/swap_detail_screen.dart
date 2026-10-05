@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -19,7 +18,7 @@ class SwapDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageUrl = (swap.imageUrl != null && swap.imageUrl!.isNotEmpty) ? swap.imageUrl! : getDynamicImageUrl(swap.imageKeyword.isNotEmpty ? swap.imageKeyword : swap.title);
+    final imageKeyword = swap.imageKeyword.isNotEmpty ? swap.imageKeyword : swap.title;
 
     final cardShade = t.positive.withValues(alpha: isDark ? 0.16 : 0.08);
 
@@ -46,12 +45,13 @@ class SwapDetailScreen extends StatelessWidget {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12.r),
-                            child: CachedNetworkImage(
-                              imageUrl: imageUrl,
+                            child: DynamicFoodImage(
+                              keyword: imageKeyword,
+                              imageUrl: swap.imageUrl,
                               height: 200.h,
                               width: double.infinity,
                               fit: BoxFit.cover,
-                              placeholder: (_, _) => Container(
+                              placeholder: Container(
                                 height: 200.h,
                                 color: t.positive.withValues(alpha: 0.12),
                                 child: Center(
@@ -62,7 +62,7 @@ class SwapDetailScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              errorWidget: (_, _, _) => Container(
+                              errorWidget: Container(
                                 height: 200.h,
                                 color: t.positive.withValues(alpha: 0.12),
                                 child: Center(

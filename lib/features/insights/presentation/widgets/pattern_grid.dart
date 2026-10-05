@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -9,7 +8,6 @@ import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ui_kit.dart';
 
-
 class PatternCardStyle {
   const PatternCardStyle({
     required this.cardBg,
@@ -17,6 +15,9 @@ class PatternCardStyle {
     required this.tagBg,
     required this.tagFg,
     required this.accentColor,
+    required this.gradientColors,
+    required this.highlightColor,
+    required this.highlightForeground,
     required this.icon,
     required this.label,
   });
@@ -26,6 +27,9 @@ class PatternCardStyle {
   final Color tagBg;
   final Color tagFg;
   final Color accentColor;
+  final List<Color> gradientColors;
+  final Color highlightColor;
+  final Color highlightForeground;
   final IconData icon;
   final String label;
 
@@ -65,6 +69,9 @@ class PatternCardStyle {
         tagBg: Color(0xFFEDE9FE),
         tagFg: Color(0xFF6D28D9),
         accentColor: Color(0xFF6D28D9),
+        gradientColors: [Color(0xFF21152E), Color(0xFF45239B)],
+        highlightColor: Color(0xFF6040F6),
+        highlightForeground: Colors.white,
         icon: AppIcons.wind,
         label: 'Bloating',
       ),
@@ -74,6 +81,9 @@ class PatternCardStyle {
         tagBg: Color(0xFFFEF3C7),
         tagFg: Color(0xFFB45309),
         accentColor: Color(0xFFD97706),
+        gradientColors: [Color(0xFF202316), Color(0xFF3E4B20)],
+        highlightColor: Color(0xFFA1F278),
+        highlightForeground: Color(0xFF111111),
         icon: AppIcons.zap,
         label: 'Energy',
       ),
@@ -83,6 +93,9 @@ class PatternCardStyle {
         tagBg: Color(0xFFFEE2E2),
         tagFg: Color(0xFFB91C1C),
         accentColor: Color(0xFFB91C1C),
+        gradientColors: [Color(0xFF261522), Color(0xFF56264F)],
+        highlightColor: Color(0xFFE99CEF),
+        highlightForeground: Color(0xFF111111),
         icon: AppIcons.brain,
         label: 'Headache',
       ),
@@ -92,6 +105,9 @@ class PatternCardStyle {
         tagBg: Color(0xFFDCFCE7),
         tagFg: Color(0xFF15803D),
         accentColor: Color(0xFF15803D),
+        gradientColors: [Color(0xFF14261D), Color(0xFF234D35)],
+        highlightColor: Color(0xFFA1F278),
+        highlightForeground: Color(0xFF111111),
         icon: AppIcons.leaf,
         label: 'Digestion',
       ),
@@ -101,6 +117,9 @@ class PatternCardStyle {
         tagBg: Color(0xFFFEF3C7),
         tagFg: Color(0xFFD97706),
         accentColor: Color(0xFFD97706),
+        gradientColors: [Color(0xFF29210F), Color(0xFF554313)],
+        highlightColor: Color(0xFFE99CEF),
+        highlightForeground: Color(0xFF111111),
         icon: AppIcons.chartPie,
         label: 'Fullness',
       ),
@@ -110,6 +129,9 @@ class PatternCardStyle {
         tagBg: Color(0xFFE0E7FF),
         tagFg: Color(0xFF3730A3),
         accentColor: Color(0xFF3730A3),
+        gradientColors: [Color(0xFF19152B), Color(0xFF373072)],
+        highlightColor: Color(0xFF6040F6),
+        highlightForeground: Colors.white,
         icon: AppIcons.moon,
         label: 'Sleep',
       ),
@@ -119,6 +141,9 @@ class PatternCardStyle {
         tagBg: Color(0xFFEADDFF),
         tagFg: Color(0xFF6750A4),
         accentColor: Color(0xFF6750A4),
+        gradientColors: [Color(0xFF15151C), Color(0xFF3D3296)],
+        highlightColor: Color(0xFFA1F278),
+        highlightForeground: Color(0xFF111111),
         icon: AppIcons.sparkles,
         label: 'Pattern',
       ),
@@ -134,31 +159,14 @@ class PatternCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = PatternCardStyle.forPattern(pattern);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryText = isDark ? Colors.white : const Color(0xFF0F172A);
-    final secondaryText = isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF64748B);
-    final surface = isDark ? const Color(0xFF17181C) : style.cardBg;
-    final border = isDark ? style.accentColor.withValues(alpha: 0.34) : style.borderColor;
-
     final trigger = pattern.trigger.trim().isNotEmpty ? pattern.trigger.trim() : 'Logged meal';
     final reaction = pattern.reaction.trim().isNotEmpty ? pattern.reaction.trim() : '${style.label} response';
-    String? occurrenceImage;
-    for (final occurrence in pattern.occurrences) {
-      if (occurrence.imageUrl != null && occurrence.imageUrl!.isNotEmpty) {
-        occurrenceImage = occurrence.imageUrl;
-        break;
-      }
-    }
-    final foodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : trigger;
-    final foodImageUrl = InsightUiKit.foodImageUrl(foodName, imageUrl: occurrenceImage);
     final occurrenceCount = pattern.frequency > 0 ? pattern.frequency : pattern.occurrences.length;
     final observationText = occurrenceCount == 1 ? '1 observation' : '$occurrenceCount observations';
     final timeframeText = pattern.timeframeDays > 0 ? '${pattern.timeframeDays} days' : null;
-    final confidencePct = _patternConfidencePercent(pattern);
-    final evidenceText = confidencePct > 0
-        ? '$confidencePct% match'
-        : (pattern.confidence.trim().isNotEmpty ? pattern.confidence.trim() : 'Building evidence');
     final description = pattern.description.trim();
+    final metaText = timeframeText == null ? observationText : '$observationText • $timeframeText';
+    final backgroundFoodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : trigger;
 
     return Semantics(
       button: true,
@@ -166,10 +174,9 @@ class PatternCard extends StatelessWidget {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: surface,
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: style.gradientColors),
           borderRadius: BorderRadius.circular(20.w),
-          border: Border.all(color: border, width: 1.w),
-          boxShadow: isDark ? const [] : [BoxShadow(color: style.accentColor.withValues(alpha: 0.08), blurRadius: 18.w, offset: Offset(0, 7.w))],
+          boxShadow: [BoxShadow(color: style.highlightColor.withValues(alpha: 0.2), blurRadius: 22.w, offset: Offset(0, 9.w))],
         ),
         clipBehavior: Clip.antiAlias,
         child: Material(
@@ -177,230 +184,125 @@ class PatternCard extends StatelessWidget {
           child: InkWell(
             onTap: () => context.push(AppRoutes.patternDetail, extra: pattern),
             borderRadius: BorderRadius.circular(20.w),
-            child: Padding(
-              padding: EdgeInsets.all(14.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 34.w,
-                        height: 34.w,
-                        decoration: BoxDecoration(color: style.accentColor, borderRadius: BorderRadius.circular(11.w)),
-                        child: Icon(style.icon, size: 18.w, color: Colors.white),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: InsightUiKit.foodImage(
+                    backgroundFoodName,
+                    fit: BoxFit.cover,
+                    placeholder: ColoredBox(color: style.gradientColors.first),
+                    errorWidget: ColoredBox(color: style.gradientColors.first),
+                  ),
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [Colors.black.withValues(alpha: 0.68), Colors.black.withValues(alpha: 0.48), Colors.black.withValues(alpha: 0.24)],
+                        stops: const [0, 0.58, 1],
                       ),
-                      Gap.w10,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20.w, 20.w, 16.w, 18.w),
+                  child: Row(
+                    children: [
                       Expanded(
+                        flex: 7,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              '${style.label} pattern',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: primaryText),
+                            Row(
+                              children: [
+                                Container(width: 20.w, height: 1.5.w, color: Colors.white.withValues(alpha: 0.82)),
+                                Gap.w8,
+                                Text(
+                                  '${style.label.toUpperCase()} PATTERN',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white.withValues(alpha: 0.9), letterSpacing: 1.1),
+                                ),
+                              ],
                             ),
-                            Gap.h2,
+                            Gap.h12,
                             Text(
-                              'Detected from your logs',
+                              trigger,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.12, letterSpacing: -0.35),
+                            ),
+                            Gap.h4,
+                            Text(
+                              'Followed by $reaction',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w500, color: secondaryText),
+                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.86)),
+                            ),
+                            if (description.isNotEmpty) ...[
+                              Gap.h6,
+                              Text(
+                                description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w400, color: Colors.white.withValues(alpha: 0.78), height: 1.25),
+                              ),
+                            ],
+                            Gap.h10,
+                            Text(
+                              metaText,
+                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.86)),
+                            ),
+                            Gap.h12,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 36.w,
+                                  height: 36.w,
+                                  decoration: BoxDecoration(
+                                    color: style.highlightColor,
+                                    borderRadius: BorderRadius.circular(100.w),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Icon(style.icon, size: 18.w, color: style.highlightForeground),
+                                ),
+                                Gap.w8,
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 9.w),
+                                  decoration: BoxDecoration(color: style.highlightColor, borderRadius: BorderRadius.circular(100.w)),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Explore pattern',
+                                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: style.highlightForeground),
+                                      ),
+                                      Gap.w6,
+                                      Icon(Icons.arrow_forward_rounded, size: 13.w, color: style.highlightForeground),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 4.w),
-                        decoration: BoxDecoration(
-                          color: style.accentColor.withValues(alpha: isDark ? 0.18 : 0.12),
-                          borderRadius: BorderRadius.circular(100.w),
-                          border: Border.all(color: style.accentColor.withValues(alpha: 0.28), width: 0.8.w),
-                        ),
-                        child: Text(
-                          evidenceText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, color: style.accentColor),
-                        ),
-                      ),
+                      SizedBox(height: 174.w),
                     ],
                   ),
-                  Gap.h14,
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _PatternIdentityNode(
-                          label: 'TRIGGER',
-                          value: trigger,
-                          imageUrl: foodImageUrl,
-                          icon: style.icon,
-                          accentColor: style.accentColor,
-                          primaryText: primaryText,
-                          isDark: isDark,
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 22.w),
-                        child: Icon(Icons.arrow_forward_rounded, size: 16.w, color: secondaryText),
-                      ),
-                      Expanded(
-                        child: _PatternIdentityNode(
-                          label: 'RESPONSE',
-                          value: reaction,
-                          icon: style.icon,
-                          accentColor: style.accentColor,
-                          primaryText: primaryText,
-                          isDark: isDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (description.isNotEmpty) ...[
-                    Gap.h10,
-                    Text(
-                      description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w400, color: secondaryText, height: 1.3),
-                    ),
-                  ],
-                  Gap.h12,
-                  Row(
-                    children: [
-                      Icon(Icons.insights_outlined, size: 14.w, color: secondaryText),
-                      Gap.w4,
-                      Expanded(
-                        child: Text(
-                          timeframeText == null ? observationText : '$observationText • $timeframeText',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w700, color: secondaryText),
-                        ),
-                      ),
-                      Gap.w8,
-                      Text(
-                        'View pattern',
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: style.accentColor),
-                      ),
-                      Gap.w3,
-                      Icon(Icons.arrow_forward_rounded, size: 14.w, color: style.accentColor),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
-}
-
-class _PatternIdentityNode extends StatelessWidget {
-  const _PatternIdentityNode({required this.label, required this.value, this.imageUrl, this.icon, required this.accentColor, required this.primaryText, required this.isDark});
-
-  final String label;
-  final String value;
-  final String? imageUrl;
-  final IconData? icon;
-  final Color accentColor;
-  final Color primaryText;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 9.w),
-    decoration: BoxDecoration(
-      color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.78),
-      borderRadius: BorderRadius.circular(13.w),
-      border: Border.all(color: accentColor.withValues(alpha: isDark ? 0.25 : 0.18)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w800, letterSpacing: 0.7, color: accentColor),
-        ),
-        Gap.h3,
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _visual,
-            Gap.w5,
-            Expanded(child: _valueText()),
-          ],
-        ),
-      ],
-    ),
-  );
-
-  Widget get _visual {
-    final size = 38.w;
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(9.w),
-        child: CachedNetworkImage(
-          imageUrl: imageUrl!,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          placeholder: (_, _) => _PatternImageFallback(color: accentColor, icon: icon ?? Icons.restaurant_outlined, size: size),
-          errorWidget: (_, _, _) => _PatternImageFallback(color: accentColor, icon: icon ?? Icons.restaurant_outlined, size: size),
-        ),
-      );
-    }
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: accentColor.withValues(alpha: isDark ? 0.18 : 0.12), borderRadius: BorderRadius.circular(9.w)),
-      child: Icon(icon ?? Icons.auto_awesome_outlined, size: 19.w, color: accentColor),
-    );
-  }
-
-  Widget _valueText() => Text(
-    value,
-    maxLines: 2,
-    overflow: TextOverflow.ellipsis,
-    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, height: 1.18, color: primaryText),
-  );
-}
-
-class _PatternImageFallback extends StatelessWidget {
-  const _PatternImageFallback({required this.color, required this.icon, required this.size});
-
-  final Color color;
-  final IconData icon;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    color: color.withValues(alpha: 0.12),
-    child: Icon(icon, size: size * 0.5, color: color),
-  );
-}
-
-int _patternConfidencePercent(BodyPattern pattern) {
-  if (pattern.evidenceRatio > 0) return (pattern.evidenceRatio * 100).round();
-  if (pattern.confidenceScore > 0) return (pattern.confidenceScore * 100).round();
-
-  final raw = pattern.confidence.trim().replaceAll('%', '');
-  final value = double.tryParse(raw);
-  if (value != null) return value > 1 ? value.round() : (value * 100).round();
-
-  return switch (raw.toLowerCase()) {
-    'high' => 89,
-    'medium' || 'moderate' => 72,
-    'low' => 55,
-    _ => 0,
-  };
 }
 
 /// Pattern identity helpers — shared by [PatternCard] and other pattern surfaces.

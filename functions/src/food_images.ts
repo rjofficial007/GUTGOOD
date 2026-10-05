@@ -20,7 +20,7 @@ const FOOD_IMAGE_RE = /^users\/([^/]+)\/food_images\/([0-9a-f]{16})\.jpg$/;
 const GRACE_MS = 30 * 24 * 3600 * 1000;
 
 /** Derives the 320px thumb for a newly uploaded original and backfills the registry doc. */
-export const generateFoodThumb = onObjectFinalized({ region: 'us-central1' }, async (event) => {
+export const generateFoodThumb = onObjectFinalized({ region: 'us-east1' }, async (event) => {
   const path = event.data.name ?? '';
   const match = FOOD_IMAGE_RE.exec(path);
   if (!match) return; // avatars, thumbs/, legacy timestamp names — not ours

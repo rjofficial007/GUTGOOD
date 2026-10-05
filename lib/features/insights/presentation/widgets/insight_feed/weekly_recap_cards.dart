@@ -95,120 +95,6 @@ class _YourWeeklyInsightCard extends StatelessWidget {
   }
 }
 
-class _TopInsightCard extends StatelessWidget {
-  const _TopInsightCard({required this.insight, required this.topInsight, this.onTap});
-  final AIInsight insight;
-  final InsightSummary topInsight;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final titleText = InsightValues.text(topInsight.title, fallback: 'Your food and symptom snapshot');
-    final observationCount = (topInsight.frequency ?? 1) < 1 ? 1 : (topInsight.frequency ?? 1);
-    final isEarlyObservation = observationCount <= 1;
-    final eyebrow = isEarlyObservation
-        ? 'Early observation · $observationCount observation${observationCount == 1 ? '' : 's'}'
-        : 'Top Insights & Trends';
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20.w),
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF6F67DD), Color(0xFF8B85EC), Color(0xFF9F98F4)]),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onTap ?? () => context.push(AppRoutes.smartInsightDetail, extra: insight),
-          borderRadius: BorderRadius.circular(20.w),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(18.w, 16.w, 14.w, 16.w),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Left Column: Eyebrow, Main Headline Title, Pill CTA Button
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        eyebrow,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.4),
-                      ),
-
-                      Gap.h6,
-
-                      // Line 2: Subtitle
-                      Text(
-                        titleText,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: InsightTheme.fontFamily,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.88),
-                          height: 1.2,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-
-                      Gap.h16,
-
-                      // Pill CTA Button
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 32.w,
-                            height: 32.w,
-                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                            child: Center(
-                              child: Icon(Icons.north_east_rounded, size: 16.w, color: const Color(0xFF6F67DD)),
-                            ),
-                          ),
-                          Gap.w10,
-                          Text(
-                            'Explore',
-                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.4),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Gap.w5,
-
-                // Right Illustration Graphic Element
-                SizedBox(
-                  width: 80.w,
-                  height: 80.w,
-                  child: Image.asset(
-                    color: Colors.white,
-                    AppAssets.appIconBg,
-                    height: 80.w,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => Container(
-                      width: 70.w,
-                      height: 70.w,
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
-                      child: Icon(LucideIcons.sparkles, size: 36.w, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Reusable centered empty state and learning banner for Insights tabs that
 /// do not yet have enough evidence to render a trustworthy chart or pattern card.
 class _InsightsEmptyState extends StatelessWidget {
@@ -224,7 +110,7 @@ class _InsightsEmptyState extends StatelessWidget {
     final foreground = isDark ? Colors.white : Colors.black;
 
     final centeredCopy = Padding(
-      padding: EdgeInsets.only(left: 16.w, top: 24.w, right: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 335.w),
@@ -249,12 +135,11 @@ class _InsightsEmptyState extends StatelessWidget {
       ),
     );
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height * 0.68),
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.68,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [centeredCopy, Gap.h20, banner],
+        children: [Expanded(child: centeredCopy), Gap.h20, banner],
       ),
     );
   }
@@ -270,4 +155,3 @@ class _EmptyPatternsState extends StatelessWidget {
     banner: _PatternsSmarterBannerCard(),
   );
 }
-

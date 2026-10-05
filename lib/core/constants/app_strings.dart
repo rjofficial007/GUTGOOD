@@ -869,6 +869,8 @@ class AppStrings {
   static const String aboutUs = ProfileStrings.aboutUs;
   static const String termsAndConditions = ProfileStrings.termsAndConditions;
   static const String premiumStatusDebug = ProfileStrings.premiumStatusDebug;
+  static const String pexelsImagesDebug = ProfileStrings.pexelsImagesDebug;
+  static const String pexelsImagesDebugDescription = ProfileStrings.pexelsImagesDebugDescription;
   static const String resetDailyUsage = ProfileStrings.resetDailyUsage;
   static const String limitsReset = ProfileStrings.limitsReset;
   static const String semanticsAppearancePrefix = ProfileStrings.semanticsAppearancePrefix;
@@ -894,6 +896,8 @@ class AppStrings {
   static const String fcmTokenCopied = ProfileStrings.fcmTokenCopied;
   static const String generateMockData = ProfileStrings.generateMockData;
   static const String generateMockDataSubtitle = ProfileStrings.generateMockDataSubtitle;
+  static const String generateInsightDebug = ProfileStrings.generateInsightDebug;
+  static const String generateInsightDebugSubtitle = ProfileStrings.generateInsightDebugSubtitle;
   static const String mockDataGenerated = ProfileStrings.mockDataGenerated;
   static const String guestAiActivity = ProfileStrings.guestAiActivity;
   static const String dailyAiActivity = ProfileStrings.dailyAiActivity;

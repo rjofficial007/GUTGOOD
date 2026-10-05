@@ -25,6 +25,8 @@ class JournalFilterBar extends StatelessWidget {
         return 'All';
       case HistoryFilter.scans:
         return 'Scans';
+      case HistoryFilter.meals:
+        return 'Meals';
       case HistoryFilter.body:
         return 'Body & Symptoms';
     }

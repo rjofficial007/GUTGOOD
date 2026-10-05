@@ -105,7 +105,9 @@ class AiVersions {
   ///     `topHealing/topTrigger.whyPoints`). All tolerant reads.
   /// 7 = evidence-gated Insights output: combination candidates, deterministic
   ///     food-impact balance, and no unsupported mechanism fields.
-  static const int insightPromptVersion = 7;
+  /// 8 = food-swap categories describe each alternative's food type for useful filters.
+  /// 9 = request grounded, structured benefits for every food-swap alternative.
+  static const int insightPromptVersion = 9;
 
   /// J-4 §17: chat builder (`Prompts.chatSystemInstruction`) version, stamped
   /// on ChatMessage + the scan/meal/symptom records extracted from chat turns.

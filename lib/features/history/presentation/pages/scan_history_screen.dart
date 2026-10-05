@@ -40,10 +40,18 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     final currentScroll = _scrollController.position.pixels;
     if (currentScroll >= maxScroll * 0.9) {
       final notifier = context.read<HistoryNotifier>();
-      if (notifier.currentFilter == HistoryFilter.all || notifier.currentFilter == HistoryFilter.scans) {
-        notifier.loadMoreScans();
-      } else if (notifier.currentFilter == HistoryFilter.body) {
-        notifier.loadMoreSymptoms();
+      switch (notifier.currentFilter) {
+        case HistoryFilter.all:
+          notifier
+            ..loadMoreScans()
+            ..loadMoreMeals()
+            ..loadMoreSymptoms();
+        case HistoryFilter.scans:
+          notifier.loadMoreScans();
+        case HistoryFilter.meals:
+          notifier.loadMoreMeals();
+        case HistoryFilter.body:
+          notifier.loadMoreSymptoms();
       }
     }
   }

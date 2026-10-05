@@ -1,7 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/theme/insight_theme.dart';
+import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -11,7 +11,7 @@ class TopFoodItemData {
   final String title;
   final String frequency;
   final String badge;
-  final String imageUrl;
+  final String? imageUrl;
   final String? description;
   final bool isPositive;
   final String category;
@@ -69,13 +69,14 @@ class TopFoodTile extends StatelessWidget {
                 // 1. Food Image
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14.w),
-                  child: CachedNetworkImage(
+                  child: DynamicFoodImage(
+                    keyword: item.title,
                     imageUrl: item.imageUrl,
                     width: 56.w,
                     height: 56.w,
                     fit: BoxFit.cover,
-                    placeholder: (_, _) => Container(color: badgeBg),
-                    errorWidget: (_, _, _) => Container(
+                    placeholder: Container(color: badgeBg),
+                    errorWidget: Container(
                       color: badgeBg,
                       child: Icon(badgeIcon, color: badgeFg, size: 24.w),
                     ),

@@ -11,8 +11,8 @@ class _MessageListView extends StatelessWidget {
 
     final scrollController = chatScreenState._scroll;
 
-    return Selector<ChatHistoryNotifier, (bool, int)>(
-      selector: (_, n) => (n.historyLoading, n.messages.length),
+    return Selector<ChatHistoryNotifier, (bool, int, bool)>(
+      selector: (_, n) => (n.historyLoading, n.messages.length, chatScreenState._turnSpacerEnabled),
       builder: (context, state, _) {
         final historyLoading = state.$1;
 

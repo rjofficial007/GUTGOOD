@@ -64,7 +64,11 @@ class AIInsight extends Equatable {
   });
 
   factory AIInsight.fromMap(Map<String, dynamic> map) {
-    final rawData = map['data'];
+    // Firestore/cache documents normally store the insight fields directly,
+    // while raw AI-proxy responses wrap the same JSON in `text` (and older
+    // callers may use `data`). Accept both envelopes so a proxy response cannot
+    // silently render as an empty insight.
+    final rawData = map['data'] ?? map['text'];
     var decodedData = <String, dynamic>{};
     if (rawData is String) {
       try {
@@ -75,11 +79,18 @@ class AIInsight extends Equatable {
       }
     } else if (rawData is Map) {
       decodedData = Map<String, dynamic>.from(rawData);
-    } else {
-      decodedData = <String, dynamic>{};
     }
+
+    if (decodedData.isNotEmpty) {
+      // Keep envelope metadata when the nested payload omitted it. The inner
+      // payload remains authoritative when it already contains a value.
+      for (final key in const ['id', 'firestoreId', 'uid', 'updatedAt', 'v', 'model', 'promptVersion', 'status', 'origin', 'expiresAt']) {
+        if (decodedData[key] == null && map[key] != null) decodedData[key] = map[key];
+      }
+    }
+
     final data = decodedData.isEmpty ? map : decodedData;
-    final rawId = map['id'] ?? map['firestoreId'];
+    final rawId = data['id'] ?? data['firestoreId'] ?? map['id'] ?? map['firestoreId'];
     final rawPeriod = data['period'];
     final period = rawPeriod is Map ? Map<String, dynamic>.from(rawPeriod) : null;
 
@@ -119,7 +130,7 @@ class AIInsight extends Equatable {
     return AIInsight(
       id: rawId is int ? rawId : null,
       firestoreId: rawId is String ? rawId : null,
-      uid: map['uid'] as String?,
+      uid: data['uid'] as String?,
       gutScore: hasScore ? parsedScore : 0,
       hasGutScore: hasScore,
       gutScoreSummary: parsedGutScoreSummary,
@@ -146,7 +157,7 @@ class AIInsight extends Equatable {
                     healingSummary: parsedHealingSummary,
                     triggerFoods: ModelUtils.parseModelList<TriggerFood>(data['triggerFoods'], TriggerFood.fromMap),
                     healingFoods: ModelUtils.parseModelList<HealingFood>(data['healingFoods'], HealingFood.fromMap),
-                    updatedAt: DateTimeUtils.parse(map['updatedAt']),
+                    updatedAt: DateTimeUtils.parse(data['updatedAt']),
                   )),
       topTrigger: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topTrigger'], TopHighlight.fromMap)),
       topHealing: _normalizeHighlight(ModelUtils.parseNestedModel<TopHighlight>(data['topHealing'], TopHighlight.fromMap)),
@@ -157,8 +168,8 @@ class AIInsight extends Equatable {
       type: (data['type'] as String?) ?? 'Pattern',
       confidenceLevel: (data['confidenceLevel'] as String?) ?? 'Moderate',
       triggerData: data['triggerData'] as String?,
-      updatedAt: DateTimeUtils.parse(map['updatedAt']),
-      schemaVersion: (map['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
+      updatedAt: DateTimeUtils.parse(data['updatedAt']),
+      schemaVersion: (data['v'] as num?)?.toInt() ?? AiVersions.schemaVersion,
       periodFrom: period?['from'] == null ? null : DateTimeUtils.parse(period!['from']).toUtc(),
       periodTo: period?['to'] == null ? null : DateTimeUtils.parse(period!['to']).toUtc(),
       evidence: ModelUtils.parseNestedModel<InsightEvidence>(data['evidence'], InsightEvidence.fromMap),

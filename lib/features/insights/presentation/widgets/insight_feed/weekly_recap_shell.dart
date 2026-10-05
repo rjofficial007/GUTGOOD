@@ -162,6 +162,7 @@ class _ForYouGutScoreCard extends StatelessWidget {
 
     final chartSeries = trendDoubles.isNotEmpty ? trendDoubles : (series.isNotEmpty ? series : [displayScore.toDouble()]);
     final isBaseline = scored.length < 2;
+    final baselineSummary = scored.length == 1 ? '1 day scored' : '${scored.length} days scored';
 
     const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -170,7 +171,7 @@ class _ForYouGutScoreCard extends StatelessWidget {
       delta: delta,
       title: isBaseline ? 'BASELINE SCORE' : 'GUTGOOD SCORE',
       subtitle: isBaseline
-          ? 'This is your starting point. Log more days to see a reliable trend.'
+          ? '$baselineSummary · This is your starting point. Log more days to see a reliable trend.'
           : (data.weeklyRecap?.periodTo != null ? 'Based on your current meal and symptom logs.' : (data.weeklyRecap?.scoreSub ?? 'Based on your recent meal and symptom logs.')),
       series: chartSeries,
       labels: labels,

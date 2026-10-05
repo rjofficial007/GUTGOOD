@@ -159,7 +159,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return;
-      await doc.collection('health_alerts').add({...alert.toMap(), 'createdAt': FieldValue.serverTimestamp()});
+      await doc.collection('health_alerts').add(alert.toMap());
     } catch (e) {
       AppLogger.firestore('Error saving health alert', error: e);
     }

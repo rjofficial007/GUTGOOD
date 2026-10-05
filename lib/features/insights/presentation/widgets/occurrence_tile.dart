@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/insight_theme.dart';
@@ -14,7 +13,6 @@ class OccurrenceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imgUrl = InsightUiKit.foodImageUrl(occurrence.mealName, imageUrl: occurrence.imageUrl);
 
     final dateStr = occurrence.dateLabel ?? occurrence.date;
     final rawTime = occurrence.mealTime ?? occurrence.timeAfter;
@@ -81,13 +79,14 @@ class OccurrenceTile extends StatelessWidget {
                 // 1. Food Thumbnail
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: CachedNetworkImage(
-                    imageUrl: imgUrl,
+                  child: InsightUiKit.foodImage(
+                    occurrence.mealName,
+                    imageUrl: occurrence.imageUrl,
                     width: 44,
                     height: 44,
                     fit: BoxFit.cover,
-                    placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFF1F5F9))),
-                    errorWidget: (_, _, _) => Container(
+                    placeholder: Container(color: context.insightColor(const Color(0xFFF1F5F9))),
+                    errorWidget: Container(
                       color: context.insightColor(const Color(0xFFFEF3C7)),
                       child: Icon(LucideIcons.utensils, color: context.insightColor(const Color(0xFFD97706)), size: 18),
                     ),

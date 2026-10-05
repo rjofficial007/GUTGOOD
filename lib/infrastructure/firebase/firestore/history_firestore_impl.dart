@@ -49,7 +49,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       AppLogger.firestore('Saving scan history for ${scanData.productName}. Image URL present: ${bestImageUrl != null}');
 
       // P0-2: persist via toPersistenceMap (rawData blob stripped, hash kept).
-      final data = {...scanData.toPersistenceMap(), 'scanId': finalScanId, 'userId': uid, 'userImageUrl': bestImageUrl, 'createdAt': FieldValue.serverTimestamp()};
+      final data = {...scanData.toPersistenceMap(), 'scanId': finalScanId, 'userId': uid, 'userImageUrl': bestImageUrl};
 
       await doc.collection('scan_history').doc(finalScanId).set(data, SetOptions(merge: true));
       AppLogger.firestore('Saved scan history doc: $finalScanId');

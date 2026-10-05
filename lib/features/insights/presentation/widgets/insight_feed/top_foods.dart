@@ -29,16 +29,7 @@ class _TopFoodsSection extends StatelessWidget {
         final n = countOccurrences(f.name);
         final countStr = n > 0 ? '${n}x logged' : '';
         final desc = f.effect?.trim().isNotEmpty == true ? f.effect : null;
-        foodItems.add(
-          TopFoodItemData(
-            title: f.name,
-            frequency: countStr,
-            badge: 'Supportive',
-            imageUrl: f.imageUrl ?? InsightUiKit.foodImageUrl(f.name),
-            description: desc,
-            isPositive: true,
-          ),
-        );
+        foodItems.add(TopFoodItemData(title: f.name, frequency: countStr, badge: 'Supportive', imageUrl: f.imageUrl, description: desc, isPositive: true));
       }
     }
 
@@ -48,7 +39,9 @@ class _TopFoodsSection extends StatelessWidget {
       final n = countOccurrences(f.name);
       final countStr = n > 0 ? '${n}x logged' : '';
       final desc = f.effect.trim().isNotEmpty ? f.effect : null;
-      foodItems.add(TopFoodItemData(title: f.name, frequency: countStr, badge: 'Supportive', imageUrl: f.userImageUrl ?? f.imageUrl ?? InsightUiKit.foodImageUrl(f.name), description: desc, isPositive: true));
+      foodItems.add(
+        TopFoodItemData(title: f.name, frequency: countStr, badge: 'Supportive', imageUrl: f.userImageUrl ?? f.imageUrl, description: desc, isPositive: true),
+      );
     }
 
     for (final f in insight.foodImpacts.where((i) {
@@ -60,7 +53,9 @@ class _TopFoodsSection extends StatelessWidget {
       final n = countOccurrences(f.food);
       final countStr = n > 0 ? '${n}x logged' : f.dateLabel;
       final desc = f.effect.trim().isNotEmpty ? f.effect : null;
-      foodItems.add(TopFoodItemData(title: f.food, frequency: countStr, badge: 'Positive', imageUrl: f.userImageUrl ?? f.imageUrl ?? InsightUiKit.foodImageUrl(f.food), description: desc, isPositive: true));
+      foodItems.add(
+        TopFoodItemData(title: f.food, frequency: countStr, badge: 'Positive', imageUrl: f.userImageUrl ?? f.imageUrl, description: desc, isPositive: true),
+      );
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -170,60 +165,4 @@ class _TopFoodsSection extends StatelessWidget {
       ],
     );
   }
-}
-
-// =============================================================================
-// CUSTOM PAINTERS
-// =============================================================================
-class _FoodImpactDonutPainter extends CustomPainter {
-  const _FoodImpactDonutPainter({required this.positiveRatio, required this.neutralRatio, required this.negativeRatio});
-
-  final double positiveRatio;
-  final double neutralRatio;
-  final double negativeRatio;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final strokeWidth = 5.w;
-    final radius = (size.width - strokeWidth) / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    const startAngle = -math.pi / 2;
-    const gap = 0.05;
-
-    final posSweep = (2 * math.pi * positiveRatio) - gap;
-    final neuSweep = (2 * math.pi * neutralRatio) - gap;
-    final negSweep = (2 * math.pi * negativeRatio) - gap;
-
-    final paintPos = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFF22C55E);
-
-    final paintNeu = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFFFBBF24);
-
-    final paintNeg = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFFF87171);
-
-    var currentAngle = startAngle;
-    canvas.drawArc(rect, currentAngle, posSweep, false, paintPos);
-
-    currentAngle += posSweep + gap;
-    canvas.drawArc(rect, currentAngle, neuSweep, false, paintNeu);
-
-    currentAngle += neuSweep + gap;
-    canvas.drawArc(rect, currentAngle, negSweep, false, paintNeg);
-  }
-
-  @override
-  bool shouldRepaint(covariant _FoodImpactDonutPainter oldDelegate) => true;
 }

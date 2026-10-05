@@ -111,16 +111,20 @@ async function applyIncrement(uid: string, delta: Record<string, number>): Promi
 
 async function applyDecrement(uid: string, delta: Record<string, number>): Promise<void> {
   const ref = countersRef(uid);
-  const snap = await ref.get();
-  if (!snap.exists) {
-    // The deleted doc is already gone, so a straight recompute is exact.
-    await seedCounters(uid);
-    return;
-  }
-  // Decrements run in a transaction so concurrent deletes can't drive totals
-  // below zero (e.g. batch message deletion racing a late-arriving create).
+  const userRef = admin.firestore().doc(`user_profiles/${uid}`);
+  // Never seed counters from a delete trigger: recursive account cleanup can
+  // fire these triggers after removing the profile, and seeding would recreate
+  // an otherwise empty parent document. A missing counter can be rebuilt by a
+  // later create trigger; clients also fall back to count() while absent.
   await admin.firestore().runTransaction(async tx => {
+    const user = await tx.get(userRef);
+    if (!user.exists) return;
+
     const fresh = await tx.get(ref);
+    if (!fresh.exists) return;
+
+    // Decrements run transactionally so concurrent deletes can't drive totals
+    // below zero (e.g. batch message deletion racing a late-arriving create).
     const data = fresh.data() ?? {};
     const update: Record<string, unknown> = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
     for (const [field, amount] of Object.entries(delta)) {

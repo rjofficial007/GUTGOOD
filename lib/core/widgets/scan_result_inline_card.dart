@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
@@ -61,7 +60,7 @@ class ScanResultInlineCard extends StatelessWidget {
     var prodImg = scanData.imageUrl;
     if (prodImg != null && prodImg.isEmpty) prodImg = null;
 
-    final displayImgUrl = userImg ?? prodImg ?? getDynamicImageUrl(scanData.productName);
+    final displayImgUrl = userImg ?? prodImg;
 
     return Padding(
       padding: isEmbedded ? const EdgeInsets.only(bottom: 16) : EdgeInsets.all(AppSizes.p20),
@@ -73,9 +72,20 @@ class ScanResultInlineCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: colorScheme.elevatedSurface,
               borderRadius: BorderRadius.circular(AppSizes.r12),
-              image: DecorationImage(image: CachedNetworkImageProvider(displayImgUrl), fit: BoxFit.cover),
               border: isEmbedded ? Border.all(color: colorScheme.border.withAlpha(77)) : null,
               boxShadow: isEmbedded ? null : [BoxShadow(color: colorScheme.surfaceSubtle, blurRadius: 10, offset: const Offset(0, 4))],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizes.r12),
+              child: DynamicFoodImage(
+                keyword: scanData.productName,
+                imageUrl: displayImgUrl,
+                width: 50.0.w,
+                height: 50.0.h,
+                fit: BoxFit.cover,
+                placeholder: Center(child: Icon(Icons.image_outlined, color: colorScheme.textMuted, size: 20)),
+                errorWidget: Center(child: Icon(Icons.image_outlined, color: colorScheme.textMuted, size: 20)),
+              ),
             ),
           ),
 

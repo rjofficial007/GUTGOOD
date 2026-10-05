@@ -54,6 +54,11 @@ class GenerateInsightUseCase {
   final GutScoreFirestoreService? _gutScoreFirestoreService;
 
   Future<void> execute({bool force = false}) async {
+    final runStartedAt = DateTime.now();
+    final stopwatch = Stopwatch()..start();
+    AppLogger.insights('========== INSIGHT GENERATION START ==========');
+    AppLogger.insights('Device time: $runStartedAt (${runStartedAt.timeZoneName}, UTC${runStartedAt.timeZoneOffset}); forced: $force');
+
     final lastRunStr = _prefs.getString(StorageKeys.lastInsightRun);
     DateTime lastRun;
 
@@ -65,11 +70,14 @@ class GenerateInsightUseCase {
       AppLogger.insights('No local lastRun found. Fallback to Firestore: $lastRun');
     }
 
-    final nowUtc = DateTime.now().toUtc();
-    final isSameDay = lastRun.year == nowUtc.year && lastRun.month == nowUtc.month && lastRun.day == nowUtc.day;
+    final nowLocal = runStartedAt;
+    final lastRunLocal = lastRun.toLocal();
+    final isSameDay = lastRunLocal.year == nowLocal.year && lastRunLocal.month == nowLocal.month && lastRunLocal.day == nowLocal.day;
+    final nowUtc = nowLocal.toUtc();
+    AppLogger.insights('Daily guard: lastRunLocal=$lastRunLocal, deviceToday=${DateTime(nowLocal.year, nowLocal.month, nowLocal.day)}, sameLocalDay=$isSameDay, force=$force');
 
     if (isSameDay && !force) {
-      AppLogger.debug('GenerateInsightUseCase: Insight was already generated today ($lastRun). Skipping.');
+      AppLogger.insights('SKIP: insight already generated on the device-local day; elapsed=${stopwatch.elapsedMilliseconds}ms');
       return;
     }
     if (force && isSameDay) {
@@ -80,7 +88,7 @@ class GenerateInsightUseCase {
     // Client-owned cadence: honor the per-user disable toggle here (the
     // retired server pipeline used to enforce it).
     if (profile?.insightsDisabled ?? false) {
-      AppLogger.debug('GenerateInsightUseCase: insights disabled in profile. Skipping.');
+      AppLogger.insights('SKIP: insights are disabled in the user profile; elapsed=${stopwatch.elapsedMilliseconds}ms');
       return;
     }
     final userGoals = profile?.goals ?? _prefs.getStringList(StorageKeys.userGoals) ?? [];
@@ -90,8 +98,8 @@ class GenerateInsightUseCase {
     final cycleSyncEnabled = profile?.cycleSyncEnabled ?? _prefs.getBool('cycle_sync_enabled') ?? false;
     final cyclePhase = cycleSyncEnabled ? (profile?.cyclePhase ?? _prefs.getString('cycle_phase') ?? 'Luteal Phase') : 'Not specified';
 
-    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-    final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
+    final thirtyDaysAgo = nowLocal.subtract(const Duration(days: 30));
+    final sevenDaysAgo = nowLocal.subtract(const Duration(days: 7));
 
     final dataStreams = await Future.wait([
       _insightRepository.getRecentMeals(thirtyDaysAgo),
@@ -102,17 +110,24 @@ class GenerateInsightUseCase {
       _insightRepository.getRecentChat(thirtyDaysAgo),
     ]);
 
-    final allMeals = dataStreams[0] as List<MealLog>;
-    final allSymptoms = dataStreams[1] as List<SymptomLog>;
-    final allScans = dataStreams[2] as List<ScanResult>;
+    final fetchedMeals = dataStreams[0] as List<MealLog>;
+    final fetchedSymptoms = dataStreams[1] as List<SymptomLog>;
+    final fetchedScans = dataStreams[2] as List<ScanResult>;
     final history = dataStreams[3] as List<AIInsight>;
-    final allChat = dataStreams[5] as List<ChatMessage>;
+    final fetchedChat = dataStreams[5] as List<ChatMessage>;
+    final allMeals = fetchedMeals.where((meal) => !meal.createdAt.isAfter(nowLocal) && !meal.eventTime.isAfter(nowLocal)).toList();
+    final allSymptoms = fetchedSymptoms.where((symptom) => !symptom.createdAt.isAfter(nowLocal) && !symptom.eventTime.isAfter(nowLocal)).toList();
+    final allScans = fetchedScans.where((scan) => !scan.createdAt.isAfter(nowLocal)).toList();
+    final allChat = fetchedChat.where((message) => !message.createdAt.isAfter(nowLocal)).toList();
+    AppLogger.insights(
+      'Loaded inputs: meals=${allMeals.length} (future excluded=${fetchedMeals.length - allMeals.length}), symptoms=${allSymptoms.length} (future excluded=${fetchedSymptoms.length - allSymptoms.length}), scans=${allScans.length} (future excluded=${fetchedScans.length - allScans.length}), insightHistory=${history.length}, patterns=${(dataStreams[4] as List<BodyPattern>).length}, chatMessages=${allChat.length} (future excluded=${fetchedChat.length - allChat.length}); 30dSince=$thirtyDaysAgo',
+    );
 
     // Weekly Recap is a completed calendar-week artifact, not a rolling
     // partial snapshot. Build it before the daily AI threshold so opening the
     // app on Sunday can reveal the week that just ended even when the user has
     // not logged anything today.
-    final endLocal = DateTime.now();
+    final endLocal = nowLocal;
     final currentWeekStart = GutScoreCalculatorService.startOfLocalDay(endLocal).subtract(Duration(days: endLocal.weekday % 7));
     final previousWeekStart = currentWeekStart.subtract(const Duration(days: 7));
     final previousWeekEnd = currentWeekStart.subtract(const Duration(microseconds: 1));
@@ -149,12 +164,12 @@ class GenerateInsightUseCase {
     );
 
     // Check if today's logs meet the exact daily threshold matching InsightBentoLearning:
-    final now = DateTime.now();
+    final now = nowLocal;
     final startOfToday = DateTime(now.year, now.month, now.day);
 
-    final todayMealLogs = allMeals.where((m) => m.createdAt.isAfter(startOfToday) || m.eventTime.isAfter(startOfToday)).toList();
+    final todayMealLogs = allMeals.where((m) => (m.createdAt.isAfter(startOfToday) || m.eventTime.isAfter(startOfToday)) && !m.createdAt.isAfter(now) && !m.eventTime.isAfter(now)).toList();
     final todayMeals = todayMealLogs.length;
-    final todaySymptoms = allSymptoms.where((s) => s.createdAt.isAfter(startOfToday) || s.eventTime.isAfter(startOfToday)).length;
+    final todaySymptoms = allSymptoms.where((s) => (s.createdAt.isAfter(startOfToday) || s.eventTime.isAfter(startOfToday)) && !s.createdAt.isAfter(now) && !s.eventTime.isAfter(now)).length;
     final todayScanLogs = allScans.where((s) => s.createdAt.isAfter(startOfToday)).toList();
     // New scans have a meal projection. Count only legacy scan-only records in
     // the scan leg so the daily threshold does not count one scan twice.
@@ -163,9 +178,12 @@ class GenerateInsightUseCase {
 
     // Baseline daily logging threshold: 3 Food Scans/Meals AND 1 Symptom Log TODAY
     final hasBaselineLogs = _checkThreshold.execute(scanCount: todayStandaloneScans.length, mealCount: todayMeals, symptomCount: todaySymptoms);
+    AppLogger.insights(
+      'Local-day threshold: meals=$todayMeals, standaloneScans=${todayStandaloneScans.length}, uniqueFoodEvents=$todayFood, symptoms=$todaySymptoms; required=3 food events + 1 symptom; passed=$hasBaselineLogs',
+    );
 
     if (!hasBaselineLogs) {
-      AppLogger.debug('GenerateInsightUseCase: Insufficient daily logs today (food: $todayFood/3, symptoms: $todaySymptoms/1). Skipping AI generation until threshold is reached.');
+      AppLogger.insights('SKIP: daily evidence threshold not met; elapsed=${stopwatch.elapsedMilliseconds}ms');
 
       // Keep the completed-week recap current without bypassing the existing
       // daily AI threshold or sending a misleading "new insight" notification.
@@ -206,6 +224,28 @@ class GenerateInsightUseCase {
     final scoreHistoryString = scoreList.map((i) => i.gutScore).join(', ');
     final lastScore = scoreList.isNotEmpty ? scoreList.last.gutScore : null;
 
+    // Keep this dump local to debug/profile builds; it contains health and
+    // journal context, so never send it through the production logger.
+    AppLogger.data('INSIGHT GENERATION INPUT', {
+      'startedAtDeviceLocal': runStartedAt.toIso8601String(),
+      'timezone': runStartedAt.timeZoneName,
+      'timezoneOffset': runStartedAt.timeZoneOffset.toString(),
+      'force': force,
+      'lastRunLocal': lastRunLocal.toIso8601String(),
+      'dailyThreshold': {'meals': todayMeals, 'standaloneScans': todayStandaloneScans.length, 'uniqueFoodEvents': todayFood, 'symptoms': todaySymptoms},
+      'profileContext': {'goals': userGoals, 'sensitivities': userSensitivities, 'lifestyle': userLifestyle, 'cyclePhase': cyclePhase, 'chatSummary': profile?.chatSummary},
+      'evidenceWindow': {'from': thirtyDaysAgo.toIso8601String(), 'recentFrom': sevenDaysAgo.toIso8601String(), 'mealCount': allMeals.length, 'symptomCount': allSymptoms.length, 'scanCount': allScans.length},
+      'modelInputs': {
+        'recentJournalText': recentJournalText,
+        'historicalJournalSummary': historicalJournalSummary,
+        'chatHistory': recentChat.map((message) => message.toAiMap()).toList(),
+        'scoreHistory': scoreHistoryString,
+        'lastScore': lastScore,
+        'patternCandidates': freshPatterns.map((pattern) => pattern.toMap()).toList(),
+      },
+    });
+
+    AppLogger.insights('Calling insight model with prepared context; elapsed=${stopwatch.elapsedMilliseconds}ms');
     final insight = await _insightRepository.analyzeGutHealth(
       goals: userGoals,
       sensitivities: userSensitivities,
@@ -219,6 +259,7 @@ class GenerateInsightUseCase {
       patternCandidates: freshPatterns,
       lastScore: lastScore,
     );
+    AppLogger.data('INSIGHT GENERATION MODEL OUTPUT', insight.toMap());
 
     // Deterministic gut score from the last 7 local days only.
     // Do NOT fall back to 30-day scans — that inflated gutScore / avgScanScore
@@ -281,13 +322,16 @@ class GenerateInsightUseCase {
     );
     // The score is calculated locally after the AI response. Use that same
     // score for the displayed delta instead of a model/missing-score value.
-    final finalizedInsight = lastScore != null && hasWeekScore
-        ? stamped.copyWith(scoreDiff: _formatScoreDiff(displayScore - lastScore))
-        : stamped;
+    final generatedAt = DateTime.now();
+    final finalizedInsight = stamped.copyWith(
+      updatedAt: generatedAt,
+      scoreDiff: lastScore != null && hasWeekScore ? _formatScoreDiff(displayScore - lastScore) : stamped.scoreDiff,
+    );
 
     // Save insight and notify user upon successful generation
     await _insightRepository.saveInsight(finalizedInsight);
     await _prefs.setString(StorageKeys.lastInsightRun, DateTime.now().toUtc().toIso8601String());
+    AppLogger.insights('Insight generated and saved; elapsed=${stopwatch.elapsedMilliseconds}ms, status=${finalizedInsight.status}, topInsightId=${finalizedInsight.topInsight?.id}');
 
     unawaited(
       _insightRepository.saveHealthAlert(

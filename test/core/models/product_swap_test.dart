@@ -37,6 +37,12 @@ void main() {
       expect(swap.nutriscore, isNull);
     });
 
+    test('ProductSwap.fromMap replaces placeholder image keyword with title', () {
+      final swap = ProductSwap.fromMap(const {'title': 'Grilled Chicken', 'imageKeyword': 'string'});
+
+      expect(swap.imageKeyword, 'Grilled Chicken');
+    });
+
     test('ProductSwap grounding fields round-trip through toMap/fromMap', () {
       const swap = ProductSwap(title: 'Oat Drink', subtitle: 'Oatly', imageKeyword: 'Oat Drink', tag: 'BETTER CHOICE', barcode: '12345678', nutriscore: 'a');
 

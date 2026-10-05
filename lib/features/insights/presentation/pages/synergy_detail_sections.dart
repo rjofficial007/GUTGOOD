@@ -9,7 +9,6 @@ extension SynergyDetailSections on SynergyDetailScreen {
     final foodName = pattern?.involvedFoods.isNotEmpty == true
         ? pattern!.involvedFoods.first
         : (activeInsight?.topInsight?.involvedFoods.firstOrNull ?? '');
-    final imageUrl = foodName.isEmpty ? null : InsightUiKit.foodImageUrl(foodName);
     final style = PatternCardStyle.forType(pattern?.type ?? 'digestion');
 
     final trigger = pattern?.trigger.trim() ?? '';
@@ -129,7 +128,7 @@ extension SynergyDetailSections on SynergyDetailScreen {
           Gap.w12,
 
           // Right Floating Food Photo Card
-          if (foodName.isNotEmpty && imageUrl != null) Stack(
+          if (foodName.isNotEmpty) Stack(
             clipBehavior: Clip.none,
             children: [
               Container(
@@ -140,12 +139,12 @@ extension SynergyDetailSections on SynergyDetailScreen {
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8.w, offset: const Offset(0, 3))],
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
+                child: InsightUiKit.foodImage(
+                  foodName,
                   fit: BoxFit.cover,
                   alignment: Alignment.center,
-                  placeholder: (_, _) => Container(color: style.tagBg),
-                  errorWidget: (_, _, _) => Container(
+                  placeholder: Container(color: style.tagBg),
+                  errorWidget: Container(
                     color: style.tagBg,
                     child: Icon(style.icon, color: style.tagFg, size: 28),
                   ),

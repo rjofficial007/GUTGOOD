@@ -94,6 +94,7 @@ class Gap {
   static Widget get w12 => SizedBox(width: 12.0.w);
   static Widget get w14 => SizedBox(width: 14.0.w);
   static Widget get w16 => SizedBox(width: 16.0.w);
+  static Widget get w18 => SizedBox(width: 18.0.w);
   static Widget get w20 => SizedBox(width: 20.0.w);
   static Widget get w48 => SizedBox(width: 48.0.w);
 
@@ -107,6 +108,8 @@ class Gap {
   static Widget get h12 => SizedBox(height: 12.0.h);
   static Widget get h14 => SizedBox(height: 14.0.h);
   static Widget get h16 => SizedBox(height: 16.0.h);
+  static Widget get h18 => SizedBox(width: 18.0.h);
+
   static Widget get h20 => SizedBox(height: 20.0.h);
   static Widget get h24 => SizedBox(height: 24.0.h);
   static Widget get h32 => SizedBox(height: 32.0.h);

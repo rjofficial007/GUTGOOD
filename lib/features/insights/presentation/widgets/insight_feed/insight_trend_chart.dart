@@ -17,7 +17,7 @@ class InsightTrendChart extends StatelessWidget {
     // series instead of drawing a misleading drop to zero.
     final plotted = [
       for (final value in values)
-        value.isFinite && value > 0 && value <= 100 ? value : null,
+        if (value.isFinite && value > 0 && value <= 100) value else null,
     ];
     final valid = plotted.whereType<double>().toList();
     final t = context.insightTheme;
@@ -66,7 +66,7 @@ class _TrendPainter extends CustomPainter {
 
     final points = [
       for (var i = 0; i < values.length; i++)
-        values[i] == null ? null : pointFor(i, values[i]!),
+        if (values[i] == null) null else pointFor(i, values[i]!),
     ];
 
     final linePaint = Paint()

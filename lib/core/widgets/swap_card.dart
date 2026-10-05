@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -61,11 +60,14 @@ class SwapCard extends StatelessWidget {
                   color: colorScheme.elevatedSurface,
                   border: Border(bottom: BorderSide(color: colorScheme.border.withAlpha(77))),
                 ),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl ?? getDynamicImageUrl(imageKeyword),
+                child: DynamicFoodImage(
+                  keyword: imageKeyword,
+                  imageUrl: imageUrl,
+                  width: double.infinity,
+                  height: 110.0.h,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Center(child: Icon(AppIcons.image, color: colorScheme.textMuted, size: 20)),
-                  errorWidget: (context, url, error) => Center(child: Icon(AppIcons.image, color: colorScheme.textMuted, size: 20)),
+                  placeholder: Center(child: Icon(AppIcons.image, color: colorScheme.textMuted, size: 20)),
+                  errorWidget: Center(child: Icon(AppIcons.image, color: colorScheme.textMuted, size: 20)),
                 ),
               ),
               if (badge != null)

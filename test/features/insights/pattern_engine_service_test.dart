@@ -258,6 +258,36 @@ void main() {
       expect(patterns.first.frequency, 3);
     });
 
+    test('ingredient detail on only one repeated meal does not suppress the shared food pattern', () async {
+      final now = DateTime.now();
+      final meals = [
+        _meal(['Fried Chicken Burger'], now.subtract(const Duration(days: 2))),
+        _meal(['Fried Chicken Burger', 'Fried Chicken Patty', 'Lettuce', 'Pickles', 'Sauce', 'Bun'], now.subtract(const Duration(days: 1))),
+      ];
+      final symptoms = meals.map((meal) => _symptom('Bloating', meal.createdAt.add(const Duration(minutes: 30)))).toList();
+
+      final patterns = await runWith(meals: meals, symptoms: symptoms);
+
+      expect(patterns, hasLength(1));
+      expect(patterns.single.trigger, 'Fried chicken burger');
+      expect(patterns.single.frequency, 2);
+      expect(patterns.single.involvedFoods, ['fried chicken burger']);
+    });
+
+    test('future-dated meal and symptom events do not create a pattern', () async {
+      final now = DateTime.now();
+      final meals = [
+        _meal(['Burger'], now.subtract(const Duration(hours: 2))),
+        _meal(['Burger'], now.add(const Duration(hours: 2))),
+      ];
+      final symptoms = [
+        _symptom('Bloating', meals[0].createdAt.add(const Duration(minutes: 30))),
+        _symptom('Bloating', meals[1].createdAt.add(const Duration(minutes: 30))),
+      ];
+
+      expect(await runWith(meals: meals, symptoms: symptoms), isEmpty);
+    });
+
     test('timeframeDays reports the honest span (no 7-day floor)', () async {
       final now = DateTime.now();
       final meals = [

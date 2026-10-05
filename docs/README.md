@@ -36,8 +36,6 @@ This documentation describes the current GutGood product and implementation. The
 | Document | Description |
 |---|---|
 | [GutGood Screen Gallery](GUTGOOD_SCREENS.html) | Static screen gallery covering launch, chat, insights, history, scanner, profile, and overlays. |
-| [Insights Gallery](INSIGHTS.html) | Static visual reference for the semantic Insights feed, Bento cards, states, and loading views. |
-
 ---
 
 ## 🧭 Current code map

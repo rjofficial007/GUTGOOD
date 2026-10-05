@@ -73,7 +73,7 @@ class _RecentFoodImpactsSection extends StatelessWidget {
               for (var i = 0; i < impacts.take(4).length; i++) ...[
                 if (i > 0) Divider(height: 12.w, color: context.insightColor(const Color(0xFFF1F5F9))),
                 _FoodImpactRow(
-                  imageUrl: impacts[i].userImageUrl ?? impacts[i].imageUrl ?? InsightUiKit.foodImageUrl(impacts[i].food),
+                  imageUrl: impacts[i].userImageUrl ?? impacts[i].imageUrl,
                   title: impacts[i].food,
                   sub: '${impacts[i].dateLabel} • ${impacts[i].timeframeLabel}',
                   status: impacts[i].effect,
@@ -91,7 +91,7 @@ class _RecentFoodImpactsSection extends StatelessWidget {
 class _FoodImpactRow extends StatelessWidget {
   const _FoodImpactRow({required this.imageUrl, required this.title, required this.sub, required this.status, required this.isPositive});
 
-  final String imageUrl;
+  final String? imageUrl;
   final String title;
   final String sub;
   final String status;
@@ -102,7 +102,14 @@ class _FoodImpactRow extends StatelessWidget {
     children: [
       ClipRRect(
         borderRadius: BorderRadius.circular(8.w),
-        child: CachedNetworkImage(imageUrl: imageUrl, width: 36.w, height: 36.w, fit: BoxFit.cover),
+        child: DynamicFoodImage(
+          keyword: title,
+          imageUrl: imageUrl,
+          width: 36.w,
+          height: 36.w,
+          fit: BoxFit.cover,
+          errorWidget: Icon(Icons.image_outlined, size: 18.w, color: context.insightTheme.textTertiary),
+        ),
       ),
       Gap.w8,
       Expanded(

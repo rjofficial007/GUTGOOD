@@ -11,7 +11,6 @@ class _InvolvedFoodTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageUrl = InsightUiKit.foodImageUrl(foodName);
 
     return Container(
       width: 108.w,
@@ -26,13 +25,13 @@ class _InvolvedFoodTile extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10.w),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
+            child: InsightUiKit.foodImage(
+              foodName,
               width: 94.w,
               height: 60.w,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: theme.cardSubtle),
-              errorWidget: (_, _, _) => Container(
+              placeholder: Container(color: theme.cardSubtle),
+              errorWidget: Container(
                 color: isDark ? const Color(0xFFB45309).withValues(alpha: 0.20) : const Color(0xFFFEF3C7),
                 alignment: Alignment.center,
                 child: Icon(LucideIcons.utensils, size: 20.w, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)),
@@ -71,4 +70,3 @@ class _InvolvedFoodTile extends StatelessWidget {
     );
   }
 }
-

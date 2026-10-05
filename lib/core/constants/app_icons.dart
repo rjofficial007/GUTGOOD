@@ -95,4 +95,5 @@ class AppIcons {
   static const messageSquare = LucideIcons.messageSquare;
   static const star = LucideIcons.star;
   static const chartPie = LucideIcons.pieChart;
+  static const crown = LucideIcons.crown;
 }

@@ -132,22 +132,28 @@ class CycleTag extends Equatable {
 class ProductSwap extends Equatable {
   const ProductSwap({required this.title, required this.subtitle, required this.imageKeyword, this.imageUrl, required this.tag, this.badge, this.isBlackBadge = false, this.barcode, this.nutriscore, this.benefits = const []});
 
-  factory ProductSwap.fromMap(Map<String, dynamic> map) => ProductSwap(
-    title: map['title']?.toString() ?? '',
-    subtitle: map['subtitle']?.toString() ?? '',
-    imageKeyword: map['imageKeyword']?.toString() ?? '',
-    imageUrl: map['imageUrl']?.toString(),
-    tag: map['tag']?.toString() ?? 'GOOD OPTION',
-    badge: map['badge']?.toString(),
-    isBlackBadge: ModelUtils.parseBool(map['isBlackBadge']),
-    // P2-11: absent on legacy docs and LLM-invented swaps; present when the
-    // swap round-trips OFF grounding (echoed barcode + grade).
-    barcode: map['barcode']?.toString(),
-    nutriscore: map['nutriscore']?.toString(),
-    benefits: map['benefits'] is List 
-        ? (map['benefits'] as List).map((e) => e.toString()).toList() 
-        : (map['reason'] != null ? [map['reason'].toString()] : const []),
-  );
+  factory ProductSwap.fromMap(Map<String, dynamic> map) {
+    final title = map['title']?.toString() ?? '';
+    final rawImageKeyword = map['imageKeyword']?.toString().trim() ?? '';
+    final imageKeyword = rawImageKeyword.isEmpty || rawImageKeyword.toLowerCase() == 'string' ? title : rawImageKeyword;
+
+    return ProductSwap(
+      title: title,
+      subtitle: map['subtitle']?.toString() ?? '',
+      imageKeyword: imageKeyword,
+      imageUrl: map['imageUrl']?.toString(),
+      tag: map['tag']?.toString() ?? 'GOOD OPTION',
+      badge: map['badge']?.toString(),
+      isBlackBadge: ModelUtils.parseBool(map['isBlackBadge']),
+      // P2-11: absent on legacy docs and LLM-invented swaps; present when the
+      // swap round-trips OFF grounding (echoed barcode + grade).
+      barcode: map['barcode']?.toString(),
+      nutriscore: map['nutriscore']?.toString(),
+      benefits: map['benefits'] is List
+          ? (map['benefits'] as List).map((e) => e.toString()).toList()
+          : (map['reason'] != null ? [map['reason'].toString()] : const []),
+    );
+  }
   final String title;
   final String subtitle;
   final String imageKeyword;

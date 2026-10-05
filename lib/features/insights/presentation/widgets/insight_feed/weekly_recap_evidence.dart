@@ -200,27 +200,27 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final topHealing =
         data.healingSummary?.foods.firstOrNull ??
-            (data.healingFoods.isNotEmpty
-                ? InsightFood(
-              foodId: 'h_${data.healingFoods.first.name}',
-              name: data.healingFoods.first.name,
-              emoji: data.healingFoods.first.emoji,
-              imageUrl: data.healingFoods.first.userImageUrl ?? data.healingFoods.first.imageUrl,
-              effect: data.healingFoods.first.effect,
-            )
-                : null);
+        (data.healingFoods.isNotEmpty
+            ? InsightFood(
+                foodId: 'h_${data.healingFoods.first.name}',
+                name: data.healingFoods.first.name,
+                emoji: data.healingFoods.first.emoji,
+                imageUrl: data.healingFoods.first.userImageUrl ?? data.healingFoods.first.imageUrl,
+                effect: data.healingFoods.first.effect,
+              )
+            : null);
 
     final topTrigger =
         data.triggerSummary?.foods.firstOrNull ??
-            (data.triggerFoods.isNotEmpty
-                ? InsightFood(
-              foodId: 't_${data.triggerFoods.first.name}',
-              name: data.triggerFoods.first.name,
-              emoji: data.triggerFoods.first.emoji,
-              imageUrl: data.triggerFoods.first.userImageUrl ?? data.triggerFoods.first.imageUrl,
-              effect: data.triggerFoods.first.effect,
-            )
-                : null);
+        (data.triggerFoods.isNotEmpty
+            ? InsightFood(
+                foodId: 't_${data.triggerFoods.first.name}',
+                name: data.triggerFoods.first.name,
+                emoji: data.triggerFoods.first.emoji,
+                imageUrl: data.triggerFoods.first.userImageUrl ?? data.triggerFoods.first.imageUrl,
+                effect: data.triggerFoods.first.effect,
+              )
+            : null);
 
     if (topHealing == null && topTrigger == null) {
       return Container(
@@ -296,7 +296,7 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
 
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12.w),
-                          child: CachedNetworkImage(imageUrl: topHealing.imageUrl ?? InsightUiKit.foodImageUrl(topHealing.name), height: 64.w, width: double.infinity, fit: BoxFit.cover),
+                          child: DynamicFoodImage(keyword: topHealing.name, imageUrl: topHealing.imageUrl, height: 64.w, width: double.infinity, fit: BoxFit.cover),
                         ),
                         Gap.h6,
 
@@ -407,7 +407,7 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
 
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12.w),
-                          child: CachedNetworkImage(imageUrl: topTrigger.imageUrl ?? InsightUiKit.foodImageUrl(topTrigger.name), height: 64.w, width: double.infinity, fit: BoxFit.cover),
+                          child: DynamicFoodImage(keyword: topTrigger.name, imageUrl: topTrigger.imageUrl, height: 64.w, width: double.infinity, fit: BoxFit.cover),
                         ),
                         Gap.h6,
 
@@ -472,4 +472,3 @@ class _WeeklyTopFoodsRow extends StatelessWidget {
     );
   }
 }
-

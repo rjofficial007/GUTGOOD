@@ -202,6 +202,8 @@ class AppRouter {
                 builder: (context, state) {
                   final insight = state.extra is InsightSummary
                       ? state.extra as InsightSummary
+                      : state.extra is AIInsight
+                      ? ((state.extra as AIInsight).topInsight ?? const InsightSummary(title: 'Top Insight', description: 'Insight details', type: 'Pattern'))
                       : (context.read<InsightsNotifier>().latestInsight?.topInsight ?? const InsightSummary(title: 'Top Insight', description: 'Insight details', type: 'Pattern'));
                   return SmartInsightDetailScreen(insight: insight);
                 },

@@ -14,10 +14,7 @@ class _InvolvedFoodCard extends StatelessWidget {
   final _FoodCardData food;
 
   @override
-  Widget build(BuildContext context) {
-    final imageUrl = InsightUiKit.foodImageUrl(food.imageKeyword);
-
-    return Container(
+  Widget build(BuildContext context) => Container(
       width: 108.w,
       padding: EdgeInsets.all(7.w),
       decoration: BoxDecoration(
@@ -30,13 +27,13 @@ class _InvolvedFoodCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10.w),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
+            child: InsightUiKit.foodImage(
+              food.imageKeyword,
               width: 94.w,
               height: 60.w,
               fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: context.insightColor(const Color(0xFFF1F5F9))),
-              errorWidget: (_, _, _) => Container(
+              placeholder: Container(color: context.insightColor(const Color(0xFFF1F5F9))),
+              errorWidget: Container(
                 color: context.insightColor(const Color(0xFFFEF3C7)),
                 alignment: Alignment.center,
                 child: Icon(LucideIcons.utensils, size: 20.w, color: context.insightColor(const Color(0xFFD97706))),
@@ -69,6 +66,4 @@ class _InvolvedFoodCard extends StatelessWidget {
         ],
       ),
     );
-  }
 }
-

@@ -62,7 +62,7 @@ class _SwapCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageUrl = (swap.imageUrl != null && swap.imageUrl!.isNotEmpty) ? swap.imageUrl! : getDynamicImageUrl(swap.imageKeyword.isNotEmpty ? swap.imageKeyword : swap.title);
+    final imageKeyword = swap.imageKeyword.isNotEmpty ? swap.imageKeyword : swap.title;
     final cardShade = t.positive.withValues(alpha: isDark ? 0.16 : 0.08);
 
     return InkWell(
@@ -77,12 +77,18 @@ class _SwapCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(10.r),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
+              child: DynamicFoodImage(
+                keyword: imageKeyword,
+                imageUrl: swap.imageUrl,
                 height: 84.h,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorWidget: (_, _, _) => Container(
+                placeholder: Container(
+                  height: 84.h,
+                  color: t.positive.withValues(alpha: 0.12),
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: t.positive)),
+                ),
+                errorWidget: Container(
                   height: 84.h,
                   color: t.positive.withValues(alpha: 0.12),
                   child: Center(
