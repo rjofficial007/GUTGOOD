@@ -190,11 +190,11 @@ class PurchaseProvider extends ChangeNotifier {
   }
 
   void setPremiumForDebug(bool value) {
-    if (kDebugMode) {
+    // if (kDebugMode) {
       _isPremium = value;
       _purchaseService.setProStatusForDebug(value);
       _persistPremiumStatus(value);
       notifyListeners();
-    }
+    // }
   }
 }

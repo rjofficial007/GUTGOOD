@@ -39,7 +39,7 @@ class _ImprovingCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scoredCount = InsightValues.scores(series).where((score) => score > 0).length;
+    final scoredCount = WhyScoreSheet.resolveRecord(context)?.scoredDayCount ?? InsightValues.scores(series).where((score) => score > 0).length;
     final isBaseline = scoredCount < 2;
     final sectionLabel = isBaseline ? 'BUILDING BASELINE' : 'YOUR PROGRESS';
     final headline = isBaseline ? 'No repeated pattern yet' : (data.headline.isNotEmpty ? data.headline : 'Your score is moving');

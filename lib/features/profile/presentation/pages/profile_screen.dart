@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -124,10 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _showDeleteAccountConfirmation(GutAuthNotifier authNotifier) async {
     final profileNotifier = context.read<ProfileNotifier>();
-    await BottomSheetHelper.showDeleteAccountSheet(
-      context: context,
-      onConfirm: () => _attemptDeleteAccount(authNotifier, profileNotifier),
-    );
+    await BottomSheetHelper.showDeleteAccountSheet(context: context, onConfirm: () => _attemptDeleteAccount(authNotifier, profileNotifier));
   }
 
   Future<void> _attemptDeleteAccount(GutAuthNotifier authNotifier, ProfileNotifier profileNotifier) async {
@@ -220,7 +216,7 @@ class _ProfileContent extends StatelessWidget {
               const BodyRhythmSection(),
               AccountSection(onEditTap: onEditTap, onLogoutTap: onLogoutTap, onDeleteTap: onDeleteTap),
               const SupportSection(),
-              if (kDebugMode) const DebugToolsSection(),
+              const DebugToolsSection(),
               const AppVersionInfo(),
               Gap.h10,
             ]),

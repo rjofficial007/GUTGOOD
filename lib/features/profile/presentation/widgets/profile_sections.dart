@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
@@ -17,8 +15,6 @@ import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
-import 'package:gutgood/core/utils/image_utils.dart';
-import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/profile_header.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/data/services/usage_service.dart';
@@ -26,11 +22,8 @@ import 'package:gutgood/features/auth/presentation/pages/paywall_screen.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
 import 'package:gutgood/features/auth/presentation/providers/purchase_provider.dart';
 import 'package:gutgood/features/auth/presentation/widgets/auth_bottom_sheets.dart';
-import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
-import 'package:gutgood/features/profile/data/services/debug_mock_data_service.dart';
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/profile/presentation/providers/usage_notifier.dart';
-import 'package:gutgood/infrastructure/firebase/notification_service.dart';
 import 'package:gutgood/infrastructure/platform/app_service.dart';
 import 'package:gutgood/infrastructure/platform/app_version_service.dart';
 import 'package:provider/provider.dart';
@@ -47,11 +40,12 @@ class ProfileHeaderSection extends StatelessWidget {
     final authNotifier = context.watch<GutAuthNotifier>();
     final profileNotifier = context.read<ProfileNotifier>();
 
-    return Selector<ProfileNotifier, (UserProfile?, int)>(
-      selector: (_, n) => (n.profile, n.avgFoodScore),
+    return Selector<ProfileNotifier, (UserProfile?, int, int, bool)>(
+      selector: (_, n) => (n.profile, n.avgFoodScore, n.gutScore, n.hasGutScore),
       builder: (context, data, _) {
         final p = data.$1;
         final avgFoodScore = data.$2;
+        final gutScore = data.$3;
 
         return ProfileHeader(
           name: p?.displayName ?? (authNotifier.isAnonymous ? AppStrings.guestUser : authNotifier.user?.displayName ?? ''),
@@ -61,7 +55,8 @@ class ProfileHeaderSection extends StatelessWidget {
           streak: profileNotifier.streak,
           longestStreak: profileNotifier.longestStreak,
           lastActivityDate: profileNotifier.lastActivityDate,
-          gutScore: p?.gutScore ?? 0,
+          gutScore: gutScore,
+          hasGutScore: data.$4,
           avgFoodScore: avgFoodScore,
           onImageTap: () {
             SemanticsService.sendAnnouncement(View.of(context), AppStrings.uploadingProfilePicture, TextDirection.ltr);
@@ -307,19 +302,19 @@ class DebugToolsSection extends StatelessWidget {
         title: AppStrings.sectionDebugTools,
         showCard: true,
         children: [
-          FutureBuilder<void>(
-            future: loadImageSourcePreference(),
-            builder: (context, _) => ValueListenableBuilder<bool>(
-              valueListenable: usePexelsFoodImages,
-              builder: (context, usePexels, _) => AppSwitchTile(
-                icon: AppIcons.image,
-                title: AppStrings.pexelsImagesDebug,
-                desc: AppStrings.pexelsImagesDebugDescription,
-                value: usePexels,
-                onChanged: setUsePexelsFoodImages,
-              ),
-            ),
-          ),
+          // FutureBuilder<void>(
+          //   future: loadImageSourcePreference(),
+          //   builder: (context, _) => ValueListenableBuilder<bool>(
+          //     valueListenable: usePexelsFoodImages,
+          //     builder: (context, usePexels, _) => AppSwitchTile(
+          //       icon: AppIcons.image,
+          //       title: AppStrings.pexelsImagesDebug,
+          //       desc: AppStrings.pexelsImagesDebugDescription,
+          //       value: usePexels,
+          //       onChanged: setUsePexelsFoodImages,
+          //     ),
+          //   ),
+          // ),
           AppSwitchTile(
             icon: AppIcons.shieldCheck,
             title: AppStrings.premiumStatusDebug,
@@ -331,63 +326,63 @@ class DebugToolsSection extends StatelessWidget {
               unawaited(profileNotifier.refresh());
             },
           ),
-          AppTile(
-            icon: AppIcons.refreshCcw,
-            title: AppStrings.resetDailyUsage,
-            onTap: () async {
-              await sl<UsageService>().resetLimitsForTesting();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.limitsReset)));
-              }
-            },
-          ),
-          AppTile(
-            icon: AppIcons.bell,
-            title: AppStrings.testPushNotification,
-            onTap: () async {
-              await sl<NotificationService>().testNotification();
-            },
-          ),
-          Selector<InsightsNotifier, bool>(
-            selector: (_, notifier) => notifier.isGenerating,
-            builder: (context, isGenerating, _) => AppTile(
-              icon: AppIcons.sparkles,
-              title: AppStrings.generateInsightDebug,
-              subtitle: AppStrings.generateInsightDebugSubtitle,
-              trailing: isGenerating
-                  ? SizedBox(width: 18.w, height: 18.w, child: CircularProgressIndicator(strokeWidth: 2.w))
-                  : Icon(AppIcons.chevronRight, size: 16.w, color: context.appColorScheme.textMuted),
-              onTap: () async {
-                if (!isGenerating) await context.read<InsightsNotifier>().generateNewInsight(force: true);
-              },
-            ),
-          ),
-          AppTile(
-            icon: AppIcons.copy,
-            title: AppStrings.copyFcmToken,
-            subtitle: AppStrings.copyFcmTokenSubtitle,
-            onTap: () async {
-              final token = await FirebaseMessaging.instance.getToken();
-              if (token != null) {
-                await Clipboard.setData(ClipboardData(text: token));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.fcmTokenCopied)));
-                }
-              }
-            },
-          ),
-          AppTile(
-            icon: Icons.data_array,
-            title: AppStrings.generateMockData,
-            subtitle: AppStrings.generateMockDataSubtitle,
-            onTap: () async {
-              await sl<DebugMockDataService>().generateThirtyDaysData();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.mockDataGenerated)));
-              }
-            },
-            showBottomBorder: false,
-          ),
+          // AppTile(
+          //   icon: AppIcons.refreshCcw,
+          //   title: AppStrings.resetDailyUsage,
+          //   onTap: () async {
+          //     await sl<UsageService>().resetLimitsForTesting();
+          //     if (context.mounted) {
+          //       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.limitsReset)));
+          //     }
+          //   },
+          // ),
+          // AppTile(
+          //   icon: AppIcons.bell,
+          //   title: AppStrings.testPushNotification,
+          //   onTap: () async {
+          //     await sl<NotificationService>().testNotification();
+          //   },
+          // ),
+          // Selector<InsightsNotifier, bool>(
+          //   selector: (_, notifier) => notifier.isGenerating,
+          //   builder: (context, isGenerating, _) => AppTile(
+          //     icon: AppIcons.sparkles,
+          //     title: AppStrings.generateInsightDebug,
+          //     subtitle: AppStrings.generateInsightDebugSubtitle,
+          //     trailing: isGenerating
+          //         ? SizedBox(width: 18.w, height: 18.w, child: CircularProgressIndicator(strokeWidth: 2.w))
+          //         : Icon(AppIcons.chevronRight, size: 16.w, color: context.appColorScheme.textMuted),
+          //     onTap: () async {
+          //       if (!isGenerating) await context.read<InsightsNotifier>().generateNewInsight(force: true);
+          //     },
+          //   ),
+          // ),
+          // AppTile(
+          //   icon: AppIcons.copy,
+          //   title: AppStrings.copyFcmToken,
+          //   subtitle: AppStrings.copyFcmTokenSubtitle,
+          //   onTap: () async {
+          //     final token = await FirebaseMessaging.instance.getToken();
+          //     if (token != null) {
+          //       await Clipboard.setData(ClipboardData(text: token));
+          //       if (context.mounted) {
+          //         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.fcmTokenCopied)));
+          //       }
+          //     }
+          //   },
+          // ),
+          // AppTile(
+          //   icon: Icons.data_array,
+          //   title: AppStrings.generateMockData,
+          //   subtitle: AppStrings.generateMockDataSubtitle,
+          //   onTap: () async {
+          //     await sl<DebugMockDataService>().generateThirtyDaysData();
+          //     if (context.mounted) {
+          //       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.mockDataGenerated)));
+          //     }
+          //   },
+          //   showBottomBorder: false,
+          // ),
         ],
       ),
     );

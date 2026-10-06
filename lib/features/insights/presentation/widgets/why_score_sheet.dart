@@ -4,12 +4,49 @@ import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 class WhyScoreSheet extends StatelessWidget {
   const WhyScoreSheet({super.key, required this.insight});
 
   final AIInsight insight;
+
+  static GutScoreRecord? resolveRecord(BuildContext context) {
+    try {
+      final record = context.watch<ProfileNotifier>().latestScoreRecord;
+      if (record != null) return record;
+    } on ProviderNotFoundException {
+      // Standalone/history widgets can be hosted without ProfileNotifier.
+    }
+    try {
+      return context.watch<InsightsNotifier>().latestScoreRecord;
+    } on ProviderNotFoundException {
+      return null;
+    }
+  }
+
+  static int resolveScore(BuildContext context, AIInsight insight) {
+    try {
+      return context.watch<ProfileNotifier>().gutScore.clamp(0, 100);
+    } on ProviderNotFoundException {
+      // Standalone/history widgets can be hosted without ProfileNotifier.
+    }
+    final record = resolveRecord(context);
+    if (record != null) return record.gutScore.clamp(0, 100);
+    return insight.gutScore.clamp(0, 100);
+  }
+
+  static bool hasScore(BuildContext context, AIInsight insight) {
+    try {
+      return context.watch<ProfileNotifier>().hasGutScore;
+    } on ProviderNotFoundException {
+      // Standalone/history widgets can be hosted without ProfileNotifier.
+    }
+    return resolveRecord(context)?.hasScore ?? insight.hasGutScore;
+  }
 
   static void show(BuildContext context, AIInsight insight) {
     showModalBottomSheet(
@@ -25,22 +62,31 @@ class WhyScoreSheet extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final scheme = context.appColorScheme;
 
-    final score = insight.gutScore.clamp(0, 100);
-    final isGood = score >= 70;
+    final score = resolveScore(context, insight);
+    final hasScore = WhyScoreSheet.hasScore(context, insight);
+    final scoreRecord = resolveRecord(context);
     final sampleSizes = insight.evidence?.sampleSizes;
     final patternRefs = insight.evidence?.patternRefs ?? const <PatternRef>[];
     final recap = insight.weeklyRecap;
-    final trend = recap?.gutScoreTrend ?? const <int>[];
-    final scoredDays = trend.where((s) => s > 0).length;
+    final scoredDays = scoreRecord?.scoredDayCount ?? recap?.scoredDayCount ?? 0;
+    final weekLabel = scoreRecord != null ? 'this week' : (recap?.dateRange ?? 'this week');
+    final hasWeeklyFoods = scoreRecord == null && (recap?.foodsLogged ?? 0) > 0;
+    final hasBestDay = scoreRecord == null && (recap?.bestDay?.isNotEmpty ?? false);
+    final mealCount = scoreRecord?.mealsCount ?? sampleSizes?.meals ?? 0;
+    final scanCount = scoreRecord?.scansCount ?? sampleSizes?.scans ?? 0;
+    final symptomCount = scoreRecord?.symptomsCount ?? sampleSizes?.symptoms ?? 0;
+    final hasFoodLogs = mealCount > 0 || scanCount > 0;
+    final hasSymptoms = symptomCount > 0;
+    final hasKnownData = hasWeeklyFoods || scoredDays > 0 || hasBestDay || hasFoodLogs || hasSymptoms || patternRefs.isNotEmpty;
 
     final maxHeight = MediaQuery.of(context).size.height * 0.85;
 
-    final badgeBg = insight.hasGutScore
-        ? (isGood ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5)) : (isDark ? const Color(0xFF78350F) : const Color(0xFFFFFBEB)))
+    final badgeBg = hasScore
+        ? (score >= 70 ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5)) : (isDark ? const Color(0xFF78350F) : const Color(0xFFFFFBEB)))
         : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9));
 
-    final badgeTextColor = insight.hasGutScore
-        ? (isGood ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669)) : (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)))
+    final badgeTextColor = hasScore
+        ? (score >= 70 ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669)) : (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)))
         : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B));
 
     final primaryTextColor = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
@@ -83,7 +129,7 @@ class WhyScoreSheet extends StatelessWidget {
                 decoration: BoxDecoration(color: badgeBg, shape: BoxShape.circle),
                 child: Center(
                   child: Text(
-                    insight.hasGutScore ? '$score' : '—',
+                    hasScore ? '$score' : '—',
                     style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: badgeTextColor),
                   ),
                 ),
@@ -94,11 +140,11 @@ class WhyScoreSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      insight.hasGutScore ? 'Why $score?' : 'Score unavailable',
+                      hasScore ? 'Why $score?' : 'Score unavailable',
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: primaryTextColor),
                     ),
                     Text(
-                      insight.hasGutScore ? (recap?.scoreSub ?? 'Based on your logged food scans and symptoms this week') : 'Log food scans this week to unlock a gut score',
+                      hasScore ? (scoredDays == 0 ? 'Your current GutGood Score' : '$scoredDays of 7 days scored') : 'Log food scans this week to unlock a gut score',
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, color: secondaryTextColor, fontWeight: FontWeight.w500),
                     ),
                   ],
@@ -133,67 +179,88 @@ class WhyScoreSheet extends StatelessWidget {
                   const _FactorTile(
                     factor: _ScoreFactor(
                       title: 'Food Scan Quality',
-                      description: 'Average quality score (0–100) from your scanned foods based on ingredients, Nutri-Score & processing level.',
+                      description: 'Your weekly score is the average of daily Gut Scores on days with food scans. Each daily score starts with that day’s average scanned food quality (0–100).',
                       points: 'Base',
+                      isPositive: true,
+                    ),
+                  ),
+                  const _FactorTile(
+                    factor: _ScoreFactor(
+                      title: 'Symptoms',
+                      description: 'Reported negative symptoms subtract 3, 6 or 9 points by severity (1–3, 4–6, 7–10), up to 30 per day. Positive reactions do not lower your score.',
+                      points: 'Adjustment',
+                      isPositive: false,
+                    ),
+                  ),
+                  const _FactorTile(
+                    factor: _ScoreFactor(
+                      title: 'Logging activity',
+                      description: 'A day with a food scan adds 2 logging points. Each daily score is kept between 0 and 100.',
+                      points: 'Bonus',
                       isPositive: true,
                     ),
                   ),
 
                   Gap.h16,
 
-                  Text(
-                    'WHAT WE KNOW',
-                    style: TextStyle(
-                      fontFamily: InsightTheme.fontFamily,
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                      color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                  if (hasKnownData) ...[
+                    Text(
+                      'WHAT WE KNOW',
+                      style: TextStyle(
+                        fontFamily: InsightTheme.fontFamily,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                        color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                      ),
                     ),
-                  ),
-                  Gap.h8,
-                  if (recap != null) ...[
+                    Gap.h8,
+                  ],
+                  if (hasWeeklyFoods && recap != null)
                     _FactorTile(
-                      factor: _ScoreFactor(title: 'Weekly foods logged', description: '${recap.foodsLogged ?? 0} meals and scans in the last 7 days', points: 'Counted', isPositive: true),
+                      factor: _ScoreFactor(title: 'Foods logged (week)', description: '${recap.foodsLogged ?? 0} meals and scans during $weekLabel', points: 'Counted', isPositive: true),
                     ),
+                  if (scoredDays > 0)
                     _FactorTile(
                       factor: _ScoreFactor(
                         title: 'Scored days',
-                        description: scoredDays == 0 ? 'No days with food scans yet — empty days stay at 0' : '$scoredDays of 7 days had scans (empty days are 0, not filled in)',
-                        points: scoredDays == 0 ? '—' : '$scoredDays/7',
-                        isPositive: scoredDays > 0,
+                        description: '$scoredDays of 7 days had scans during $weekLabel (empty days are 0, not filled in)',
+                        points: '$scoredDays/7',
+                        isPositive: true,
                       ),
                     ),
-                    if (recap.bestDay != null && recap.bestDay!.isNotEmpty)
-                      _FactorTile(
-                        factor: _ScoreFactor(title: 'Best day', description: 'Highest daily gut score this week', points: recap.bestDay!, isPositive: true),
+                  if (hasBestDay && recap != null)
+                    _FactorTile(
+                      factor: _ScoreFactor(title: 'Best day', description: 'Highest daily gut score this week', points: recap.bestDay!, isPositive: true),
+                    ),
+                  if (hasFoodLogs)
+                    _FactorTile(
+                      factor: _ScoreFactor(
+                        title: scoreRecord == null ? 'Food logs (period)' : 'Food logs (this week)',
+                        description: [if (mealCount > 0) '$mealCount meal ${mealCount == 1 ? 'log' : 'logs'}', if (scanCount > 0) '$scanCount food ${scanCount == 1 ? 'scan' : 'scans'}'].join(' and '),
+                        points: 'Observed',
+                        isPositive: true,
                       ),
-                  ],
-                  if (sampleSizes == null && patternRefs.isEmpty && recap == null)
-                    Text(
-                      'Detailed score evidence is not available for this record. Future reports will include the available inputs.',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, color: secondaryTextColor),
-                    )
-                  else ...[
-                    if (sampleSizes != null) ...[
-                      _FactorTile(
-                        factor: _ScoreFactor(title: 'Food logs (period)', description: '${sampleSizes.meals} meals and ${sampleSizes.scans} scans included', points: 'Observed', isPositive: true),
+                    ),
+                  if (hasSymptoms)
+                    _FactorTile(
+                      factor: _ScoreFactor(
+                        title: scoreRecord == null ? 'Symptom logs (period)' : 'Symptom logs (this week)',
+                        description: '$symptomCount symptom logs included',
+                        points: 'Observed',
+                        isPositive: false,
                       ),
-                      _FactorTile(
-                        factor: _ScoreFactor(title: 'Symptom logs (period)', description: '${sampleSizes.symptoms} symptoms included in the analysis', points: 'Observed', isPositive: false),
+                    ),
+                  for (final ref in patternRefs.take(4))
+                    _FactorTile(
+                      factor: _ScoreFactor(
+                        title: ref.trigger.isEmpty ? 'Observed pattern' : ref.trigger,
+                        description: ref.reaction.isEmpty ? 'Evidence recorded in this analysis' : ref.reaction,
+                        points: '${(ref.evidenceRatio.clamp(0.0, 1.0) * 100).round()}% evidence',
+                        isPositive: ref.positiveCount > ref.negativeCount,
                       ),
-                    ],
-                    for (final ref in patternRefs.take(4))
-                      _FactorTile(
-                        factor: _ScoreFactor(
-                          title: ref.trigger.isEmpty ? 'Observed pattern' : ref.trigger,
-                          description: ref.reaction.isEmpty ? 'Evidence recorded in this analysis' : ref.reaction,
-                          points: '${(ref.evidenceRatio.clamp(0.0, 1.0) * 100).round()}% evidence',
-                          isPositive: ref.positiveCount > ref.negativeCount,
-                        ),
-                      ),
-                  ],
-                  Gap.h16,
+                    ),
+                  if (hasKnownData) Gap.h16,
 
                   // Transparency note
                   Container(

@@ -13,11 +13,8 @@ import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
-// Pattern Details — Synergy-style UI/UX presentation.
-//
-// Features bento cards: Hero Pattern Card with right angled food image,
-// "What We Observed" banner, "The Evidence" 4-stat metric dashboard,
-// "Involved Foods" horizontal grid, "Occurrences & Factors" timeline, and "Split Grid" section.
+// Pattern Details — reuses the Patterns-tab card, followed by observation,
+// evidence, involved-food, occurrence, and next-step sections.
 
 part 'pattern_detail_sections.dart';
 part 'pattern_detail_helpers.dart';
@@ -52,7 +49,7 @@ class PatternDetailScreen extends StatelessWidget {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // 1. HERO PATTERN CARD
-                _buildHeroCard(context),
+                _buildHeroCard(),
                 Gap.h10,
 
                 // 2. WHAT WE OBSERVED CARD

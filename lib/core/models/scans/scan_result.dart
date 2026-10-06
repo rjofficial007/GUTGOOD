@@ -9,6 +9,7 @@ import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/scans/scan_result_details.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 /// Categorizes the directional impact of a product on gut health.
@@ -84,7 +85,7 @@ class ScanResult extends Equatable {
 
     // 🚀 Professional Fallback: If AI returns 0 for a meal/food/menu scan, calculate a heuristic score
     // based on NOVA group, nutrient levels, and meal balance.
-    if (score == 0 && (category == 'meal' || category == 'food' || category == 'menu')) {
+    if (score == 0 && InsightValues.number(map['score']) == null && (category == 'meal' || category == 'food' || category == 'menu')) {
       final mealBlock = map['meal'] is Map
           ? Map<String, dynamic>.from(map['meal'] as Map)
           : ((map['rawData'] as Map?)?['meal'] is Map ? Map<String, dynamic>.from((map['rawData'] as Map)['meal'] as Map) : null);
@@ -170,7 +171,9 @@ class ScanResult extends Equatable {
       scanVerdict: map['scanVerdict']?.toString(),
       chatMessageId: map['chatMessageId']?.toString(),
       servingSize: map['servingSize']?.toString(),
-      createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['timestamp'] ?? map['time']),
+      // `time` in the AI scan payload is model supplied; it must not replace
+      // the actual scan/save timestamp when hydrating a scan record.
+      createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['timestamp']),
       rawData: resolvedRaw,
       // 🚀 audit §F.2/§O item 6: the AI is explicitly instructed to
       // APPROXIMATE nutrition fields for home-cooked/unpackaged meals

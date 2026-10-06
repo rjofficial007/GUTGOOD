@@ -5,7 +5,16 @@ import 'package:gutgood/core/models/insights/ai_insight.dart';
 import 'package:gutgood/core/models/insights/ai_insight_details.dart';
 import 'package:gutgood/core/models/insights/insight_evidence.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insights_feed.dart';
+import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:provider/provider.dart';
+
+class MockInsightsNotifier extends Mock implements InsightsNotifier {}
+
+class MockProfileNotifier extends Mock implements ProfileNotifier {}
 
 void main() {
   Widget host(Widget child) => MaterialApp(
@@ -78,10 +87,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Your week.\nYour score.\nYour recap.'), findsOneWidget);
-    expect(find.text('Keep logging meals and symptoms this week. Your completed Sunday–Saturday recap will appear here once the week ends.'), findsOneWidget);
+    expect(find.text('Keep logging meals and symptoms this week. Your Sunday–Saturday recap will appear here on Saturday.'), findsOneWidget);
     expect(find.text('Your weekly recap gets clearer over time'), findsOneWidget);
     expect(find.text('Scan food'), findsNothing);
     expect(find.text('Track symptoms'), findsNothing);
+  });
+
+  test('makes the current Sunday–Saturday recap available on Saturday', () {
+    final saturday = DateTime(2026, 10, 10, 12);
+    final recap = WeeklyRecap(
+      foodsLogged: 2,
+      periodFrom: DateTime(2026, 10, 4),
+      periodTo: DateTime(2026, 10, 10, 23, 59, 59),
+    );
+
+    expect(isWeeklyRecapAvailable(recap, at: saturday), isTrue);
+    expect(isWeeklyRecapAvailable(recap, at: DateTime(2026, 10, 9, 12)), isFalse);
   });
 
   testWidgets('labels a single current score as a baseline', (tester) async {
@@ -100,6 +121,23 @@ void main() {
 
     expect(find.text('BASELINE SCORE'), findsOneWidget);
     expect(find.text('Starting baseline'), findsOneWidget);
+  });
+
+  testWidgets('current insight score falls back to the profile score while its record stream loads', (tester) async {
+    final insight = AIInsight(gutScore: 70, updatedAt: DateTime.now());
+    final insights = MockInsightsNotifier();
+    final profile = MockProfileNotifier();
+    when(() => insights.latestScoreRecord).thenReturn(null);
+    when(() => profile.gutScore).thenReturn(74);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [ChangeNotifierProvider<InsightsNotifier>.value(value: insights), ChangeNotifierProvider<ProfileNotifier>.value(value: profile)],
+        child: MaterialApp(home: Builder(builder: (context) => Text('${WhyScoreSheet.resolveScore(context, insight)}'))),
+      ),
+    );
+
+    expect(find.text('74'), findsOneWidget);
   });
 
   testWidgets('uses neutral copy and styling when no trigger exists', (tester) async {
@@ -141,7 +179,7 @@ void main() {
     await tester.tap(find.text('Food Impact'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Your foods.\nYour impacts.\nYour insights.'), findsOneWidget);
+    expect(find.text('Your food.\nYour gut.\nYour impact.'), findsOneWidget);
     expect(find.text('Keep scanning foods and logging meals and symptoms to understand how they affect your gut.'), findsOneWidget);
     expect(find.text('Food impacts get clearer over time'), findsOneWidget);
     expect(find.text('Scan food'), findsNothing);

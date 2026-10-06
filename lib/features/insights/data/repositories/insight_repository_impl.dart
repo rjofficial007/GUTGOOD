@@ -215,7 +215,7 @@ class InsightRepositoryImpl implements InsightRepository {
         final response = await _aiService.generateContent(
           prompt: attempt == 0
               ? prompt
-              : '$prompt\nCORRECTION: The previous response was an empty or insufficient baseline. Eligibility is already met. Return ready with a concrete food and symptom summary and personalized nextSteps. Do not fabricate patterns.',
+              : '$prompt\nCORRECTION: The previous response was incomplete. Eligibility is already met. Return the COMPLETE ready insight with a concrete summary and nextSteps. When a repeated negative food candidate exists, foodSwaps MUST contain at least one swap with its exact full trigger as source and at least four DISTINCT alternatives. Each alternative needs foodId, name, reason, a dynamic category derived from that alternative’s actual food or meal type (do not use a fixed category list), 1–3 benefitTags, exactly 3 grounded structuredBenefits, whyBetterOption, and nutrition. Give conservative typical single-serving nutrition estimates for recognizable complete meals; use null only when an individual value cannot be estimated reliably. The app labels these as estimates. Use null for unknown images. Respect user sensitivities, describe practical differences, and do not fabricate personal patterns or claim proven symptom relief.',
           promptVersion: AiVersions.insightPromptVersion,
         );
         final jsonStr = ModelUtils.extractJson(response);
@@ -242,9 +242,10 @@ class InsightRepositoryImpl implements InsightRepository {
           accepted = validation.data;
           break;
         }
+        AppLogger.warning('InsightRepo: incomplete insight response; attempt=${attempt + 1}/2');
       }
       if (accepted == null) {
-        throw const FormatException('AI returned an empty baseline instead of a personalized insight');
+        throw const FormatException('AI returned an incomplete insight: required food swaps or personalized content are missing');
       }
       final decoded = accepted;
       final rawGutScore = decoded['gutScore'];
@@ -408,10 +409,18 @@ Object? _tryDecodeJson(String value) {
   }
 }
 
-/// Reject empty baseline responses before they reach the cache or persistence.
+/// Reject incomplete normalized responses before they reach cache or persistence.
 bool isUsableInsightResponse(Map<String, dynamic> data) {
   final recap = data['weeklyRecap'];
   if (recap is Map && recap['foodsLogged'] == 0) return false;
+  final patterns = data['detectedPatterns'];
+  final requiresSwaps =
+      patterns is List &&
+      patterns.whereType<Map>().any(
+        (pattern) => pattern['impactDirection'] == 'negative' && pattern['domain'] != BodyPattern.typeSleep && pattern['frequency'] is num && (pattern['frequency'] as num) >= 2,
+      );
+  final swaps = data['foodSwaps'];
+  if (requiresSwaps && (swaps is! List || swaps.isEmpty)) return false;
   final top = data['topInsight'];
   // `status` is application-owned metadata and is stamped after this
   // eligibility check. Older/model responses may omit it; an explicit

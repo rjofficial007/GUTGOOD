@@ -19,6 +19,7 @@ import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/pattern_style.dart';
 import 'package:gutgood/features/insights/presentation/widgets/gut_score_card.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 

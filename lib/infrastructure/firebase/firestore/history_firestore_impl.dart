@@ -3,13 +3,18 @@ part of 'history_firestore_service.dart';
 /// Firestore-backed history persistence implementation.
 
 class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
-  HistoryFirestoreServiceImpl({required FirebaseAuth auth, required FirebaseFirestore db, required FoodImageService foodImages, GutScoreFirestoreService? gutScoreService}) : _auth = auth, _db = db, _foodImages = foodImages, _injectedGutScoreService = gutScoreService;
+  HistoryFirestoreServiceImpl({required FirebaseAuth auth, required FirebaseFirestore db, required FoodImageService foodImages, GutScoreFirestoreService? gutScoreService})
+    : _auth = auth,
+      _db = db,
+      _foodImages = foodImages,
+      _injectedGutScoreService = gutScoreService;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
   final FoodImageService _foodImages;
   final GutScoreFirestoreService? _injectedGutScoreService;
   GutScoreFirestoreService? _legacyGutScoreService;
+  Future<void> _scoreRefresh = Future<void>.value();
 
   // Keep the old constructor contract usable for compatibility callers while
   // allowing the composition root to inject the existing abstraction.
@@ -53,12 +58,12 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
 
       await doc.collection('scan_history').doc(finalScanId).set(data, SetOptions(merge: true));
       AppLogger.firestore('Saved scan history doc: $finalScanId');
+      await refreshGutScore();
       // §E: link the user photo to this scan doc (no-op for OFF catalog
       // images and legacy timestamp uploads, which carry no hash).
       final hash = bestImageUrl == null ? null : imageHashFromFoodUrl(bestImageUrl);
       if (hash != null) await _foodImages.addLink(hash: hash, kind: FoodImageLinks.kindScan, id: finalScanId);
 
-      await _updateGutScoreRealTime();
       return true;
     } catch (e) {
       AppLogger.firestore('Critical error saving to scan history', error: e);
@@ -66,57 +71,37 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     }
   }
 
-  Future<void> _updateGutScoreRealTime() async {
-    try {
-      final uid = _uid;
-      if (uid == null) return;
-
-      final now = DateTime.now();
-      final thirtyDaysAgo = now.subtract(const Duration(days: 30));
-
-      final scans = await getRecentScans(since: thirtyDaysAgo);
-      final meals = await getRecentMealLogs(since: thirtyDaysAgo);
-      final symptoms = await getRecentSymptomLogs(since: thirtyDaysAgo);
-
-      const calculator = GutScoreCalculatorService();
-      final hasScore = calculator.hasScoreData(scans);
-      final avgScanScore = calculator.calculateAvgScanScore(scans);
-      final weeklyTrend = List<int>.from(calculator.calculateWeeklyTrend(scans: scans, symptoms: symptoms, meals: meals, endDate: now));
-      final displayScore = hasScore ? avgScanScore : 0;
-
-      final todayIndex = now.weekday % 7;
-      if (todayIndex >= 0 && todayIndex < weeklyTrend.length) {
-        weeklyTrend[todayIndex] = displayScore;
-      }
-
-      final startLocalDay = GutScoreCalculatorService.startOfLocalDay(now);
-      final sunday = startLocalDay.subtract(Duration(days: startLocalDay.weekday % 7));
-      final saturday = sunday.add(const Duration(days: 6));
-
-      int isoWeekOf(DateTime date) {
-        final local = date.toLocal();
-        final dayOfYear = DateTime(local.year, local.month, local.day).difference(DateTime(local.year)).inDays + 1;
-        return ((dayOfYear - local.weekday + 10) / 7).floor().clamp(1, 53);
-      }
-
-      final record = GutScoreRecord(
-        id: 'weekly_${now.year}_W${isoWeekOf(now)}',
-        uid: uid,
-        type: 'weekly',
-        scansCount: scans.length,
-        mealsCount: meals.length,
-        symptomsCount: symptoms.length,
-        dailyScores: weeklyTrend,
-        periodFrom: sunday.toUtc(),
-        periodTo: saturday.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1)).toUtc(),
-        createdAt: now.toUtc(),
-      );
-
-      await _gutScoreService.saveGutScore(record);
-      AppLogger.firestore('HistoryFirestoreService: Real-time gut score updated ($displayScore) for both collections.');
-    } catch (e) {
-      AppLogger.firestore('Error updating real-time gut score', error: e);
-    }
+  @override
+  Future<void> refreshGutScore() {
+    final uid = _uid;
+    // ponytail: serialize refreshes within this service instance; timestamp
+    // checks in saveGutScore guard writes from other instances/devices.
+    _scoreRefresh = _scoreRefresh
+        .then((_) async {
+          if (uid == null || uid != _uid) return;
+          final userDoc = _db.collection('user_profiles').doc(uid);
+          final now = DateTime.now();
+          final since = DateTimeUtils.toTimestamp(GutScoreCalculatorService.startOfLocalWeek(now));
+          // Read directly so a failed query cannot masquerade as an empty week
+          // and erase a valid score. Both queries fail before any score write.
+          // ponytail: reread this week's logs per refresh; use daily aggregates
+          // if high journal volumes make these bounded reads too costly.
+          final snapshots = await Future.wait([
+            userDoc.collection('scan_history').where('createdAt', isGreaterThanOrEqualTo: since).get(),
+            userDoc.collection('journal_logs').where('createdAt', isGreaterThanOrEqualTo: since).get(),
+          ]);
+          if (uid != _uid) return;
+          final scans = snapshots[0].docs.map((doc) => ScanResult.fromMap({...doc.data(), 'id': doc.id})).toList();
+          final journal = snapshots[1].docs;
+          final meals = journal.where((doc) => doc.data()['type'] == 'meal').map((doc) => MealLog.fromMap({...doc.data(), 'id': doc.id})).toList();
+          final symptoms = journal.where((doc) => doc.data()['type'] == 'symptom').map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
+          final record = const GutScoreCalculatorService().calculateWeeklyRecord(uid: uid, scans: scans, meals: meals, symptoms: symptoms, asOf: now);
+          await _gutScoreService.saveGutScore(record);
+        })
+        .catchError((Object error) {
+          AppLogger.firestore('Error refreshing gut score; keeping the previous score', error: error);
+        });
+    return _scoreRefresh;
   }
 
   @override
@@ -424,6 +409,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         'loggedAt': FieldValue.serverTimestamp(),
       };
       await docRef.set(data, SetOptions(merge: true));
+      await refreshGutScore();
       // §E: link the meal photo (the turn's image, via photoUrl).
       final hash = log.photoUrl == null ? null : imageHashFromFoodUrl(log.photoUrl!);
       if (hash != null) await _foodImages.addLink(hash: hash, kind: FoodImageLinks.kindMeal, id: docRef.id);
@@ -468,11 +454,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   /// insight correlation engine. This is the persistence-boundary fallback for
   /// manually entered symptoms that do not carry an explicit meal reference.
   Future<String?> _nearestMealJournalEntryId(DateTime symptomTime) async {
-    final meals = await getRecentMealLogs(
-      limit: 50,
-      since: symptomTime.subtract(journalSymptomMealLinkWindow),
-      before: symptomTime.add(const Duration(seconds: 1)),
-    );
+    final meals = await getRecentMealLogs(limit: 50, since: symptomTime.subtract(journalSymptomMealLinkWindow), before: symptomTime.add(const Duration(seconds: 1)));
     return nearestMealJournalEntryId(symptomTime: symptomTime, meals: meals);
   }
 
@@ -498,6 +480,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         'loggedAt': FieldValue.serverTimestamp(),
       };
       await docRef.set(data, SetOptions(merge: true));
+      await refreshGutScore();
       return docRef.id;
     } catch (e) {
       AppLogger.firestore('Error logging symptom to journal_logs', error: e);
@@ -671,6 +654,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       }
 
       await batch.commit();
+      await refreshGutScore();
       AppLogger.firestore('Deleted journal logs associated with chatMessageId: $chatMessageId');
     } catch (e) {
       AppLogger.firestore('Error deleting journal logs for message', error: e);

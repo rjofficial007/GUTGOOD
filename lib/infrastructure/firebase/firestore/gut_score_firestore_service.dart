@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/models/insights/gut_score_record.dart';
+import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class GutScoreFirestoreService {
@@ -11,18 +12,14 @@ abstract class GutScoreFirestoreService {
 }
 
 class GutScoreFirestoreServiceImpl implements GutScoreFirestoreService {
-  GutScoreFirestoreServiceImpl({
-    required FirebaseAuth auth,
-    required FirebaseFirestore db,
-  })  : _auth = auth,
-        _db = db;
+  GutScoreFirestoreServiceImpl({required FirebaseAuth auth, required FirebaseFirestore db}) : _auth = auth, _db = db;
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
 
   String? get _uid => _auth.currentUser?.uid;
 
-  DocumentReference? get _userDoc {
+  DocumentReference<Map<String, dynamic>>? get _userDoc {
     final uid = _uid;
     if (uid == null) return null;
     return _db.collection('user_profiles').doc(uid);
@@ -33,21 +30,37 @@ class GutScoreFirestoreServiceImpl implements GutScoreFirestoreService {
     try {
       final userDoc = _userDoc;
       if (userDoc == null) return;
+      if (record.uid != _uid) {
+        throw StateError('Gut score belongs to a different user');
+      }
 
       final docId = record.id.isNotEmpty ? record.id : 'score_${record.createdAt.millisecondsSinceEpoch}';
       final scoreRef = userDoc.collection('gut_scores').doc(docId);
 
-      await scoreRef.set(record.toMap(), SetOptions(merge: true));
+      // Publish the record and its profile mirror together. An earlier
+      // calculation finishing late must not replace a newer score.
+      // ponytail: freshness uses device calculation timestamps; server-owned
+      // input revisions are the upgrade path for clocks skewed across devices.
+      await _db.runTransaction<void>((transaction) async {
+        final profile = await transaction.get(userDoc);
+        final lastCalculation = DateTimeUtils.tryParse(profile.data()?['lastScoreCalculationAt']);
+        if (lastCalculation != null && record.createdAt.isBefore(lastCalculation)) {
+          return;
+        }
+        transaction
+          ..set(scoreRef, record.toMap())
+          ..set(userDoc, {
+            'gutScore': record.gutScore,
+            'hasGutScore': record.hasScore,
+            'lastScoreCalculationAt': DateTimeUtils.toTimestamp(record.createdAt),
+            'lastScoreUpdate': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+      });
 
-      // Mirror aggregate gutScore onto user_profiles/{uid} document
-      await userDoc.set({
-        'gutScore': record.gutScore,
-        'lastScoreUpdate': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      AppLogger.firestore('Saved gut score ${record.gutScore} to gut_scores/$docId');
+      AppLogger.firestore('Processed gut score ${record.gutScore} for gut_scores/$docId (older calculations ignored)');
     } catch (e) {
       AppLogger.firestore('Error saving gut score record', error: e);
+      rethrow;
     }
   }
 
@@ -57,11 +70,7 @@ class GutScoreFirestoreServiceImpl implements GutScoreFirestoreService {
       final userDoc = _userDoc;
       if (userDoc == null) return null;
 
-      final snap = await userDoc
-          .collection('gut_scores')
-          .orderBy('createdAt', descending: true)
-          .limit(1)
-          .get();
+      final snap = await userDoc.collection('gut_scores').orderBy('createdAt', descending: true).limit(1).get();
 
       if (snap.docs.isEmpty) return null;
       final doc = snap.docs.first;
@@ -77,12 +86,7 @@ class GutScoreFirestoreServiceImpl implements GutScoreFirestoreService {
     final userDoc = _userDoc;
     if (userDoc == null) return Stream.value(null);
 
-    return userDoc
-        .collection('gut_scores')
-        .orderBy('createdAt', descending: true)
-        .limit(1)
-        .snapshots()
-        .map((snap) {
+    return userDoc.collection('gut_scores').orderBy('createdAt', descending: true).limit(1).snapshots().map((snap) {
       if (snap.docs.isEmpty) return null;
       final doc = snap.docs.first;
       return GutScoreRecord.fromMap(doc.data(), docId: doc.id);
@@ -95,16 +99,9 @@ class GutScoreFirestoreServiceImpl implements GutScoreFirestoreService {
       final userDoc = _userDoc;
       if (userDoc == null) return [];
 
-      final snap = await userDoc
-          .collection('gut_scores')
-          .where('type', isEqualTo: 'weekly')
-          .orderBy('createdAt', descending: true)
-          .limit(limit)
-          .get();
+      final snap = await userDoc.collection('gut_scores').where('type', isEqualTo: 'weekly').orderBy('createdAt', descending: true).limit(limit).get();
 
-      return snap.docs
-          .map((doc) => GutScoreRecord.fromMap(doc.data(), docId: doc.id))
-          .toList();
+      return snap.docs.map((doc) => GutScoreRecord.fromMap(doc.data(), docId: doc.id)).toList();
     } catch (e) {
       AppLogger.firestore('Error getting weekly scores', error: e);
       return [];

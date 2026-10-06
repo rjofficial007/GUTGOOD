@@ -152,9 +152,10 @@ class PatternCardStyle {
 }
 
 class PatternCard extends StatelessWidget {
-  const PatternCard({super.key, required this.pattern});
+  const PatternCard({super.key, required this.pattern, this.interactive = true});
 
   final BodyPattern pattern;
+  final bool interactive;
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +170,7 @@ class PatternCard extends StatelessWidget {
     final backgroundFoodName = pattern.involvedFoods.isNotEmpty ? pattern.involvedFoods.first : trigger;
 
     return Semantics(
-      button: true,
+      button: interactive,
       label: '${style.label} pattern. $trigger may be linked to $reaction.',
       child: Container(
         width: double.infinity,
@@ -182,7 +183,7 @@ class PatternCard extends StatelessWidget {
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
-            onTap: () => context.push(AppRoutes.patternDetail, extra: pattern),
+            onTap: interactive ? () => context.push(AppRoutes.patternDetail, extra: pattern) : null,
             borderRadius: BorderRadius.circular(20.w),
             child: Stack(
               children: [
@@ -257,7 +258,7 @@ class PatternCard extends StatelessWidget {
                               style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.86)),
                             ),
                             Gap.h12,
-                            Row(
+                            if (interactive) Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(

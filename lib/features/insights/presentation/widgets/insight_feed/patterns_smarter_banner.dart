@@ -18,7 +18,7 @@ class _InsightsLearningBannerCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(20.w),
+        borderRadius: BorderRadius.circular(10.w),
         border: Border.all(color: foreground),
       ),
       clipBehavior: Clip.antiAlias,
@@ -28,7 +28,7 @@ class _InsightsLearningBannerCard extends StatelessWidget {
           children: [
             Container(
               padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(color: foreground, borderRadius: BorderRadius.circular(12.w)),
+              decoration: BoxDecoration(color: foreground, borderRadius: BorderRadius.circular(8.w)),
               child: Icon(LucideIcons.barChart2, size: 16.w, color: inverse),
             ),
             Gap.w10,
@@ -59,10 +59,8 @@ class _PatternsSmarterBannerCard extends StatelessWidget {
   const _PatternsSmarterBannerCard();
 
   @override
-  Widget build(BuildContext context) => const _InsightsLearningBannerCard(
-    title: 'Patterns get smarter over time',
-    description: 'The more you log, the more personalized your insights become. Keep tracking to unlock deeper insights!',
-  );
+  Widget build(BuildContext context) =>
+      const _InsightsLearningBannerCard(title: 'Patterns get smarter over time', description: 'The more you log, the more personalized your insights become. Keep tracking to unlock deeper insights!');
 }
 
 // =============================================================================

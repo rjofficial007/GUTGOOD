@@ -55,11 +55,15 @@ class GenerateInsightUseCase {
 
   Future<void> execute({bool force = false}) async {
     final runStartedAt = DateTime.now();
+    final nowLocal = runStartedAt;
+    final isSaturday = nowLocal.weekday == DateTime.saturday;
     final stopwatch = Stopwatch()..start();
     AppLogger.insights('========== INSIGHT GENERATION START ==========');
     AppLogger.insights('Device time: $runStartedAt (${runStartedAt.timeZoneName}, UTC${runStartedAt.timeZoneOffset}); forced: $force');
 
-    final lastRunStr = _prefs.getString(StorageKeys.lastInsightRun);
+    final profile = await _authFirestoreService.getUserMetadata();
+    final lastRunKey = profile == null ? StorageKeys.lastInsightRun : '${StorageKeys.lastInsightRun}_${profile.uid}';
+    final lastRunStr = _prefs.getString(lastRunKey);
     DateTime lastRun;
 
     if (lastRunStr != null) {
@@ -70,13 +74,12 @@ class GenerateInsightUseCase {
       AppLogger.insights('No local lastRun found. Fallback to Firestore: $lastRun');
     }
 
-    final nowLocal = runStartedAt;
     final lastRunLocal = lastRun.toLocal();
     final isSameDay = lastRunLocal.year == nowLocal.year && lastRunLocal.month == nowLocal.month && lastRunLocal.day == nowLocal.day;
     final nowUtc = nowLocal.toUtc();
     AppLogger.insights('Daily guard: lastRunLocal=$lastRunLocal, deviceToday=${DateTime(nowLocal.year, nowLocal.month, nowLocal.day)}, sameLocalDay=$isSameDay, force=$force');
 
-    if (isSameDay && !force) {
+    if (isSameDay && !force && !isSaturday) {
       AppLogger.insights('SKIP: insight already generated on the device-local day; elapsed=${stopwatch.elapsedMilliseconds}ms');
       return;
     }
@@ -84,7 +87,6 @@ class GenerateInsightUseCase {
       AppLogger.insights('GenerateInsightUseCase: manual refresh bypassed the daily generation guard');
     }
 
-    final profile = await _authFirestoreService.getUserMetadata();
     // Client-owned cadence: honor the per-user disable toggle here (the
     // retired server pipeline used to enforce it).
     if (profile?.insightsDisabled ?? false) {
@@ -123,45 +125,66 @@ class GenerateInsightUseCase {
       'Loaded inputs: meals=${allMeals.length} (future excluded=${fetchedMeals.length - allMeals.length}), symptoms=${allSymptoms.length} (future excluded=${fetchedSymptoms.length - allSymptoms.length}), scans=${allScans.length} (future excluded=${fetchedScans.length - allScans.length}), insightHistory=${history.length}, patterns=${(dataStreams[4] as List<BodyPattern>).length}, chatMessages=${allChat.length} (future excluded=${fetchedChat.length - allChat.length}); 30dSince=$thirtyDaysAgo',
     );
 
-    // Weekly Recap is a completed calendar-week artifact, not a rolling
-    // partial snapshot. Build it before the daily AI threshold so opening the
-    // app on Sunday can reveal the week that just ended even when the user has
-    // not logged anything today.
+    // Build the Sunday–Saturday recap on Saturday, the week's final day. On
+    // Sunday through Friday, keep showing the last completed week's recap.
     final endLocal = nowLocal;
-    final currentWeekStart = GutScoreCalculatorService.startOfLocalDay(endLocal).subtract(Duration(days: endLocal.weekday % 7));
-    final previousWeekStart = currentWeekStart.subtract(const Duration(days: 7));
-    final previousWeekEnd = currentWeekStart.subtract(const Duration(microseconds: 1));
+    final currentWeekStart = GutScoreCalculatorService.startOfLocalWeek(endLocal);
+    final recapWeekStart = isSaturday ? currentWeekStart : DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day - 7);
+    final recapWeekEnd = isSaturday ? nowLocal : currentWeekStart.subtract(const Duration(microseconds: 1));
+    final recapWeekEndExclusive = isSaturday ? nowLocal.add(const Duration(microseconds: 1)) : currentWeekStart;
 
     final completedWeekMeals = allMeals.where((meal) {
       final eventTime = meal.eventTime.toLocal();
-      return !eventTime.isBefore(previousWeekStart) && eventTime.isBefore(currentWeekStart);
+      return !eventTime.isBefore(recapWeekStart) && eventTime.isBefore(recapWeekEndExclusive);
     }).toList();
     final completedWeekSymptoms = allSymptoms.where((symptom) {
       final eventTime = symptom.eventTime.toLocal();
-      return !eventTime.isBefore(previousWeekStart) && eventTime.isBefore(currentWeekStart);
+      return !eventTime.isBefore(recapWeekStart) && eventTime.isBefore(recapWeekEndExclusive);
     }).toList();
     final completedWeekScans = allScans.where((scan) {
       final createdAt = scan.createdAt.toLocal();
-      return !createdAt.isBefore(previousWeekStart) && createdAt.isBefore(currentWeekStart);
+      return !createdAt.isBefore(recapWeekStart) && createdAt.isBefore(recapWeekEndExclusive);
     }).toList();
-    final completedWeekTrend = List<int>.from(
-      _gutScoreCalculatorService.calculateWeeklyTrend(
-        scans: allScans,
-        symptoms: allSymptoms,
-        meals: allMeals,
-        endDate: previousWeekEnd,
-      ),
+    final completedWeekRecord = _gutScoreCalculatorService.calculateWeeklyRecord(
+      uid: profile?.uid ?? '',
+      scans: allScans,
+      symptoms: allSymptoms,
+      meals: allMeals,
+      asOf: recapWeekEnd,
+      recordedThrough: nowLocal,
     );
     final completedWeekRecap = _gutScoreCalculatorService.calculateWeeklyRecap(
       recentScans: completedWeekScans,
       recentSymptoms: completedWeekSymptoms,
       recentMeals: completedWeekMeals,
-      weeklyTrend: completedWeekTrend,
-      exactScore: _gutScoreCalculatorService.calculateAvgScanScore(completedWeekScans),
-      endDate: previousWeekEnd,
-      periodFrom: previousWeekStart,
-      periodTo: previousWeekEnd,
+      weeklyTrend: completedWeekRecord.dailyScores,
+      scoredDayIndices: completedWeekRecord.scoredDayIndices,
+      periodFrom: recapWeekStart,
+      periodTo: DateTime(recapWeekStart.year, recapWeekStart.month, recapWeekStart.day + 7).subtract(const Duration(microseconds: 1)),
     );
+
+    // Journal persistence owns current scores. AI generation only snapshots
+    // this calculation and must never overwrite a newer journal refresh.
+    final scoreRecord = _gutScoreCalculatorService.calculateWeeklyRecord(uid: profile?.uid ?? '', scans: allScans, symptoms: allSymptoms, meals: allMeals, asOf: endLocal);
+
+    // Persist the deterministic recap before the daily AI threshold/network
+    // path. Otherwise weekly logs without an AI-ready insight have no data to
+    // render in the Weekly Recap tab.
+    final latestInsight = await _insightRepository.getLatestInsight();
+    final hasWeeklyEvidence = (completedWeekRecap.foodsLogged ?? 0) > 0 || completedWeekRecap.scoredDayCount > 0;
+    final recapSnapshot = latestInsight != null
+        ? (latestInsight.weeklyRecap == completedWeekRecap ? null : latestInsight.copyWith(weeklyRecap: completedWeekRecap, updatedAt: nowLocal))
+        : hasWeeklyEvidence
+        ? AIInsight(uid: profile?.uid, gutScore: 0, hasGutScore: false, weeklyRecap: completedWeekRecap, type: 'Weekly Recap', updatedAt: nowLocal, origin: AIInsight.originClient)
+        : null;
+    if (recapSnapshot != null) {
+      if ((await _authFirestoreService.getUserMetadata())?.uid != profile?.uid) return;
+      await _insightRepository.saveInsight(recapSnapshot);
+    }
+
+    // Saturday journal updates refresh the recap without rerunning the
+    // once-daily AI insight generation.
+    if (isSaturday && isSameDay && !force) return;
 
     // Check if today's logs meet the exact daily threshold matching InsightBentoLearning:
     final now = nowLocal;
@@ -185,14 +208,8 @@ class GenerateInsightUseCase {
     if (!hasBaselineLogs) {
       AppLogger.insights('SKIP: daily evidence threshold not met; elapsed=${stopwatch.elapsedMilliseconds}ms');
 
-      // Keep the completed-week recap current without bypassing the existing
-      // daily AI threshold or sending a misleading "new insight" notification.
-      final latestInsight = await _insightRepository.getLatestInsight();
-      final storedPeriodTo = latestInsight?.weeklyRecap?.periodTo;
-      final recapPeriodChanged = storedPeriodTo == null || !storedPeriodTo.isAtSameMomentAs(completedWeekRecap.periodTo!);
-      if (latestInsight != null && recapPeriodChanged) {
-        await _insightRepository.saveInsight(latestInsight.copyWith(weeklyRecap: completedWeekRecap));
-      }
+      // The deterministic recap was saved above without bypassing this AI
+      // threshold or sending a misleading "new insight" notification.
       return;
     }
 
@@ -234,7 +251,13 @@ class GenerateInsightUseCase {
       'lastRunLocal': lastRunLocal.toIso8601String(),
       'dailyThreshold': {'meals': todayMeals, 'standaloneScans': todayStandaloneScans.length, 'uniqueFoodEvents': todayFood, 'symptoms': todaySymptoms},
       'profileContext': {'goals': userGoals, 'sensitivities': userSensitivities, 'lifestyle': userLifestyle, 'cyclePhase': cyclePhase, 'chatSummary': profile?.chatSummary},
-      'evidenceWindow': {'from': thirtyDaysAgo.toIso8601String(), 'recentFrom': sevenDaysAgo.toIso8601String(), 'mealCount': allMeals.length, 'symptomCount': allSymptoms.length, 'scanCount': allScans.length},
+      'evidenceWindow': {
+        'from': thirtyDaysAgo.toIso8601String(),
+        'recentFrom': sevenDaysAgo.toIso8601String(),
+        'mealCount': allMeals.length,
+        'symptomCount': allSymptoms.length,
+        'scanCount': allScans.length,
+      },
       'modelInputs': {
         'recentJournalText': recentJournalText,
         'historicalJournalSummary': historicalJournalSummary,
@@ -261,47 +284,15 @@ class GenerateInsightUseCase {
     );
     AppLogger.data('INSIGHT GENERATION MODEL OUTPUT', insight.toMap());
 
-    // Deterministic gut score from the last 7 local days only.
-    // Do NOT fall back to 30-day scans — that inflated gutScore / avgScanScore
-    // and made dailyScores look "full" while mealsCount stayed at the 7-day window.
-    final weekScans = recentScans;
-    final weekSymptoms = recentSymptoms;
-    final weekMeals = recentMeals;
-    final hasWeekScore = _gutScoreCalculatorService.hasScoreData(weekScans);
-
+    final weekScans = allScans.where((scan) => scan.isLoggableProduct && !scan.createdAt.isBefore(currentWeekStart)).toList();
+    final latestRecord = await _gutScoreFirestoreService?.getLatestGutScore();
+    final currentRecord = latestRecord != null && latestRecord.uid == scoreRecord.uid && latestRecord.periodFrom.isAtSameMomentAs(scoreRecord.periodFrom) ? latestRecord : scoreRecord;
+    final hasWeekScore = currentRecord.hasScore;
     final avgScanScore = _gutScoreCalculatorService.calculateAvgScanScore(weekScans);
-    // Trend uses all loaded logs but buckets only the last 7 local days.
-    final weeklyTrend = List<int>.from(_gutScoreCalculatorService.calculateWeeklyTrend(scans: allScans, symptoms: allSymptoms, meals: allMeals, endDate: endLocal));
-    final displayScore = hasWeekScore ? avgScanScore : 0;
-
-    // Ensure today's slot in dailyScores matches the profile score (displayScore)
-    final todayIndex = endLocal.weekday % 7;
-    if (todayIndex >= 0 && todayIndex < weeklyTrend.length) {
-      weeklyTrend[todayIndex] = displayScore;
-    }
+    final weeklyTrend = currentRecord.dailyScores;
+    final displayScore = currentRecord.gutScore;
 
     final weeklyRecap = completedWeekRecap;
-
-    if (_gutScoreFirestoreService != null) {
-      final startLocalDay = GutScoreCalculatorService.startOfLocalDay(endLocal);
-      final sunday = startLocalDay.subtract(Duration(days: startLocalDay.weekday % 7));
-      final saturday = sunday.add(const Duration(days: 6));
-
-      final scoreRecord = GutScoreRecord(
-        id: 'weekly_${endLocal.year}_W${_isoWeekOf(endLocal)}',
-        uid: profile?.uid ?? '',
-        type: 'weekly',
-        scansCount: weekScans.length,
-        mealsCount: weekMeals.length,
-        symptomsCount: weekSymptoms.length,
-        dailyScores: weeklyTrend,
-        // Period starts from Sunday and ends on Saturday of the current week.
-        periodFrom: sunday.toUtc(),
-        periodTo: saturday.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1)).toUtc(),
-        createdAt: endLocal.toUtc(),
-      );
-      await _gutScoreFirestoreService.saveGutScore(scoreRecord);
-    }
 
     // P2-10 theme envelope (period/evidence/provenance/status) at the write edge.
     final standaloneScans = standaloneScanRecords(meals: allMeals, scans: allScans);
@@ -320,17 +311,19 @@ class GenerateInsightUseCase {
       weeklyTrend: weeklyTrend,
       weeklyRecap: weeklyRecap,
     );
-    // The score is calculated locally after the AI response. Use that same
-    // score for the displayed delta instead of a model/missing-score value.
+    // Snapshot the current deterministic score and derive the history delta
+    // from it so the model cannot supply a different headline number.
     final generatedAt = DateTime.now();
-    final finalizedInsight = stamped.copyWith(
-      updatedAt: generatedAt,
-      scoreDiff: lastScore != null && hasWeekScore ? _formatScoreDiff(displayScore - lastScore) : stamped.scoreDiff,
-    );
+    final finalizedInsight = stamped.copyWith(updatedAt: generatedAt, scoreDiff: lastScore != null && hasWeekScore ? _formatScoreDiff(displayScore - lastScore) : stamped.scoreDiff);
+
+    if ((await _authFirestoreService.getUserMetadata())?.uid != profile?.uid) {
+      AppLogger.insights('Cancelled insight save because the active user changed during generation');
+      return;
+    }
 
     // Save insight and notify user upon successful generation
     await _insightRepository.saveInsight(finalizedInsight);
-    await _prefs.setString(StorageKeys.lastInsightRun, DateTime.now().toUtc().toIso8601String());
+    await _prefs.setString(lastRunKey, DateTime.now().toUtc().toIso8601String());
     AppLogger.insights('Insight generated and saved; elapsed=${stopwatch.elapsedMilliseconds}ms, status=${finalizedInsight.status}, topInsightId=${finalizedInsight.topInsight?.id}');
 
     unawaited(
@@ -349,13 +342,6 @@ class GenerateInsightUseCase {
     unawaited(_notificationService.showInsightGeneratedNotification());
     AppLogger.insights('GenerateInsightUseCase: Insight generated and user notified successfully.');
   }
-}
-
-/// ISO-like week-of-year helper for stable weekly gut_scores doc ids.
-int _isoWeekOf(DateTime date) {
-  final local = date.toLocal();
-  final dayOfYear = DateTime(local.year, local.month, local.day).difference(DateTime(local.year)).inDays + 1;
-  return ((dayOfYear - local.weekday + 10) / 7).floor().clamp(1, 53);
 }
 
 String _formatScoreDiff(int diff) => diff >= 0 ? '+$diff' : '$diff';

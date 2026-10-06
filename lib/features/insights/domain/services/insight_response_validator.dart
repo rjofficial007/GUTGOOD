@@ -52,6 +52,10 @@ class InsightResponseValidator {
       _normalizeFoodImpactBalance(data, reasons);
       _normalizeTopHighlight(data, reasons, 'topHealing', candidates: qualifiedCandidates, positive: true);
       _normalizeTopHighlight(data, reasons, 'topTrigger', candidates: qualifiedCandidates, positive: false);
+      final negativePatterns = qualifiedCandidates.where((candidate) => _candidateSupportsDirection(candidate, false));
+      if (negativePatterns.isNotEmpty) {
+        data['triggerData'] = negativePatterns.map((candidate) => '${candidate.trigger}: ${candidate.reaction} in ${candidate.frequency} recent logs').join('; ');
+      }
       _normalizeTopFoodId(data, 'healing');
       _normalizeTopFoodId(data, 'triggers');
     }
@@ -132,8 +136,12 @@ class InsightResponseValidator {
   static bool _normalizeTopInsightToCandidate(Map<String, dynamic> data, List<String> reasons, List<BodyPattern> candidates) {
     final top = _asMap(data['topInsight']);
     if (top == null) return false;
-    final candidate = _matchingCandidate(top, candidates);
-    if (candidate == null) return false;
+    final candidate = _matchingCandidate(top, candidates) ?? candidates.first;
+    top['title'] = '${candidate.reaction} after ${candidate.trigger}';
+    top['type'] = 'pattern';
+    top['nextSteps'] = [
+      'Track how you feel after ${candidate.trigger}, and record when ${candidate.reaction.toLowerCase()} starts. These logs show an association; they do not identify an individual ingredient as the cause.',
+    ];
 
     top
       ..['domain'] = candidate.type
@@ -162,57 +170,21 @@ class InsightResponseValidator {
       return;
     }
 
-    if (raw is! List) return;
-    final normalized = <Map<String, dynamic>>[];
-    for (final item in raw) {
-      final pattern = _asMap(item);
-      if (pattern == null) continue;
-      final candidate = _matchingCandidate(pattern, candidates);
-      if (candidate == null) {
-        reasons.add('removed detected pattern without a matching qualified candidate');
-        continue;
-      }
-
-      // Candidate fields are produced by the deterministic pattern engine.
-      // Copy the evidence-bearing fields back over the model's free-form
-      // versions so it cannot invent timing, factors, or counts.
-      pattern
-        ..['type'] = candidate.type
-        ..['domain'] = candidate.type
-        ..['trigger'] = candidate.trigger
-        ..['reaction'] = candidate.reaction
-        ..['frequency'] = candidate.frequency
-        ..['involvedFoods'] = candidate.involvedFoods
-        ..['relatedFoodIds'] = candidate.relatedFoodIds
-        ..['totalSimilarMeals'] = candidate.totalSimilarMeals
-        ..['timeframeDays'] = candidate.timeframeDays
-        ..['evidenceRatio'] = candidate.evidenceRatio
-        ..['positiveCount'] = candidate.positiveCount
-        ..['negativeCount'] = candidate.negativeCount
-        ..['impactDirection'] = candidate.impactDirection
-        ..['commonFactors'] = candidate.commonFactors.map((factor) => factor.toMap()).toList()
-        ..['occurrences'] = candidate.occurrences.map((occurrence) => occurrence.toMap()).toList();
-      pattern['description'] = candidate.description;
-      pattern['recommendation'] = candidate.recommendation;
-      pattern['typicalTiming'] = candidate.typicalTiming;
-      pattern['typicalDelay'] = candidate.typicalDelay;
-
-      final frequency = candidate.frequency;
-      pattern['confidence'] = _candidateConfidence(candidate, frequency);
-      pattern['confidenceScore'] = frequency <= 1 ? 0.5 : _candidateConfidenceScore(candidate);
-      pattern['impactLevel'] = frequency <= 1 ? 'low' : _candidateImpactLevel(candidate);
-      if (frequency <= 1) {
-        pattern['commonFactors'] = <dynamic>[];
-        pattern['occurrences'] = <dynamic>[];
-        reasons.add('capped one-occurrence detected pattern confidence and impact');
-      }
-      normalized.add(pattern);
-    }
-    data['detectedPatterns'] = normalized;
+    // Evidence already exists locally. Never rely on the model to echo it.
+    data['detectedPatterns'] = [
+      for (final candidate in candidates)
+        {
+          ...candidate.toMap(),
+          'confidence': _candidateConfidence(candidate, candidate.frequency),
+          'confidenceScore': _candidateConfidenceScore(candidate),
+          'impactLevel': _candidateImpactLevel(candidate),
+          'impactDirection': _candidateSupportsDirection(candidate, true) ? 'positive' : 'negative',
+        },
+    ];
   }
 
   static void _normalizeHealing(Map<String, dynamic> data, List<String> reasons, List<BodyPattern> candidates, {required bool hasCandidates}) {
-    final healing = _asMap(data['healing']);
+    final healing = _asMap(data['healing']) ?? (hasCandidates ? <String, dynamic>{} : null);
     if (healing == null) {
       if (!hasCandidates) {
         data['healingFoods'] = <dynamic>[];
@@ -223,22 +195,21 @@ class InsightResponseValidator {
     }
 
     if (!hasCandidates) {
-      data['healing'] = {
-        'goal': healing['goal']?.toString() ?? '',
-        'trend': 'No repeated pattern yet',
-        'topFoodId': '',
-        'foods': <dynamic>[],
-      };
+      data['healing'] = {'goal': healing['goal']?.toString() ?? '', 'trend': 'No repeated pattern yet', 'topFoodId': '', 'foods': <dynamic>[]};
       data['healingFoods'] = <dynamic>[];
       reasons.add('removed healing foods without qualified candidates');
       return;
     }
 
-    final healingFoods = _normalizeSparseFoods(healing['foods'], reasons, candidates: candidates, positive: true);
+    var healingFoods = _normalizeSparseFoods(healing['foods'], reasons, candidates: candidates, positive: true);
+    if (healingFoods.isEmpty) healingFoods = _candidateFoods(candidates, positive: true);
     healing['foods'] = healingFoods;
+    if (healingFoods.isNotEmpty) healing['trend'] = 'Repeated association';
     if (healingFoods.isEmpty) {
       healing['topFoodId'] = '';
       healing['trend'] = 'No supported healing pattern yet';
+    } else if (!healingFoods.any((food) => (food as Map)['foodId'] == healing['topFoodId'])) {
+      healing['topFoodId'] = (healingFoods.first as Map)['foodId'];
     }
     data['healing'] = healing;
     // Keep the legacy top-level fields aligned with the validated nested block.
@@ -248,7 +219,7 @@ class InsightResponseValidator {
   }
 
   static void _normalizeTriggers(Map<String, dynamic> data, List<String> reasons, List<BodyPattern> candidates, {required bool hasCandidates}) {
-    final triggers = _asMap(data['triggers']);
+    final triggers = _asMap(data['triggers']) ?? (hasCandidates ? <String, dynamic>{} : null);
     if (triggers == null) {
       if (!hasCandidates) {
         data['triggerFoods'] = <dynamic>[];
@@ -259,12 +230,7 @@ class InsightResponseValidator {
     }
 
     if (!hasCandidates) {
-      data['triggers'] = {
-        'primarySymptom': '',
-        'trend': '',
-        'topFoodId': '',
-        'foods': <dynamic>[],
-      };
+      data['triggers'] = {'primarySymptom': '', 'trend': '', 'topFoodId': '', 'foods': <dynamic>[]};
       data['triggerFoods'] = <dynamic>[];
       reasons.add('removed trigger foods without qualified candidates');
       return;
@@ -272,23 +238,14 @@ class InsightResponseValidator {
 
     var triggerFoods = _normalizeSparseFoods(triggers['foods'], reasons, candidates: candidates, positive: false);
     if (triggerFoods.isEmpty) {
-      triggerFoods = [
-        for (final candidate in candidates.where((candidate) => _candidateSupportsDirection(candidate, false)))
-          {
-            'foodId': _canonicalFoodId(candidate.trigger),
-            'name': candidate.trigger,
-            'effect': candidate.reaction,
-            'impactDirection': 'negative',
-            'impactLevel': _candidateImpactLevel(candidate),
-            'frequencyCount': candidate.frequency,
-            'frequencyLabel': '${candidate.frequency} occurrences',
-            'confidence': _candidateConfidence(candidate, candidate.frequency),
-            'confidenceScore': _candidateConfidenceScore(candidate),
-          },
-      ];
+      triggerFoods = _candidateFoods(candidates, positive: false);
       if (triggerFoods.isNotEmpty) reasons.add('restored trigger foods from qualified negative patterns');
     }
     triggers['foods'] = triggerFoods;
+    if (triggerFoods.isNotEmpty) {
+      triggers['trend'] = 'Repeated association';
+      triggers['primarySymptom'] = candidates.firstWhere((candidate) => _candidateSupportsDirection(candidate, false)).type;
+    }
     if (triggerFoods.isEmpty) {
       triggers['topFoodId'] = '';
       triggers['trend'] = 'No supported trigger pattern yet';
@@ -301,6 +258,21 @@ class InsightResponseValidator {
     data['triggerTrend'] = triggers['trend']?.toString() ?? '';
     data['triggerFoods'] = triggerFoods;
   }
+
+  static List<dynamic> _candidateFoods(List<BodyPattern> candidates, {required bool positive}) => [
+    for (final candidate in candidates.where((candidate) => _candidateSupportsDirection(candidate, positive)))
+      {
+        'foodId': _canonicalFoodId(candidate.trigger),
+        'name': candidate.trigger,
+        'effect': candidate.reaction,
+        'impactDirection': positive ? 'positive' : 'negative',
+        'impactLevel': _candidateImpactLevel(candidate),
+        'frequencyCount': candidate.frequency,
+        'frequencyLabel': '${candidate.frequency} occurrences',
+        'confidence': _candidateConfidence(candidate, candidate.frequency),
+        'confidenceScore': _candidateConfidenceScore(candidate),
+      },
+  ];
 
   static List<dynamic> _normalizeSparseFoods(Object? value, List<String> reasons, {required List<BodyPattern> candidates, required bool positive}) {
     if (value is! List) return <dynamic>[];
@@ -325,7 +297,11 @@ class InsightResponseValidator {
       food['confidence'] = _candidateConfidence(candidate, frequency);
       food['confidenceScore'] = frequency <= 1 ? 0.5 : _candidateConfidenceScore(candidate);
       food['impactLevel'] = frequency <= 1 ? 'low' : _candidateImpactLevel(candidate);
-      food['impactDirection'] = positive == true ? 'positive' : positive == false ? 'negative' : candidate.impactDirection;
+      food['impactDirection'] = positive == true
+          ? 'positive'
+          : positive == false
+          ? 'negative'
+          : candidate.impactDirection;
       food['effect'] = candidate.reaction;
       food['observedEffect'] = candidate.reaction;
       food['bestTimeLabel'] = candidate.typicalTiming ?? '';
@@ -432,9 +408,10 @@ class InsightResponseValidator {
       }
     }
 
-    final valueDomain = _foodKey((value['domain'] ?? value['type'])?.toString() ?? '');
+    final valueDomain = _foodKey(value['domain']?.toString() ?? '');
     for (final candidate in candidates) {
       if (!_candidateSupportsDirection(candidate, positive)) continue;
+      if (valueDomain.isNotEmpty && valueDomain != _foodKey(candidate.type)) continue;
 
       final triggerKey = _foodKey(candidate.trigger);
       final involvedKeys = candidate.involvedFoods.map(_foodKey).where((key) => key.isNotEmpty).toSet();
@@ -450,11 +427,7 @@ class InsightResponseValidator {
         continue;
       }
 
-      final candidateKeys = <String>{
-        triggerKey,
-        ...involvedKeys,
-        ...candidate.relatedFoodIds.map(_foodKey),
-      }..removeWhere((key) => key.isEmpty);
+      final candidateKeys = <String>{triggerKey, ...involvedKeys, ...candidate.relatedFoodIds.map(_foodKey)}..removeWhere((key) => key.isEmpty);
       final sameFood = valueKeys.any((key) => candidateKeys.any((candidateKey) => key == candidateKey || key.contains(candidateKey) || candidateKey.contains(key)));
       if (sameFood || (valueKeys.isEmpty && valueDomain.isNotEmpty && valueDomain == _foodKey(candidate.type))) return candidate;
     }
@@ -468,8 +441,12 @@ class InsightResponseValidator {
     if (explicit == 'negative') return !positive;
 
     final reaction = '${candidate.reaction} ${candidate.description}'.toLowerCase();
-    if (RegExp(r'\b(bloat(?:ing)?|headache|pain|fatigue|sluggish|sleepy|nausea|negative|drop|low|hunger|hungry|discomfort|poor|interrupted)\b').hasMatch(reaction)) return !positive;
-    if (RegExp(r'\b(energ(y|ized)|refreshed|comfortable|comfort|positive|good|great|steady|balanced|satiet(y|ed)|satisfied|wellness|better)\b').hasMatch(reaction)) return positive;
+    if (RegExp(r'\b(bloat(?:ing)?|headache|pain|fatigue|sluggish|sleepy|nausea|negative|drop|low|hunger|hungry|discomfort|poor|interrupted)\b').hasMatch(reaction)) {
+      return !positive;
+    }
+    if (RegExp(r'\b(energ(y|ized|etic)|refreshed|comfortable|comfort|positive|good|great|steady|balanced|satiet(y|ed)|satisfied|wellness|better)\b').hasMatch(reaction)) {
+      return positive;
+    }
     return false;
   }
 
@@ -490,14 +467,57 @@ class InsightResponseValidator {
       final source = swap == null ? null : _asMap(swap['source']);
       if (swap == null || source == null) continue;
       final candidate = _matchingCandidate(source, candidates, positive: false);
-      if (candidate == null || candidate.frequency <= 1) {
+      if (candidate == null || candidate.frequency <= 1 || candidate.type == BodyPattern.typeSleep) {
         reasons.add('removed food swap without repeated negative evidence');
         continue;
       }
-      if (_candidateIsComposite(candidate)) {
-        source['name'] = candidate.trigger;
-        source['foodId'] = _canonicalFoodId(candidate.trigger);
+      final rawAlternatives = swap['alternatives'];
+      final alternatives = <Map<String, dynamic>>[];
+      final names = <String>{};
+      final ids = <String>{};
+      if (rawAlternatives is List) {
+        for (final item in rawAlternatives) {
+          final alternative = _asMap(item);
+          if (alternative == null ||
+              ['foodId', 'name', 'reason', 'category', 'whyBetterOption'].any((key) => alternative[key] is! String || (alternative[key] as String).trim().isEmpty)) {
+            continue;
+          }
+          final name = _foodKey(alternative['name'] as String);
+          final id = _foodKey(alternative['foodId'] as String);
+          final tags = alternative['benefitTags'];
+          final benefits = alternative['structuredBenefits'];
+          if (name == _foodKey(candidate.trigger) ||
+              name.isEmpty ||
+              id.isEmpty ||
+              names.contains(name) ||
+              ids.contains(id) ||
+              tags is! List ||
+              !tags.any((tag) => tag is String && tag.trim().isNotEmpty) ||
+              benefits is! List ||
+              !benefits.any(
+                (benefit) =>
+                    benefit is Map &&
+                    benefit['title'] is String &&
+                    (benefit['title'] as String).trim().isNotEmpty &&
+                    benefit['description'] is String &&
+                    (benefit['description'] as String).trim().isNotEmpty,
+              )) {
+            continue;
+          }
+          names.add(name);
+          ids.add(id);
+          alternatives.add(alternative);
+        }
       }
+      if (alternatives.length < 4) {
+        reasons.add('removed food swap with fewer than four complete distinct alternatives');
+        continue;
+      }
+      source['name'] = candidate.trigger;
+      source['foodId'] = _canonicalFoodId(candidate.trigger);
+      swap['source'] = source;
+      swap['alternatives'] = alternatives;
+      if (swap['id'] is! String || (swap['id'] as String).trim().isEmpty) swap['id'] = 'swap_${_canonicalFoodId(candidate.trigger)}';
 
       // Swap benefits compare the alternative with its source. Pattern
       // evidence describes the user's reaction, so matching benefit text
@@ -510,17 +530,18 @@ class InsightResponseValidator {
 
   static void _normalizeFoodImpacts(Map<String, dynamic> data, List<String> reasons, List<BodyPattern> candidates) {
     final rawImpacts = data['foodImpacts'];
-    if (rawImpacts is! List) {
-      data['foodImpacts'] = <dynamic>[];
-      return;
-    }
+    final suppliedImpacts = rawImpacts is List ? rawImpacts : <dynamic>[];
 
     final normalized = <Map<String, dynamic>>[];
-    for (final item in rawImpacts) {
+    for (final item in suppliedImpacts) {
       final impact = _asMap(item);
       if (impact == null) continue;
       final direction = (impact['impactDirection'] ?? impact['impactType'] ?? impact['type'] ?? '').toString().toLowerCase();
-      final positive = direction == 'positive' ? true : direction == 'negative' ? false : null;
+      final positive = direction == 'positive'
+          ? true
+          : direction == 'negative'
+          ? false
+          : null;
       final candidate = _matchingCandidate(impact, candidates, positive: positive);
       if (candidate == null) {
         reasons.add('removed food impact without a matching qualified candidate');
@@ -528,12 +549,16 @@ class InsightResponseValidator {
       }
 
       if (_candidateIsComposite(candidate)) impact['food'] = candidate.trigger;
-      final frequency = _integer(impact['frequencyCount']) ?? candidate.frequency;
+      final frequency = (_integer(impact['frequencyCount']) ?? candidate.frequency).clamp(1, candidate.frequency);
       impact['frequencyCount'] = frequency;
       impact['impactLevel'] = frequency <= 1 ? 'low' : _candidateImpactLevel(candidate);
       impact['confidence'] = frequency <= 1 ? 'low' : _candidateConfidence(candidate, frequency);
       impact['confidenceScore'] = frequency <= 1 ? 0.5 : _candidateConfidenceScore(candidate);
-      impact['impactDirection'] = positive == null ? candidate.impactDirection : positive ? 'positive' : 'negative';
+      impact['impactDirection'] = positive == null
+          ? candidate.impactDirection
+          : positive
+          ? 'positive'
+          : 'negative';
       impact['impactType'] = impact['impactDirection'];
       impact['effect'] = candidate.reaction;
       if (frequency <= 1) {
@@ -551,6 +576,22 @@ class InsightResponseValidator {
       }
       normalized.add(impact);
     }
+    for (final candidate in candidates) {
+      final positive = _candidateSupportsDirection(candidate, true);
+      final negative = _candidateSupportsDirection(candidate, false);
+      if ((!positive && !negative) || normalized.any((impact) => _foodKey(impact['food']?.toString() ?? '') == _foodKey(candidate.trigger))) continue;
+      normalized.add({
+        'food': candidate.trigger,
+        'effect': candidate.reaction,
+        'impactDirection': positive ? 'positive' : 'negative',
+        'impactType': positive ? 'positive' : 'negative',
+        'frequencyCount': candidate.frequency,
+        'confidence': _candidateConfidence(candidate, candidate.frequency),
+        'confidenceScore': _candidateConfidenceScore(candidate),
+        'impactLevel': _candidateImpactLevel(candidate),
+      });
+    }
+    if (normalized.isNotEmpty && suppliedImpacts.isEmpty) data['foodImpactBalance'] = {'periodLabel': 'Repeated patterns'};
     data['foodImpacts'] = normalized;
   }
 
@@ -607,25 +648,25 @@ class InsightResponseValidator {
     return percentages;
   }
 
-  static void _normalizeTopHighlight(
-    Map<String, dynamic> data,
-    List<String> reasons,
-    String field, {
-    required List<BodyPattern> candidates,
-    required bool positive,
-  }) {
-    final highlight = _asMap(data[field]);
-    if (highlight == null) return;
-    final candidate = _matchingCandidate(highlight, candidates, positive: positive);
+  static void _normalizeTopHighlight(Map<String, dynamic> data, List<String> reasons, String field, {required List<BodyPattern> candidates, required bool positive}) {
+    final existing = _asMap(data[field]);
+    final eligible = candidates.where((candidate) => _candidateSupportsDirection(candidate, positive)).toList(growable: false);
+    final candidate = (existing == null ? null : _matchingCandidate(existing, candidates, positive: positive)) ??
+        (eligible.isEmpty ? null : eligible.first);
     if (candidate == null) {
       data.remove(field);
-      reasons.add('removed $field without a matching qualified candidate');
+      if (existing != null) reasons.add('removed $field without a matching qualified candidate');
       return;
     }
+    final highlight = existing ?? <String, dynamic>{'emoji': ''};
     highlight['food'] = candidate.trigger;
     highlight['frequency'] = '${candidate.frequency}x';
     highlight['effects'] = candidate.reaction;
+    highlight['symptom'] = candidate.type;
+    highlight['timeframe'] = '${candidate.timeframeDays} days';
+    highlight['impact'] = candidate.description;
     data[field] = highlight;
+    if (existing == null) reasons.add('restored $field from a qualified pattern');
   }
 
   static void _normalizeTopFoodId(Map<String, dynamic> data, String sectionName) {
@@ -643,12 +684,7 @@ class InsightResponseValidator {
 
   static void _setEmptyBalance(Map<String, dynamic> data) {
     final previous = _asMap(data['foodImpactBalance']);
-    data['foodImpactBalance'] = {
-      'positivePercent': 0,
-      'neutralPercent': 0,
-      'negativePercent': 0,
-      'periodLabel': previous?['periodLabel']?.toString() ?? 'Last 4 weeks',
-    };
+    data['foodImpactBalance'] = {'positivePercent': 0, 'neutralPercent': 0, 'negativePercent': 0, 'periodLabel': previous?['periodLabel']?.toString() ?? 'Last 4 weeks'};
   }
 
   static Map<String, dynamic> _copyMap(Map<String, dynamic> source) {

@@ -4,11 +4,12 @@ part of 'insight_ui_kit.dart';
 
 /// `.chart` — the 7-day line trend with soft fill and an end dot.
 class InsightTrendChart extends StatelessWidget {
-  const InsightTrendChart({super.key, required this.values, this.height = 58, this.color, this.endDot = true});
+  const InsightTrendChart({super.key, required this.values, this.height = 58, this.color, this.endDot = true, this.scoredDayIndices});
   final List<double> values;
   final double height;
   final Color? color;
   final bool endDot;
+  final List<int>? scoredDayIndices;
 
   @override
   Widget build(BuildContext context) {
@@ -16,12 +17,13 @@ class InsightTrendChart extends StatelessWidget {
     // on the trend. Keep those positions so gaps remain visible in a weekly
     // series instead of drawing a misleading drop to zero.
     final plotted = [
-      for (final value in values)
-        if (value.isFinite && value > 0 && value <= 100) value else null,
+      for (var i = 0; i < values.length; i++)
+        if (values[i].isFinite && values[i] >= 0 && values[i] <= 100 && (scoredDayIndices?.contains(i) ?? (values[i] > 0))) values[i] else null,
     ];
     final valid = plotted.whereType<double>().toList();
     final t = context.insightTheme;
     return Semantics(
+      excludeSemantics: true,
       label: valid.isEmpty ? 'No recorded scores' : 'Gut scores out of 100, in recording order: ${valid.map((value) => value.round()).join(', ')}',
       child: SizedBox(
         height: height,
@@ -59,10 +61,7 @@ class _TrendPainter extends CustomPainter {
       canvas.drawLine(Offset(padding, y), Offset(size.width - padding, y), grid);
     }
 
-    Offset pointFor(int index, double value) => Offset(
-      values.length == 1 ? size.width / 2 : padding + width * index / (values.length - 1),
-      padding + height * (1 - value / 100),
-    );
+    Offset pointFor(int index, double value) => Offset(values.length == 1 ? size.width / 2 : padding + width * index / (values.length - 1), padding + height * (1 - value / 100));
 
     final points = [
       for (var i = 0; i < values.length; i++)
@@ -120,4 +119,3 @@ class _TrendPainter extends CustomPainter {
   @override
   bool shouldRepaint(_TrendPainter old) => old.color != color || old.gridColor != gridColor || old.endDot != endDot || !listEquals(old.values, values);
 }
-

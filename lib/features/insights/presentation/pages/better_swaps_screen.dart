@@ -65,9 +65,12 @@ class _BetterSwapsScreenState extends State<BetterSwapsScreen> {
               ? '$foodName (${matchingTrigger!.effect}) may place additional strain on your digestive system based on your meal logs.'
               : 'This is a general food alternative. Your logs do not yet show enough evidence to explain how the source food affects you.');
 
-    final dynamicCategories = widget.swap.alternatives.map((alt) => alt.category.trim()).where((c) => c.isNotEmpty).toSet().toList();
-
-    final categories = <String>['All Swaps', ...dynamicCategories];
+    final categoryLabels = <String, String>{};
+    for (final alternative in widget.swap.alternatives) {
+      final category = alternative.category.trim();
+      if (category.isNotEmpty) categoryLabels.putIfAbsent(category.toLowerCase(), () => category);
+    }
+    final categories = <String>['All Swaps', ...categoryLabels.values];
 
     if (!categories.contains(_selectedCategory)) {
       _selectedCategory = 'All Swaps';

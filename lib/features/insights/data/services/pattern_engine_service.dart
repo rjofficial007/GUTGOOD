@@ -77,26 +77,34 @@ class PatternEngineServiceImpl implements PatternEngineService {
         'excludedKeywordFallbackSymptoms': allSymptoms.length - symptoms.length,
         'correlationSymptoms': symptoms.length,
       },
-      'mealEvents': meals.map((meal) => {
-        'id': meal.journalEntryId ?? meal.firestoreId,
-        'items': meal.items,
-        'foodTags': meal.foodTags,
-        'createdAt': meal.createdAt.toIso8601String(),
-        'eventTime': meal.eventTime.toIso8601String(),
-        'occurredAtProvenance': meal.occurredAtProvenance,
-      }).toList(),
-      'symptomEvents': allSymptoms.map((symptom) => {
-        'id': symptom.journalEntryId ?? symptom.firestoreId,
-        'symptom': symptom.symptom,
-        'severity': symptom.severity,
-        'energyLevel': symptom.energyLevel,
-        'mood': symptom.mood,
-        'sleep': symptom.sleep,
-        'createdAt': symptom.createdAt.toIso8601String(),
-        'eventTime': symptom.eventTime.toIso8601String(),
-        'provenance': symptom.provenance,
-        'occurredAtProvenance': symptom.occurredAtProvenance,
-      }).toList(),
+      'mealEvents': meals
+          .map(
+            (meal) => {
+              'id': meal.journalEntryId ?? meal.firestoreId,
+              'items': meal.items,
+              'foodTags': meal.foodTags,
+              'createdAt': meal.createdAt.toIso8601String(),
+              'eventTime': meal.eventTime.toIso8601String(),
+              'occurredAtProvenance': meal.occurredAtProvenance,
+            },
+          )
+          .toList(),
+      'symptomEvents': allSymptoms
+          .map(
+            (symptom) => {
+              'id': symptom.journalEntryId ?? symptom.firestoreId,
+              'symptom': symptom.symptom,
+              'severity': symptom.severity,
+              'energyLevel': symptom.energyLevel,
+              'mood': symptom.mood,
+              'sleep': symptom.sleep,
+              'createdAt': symptom.createdAt.toIso8601String(),
+              'eventTime': symptom.eventTime.toIso8601String(),
+              'provenance': symptom.provenance,
+              'occurredAtProvenance': symptom.occurredAtProvenance,
+            },
+          )
+          .toList(),
     });
 
     if (meals.isEmpty || symptoms.isEmpty) {
@@ -175,16 +183,42 @@ class PatternEngineServiceImpl implements PatternEngineService {
   List<SymptomLog> _symptomsAfter(List<SymptomLog> logs, MealLog meal, Duration window) {
     final mealId = meal.journalEntryId ?? meal.firestoreId;
     return logs.where((s) {
-      final symptomLink = s.journalEntryId ?? s.lastMealFirestoreId;
-      if (symptomLink != null && symptomLink.isNotEmpty) {
-        // A persisted link is authoritative: do not reuse the same symptom as
-        // a time-window match for a different nearby meal.
-        return mealId != null && symptomLink == mealId;
-      }
+      final symptomLink = s.lastMealFirestoreId ?? (s.journalEntryId == mealId ? s.journalEntryId : null);
+      final explicitMealMention = _explicitlyMentionsMeal(s, meal);
       final gap = s.eventTime.difference(meal.eventTime);
+      if (symptomLink != null && symptomLink.isNotEmpty) {
+        // Preserve links unless user-entered food context contradicts one; chat
+        // meal links can point at the latest meal even when the report names a
+        // different food. Limit that correction to the detector's time window.
+        if (mealId != null && symptomLink == mealId) {
+          return !explicitMealMention.isContradiction;
+        }
+        return explicitMealMention.matches && gap.abs() <= window;
+      }
       return !gap.isNegative && gap <= window;
     }).toList()
       ..sort((a, b) => a.eventTime.compareTo(b.eventTime));
+  }
+
+  ({bool matches, bool isContradiction}) _explicitlyMentionsMeal(SymptomLog symptom, MealLog meal) {
+    final notes = _foodKey('${symptom.foodName ?? ''} ${symptom.notes ?? ''}');
+    if (notes.isEmpty) return (matches: false, isContradiction: false);
+    final mealItems = meal.items.map(_foodKey).where((item) => item.length >= 4).toSet();
+    final mentionsMeal = mealItems.any(notes.contains);
+    final foodName = _foodKey(symptom.foodName ?? '');
+    final explicitFoodContext = foodName.isNotEmpty
+        ? foodName
+        : RegExp(r'\b(?:after eating|after having|after consuming|ate)\s+([a-z0-9 ]{4,})')
+              .firstMatch(notes)
+              ?.group(1)
+              ?.trim() ??
+              '';
+    // Generic wording like "after eating a meal" cannot override a stored link.
+    final namesOtherMeal = explicitFoodContext.isNotEmpty &&
+        explicitFoodContext != 'meal' &&
+        explicitFoodContext != 'food' &&
+        !mentionsMeal;
+    return (matches: mentionsMeal, isContradiction: namesOtherMeal);
   }
 
   /// Finds co-occurring items that should be treated as one exposure
@@ -198,9 +232,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
         counts[item] = (counts[item] ?? 0) + 1;
       }
     }
-    // ponytail: never infer a shared ingredient from a single exposure; if
-    // this later fragments legitimate combinations, compare stable meal IDs.
-    final threshold = (symptomaticMeals.length / 2).ceil().clamp(_minFrequency, symptomaticMeals.length);
+    // Keep ingredients only when every supporting meal contains them. Partial
+    // scan detail must not discard occurrences of the repeated meal itself.
+    final threshold = symptomaticMeals.length;
     final co = counts.entries.where((e) => e.value >= threshold).map((e) => e.key).toList()..sort((a, b) => counts[b]!.compareTo(counts[a]!));
     return [triggerKey, ...co.take(2)];
   }
@@ -220,8 +254,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
       }
 
       final combinationMeals = meals.where((meal) => _mealContainsAll(meal, involvedKeys)).toList();
-      final combinationMealNames = combinationMeals.map((meal) => _mealKey(meal.items)).toSet();
-      final combinationOccurrences = pattern.occurrences.where((occurrence) => combinationMealNames.contains(_mealKey(occurrence.mealName.split(',')))).toList();
+      final combinationMealIds = combinationMeals.map((meal) => meal.journalEntryId ?? meal.firestoreId ?? meal.eventTime.toIso8601String()).toSet();
+      final combinationOccurrences = pattern.occurrences.where((occurrence) => combinationMealIds.contains(occurrence.mealId)).toList();
       if (combinationOccurrences.length < _minFrequency) {
         // The individual trigger did not have enough exact combination
         // evidence. Suppress it rather than publishing an independent claim.
@@ -267,17 +301,52 @@ class PatternEngineServiceImpl implements PatternEngineService {
         ),
       );
     }
-    return collapsed;
+    // Prefer the repeated meal name over its ingredients when evidence overlaps.
+    bool isMealName(BodyPattern p) => p.occurrences.any((o) => _foodKey(o.mealName.split(',').first) == _foodKey(p.trigger));
+    collapsed.sort((a, b) {
+      final named = (isMealName(b) ? 1 : 0).compareTo(isMealName(a) ? 1 : 0);
+      return named != 0 ? named : b.frequency.compareTo(a.frequency);
+    });
+    final distinct = <BodyPattern>[];
+    for (final pattern in collapsed) {
+      final ids = pattern.occurrences.map((o) => o.mealId).whereType<String>().toSet();
+      // ponytail: O(n²), conservative 80% overlap suppression for at most 150
+      // meals; use explicit exposure groups if independent ingredient trials exist.
+      if (ids.isNotEmpty &&
+          distinct.any(
+            (p) =>
+                p.type == pattern.type &&
+                p.reaction == pattern.reaction &&
+                ids.intersection(p.occurrences.map((o) => o.mealId).whereType<String>().toSet()).length / ids.length >= 0.8,
+          )) {
+        continue;
+      }
+      final positive = const ['High Energy', 'Satiety', 'Better Sleep'].contains(pattern.reaction);
+      final keys = pattern.involvedFoods.isEmpty ? [_foodKey(pattern.trigger)] : (List<String>.from(pattern.involvedFoods)..sort());
+      distinct.add(
+        BodyPattern.fromMap({
+          ...pattern.toMap(),
+          'id': '${pattern.type}_${pattern.reaction}_${keys.join('_')}'.toLowerCase().replaceAll(RegExp('[^a-z0-9]+'), '_'),
+          'confidenceScore': pattern.confidence == BodyPattern.confidenceHigh
+              ? 0.85
+              : pattern.confidence == BodyPattern.confidenceMedium
+              ? 0.65
+              : 0.5,
+          'impactDirection': positive ? 'positive' : 'negative',
+          'impactLevel': pattern.confidence == BodyPattern.confidenceHigh
+              ? 'high'
+              : pattern.confidence == BodyPattern.confidenceMedium
+              ? 'moderate'
+              : 'low',
+        }),
+      );
+    }
+    return distinct;
   }
 
   bool _mealContainsAll(MealLog meal, List<String> foodKeys) {
     final mealKeys = meal.items.map(_foodKey).where((key) => key.isNotEmpty).toSet();
     return foodKeys.every(mealKeys.contains);
-  }
-
-  String _mealKey(Iterable<String> items) {
-    final keys = items.map(_foodKey).where((key) => key.isNotEmpty).toList()..sort();
-    return keys.join('|');
   }
 
   String _formatDate(DateTime date) {
@@ -293,7 +362,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
       if (mins >= 15) return 'About ${diff.inHours}.5 hours later';
       return 'About ${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} later';
     }
-    return '${diff.inMinutes} mins later';
+    if (diff.isNegative) return 'Timing unclear';
+    if (diff.inMinutes == 0) return 'Less than 1 minute later';
+    return '${diff.inMinutes} minute${diff.inMinutes == 1 ? '' : 's'} later';
   }
 
   String _capitalize(String s) => s.isEmpty ? '' : '${s[0].toUpperCase()}${s.substring(1)}';
@@ -301,24 +372,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
   List<CommonFactor> _extractCommonFactors(List<MealLog> symptomaticMeals) {
     final factors = <String, int>{};
     for (final meal in symptomaticMeals) {
-      for (final tag in meal.foodTags) {
+      for (final tag in meal.foodTags.toSet()) {
         final clean = tag.replaceAll('#', '').toLowerCase().trim();
+        if (clean.isEmpty) continue;
         factors[clean] = (factors[clean] ?? 0) + 1;
-      }
-      for (final item in meal.items) {
-        final lower = item.toLowerCase();
-        if (lower.contains('milk') || lower.contains('cheese') || lower.contains('cream') || lower.contains('dairy')) {
-          factors['dairy products'] = (factors['dairy products'] ?? 0) + 1;
-        }
-        if (lower.contains('fried') || lower.contains('fries') || lower.contains('burger') || lower.contains('pizza') || lower.contains('chicken')) {
-          factors['fried foods'] = (factors['fried foods'] ?? 0) + 1;
-        }
-        if (lower.contains('pasta') || lower.contains('bread') || lower.contains('flour') || lower.contains('dough') || lower.contains('carb')) {
-          factors['refined carbs'] = (factors['refined carbs'] ?? 0) + 1;
-        }
-        if (lower.contains('salt') || lower.contains('sodium') || lower.contains('soy sauce')) {
-          factors['higher sodium'] = (factors['higher sodium'] ?? 0) + 1;
-        }
       }
     }
 
@@ -375,17 +432,43 @@ class PatternEngineServiceImpl implements PatternEngineService {
         negativeCount: asymptomatic,
         occurrences: symptomaticMeals.map((m) {
           final s = _symptomsAfter(bloatingLogs, m, _bloatWindow).first;
-          return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Bloating', timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
+          return _occurrence(m, s, 'Bloating');
         }).toList(),
         commonFactors: _extractCommonFactors(symptomaticMeals),
       );
     }).toList();
   }
 
+  bool _reportsHighEnergy(SymptomLog log) => RegExp(r'^(energetic|energized|high energy)$', caseSensitive: false).hasMatch(log.symptom.trim());
+
+  PatternOccurrence _occurrence(MealLog meal, SymptomLog symptom, String reaction) {
+    final gap = symptom.eventTime.difference(meal.eventTime);
+    final knownTiming = meal.occurredAt != null && symptom.occurredAt != null && meal.occurredAtProvenance == OccurrenceProvenance.user && symptom.occurredAtProvenance == OccurrenceProvenance.user;
+    final label = knownTiming
+        ? _formatTimeAfter(meal.eventTime, symptom.eventTime)
+        : 'Logged ${_formatTimeAfter(meal.createdAt, symptom.createdAt).toLowerCase()}';
+    return PatternOccurrence(
+      date: meal.eventTime.toIso8601String().substring(0, 10),
+      dateLabel: _formatDate(meal.eventTime),
+      mealId: meal.journalEntryId ?? meal.firestoreId ?? meal.eventTime.toIso8601String(),
+      mealName: meal.items.join(', '),
+      imageUrl: meal.photoUrl,
+      mealTime: meal.occurredAtProvenance == OccurrenceProvenance.user ? meal.eventTime.toIso8601String().substring(11, 16) : null,
+      mealType: meal.mealType,
+      reaction: reaction,
+      symptomId: symptom.firestoreId,
+      symptomSeverity: symptom.severity?.toString(),
+      timeAfterMinutes: knownTiming && !gap.isNegative ? gap.inMinutes : null,
+      timeAfterLabel: label,
+      timeAfter: label,
+      notes: symptom.notes,
+    );
+  }
+
   /// 2. Energy Pattern
   List<BodyPattern> _detectEnergyPatterns(List<MealLog> meals, List<SymptomLog> symptoms, {required int timeframeDays}) {
     final patterns = <BodyPattern>[];
-    final energyLogs = symptoms.where((s) => s.energyLevel != null).toList();
+    final energyLogs = symptoms.where((s) => s.energyLevel != null || _reportsHighEnergy(s)).toList();
 
     final highEnergyTriggers = <String, List<MealLog>>{};
     final lowEnergyTriggers = <String, List<MealLog>>{};
@@ -400,10 +483,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
         for (final item in meal.items) {
           final key = _foodKey(item);
           if (key.isEmpty) continue;
-          if (log.energyLevel! >= 7) {
+          if (_reportsHighEnergy(log) || (log.energyLevel ?? 0) >= 7) {
             if (!highEnergyTriggers.containsKey(key)) highEnergyTriggers[key] = [];
             if (!highEnergyTriggers[key]!.contains(meal)) highEnergyTriggers[key]!.add(meal);
-          } else if (log.energyLevel! <= 3) {
+          } else if (log.energyLevel != null && log.energyLevel! <= 3) {
             if (!lowEnergyTriggers.containsKey(key)) lowEnergyTriggers[key] = [];
             if (!lowEnergyTriggers[key]!.contains(meal)) lowEnergyTriggers[key]!.add(meal);
           }
@@ -433,13 +516,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
               final s = _symptomsAfter(energyLogs, m, _energyWindow).first;
-              return PatternOccurrence(
-                date: _formatDate(m.eventTime),
-                mealName: m.items.join(', '),
-                imageUrl: m.photoUrl,
-                reaction: 'Energized',
-                timeAfter: _formatTimeAfter(m.eventTime, s.eventTime),
-              );
+              return _occurrence(m, s, 'Energized');
             }).toList(),
             commonFactors: _extractCommonFactors(symptomaticMeals),
           ),
@@ -469,7 +546,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
               final s = _symptomsAfter(energyLogs, m, _energyWindow).first;
-              return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Sluggish', timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
+              return _occurrence(m, s, 'Sluggish');
             }).toList(),
             commonFactors: _extractCommonFactors(symptomaticMeals),
           ),
@@ -532,7 +609,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
         negativeCount: asymptomatic,
         occurrences: symptomaticMeals.map((m) {
           final s = _symptomsAfter(headacheLogs, m, _headacheWindow).first;
-          return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: reaction, timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
+          return _occurrence(m, s, reaction);
         }).toList(),
         commonFactors: _extractCommonFactors(symptomaticMeals),
       );
@@ -579,7 +656,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
         negativeCount: asymptomatic,
         occurrences: symptomaticMeals.map((m) {
           final s = _symptomsAfter(digestionLogs, m, _digestionWindow).first;
-          return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Discomfort', timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
+          return _occurrence(m, s, 'Discomfort');
         }).toList(),
         commonFactors: _extractCommonFactors(symptomaticMeals),
       );
@@ -645,13 +722,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
               final s = _symptomsAfter(fullnessLogs, m, _fullnessWindow).first;
-              return PatternOccurrence(
-                date: _formatDate(m.eventTime),
-                mealName: m.items.join(', '),
-                imageUrl: m.photoUrl,
-                reaction: 'Satisfied',
-                timeAfter: _formatTimeAfter(m.eventTime, s.eventTime),
-              );
+              return _occurrence(m, s, 'Satisfied');
             }).toList(),
             commonFactors: _extractCommonFactors(symptomaticMeals),
           ),
@@ -681,7 +752,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
             negativeCount: asymptomatic,
             occurrences: symptomaticMeals.map((m) {
               final s = _symptomsAfter(fullnessLogs, m, _fullnessWindow).first;
-              return PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Hungry', timeAfter: _formatTimeAfter(m.eventTime, s.eventTime));
+              return _occurrence(m, s, 'Hungry');
             }).toList(),
             commonFactors: _extractCommonFactors(symptomaticMeals),
           ),

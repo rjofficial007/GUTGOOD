@@ -56,7 +56,7 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
           // --- Card Content ---
           if (hasData)
             Padding(
-              padding: EdgeInsets.all(20.w),
+              padding: EdgeInsets.all(14.w),
               child: Row(
                 children: [
                   // Left Donut Chart
@@ -64,7 +64,7 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
                     flex: 5,
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final size = constraints.maxWidth;
+                        final size = math.min(constraints.maxWidth, 116.w);
                         return SizedBox(
                           width: size,
                           height: size,
@@ -89,7 +89,7 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
                       },
                     ),
                   ),
-                  Gap.w20,
+                  Gap.w14,
                   // Right Vertical Legend Stack
                   Expanded(
                     flex: 5,
@@ -98,9 +98,9 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _ImpactBalanceLegend(color: _positive, label: 'Positive Impact', value: positive),
-                        Gap.h16,
+                        Gap.h8,
                         _ImpactBalanceLegend(color: _neutral, label: 'Neutral Impact', value: neutral),
-                        Gap.h16,
+                        Gap.h8,
                         _ImpactBalanceLegend(color: _negative, label: 'Negative Impact', value: negative),
                       ],
                     ),

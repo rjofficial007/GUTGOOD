@@ -206,7 +206,7 @@ export const onJournalEntryDeleted = functions
   });
 
 /**
- * onInsightCreated: Update the profile's aggregate gutScore when a new insight is generated.
+ * Legacy insight mirror. Deterministic gut_scores owns profiles with a score record.
  */
 export const onInsightCreated = functions
   .region(REGION)
@@ -215,6 +215,7 @@ export const onInsightCreated = functions
     const { uid } = context.params;
     const data = snapshot.data();
     if (!data) return;
+    if (data.hasGutScore === false) return;
 
     const rawGutScore = Number(data.gutScore);
     if (!Number.isFinite(rawGutScore)) {
@@ -234,13 +235,20 @@ export const onInsightCreated = functions
     const userRef = db.doc(`user_profiles/${uid}`);
 
     try {
-      await userRef.update({
-        gutScore,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      await db.runTransaction(async (transaction) => {
+        const profile = await transaction.get(userRef);
+        // The app publishes a score record and this marker atomically. Keep
+        // delayed/legacy AI events from replacing the deterministic score.
+        if (!profile.exists || profile.data()?.lastScoreCalculationAt) return;
+        const updatedAt = profile.data()?.lastInsightScoreAt;
+        if (updatedAt && data.updatedAt?.toMillis?.() <= updatedAt.toMillis()) return;
+        transaction.update(userRef, {
+          gutScore,
+          lastInsightScoreAt: data.updatedAt ?? snapshot.createTime,
+        });
       });
       functions.logger.info(`Updated gutScore for ${uid} to ${gutScore}`);
     } catch (e) {
       functions.logger.error(`Failed to update gutScore for ${uid}`, e);
     }
   });
-

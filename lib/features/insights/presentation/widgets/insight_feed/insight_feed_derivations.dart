@@ -105,7 +105,7 @@ abstract final class InsightFeedDerivations {
     return int.tryParse(cleaned);
   }
 
-  /// The score two points back in a chronological window — "Last week".
+  /// Previous measured score in a chronologically ordered series.
   static int? previousScoreInWindow(List<double> series) {
     if (series.length < 2) return null;
     return series[series.length - 2].round();
@@ -138,7 +138,7 @@ abstract final class InsightFeedDerivations {
     final current = insight.gutScore.clamp(0, 100).toInt();
     final last = previousScoreInWindow(series);
     final ai = insight.improving;
-    final deltaPts = last == null ? (parseScoreDelta(insight.scoreDiff) ?? 0) : current - last;
+    final deltaPts = last == null ? 0 : series.last.round() - last;
 
     final keyFoods = <InsightFoodItemData>[
       if (ai != null && ai.keyFoods.isNotEmpty)

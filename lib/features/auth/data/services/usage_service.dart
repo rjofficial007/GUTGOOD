@@ -153,7 +153,7 @@ class UsageServiceImpl implements UsageService {
 
   @override
   Future<void> setPremiumForTesting(bool isPremium) async {
-    if (!kDebugMode) return;
+    // if (!kDebugMode) return;
     if (_uid == null) return;
     // Debug-only override: persists locally and flips the in-memory RevenueCat
     // flag. The Firestore copy is not written because this override only

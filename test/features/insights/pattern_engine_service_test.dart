@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/features/insights/data/services/pattern_engine_service.dart';
+import 'package:gutgood/features/insights/domain/services/insight_response_validator.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/insight_firestore_service.dart';
 import 'package:mocktail/mocktail.dart';
@@ -73,6 +74,110 @@ void main() {
   }
 
   group('PatternEngineService (P1-7)', () {
+    test('repeated burgers and energetic pancakes survive incomplete scan detail and empty AI sections', () async {
+      final now = DateTime.now();
+      final meals = <MealLog>[];
+      final symptoms = <SymptomLog>[];
+      for (var day = 1; day <= 6; day++) {
+        final at = now.subtract(Duration(days: day));
+        final burgerId = 'burger-$day';
+        final burger = MealLog(
+          firestoreId: burgerId,
+          journalEntryId: burgerId,
+          items: day == 6
+              ? ['Chicken Burger', 'Chicken Patty', 'Lettuce', 'Pickles', 'Sauce']
+              : day == 2
+              ? ['Fried Chicken Burger']
+              : ['Fried Chicken Burger', if (day == 1) 'Fried Chicken Patty' else 'Fried Chicken', 'Lettuce', 'Pickles', 'Sauce', if (day == 1) 'Bun' else 'Burger Bun'],
+          createdAt: at,
+        );
+        meals.add(burger);
+        symptoms.add(
+          SymptomLog(
+            firestoreId: 'bloat-$day',
+            journalEntryId: burgerId,
+            lastMealFirestoreId: burgerId,
+            symptom: 'bloated',
+            severity: 2,
+            energyLevel: day == 1 || day == 6 ? 3 : null,
+            createdAt: at.add(const Duration(seconds: 29)),
+          ),
+        );
+        if (day.isEven) {
+          final pancakeId = 'pancake-$day';
+          meals.add(
+            MealLog(
+              firestoreId: pancakeId,
+              items: ['Pancakes with Blueberries', 'Blueberries', 'Maple Syrup', if (day == 6) 'flour' else 'Pancake Mix'],
+              createdAt: at.subtract(const Duration(minutes: 2)),
+            ),
+          );
+          symptoms.add(
+            SymptomLog(firestoreId: 'energy-$day', lastMealFirestoreId: pancakeId, symptom: 'energetic', energyLevel: 5, createdAt: at.subtract(const Duration(minutes: 1))),
+          );
+        }
+      }
+      final patterns = await runWith(meals: meals, symptoms: symptoms);
+      final bloating = patterns.where((p) => p.type == BodyPattern.typeBloating).single;
+      expect(bloating.trigger, 'Fried chicken burger');
+      expect(bloating.frequency, 5);
+      expect(bloating.impactDirection, 'negative');
+      expect(bloating.id, isNotEmpty);
+      expect(bloating.confidenceScore, greaterThan(0));
+      expect(bloating.occurrences.map((o) => o.mealId), contains('burger-2'));
+      expect(bloating.occurrences.first.symptomId, 'bloat-1');
+      expect(bloating.occurrences.first.symptomSeverity, '2');
+      expect(bloating.occurrences.first.timeAfter, 'Logged less than 1 minute later');
+      expect(bloating.occurrences.first.timeAfterMinutes, isNull);
+      expect(bloating.commonFactors, isEmpty, reason: 'No food tags were supplied.');
+      final energy = patterns.where((p) => p.reaction == 'High Energy').single;
+      expect(energy.frequency, 3);
+      expect(energy.impactDirection, 'positive');
+      final data = InsightResponseValidator.normalize({
+        'topInsight': {
+          'title': 'Burger bloating',
+          'involvedFoods': ['Fried Chicken Burger'],
+          'nextSteps': ['Eliminate lettuce and pickles.'],
+        },
+        'detectedPatterns': [],
+        'healing': {'foods': []},
+        'triggers': {'foods': []},
+        'foodImpacts': [],
+      }, patternCandidates: patterns).data;
+      expect(data['detectedPatterns'], hasLength(patterns.length));
+      expect((data['healing'] as Map)['foods'], hasLength(1));
+      expect((data['triggers'] as Map)['foods'], hasLength(2));
+      expect(data['foodImpacts'], hasLength(patterns.length));
+      expect((data['foodImpactBalance'] as Map)['positivePercent'], greaterThan(0));
+      expect(((data['topInsight'] as Map)['nextSteps'] as List).join(), isNot(contains('Eliminate')));
+    });
+
+    test('user-provided occurrence times preserve actual symptom delay', () async {
+      final now = DateTime.now();
+      final meals = List.generate(2, (i) => MealLog(
+        items: const ['Oats'],
+        createdAt: now.subtract(Duration(days: i + 1)),
+        occurredAt: now.subtract(Duration(days: i + 1, hours: 3)),
+        occurredAtProvenance: OccurrenceProvenance.user,
+      ));
+      final symptoms = meals.map((m) => SymptomLog(
+        symptom: 'bloated',
+        createdAt: m.createdAt.add(const Duration(seconds: 30)),
+        occurredAt: m.occurredAt!.add(const Duration(hours: 2)),
+        occurredAtProvenance: OccurrenceProvenance.user,
+      )).toList();
+      final patterns = await runWith(meals: meals, symptoms: symptoms);
+      expect(patterns.single.occurrences.first.timeAfterMinutes, 120);
+      expect(patterns.single.occurrences.first.timeAfter, 'About 2 hours later');
+    });
+
+    test('explicit energetic reports need no invented numeric energy level', () async {
+      final meals = List.generate(2, (i) => _meal(['Oats'], DateTime.now().subtract(Duration(days: i + 1))));
+      final patterns = await runWith(meals: meals, symptoms: meals.map((m) => _symptom('energetic', m.createdAt.add(const Duration(minutes: 30)))).toList());
+      expect(patterns.single.reaction, 'High Energy');
+      expect(patterns.single.frequency, 2);
+    });
+
     test('returns [] and clears stale patterns when data is insufficient', () async {
       final noMeals = await runWith(meals: [], symptoms: [_symptom('Bloating', DateTime.now())]);
       final noSymptoms = await runWith(
@@ -280,10 +385,7 @@ void main() {
         _meal(['Burger'], now.subtract(const Duration(hours: 2))),
         _meal(['Burger'], now.add(const Duration(hours: 2))),
       ];
-      final symptoms = [
-        _symptom('Bloating', meals[0].createdAt.add(const Duration(minutes: 30))),
-        _symptom('Bloating', meals[1].createdAt.add(const Duration(minutes: 30))),
-      ];
+      final symptoms = [_symptom('Bloating', meals[0].createdAt.add(const Duration(minutes: 30))), _symptom('Bloating', meals[1].createdAt.add(const Duration(minutes: 30)))];
 
       expect(await runWith(meals: meals, symptoms: symptoms), isEmpty);
     });
@@ -327,13 +429,8 @@ void main() {
       );
       final meals = scans
           .map(
-            (scan) => MealLog(
-              firestoreId: '${scan.scanId}_meal',
-              journalEntryId: '${scan.scanId}_meal',
-              scanId: scan.scanId,
-              items: const ['Scan Oats'],
-              createdAt: scan.createdAt,
-            ),
+            (scan) =>
+                MealLog(firestoreId: '${scan.scanId}_meal', journalEntryId: '${scan.scanId}_meal', scanId: scan.scanId, items: const ['Scan Oats'], createdAt: scan.createdAt),
           )
           .toList();
       final symptoms = meals.map((meal) => _symptom('Bloating', meal.createdAt.add(const Duration(hours: 2)))).toList();

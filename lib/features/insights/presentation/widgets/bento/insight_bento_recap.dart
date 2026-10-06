@@ -12,13 +12,11 @@ class InsightBentoRecap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final trend = recap.gutScoreTrend;
+    final targetInsight = insight ?? AIInsight(gutScore: recap.avgScore ?? 0, weeklyRecap: recap, hasGutScore: recap.scoredDayCount > 0, updatedAt: DateTime.now());
+    final scoreRecord = WhyScoreSheet.resolveRecord(context);
+    final trend = scoreRecord?.dailyScores ?? recap.gutScoreTrend;
     final chartSeries = (trend != null && trend.isNotEmpty) ? [for (final s in trend) s.toDouble()] : series;
-    final scored = (trend ?? const <int>[]).where((s) => s > 0).toList();
-    final trendAvg = scored.isEmpty ? null : (scored.reduce((a, b) => a + b) / scored.length).round();
-    final avg = (recap.avgScore ?? trendAvg ?? insight?.gutScore ?? 0).clamp(0, 100);
-    final src = insight;
-    final delta = src == null ? null : BentoData.parseDelta(src.scoreDiff);
+    final avg = WhyScoreSheet.resolveScore(context, targetInsight);
     final shown = chartSeries.length > 7 ? chartSeries.sublist(chartSeries.length - 7) : chartSeries;
 
     const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -27,21 +25,23 @@ class InsightBentoRecap extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
-          GutScoreCard(
-            score: avg,
-            delta: delta,
-            series: chartSeries,
-            labels: labels,
-            title: AppStrings.bentoWeeklyEyebrow,
-            subtitle: recap.scoreSub ?? AppStrings.last7Days,
-            footLeft: '${AppStrings.bentoPositiveDays}: ${recap.scoreSub ?? ""}',
-            footRight: '${AppStrings.bestDayLabel}: ${recap.bestDay ?? "—"}',
-            showChevron: true,
-            onTap: () {
-              final targetInsight = insight ?? AIInsight(gutScore: avg, weeklyRecap: recap, updatedAt: DateTime.now());
-              WhyScoreSheet.show(context, targetInsight);
-            },
-          ),
+          if (WhyScoreSheet.hasScore(context, targetInsight))
+            GutScoreCard(
+              score: avg,
+              series: chartSeries,
+              scoredDayIndices: scoreRecord?.scoredDayIndices ?? recap.scoredDayIndices,
+              labels: labels,
+              title: 'GUTGOOD SCORE',
+              subtitle: 'Your current gut score.',
+              footLeft: '${AppStrings.bentoPositiveDays}: ${recap.scoreSub ?? ""}',
+              footRight: '${AppStrings.bestDayLabel}: ${recap.bestDay ?? "—"}',
+              showChevron: true,
+              onTap: () {
+                WhyScoreSheet.show(context, targetInsight);
+              },
+            )
+          else
+            InsightScoreCard(score: null, onWhyTap: () => WhyScoreSheet.show(context, targetInsight)),
           Gap.h14,
           BentoGrid(children: _tiles(context, shown)),
         ]),
@@ -181,4 +181,3 @@ class InsightBentoRecap extends StatelessWidget {
     }
   }
 }
-

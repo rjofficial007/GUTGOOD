@@ -56,14 +56,18 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 560.w;
+        final cardWidth = isCompact ? constraints.maxWidth : (constraints.maxWidth - 10.w) / 2;
+        return Wrap(
+          spacing: 10.w,
+          runSpacing: 10.w,
+          children: [
           // Left Card: Top Healing Foods
           if (healingList.isNotEmpty) ...[
-            Expanded(
-              child: Container(
+            Container(
+                width: cardWidth,
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF102319) : const Color(0xFFF0FDF4),
@@ -84,7 +88,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         Gap.w4,
                         Expanded(
                           child: Text(
-                            'Top Healing Foods',
+                            'Supportive Food Patterns',
                             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
                           ),
                         ),
@@ -92,13 +96,12 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                     ),
                     Gap.h2,
                     Text(
-                      'Foods listed as supportive in this insight.',
+                      'Foods logged near better reported outcomes.',
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569))),
                     ),
-                      Gap.h8,
-
-                      for (var i = 0; i < healingList.take(2).length; i++) ...[
-                        if (i > 0) Gap.h6,
+                    Gap.h8,
+                    for (var i = 0; i < healingList.take(2).length; i++) ...[
+                      if (i > 0) Gap.h6,
                       _HealingFoodItemTile(
                         imageUrl: healingList[i].imageUrl,
                         title: healingList[i].name,
@@ -109,14 +112,12 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
           ],
-          if (healingList.isNotEmpty && triggerList.isNotEmpty) Gap.w10,
 
           // Right Card: Top Trigger Food
           if (triggerList.isNotEmpty) ...[
-            Expanded(
-              child: Container(
+            Container(
+                width: cardWidth,
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF231416) : const Color(0xFFFEF2F2),
@@ -144,7 +145,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         Gap.w4,
                         Expanded(
                           child: Text(
-                      'Food Observed Near Symptoms',
+                      'Observed Near Symptoms',
                             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B)),
                           ),
                         ),
@@ -152,7 +153,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                     ),
                     Gap.h2,
                     Text(
-                      'This food was listed alongside symptoms in this insight.',
+                      'Logged alongside symptoms; this does not prove they caused them.',
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569))),
                     ),
                     Gap.h8,
@@ -291,10 +292,10 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
           ],
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 }
@@ -309,52 +310,42 @@ class _HealingFoodItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(6.w),
+    padding: EdgeInsets.all(8.w),
     decoration: BoxDecoration(color: context.insightTheme.card, borderRadius: BorderRadius.circular(12.w)),
     child: Row(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(8.w),
-          child: DynamicFoodImage(
-            keyword: title,
-            imageUrl: imageUrl,
-            width: 36.w,
-            height: 36.w,
-            fit: BoxFit.cover,
-          ),
+          borderRadius: BorderRadius.circular(9.w),
+          child: DynamicFoodImage(keyword: title, imageUrl: imageUrl, width: 44.w, height: 44.w, fit: BoxFit.cover),
         ),
-        Gap.w6,
+        Gap.w10,
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
               ),
+              Gap.h2,
               Text(
                 sub,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.15),
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, color: context.insightColor(const Color(0xFF475569))),
               ),
-              SizedBox(height: 2.w),
+              Gap.h4,
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.w),
-                decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), borderRadius: BorderRadius.circular(6.w)),
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.w),
+                decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), borderRadius: BorderRadius.circular(8.w)),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(LucideIcons.leaf, size: 7.w, color: const Color(0xFF15803D)),
-                    Gap.w2,
-                    Flexible(
-                      child: Text(
-                        badge,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D)),
-                      ),
-                    ),
+                    Icon(LucideIcons.leaf, size: 9.w, color: const Color(0xFF15803D)),
+                    Gap.w3,
+                    Text(badge, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D))),
                   ],
                 ),
               ),

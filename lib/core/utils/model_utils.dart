@@ -135,8 +135,8 @@ class ModelUtils {
 
   /// Clamps a raw AI-provided numeric score into a safe UI range.
   static int parseScore(dynamic value, {int fallback = 0, int min = 0, int max = 100}) {
-    final n = (value is num) ? value.toInt() : int.tryParse(value?.toString() ?? '');
-    if (n == null) return fallback;
+    final n = (value is num) ? value : num.tryParse(value?.toString() ?? '');
+    if (n == null || !n.isFinite) return fallback.clamp(min, max);
     return n.clamp(min, max).toInt();
   }
 

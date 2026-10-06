@@ -13,6 +13,7 @@ class GutScoreRecord extends Equatable {
     required this.mealsCount,
     required this.symptomsCount,
     this.dailyScores = const [],
+    this.scoredDayIndices,
     required this.periodFrom,
     required this.periodTo,
     required this.createdAt,
@@ -20,7 +21,8 @@ class GutScoreRecord extends Equatable {
 
   factory GutScoreRecord.fromMap(Map<String, dynamic> map, {String? docId}) {
     final rawDaily = map['dailyScores'];
-    final dailyScores = rawDaily is List ? rawDaily.map(InsightValues.integer).whereType<int>().where((score) => score >= 0 && score <= 100).toList() : const <int>[];
+    // Preserve calendar slots when a legacy value is malformed.
+    final dailyScores = rawDaily is List ? rawDaily.take(7).map((value) => (InsightValues.integer(value) ?? 0).clamp(0, 100)).toList() : const <int>[];
 
     return GutScoreRecord(
       id: docId ?? map['id'] ?? '',
@@ -30,6 +32,15 @@ class GutScoreRecord extends Equatable {
       mealsCount: InsightValues.integer(map['mealsCount']) ?? 0,
       symptomsCount: InsightValues.integer(map['symptomsCount']) ?? 0,
       dailyScores: dailyScores,
+      scoredDayIndices: map['scoredDayIndices'] is List
+          ? ((map['scoredDayIndices'] as List)
+                .map(InsightValues.integer)
+                .whereType<int>()
+                .where((index) => index >= 0 && index < dailyScores.length && rawDaily is List && InsightValues.number(rawDaily[index]) != null)
+                .toSet()
+                .toList()
+              ..sort())
+          : null,
       periodFrom: DateTimeUtils.parse(map['periodFrom']),
       periodTo: DateTimeUtils.parse(map['periodTo']),
       createdAt: DateTimeUtils.parse(map['createdAt']),
@@ -43,13 +54,27 @@ class GutScoreRecord extends Equatable {
   final int mealsCount;
   final int symptomsCount;
   final List<int> dailyScores;
+
+  /// Explicit activity distinguishes a measured zero from an empty day.
+  /// Legacy records infer activity from positive daily scores.
+  final List<int>? scoredDayIndices;
   final DateTime periodFrom;
   final DateTime periodTo;
   final DateTime createdAt;
 
-  /// Computed gut score derived from dailyScores (average of scored days > 0).
+  List<int> get scoredIndices =>
+      scoredDayIndices ??
+      [
+        for (var i = 0; i < dailyScores.length; i++)
+          if (dailyScores[i] > 0) i,
+      ];
+  List<int> get scoredScores => [for (final i in scoredIndices) dailyScores[i]];
+  bool get hasScore => scoredIndices.isNotEmpty;
+  int get scoredDayCount => scoredIndices.length;
+
+  /// Mean of measured daily scores, including genuine zero scores.
   int get gutScore {
-    final scored = dailyScores.where((s) => s > 0).toList();
+    final scored = scoredScores;
     if (scored.isEmpty) return 0;
     return (scored.fold<int>(0, (a, b) => a + b) / scored.length).round().clamp(0, 100);
   }
@@ -62,11 +87,14 @@ class GutScoreRecord extends Equatable {
     'mealsCount': mealsCount,
     'symptomsCount': symptomsCount,
     'dailyScores': dailyScores,
+    if (scoredDayIndices != null) 'scoredDayIndices': scoredDayIndices,
+    'gutScore': gutScore,
+    'hasGutScore': hasScore,
     'periodFrom': DateTimeUtils.toTimestamp(periodFrom),
     'periodTo': DateTimeUtils.toTimestamp(periodTo),
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
   };
 
   @override
-  List<Object?> get props => [id, uid, type, scansCount, mealsCount, symptomsCount, dailyScores, periodFrom, periodTo, createdAt];
+  List<Object?> get props => [id, uid, type, scansCount, mealsCount, symptomsCount, dailyScores, scoredDayIndices, periodFrom, periodTo, createdAt];
 }

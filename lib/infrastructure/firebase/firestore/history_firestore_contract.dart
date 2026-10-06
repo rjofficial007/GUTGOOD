@@ -3,6 +3,10 @@ part of 'history_firestore_service.dart';
 /// Application-facing history persistence contract.
 
 abstract class HistoryFirestoreService {
+  /// Recalculate the current calendar-week score from persisted journal data.
+  /// A refresh failure keeps the previous score and never undoes a saved log.
+  Future<void> refreshGutScore();
+
   Future<void> saveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId});
 
   /// Same write as [saveToScanHistory], but reports whether the scan document

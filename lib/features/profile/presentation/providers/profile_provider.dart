@@ -11,6 +11,7 @@ import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
 import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
 import 'package:gutgood/infrastructure/firebase/crashlytics_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/auth_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/gut_score_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/notification_ids.dart';
 import 'package:gutgood/infrastructure/firebase/notification_service.dart';
@@ -21,6 +22,7 @@ class ProfileNotifier with ChangeNotifier {
     this._authRepository,
     this._firestoreService,
     this._historyFirestoreService,
+    this._gutScoreFirestoreService,
     this._appStateService,
     this._notificationService,
     this._analyticsService,
@@ -30,7 +32,6 @@ class ProfileNotifier with ChangeNotifier {
     required SharedPreferences prefs,
   }) : _auth = auth,
        _prefs = prefs {
-
     _initProfileStream();
     _appStateService.insightsData.addListener(_updateInsights);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -48,6 +49,7 @@ class ProfileNotifier with ChangeNotifier {
   final AuthRepository _authRepository;
   final AuthFirestoreService _firestoreService;
   final HistoryFirestoreService _historyFirestoreService;
+  final GutScoreFirestoreService _gutScoreFirestoreService;
   final AppStateService _appStateService;
   final NotificationService _notificationService;
   final AnalyticsService _analyticsService;
@@ -59,18 +61,22 @@ class ProfileNotifier with ChangeNotifier {
   UserProfile? _profile;
   int? _previousStreak;
   int _avgFoodScore = 0;
+  GutScoreRecord? _latestScoreRecord;
   bool _isLoading = false;
   bool _isInitialized = false;
   bool _showStreakCelebration = false;
   bool _pendingStreakCelebration = false; // 🟢 Track if a celebration is queued
   StreamSubscription<UserProfile?>? _profileSub;
   StreamSubscription<int>? _avgScoreSub;
+  StreamSubscription<GutScoreRecord?>? _gutScoreSub;
   StreamSubscription? _authSub;
   Timer? _dayRolloverTimer;
 
   void _initProfileStream() {
     _profileSub?.cancel();
     _avgScoreSub?.cancel();
+    _gutScoreSub?.cancel();
+    _latestScoreRecord = null;
     _startDayRolloverTimer();
     _isInitialized = false; // Reset initialization state during user switch
     _profile = null; // Clear stale profile data
@@ -115,10 +121,18 @@ class ProfileNotifier with ChangeNotifier {
         notifyListeners();
       }
     }, onError: (e) => AppLogger.error('ProfileNotifier: Avg score stream error', error: e));
+    _gutScoreSub = _gutScoreFirestoreService.watchLatestGutScore().listen((record) {
+      _latestScoreRecord = record;
+      notifyListeners();
+    }, onError: (e) => AppLogger.error('ProfileNotifier: Gut score stream error', error: e));
+    unawaited(_historyFirestoreService.refreshGutScore());
   }
 
   UserProfile? get profile => _profile;
   int get avgFoodScore => _avgFoodScore;
+  GutScoreRecord? get latestScoreRecord => _latestScoreRecord;
+  int get gutScore => (_latestScoreRecord?.gutScore ?? _profile?.gutScore ?? 0).clamp(0, 100);
+  bool get hasGutScore => _latestScoreRecord?.hasScore ?? ((_profile?.gutScore ?? 0) > 0);
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   bool get showStreakCelebration => _showStreakCelebration;
@@ -165,6 +179,7 @@ class ProfileNotifier with ChangeNotifier {
     _dayRolloverTimer = Timer(timeUntilMidnight + const Duration(seconds: 5), () {
       AppLogger.info('ProfileNotifier: Midnight rollover detected. Refreshing effective streak.');
       notifyListeners();
+      unawaited(_historyFirestoreService.refreshGutScore());
       _startDayRolloverTimer();
     });
   }
@@ -173,6 +188,7 @@ class ProfileNotifier with ChangeNotifier {
   void dispose() {
     _profileSub?.cancel();
     _avgScoreSub?.cancel();
+    _gutScoreSub?.cancel();
     _authSub?.cancel();
     _dayRolloverTimer?.cancel();
     _appStateService.insightsData.removeListener(_updateInsights);
@@ -187,6 +203,8 @@ class ProfileNotifier with ChangeNotifier {
     _isInitialized = false;
     _profileSub?.cancel();
     _avgScoreSub?.cancel();
+    _gutScoreSub?.cancel();
+    _latestScoreRecord = null;
     notifyListeners();
   }
 

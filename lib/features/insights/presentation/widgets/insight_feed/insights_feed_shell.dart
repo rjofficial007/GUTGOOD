@@ -30,13 +30,11 @@ class _InsightsFeedState extends State<InsightsFeed> {
 
   @override
   Widget build(BuildContext context) {
-    final previous = InsightFeedDerivations.previousScoreInWindow(widget.series);
-    final delta = !widget.data.hasGutScore
-        ? null
-        : previous != null
-        ? widget.data.gutScore - previous
-        : InsightFeedDerivations.parseScoreDelta(widget.data.scoreDiff);
-    final improving = InsightFeedDerivations.buildImprovingData(widget.data, widget.series, widget.history);
+    final scoreRecord = WhyScoreSheet.resolveRecord(context);
+    final currentData = widget.data.copyWith(gutScore: WhyScoreSheet.resolveScore(context, widget.data), hasGutScore: WhyScoreSheet.hasScore(context, widget.data));
+    final scored = scoreRecord?.scoredScores ?? widget.series.where((score) => score > 0).map((score) => score.round()).toList();
+    final delta = scored.length > 1 ? scored.last - scored[scored.length - 2] : null;
+    final improving = InsightFeedDerivations.buildImprovingData(currentData, scored.map((score) => score.toDouble()).toList(), widget.history);
     final watch = InsightFeedDerivations.buildWatchData(widget.data, widget.patterns);
 
     final isPatternsTab = _selectedFilter == 'Patterns';
@@ -78,7 +76,7 @@ class _InsightsFeedState extends State<InsightsFeed> {
                 Gap.h10,
                 if (!hasFoodImpactEvidence) ...[
                   const _InsightsEmptyState(
-                    headline: 'Your foods.\nYour impacts.\nYour insights.',
+                    headline: 'Your food.\nYour gut.\nYour impact.',
                     description: 'Keep scanning foods and logging meals and symptoms to understand how they affect your gut.',
                     banner: _InsightsLearningBannerCard(title: 'Food impacts get clearer over time', description: 'Keep logging to unlock more personalized food impact insights.'),
                   ),
@@ -113,7 +111,7 @@ class _InsightsFeedState extends State<InsightsFeed> {
                 // -------------------------------------------------------------------
                 // HERO CARD: Gut Score & On Track
 
-                if (widget.data.hasGutScore || (widget.data.weeklyRecap?.gutScoreTrend?.any((s) => s > 0) ?? false) || (widget.data.weeklyRecap?.avgScore ?? 0) > 0) ...[
+                if (currentData.hasGutScore) ...[
                   _ForYouGutScoreCard(data: widget.data, series: widget.series, delta: delta),
                 ] else ...[
                   InsightScoreCard(score: null, delta: null, onTap: null, onWhyTap: () => WhyScoreSheet.show(context, widget.data)),
@@ -134,13 +132,11 @@ class _InsightsFeedState extends State<InsightsFeed> {
                   // SIDE-BY-SIDE CARDS: What's Improving & Something to Watch
                   _SideBySideImprovingAndWatch(
                     improvingData: improving,
-                    series: widget.data.hasGutScore ? widget.series : const [],
+                    series: currentData.hasGutScore ? widget.series : const [],
                     observationCount: widget.data.topInsight?.frequency,
                     watchData: watch,
                     onImprovingTap: () {
-                      final cleanSeries = InsightValues.scores(widget.series);
-                      final scoredSeries = cleanSeries.where((s) => s > 0).toList();
-                      final hasEnoughData = scoredSeries.length > 1;
+                      final hasEnoughData = scored.length > 1;
                       context.push(
                         AppRoutes.highlightDetail,
                         extra: HighlightDetailArgs(

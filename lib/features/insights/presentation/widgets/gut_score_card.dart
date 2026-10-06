@@ -28,6 +28,7 @@ class GutScoreCard extends StatelessWidget {
     required this.score,
     this.delta,
     this.series = const [],
+    this.scoredDayIndices,
     this.labels = const [],
     this.title,
     this.subtitle,
@@ -53,6 +54,7 @@ class GutScoreCard extends StatelessWidget {
 
   /// Chronological score values for the 7-day trend chart.
   final List<double> series;
+  final List<int>? scoredDayIndices;
 
   /// Weekday or date labels corresponding to [series].
   final List<String> labels;
@@ -192,30 +194,30 @@ class GutScoreCard extends StatelessWidget {
                                       ),
                                       Gap.w8,
                                       Text(() {
-                                        final scoredCount = shownSeries.where((value) => value > 0).length;
-                                        if (scoredCount == 1) return 'Starting baseline';
-                                        if (shownSeries.isNotEmpty) {
-                                          final nonZeroIndices = <int>[];
-                                          for (var i = 0; i < shownSeries.length; i++) {
-                                            if (shownSeries[i] > 0) {
-                                              nonZeroIndices.add(i);
-                                            }
+                                        final scoredIndices =
+                                            scoredDayIndices ??
+                                            [
+                                              for (var i = 0; i < shownSeries.length; i++)
+                                                if (shownSeries[i] > 0) i,
+                                            ];
+                                        final scoredCount = scoredIndices.length;
+                                        if (scoredCount == 1) {
+                                          return 'Starting baseline';
+                                        }
+                                        if (scoredCount >= 2) {
+                                          final diff = (shownSeries[scoredIndices.last] - shownSeries[scoredIndices[scoredCount - 2]]).round();
+                                          if (diff > 0) {
+                                            return '↑ +$diff vs previous scored day';
                                           }
-                                          if (nonZeroIndices.length >= 2) {
-                                            final currentIndex = nonZeroIndices.last;
-                                            final previousIndex = nonZeroIndices[nonZeroIndices.length - 2];
-                                            final currentVal = shownSeries[currentIndex];
-                                            final prevVal = shownSeries[previousIndex];
-                                            final diff = (currentVal - prevVal).round();
-                                            if (diff > 0) return '↑ +$diff vs yesterday';
-                                            if (diff < 0) return '↓ $diff vs yesterday';
-                                            return 'No change vs yesterday';
+                                          if (diff < 0) {
+                                            return '↓ ${diff.abs()} vs previous scored day';
                                           }
+                                          return 'No change since previous scored day';
                                         }
                                         if (d != null && d != 0 && shownSeries.length <= 1) {
                                           return '${positive ? '↑ +' : '↓ '}$d pts';
                                         }
-                                        return 'Great start today!';
+                                        return 'Log food to track your trend';
                                       }(), style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.2, color: ctaTextColor)),
                                     ],
                                   ),
@@ -227,7 +229,7 @@ class GutScoreCard extends StatelessWidget {
                           // Right Column: 7-Day Bar Chart
                           if (showChart && shownSeries.isNotEmpty) ...[
                             Gap.w16,
-                            CompactSeriesBars(values: shownSeries, color: isDark ? Colors.white : const Color(0xFF0F172A), labels: shownLabels, height: 52),
+                            CompactSeriesBars(values: shownSeries, scoredDayIndices: scoredDayIndices, color: isDark ? Colors.white : const Color(0xFF0F172A), labels: shownLabels, height: 52),
                           ],
                         ],
                       ),
@@ -245,12 +247,13 @@ class GutScoreCard extends StatelessWidget {
 
 /// Thin, compact 7-day capsule bar chart designed for gradient banners.
 class CompactSeriesBars extends StatelessWidget {
-  const CompactSeriesBars({super.key, required this.values, required this.color, this.labels = const [], this.height = 52});
+  const CompactSeriesBars({super.key, required this.values, required this.color, this.labels = const [], this.height = 52, this.scoredDayIndices});
 
   final List<double> values;
   final Color color;
   final List<String> labels;
   final double height;
+  final List<int>? scoredDayIndices;
 
   static List<double> padSlots(List<double> values) {
     const totalSlots = 7;
@@ -290,17 +293,13 @@ class CompactSeriesBars extends StatelessWidget {
 
     final data = padSlots(values);
 
-    final todayIndex = DateTime.now().weekday % 7;
-    var activeIdx = -1;
-    if (data[todayIndex] > 0) {
-      activeIdx = todayIndex;
-    } else {
-      for (var i = 0; i < data.length; i++) {
-        if (data[i] > 0 && (activeIdx < 0 || data[i] >= data[activeIdx])) {
-          activeIdx = i;
-        }
-      }
-    }
+    final indices =
+        scoredDayIndices ??
+        [
+          for (var i = 0; i < data.length; i++)
+            if (data[i] > 0) i,
+        ];
+    final activeIdx = indices.isEmpty ? -1 : indices.last;
 
     final chartWidth = 110.w;
     final activeLabelColor = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -313,7 +312,7 @@ class CompactSeriesBars extends StatelessWidget {
           height: height.w,
           width: chartWidth,
           child: CustomPaint(
-            painter: _CompactBarsPainter(values: values, color: color, isDark: isDark),
+            painter: _CompactBarsPainter(values: values, scoredDayIndices: scoredDayIndices, color: color, isDark: isDark),
           ),
         ),
         SizedBox(height: 6.w),
@@ -344,11 +343,12 @@ class CompactSeriesBars extends StatelessWidget {
 }
 
 class _CompactBarsPainter extends CustomPainter {
-  const _CompactBarsPainter({required this.values, required this.color, required this.isDark});
+  const _CompactBarsPainter({required this.values, required this.color, required this.isDark, this.scoredDayIndices});
 
   final List<double> values;
   final Color color;
   final bool isDark;
+  final List<int>? scoredDayIndices;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -367,17 +367,13 @@ class _CompactBarsPainter extends CustomPainter {
       return (v / 100.0).clamp(0.15, 1.0);
     }
 
-    final todayIndex = DateTime.now().weekday % 7;
-    var activeIdx = -1;
-    if (data[todayIndex] > 0) {
-      activeIdx = todayIndex;
-    } else {
-      for (var i = 0; i < data.length; i++) {
-        if (data[i] > 0 && (activeIdx < 0 || data[i] >= data[activeIdx])) {
-          activeIdx = i;
-        }
-      }
-    }
+    final indices =
+        scoredDayIndices ??
+        [
+          for (var i = 0; i < data.length; i++)
+            if (data[i] > 0) i,
+        ];
+    final activeIdx = indices.isEmpty ? -1 : indices.last;
 
     final trackPaint = Paint()
       ..color = isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFF1F5F9)
@@ -391,7 +387,7 @@ class _CompactBarsPainter extends CustomPainter {
       canvas.drawRRect(trackRRect, trackPaint);
 
       final value = data[i];
-      if (value <= 0) continue; // no score that day → empty track only
+      if (!indices.contains(i)) continue;
 
       final rectH = math.max(h * scale(value), 6.0);
       final barRect = Rect.fromLTWH(x, topPad + h - rectH, barW, rectH);
@@ -423,7 +419,7 @@ class _CompactBarsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CompactBarsPainter old) => !listEquals(old.values, values) || old.color != color || old.isDark != isDark;
+  bool shouldRepaint(_CompactBarsPainter old) => !listEquals(old.values, values) || !listEquals(old.scoredDayIndices, scoredDayIndices) || old.color != color || old.isDark != isDark;
 }
 
 class _CompactGutScoreCard extends GutScoreCard {

@@ -107,7 +107,9 @@ class AiVersions {
   ///     food-impact balance, and no unsupported mechanism fields.
   /// 8 = food-swap categories describe each alternative's food type for useful filters.
   /// 9 = request grounded, structured benefits for every food-swap alternative.
-  static const int insightPromptVersion = 9;
+  /// 10 = complete candidate sections, matching counts, and noncausal next steps.
+  /// 11 = require food swaps with four distinct alternatives for negative food patterns.
+  static const int insightPromptVersion = 11;
 
   /// J-4 §17: chat builder (`Prompts.chatSystemInstruction`) version, stamped
   /// on ChatMessage + the scan/meal/symptom records extracted from chat turns.

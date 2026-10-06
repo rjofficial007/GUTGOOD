@@ -181,7 +181,7 @@ void main() {
       final legacy = normalized['triggerFoods'] as List;
 
       expect(normalized['triggerSymptom'], 'bloating');
-      expect(normalized['triggerTrend'], 'Increasing');
+      expect(normalized['triggerTrend'], 'Repeated association');
       expect(legacy, nested);
       expect((legacy.single as Map)['name'], 'Fried Chicken Burger');
     },
@@ -304,5 +304,94 @@ void main() {
 
     expect(foods, hasLength(1));
     expect((foods.single as Map)['name'], 'Pizza + Garlic bread');
+  });
+
+  test('requires four complete distinct swap alternatives for a repeated negative food pattern', () {
+    const candidate = BodyPattern(
+      type: BodyPattern.typeBloating,
+      trigger: 'Fried Chicken Burger',
+      reaction: 'Bloating',
+      frequency: 5,
+      confidence: BodyPattern.confidenceMedium,
+      description: 'Bloating was reported after five burger meals.',
+      involvedFoods: ['fried chicken burger'],
+      updatedAt: '2026-10-11T00:00:00Z',
+    );
+    final alternatives = ['Grilled Chicken Burger', 'Baked Chicken Burger', 'Grilled Fish Sandwich', 'Roasted Vegetable Sandwich']
+        .map(
+          (name) => {
+            'foodId': name.toLowerCase().replaceAll(' ', '_'),
+            'name': name,
+            'reason': 'Try a different preparation.',
+            'category': 'Meals & Bowls',
+            'benefitTags': ['Different preparation'],
+            'structuredBenefits': [
+              {'title': 'Preparation', 'description': 'A different preparation to compare in your logs.', 'icon': 'leaf'},
+            ],
+            'whyBetterOption': 'Compare this preparation with your usual burger.',
+            'imageUrl': null,
+            'nutrition': null,
+          },
+        )
+        .toList();
+    Map<String, dynamic> normalize(List<dynamic> swaps) => InsightResponseValidator.normalize({...baseline(), 'foodSwaps': swaps}, patternCandidates: [candidate]).data;
+    Map<String, dynamic> swap(List<dynamic> items, {String source = 'Fried Chicken Burger'}) => {
+      'source': {'foodId': source.toLowerCase().replaceAll(' ', '_'), 'name': source},
+      'alternatives': items,
+    };
+
+    for (final swaps in [
+      <dynamic>[],
+      [swap([])],
+      [swap(alternatives.take(3).toList())],
+      [
+        swap([alternatives[0], alternatives[0], alternatives[1], alternatives[2]]),
+      ],
+      [
+        swap([
+          ...alternatives.take(3),
+          {...alternatives.last, 'reason': ''},
+        ]),
+      ],
+      [swap(alternatives, source: 'Unrelated soup')],
+    ]) {
+      final data = normalize(swaps);
+      expect(data['foodSwaps'], isEmpty);
+      expect(isUsableInsightResponse(data), isFalse);
+    }
+
+    final complete = normalize([swap(alternatives, source: 'FRIED CHICKEN BURGER')]);
+    expect(isUsableInsightResponse(complete), isTrue);
+    final savedSwap = (complete['foodSwaps'] as List).single as Map;
+    expect(savedSwap['id'], 'swap_fried_chicken_burger');
+    expect((savedSwap['source'] as Map)['name'], candidate.trigger);
+    expect(savedSwap['alternatives'], hasLength(4));
+  });
+
+  test('positive-only and sleep-timing patterns do not require food replacement', () {
+    for (final candidate in [
+      const BodyPattern(
+        type: BodyPattern.typeEnergy,
+        trigger: 'Oats',
+        reaction: 'High Energy',
+        frequency: 3,
+        confidence: 'Medium',
+        description: 'Higher energy reported.',
+        updatedAt: '',
+      ),
+      const BodyPattern(
+        type: BodyPattern.typeSleep,
+        trigger: 'Late night eating',
+        reaction: 'Interrupted Sleep',
+        frequency: 3,
+        confidence: 'Medium',
+        description: 'Poor sleep reported.',
+        updatedAt: '',
+      ),
+    ]) {
+      final data = InsightResponseValidator.normalize(baseline(), patternCandidates: [candidate]).data;
+      expect(data['foodSwaps'], isEmpty);
+      expect(isUsableInsightResponse(data), isTrue);
+    }
   });
 }

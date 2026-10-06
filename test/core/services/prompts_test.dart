@@ -155,6 +155,9 @@ void main() {
     test('food swaps classify alternatives by their own type for useful filters', () {
       const instruction = InsightsPrompt.instruction;
       expect(instruction, contains('FOOD SWAPS AND FILTER CATEGORIES'));
+      expect(instruction, contains('`foodSwaps` is REQUIRED'));
+      expect(instruction, contains('at least 4 distinct'));
+      expect(instruction, contains('Set unavailable images and nutrition values to null'));
       expect(instruction, contains('grilled chicken → `Protein`'));
       expect(instruction, contains('plant-based patty → `Plant-Based`'));
       expect(instruction, contains('whole-grain bun → `Grains & Bread`'));

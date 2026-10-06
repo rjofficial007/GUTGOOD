@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gutgood/app/router/app_router.dart';
 import 'package:gutgood/app/theme/app_theme.dart';
@@ -17,6 +19,7 @@ import 'package:gutgood/features/insights/presentation/providers/insights_notifi
 import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:gutgood/features/profile/presentation/providers/usage_notifier.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 import 'package:gutgood/infrastructure/platform/internet_connection_checker.dart';
 import 'package:provider/provider.dart';
 
@@ -75,6 +78,7 @@ class _GutGoodShellState extends State<_GutGoodShell> with WidgetsBindingObserve
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       sl<InternetConnectionChecker>().checkConnection();
+      unawaited(sl<HistoryFirestoreService>().refreshGutScore());
     }
   }
 

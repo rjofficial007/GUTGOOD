@@ -23,6 +23,7 @@ class ProfileHeader extends StatefulWidget {
     this.longestStreak = 0,
     this.lastActivityDate,
     required this.gutScore,
+    this.hasGutScore = true,
     required this.avgFoodScore,
   });
 
@@ -35,6 +36,7 @@ class ProfileHeader extends StatefulWidget {
   final int longestStreak;
   final String? lastActivityDate;
   final int gutScore;
+  final bool hasGutScore;
   final int avgFoodScore;
 
   @override
@@ -237,18 +239,12 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                               Gap.w6,
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 2),
-                                child: Text(
-                                  '${AppStrings.bestScore}: ${widget.longestStreak}',
-                                  style: context.captionBold.copyWith(color: AppPalette.white.withAlpha(77)),
-                                ),
+                                child: Text('${AppStrings.bestScore}: ${widget.longestStreak}', style: context.captionBold.copyWith(color: AppPalette.white.withAlpha(77))),
                               ),
                             ],
                           ],
                         ),
-                        Text(
-                          AppStrings.dayStreakLabel.toUpperCase(),
-                          style: context.captionBold.copyWith(color: AppPalette.white.withAlpha(102)),
-                        ),
+                        Text(AppStrings.dayStreakLabel.toUpperCase(), style: context.captionBold.copyWith(color: AppPalette.white.withAlpha(102))),
                       ],
                     ),
                   ],
@@ -261,7 +257,7 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: '${widget.avgFoodScore}',
+                            text: widget.hasGutScore ? '${widget.gutScore}' : '—',
                             style: context.headingMd.copyWith(color: AppPalette.white, fontWeight: FontWeight.w900),
                           ),
                           TextSpan(
@@ -271,10 +267,7 @@ class _ProfileHeaderState extends State<ProfileHeader> with SingleTickerProvider
                         ],
                       ),
                     ),
-                    Text(
-                      AppStrings.gutGoodScore.toUpperCase(),
-                      style: context.captionBold.copyWith(color: AppPalette.white.withAlpha(102)),
-                    ),
+                    Text(AppStrings.gutGoodScore.toUpperCase(), style: context.captionBold.copyWith(color: AppPalette.white.withAlpha(102))),
                   ],
                 ),
               ],
@@ -308,7 +301,7 @@ class _MinimalWeeklyBubbles extends StatelessWidget {
         if (lastActivityDate != null && streak > 0) {
           final lastActive = DateTime.parse(lastActivityDate!);
           final lastActiveMidnight = DateTime(lastActive.year, lastActive.month, lastActive.day);
-          
+
           final daysSinceThisDay = lastActiveMidnight.difference(day).inDays;
           if (daysSinceThisDay >= 0 && daysSinceThisDay < streak) {
             isStreakDay = true;

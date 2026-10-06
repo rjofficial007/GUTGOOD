@@ -12,6 +12,8 @@ import 'package:gutgood/features/insights/presentation/providers/insights_notifi
 import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_feed_derivations.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ui_kit.dart';
 import 'package:gutgood/features/insights/presentation/widgets/occurrence_tile.dart';
+import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';
+import 'package:gutgood/features/profile/presentation/providers/profile_provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 

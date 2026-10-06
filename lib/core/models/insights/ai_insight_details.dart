@@ -300,6 +300,7 @@ class WeeklyRecap extends Equatable {
     this.highlights = const [],
     this.stats = const [],
     this.gutScoreTrend,
+    this.scoredDayIndices,
     this.summary,
     this.avgScore,
     this.dateRange,
@@ -312,6 +313,8 @@ class WeeklyRecap extends Equatable {
   });
 
   factory WeeklyRecap.fromMap(Map<String, dynamic> map) {
+    final rawTrend = map['gutScoreTrend'];
+    final trend = rawTrend is List ? rawTrend.take(7).map((value) => (InsightValues.integer(value) ?? 0).clamp(0, 100)).toList() : null;
     final rawHighlights = map['highlights'];
     final parsedHighlights = <dynamic>[];
     if (rawHighlights is List) {
@@ -329,7 +332,16 @@ class WeeklyRecap extends Equatable {
     return WeeklyRecap(
       highlights: parsedHighlights,
       stats: (map['stats'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      gutScoreTrend: map['gutScoreTrend'] is List ? (map['gutScoreTrend'] as List).map(InsightValues.integer).whereType<int>().where((score) => score >= 0 && score <= 100).toList() : null,
+      gutScoreTrend: trend,
+      scoredDayIndices: map['scoredDayIndices'] is List
+          ? ((map['scoredDayIndices'] as List)
+                .map(InsightValues.integer)
+                .whereType<int>()
+                .where((index) => index >= 0 && index < (trend?.length ?? 0) && rawTrend is List && InsightValues.number(rawTrend[index]) != null)
+                .toSet()
+                .toList()
+              ..sort())
+          : null,
       summary: map['summary']?.toString() ?? map['weeklyInsight']?.toString(),
       avgScore: InsightValues.integer(map['avgScore']),
       dateRange: map['dateRange']?.toString(),
@@ -345,6 +357,8 @@ class WeeklyRecap extends Equatable {
   final List<dynamic> highlights;
   final List<String> stats;
   final List<int>? gutScoreTrend;
+  final List<int>? scoredDayIndices;
+  int get scoredDayCount => scoredDayIndices?.length ?? gutScoreTrend?.where((score) => score > 0).length ?? 0;
   final String? summary;
   final int? avgScore;
   final String? dateRange;
@@ -362,6 +376,7 @@ class WeeklyRecap extends Equatable {
     List<dynamic>? highlights,
     List<String>? stats,
     List<int>? gutScoreTrend,
+    List<int>? scoredDayIndices,
     String? summary,
     int? avgScore,
     String? dateRange,
@@ -375,6 +390,7 @@ class WeeklyRecap extends Equatable {
     highlights: highlights ?? this.highlights,
     stats: stats ?? this.stats,
     gutScoreTrend: gutScoreTrend ?? this.gutScoreTrend,
+    scoredDayIndices: scoredDayIndices ?? this.scoredDayIndices,
     summary: summary ?? this.summary,
     avgScore: avgScore ?? this.avgScore,
     dateRange: dateRange ?? this.dateRange,
@@ -393,6 +409,7 @@ class WeeklyRecap extends Equatable {
     }).toList(),
     'stats': stats,
     'gutScoreTrend': gutScoreTrend,
+    if (scoredDayIndices != null) 'scoredDayIndices': scoredDayIndices,
     'summary': summary,
     'avgScore': avgScore,
     'dateRange': dateRange,
@@ -405,7 +422,7 @@ class WeeklyRecap extends Equatable {
   };
 
   @override
-  List<Object?> get props => [highlights, stats, gutScoreTrend, summary, avgScore, dateRange, scoreSub, bestDay, foodsLogged, loggedSub, periodFrom, periodTo];
+  List<Object?> get props => [highlights, stats, gutScoreTrend, scoredDayIndices, summary, avgScore, dateRange, scoreSub, bestDay, foodsLogged, loggedSub, periodFrom, periodTo];
 }
 
 class GutScoreSummary extends Equatable {
@@ -460,11 +477,8 @@ class InsightFood extends Equatable {
 class HealingSummary extends Equatable {
   const HealingSummary({required this.foods, required this.goal, required this.trend});
 
-  factory HealingSummary.fromMap(Map<String, dynamic> map) => HealingSummary(
-    foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap),
-    goal: map['goal']?.toString() ?? '',
-    trend: map['trend']?.toString() ?? '',
-  );
+  factory HealingSummary.fromMap(Map<String, dynamic> map) =>
+      HealingSummary(foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap), goal: map['goal']?.toString() ?? '', trend: map['trend']?.toString() ?? '');
 
   final List<InsightFood> foods;
   final String goal;
@@ -479,11 +493,8 @@ class HealingSummary extends Equatable {
 class TriggerSummary extends Equatable {
   const TriggerSummary({required this.foods, required this.primarySymptom, required this.trend});
 
-  factory TriggerSummary.fromMap(Map<String, dynamic> map) => TriggerSummary(
-    foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap),
-    primarySymptom: map['primarySymptom']?.toString() ?? '',
-    trend: map['trend']?.toString() ?? '',
-  );
+  factory TriggerSummary.fromMap(Map<String, dynamic> map) =>
+      TriggerSummary(foods: ModelUtils.parseModelList<InsightFood>(map['foods'], InsightFood.fromMap), primarySymptom: map['primarySymptom']?.toString() ?? '', trend: map['trend']?.toString() ?? '');
 
   final List<InsightFood> foods;
   final String primarySymptom;

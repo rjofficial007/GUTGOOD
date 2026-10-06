@@ -11,8 +11,16 @@ extension HighlightHealingSections on HighlightDetailScreen {
   Widget _buildHealingTrendDetail(BuildContext context) {
     final theme = context.insightTheme;
     final insight = _highlightInsightOf(context);
+    final scoreRecord = WhyScoreSheet.resolveRecord(context);
+    int? profileScore;
+    bool? profileHasScore;
+    try {
+      final profile = context.watch<ProfileNotifier>();
+      profileScore = profile.gutScore;
+      profileHasScore = profile.hasGutScore;
+    } on ProviderNotFoundException {}
 
-    var series = [...args.chartValues];
+    var series = scoreRecord == null ? [...args.chartValues] : [for (final score in scoreRecord.dailyScores) score.toDouble()];
     if (series.isEmpty && insight?.weeklyRecap?.gutScoreTrend?.isNotEmpty == true) {
       series = [for (final score in insight!.weeklyRecap!.gutScoreTrend!) score.toDouble()];
     }
@@ -21,15 +29,11 @@ extension HighlightHealingSections on HighlightDetailScreen {
     }
 
     final cleanSeries = InsightValues.scores(series);
-    final scoredSeries = cleanSeries.where((score) => score > 0).toList(growable: false);
-    final hasScore = insight?.hasGutScore == true || scoredSeries.isNotEmpty;
-    final scoredDayCount = scoredSeries.isEmpty && insight?.hasGutScore == true ? 1 : scoredSeries.length;
+    final scoredSeries = scoreRecord?.scoredScores.map((score) => score.toDouble()).toList() ?? cleanSeries.where((score) => score > 0).toList(growable: false);
+    final hasScore = profileHasScore ?? scoreRecord?.hasScore ?? (insight?.hasGutScore == true || scoredSeries.isNotEmpty);
+    final scoredDayCount = scoreRecord?.scoredDayCount ?? (scoredSeries.isEmpty && insight?.hasGutScore == true ? 1 : scoredSeries.length);
     final hasHistory = scoredSeries.length > 1;
-    final currentScore = insight?.hasGutScore == true
-        ? insight!.gutScore.clamp(0, 100).toInt()
-        : scoredSeries.isNotEmpty
-        ? scoredSeries.last.round()
-        : 0;
+    final currentScore = profileScore ?? scoreRecord?.gutScore ?? (insight?.hasGutScore == true ? insight!.gutScore.clamp(0, 100).toInt() : (scoredSeries.isNotEmpty ? scoredSeries.last.round() : 0));
 
     // A single score is a baseline regardless of scoreDiff. Do not turn a
     // persisted "+0" into a green progress state.
@@ -91,13 +95,14 @@ extension HighlightHealingSections on HighlightDetailScreen {
         slivers: [
           GutSliverAppBar(title: appBarTitle, centerTitle: true, showBrandingIcon: false, backgroundColor: theme.scaffold),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 28.w),
+            padding: EdgeInsets.fromLTRB(16.w, 6.w, 16.w, 20.w),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _buildProgressHero(
                   context,
                   theme: theme,
                   chartSeries: chartSeries,
+                  scoredDayIndices: scoreRecord?.scoredDayIndices,
                   hasScore: hasScore,
                   currentScore: currentScore,
                   hasHistory: hasHistory,
@@ -112,12 +117,12 @@ extension HighlightHealingSections on HighlightDetailScreen {
                   accent: accent,
                   accentSoft: accentSoft,
                 ),
-                Gap.h16,
+                Gap.h12,
                 _buildObservationStatusCard(context, insight: insight, isBaseline: isBaseline, scoredDayCount: scoredDayCount),
-                if (foods.isNotEmpty) ...[Gap.h16, _buildWhatsContributingSection(context, foods)],
-                if (highlights.isNotEmpty) ...[Gap.h16, _buildProgressHighlightsSection(context, highlights)],
-                if (nextSteps.isNotEmpty) ...[Gap.h16, _buildNextStepsSection(context, nextSteps, isBaseline: isBaseline)],
-                Gap.h16,
+                if (foods.isNotEmpty) ...[Gap.h12, _buildWhatsContributingSection(context, foods)],
+                if (highlights.isNotEmpty) ...[Gap.h12, _buildProgressHighlightsSection(context, highlights)],
+                if (nextSteps.isNotEmpty) ...[Gap.h12, _buildNextStepsSection(context, nextSteps, isBaseline: isBaseline)],
+                Gap.h12,
                 _buildKeepGoingBanner(context, isBaseline: isBaseline),
               ]),
             ),
@@ -130,6 +135,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
   Widget _buildBaselineHero({
     required InsightTheme theme,
     required bool hasScore,
+    required int currentScore,
     required String statusLabel,
     required String headline,
     required String body,
@@ -140,7 +146,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
     final statusNote = hasScore ? 'The next logged day will give us a useful comparison.' : 'Log a meal and how you feel to start your baseline.';
 
     return Container(
-      padding: EdgeInsets.all(18.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
         color: accentSoft,
         borderRadius: BorderRadius.circular(24.w),
@@ -157,7 +163,12 @@ extension HighlightHealingSections on HighlightDetailScreen {
                 height: 36.w,
                 decoration: BoxDecoration(color: accent.withValues(alpha: 0.16), shape: BoxShape.circle),
                 alignment: Alignment.center,
-                child: Icon(LucideIcons.calendar, size: 18.w, color: accent),
+                child: hasScore
+                    ? Text(
+                        '$currentScore',
+                        style: TextStyle(fontFamily: InsightTheme.displayFont, fontSize: currentScore == 100 ? 16.sp : 20.sp, fontWeight: FontWeight.w800, color: accent),
+                      )
+                    : Icon(LucideIcons.calendar, size: 18.w, color: accent),
               ),
               Gap.w10,
               Expanded(
@@ -176,19 +187,19 @@ extension HighlightHealingSections on HighlightDetailScreen {
               ),
             ],
           ),
-          Gap.h16,
+          Gap.h12,
           Text(
             headline,
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 24.sp, fontWeight: FontWeight.w900, height: 1.05, letterSpacing: -0.5, color: theme.textPrimary),
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 22.sp, fontWeight: FontWeight.w900, height: 1.05, letterSpacing: -0.5, color: theme.textPrimary),
           ),
           Gap.h8,
           Text(
             body,
             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, height: 1.4, color: theme.textSecondary),
           ),
-          Gap.h16,
+          Gap.h12,
           Container(
-            padding: EdgeInsets.all(11.w),
+            padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
               color: theme.card.withValues(alpha: 0.72),
               borderRadius: BorderRadius.circular(15.w),
@@ -232,6 +243,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
     BuildContext context, {
     required InsightTheme theme,
     required List<double> chartSeries,
+    List<int>? scoredDayIndices,
     required bool hasScore,
     required int currentScore,
     required bool hasHistory,
@@ -247,7 +259,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
     required Color accentSoft,
   }) {
     if (!hasHistory) {
-      return _buildBaselineHero(theme: theme, hasScore: hasScore, statusLabel: statusLabel, headline: headline, body: body, accent: accent, accentSoft: accentSoft);
+      return _buildBaselineHero(theme: theme, hasScore: hasScore, currentScore: currentScore, statusLabel: statusLabel, headline: headline, body: body, accent: accent, accentSoft: accentSoft);
     }
 
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -255,11 +267,11 @@ extension HighlightHealingSections on HighlightDetailScreen {
     final deltaText = hasHistory ? '${diff > 0 ? '+' : ''}$diff pts' : 'Baseline';
 
     return Container(
-      padding: EdgeInsets.all(18.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: theme.card,
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accentSoft.withValues(alpha: 0.72), theme.card]),
         borderRadius: BorderRadius.circular(24.w),
-        border: Border.all(color: theme.border),
+        border: Border.all(color: accent.withValues(alpha: 0.22)),
         boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.045), blurRadius: 18.w, offset: Offset(0, 7.w))],
       ),
       child: Column(
@@ -273,7 +285,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(hasHistory ? LucideIcons.trendingUp : LucideIcons.sparkles, size: 13.w, color: accent),
+                    Icon(hasHistory ? (diff < 0 ? LucideIcons.trendingDown : diff == 0 ? LucideIcons.minus : LucideIcons.trendingUp) : LucideIcons.sparkles, size: 13.w, color: accent),
                     Gap.w5,
                     Text(
                       statusLabel,
@@ -285,32 +297,34 @@ extension HighlightHealingSections on HighlightDetailScreen {
               const Spacer(),
               Text(
                 deltaText,
-                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: theme.textTertiary),
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: accent),
               ),
             ],
           ),
-          Gap.h14,
+          Gap.h10,
           Text(
             headline,
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 22.sp, fontWeight: FontWeight.w900, height: 1.05, letterSpacing: -0.45, color: theme.textPrimary),
+            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 20.sp, fontWeight: FontWeight.w900, height: 1.05, letterSpacing: -0.45, color: theme.textPrimary),
           ),
           Gap.h6,
           Text(
             body,
             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, height: 1.35, color: theme.textSecondary),
           ),
-          Gap.h16,
+          Gap.h12,
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              SizedBox(
-                width: 92.w,
+              Container(
+                width: 98.w,
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(color: accentSoft.withValues(alpha: 0.72), borderRadius: BorderRadius.circular(14.w)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       scoreText,
-                      style: TextStyle(fontFamily: InsightTheme.displayFont, fontSize: 46.sp, height: 0.9, color: theme.textPrimary),
+                      style: TextStyle(fontFamily: InsightTheme.displayFont, fontSize: 40.sp, height: 0.9, color: accent),
                     ),
                     Gap.h6,
                     Text(
@@ -340,8 +354,8 @@ extension HighlightHealingSections on HighlightDetailScreen {
                     ),
                     Gap.h5,
                     SizedBox(
-                      height: 68.w,
-                      child: InsightTrendChart(values: chartSeries, height: 68, color: accent, endDot: true),
+                      height: 56.w,
+                      child: InsightTrendChart(values: chartSeries, scoredDayIndices: scoredDayIndices, height: 56, color: accent, endDot: true),
                     ),
                     Gap.h6,
                     AlignedDayLabelsRow(labels: dayLabels, todayIndex: DateTime.now().weekday % 7),
@@ -350,7 +364,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
               ),
             ],
           ),
-          Gap.h16,
+          Gap.h12,
           Container(
             padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
@@ -365,7 +379,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
                 ),
                 Container(width: 1.w, height: 30.w, color: theme.border),
                 Expanded(
-                  child: _BaselineMetric(label: 'SCORE RANGE', value: rangeLabel, detail: hasHistory ? 'This period' : 'Starting point', color: theme.textPrimary),
+                  child: _BaselineMetric(label: 'SCORE RANGE', value: rangeLabel, detail: hasHistory ? 'This period' : 'Starting point', color: accent),
                 ),
               ],
             ),
@@ -395,7 +409,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
     final accentSoft = isBaseline ? theme.successSoft : theme.purplePastel.withValues(alpha: 0.18);
 
     return Container(
-      padding: EdgeInsets.all(15.w),
+      padding: EdgeInsets.all(13.w),
       decoration: BoxDecoration(
         color: theme.card,
         borderRadius: BorderRadius.circular(20.w),
@@ -440,7 +454,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
             description,
             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, height: 1.35, color: theme.textSecondary),
           ),
-          Gap.h12,
+          Gap.h10,
           Wrap(
             spacing: 7.w,
             runSpacing: 7.w,

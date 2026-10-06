@@ -102,7 +102,7 @@ class _SwapDetailScreenState extends State<SwapDetailScreen> {
                   ),
                   Gap.h2,
                   Text(
-                    'Suggested alternative',
+                    'A better choice for you',
                     style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w500, color: theme.textSecondary),
                   ),
                   Gap.h12,
@@ -173,7 +173,7 @@ class _SwapDetailScreenState extends State<SwapDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                              sourceFoodName.trim().isNotEmpty ? 'About this alternative' : 'Comparison details',
+                                'Why this may be a better option',
                                 style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                               ),
                               Gap.h4,
@@ -190,7 +190,7 @@ class _SwapDetailScreenState extends State<SwapDetailScreen> {
                   Gap.h12,
 
                   // 5. Nutrition Details Card
-                  if (nutrition.hasData) Container(
+                  Container(
                     padding: EdgeInsets.all(12.w),
                     decoration: BoxDecoration(
                       color: theme.card,
@@ -201,19 +201,24 @@ class _SwapDetailScreenState extends State<SwapDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Nutrition details provided',
+                          'Nutrition Highlights (typical estimates)',
                           style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                         ),
                         Gap.h10,
+                        Text(
+                          'Approximate values for a typical serving; actual nutrition varies by recipe and portion.',
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: theme.textSecondary),
+                        ),
+                        Gap.h8,
                         Row(
                           children: [
-                            Expanded(child: _nutritionItem(context, nutrition.calories?.toString() ?? 'Not provided', 'Calories', valueColor: theme.textPrimary)),
+                            Expanded(child: _nutritionItem(context, nutrition.calories?.toString() ?? '—', 'Calories', valueColor: theme.textPrimary)),
                             _nutritionDivider(context),
-                            Expanded(child: _nutritionItem(context, nutrition.protein ?? 'Not provided', 'Protein', valueColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
+                            Expanded(child: _nutritionItem(context, nutrition.protein ?? '—', 'Protein', valueColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
                             _nutritionDivider(context),
-                            Expanded(child: _nutritionItem(context, nutrition.totalFat ?? 'Not provided', 'Total Fat', valueColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))),
+                            Expanded(child: _nutritionItem(context, nutrition.totalFat ?? '—', 'Total Fat', valueColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))),
                             _nutritionDivider(context),
-                            Expanded(child: _nutritionItem(context, nutrition.fiber ?? 'Not provided', 'Fiber', valueColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
+                            Expanded(child: _nutritionItem(context, nutrition.fiber ?? '—', 'Fiber', valueColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))),
                           ],
                         ),
                       ],

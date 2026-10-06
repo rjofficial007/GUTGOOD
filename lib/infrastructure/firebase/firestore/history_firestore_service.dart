@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gutgood/core/models/insights/gut_score_record.dart';
 import 'package:gutgood/core/models/journal/food_event_linking.dart';
 import 'package:gutgood/core/models/journal/history_counts.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';
@@ -15,7 +14,6 @@ import 'package:gutgood/core/utils/saved_food_key.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/food_image_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/gut_score_firestore_service.dart';
 import 'package:uuid/uuid.dart';
-
 
 part 'history_firestore_contract.dart';
 part 'history_firestore_impl.dart';

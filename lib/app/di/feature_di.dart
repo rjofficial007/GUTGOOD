@@ -61,6 +61,7 @@ void initFeatureDI() {
         sl<AuthRepository>(),
         sl<AuthFirestoreService>(),
         sl<HistoryFirestoreService>(),
+        sl<GutScoreFirestoreService>(),
         sl<AppStateService>(),
         sl<NotificationService>(),
         sl<AnalyticsService>(),

@@ -16,6 +16,11 @@ void main() {
   );
 
   group('GutScoreCard Widget Tests', () {
+    testWidgets('gaps compare the previous scored day and a real zero is included', (tester) async {
+      await tester.pumpWidget(createTestWidget(const GutScoreCard(score: 35, series: [0, 70, 0, 0, 0, 0, 0], scoredDayIndices: [1, 4])));
+      expect(find.text('↓ 70 vs previous scored day'), findsOneWidget);
+      expect(find.textContaining('yesterday'), findsNothing);
+    });
     testWidgets('renders hero score card with default title, score and band', (tester) async {
       await tester.pumpWidget(createTestWidget(const GutScoreCard(score: 85, delta: 5)));
 

@@ -141,7 +141,7 @@ $ingredientSchema
       "subtitle": "string",
       "tag": "BETTER CHOICE",
       "badge": "string",
-      "imageKeyword": "grilled chicken breast",
+      "imageKeyword": "string",
       "isBlackBadge": true
     }
   ],

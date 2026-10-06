@@ -1,8 +1,10 @@
 import 'package:gutgood/core/models/insights/ai_insight_details.dart';
+import 'package:gutgood/core/models/insights/gut_score_record.dart';
 import 'package:gutgood/core/models/journal/food_event_linking.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
+import 'package:gutgood/core/utils/insight_values.dart';
 
 /// Pure deterministic service to calculate exact Gut Scores without AI hallucination.
 class GutScoreCalculatorService {
@@ -18,6 +20,52 @@ class GutScoreCalculatorService {
   static DateTime startOfLocalDay(DateTime dt) {
     final local = dt.toLocal();
     return DateTime(local.year, local.month, local.day);
+  }
+
+  static DateTime startOfLocalWeek(DateTime dt) {
+    final local = dt.toLocal();
+    return DateTime(local.year, local.month, local.day - local.weekday % 7);
+  }
+
+  static String _weeklyRecordId(DateTime weekStart) {
+    final weekEnd = DateTime(weekStart.year, weekStart.month, weekStart.day + 6);
+    final weekYear = weekEnd.year;
+    final firstWeekStart = startOfLocalWeek(DateTime(weekYear));
+    final weekStartDay = DateTime.utc(weekStart.year, weekStart.month, weekStart.day);
+    final firstWeekStartDay = DateTime.utc(firstWeekStart.year, firstWeekStart.month, firstWeekStart.day);
+    final weekNumber = weekStartDay.difference(firstWeekStartDay).inDays ~/ 7 + 1;
+    return 'weekly_${weekYear}_W${weekNumber.toString().padLeft(2, '0')}';
+  }
+
+  /// One Sunday–Saturday definition for every score writer and display.
+  GutScoreRecord calculateWeeklyRecord({
+    required String uid,
+    required List<ScanResult> scans,
+    required List<SymptomLog> symptoms,
+    required List<MealLog> meals,
+    required DateTime asOf,
+    DateTime? recordedThrough,
+  }) {
+    final start = startOfLocalWeek(asOf);
+    final logCutoff = recordedThrough ?? asOf;
+    bool inWindow(DateTime time) => !time.isBefore(start) && !time.isAfter(asOf);
+    final weekScans = scans.where((scan) => scan.isLoggableProduct && inWindow(scan.createdAt)).toList();
+    final weekMeals = meals.where((meal) => !meal.createdAt.isAfter(logCutoff) && inWindow(meal.eventTime)).toList();
+    final weekSymptoms = symptoms.where((symptom) => !symptom.createdAt.isAfter(logCutoff) && inWindow(symptom.eventTime)).toList();
+    final scoredIndices = weekScans.map((scan) => scan.createdAt.toLocal().weekday % 7).toSet().toList()..sort();
+    return GutScoreRecord(
+      id: _weeklyRecordId(start),
+      uid: uid,
+      type: 'weekly',
+      scansCount: weekScans.length,
+      mealsCount: weekMeals.length,
+      symptomsCount: weekSymptoms.length,
+      dailyScores: calculateWeeklyTrend(scans: weekScans, symptoms: weekSymptoms, meals: weekMeals, endDate: asOf, recordedThrough: logCutoff),
+      scoredDayIndices: scoredIndices,
+      periodFrom: start.toUtc(),
+      periodTo: DateTime(start.year, start.month, start.day + 7).subtract(const Duration(microseconds: 1)).toUtc(),
+      createdAt: logCutoff.toUtc(),
+    );
   }
 
   /// Calculates an exact Gut Score based on scan history, symptom severity, and logging consistency.
@@ -40,32 +88,29 @@ class GutScoreCalculatorService {
   /// Empty days in [calculateWeeklyTrend] must stay 0 in `dailyScores`.
   int calculateAvgScanScore(List<ScanResult> scans) {
     if (scans.isEmpty) return 0;
-    final sum = scans.fold<int>(0, (acc, scan) => acc + scan.score);
+    final sum = scans.fold<int>(0, (acc, scan) => acc + scan.score.clamp(0, 100));
     return (sum / scans.length).round().clamp(0, 100);
   }
 
-  /// Mean of **scored** days only (values &gt; 0). Empty / missing days are ignored
-  /// so a single real day is not diluted by six zeros, and zeros are never treated
-  /// as real scores.
-  int averageOfScoredDays(List<int> dailyScores) {
-    final scored = dailyScores.where((s) => s > 0).toList();
+  /// Mean of measured days only. Explicit activity includes genuine zeros;
+  /// legacy series without activity infer measured days from positive values.
+  int averageOfScoredDays(List<int> dailyScores, {List<int>? scoredDayIndices}) {
+    final scored = scoredDayIndices == null ? dailyScores.where((s) => s > 0).toList() : [for (final index in scoredDayIndices) dailyScores[index]];
     if (scored.isEmpty) return 0;
     final sum = scored.fold<int>(0, (a, b) => a + b);
     return (sum / scored.length).round().clamp(0, 100);
   }
-
-  /// True when the period has at least one scan to ground a gut score.
-  bool hasScoreData(List<ScanResult> scans) => scans.isNotEmpty;
 
   /// Calculates symptom penalty based on severity (0 to 30 points penalty).
   int calculateSymptomPenalty(List<SymptomLog> symptoms) {
     if (symptoms.isEmpty) return 0;
     var totalPenalty = 0;
     for (final symptom in symptoms) {
+      if (InsightValues.isPositiveReaction(symptom.symptom)) continue;
       final sev = symptom.severity ?? 1;
-      if (sev >= 3) {
+      if (sev >= 7) {
         totalPenalty += 9; // Severe symptom
-      } else if (sev == 2) {
+      } else if (sev >= 4) {
         totalPenalty += 6; // Moderate symptom
       } else {
         totalPenalty += 3; // Mild symptom
@@ -94,26 +139,25 @@ class GutScoreCalculatorService {
   /// Day windows use the **local** calendar of [endDate] so charts line up with
   /// weekday labels on device. Meals/symptoms bucket by [MealLog.eventTime] /
   /// [SymptomLog.eventTime] (occurredAt when known).
-  List<int> calculateWeeklyTrend({required List<ScanResult> scans, required List<SymptomLog> symptoms, required List<MealLog> meals, required DateTime endDate}) {
+  List<int> calculateWeeklyTrend({required List<ScanResult> scans, required List<SymptomLog> symptoms, required List<MealLog> meals, required DateTime endDate, DateTime? recordedThrough}) {
     final scores = <int>[];
-    final endLocal = startOfLocalDay(endDate);
-    final sunday = endLocal.subtract(Duration(days: endLocal.weekday % 7));
+    final sunday = startOfLocalWeek(endDate);
 
     for (var i = 0; i < 7; i++) {
-      final dayStart = sunday.add(Duration(days: i));
-      final dayEnd = dayStart.add(const Duration(days: 1));
+      final dayStart = DateTime(sunday.year, sunday.month, sunday.day + i);
+      final dayEnd = DateTime(sunday.year, sunday.month, sunday.day + i + 1);
 
       final dayScans = scans.where((s) {
         final t = s.createdAt.toLocal();
-        return !t.isBefore(dayStart) && t.isBefore(dayEnd);
+        return s.isLoggableProduct && !t.isAfter(endDate) && !t.isBefore(dayStart) && t.isBefore(dayEnd);
       }).toList();
       final daySymptoms = symptoms.where((s) {
         final t = s.eventTime.toLocal();
-        return !t.isBefore(dayStart) && t.isBefore(dayEnd);
+        return !s.createdAt.isAfter(recordedThrough ?? endDate) && !t.isAfter(endDate) && !t.isBefore(dayStart) && t.isBefore(dayEnd);
       }).toList();
       final dayMeals = meals.where((m) {
         final t = m.eventTime.toLocal();
-        return !t.isBefore(dayStart) && t.isBefore(dayEnd);
+        return !m.createdAt.isAfter(recordedThrough ?? endDate) && !t.isAfter(endDate) && !t.isBefore(dayStart) && t.isBefore(dayEnd);
       }).toList();
 
       // No scan activity that day → no score available → 0 (do not fabricate).
@@ -140,16 +184,14 @@ class GutScoreCalculatorService {
 
   /// Deterministically generates the complete WeeklyRecap data structure.
   ///
-  /// [exactScore] is the period gut score shown as the headline number.
-  /// [avgScore] prefers the mean of scored days in [weeklyTrend] when any day
-  /// has data, otherwise [exactScore].
+  /// The headline averages measured daily scores; missing days do not produce
+  /// a baseline and genuine zero scores remain part of the average.
   WeeklyRecap calculateWeeklyRecap({
     required List<ScanResult> recentScans,
     required List<SymptomLog> recentSymptoms,
     required List<MealLog> recentMeals,
     required List<int> weeklyTrend,
-    required int exactScore,
-    DateTime? endDate,
+    List<int>? scoredDayIndices,
     DateTime? periodFrom,
     DateTime? periodTo,
   }) {
@@ -159,9 +201,15 @@ class GutScoreCalculatorService {
     final totalSymptoms = recentSymptoms.length;
 
     // Best day = highest real score only. 0 means "no score that day".
-    var highestScore = 0;
+    final scoredIndices =
+        scoredDayIndices ??
+        [
+          for (var i = 0; i < weeklyTrend.length; i++)
+            if (weeklyTrend[i] > 0) i,
+        ];
+    var highestScore = -1;
     var bestDayIndex = -1;
-    for (var i = 0; i < weeklyTrend.length; i++) {
+    for (final i in scoredIndices) {
       if (weeklyTrend[i] > highestScore) {
         highestScore = weeklyTrend[i];
         bestDayIndex = i;
@@ -174,10 +222,10 @@ class GutScoreCalculatorService {
       bestDayName = dayNames[bestDayIndex];
     }
 
-    final trendAvg = averageOfScoredDays(weeklyTrend);
-    final displayAvg = trendAvg > 0 ? trendAvg : exactScore;
+    final trendAvg = averageOfScoredDays(weeklyTrend, scoredDayIndices: scoredIndices);
+    final displayAvg = scoredIndices.isNotEmpty ? trendAvg : 0;
 
-    final scoredDays = weeklyTrend.where((s) => s > 0).length;
+    final scoredDays = scoredIndices.length;
     final scoreSub = scoredDays == 0 ? 'No scored days yet' : '$scoredDays of 7 days scored';
 
     final foodLabel = totalLogs == 1 ? 'food' : 'foods';
@@ -186,12 +234,12 @@ class GutScoreCalculatorService {
     final loggedLabel = totalLogs == 0
         ? 'foods'
         : recentMeals.isNotEmpty && standaloneScans.isNotEmpty
-            ? 'meals and scans'
-            : standaloneScans.isNotEmpty
-                ? (standaloneScans.length == 1 ? 'scan' : 'scans')
-                : recentMeals.length == 1
-                    ? 'meal'
-                    : 'meals';
+        ? 'meals and scans'
+        : standaloneScans.isNotEmpty
+        ? (standaloneScans.length == 1 ? 'scan' : 'scans')
+        : recentMeals.length == 1
+        ? 'meal'
+        : 'meals';
     var summary = 'You logged $totalLogs $foodLabel and $totalSymptoms $symptomLabel this week.';
     if (highestScore > 80) {
       summary += ' Great job maintaining a high gut score!';
@@ -209,6 +257,7 @@ class GutScoreCalculatorService {
       dateRange: dateRange,
       avgScore: displayAvg,
       gutScoreTrend: weeklyTrend,
+      scoredDayIndices: scoredIndices,
       summary: summary,
       scoreSub: scoreSub,
       bestDay: bestDayName.isNotEmpty ? bestDayName : null,

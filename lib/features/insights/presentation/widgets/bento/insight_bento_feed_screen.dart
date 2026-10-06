@@ -16,15 +16,27 @@ class InsightBentoFeed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
-    final score = data.gutScore.clamp(0, 100);
-    final delta = BentoData.parseDelta(data.scoreDiff);
+    final score = WhyScoreSheet.resolveScore(context, data);
+    final scoreRecord = WhyScoreSheet.resolveRecord(context);
+    final scored = scoreRecord?.scoredScores ?? const <int>[];
+    final delta = scored.length < 2 ? null : scored.last - scored[scored.length - 2];
     final foods = BentoData.topFoods(data, limit: 4);
 
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
-          GutScoreCard(score: score, delta: delta, series: series, labels: seriesLabels, onTap: () => WhyScoreSheet.show(context, data)),
+          if (WhyScoreSheet.hasScore(context, data))
+            GutScoreCard(
+              score: score,
+              delta: delta,
+              series: scoreRecord?.dailyScores.map((score) => score.toDouble()).toList() ?? series,
+              scoredDayIndices: scoreRecord?.scoredDayIndices,
+              labels: seriesLabels,
+              onTap: () => WhyScoreSheet.show(context, data),
+            )
+          else
+            InsightScoreCard(score: null, onWhyTap: () => WhyScoreSheet.show(context, data)),
           Gap.h14,
           BentoGrid(children: _tiles(context, t, foods)),
         ]),
@@ -34,8 +46,7 @@ class InsightBentoFeed extends StatelessWidget {
 
   List<BentoTile> _tiles(BuildContext context, InsightBentoTheme t, List<BentoFood> foods) {
     final tiles = <BentoTile>[];
-    String highlightBody(String? trend, String effects, {required String fallback}) =>
-        InsightValues.text(trend, fallback: InsightValues.text(effects, fallback: fallback));
+    String highlightBody(String? trend, String effects, {required String fallback}) => InsightValues.text(trend, fallback: InsightValues.text(effects, fallback: fallback));
 
     // 0. Smart Insight Card
     if (data.topInsight != null) {

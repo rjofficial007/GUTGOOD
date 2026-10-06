@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/utils/model_utils.dart';
 
 ScanResult _testScan() => ScanResult(
   productName: 'Test Yogurt',
@@ -24,6 +25,15 @@ ScanResult _testScan() => ScanResult(
 );
 
 void main() {
+  test('non-finite scan scores are rejected without throwing', () {
+    for (final value in [double.nan, double.infinity, double.negativeInfinity, 'NaN', 'Infinity', null]) {
+      expect(ModelUtils.parseScore(value), 0);
+    }
+  });
+  test('an explicit zero food score survives persistence', () {
+    final scan = _testScan().copyWith(score: 0);
+    expect(ScanResult.fromMap(scan.toPersistenceMap()).score, 0);
+  });
   group('toPersistenceMap (P0-2)', () {
     test('strips the rawData blob but keeps every durable field', () {
       final persisted = _testScan().toPersistenceMap();
@@ -75,6 +85,15 @@ void main() {
   });
 
   group('fromMap without rawData (post-strip docs)', () {
+    test('does not use AI-provided time as the scan save timestamp', () {
+      final before = DateTime.now();
+      final scan = ScanResult.fromMap(const {'productName': 'Timed Scan', 'time': '2026-10-06T18:12:00.000Z'});
+      final after = DateTime.now();
+
+      expect(scan.createdAt.isBefore(before), isFalse);
+      expect(scan.createdAt.isAfter(after), isFalse);
+    });
+
     test('parses stripped docs and preserves loggability + engine inputs', () {
       final stripped = _testScan().toPersistenceMap();
       final hydrated = ScanResult.fromMap(stripped);
