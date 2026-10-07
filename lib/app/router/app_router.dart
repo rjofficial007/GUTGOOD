@@ -21,6 +21,7 @@ import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dar
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
+import 'package:gutgood/features/insights/presentation/pages/genz/insight_genz_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/highlight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
@@ -179,6 +180,7 @@ class AppRouter {
                 },
               ),
               GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
+              GoRoute(path: AppRoutes.insightGenz, builder: (context, state) => const InsightGenzScreen()),
               GoRoute(
                 path: AppRoutes.patternDetail,
                 builder: (context, state) {

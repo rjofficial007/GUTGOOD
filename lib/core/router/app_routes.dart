@@ -16,6 +16,7 @@ class AppRoutes {
   static const String insightDetail = '/insight-detail';
   static const String highlightDetail = '/highlight-detail';
   static const String insightHistory = '/insight-history';
+  static const String insightGenz = '/insight-genz';
   static const String patternDetail = '/pattern-detail';
   static const String smartInsightDetail = '/smart-insight-detail';
   static const String fiberSynergyDetail = '/fiber-synergy-detail';
