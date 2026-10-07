@@ -20,24 +20,16 @@ extension HighlightTriggerSections on HighlightDetailScreen {
     final reactionText = pattern?.reaction.trim().isNotEmpty == true ? pattern!.reaction : 'Symptom not specified';
     final rawDelay = observationCount < 2 ? 'Building your baseline' : InsightFeedDerivations.reactionTime(insight ?? AIInsight(gutScore: 0, updatedAt: DateTime.now()), pattern);
     final delayText = (rawDelay.toLowerCase() == 'n/a' || rawDelay.toLowerCase() == 'not enough data yet' || rawDelay == '—' || rawDelay.isEmpty) ? 'Building your baseline.' : rawDelay;
-    final confidenceLabel = pattern == null || observationCount == 0
-        ? 'Not established'
-        : isSingleObservation
-        ? 'Building'
-        : pattern.evidenceRatio > 0
-        ? '${(pattern.evidenceRatio * 100).round()}%'
-        : 'Not established';
+    final evidenceLabel = pattern == null || observationCount == 0 ? 'No observation' : pattern.evidenceLabel;
 
     final title = pattern == null
         ? 'Food and symptom details'
         : isSingleObservation && loggedFoodName.isNotEmpty && reactionText != 'Symptom not specified'
-        ? '$loggedFoodName → ${reactionText.toLowerCase()}'
-        : (args.title.isNotEmpty ? args.title : 'Observed food and symptom pattern');
+        ? '$loggedFoodName and ${reactionText.toLowerCase()}'
+        : 'Observed food and symptom timing';
     final bodyText = pattern == null || observationCount == 0
         ? 'There is not enough logged evidence to describe a food and symptom pattern yet.'
-        : isSingleObservation
-        ? 'You reported ${reactionText.toLowerCase()} after logging $loggedFoodName once. One occurrence is not enough to identify a cause.'
-        : ((args.body ?? '').isNotEmpty ? args.body! : 'This association appeared in $observationCount observations. That does not establish that the food caused the symptom.');
+        : 'Your logs contain $observationCount matched observations involving $loggedFoodName and ${reactionText.toLowerCase()}. This association does not establish cause; missing follow-ups are unknown.';
 
     return Scaffold(
       backgroundColor: theme.scaffold,
@@ -62,7 +54,7 @@ extension HighlightTriggerSections on HighlightDetailScreen {
                   observationCount: observationCount,
                   reactionText: reactionText,
                   delayText: delayText,
-                  confidenceLabel: confidenceLabel,
+                  evidenceLabel: evidenceLabel,
                 ),
                 Gap.h10,
 
@@ -97,7 +89,7 @@ extension HighlightTriggerSections on HighlightDetailScreen {
     required int observationCount,
     required String reactionText,
     required String delayText,
-    required String confidenceLabel,
+    required String evidenceLabel,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -273,9 +265,9 @@ extension HighlightTriggerSections on HighlightDetailScreen {
                     icon: LucideIcons.leaf,
                     iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
                     iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                    label: 'Confidence',
-                    value: confidenceLabel,
-                    subtext: observationCount < 2 ? 'More logs needed' : 'Evidence score',
+                    label: 'Evidence tier',
+                    value: evidenceLabel,
+                    subtext: observationCount < 2 ? 'Early observation' : 'Repeated log entries',
                   ),
                 ),
               ],

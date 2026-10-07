@@ -1,6 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gutgood/core/ai/protocol/ai_constants.dart';
-import 'package:gutgood/core/models/chat/chat_message.dart';
 import 'package:gutgood/core/models/insights/ai_insight.dart';
 import 'package:gutgood/core/models/insights/ai_insight_details.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
@@ -10,7 +8,8 @@ import 'package:gutgood/core/models/insights/insight_empty_state.dart';
 import 'package:gutgood/core/models/insights/insight_evidence.dart';
 import 'package:gutgood/core/models/insights/recent_insight_item.dart';
 import 'package:gutgood/core/utils/insight_presentation.dart';
-import 'package:gutgood/features/insights/domain/services/insight_generation_policy.dart';
+
+const _legacyInsightPromptVersion = 11;
 
 BodyPattern _pattern({int timeframeDays = 30, int frequency = 5, double ratio = 0.8}) => BodyPattern(
   type: BodyPattern.typeBloating,
@@ -121,7 +120,7 @@ void main() {
         evidence: InsightEvidence.fromPatterns([_pattern()], sampleSizes: const SampleSizes(meals: 20, symptoms: 8, scans: 3)),
         actions: const ['Eat dinner earlier'],
         model: 'gpt-test',
-        promptVersion: AiVersions.insightPromptVersion,
+        promptVersion: _legacyInsightPromptVersion,
         status: AIInsight.statusReady,
         expiresAt: DateTime.utc(2026, 9, 2),
         origin: AIInsight.originClient,
@@ -136,7 +135,7 @@ void main() {
       expect(roundTripped.evidence?.spanDays, 30);
       expect(roundTripped.actions, ['Eat dinner earlier']);
       expect(roundTripped.model, 'gpt-test');
-      expect(roundTripped.promptVersion, AiVersions.insightPromptVersion);
+      expect(roundTripped.promptVersion, _legacyInsightPromptVersion);
       expect(roundTripped.status, AIInsight.statusReady);
       expect(roundTripped.expiresAt, DateTime.utc(2026, 9, 2));
       expect(roundTripped.origin, AIInsight.originClient);
@@ -159,68 +158,6 @@ void main() {
       expect(legacy.origin, isNull);
       expect(legacy.periodFrom, isNull);
       expect(legacy.expiresAt, isNull);
-    });
-  });
-
-  group('stampInsightEnvelope', () {
-    AIInsight base() => _insight(
-      top: const InsightSummary(title: 't', description: 'd', type: 'Pattern', nextSteps: ['Step one']),
-    );
-
-    test('ready when candidates exist with ≥ 7d span; actions come from nextSteps', () {
-      final stamped = stampInsightEnvelope(
-        base(),
-        candidates: [_pattern(timeframeDays: 12)],
-        periodFrom: DateTime.utc(2026, 8, 1),
-        periodTo: DateTime.utc(2026, 8, 31),
-        sampleSizes: const SampleSizes(meals: 20, symptoms: 8, scans: 3),
-        model: 'gpt-test',
-        promptVersion: AiVersions.insightPromptVersion,
-        expiresAt: DateTime.utc(2026, 9, 2),
-      );
-
-      expect(stamped.status, AIInsight.statusReady);
-      expect(stamped.actions, ['Step one']);
-      expect(stamped.evidence?.spanDays, 12);
-      expect(stamped.evidence?.sampleSizes.scans, 3);
-      expect(stamped.promptVersion, AiVersions.insightPromptVersion);
-      expect(stamped.origin, AIInsight.originClient);
-    });
-
-    test('takeRecentChat keeps the head of a newest-first list', () {
-      final chat = List.generate(15, (i) => ChatMessage(localId: 'm$i', role: 'user', text: 'msg $i', createdAt: DateTime.now()));
-
-      final recent = takeRecentChat(chat);
-
-      expect(recent, hasLength(10));
-      expect(recent.first.localId, 'm0');
-      expect(takeRecentChat(chat.take(5).toList()), hasLength(5));
-    });
-
-    test('eligibility depends on logs rather than pattern span', () {
-      final noCandidates = stampInsightEnvelope(
-        base(),
-        candidates: [],
-        periodFrom: DateTime.utc(2026, 8, 1),
-        periodTo: DateTime.utc(2026, 8, 31),
-        sampleSizes: const SampleSizes(meals: 2, symptoms: 1, scans: 0),
-        model: 'gpt-test',
-        promptVersion: AiVersions.insightPromptVersion,
-        expiresAt: DateTime.utc(2026, 9, 2),
-      );
-      expect(noCandidates.status, AIInsight.statusInsufficientData);
-
-      final thinSpan = stampInsightEnvelope(
-        base(),
-        candidates: [_pattern(timeframeDays: 3)],
-        periodFrom: DateTime.utc(2026, 8, 28),
-        periodTo: DateTime.utc(2026, 8, 31),
-        sampleSizes: const SampleSizes(meals: 9, symptoms: 4, scans: 1),
-        model: 'gpt-test',
-        promptVersion: AiVersions.insightPromptVersion,
-        expiresAt: DateTime.utc(2026, 9, 2),
-      );
-      expect(thinSpan.status, AIInsight.statusReady);
     });
   });
 

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/ai/prompts/mode_prompts/image_classification_prompt.dart';
-import 'package:gutgood/core/ai/prompts/mode_prompts/insights_prompt.dart';
 import 'package:gutgood/core/ai/prompts/mode_prompts/intent_detection_prompt.dart';
 import 'package:gutgood/core/ai/prompts/prompt_catalog.dart';
 import 'package:gutgood/core/ai/protocol/ai_constants.dart';
@@ -26,6 +25,18 @@ void main() {
       final instruction = Prompts.chatSystemInstruction(userGoals: const [], userSensitivities: const [], intent: 'INGREDIENT_ANALYSIS', mode: 'INGREDIENTS_LABEL');
 
       expect(instruction.contains('cycleInsight'), isFalse);
+    });
+
+    test('includes the controlled journal tag and optional time rules for structured meal turns', () {
+      final instruction = Prompts.chatSystemInstruction(userGoals: const [], userSensitivities: const [], intent: 'COMPLETE_ANALYSIS', mode: 'FOOD');
+
+      expect(instruction, contains('"foodTags": ["dairy"]'));
+      expect(instruction, contains('processed_meat'));
+      expect(instruction, contains('Use [] only when none of the tags can be supported'));
+      expect(instruction, contains('Do not emit meal.occurredAtProvenance'));
+      expect(instruction, contains('only when the user explicitly gives the time'));
+      expect(instruction, isNot(contains('time: ALWAYS ISO 8601')));
+      expect(instruction, contains('symptoms[].sleep'));
     });
 
     test('renders pinned entities in the dynamic section; omits the block when empty', () {
@@ -101,6 +112,34 @@ void main() {
     });
   });
 
+  test('structured vision and barcode prompts include swap rules; text modes omit the schema', () {
+    for (final mode in ['FOOD', 'BARCODE']) {
+      final prompt = Prompts.visionAnalysisSystemInstruction(mode: mode, userGoals: [], userSensitivities: [], cyclePhase: 'Luteal');
+      expect(prompt, contains('SCHEMA TYPE RULES'));
+      expect(prompt, contains('"structuredBenefits"'));
+      expect(prompt, contains('exactly 4 distinct, practical alternatives'));
+      expect(prompt, contains('Never pad the list'));
+      expect(prompt, contains('"impacts": [{"title"'));
+    }
+    for (final mode in ['LABEL', 'MENU']) {
+      final prompt = Prompts.visionAnalysisSystemInstruction(mode: mode, userGoals: [], userSensitivities: [], cyclePhase: 'Luteal');
+      expect(prompt, isNot(contains('"cycleInsight"')));
+      expect(prompt, isNot(contains('"swaps":')));
+      expect(prompt, isNot(contains('you MUST populate')));
+      expect(prompt, isNot(contains('SCHEMA TYPE RULES')));
+    }
+  });
+
+  test('score prose and structured nutrition rules match the app-calculated display', () {
+    final rating = Prompts.chatSystemInstruction(userGoals: const [], userSensitivities: const [], intent: 'MEAL_RATING', mode: 'FOOD');
+    final fullAnalysis = Prompts.chatSystemInstruction(userGoals: const [], userSensitivities: const [], intent: 'COMPLETE_ANALYSIS', mode: 'FOOD');
+
+    expect(rating, contains('2. Rating: **GutGood Rating: X/100**'));
+    expect(fullAnalysis, contains('2. Rating: **GutGood Rating: X/100**'));
+    expect(rating, contains('This value MUST match scan.score'));
+    expect(rating, contains('scan.score: integer 0-100 fallback only'));
+  });
+
   group('Classifier vocabulary consistency', () {
     test('intent detection prompt lists every canonical UserIntent token', () {
       final instruction = IntentDetectionPrompt.instruction;
@@ -132,36 +171,6 @@ void main() {
       for (final mode in ImageMode.all) {
         expect(instruction.contains(mode), isTrue, reason: 'ImageMode "$mode" must be a documented category.');
       }
-    });
-
-    test('insights prompt defines the ZERO PATTERN CASE it references', () {
-      const instruction = InsightsPrompt.instruction;
-      expect(instruction.contains('ZERO PATTERN CASE'), isTrue, reason: 'The checklist references a ZERO PATTERN CASE; without a definition the model invents patterns from thin data.');
-      expect(instruction, contains('Return status "ready"'));
-      expect(instruction, contains('Generate a concise personalized topInsight'));
-      expect(instruction, contains('one occurrence is not enough to identify a cause'));
-      expect(instruction, contains('Do not create a detectedPattern, trigger, healing food'));
-      expect(instruction, contains('Never infer fat content'));
-      expect(instruction.contains('COMMON FACTORS MUST NOT BE EMPTY'), isFalse);
-    });
-
-    test('insights prompt v2 asks for data only (P2-10: Dart owns presentation)', () {
-      const instruction = InsightsPrompt.instruction;
-      expect(instruction.contains('REQUIRED single food emoji'), isFalse, reason: 'Emoji is write-only busywork; the model must not emit it.');
-      expect(instruction.contains('NO PRESENTATION'), isTrue, reason: 'The schema must carry an explicit no-emoji/no-icon/no-color rule.');
-      expect(instruction.contains('High|Medium|Low'), isTrue, reason: 'Pattern confidence must mirror the engine vocabulary.');
-    });
-
-    test('food swaps classify alternatives by their own type for useful filters', () {
-      const instruction = InsightsPrompt.instruction;
-      expect(instruction, contains('FOOD SWAPS AND FILTER CATEGORIES'));
-      expect(instruction, contains('`foodSwaps` is REQUIRED'));
-      expect(instruction, contains('at least 4 distinct'));
-      expect(instruction, contains('Set unavailable images and nutrition values to null'));
-      expect(instruction, contains('grilled chicken → `Protein`'));
-      expect(instruction, contains('plant-based patty → `Plant-Based`'));
-      expect(instruction, contains('whole-grain bun → `Grains & Bread`'));
-      expect(instruction, isNot(contains('Burgers & Sandwiches|Bowls|Breakfast|Sides')));
     });
   });
 }

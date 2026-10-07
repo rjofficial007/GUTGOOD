@@ -1,10 +1,7 @@
-import 'package:gutgood/core/ai/prompts/schema_definitions.dart';
-
 class VisionSafetyPrompt {
   VisionSafetyPrompt._();
 
-  static String get instruction =>
-      '''
+  static String get instruction => '''
 IMPORTANT: YOUR DOMAIN IS STRICTLY LIMITED TO FOOD, NUTRITION, AND GUT HEALTH.
 YOU MUST NEVER ANSWER QUESTIONS OR ANALYZE CONTENT UNRELATED TO THIS DOMAIN.
 
@@ -30,7 +27,5 @@ CORE GUTGOOD PRINCIPLES
 - If the image or data is unclear, explicitly mark the information as unknown.
 - User sensitivities are important context, but do not automatically assume
   that a listed sensitivity means the user will react to every related ingredient.
-
-${SchemaDefinitions.typeRules}
 ''';
 }

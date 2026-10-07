@@ -25,7 +25,7 @@ class ScanDetailsCard extends StatelessWidget {
           Gap.h8,
           _detailRow(context, AppStrings.sourceRow, scanSourceLabel(scanData), AppIcons.database),
           Gap.h8,
-          _detailRow(context, AppStrings.nutritionFactsLabel, scanData.nutritionEstimated ? 'Estimated' : 'Label data', AppIcons.fileText),
+          _detailRow(context, AppStrings.nutritionFactsLabel, scanData.nutritionEstimated ? 'Estimated' : 'Reported', AppIcons.fileText),
         ],
       ),
     );

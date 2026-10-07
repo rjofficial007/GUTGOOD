@@ -14,11 +14,11 @@ class _SymptomTriggerSection extends StatelessWidget {
     final items = <_FactorItem>[];
 
     if (symptom.foodName != null && symptom.foodName!.isNotEmpty) {
-      items.add(_FactorItem(icon: AppIcons.utensils, color: t.negative, title: symptom.foodName!, subtitle: 'Meal consumed shortly before reaction'));
+      items.add(_FactorItem(icon: AppIcons.utensils, color: t.textSecondary, title: symptom.foodName!, subtitle: 'Meal logged near this symptom'));
     }
 
     if (symptom.lastMealFirestoreId != null && symptom.lastMealFirestoreId!.isNotEmpty) {
-      items.add(_FactorItem(icon: AppIcons.sparkles, color: const Color(0xFF7C3AED), title: 'Linked Meal Record', subtitle: 'Meal log cross-referenced with your pattern history'));
+      items.add(_FactorItem(icon: AppIcons.sparkles, color: const Color(0xFF7C3AED), title: 'Linked Meal Record', subtitle: 'Linked by timing for context; timing alone does not establish a cause'));
     }
 
     if (items.isEmpty) return const SizedBox.shrink();
@@ -39,11 +39,11 @@ class _SymptomTriggerSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Potential Triggers',
+                    'Meal Context',
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.titleSize.sp, fontWeight: FontWeight.w700, color: t.textPrimary),
                   ),
                   Text(
-                    'Food or environmental triggers linked to this reaction.',
+                    'Nearby meal logs can help you review timing patterns.',
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
                   ),
                 ],
@@ -99,4 +99,3 @@ class _SymptomTriggerSection extends StatelessWidget {
     );
   }
 }
-

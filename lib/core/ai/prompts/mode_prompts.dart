@@ -32,6 +32,8 @@ Current Phase: $phase
 ${FullAnalysisPrompt.instruction}
 
 ${SchemaDefinitions.unifiedDataSchema}
+${SchemaDefinitions.typeRules}
+${GeneralRulesPrompt.journalDataRules}
 ''';
   }
 
@@ -48,8 +50,6 @@ USER PROFILE
 Sensitivities: $sensitivityList
 
 ${IngredientsLabelPrompt.instruction}
-
-${SchemaDefinitions.unifiedDataSchema}
 ''';
   }
 
@@ -68,8 +68,6 @@ Goals: $goalList
 Sensitivities: $sensitivityList
 
 ${RestaurantMenuPrompt.instruction}
-
-${SchemaDefinitions.unifiedDataSchema}
 ''';
   }
 
@@ -79,5 +77,7 @@ ${SchemaDefinitions.unifiedDataSchema}
 ${BarcodeAnalysisPrompt.instruction}
 
 ${SchemaDefinitions.unifiedDataSchema}
+${SchemaDefinitions.typeRules}
+${GeneralRulesPrompt.journalDataRules}
 ''';
 }

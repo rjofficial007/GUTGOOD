@@ -9,7 +9,7 @@ class ScanScoreHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
-    final imageUrl = scanData.userImageUrl ?? scanData.imageUrl;
+    final imageUrl = scanData.displayImageUrl;
     final band = GutScoreBand.fromScore(scanData.score);
     final hasImage = imageUrl != null && imageUrl.isNotEmpty;
     final size = 104.w;

@@ -69,7 +69,7 @@ extension SynergyDetailSections on SynergyDetailScreen {
                         border: Border.all(color: style.borderColor),
                       ),
                       child: Text(
-                        pattern?.confidence ?? activeInsight?.topInsight?.strength ?? 'Early observation',
+                        pattern?.evidenceLabel ?? 'Early observation',
                         style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: style.tagFg),
                       ),
                     ),
@@ -175,11 +175,11 @@ extension SynergyDetailSections on SynergyDetailScreen {
   }
 
   /// 2. "What We Observed" Section
-  Widget _buildWhatWeObservedCard(BuildContext context, BodyPattern? pattern, AIInsight? activeInsight) {
+  Widget _buildWhatWeObservedCard(BuildContext context, BodyPattern? pattern) {
     final style = PatternCardStyle.forType(pattern?.type ?? 'digestion');
-    final observationText = activeInsight?.topInsight?.description ??
-        pattern?.description ??
-        'There is not enough evidence yet to describe a repeated pattern.';
+    final observationText = pattern == null
+        ? 'There is not enough repeated logged data to describe a pattern yet.'
+        : '${pattern.description} Missing symptom follow-ups are unknown, not symptom-free.';
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -221,9 +221,9 @@ extension SynergyDetailSections on SynergyDetailScreen {
     );
   }
 
-  /// 3. "The Evidence" Metric Dashboard Card
-  Widget _buildTheEvidenceCard(BuildContext context, {required String patternType, required int? evidenceRatio, required int? frequency, required int? positive, required int? negative}) {
-    final style = PatternCardStyle.forType(patternType);
+  /// 3. Matched-log counts (not a statistical evidence score).
+  Widget _buildTheEvidenceCard(BuildContext context, BodyPattern? pattern) {
+    final style = PatternCardStyle.forType(pattern?.type ?? 'digestion');
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -236,7 +236,6 @@ extension SynergyDetailSections on SynergyDetailScreen {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
           Row(
             children: [
               Container(
@@ -256,7 +255,7 @@ extension SynergyDetailSections on SynergyDetailScreen {
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
                     ),
                     Text(
-                      'Based on the evidence saved with this insight.',
+                      'Counts are matched log entries; missing follow-ups are unknown.',
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: context.insightColor(const Color(0xFF64748B))),
                     ),
                   ],
@@ -265,31 +264,15 @@ extension SynergyDetailSections on SynergyDetailScreen {
             ],
           ),
           Gap.h12,
-
-          // 4 Stat Cards Row
           Row(
             children: [
-              _buildMetricTile(context, title: evidenceRatio == null ? '—' : '$evidenceRatio%', label: 'Evidence Ratio', icon: LucideIcons.pieChart, color: style.accentColor, bg: style.tagBg),
+              _buildMetricTile(context, title: '${pattern?.frequency ?? 0}', label: 'Matched Logs', icon: LucideIcons.history, color: style.accentColor, bg: style.tagBg),
               Gap.w6,
-              _buildMetricTile(context, title: frequency == null ? '—' : '$frequency×', label: 'Times Logged', icon: LucideIcons.history, color: style.accentColor, bg: style.tagBg),
+              _buildMetricTile(context, title: '${pattern?.totalSimilarMeals ?? 0}', label: 'Meals Logged', icon: LucideIcons.utensils, color: style.accentColor, bg: style.tagBg),
               Gap.w6,
-              _buildMetricTile(
-                context,
-                title: positive == null ? '—' : '$positive',
-                label: 'Positive Logs',
-                icon: LucideIcons.thumbsUp,
-                color: const Color(0xFF15803D),
-                bg: context.insightColor(const Color(0xFFF0FDF4)),
-              ),
+              _buildMetricTile(context, title: '${pattern?.occurrences.length ?? 0}', label: 'Examples', icon: LucideIcons.clipboardList, color: style.accentColor, bg: style.tagBg),
               Gap.w6,
-              _buildMetricTile(
-                context,
-                title: negative == null ? '—' : '$negative',
-                label: 'Symptom Logs',
-                icon: LucideIcons.thumbsDown,
-                color: const Color(0xFFDC2626),
-                bg: context.insightColor(const Color(0xFFFEF2F2)),
-              ),
+              _buildMetricTile(context, title: '${pattern?.timeframeDays ?? 0}', label: 'Days Analyzed', icon: LucideIcons.clock, color: style.accentColor, bg: style.tagBg),
             ],
           ),
         ],

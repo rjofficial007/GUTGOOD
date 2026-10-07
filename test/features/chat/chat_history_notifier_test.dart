@@ -9,6 +9,7 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/features/auth/data/services/usage_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_history_notifier.dart';
+import 'package:gutgood/features/logs/data/services/domain_event_persister.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/auth_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
@@ -35,6 +36,8 @@ class MockUser extends Mock implements User {}
 
 class MockUsageService extends Mock implements UsageService {}
 
+class MockDomainEventPersister extends Mock implements DomainEventPersister {}
+
 void main() {
   late ChatHistoryNotifier notifier;
   late MockChatRepository repository;
@@ -46,6 +49,7 @@ void main() {
   late MockSharedPreferences prefs;
   late MockFirebaseAuth auth;
   late MockUsageService usageService;
+  late MockDomainEventPersister domainEventPersister;
   late StreamController<List<ChatMessage>> controller;
 
   setUp(() {
@@ -58,6 +62,7 @@ void main() {
     prefs = MockSharedPreferences();
     auth = MockFirebaseAuth();
     usageService = MockUsageService();
+    domainEventPersister = MockDomainEventPersister();
     controller = StreamController<List<ChatMessage>>.broadcast();
 
     // Default stubs
@@ -77,6 +82,7 @@ void main() {
       chatFirestoreService: chatFirestoreService,
       authFirestoreService: authFirestoreService,
       historyFirestoreService: historyFirestoreService,
+      domainEventPersister: domainEventPersister,
       aiService: aiService,
       appStateService: appStateService,
       prefs: prefs,
@@ -207,5 +213,41 @@ void main() {
       verifyNever(() => aiService.summarizeHistory(any(), previousSummary: any(named: 'previousSummary')));
       expect(notifier.cachedSummary, isNull);
     });
+  });
+
+  test('confirming a scanned food persists the meal and closes the chat prompt', () async {
+    final scan = ScanResult(
+      productName: 'Oats',
+      brand: 'Brand',
+      category: 'food',
+      source: 'FOOD',
+      scanId: 'turn_scan',
+      score: 80,
+      impactType: ImpactType.positive,
+      impact: 'Good',
+      createdAt: DateTime.now(),
+    );
+    final message = ChatMessage(localId: 'turn', role: 'ai', text: 'Analysis', scanData: scan, createdAt: DateTime.now());
+    final meal = MealLog(items: const ['Oats'], scanId: 'turn_scan', firestoreId: 'turn_meal', journalEntryId: 'turn_meal', createdAt: scan.createdAt);
+    final resolvedScan = scan.copyWith(consumed: true);
+    final resolvedMessage = message.copyWith(scanData: resolvedScan, mealLogs: [meal]);
+
+    when(() => historyFirestoreService.getScanById('turn_scan')).thenAnswer((_) async => scan);
+    when(() => domainEventPersister.persistConfirmedScanMeal(resolvedScan, chatMessageId: 'turn')).thenAnswer((_) async => meal);
+    when(
+      () => historyFirestoreService.trySaveToScanHistory(resolvedScan, userImageUrl: any(named: 'userImageUrl'), scanId: 'turn_scan'),
+    ).thenAnswer((_) async => true);
+    when(
+      () => historyFirestoreService.deleteScanMealProjections(chatMessageId: 'turn', scanId: 'turn_scan', keepMealId: 'turn_meal'),
+    ).thenAnswer((_) async {});
+    when(() => chatFirestoreService.saveMessage(resolvedMessage)).thenAnswer((_) async => 'turn');
+    notifier.addOptimisticMessage(message);
+
+    final saved = await notifier.resolveScanConsumption(message, consumed: true);
+
+    expect(saved, isTrue);
+    expect(notifier.messages.single.scanData?.consumed, isTrue);
+    expect(notifier.messages.single.mealLogs.single.items, ['Oats']);
+    verify(() => domainEventPersister.persistConfirmedScanMeal(resolvedScan, chatMessageId: 'turn')).called(1);
   });
 }

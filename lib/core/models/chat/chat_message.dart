@@ -59,6 +59,8 @@ class ChatMessage extends Equatable {
     final resolvedImageUrls = imageUrls.isNotEmpty ? imageUrls : (legacyImageUrl != null && legacyImageUrl.isNotEmpty ? [legacyImageUrl] : const <String>[]);
 
     final analysisResult = ModelUtils.parseNestedModel<AiAnalysisResult>(map['analysisResult'], AiAnalysisResult.fromMap);
+    final scanPreview = map['scanPreview'] is Map ? Map<String, dynamic>.from(map['scanPreview'] as Map) : null;
+    final scanId = map['scanId']?.toString();
 
     return ChatMessage(
       id: rawLocalId is int ? rawLocalId : null,
@@ -74,7 +76,7 @@ class ChatMessage extends Equatable {
       scanData:
           analysisResult?.scan ??
           ModelUtils.parseNestedModel<ScanResult>(map['scanData'], ScanResult.fromMap) ??
-          (map['scanPreview'] != null ? ScanResult.fromMap({...map['scanPreview'], 'scanId': map['scanId']}) : null),
+          (scanPreview != null ? ScanResult.fromMap({...scanPreview, 'scanId': scanId}) : null),
       mealLogs: analysisResult?.meal != null
           ? [analysisResult!.meal!]
           : (ModelUtils.parseModelList<MealLog>(map['mealLogs'], MealLog.fromMap).isNotEmpty ? ModelUtils.parseModelList<MealLog>(map['mealLogs'], MealLog.fromMap) : []),
@@ -225,6 +227,7 @@ class ChatMessage extends Equatable {
     String? model,
     DateTime? createdAt,
     bool clearLocalImages = false,
+    bool clearImageUrl = false,
   }) {
     final nextImageUrls = imageUrls ?? this.imageUrls;
     return ChatMessage(
@@ -234,7 +237,7 @@ class ChatMessage extends Equatable {
       uid: uid ?? this.uid,
       role: role ?? this.role,
       text: text ?? this.text,
-      imageUrl: imageUrl ?? (nextImageUrls.isNotEmpty ? nextImageUrls.first : this.imageUrl),
+      imageUrl: clearImageUrl ? null : (imageUrl ?? (nextImageUrls.isNotEmpty ? nextImageUrls.first : this.imageUrl)),
       imageUrls: nextImageUrls,
       imageHashes: imageHashes ?? this.imageHashes,
       localImages: clearLocalImages ? null : (localImages ?? this.localImages),
@@ -281,6 +284,7 @@ class ChatMessage extends Equatable {
             'userImageUrl': scanData!.userImageUrl,
             'impactType': scanData!.impactType.name,
             'impact': scanData!.impact,
+            if (scanData!.consumed != null) 'consumed': scanData!.consumed,
             'source': scanData!.source,
             'category': scanData!.category,
             'intent': scanData!.rawData?['intent'], // 🚀 Fixed: Include intent for smart routing

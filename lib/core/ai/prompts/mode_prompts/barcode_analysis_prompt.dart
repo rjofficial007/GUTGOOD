@@ -37,7 +37,8 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 
 10. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
     - Do NOT calculate the "score" field — the client computes it. Set "score" to 50 as a placeholder.
-    - Explicitly set "isOrganic": true if the product data mentions organic certification/labels; else false.
+    - Explicitly set "isOrganic": true if the product data mentions organic certification/labels; use null when unknown.
+    - Include a meal candidate with the product and known ingredients, and set meal.foodTags only to supported tags from the product data. This is pending user confirmation; do not say the user ate or logged it.
     
 ${PromptFormattingRules.gutGoodDataBlockRequired}
 

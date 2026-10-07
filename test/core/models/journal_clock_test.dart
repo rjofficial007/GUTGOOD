@@ -75,6 +75,33 @@ void main() {
       expect(hydrated.occurredAt, at);
       expect(hydrated.occurredAtProvenance, OccurrenceProvenance.user);
     });
+
+    test('empty optional metadata is omitted from serialized journal records', () {
+      final meal = MealLog(items: const ['x'], createdAt: DateTime.now());
+      final symptom = SymptomLog(symptom: 'Bloating', createdAt: DateTime.now());
+
+      expect(meal.toMap()['foodTags'], isEmpty);
+      expect(meal.toAiMap()['foodTags'], isEmpty);
+      expect(meal.toMap(), isNot(contains('occurredAt')));
+      expect(meal.toMap(), isNot(contains('occurredAtProvenance')));
+      expect(symptom.toMap(), isNot(contains('occurredAt')));
+      expect(symptom.toMap(), isNot(contains('occurredAtProvenance')));
+      expect(symptom.toJsonMap(), isNot(contains('occurredAt')));
+    });
+
+    test('food tags and occurrence provenance survive serialization when present', () {
+      final meal = MealLog(
+        items: const ['x'],
+        foodTags: const ['dairy'],
+        createdAt: DateTime.now(),
+        occurredAt: DateTime.now(),
+        occurredAtProvenance: OccurrenceProvenance.user,
+      );
+
+      final hydrated = MealLog.fromMap(meal.toMap());
+      expect(hydrated.foodTags, ['dairy']);
+      expect(hydrated.occurredAtProvenance, OccurrenceProvenance.user);
+    });
   });
 
   group('journal event linking', () {
@@ -135,15 +162,21 @@ void main() {
         score: 80,
         impactType: ImpactType.positive,
         impact: 'Good',
+        consumed: true,
         createdAt: now,
       );
       final legacyScan = projectedScan.copyWith(scanId: 'scan-2', productName: 'Rice');
+      final informationalScan = projectedScan.copyWith(scanId: 'scan-3', productName: 'Tea', consumed: false);
+      final pendingScan = projectedScan.copyWith(scanId: 'scan-4', productName: 'Soup', clearConsumed: true);
       final projectedMeal = MealLog(items: const ['Oats'], scanId: 'scan-1', journalEntryId: 'scan-1_meal', createdAt: now);
+      final legacyUnconfirmedMeal = MealLog(items: const ['Tea'], scanId: 'scan-3', journalEntryId: 'scan-3_meal', createdAt: now);
       final manualMeal = MealLog(items: const ['Dal'], createdAt: now);
 
-      expect(standaloneScanRecords(meals: [projectedMeal, manualMeal], scans: [projectedScan, legacyScan]), [legacyScan]);
-      expect(standaloneMealRecords(meals: [projectedMeal, manualMeal], scans: [projectedScan, legacyScan]), [manualMeal]);
-      expect(uniqueFoodEventCount(meals: [projectedMeal, manualMeal], scans: [projectedScan, legacyScan]), 3);
+      final scans = [projectedScan, legacyScan, informationalScan, pendingScan];
+      expect(standaloneScanRecords(meals: [projectedMeal, manualMeal], scans: scans), [legacyScan]);
+      expect(confirmedFoodMeals(meals: [projectedMeal, manualMeal, legacyUnconfirmedMeal], scans: scans), [projectedMeal, manualMeal]);
+      expect(standaloneMealRecords(meals: [projectedMeal, manualMeal, legacyUnconfirmedMeal], scans: scans), [manualMeal]);
+      expect(uniqueFoodEventCount(meals: [projectedMeal, manualMeal, legacyUnconfirmedMeal], scans: scans), 3);
     });
 
     test('nearest meal linking honors the earlier-four-hour window', () {
@@ -201,21 +234,28 @@ void main() {
       expect(log.severity, 4, reason: 'Explicitly provided numbers are preserved.');
     });
 
-    test('energy is no longer inferred from the symptom name', () {
-      final fatigue = SymptomLog.fromMap(const {'symptom': 'Fatigue'});
-      final energetic = SymptomLog.fromMap(const {'symptom': 'Energetic'});
+    test('empty provenance and optional null fields are omitted', () {
+      final log = SymptomLog.fromMap(const {'symptom': 'Energetic', 'provenance': ''});
 
-      expect(fatigue.energyLevel, isNull);
-      expect(energetic.energyLevel, isNull);
+      expect(log.provenance, isNull);
+      expect(log.toMap(), isNot(contains('severity')));
+      expect(log.toMap(), isNot(contains('mood')));
+      expect(log.toMap(), isNot(contains('sleep')));
+      expect(log.toMap(), isNot(contains('provenance')));
     });
 
-    test('validator clear flags void numbers via copyWith', () {
-      final log = SymptomLog(symptom: 'x', severity: 99, energyLevel: 0, createdAt: DateTime.now());
+    test('missing symptom name is not fabricated from an absent numeric rating', () {
+      final unknown = SymptomLog.fromMap(const {});
 
-      final cleared = log.copyWith(clearSeverity: true, clearEnergyLevel: true);
+      expect(unknown.symptom, 'Unknown');
+    });
+
+    test('validator clear flag voids severity via copyWith', () {
+      final log = SymptomLog(symptom: 'x', severity: 99, createdAt: DateTime.now());
+
+      final cleared = log.copyWith(clearSeverity: true);
 
       expect(cleared.severity, isNull);
-      expect(cleared.energyLevel, isNull);
     });
   });
 

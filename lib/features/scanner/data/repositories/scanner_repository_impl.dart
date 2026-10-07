@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:gutgood/core/ai/classification/ai_classifier_service.dart';
@@ -64,11 +65,20 @@ class ScannerRepositoryImpl implements ScannerRepository {
   Future<OffProduct?> getProductByBarcode(String barcode) async => _offService.getProduct(barcode);
 
   @override
+  Future<bool> savePersonalizedInsightRequest(ChatMessage message) async {
+    final messageId = await _chatFirestoreService.saveMessage(message);
+    if (messageId == null) return false;
+    _appStateService.notifyChatUpdated();
+    return true;
+  }
+
+  @override
   Future<ScanResult?> getCachedBarcodeScan({required String barcode, required List<String> sensitivities}) async {
     if (barcode.isEmpty) return null;
     try {
       final cached = await _historyFirestoreService.getLatestScanByBarcode(barcode);
       if (cached == null) return null;
+      if (cached.promptVersion != AiVersions.visionPromptVersion) return null;
       if (DateTime.now().difference(cached.createdAt) > ScannerRepository.barcodeCacheMaxAge) {
         AppLogger.ai('ScannerRepository: barcode cache stale for $barcode — running full analysis');
         return null;
@@ -79,52 +89,29 @@ class ScannerRepositoryImpl implements ScannerRepository {
       // explanation is recomposed fresh from the same factors.
       final rescored = _scoreService.applyEngineScore(cached, refreshExplanation: true, onDiagnostic: AppLogger.ai);
       final turnId = const Uuid().v4();
-      // A cache hit still represents a new intentional scan. Reuse the cached
-      // analysis, but give this consumption its own scan-history and meal IDs
-      // so repeated purchases of the same barcode remain countable events.
+      // A cache hit is a new scan, but it must be confirmed before it counts
+      // as a consumed meal. Give it its own scan-history ID and ask in chat.
       final stableScanId = '${turnId}_scan';
-      final stableMealId = '${stableScanId}_meal';
       final view = rescored.copyWith(
         flaggedIngredients: _scoreService.reflagWithSensitivities(rescored, sensitivities),
         scanId: stableScanId,
         chatMessageId: turnId,
         source: rescored.source ?? 'barcode_cache',
         createdAt: DateTime.now(),
+        clearConsumed: true,
       );
 
-      final didPersistScan = await _historyFirestoreService.trySaveToScanHistory(
-        view,
-        userImageUrl: view.userImageUrl,
-        scanId: stableScanId,
-      );
+      final didPersistScan = await _historyFirestoreService.trySaveToScanHistory(view, userImageUrl: view.userImageUrl, scanId: stableScanId);
       if (!didPersistScan) {
-        AppLogger.warning('ScannerRepository: cached scan history write failed; continuing with meal projection');
+        AppLogger.warning('ScannerRepository: cached scan history write failed; continuing with chat response');
       }
-      final cacheMeal = _persister
-          .mealFromScan(
-            view,
-            chatMessageId: turnId,
-            source: view.source ?? 'barcode_cache',
-            scanId: stableScanId,
-          )
-          .copyWith(journalEntryId: stableMealId);
-      var hydratedMeal = cacheMeal;
-      try {
-        final mealId = await _historyFirestoreService.logMeal(cacheMeal, docId: stableMealId);
-        hydratedMeal = cacheMeal.copyWith(firestoreId: mealId ?? stableMealId, journalEntryId: mealId ?? stableMealId);
-      } catch (e) {
-        // A cache hit must keep its existing resilient UX even if the additive
-        // meal projection cannot be written while offline.
-        AppLogger.warning('ScannerRepository: cached scan meal projection failed', error: e);
-      }
-
       await _chatFirestoreService.saveMessage(
         ChatMessage(
           localId: turnId,
           role: 'ai',
           text: 'Welcome back — **${view.productName}**, from your scan history with a fresh score ✨\n\n${NarrativeText.ratingLine(view.score)}',
           scanData: view,
-          mealLogs: [hydratedMeal],
+          imageUrl: view.displayImageUrl,
           source: view.source,
           createdAt: DateTime.now(),
         ),
@@ -151,7 +138,8 @@ class ScannerRepositoryImpl implements ScannerRepository {
   }) async {
     var alternativesText = '';
     if (alternatives != null && alternatives.isNotEmpty) {
-      alternativesText = '\n\nREAL PRODUCT ALTERNATIVES FROM DATABASE: ${alternatives.map((a) => '${a.productName} by ${a.brand} (Score: ${a.nutriscore})').join(', ')}';
+      alternativesText =
+          '\n\nREAL PRODUCT ALTERNATIVES FROM DATABASE: ${jsonEncode(alternatives.map((a) => {'name': a.productName, 'brand': a.brand, 'barcode': a.barcode, 'imageUrl': a.imageUrl, 'nutriscore': a.nutriscore, 'allergens': a.allergens, 'traces': a.tracesTags, 'ingredients': a.ingredientsText, 'nutritionPer100g': a.nutrients?.toMap()}).toList())}';
     }
 
     final productMap = product.toMap();
@@ -170,22 +158,8 @@ class ScannerRepositoryImpl implements ScannerRepository {
       promptVersion: AiVersions.visionPromptVersion,
     );
 
-    // Ground-truth backfill for the swap cards: real OFF alternatives, so the
-    // "Better swaps" section can always reach exactly kSwapCardCount cards
-    // even when the model recommends fewer (normalizeSwapCards trims/drops).
-    final fallbackSwaps = (alternatives ?? const <OffProduct>[])
-        .map(
-          (a) => ProductSwap(
-            title: a.productName,
-            subtitle: '${a.brand ?? 'Alternative'}${a.nutriscore != null ? ' · Nutri-Score ${a.nutriscore!.toUpperCase()}' : ''}',
-            imageKeyword: a.productName,
-            imageUrl: a.imageUrl,
-            tag: a.nutriscore != null ? 'NUTRI-SCORE ${a.nutriscore!.toUpperCase()}' : 'BETTER CHOICE',
-            barcode: a.barcode,
-            nutriscore: a.nutriscore,
-          ),
-        )
-        .toList();
+    // Catalog facts enrich selected recommendations without filling a quota.
+    final fallbackSwaps = (alternatives ?? const <OffProduct>[]).map((product) => product.toSwap()).toList();
 
     final result = _processChatTagUseCase(
       aiResultStr,
@@ -316,9 +290,8 @@ class ScannerRepositoryImpl implements ScannerRepository {
     final finalScanId = scanId ?? scan.scanId ?? const Uuid().v4();
 
     // P1-4: record writes go through the shared persister — the same
-    // validation override, universal scan-as-consumption projection, and
-    // stable IDs as the chat path. The returned result carries hydrated IDs
-    // which the bubble embeds.
+    // validation override and stable IDs as the chat path. Scan history is
+    // saved now; a later chat response confirms whether it becomes a meal.
     final outcome = await _persister.persist(result, chatMessageId: finalScanId, imageUrl: userImageUrl, source: scan.source);
     final hydrated = outcome.result;
     final hydratedScan = hydrated.scan ?? scan;
@@ -336,7 +309,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
       role: 'ai',
       text: bubbleText,
       scanData: hydratedScan,
-      imageUrl: userImageUrl,
+      imageUrl: hydratedScan.displayImageUrl ?? (hydratedScan.isBarcodeScan ? null : userImageUrl),
       symptomLogs: hydrated.symptoms,
       mealLogs: hydrated.meal != null ? [hydrated.meal!] : const [],
       source: scan.source,
@@ -349,6 +322,5 @@ class ScannerRepositoryImpl implements ScannerRepository {
 
     _appStateService.notifyChatUpdated();
     unawaited(_notificationService.scheduleNoMealLoggedReminder());
-    unawaited(_notificationService.schedulePostMealCheckIn());
   }
 }

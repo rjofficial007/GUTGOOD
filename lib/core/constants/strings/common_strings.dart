@@ -133,7 +133,6 @@ class CommonStrings {
   static const String symptomSkin = 'Skin breakout';
   static const String symptomCraving = 'Cravings';
   static const String symptomStool = 'Digestive shift';
-  static const String energyLevelLabel = 'Energy Level';
   static const String notesLabel = 'Notes';
   static const String dailyCheckIn = 'Daily Check-in';
   static const String saveDailyCheckIn = 'Save Check-in';
@@ -210,7 +209,6 @@ class CommonStrings {
   static const String foodScan = 'Food Scan';
   static const String meal = 'Meal';
   static const String bodySignal = 'Body Signal';
-  static String energyCount(int level) => 'Energy: $level/10';
   static const String excellent = 'Excellent';
   static const String great = 'Great';
   static const String good = 'Good';
@@ -220,7 +218,7 @@ class CommonStrings {
   static const String positives = 'Positives';
   static const String ingredientsLabel = 'Ingredients';
   static const String viewFullReportLabel = 'VIEW FULL REPORT';
-  static const String getPersonalizedInsights = 'GET PERSONALIZED INSIGHTS';
+  static const String getPersonalizedInsights = 'Get Personalized Insight';
 
   // Labels
   static const String labelSending = 'Sending...';

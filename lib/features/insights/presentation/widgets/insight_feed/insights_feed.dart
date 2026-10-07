@@ -10,8 +10,11 @@ import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/responsive.dart';
+import 'package:gutgood/features/insights/application/usecases/generate_insight_ai_interpretation_usecase.dart';
 import 'package:gutgood/features/insights/presentation/pages/better_swaps_screen.dart';
+import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
 import 'package:gutgood/features/insights/presentation/widgets/gut_score_card.dart';
+import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ai_context_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_feed_derivations.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
@@ -19,6 +22,7 @@ import 'package:gutgood/features/insights/presentation/widgets/top_food_tile.dar
 import 'package:gutgood/features/insights/presentation/widgets/top_insight_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 part 'insights_feed_shell.dart';
 part 'food_impact_balance.dart';

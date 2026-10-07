@@ -187,13 +187,24 @@ class _InsightsFeedState extends State<InsightsFeed> {
                         Gap.w10,
                         Expanded(
                           child: Text(
-                            'GutGood Insights reflects statistical correlations from your meal and symptom logs, not permanent allergies or medical diagnoses. Always listen to your body.',
+                            'Patterns reflect associations in your logs, not confirmed allergies or medical diagnoses. Missing symptom follow-ups are unknown, not symptom-free.',
                             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF64748B)), height: 1.35),
                           ),
                         ),
                       ],
                     ),
                   ),
+                  if (GenerateInsightAiInterpretationUseCase.canExplain(widget.data)) ...[
+                    Gap.h10,
+                    Consumer<InsightsNotifier>(
+                      builder: (context, notifier, _) => InsightAiContextCard(
+                        interpretation: notifier.aiInterpretationFor(widget.data),
+                        isLoading: notifier.isGeneratingAiInterpretation,
+                        errorMessage: notifier.aiInterpretationError,
+                        onGenerate: () => notifier.generateAiInterpretation(widget.data),
+                      ),
+                    ),
+                  ],
                 ],
               ],
             ]),

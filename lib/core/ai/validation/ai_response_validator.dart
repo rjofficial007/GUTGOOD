@@ -28,8 +28,8 @@ class ValidatedAiResponse {
 ///   output" and are allowed through — blocking on absence would nuke all
 ///   traffic. Only PRESENT-but-insane values gate.
 /// - The confidence gate moved here from the chat persister so BOTH paths
-///   (chat + scanner) share it; the scanner can explicitly opt into the
-///   consumed-scan override because every completed scan is a food event.
+///   (chat + scanner) share it; concrete scan records can bypass it for
+///   scan-history persistence without being treated as consumed meals.
 class AiResponseValidator {
   AiResponseValidator._();
 
@@ -95,19 +95,17 @@ class AiResponseValidator {
       blockOrRecordScanOverride('model declined persistence (requiresPersistence: false)');
     }
 
-    // 6. Symptom ranges: severity/energyLevel must be 1..10. Out-of-range
-    // values are voided (null), never clamped — a confused number is worse
-    // than an honest unknown. Non-blocking: the symptom name itself persists.
+    // 6. Symptom severity must be 1..10. Out-of-range values are voided
+    // (null), never clamped. Non-blocking: the symptom name itself persists.
     var sanitized = result;
     if (result.symptoms.isNotEmpty) {
       var changed = false;
       final symptoms = result.symptoms.map((s) {
         final badSeverity = _outOfRange(s.severity);
-        final badEnergy = _outOfRange(s.energyLevel);
-        if (!badSeverity && !badEnergy) return s;
+        if (!badSeverity) return s;
         changed = true;
-        reasons.add('voided out-of-range ${badSeverity ? 'severity=${s.severity}' : ''}${badSeverity && badEnergy ? ' + ' : ''}${badEnergy ? 'energy=${s.energyLevel}' : ''} on "${s.symptom}"');
-        return s.copyWith(clearSeverity: badSeverity, clearEnergyLevel: badEnergy);
+        reasons.add('voided out-of-range severity=${s.severity} on "${s.symptom}"');
+        return s.copyWith(clearSeverity: true);
       }).toList();
       if (changed) sanitized = result.copyWith(symptoms: symptoms);
     }

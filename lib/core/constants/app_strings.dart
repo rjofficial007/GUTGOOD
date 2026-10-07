@@ -142,7 +142,6 @@ class AppStrings {
   static const String foodScan = CommonStrings.foodScan;
   static const String meal = CommonStrings.meal;
   static const String bodySignal = CommonStrings.bodySignal;
-  static String energyCount(int level) => CommonStrings.energyCount(level);
   static const String excellent = CommonStrings.excellent;
   static const String great = CommonStrings.great;
   static const String good = CommonStrings.good;
@@ -425,6 +424,9 @@ class AppStrings {
   static const String chatAuthMessage = ChatStrings.chatAuthMessage;
   static const String imageUploadAnalysis = ChatStrings.imageUploadAnalysis;
   static const String visionScanPlaceholder = ChatStrings.visionScanPlaceholder;
+  static const String didYouEatThis = ChatStrings.didYouEatThis;
+  static const String yesIAteIt = ChatStrings.yesIAteIt;
+  static const String justChecking = ChatStrings.justChecking;
   static const String restaurantSurvivalMode = ChatStrings.restaurantSurvivalMode;
   static const String findingSwaps = ChatStrings.findingSwaps;
   static const String moreSwapsPrompt = ChatStrings.moreSwapsPrompt;
@@ -1092,7 +1094,6 @@ class AppStrings {
   static const String symptomSkin = CommonStrings.symptomSkin;
   static const String symptomCraving = CommonStrings.symptomCraving;
   static const String symptomStool = CommonStrings.symptomStool;
-  static const String energyLevelLabel = CommonStrings.energyLevelLabel;
   static const String notesLabel = CommonStrings.notesLabel;
   static const String dailyCheckIn = CommonStrings.dailyCheckIn;
   static const String saveDailyCheckIn = CommonStrings.saveDailyCheckIn;

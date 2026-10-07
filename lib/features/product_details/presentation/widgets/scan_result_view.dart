@@ -16,7 +16,8 @@ class ScanResultView extends StatelessWidget {
     final hasWorking = ScanWorkingSection.hasData(scanData);
     final hasWatch = ScanWatchSection.hasData(scanData);
     final hasCycle = scanData.cycleInsight != null && cycleSyncEnabled;
-    final hasSwaps = scanData.swaps.isNotEmpty;
+    final foodSwap = scanData.effectiveFoodSwap;
+    final hasSwaps = foodSwap?.alternatives.isNotEmpty == true;
     final hasAdditives = scanData.additiveConcerns.isNotEmpty;
     final hasIngredients = scanData.ingredients.isNotEmpty;
     final hasAllergens = scanData.allergens != null && parseAllergenItems(scanData.allergens).isNotEmpty;
@@ -47,7 +48,7 @@ class ScanResultView extends StatelessWidget {
           if (hasCycle) ...[DashboardEntrance(delay: 320, child: CycleInsightSection(insight: scanData.cycleInsight!)), Gap.h20],
 
           // 8. Better Swaps (tappable cards + working "+ Add")
-          if (hasSwaps) ...[DashboardEntrance(delay: 340, child: ScanSwapsSection(swaps: scanData.swaps)), Gap.h20],
+          if (hasSwaps) ...[DashboardEntrance(delay: 340, child: ScanSwapsSection(foodSwap: foodSwap!)), Gap.h20],
 
           // 9. Additives (tappable rows → additive detail)
           if (hasAdditives) ...[DashboardEntrance(delay: 360, child: ScanAdditivesSection(scanData: scanData)), Gap.h20],

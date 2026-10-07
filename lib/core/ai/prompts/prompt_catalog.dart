@@ -4,7 +4,6 @@ import 'package:gutgood/core/ai/prompts/mode_prompts/general_rules_prompt.dart';
 import 'package:gutgood/core/ai/prompts/mode_prompts/health_assessment_prompt.dart';
 import 'package:gutgood/core/ai/prompts/mode_prompts/image_classification_prompt.dart';
 import 'package:gutgood/core/ai/prompts/mode_prompts/ingredients_label_prompt.dart';
-import 'package:gutgood/core/ai/prompts/mode_prompts/insights_prompt.dart';
 import 'package:gutgood/core/ai/prompts/mode_prompts/intent_detection_prompt.dart';
 import 'package:gutgood/core/ai/prompts/mode_prompts/meal_planning_prompt.dart';
 import 'package:gutgood/core/ai/prompts/mode_prompts/meal_rating_prompt.dart';
@@ -30,7 +29,7 @@ class Prompts {
   static String get _corePhilosophy => GeneralRulesPrompt.corePhilosophy;
   static String get _safetyRules => GeneralRulesPrompt.safetyRules;
   static String get _patternEngineRules => GeneralRulesPrompt.patternEngineRules;
-  static String get _strictFormattingRules => GeneralRulesPrompt.strictFormattingRules;
+  static String get _journalDataRules => GeneralRulesPrompt.journalDataRules;
   static String get _analysisDiscipline => GeneralRulesPrompt.analysisDiscipline;
 
   // ---------------------------------------------------------------------------
@@ -139,11 +138,9 @@ $_corePhilosophy
 
 $_safetyRules
 
-$_strictFormattingRules
-
 $_analysisDiscipline
 
-${includeSchema ? '${SchemaDefinitions.unifiedDataSchema}\n${SchemaDefinitions.typeRules}\n' : ''}${includePatternEngine ? '\n$_patternEngineRules' : ''}
+${includeSchema ? '${SchemaDefinitions.unifiedDataSchema}\n${SchemaDefinitions.typeRules}\n$_journalDataRules' : ''}${includePatternEngine ? '\n$_patternEngineRules' : ''}
 
 $formatInstruction
 
@@ -229,7 +226,7 @@ $summaryText$pinsText
       _ => _unknownVisionModeInstruction(goals: userGoals, sensitivities: userSensitivities, lifestyle: userLifestyle, phase: cyclePhase),
     };
 
-    if (cyclePhase != 'Not specified') {
+    if (cyclePhase != 'Not specified' && !{'RESTAURANT_MENU', 'MENU', 'INGREDIENTS_LABEL', 'LABEL', 'INGREDIENT'}.contains(normalizedMode)) {
       return '$instruction\n\nREQUIRED: Since the user\'s cycle phase is known ($cyclePhase), you MUST populate the "cycleInsight" object within the "scan" block of the [GUTGOOD_DATA] block.';
     }
     return instruction;
@@ -306,78 +303,6 @@ Current Cycle Phase: $cyclePhase
 ''';
   }
 
-  // ---------------------------------------------------------------------------
-  // INSIGHTS ANALYSIS
-  // ---------------------------------------------------------------------------
-
-  /// Prompt for analyzing history and generating personalized insights.
-  static String insightsAnalysisPrompt({
-    required List<String> userGoals,
-    required List<String> userSensitivities,
-    required List<String> userLifestyle,
-    required String cyclePhase,
-    required String historyJson,
-    String? historySummary,
-    String? recentJournalText,
-    String? historicalJournalSummary,
-    String? scoreHistory,
-    String? preComputedPatternCandidates,
-  }) {
-    final goals = _formatList(userGoals, fallback: 'General Health');
-    final sensitivities = _formatList(userSensitivities, fallback: 'None specified');
-    final lifestyle = _formatList(userLifestyle, fallback: 'None specified');
-
-    // 🟢 Defensive caps. `ai_proxy` slices `prompt` to MAX_TEXT_CHARS and keeps
-    // the HEAD — and the tail of this template is what carries the deterministic
-    // evidence (score history + pre-qualified pattern candidates) that the
-    // insights engine is built on. Trimming each stream here, predictably, keeps
-    // that evidence inside the request for heavy users instead of letting the
-    // server silently cut it off.
-    final cappedChat = _cap(historyJson, 8000, 'chat history');
-    final cappedHistorical = _cap(historicalJournalSummary, 2000, 'historical journal summary', fallback: '');
-    final cappedJournal = _cap(recentJournalText, 10000, 'recent journal', fallback: 'No recent journal data yet.');
-    final cappedScores = _cap(scoreHistory, 1500, 'score history', fallback: 'No historical scores yet.');
-    final cappedPatterns = _cap(preComputedPatternCandidates, 4000, 'pattern candidates', fallback: '');
-
-    return """
-${InsightsPrompt.instruction}
-
-YOUR JOB
-Analyze the user's logged food, symptoms, conversations, scans, and scores to
-identify meaningful repeated associations.
-
-OUTPUT RULE: Return ONLY the JSON object described above. No Markdown, no
-preamble — this applies even if the data sections below are truncated.
-
-USER PROFILE
-Health Goals: $goals
-Sensitivities: $sensitivities
-Lifestyle: $lifestyle
-Current Cycle Phase: $cyclePhase
-
-DATA STREAMS
-1. CHAT HISTORY
-${historySummary != null ? 'LONG-TERM CHAT SUMMARY:\n$historySummary\n' : ''}
-RECENT CHAT LOGS:
-$cappedChat
-
-2. BODY JOURNAL (Tiered Context)
-${cappedHistorical.isNotEmpty ? 'HISTORICAL TRENDS (Days 8-30):\n$cappedHistorical\n' : ''}
-HIGH-FIDELITY RECENT EVENTS (Last 7 Days):
-$cappedJournal
-
-5. PREVIOUS GUT SCORES
-$cappedScores
-${cappedPatterns.isNotEmpty ? '''
-
-6. PRE-QUALIFIED PATTERN CANDIDATES:
-$cappedPatterns
-''' : ''}
-
-The final response must contain ONLY the JSON object.
-""";
-  }
-
   /// Specialized instruction for history summarization.
   static String summarizationInstruction({String? previousSummary}) {
     final priorContext = previousSummary != null && previousSummary.isNotEmpty ? 'PREVIOUS SUMMARY (fold new info into this, don\'t discard it): $previousSummary\n\n' : '';
@@ -387,16 +312,6 @@ The final response must contain ONLY the JSON object.
   // ---------------------------------------------------------------------------
   // HELPERS
   // ---------------------------------------------------------------------------
-
-  /// Trims an unbounded data stream so the assembled prompt stays predictable.
-  ///
-  /// Truncation keeps the HEAD and leaves an explicit marker, so the model can
-  /// see that data was trimmed rather than assuming the user logged nothing.
-  static String _cap(String? value, int maxChars, String label, {String fallback = 'None provided.'}) {
-    if (value == null || value.trim().isEmpty) return fallback;
-    if (value.length <= maxChars) return value;
-    return '${value.substring(0, maxChars)}\n...[$label truncated to $maxChars chars]';
-  }
 
   static String _formatList(List<String> values, {required String fallback}) {
     final cleaned = values.map((value) => value.trim()).where((value) => value.isNotEmpty).toList();

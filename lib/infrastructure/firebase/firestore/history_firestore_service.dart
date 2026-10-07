@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/journal/food_event_linking.dart';
 import 'package:gutgood/core/models/journal/history_counts.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';

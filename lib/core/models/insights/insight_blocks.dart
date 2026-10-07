@@ -2,15 +2,15 @@ import 'package:equatable/equatable.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
-/// v3 prompt blocks backing the "Real Tokens" Insights UI.
+/// Legacy v3 prompt blocks retained for reading older Insights documents.
 ///
 /// All three blocks are **optional and tolerant**: legacy docs parse with
 /// them null and the Insights widgets fall back to deterministic derivations from
 /// the existing fields (healingFoods, detectedPatterns, score history), so
 /// the UI never blocks on regeneration.
 ///
-/// Emitted by insights-prompt v3; see
-/// `lib/core/ai/prompts/mode_prompts/insights_prompt.dart`.
+/// These optional legacy fields remain readable for persisted AI-generated
+/// documents. The current deterministic refresh does not emit them.
 
 /// `improving` — powers the home feed's "What's Improving" card.
 class ImprovingBlock extends Equatable {

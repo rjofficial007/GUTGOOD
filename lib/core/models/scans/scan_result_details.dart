@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:gutgood/core/models/insights/food_swap.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
 class NutrientLevels extends Equatable {
@@ -130,28 +131,45 @@ class CycleTag extends Equatable {
 }
 
 class ProductSwap extends Equatable {
-  const ProductSwap({required this.title, required this.subtitle, required this.imageKeyword, this.imageUrl, required this.tag, this.badge, this.isBlackBadge = false, this.barcode, this.nutriscore, this.benefits = const []});
+  const ProductSwap({
+    required this.title,
+    required this.subtitle,
+    required this.imageKeyword,
+    this.imageUrl,
+    required this.tag,
+    this.badge,
+    this.isBlackBadge = false,
+    this.barcode,
+    this.nutriscore,
+    this.benefits = const [],
+    this.alternative,
+  });
 
   factory ProductSwap.fromMap(Map<String, dynamic> map) {
-    final title = map['title']?.toString() ?? '';
+    final title = (map['title'] ?? map['name'])?.toString() ?? '';
     final rawImageKeyword = map['imageKeyword']?.toString().trim() ?? '';
     final imageKeyword = rawImageKeyword.isEmpty || rawImageKeyword.toLowerCase() == 'string' ? title : rawImageKeyword;
+    final rawBenefits = map['benefits'] ?? map['benefitTags'];
+    final benefits = rawBenefits is List
+        ? rawBenefits.map((value) => value.toString()).toList()
+        : map['reason'] != null
+        ? [map['reason'].toString()]
+        : const <String>[];
 
     return ProductSwap(
       title: title,
-      subtitle: map['subtitle']?.toString() ?? '',
+      subtitle: (map['subtitle'] ?? map['reason'] ?? map['whyBetterOption'])?.toString() ?? '',
       imageKeyword: imageKeyword,
       imageUrl: map['imageUrl']?.toString(),
-      tag: map['tag']?.toString() ?? 'GOOD OPTION',
-      badge: map['badge']?.toString(),
+      tag: (map['tag'] ?? map['impactLevel'] ?? (map['benefitTags'] is List && (map['benefitTags'] as List).isNotEmpty ? (map['benefitTags'] as List).first : null))?.toString() ?? 'GOOD OPTION',
+      badge: (map['badge'] ?? map['category'])?.toString(),
       isBlackBadge: ModelUtils.parseBool(map['isBlackBadge']),
       // P2-11: absent on legacy docs and LLM-invented swaps; present when the
       // swap round-trips OFF grounding (echoed barcode + grade).
       barcode: map['barcode']?.toString(),
       nutriscore: map['nutriscore']?.toString(),
-      benefits: map['benefits'] is List
-          ? (map['benefits'] as List).map((e) => e.toString()).toList()
-          : (map['reason'] != null ? [map['reason'].toString()] : const []),
+      benefits: benefits,
+      alternative: map.containsKey('name') || map.containsKey('structuredBenefits') || map.containsKey('nutrition') ? SwapAlternative.fromMap(map) : null,
     );
   }
   final String title;
@@ -170,7 +188,29 @@ class ProductSwap extends Equatable {
 
   final List<String> benefits;
 
+  /// Retains the shared details while older chat cards use the flat fields.
+  final SwapAlternative? alternative;
+
+  SwapAlternative toAlternative() =>
+      alternative ??
+      SwapAlternative(
+        foodId: barcode ?? title,
+        name: title,
+        imageUrl: imageUrl,
+        imageKeyword: imageKeyword,
+        reason: subtitle,
+        tag: tag,
+        badge: badge,
+        isBlackBadge: isBlackBadge,
+        barcode: barcode,
+        nutriscore: nutriscore,
+        category: badge ?? '',
+        benefitTags: benefits,
+        whyBetterOption: subtitle,
+      );
+
   Map<String, dynamic> toMap() => {
+    ...?alternative?.toMap(),
     'title': title,
     'subtitle': subtitle,
     'imageKeyword': imageKeyword,
@@ -184,5 +224,5 @@ class ProductSwap extends Equatable {
   };
 
   @override
-  List<Object?> get props => [title, subtitle, tag, badge, imageUrl, barcode, nutriscore, benefits];
+  List<Object?> get props => [title, subtitle, tag, badge, imageUrl, barcode, nutriscore, benefits, alternative];
 }

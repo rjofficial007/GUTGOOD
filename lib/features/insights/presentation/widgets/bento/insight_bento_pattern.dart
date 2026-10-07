@@ -9,11 +9,6 @@ class InsightBentoPattern extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _getAccent(pattern.type);
-    final confidence = pattern.evidenceRatio > 0
-        ? (pattern.evidenceRatio.clamp(0.0, 1.0) * 100).round()
-        : pattern.confidenceScore > 0
-        ? (pattern.confidenceScore.clamp(0.0, 1.0) * 100).round()
-        : null;
 
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 30.w),
@@ -26,26 +21,26 @@ class InsightBentoPattern extends StatelessWidget {
           // 2. Meta Pills
           Row(
             children: [
-              _MetaPill(label: pattern.timeframeDays > 0 ? 'Seen ${pattern.frequency} times · ${pattern.timeframeDays} days' : 'Seen ${pattern.frequency} times', color: accent, filled: false),
+              _MetaPill(label: pattern.timeframeDays > 0 ? '${pattern.frequency} matched logs · ${pattern.timeframeDays} days' : '${pattern.frequency} matched logs', color: accent, filled: false),
               Gap.w8,
-              _MetaPill(label: confidence == null ? 'Confidence not established' : '${pattern.confidence.isEmpty ? 'Estimated' : pattern.confidence} · $confidence%', color: accent, filled: true),
+              _MetaPill(label: pattern.evidenceLabel, color: accent, filled: true),
             ],
           ),
           Gap.h16,
           // 3. Metrics Grid
           Row(
             children: [
-              _MetricCard(value: pattern.totalSimilarMeals > 0 ? '${pattern.frequency} / ${pattern.totalSimilarMeals}' : (pattern.frequency > 0 ? '${pattern.frequency}' : '—'), label: AppStrings.bentoEpisodes.toUpperCase(), color: accent),
+              _MetricCard(value: '${pattern.frequency}', label: 'MATCHED LOGS', color: accent),
               Gap.w10,
-              _MetricCard(value: pattern.typicalDelay?.trim().isNotEmpty == true ? pattern.typicalDelay! : 'Not recorded', label: AppStrings.bentoOnsetLag.toUpperCase(), color: accent),
+              _MetricCard(value: pattern.totalSimilarMeals > 0 ? '${pattern.totalSimilarMeals}' : '—', label: 'MEALS LOGGED', color: accent),
               Gap.w10,
-              _MetricCard(value: confidence == null ? '—' : '$confidence%', label: AppStrings.bentoConfidence.toUpperCase(), color: accent),
+              _MetricCard(value: pattern.typicalDelay?.trim().isNotEmpty == true ? pattern.typicalDelay! : 'Not recorded', label: 'ONSET TIMING', color: accent),
             ],
           ),
           Gap.h16,
           // 4. Biological Root
           _SectionCard(
-            title: AppStrings.bentoBiologicalRoot,
+            title: 'WHAT WE OBSERVED',
             color: accent,
             child: Text(
               pattern.description,
@@ -96,7 +91,7 @@ class InsightBentoPattern extends StatelessWidget {
           // 9. Summary Text
           Center(
             child: Text(
-              '${pattern.positiveCount} symptomatic · ${pattern.negativeCount} without symptoms',
+              'Missing symptom follow-ups are treated as unknown, not symptom-free.',
               style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 11.5.sp, color: PatternSurface.isDark(context) ? const Color(0xFF8D96A5) : const Color(0xFF71767F)),
             ),
           ),

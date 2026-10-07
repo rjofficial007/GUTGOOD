@@ -48,10 +48,9 @@ class PersistOutcome {
 /// `PersistAiResponseUseCase` (chat path) and `ScannerRepositoryImpl`
 /// (scanner path) used to re-implement label/menu gating, stable IDs, and
 /// meal/symptom writes independently — and had already diverged (chat gated
-/// on confidence and consumption intent; scanner on neither). All record-write
-/// policy now lives here; both paths delegate. Every scan gets a scan-history
-/// record and a consumed meal projection, including label/menu/non-product
-/// variants. Label/menu responses with no scan remain chat-only.
+/// on confidence and consumption intent; scanner on neither). Both paths use
+/// the same record-write policy. Every scan gets a scan-history record, but a
+/// scan becomes a meal only after explicit consumption confirmation.
 ///
 /// Deliberately side-effect-free beyond Firestore record writes: streaks,
 /// chat-message saves, notifications, and UI refresh stay with the callers,
@@ -68,7 +67,7 @@ class DomainEventPersister {
 
   /// Label/menu policy, single definition. True when the turn is a label or
   /// menu analysis (by capture source, AI category, or intent). It applies only
-  /// when no scan exists; every actual scan is a consumed-food event.
+  /// when no scan exists; actual scans are retained as analysis records.
   static bool isLabelOrMenuTurn(AiAnalysisResult result, {String? source}) {
     final resolvedSource = (source ?? result.scan?.source ?? '').toUpperCase();
     final resolvedCategory = (result.scan?.category ?? '').toUpperCase();
@@ -84,7 +83,7 @@ class DomainEventPersister {
 
   /// Consumption policy for an explicit meal block. Questions *about* food
   /// ("is this healthy?", comparisons, swaps) do not manufacture an explicit
-  /// meal; scans are handled separately as consumed food.
+  /// meal; a scan needs a separate consumption confirmation.
   /// Empty intent (legacy blocks without one) still logs, as before.
   static bool isConsumptionIntent(String? intent, String resolvedSourceUpper) {
     final i = (intent ?? '').toUpperCase();
@@ -121,9 +120,7 @@ class DomainEventPersister {
     return confidence;
   }
 
-  /// A scan is an explicit consumption event. The scan is kept in
-  /// `scan_history` for the report, while this meal projection makes it
-  /// available to the journal and pattern engine.
+  /// Builds the meal projection after the user confirms a scan was eaten.
   MealLog mealFromScan(
     ScanResult scan, {
     required String? chatMessageId,
@@ -151,15 +148,33 @@ class DomainEventPersister {
       scanCategory: _scanCategory(scan, source),
       scanConfidence: _validScanConfidence(scanConfidence ?? scan.scanConfidence),
       scanVerdict: scanVerdict ?? scan.scanVerdict,
+      consumptionConfirmed: scan.consumed == true,
+      foodTags: scan.foodTags,
       chatMessageId: chatMessageId,
       createdAt: scan.createdAt,
     );
   }
 
+  Future<MealLog?> persistConfirmedScanMeal(ScanResult scan, {required String chatMessageId}) async {
+    final mealId = '${chatMessageId}_meal';
+    final meal = mealFromScan(
+      scan,
+      chatMessageId: chatMessageId,
+      source: scan.source,
+      scanId: scan.scanId,
+      photoUrl: scan.userImageUrl,
+      scanConfidence: scan.scanConfidence,
+      scanVerdict: scan.scanVerdict,
+    ).copyWith(journalEntryId: mealId);
+    final id = await _history.logMeal(meal, docId: mealId);
+    if (id == null) return null;
+    onMealPersisted?.call();
+    return meal.copyWith(firestoreId: id, journalEntryId: id);
+  }
+
   /// Resolves the stable journal group before writing a symptom. Same-turn meal
-  /// records win; otherwise the nearest earlier meal in the existing four-hour
-  /// correlation window is used. A symptom with no qualifying meal remains a
-  /// valid standalone symptom record.
+  /// records and explicit links are authoritative. Clock-based linking requires
+  /// user-confirmed times on both records; estimates must not invent relations.
   Future<String?> _resolveJournalEntryId(SymptomLog symptom, {MealLog? currentMeal}) async {
     final explicitId = symptom.journalEntryId ?? symptom.lastMealFirestoreId;
     if (explicitId != null && explicitId.trim().isNotEmpty) return explicitId;
@@ -173,13 +188,16 @@ class DomainEventPersister {
       if (currentFirestoreId != null && currentFirestoreId.isNotEmpty) return currentFirestoreId;
     }
 
+    if (symptom.occurredAt == null || symptom.occurredAtProvenance != OccurrenceProvenance.user) return null;
+
     try {
       final meals = await _history.getRecentMealLogs(
         limit: 50,
         since: symptom.eventTime.subtract(journalSymptomMealLinkWindow),
         before: symptom.eventTime.add(const Duration(seconds: 1)),
       );
-      return nearestMealJournalEntryId(symptomTime: symptom.eventTime, meals: meals);
+      final userTimedMeals = meals.where((meal) => meal.occurredAt != null && meal.occurredAtProvenance == OccurrenceProvenance.user);
+      return nearestMealJournalEntryId(symptomTime: symptom.eventTime, meals: userTimedMeals);
     } catch (e) {
       // Linking is additive. A transient history read failure must not prevent
       // the user's symptom from being recorded.
@@ -192,10 +210,8 @@ class DomainEventPersister {
     final tags = persistedTagBlocks ?? <String>{};
     final persistenceFailures = <String>[];
 
-    // 1. A label/menu response with no scan remains chat-only. Once a scan is
-    // present, it is an explicit consumption event and bypasses the old
-    // label/menu, confidence, verdict, and intent persistence gates while the
-    // validator still sanitizes unsafe field values.
+    // 1. A label/menu response with no scan remains chat-only. Scan records
+    // are retained for their analysis, independent of whether they were eaten.
     final hasScan = result.scan != null;
     if (!hasScan && isLabelOrMenuTurn(result, source: source)) {
       final diagnostic = AiResponseValidator.validate(result);
@@ -220,9 +236,15 @@ class DomainEventPersister {
         ? null
         : (chatMessageId != null ? '${chatMessageId}_scan' : (scan.scanId ?? 'scan_${scan.createdAt.millisecondsSinceEpoch}_${scan.score}'));
 
-    // Every scan is also a consumed-food journal event. Do this before
-    // writing symptoms so same-turn symptoms can share the meal's journalEntryId.
-    if (scan != null && updated.meal == null) {
+    // Scan analysis alone does not establish that the food was eaten. Ignore
+    // model-supplied meal blocks until the user confirms consumption.
+    if (scan != null && scan.consumed != true) {
+      final candidateTags = updated.meal?.foodTags ?? const <String>[];
+      if (candidateTags.isNotEmpty) {
+        updated = updated.copyWith(scan: scan.copyWith(foodTags: candidateTags));
+      }
+      updated = updated.copyWith(clearMeal: true);
+    } else if (scan != null && updated.meal == null) {
       updated = updated.copyWith(
         meal: mealFromScan(
           scan,
@@ -251,6 +273,7 @@ class DomainEventPersister {
         source: _scanSource(scan, source),
         scanConfidence: _validScanConfidence(updated.confidence) ?? scan.scanConfidence,
         scanVerdict: updated.verdict ?? scan.scanVerdict,
+        foodTags: updated.scan?.foodTags ?? scan.foodTags,
       );
       if (!tags.contains(key)) {
         AppLogger.ai('DomainEventPersister: saving scan to scan_history — ${scan.productName}');
@@ -268,10 +291,10 @@ class DomainEventPersister {
       updated = updated.copyWith(scan: persistedScanData);
     }
 
-    // 4. Meal record. Every scan is a confirmed consumption event. Explicit
-    // meal blocks without a scan retain the original intent gate.
+    // 4. Only confirmed scans become meals. Explicit meal blocks without a
+    // scan retain the original intent gate.
     final resolvedSource = (source ?? updated.scan?.source ?? '').toUpperCase();
-    final scanIsConsumedFood = updated.scan != null;
+    final scanIsConsumedFood = updated.scan?.consumed == true;
     if (updated.meal != null && (scanIsConsumedFood || isConsumptionIntent(updated.intent, resolvedSource))) {
       var meal = updated.meal!;
       final key = scanIsConsumedFood && stableScanId != null && stableScanId.isNotEmpty
@@ -315,8 +338,8 @@ class DomainEventPersister {
     }
 
     // 5. Symptom records. Each symptom receives the same journalEntryId as
-    // the current persisted meal, or the nearest earlier meal within four
-    // hours. A non-consumption meal block is not a journal relation.
+    // the current persisted meal, or an earlier meal matched from user-confirmed
+    // times. A non-consumption meal block is not a journal relation.
     final mealForSymptomLink = updated.meal != null && (scanIsConsumedFood || isConsumptionIntent(updated.intent, resolvedSource)) ? updated.meal : null;
     if (updated.symptoms.isNotEmpty) {
       final updatedSymptoms = <SymptomLog>[];

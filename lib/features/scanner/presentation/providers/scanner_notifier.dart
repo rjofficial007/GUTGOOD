@@ -71,6 +71,7 @@ class ScannerNotifier with ChangeNotifier {
 
   /// Performs AI orchestration and deterministic scoring for a fetched product.
   Future<ScanResult?> analyzeBarcodeProduct(OffProduct product, {Uint8List? capturedImage}) async {
+    if (_isAnalyzing) return null;
     _isAnalyzing = true;
     _lastErrorWasOffline = false;
     _lastFailure = null;
@@ -79,6 +80,18 @@ class ScannerNotifier with ChangeNotifier {
     final scanId = const Uuid().v4();
 
     try {
+      final requestSaved = await _repository.savePersonalizedInsightRequest(
+        ChatMessage(
+          localId: '${scanId}_request',
+          role: 'user',
+          text: 'Get personalized insight for ${product.productName}.',
+          imageUrl: product.imageUrl,
+          source: 'barcode',
+          createdAt: DateTime.now(),
+        ),
+      );
+      if (!requestSaved) throw StateError('Could not save the personalized insight request.');
+
       final profile = await _authFirestoreService.getUserMetadata();
       final goals = profile?.goals ?? [];
       final sensitivities = profile?.sensitivities ?? [];

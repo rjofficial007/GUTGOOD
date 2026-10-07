@@ -36,7 +36,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
     if (_currentData.scanId != null) {
       final hasDetails = _currentData.impacts.isNotEmpty || _currentData.nutrients != null || _currentData.swaps.isNotEmpty;
-      if (!hasDetails) _refreshData();
+      if (!hasDetails || _currentData.displayImageUrl == null) _refreshData();
     }
   }
 

@@ -75,9 +75,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
           final prioritizedPatterns = notifier.prioritizedPatterns.isNotEmpty ? notifier.prioritizedPatterns : (latestInsight?.detectedPatterns ?? []);
 
           final scoreSeries = InsightsScreen.scoreWindowFor(notifier, latestInsight);
-          final isLoading = latestInsight == null && (notifier.isLoading || notifier.isGenerating);
+          final isLoading = (latestInsight == null || latestInsight.status == AIInsight.statusInsufficientData) && (notifier.isLoading || notifier.isGenerating);
 
-          if (latestInsight == null && notifier.errorMessage == null && !isLoading && !notifier.isSufficient) {
+          if ((latestInsight == null || latestInsight.status == AIInsight.statusInsufficientData) && notifier.errorMessage == null && !isLoading && !notifier.isSufficient) {
             return Scaffold(
               backgroundColor: context.appColorScheme.cardBackground,
               appBar: GutAppBar(

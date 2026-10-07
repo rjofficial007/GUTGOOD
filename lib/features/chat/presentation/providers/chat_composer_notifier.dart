@@ -135,6 +135,23 @@ class ChatComposerNotifier with ChangeNotifier {
     return null;
   }
 
+  String? _findUserImageUrlForAiMessage(String aiLocalId) {
+    final messages = _historyNotifier.messages;
+    final index = messages.indexWhere((m) => m.localId == aiLocalId);
+    if (index == -1) return null;
+    for (var i = index + 1; i < messages.length; i++) {
+      final message = messages[i];
+      if (message.role != 'user') continue;
+      for (final url in message.imageUrls) {
+        if (url.trim().isNotEmpty) return url;
+      }
+      final imageUrl = message.imageUrl?.trim();
+      if (imageUrl?.isNotEmpty == true) return imageUrl;
+      return null;
+    }
+    return null;
+  }
+
   String? _pendingHiddenContext;
 
   // Last request

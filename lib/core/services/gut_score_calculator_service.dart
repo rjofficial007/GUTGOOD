@@ -195,8 +195,8 @@ class GutScoreCalculatorService {
     DateTime? periodFrom,
     DateTime? periodTo,
   }) {
-    // A scan is now also a journal meal. Count the event once in the recap,
-    // while retaining standalone legacy scans that have no meal projection.
+    // Count confirmed food events once. Scan-only records are eligible only
+    // when their explicit consumption status is true.
     final totalLogs = uniqueFoodEventCount(meals: recentMeals, scans: recentScans);
     final totalSymptoms = recentSymptoms.length;
 

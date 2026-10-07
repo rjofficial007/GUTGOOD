@@ -16,6 +16,9 @@ abstract class HistoryFirestoreService {
 
   Future<ScanResult?> getScanById(String scanId);
 
+  /// Updates an existing scan with its uploaded user photo without creating a partial scan record.
+  Future<bool> patchScanUserImageUrl({required String scanId, required String imageUrl});
+
   /// Newest scan for [barcode], or null when never scanned. Backs the personal
   /// barcode cache (P0-3). Requires the (barcode, createdAt) composite index.
   Future<ScanResult?> getLatestScanByBarcode(String barcode);
@@ -36,6 +39,7 @@ abstract class HistoryFirestoreService {
   Future<bool> isFoodSaved(String? productName, {String? barcode});
 
   Future<String?> logMeal(MealLog log, {String? docId});
+  Future<void> deleteScanMealProjections({required String chatMessageId, required String scanId, String? keepMealId});
   Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before});
 
   Future<String?> logSymptom(SymptomLog log, {String? docId});

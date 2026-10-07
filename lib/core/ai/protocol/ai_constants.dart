@@ -1,18 +1,15 @@
 /// Confidence-gating thresholds for AI-derived data.
 ///
-/// GutGood auto-saves AI-extracted data straight into the user's permanent
-/// history (scan_history / journal_logs) with no manual confirmation step.
-/// For ordinary meal/symptom extraction, low confidence is kept chat-only so
-/// it cannot silently corrupt gut-health pattern detection; concrete scans are
-/// the deliberate consumed-food exception and retain their evidence metadata.
+/// GutGood auto-saves AI-extracted data into permanent history. For ordinary
+/// meal/symptom extraction, low confidence is kept chat-only; scans are kept
+/// in scan history, while consumed-food insights require explicit confirmation.
 class AiConfidenceThresholds {
   AiConfidenceThresholds._();
 
   /// Minimum `metadata.confidence` (0.0-1.0) required before non-scan
   /// meal/symptom data extracted by the AI is auto-persisted as confirmed
-  /// history. Concrete scans intentionally bypass this gate: the product
-  /// records every completed scan as both scan history and consumed food,
-  /// while retaining the confidence value as provenance.
+  /// history. Concrete scan records bypass this gate only for scan-history
+  /// persistence; they do not become meals without user confirmation.
   static const double minPersistenceConfidence = 0.6;
 }
 
@@ -90,7 +87,7 @@ class UserIntent {
   ];
 }
 
-/// Schema/envelope versioning (§17). Every AI-produced durable doc stamps
+/// Schema/envelope versioning (§17). Every versioned persisted record stamps
 /// [schemaVersion] as `v` (tolerant readers ignore unknown fields; future
 /// writers bump this when a shape changes). The [GUTGOOD_DATA] envelope may
 /// also carry `v`; [AiResponseValidator] rejects envelopes newer than this.
@@ -99,28 +96,20 @@ class AiVersions {
 
   static const int schemaVersion = 1;
 
-  /// Insights-prompt version, stamped on insight docs (P2-9/P2-10).
-  /// 2 = de-presented schema: the LLM emits data only, Dart owns visuals.
-  /// 3 = v2 Real Tokens UI blocks (`improving`, `watch`, `smartSwap`,
-  ///     `topHealing/topTrigger.whyPoints`). All tolerant reads.
-  /// 7 = evidence-gated Insights output: combination candidates, deterministic
-  ///     food-impact balance, and no unsupported mechanism fields.
-  /// 8 = food-swap categories describe each alternative's food type for useful filters.
-  /// 9 = request grounded, structured benefits for every food-swap alternative.
-  /// 10 = complete candidate sections, matching counts, and noncausal next steps.
-  /// 11 = require food swaps with four distinct alternatives for negative food patterns.
-  static const int insightPromptVersion = 11;
-
   /// J-4 §17: chat builder (`Prompts.chatSystemInstruction`) version, stamped
   /// on ChatMessage + the scan/meal/symptom records extracted from chat turns.
   /// 1 = first versioned baseline (post-J-3 dedupe). Bump on any wording change.
-  static const int chatPromptVersion = 1;
+  static const int chatPromptVersion = 2;
 
   /// J-4 §17: one-shot analysis builders (`visionAnalysisSystemInstruction`,
   /// `barcodeAnalysisSystemInstruction`, `productAnalysisPrompt`) version,
   /// stamped on ScanResults from the scanner flows. Builder identity comes
   /// from `ScanResult.source` ('chat' vs image-mode/barcode values).
-  static const int visionPromptVersion = 1;
+  static const int visionPromptVersion = 2;
+
+  /// Optional, user-requested synthesis of multiple rule-detected Insight
+  /// patterns. This prompt cannot change scores, counts, or detected patterns.
+  static const int insightInterpretationPromptVersion = 1;
 
   // NOTE: the classifier (`imageClassificationInstruction`,
   // `intentDetectionInstruction`) and summarizer builders are intentionally
@@ -158,12 +147,12 @@ class OccurrenceProvenance {
 class RecordProvenance {
   RecordProvenance._();
 
-  /// Manually entered by the user.
+  /// Explicitly reported by the user, either in chat text or a symptom form.
   static const String user = 'user';
 
   /// Extracted from a structured AI data block.
   static const String aiExtracted = 'ai_extracted';
 
-  /// Guessed by keyword-regex over user text (no structured AI entry).
+  /// Legacy records guessed by broad keyword matching over user text.
   static const String keywordFallback = 'keyword_fallback';
 }

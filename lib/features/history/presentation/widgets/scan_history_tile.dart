@@ -19,7 +19,7 @@ class ScanHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayImageUrl = userImageUrl ?? scanResult.userImageUrl ?? scanResult.imageUrl;
+    final displayImageUrl = scanResult.displayImageUrl ?? (scanResult.isBarcodeScan ? null : userImageUrl);
 
     final leadingWidget = Container(
       width: AppSizes.w52,

@@ -11,6 +11,7 @@ export 'insights/food_swap.dart';
 export 'insights/gut_experiment.dart';
 export 'insights/gut_score_record.dart';
 export 'insights/insight_action.dart';
+export 'insights/insight_ai_interpretation.dart';
 export 'insights/insight_blocks.dart';
 export 'insights/insight_empty_state.dart';
 export 'insights/insight_evidence.dart';

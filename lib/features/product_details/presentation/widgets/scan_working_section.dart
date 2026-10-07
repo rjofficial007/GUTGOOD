@@ -7,11 +7,15 @@ class ScanWorkingSection extends StatelessWidget {
   final ScanResult scanData;
 
   static bool hasData(ScanResult scanData) {
-    final textContent = '${scanData.productName} ${scanData.impact} ${scanData.brand}'.toLowerCase();
-    if (scanData.isOrganic == true || textContent.contains('organic') || textContent.contains('bio')) return true;
+    if (scanData.isOrganic == true) return true;
     final n = scanData.nutrients;
     if (n != null) {
-      if ((n.proteins ?? 0) >= 2.0 || (n.fiber ?? 0) >= 1.0 || (n.saturatedFat ?? 0) <= 2.0 || (n.sugars ?? 0) <= 10.0 || (n.salt ?? 0) <= 1.5 || (n.calories ?? 0) <= 250) {
+      if ((n.proteins ?? 0) >= 2.0 ||
+          (n.fiber ?? 0) >= 1.0 ||
+          (n.saturatedFat != null && n.saturatedFat! <= 2.0) ||
+          (n.sugars != null && n.sugars! <= 10.0) ||
+          (n.salt != null && n.salt! <= 1.5) ||
+          (n.calories != null && n.calories! <= 250)) {
         return true;
       }
     }
@@ -23,7 +27,6 @@ class ScanWorkingSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
-    final serving = scanData.servingSize ?? '1 serving';
 
     final positiveItems = <_ScanFactor>[];
     final addedTitles = <String>{};
@@ -32,88 +35,37 @@ class ScanWorkingSection extends StatelessWidget {
       if (addedTitles.add(item.title.toLowerCase())) positiveItems.add(item);
     }
 
-    // 1. Organic / clean tags
-    final textContent = '${scanData.productName} ${scanData.impact} ${scanData.brand}'.toLowerCase();
-    if (scanData.isOrganic == true || textContent.contains('organic') || textContent.contains('bio')) {
-      addPositive(
-        _ScanFactor(icon: AppIcons.leaf, iconColor: t.positive, title: 'Organic Certified', subtitle: '+10 Gut Score bonus · Certified organic ingredients', valueText: '+10', badgeColor: t.positive),
-      );
+    // 1. Organic status from structured scan data
+    if (scanData.isOrganic == true) {
+      addPositive(_ScanFactor(icon: AppIcons.leaf, iconColor: t.positive, title: 'Organic', subtitle: '+10 score bonus · Organic status reported', valueText: '+10', badgeColor: t.positive));
     }
 
-    // 2. Favorable nutrients (per serving)
+    // 2. Nutrient facts use the basis shown in the section header.
     final n = scanData.nutrients;
     if (n != null) {
-      if ((n.proteins ?? 0) >= 2.0) {
+      if (n.proteins != null && n.proteins! >= 2.0) {
+        addPositive(_ScanFactor(icon: AppIcons.dumbbell, iconColor: t.positive, title: 'Protein', subtitle: 'Protein in this basis', valueText: '${n.proteins!.toInt()}g', badgeColor: t.positive));
+      }
+      if (n.fiber != null && n.fiber! >= 1.0) {
         addPositive(
-          _ScanFactor(
-            icon: AppIcons.dumbbell,
-            iconColor: t.positive,
-            title: 'Protein',
-            subtitle: (n.proteins ?? 0) >= 8.0 ? 'High protein source' : 'Provides muscle-building protein',
-            valueText: '${(n.proteins ?? 0).toInt()}g',
-            badgeColor: t.positive,
-          ),
+          _ScanFactor(icon: AppIcons.wheat, iconColor: t.positive, title: 'Fiber', subtitle: 'Dietary fiber in this basis', valueText: '${n.fiber!.toStringAsFixed(1)}g', badgeColor: t.positive),
         );
       }
-      if ((n.fiber ?? 0) >= 1.0) {
+      if (n.saturatedFat != null && n.saturatedFat! <= 2.0) {
         addPositive(
-          _ScanFactor(
-            icon: AppIcons.wheat,
-            iconColor: t.positive,
-            title: 'Fiber',
-            subtitle: (n.fiber ?? 0) >= 3.0 ? 'High dietary fiber' : 'Supports digestive motility',
-            valueText: '${(n.fiber ?? 0).toStringAsFixed(1)}g',
-            badgeColor: t.positive,
-          ),
+          _ScanFactor(icon: AppIcons.droplet, iconColor: t.positive, title: 'Saturated Fat', subtitle: 'Saturated fat in this basis', valueText: '${n.saturatedFat!.toInt()}g', badgeColor: t.positive),
         );
       }
-      if ((n.saturatedFat ?? 0) <= 2.0) {
+      if (n.sugars != null && n.sugars! <= 10.0) {
+        addPositive(_ScanFactor(icon: AppIcons.candy, iconColor: t.positive, title: 'Sugar', subtitle: 'Total sugars in this basis', valueText: '${n.sugars!.toInt()}g', badgeColor: t.positive));
+      }
+      if (n.salt != null && n.salt! <= 1.5) {
         addPositive(
-          _ScanFactor(
-            icon: AppIcons.droplet,
-            iconColor: t.positive,
-            title: 'Saturated Fat',
-            subtitle: (n.saturatedFat ?? 0) == 0 ? 'No saturated fat' : 'Low saturated fat',
-            valueText: '${(n.saturatedFat ?? 0).toInt()}g',
-            badgeColor: t.positive,
-          ),
+          _ScanFactor(icon: AppIcons.scale, iconColor: t.positive, title: 'Sodium', subtitle: 'Sodium estimate in this basis', valueText: '${(n.salt! * 400).toInt()}mg', badgeColor: t.positive),
         );
       }
-      if ((n.sugars ?? 0) <= 10.0) {
-        addPositive(
-          _ScanFactor(
-            icon: AppIcons.candy,
-            iconColor: t.positive,
-            title: 'Sugar',
-            subtitle: (n.sugars ?? 0) == 0 ? 'No sugar added' : 'Low in sugar',
-            valueText: '${(n.sugars ?? 0).toInt()}g',
-            badgeColor: t.positive,
-          ),
-        );
-      }
-      if ((n.salt ?? 0) <= 1.5) {
-        addPositive(
-          _ScanFactor(
-            icon: AppIcons.scale,
-            iconColor: t.positive,
-            title: 'Sodium',
-            subtitle: (n.salt ?? 0) <= 0.1 ? 'No sodium' : 'Low sodium level',
-            valueText: '${((n.salt ?? 0) * 400).toInt()}mg',
-            badgeColor: t.positive,
-          ),
-        );
-      }
-      if ((n.calories ?? 0) <= 250) {
-        addPositive(
-          _ScanFactor(
-            icon: AppIcons.flame,
-            iconColor: t.positive,
-            title: 'Calories',
-            subtitle: (n.calories ?? 0) <= 100 ? 'Low caloric density' : 'Moderate caloric impact',
-            valueText: '${(n.calories ?? 0).toInt()} Cal',
-            badgeColor: t.positive,
-          ),
-        );
+      if (n.calories != null && n.calories! <= 250) {
+        addPositive(_ScanFactor(icon: AppIcons.flame, iconColor: t.positive, title: 'Calories', subtitle: 'Energy in this basis', valueText: '${n.calories!.toInt()} Cal', badgeColor: t.positive));
       }
     }
 
@@ -169,7 +121,7 @@ class ScanWorkingSection extends StatelessWidget {
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.titleSize.sp, fontWeight: FontWeight.w700, color: t.textPrimary),
                   ),
                   Text(
-                    AppStrings.perServing(serving),
+                    scanData.nutritionBasisLabel,
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
                   ),
                 ],

@@ -3,6 +3,11 @@ part of 'chat_composer_notifier.dart';
 /// Streaming, tag processing, and response persistence workflow.
 
 extension ChatComposerStream on ChatComposerNotifier {
+  String? _displayImageForScan(ScanResult? scan, String? fallback) {
+    if (scan == null) return fallback;
+    return scan.isBarcodeScan ? scan.displayImageUrl : scan.displayImageUrl ?? fallback;
+  }
+
   Future<void> _streamReply({required String userText, List<Uint8List>? images, String? imageUrl, String? source, String? detectedIntent, bool isRegenerate = false}) async {
     final aiLocalId = _activeAiLocalId;
     if (aiLocalId == null) {
@@ -88,10 +93,11 @@ extension ChatComposerStream on ChatComposerNotifier {
     _chunkBuffer = '';
 
     final userText = _findUserTextForAiMessage(aiLocalId);
+    final resolvedImageUrl = imageUrl ?? _findUserImageUrlForAiMessage(aiLocalId);
     final result = _processChatTagUseCase(
       _fullAiText,
       userText: userText,
-      imageUrl: imageUrl,
+      imageUrl: resolvedImageUrl,
       source: source,
       chatMessageId: aiLocalId,
       isFinal: false,
@@ -105,17 +111,19 @@ extension ChatComposerStream on ChatComposerNotifier {
     }
 
     final currentMsg = _historyNotifier.messages.firstWhere((m) => m.localId == aiLocalId);
+    final displayImageUrl = _displayImageForScan(result.scan, resolvedImageUrl);
     final updatedMsg = currentMsg.copyWith(
       text: finalToDisplay,
       scanData: result.scan,
-      imageUrl: imageUrl,
-      imageUrls: imageUrl != null ? [imageUrl] : null,
-      mealLogs: result.meal != null ? [result.meal!] : const [],
+      imageUrl: displayImageUrl,
+      imageUrls: displayImageUrl != null ? [displayImageUrl] : (result.scan?.isBarcodeScan == true ? const [] : null),
+      clearImageUrl: displayImageUrl == null && result.scan?.isBarcodeScan == true,
+      mealLogs: result.scan == null && result.meal != null ? [result.meal!] : const [],
       symptomLogs: result.symptoms,
       swapData: result.swaps,
       isSwap: result.swaps.isNotEmpty,
       analysisResult: result,
-      foodMentions: [if (result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
+      foodMentions: [if (result.scan == null && result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
       symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
     );
 
@@ -149,34 +157,51 @@ extension ChatComposerStream on ChatComposerNotifier {
       _fullAiText += _chunkBuffer;
       _chunkBuffer = '';
       final userText = _findUserTextForAiMessage(aiLocalId);
+      final resolvedImageUrl = currentMsg.imageUrl ?? _findUserImageUrlForAiMessage(aiLocalId);
       final result = _processChatTagUseCase(
         _fullAiText,
         userText: userText,
-        imageUrl: currentMsg.imageUrl,
+        imageUrl: resolvedImageUrl,
         source: currentMsg.source,
         chatMessageId: aiLocalId,
         isFinal: true,
         promptVersion: AiVersions.chatPromptVersion,
         servedModel: null,
       );
+      final errorImageUrl = _displayImageForScan(result.scan, resolvedImageUrl);
       final finalMsg = currentMsg.copyWith(
         text: ChatSafetyGuardrails.apply(result.text),
         scanData: result.scan,
-        mealLogs: result.meal != null ? [result.meal!] : const [],
+        imageUrl: errorImageUrl,
+        imageUrls: errorImageUrl != null ? [errorImageUrl] : (result.scan?.isBarcodeScan == true ? const [] : null),
+        clearImageUrl: errorImageUrl == null && result.scan?.isBarcodeScan == true,
+        mealLogs: result.scan == null && result.meal != null ? [result.meal!] : const [],
         symptomLogs: result.symptoms,
         swapData: result.swaps,
         isSwap: result.swaps.isNotEmpty,
         analysisResult: result,
-        foodMentions: [if (result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
+        foodMentions: [if (result.scan == null && result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
         symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
       );
       _historyNotifier.replaceMessage(aiLocalId, finalMsg);
 
       // Persist any partial but valid results if we at least got the tags
       if (_persistTagsForActiveTurn) {
-        final hydratedResult = await _persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags);
-
-        final updatedMsgWithIds = currentMsg.copyWith(scanData: hydratedResult.scan, mealLogs: hydratedResult.meal != null ? [hydratedResult.meal!] : null, symptomLogs: hydratedResult.symptoms);
+        final hydratedResult = await _persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: resolvedImageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags);
+        final uploadedImageUrl = _findUserImageUrlForAiMessage(aiLocalId) ?? resolvedImageUrl;
+        final persistedScan = uploadedImageUrl != null && hydratedResult.scan != null ? hydratedResult.scan!.copyWith(userImageUrl: uploadedImageUrl) : hydratedResult.scan;
+        if (uploadedImageUrl != null && persistedScan?.scanId?.isNotEmpty == true) {
+          await _historyNotifier.patchScanUserImageUrl(scanId: persistedScan!.scanId!, imageUrl: uploadedImageUrl);
+        }
+        final persistedImageUrl = _displayImageForScan(persistedScan, uploadedImageUrl);
+        final updatedMsgWithIds = finalMsg.copyWith(
+          scanData: persistedScan,
+          imageUrl: persistedImageUrl,
+          imageUrls: persistedImageUrl != null ? [persistedImageUrl] : (persistedScan?.isBarcodeScan == true ? const [] : null),
+          clearImageUrl: persistedImageUrl == null && persistedScan?.isBarcodeScan == true,
+          mealLogs: hydratedResult.meal == null ? const [] : [hydratedResult.meal!],
+          symptomLogs: hydratedResult.symptoms,
+        );
         _historyNotifier.replaceMessage(aiLocalId, updatedMsgWithIds);
       }
     }
@@ -215,10 +240,11 @@ extension ChatComposerStream on ChatComposerNotifier {
     _fullAiText += _chunkBuffer;
     _chunkBuffer = '';
     final userText = _findUserTextForAiMessage(aiLocalId);
+    final resolvedImageUrl = currentMsg.imageUrl ?? _findUserImageUrlForAiMessage(aiLocalId);
     final result = _processChatTagUseCase(
       _fullAiText,
       userText: userText,
-      imageUrl: currentMsg.imageUrl,
+      imageUrl: resolvedImageUrl,
       source: currentMsg.source,
       chatMessageId: aiLocalId,
       isFinal: true,
@@ -226,15 +252,19 @@ extension ChatComposerStream on ChatComposerNotifier {
       servedModel: _repository.lastServedModel,
     );
 
+    final displayImageUrl = _displayImageForScan(result.scan, resolvedImageUrl);
     final finalMsg = currentMsg.copyWith(
       text: ChatSafetyGuardrails.apply(result.text),
       scanData: result.scan,
-      mealLogs: result.meal != null ? [result.meal!] : const [],
+      imageUrl: displayImageUrl,
+      imageUrls: displayImageUrl != null ? [displayImageUrl] : (result.scan?.isBarcodeScan == true ? const [] : null),
+      clearImageUrl: displayImageUrl == null && result.scan?.isBarcodeScan == true,
+      mealLogs: result.scan == null && result.meal != null ? [result.meal!] : const [],
       symptomLogs: result.symptoms,
       swapData: result.swaps,
       isSwap: result.swaps.isNotEmpty,
       analysisResult: result,
-      foodMentions: [if (result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
+      foodMentions: [if (result.scan == null && result.meal != null) ...result.meal!.items, if (result.scan != null) result.scan!.productName].whereType<String>().toList(),
       symptomMentions: result.symptoms.map((e) => e.symptom).toList(),
       wasTruncated: _repository.lastResponseTruncated,
       promptVersion: _repository.lastPromptVersion ?? AiVersions.chatPromptVersion,
@@ -253,12 +283,22 @@ extension ChatComposerStream on ChatComposerNotifier {
     // persist all domain logs (meals, symptoms, scans) to history.
     var finalToPersist = finalMsg;
     if (_persistTagsForActiveTurn && !_generationCancelled) {
-      final hydratedResult = await _persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: currentMsg.imageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags);
+      final latestImageUrl = _findUserImageUrlForAiMessage(aiLocalId) ?? resolvedImageUrl;
+      final hydratedResult = await _persistAiResponseUseCase(result, chatMessageId: aiLocalId, imageUrl: latestImageUrl, source: currentMsg.source, persistedTagBlocks: _persistedTags);
+      final uploadedImageUrl = _findUserImageUrlForAiMessage(aiLocalId) ?? latestImageUrl;
+      final persistedScan = uploadedImageUrl != null && hydratedResult.scan != null ? hydratedResult.scan!.copyWith(userImageUrl: uploadedImageUrl) : hydratedResult.scan;
+      if (uploadedImageUrl != null && persistedScan?.scanId?.isNotEmpty == true) {
+        await _historyNotifier.patchScanUserImageUrl(scanId: persistedScan!.scanId!, imageUrl: uploadedImageUrl);
+      }
+      final persistedImageUrl = _displayImageForScan(persistedScan, uploadedImageUrl);
 
       // Update final message with IDs (firestoreId) so they can be saved as references in chat_history
       finalToPersist = finalMsg.copyWith(
-        scanData: hydratedResult.scan,
-        mealLogs: hydratedResult.meal != null ? [hydratedResult.meal!] : null,
+        scanData: persistedScan,
+        imageUrl: persistedImageUrl,
+        imageUrls: persistedImageUrl != null ? [persistedImageUrl] : (persistedScan?.isBarcodeScan == true ? const [] : null),
+        clearImageUrl: persistedImageUrl == null && persistedScan?.isBarcodeScan == true,
+        mealLogs: hydratedResult.meal == null ? const [] : [hydratedResult.meal!],
         symptomLogs: hydratedResult.symptoms,
         swapData: hydratedResult.swaps,
         analysisResult: hydratedResult,

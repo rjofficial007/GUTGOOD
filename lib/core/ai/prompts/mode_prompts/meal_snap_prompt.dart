@@ -37,7 +37,7 @@ Single Emoji **Healthy Fats**: [How the fats contribute to satiety and hormone h
 
 9. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
    - Populate BOTH the "meal" and "scan" objects.
-   - For "scan", set "isOrganic": true if the meal photo clearly shows organic branding or ingredients; else false.
+   - For "scan", set "isOrganic": true only when organic certification is visible or explicitly supplied; null when unknown.
    - If the user is reporting a symptom or physical feeling (e.g., bloating), you MUST also populate the "symptoms" array.
    
 ${PromptFormattingRules.gutGoodDataBlockRequired}

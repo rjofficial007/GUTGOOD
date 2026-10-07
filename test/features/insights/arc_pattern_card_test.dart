@@ -29,13 +29,15 @@ void main() {
   );
 
   group('ArcPatternCard Widget Tests', () {
-    testWidgets('renders pattern title, percentage and confidence pill', (tester) async {
+    testWidgets('renders matched-log count and a descriptive evidence tier, not a confidence percentage', (tester) async {
       await tester.pumpWidget(createTestWidget(ArcPatternCard(pattern: testPattern)));
 
       expect(find.text('Sodium'), findsOneWidget);
-      expect(find.text('85% match'), findsOneWidget);
-      expect(find.text('Confidence level'), findsOneWidget);
-      expect(find.text('High'), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+      expect(find.text('Matched log entries'), findsOneWidget);
+      expect(find.text('Repeated observation'), findsOneWidget);
+      expect(find.text('85% match'), findsNothing);
+      expect(find.text('Confidence level'), findsNothing);
     });
 
     testWidgets('triggers onTap callback when card is tapped', (tester) async {
@@ -62,7 +64,8 @@ void main() {
 
       expect(find.byType(ArcPatternCard), findsOneWidget);
       expect(find.text('Sodium'), findsOneWidget);
-      expect(find.text('85% match'), findsOneWidget);
+      expect(find.text('Matched log entries'), findsOneWidget);
+      expect(find.text('Repeated observation'), findsOneWidget);
     });
 
     testWidgets('renders the pattern as a banner with its signal and action', (tester) async {

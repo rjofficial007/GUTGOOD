@@ -99,7 +99,6 @@ extension DebugMockThirtyDays on DebugMockDataService {
           SymptomLog(
             symptom: 'Sustained Fullness',
             severity: 1,
-            energyLevel: 6,
             mood: 'Content',
             foodName: 'Steel Cut Oats',
             notes: 'Feeling satisfied long after breakfast.',
@@ -115,7 +114,6 @@ extension DebugMockThirtyDays on DebugMockDataService {
           SymptomLog(
             symptom: 'High Energy',
             severity: 2,
-            energyLevel: 9,
             mood: 'Productive',
             foodName: 'Whey Protein Shake',
             imageUrl: shakePhoto,

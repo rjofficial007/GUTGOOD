@@ -62,10 +62,10 @@ void main() {
       final fragment = ChatPromptContext.swapsGroundingFragment('more swaps please', grounded);
 
       expect(fragment, startsWith('more swaps please'));
-      expect(fragment, contains('Oat Drink (grade a, barcode 12345678)'));
-      expect(fragment, contains('Soya Drink (grade ?, barcode ?)'));
-      expect(fragment, contains('copy each "barcode" and "nutriscore"'));
-      expect(fragment, contains('exactly 3'));
+      expect(fragment, contains('"barcode":"12345678"'));
+      expect(fragment, contains('"barcode":null'));
+      expect(fragment, contains('barcode, nutriscore and imageUrl exactly'));
+      expect(fragment, contains('exactly 4 suitable alternatives'));
     });
   });
 }

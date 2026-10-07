@@ -255,9 +255,9 @@ class WhyScoreSheet extends StatelessWidget {
                     _FactorTile(
                       factor: _ScoreFactor(
                         title: ref.trigger.isEmpty ? 'Observed pattern' : ref.trigger,
-                        description: ref.reaction.isEmpty ? 'Evidence recorded in this analysis' : ref.reaction,
-                        points: '${(ref.evidenceRatio.clamp(0.0, 1.0) * 100).round()}% evidence',
-                        isPositive: ref.positiveCount > ref.negativeCount,
+                        description: ref.reaction.isEmpty ? 'Matched timing observations in this analysis' : ref.reaction,
+                        points: '${ref.positiveCount} matched logs',
+                        isPositive: null,
                       ),
                     ),
                   if (hasKnownData) Gap.h16,
@@ -300,7 +300,7 @@ class _ScoreFactor {
   final String title;
   final String description;
   final String points;
-  final bool isPositive;
+  final bool? isPositive;
 }
 
 class _FactorTile extends StatelessWidget {
@@ -310,7 +310,11 @@ class _FactorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = factor.isPositive ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669)) : (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706));
+    final color = factor.isPositive == true
+        ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))
+        : factor.isPositive == false
+        ? (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B));
 
     final primaryTextColor = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
     final secondaryTextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);

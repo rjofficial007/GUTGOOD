@@ -50,6 +50,7 @@ class ChatBubble extends StatelessWidget {
     this.onSeeMoreSwaps,
     this.onViewFullReport,
     this.onScannerModeSelected,
+    this.onScanConsumptionResolved,
   });
 
   final String text;
@@ -83,6 +84,7 @@ class ChatBubble extends StatelessWidget {
   final VoidCallback? onSeeMoreSwaps;
   final VoidCallback? onViewFullReport;
   final void Function(ScannerMode)? onScannerModeSelected;
+  final Future<bool> Function(bool consumed)? onScanConsumptionResolved;
 
   bool get _isInitialGreeting => !isUser && (text == AppStrings.chatInitialGreeting || text.startsWith('What’s good') || text.startsWith("What's good"));
 
@@ -269,6 +271,10 @@ class ChatBubble extends StatelessWidget {
                                 Divider(color: colorScheme.borderSubtle, height: 1),
                                 Gap.h16,
                                 ScanResultInlineCard(scanData: scanData!, isEmbedded: true, onViewFullReport: onViewFullReport),
+                                if (scanData!.needsConsumptionConfirmation && scanData!.consumed == null) ...[
+                                  Gap.h16,
+                                  _buildConsumptionQuestion(context),
+                                ],
                               ],
 
                               if (wasTruncated) ...[Gap.h12, _buildTrimmedRow(context)],
@@ -306,6 +312,31 @@ class ChatBubble extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildConsumptionQuestion(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(AppStrings.didYouEatThis, style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
+      Gap.h8,
+      Row(
+        children: [
+          Expanded(
+            child: FilledButton(
+              onPressed: onScanConsumptionResolved == null ? null : () => onScanConsumptionResolved!(true),
+              child: const FittedBox(fit: BoxFit.scaleDown, child: Text(AppStrings.yesIAteIt)),
+            ),
+          ),
+          Gap.w8,
+          Expanded(
+            child: OutlinedButton(
+              onPressed: onScanConsumptionResolved == null ? null : () => onScanConsumptionResolved!(false),
+              child: const FittedBox(fit: BoxFit.scaleDown, child: Text(AppStrings.justChecking)),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
 
   Widget _buildMarkdownContent(BuildContext context) {
     final colorScheme = context.appColorScheme;

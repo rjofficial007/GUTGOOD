@@ -56,7 +56,7 @@ STRUCTURE (MANDATORY ORDER):
    - scan.category: Use "meal".
    - scan.score: Calculate the GutGood 0-100 score.
    
-   Also populate the "meal" object for the daily journal and the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired"). Ensure the "energyLevel" and "mood" fields are populated if mentioned.
+   Also populate the "meal" object for the daily journal and the "symptoms" array if the user reports a current feeling (positive or negative). Record only details they actually stated; never invent numeric ratings.
    
 ${PromptFormattingRules.gutGoodDataBlockRequired}
 

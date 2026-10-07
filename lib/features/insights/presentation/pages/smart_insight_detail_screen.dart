@@ -53,15 +53,10 @@ class SmartInsightDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.insightTheme;
 
-    final evidenceRatio = insight.evidenceRatio?.isFinite == true ? (insight.evidenceRatio!.clamp(0.0, 1.0) * 100).round() : null;
-    final positiveCount = insight.positiveCount;
-    final negativeCount = insight.negativeCount;
-    final countFromEvidence = positiveCount == null && negativeCount == null ? null : (positiveCount ?? 0) + (negativeCount ?? 0);
-    final observationCount = insight.frequency != null && insight.frequency! > 0
-        ? insight.frequency
-        : countFromEvidence;
-    final isEarlyObservation = observationCount == 1;
     final relatedPatterns = _relatedPatterns(context);
+    final relatedPattern = relatedPatterns.firstOrNull;
+    final observationCount = insight.frequency ?? relatedPattern?.frequency ?? 0;
+    final isEarlyObservation = relatedPattern?.evidenceLabel != 'Repeated observation' && insight.strength != 'Repeated observation';
     final hasInvolvedFoods = insight.involvedFoods.any((food) => food.trim().isNotEmpty);
     final hasOccurrenceDetails = relatedPatterns.any((pattern) => pattern.commonFactors.isNotEmpty || pattern.occurrences.isNotEmpty);
 
@@ -87,14 +82,7 @@ class SmartInsightDetailScreen extends StatelessWidget {
                 Gap.h10,
 
                 // 3. THE EVIDENCE DASHBOARD
-                _buildTheEvidenceCard(
-                  context,
-                  evidenceRatio: evidenceRatio,
-                  frequency: observationCount,
-                  symptomLogs: positiveCount,
-                  normalLogs: negativeCount,
-                  isEarlyObservation: isEarlyObservation,
-                ),
+                _buildTheEvidenceCard(context, pattern: relatedPattern, isEarlyObservation: isEarlyObservation, observationCount: observationCount),
                 Gap.h10,
 
                 _buildYourNextStepsCard(context, isEarlyObservation: isEarlyObservation),

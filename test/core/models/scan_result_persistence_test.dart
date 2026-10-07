@@ -7,6 +7,7 @@ ScanResult _testScan() => ScanResult(
   productName: 'Test Yogurt',
   brand: 'Test Brand',
   category: 'food',
+  nutritionBasis: 'per_100g',
   barcode: '1234567890123',
   score: 72,
   impactType: ImpactType.positive,
@@ -34,6 +35,54 @@ void main() {
     final scan = _testScan().copyWith(score: 0);
     expect(ScanResult.fromMap(scan.toPersistenceMap()).score, 0);
   });
+  test('consumption answer round-trips while unanswered scans remain pending', () {
+    final pending = _testScan();
+    final informational = pending.copyWith(consumed: false);
+
+    expect(pending.needsConsumptionConfirmation, isTrue);
+    expect(ScanResult.fromMap(pending.toPersistenceMap()).consumed, isNull);
+    expect(ScanResult.fromMap(informational.toPersistenceMap()).consumed, isFalse);
+  });
+  test('scan persistence retains meal candidate food tags for later confirmation', () {
+    final scan = _testScan().copyWith(foodTags: const ['dairy'], consumed: false);
+    final persisted = scan.toPersistenceMap();
+
+    expect(persisted['foodTags'], ['dairy']);
+    expect(persisted['consumed'], isFalse);
+    expect(ScanResult.fromMap(persisted).foodTags, ['dairy']);
+  });
+  test('barcode display prefers the catalog product image and photo scans prefer the captured image', () {
+    final barcode = _testScan().copyWith(imageUrl: 'https://example.com/product.jpg', userImageUrl: 'https://example.com/barcode-photo.jpg');
+    final photo = ScanResult(
+      productName: 'Meal',
+      brand: 'GutGood',
+      category: 'food',
+      source: 'food',
+      score: 80,
+      impactType: ImpactType.positive,
+      impact: 'Good',
+      imageUrl: 'https://example.com/catalog.jpg',
+      userImageUrl: 'https://example.com/meal-photo.jpg',
+      createdAt: DateTime(2026, 5, 1),
+    );
+
+    expect(barcode.displayImageUrl, 'https://example.com/product.jpg');
+    expect(ScanResult.fromMap(barcode.toPersistenceMap()).displayImageUrl, 'https://example.com/product.jpg');
+    final barcodeWithoutCatalogImage = ScanResult(
+      productName: 'Meal',
+      brand: 'Brand',
+      barcode: '123456789',
+      source: 'barcode',
+      score: 80,
+      impactType: ImpactType.neutral,
+      impact: 'Okay',
+      userImageUrl: 'https://example.com/barcode-photo.jpg',
+      createdAt: DateTime(2026, 5, 1),
+    );
+    expect(barcodeWithoutCatalogImage.displayImageUrl, isNull);
+    expect(photo.displayImageUrl, 'https://example.com/meal-photo.jpg');
+    expect(ScanResult.fromMap(photo.toPersistenceMap()).displayImageUrl, 'https://example.com/meal-photo.jpg');
+  });
   group('toPersistenceMap (P0-2)', () {
     test('strips the rawData blob but keeps every durable field', () {
       final persisted = _testScan().toPersistenceMap();
@@ -46,6 +95,7 @@ void main() {
       expect(persisted['isOrganic'], isTrue);
       expect(persisted['scanConfidence'], 0.91);
       expect(persisted['scanVerdict'], Verdict.food);
+      expect(persisted['nutritionBasis'], 'per_100g');
       expect(persisted['rawDataHash'], _testScan().rawDataHash);
     });
 
@@ -58,6 +108,69 @@ void main() {
 
     test('toMap still carries rawData for in-memory/chat use', () {
       expect(_testScan().toMap()['rawData'], isNotNull);
+    });
+
+    test('stores scanner swaps using the shared FoodSwap model', () {
+      final scan = _testScan().copyWith(
+        swaps: const [
+          ProductSwap(
+            title: 'Plain Greek Yogurt',
+            subtitle: 'More protein and no added sugar',
+            imageKeyword: 'plain greek yogurt',
+            imageUrl: 'https://example.com/yogurt.jpg',
+            tag: 'HIGH PROTEIN',
+            badge: 'BETTER OPTION',
+            barcode: '9988776655443',
+            nutriscore: 'A',
+            benefits: ['More protein', 'No added sugar'],
+          ),
+        ],
+      );
+
+      final persisted = scan.toPersistenceMap();
+      final foodSwap = persisted['foodSwap'] as Map<String, dynamic>;
+      final alternative = (foodSwap['alternatives'] as List).single as Map<String, dynamic>;
+
+      expect(persisted.containsKey('swaps'), isFalse);
+      expect(foodSwap['source'], {'foodId': '1234567890123', 'name': 'Test Yogurt', 'imageUrl': null});
+      expect(alternative['foodId'], '9988776655443');
+      expect(alternative['barcode'], '9988776655443');
+      expect(alternative['nutriscore'], 'A');
+      expect(alternative['benefitTags'], ['More protein', 'No added sugar']);
+
+      final hydrated = ScanResult.fromMap(persisted);
+      expect(hydrated.foodSwap, isNotNull);
+      expect(hydrated.nutritionBasis, 'per_100g');
+      expect(hydrated.nutritionBasisLabel, 'Per 100 g');
+      expect(hydrated.swaps.single.title, 'Plain Greek Yogurt');
+      expect(hydrated.swaps.single.barcode, '9988776655443');
+      expect(hydrated.swaps.single.nutriscore, 'A');
+      expect(hydrated.swaps.single.benefits, ['More protein', 'No added sugar']);
+    });
+
+    test('normalizes legacy flat swap documents to FoodSwap', () {
+      final legacy = _testScan().toPersistenceMap()
+        ..['swaps'] = [const ProductSwap(title: 'Lactose Free Yogurt', subtitle: 'May be easier to tolerate', imageKeyword: 'lactose free yogurt', tag: 'GUT FRIENDLY').toMap()];
+
+      final hydrated = ScanResult.fromMap(legacy);
+
+      expect(hydrated.foodSwap?.alternatives.single.name, 'Lactose Free Yogurt');
+      expect(hydrated.toPersistenceMap().containsKey('swaps'), isFalse);
+      expect(hydrated.toPersistenceMap().containsKey('foodSwap'), isTrue);
+    });
+
+    test('copyWith keeps the shared model and legacy scan cards in sync', () {
+      final scan = _testScan().copyWith(
+        foodSwap: const FoodSwap(
+          id: 'test-swap',
+          source: SwapSource(foodId: 'source-id', name: 'Source food'),
+          alternatives: [SwapAlternative(foodId: 'alt-id', name: 'Alternative', reason: 'Reason')],
+        ),
+      );
+
+      expect(scan.swaps.single.title, 'Alternative');
+      expect(scan.swaps.single.subtitle, 'Reason');
+      expect(scan.toPersistenceMap()['foodSwap'], isNotNull);
     });
   });
 

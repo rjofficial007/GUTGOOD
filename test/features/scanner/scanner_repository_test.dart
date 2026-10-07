@@ -97,7 +97,26 @@ void main() {
       verify(() => mockOffService.getProduct('123')).called(1);
     });
 
-    test('saveScanResult saves to Firestore and notifies UI', () async {
+    test('savePersonalizedInsightRequest persists the user message before analysis', () async {
+      final request = ChatMessage(
+        localId: 'scan_request',
+        role: 'user',
+        text: 'Get personalized insight for Test Product.',
+        imageUrl: 'https://example.com/product.jpg',
+        source: 'barcode',
+        createdAt: DateTime.now(),
+      );
+      when(() => mockChatFirestoreService.saveMessage(request)).thenAnswer((_) async => 'scan_request');
+      when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
+
+      final saved = await repository.savePersonalizedInsightRequest(request);
+
+      expect(saved, isTrue);
+      verify(() => mockChatFirestoreService.saveMessage(request)).called(1);
+      verify(() => mockAppStateService.notifyChatUpdated()).called(1);
+    });
+
+    test('saveScanResult saves the scan and chat response without logging an unconfirmed meal', () async {
       final scanResult = ScanResult(productName: 'Test Product', brand: 'Brand', score: 80, impactType: ImpactType.positive, impact: 'Good', createdAt: DateTime.now());
       final result = AiAnalysisResult(text: 'Analysis', scan: scanResult);
 
@@ -109,7 +128,6 @@ void main() {
           scanId: any(named: 'scanId'),
         ),
       ).thenAnswer((_) async => true);
-      when(() => mockHistoryFirestoreService.logMeal(any(), docId: any(named: 'docId'))).thenAnswer((_) async => 'meal_id');
       when(() => mockAppStateService.notifyChatUpdated()).thenAnswer((_) {});
       when(() => mockNotificationService.scheduleNoMealLoggedReminder()).thenAnswer((_) async {});
       when(() => mockNotificationService.schedulePostMealCheckIn()).thenAnswer((_) async {});
@@ -125,9 +143,7 @@ void main() {
           scanId: any(named: 'scanId'),
         ),
       ).called(1);
-      final meal = verify(() => mockHistoryFirestoreService.logMeal(captureAny(), docId: any(named: 'docId'))).captured.single as MealLog;
-      expect(meal.scanId, isNotNull);
-      expect(meal.journalEntryId, endsWith('_meal'));
+      verifyNever(() => mockHistoryFirestoreService.logMeal(any(), docId: any(named: 'docId')));
       verify(() => mockAppStateService.notifyChatUpdated()).called(1);
     });
   });

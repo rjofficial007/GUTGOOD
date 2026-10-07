@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:gutgood/core/ai/client/ai_exceptions.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/network_error_classifier.dart';
 import 'package:gutgood/features/auth/domain/repositories/auth_repository.dart';
+import 'package:gutgood/features/insights/application/usecases/generate_insight_ai_interpretation_usecase.dart';
 import 'package:gutgood/features/insights/application/usecases/generate_insight_usecase.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
 import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
@@ -13,10 +15,11 @@ import 'package:gutgood/infrastructure/firebase/firestore/gut_score_firestore_se
 import 'package:rxdart/rxdart.dart';
 
 class InsightsNotifier with ChangeNotifier {
-  InsightsNotifier(this._repository, this._appStateService, this._authRepository, this._analyticsService, this._generateInsightUseCase, [this._gutScoreFirestoreService]) {
+  InsightsNotifier(this._repository, this._appStateService, this._authRepository, this._analyticsService, this._generateInsightUseCase, this._generateInsightAiInterpretationUseCase, [this._gutScoreFirestoreService]) {
     _initDashboardStream();
-    // Client-owned cadence: regenerate (debounced) whenever chat or profile
-    // data changes; the dashboard stream below only renders stored state.
+    // Client-owned refresh: chat, manual journal, scanner, or profile writes
+    // emit the existing data-change pulse; generation is debounced while the
+    // client is active. The dashboard stream remains the rendering source.
     _appStateService.chatUpdated.addListener(_onDataUpdated);
     _appStateService.profileUpdated.addListener(_onDataUpdated);
     _appStateService.sessionReset.addListener(_onSessionReset);
@@ -39,6 +42,7 @@ class InsightsNotifier with ChangeNotifier {
   final AuthRepository _authRepository;
   final AnalyticsService _analyticsService;
   final GenerateInsightUseCase _generateInsightUseCase;
+  final GenerateInsightAiInterpretationUseCase _generateInsightAiInterpretationUseCase;
   final GutScoreFirestoreService? _gutScoreFirestoreService;
 
   InsightsDashboardState _state = const InsightsDashboardState();
@@ -57,12 +61,13 @@ class InsightsNotifier with ChangeNotifier {
   int get todayMeals => _todayMeals;
   int get todaySymptoms => _todaySymptoms;
   int get todayScans => _todayScans;
-  int get todayFoodScans => _todayScans + _todayMeals;
+  int get todayFoodScans => _todayMeals;
 
   String? _loadError;
   String? _generationError;
   String? get errorMessage => _loadError ?? _countsError ?? _generationError;
   bool _disposed = false;
+  int _sessionEpoch = 0;
   StreamSubscription<dynamic>? _authSub;
   String? _activeUid;
 
@@ -81,7 +86,14 @@ class InsightsNotifier with ChangeNotifier {
 
   bool _isLoading = false;
   bool _isGenerating = false;
+  bool _isGeneratingAiInterpretation = false;
+  String? _aiInterpretationError;
+  InsightAiInterpretation? _lastAiInterpretation;
+  String? _lastAiInterpretationUid;
+  String? _lastAiInterpretationInsightId;
+  DateTime? _lastAiInterpretationPeriodTo;
   bool _bootstrapAttempted = false;
+  bool _hasSeenDashboardState = false;
   Timer? _generationDebounce;
   StreamSubscription<InsightsDashboardState>? _dashboardSub;
   StreamSubscription<GutExperiment?>? _experimentSub;
@@ -107,8 +119,11 @@ class InsightsNotifier with ChangeNotifier {
         .listen(
           (newState) {
             final oldInsight = _state.latestInsight;
+            final hasNewJournalCounts = _hasSeenDashboardState && (newState.totalMeals != _state.totalMeals || newState.totalSymptoms != _state.totalSymptoms || newState.totalScans != _state.totalScans);
             _state = newState;
+            _hasSeenDashboardState = true;
             _loadError = null;
+            if (hasNewJournalCounts) _scheduleGeneration();
 
             // Release-gated single-line state summary (replaces the old debugPrint
             // dump, which also ran in production builds).
@@ -120,10 +135,10 @@ class InsightsNotifier with ChangeNotifier {
 
             _appStateService.setInsightsData(_state.latestInsight);
 
-            // One-shot bootstrap for users who crossed the threshold but have
-            // no insight yet (reactive listeners cover steady state; this just
-            // shortens first-run latency). Session-flagged, never loops.
-            if (_state.latestInsight == null && !_isGenerating && isSufficient && !_bootstrapAttempted) {
+            // Deterministic generation can build a useful baseline from any
+            // stored history; the daily learning-progress threshold must not
+            // block first-run generation. Session-flagged, never loops.
+            if (_state.latestInsight == null && !_isGenerating && !_bootstrapAttempted) {
               _bootstrapAttempted = true;
               generateNewInsight();
             }
@@ -206,7 +221,7 @@ class InsightsNotifier with ChangeNotifier {
   List<AIInsight> get insightHistory => _insightHistory;
   GutExperiment? get activeExperiment => _activeExperiment;
 
-  /// Returns 3-5 most meaningful insights prioritized by confidence and frequency.
+  /// Returns up to five observations prioritized by repeated log count and recency.
   /// 🟢 NEW: Deduplicates patterns by trigger and type before returning.
   List<BodyPattern> get prioritizedPatterns {
     final seenKeys = <String>{};
@@ -214,19 +229,7 @@ class InsightsNotifier with ChangeNotifier {
 
     final sorted = [..._state.patterns]
       ..sort((a, b) {
-        // 1. Evidence Ratio (Impact Probability)
-        if (a.evidenceRatio != b.evidenceRatio) {
-          return b.evidenceRatio.compareTo(a.evidenceRatio);
-        }
-        // 2. Statistical Confidence (rank map: High > Medium > Low — P1-7)
-        if (a.confidence != b.confidence) {
-          int rank(String c) => c == BodyPattern.confidenceHigh ? 0 : (c == BodyPattern.confidenceMedium ? 1 : 2);
-          return rank(a.confidence).compareTo(rank(b.confidence));
-        }
-        // 3. Frequency
-        if (a.frequency != b.frequency) {
-          return b.frequency.compareTo(a.frequency);
-        }
+        if (a.frequency != b.frequency) return b.frequency.compareTo(a.frequency);
         return b.updatedAt.compareTo(a.updatedAt);
       });
 
@@ -243,21 +246,24 @@ class InsightsNotifier with ChangeNotifier {
   List<HealthAlert> get healthAlerts => _state.alerts;
 
   Future<void> _fetchTodayCounts() async {
+    final hadCounts = _todayCountsLoaded;
+    final oldMeals = _todayMeals;
+    final oldSymptoms = _todaySymptoms;
+    final oldScans = _todayScans;
     try {
       final now = DateTime.now();
       final startOfToday = DateTime(now.year, now.month, now.day);
       final results = await Future.wait([_repository.getRecentMeals(startOfToday), _repository.getRecentSymptoms(startOfToday), _repository.getRecentScans(startOfToday)]);
       final todayMealLogs = results[0] as List<MealLog>;
       final todayScans = results[2] as List<ScanResult>;
-      // Scan-derived meal projections are already represented by their scan
-      // card when the scan is in the product scan stream. Keep the counters
-      // disjoint without hiding label/menu projections that are intentionally
-      // returned through their separate history streams.
-      _todayMeals = standaloneMealRecords(meals: todayMealLogs, scans: todayScans).length;
+      _todayMeals = confirmedFoodMeals(meals: todayMealLogs, scans: todayScans).length;
       _todaySymptoms = (results[1] as List<SymptomLog>).length;
       _todayScans = todayScans.length;
       _countsError = null;
       _todayCountsLoaded = true;
+      if (hadCounts && (oldMeals != _todayMeals || oldSymptoms != _todaySymptoms || oldScans != _todayScans)) {
+        _scheduleGeneration();
+      }
       notifyListeners();
     } catch (e) {
       _countsError = 'Could not load today’s log counts';
@@ -270,18 +276,27 @@ class InsightsNotifier with ChangeNotifier {
   int get totalMeals => _state.totalMeals;
   int get totalSymptoms => _state.totalSymptoms;
   int get totalScans => _state.totalScans;
-  /// Unique-ish consumed-food baseline: current scans also have meal projections,
-  /// so summing both collections would double count them. The larger side keeps
-  /// legacy scan-only records visible until an exact event counter is available.
-  // ponytail: replace this bounded heuristic with a server-maintained unique
-  // food-event counter once the historical-counter policy is defined.
-  int get totalFoodScans => _state.totalScans >= _state.totalMeals ? _state.totalScans : _state.totalMeals;
+  /// Only journaled meals count toward personal food-learning progress;
+  /// informational scans remain visible in scan history but are not meals.
+  int get totalFoodScans => _state.totalMeals;
 
-  /// Daily baseline threshold: 3 Food Scans/Meals AND 1 Symptom Log logged today (resets every day).
+  /// Learning-screen progress only; deterministic analysis is not gated on this daily threshold.
   bool get isSufficient => todayFoodScans >= 3 && todaySymptoms >= 1;
 
   bool get isLoading => _isLoading || !_todayCountsLoaded;
   bool get isGenerating => _isGenerating;
+  bool get isGeneratingAiInterpretation => _isGeneratingAiInterpretation;
+  String? get aiInterpretationError => _aiInterpretationError;
+
+  InsightAiInterpretation? aiInterpretationFor(AIInsight insight) {
+    final persisted = insight.aiInterpretation;
+    if (persisted != null) return persisted;
+
+    final local = _lastAiInterpretation;
+    final periodTo = insight.periodTo;
+    if (local == null || periodTo == null || _lastAiInterpretationUid != insight.uid || _lastAiInterpretationInsightId != insight.firestoreId) return null;
+    return _lastAiInterpretationPeriodTo?.isAtSameMomentAs(periodTo) == true ? local : null;
+  }
 
   Future<void> markAllAlertsAsRead() async {
     final unreadIds = _state.alerts.where((a) => !a.isRead).map((a) => a.id).toList();
@@ -399,13 +414,70 @@ class InsightsNotifier with ChangeNotifier {
     super.dispose();
   }
 
-  /// Runs the on-device pipeline (24h cadence + threshold gates inside the
-  /// use case). Called debounced from data listeners, once from bootstrap,
-  /// and directly for manual refresh.
+  /// Runs one user-requested AI synthesis over existing deterministic findings.
+  /// This is intentionally separate from [generateNewInsight] and is never
+  /// called during background or lifecycle refreshes.
+  Future<void> generateAiInterpretation(AIInsight insight) async {
+    if (_isGeneratingAiInterpretation || insight.aiInterpretation != null) return;
+    final requestUid = insight.uid;
+    if (requestUid == null || requestUid.isEmpty || (_activeUid != null && _activeUid != requestUid)) {
+      _aiInterpretationError = 'Refresh Insights and try again with the current saved findings.';
+      notifyListeners();
+      return;
+    }
+    final requestEpoch = _sessionEpoch;
+    if (_isGenerating) {
+      _aiInterpretationError = 'Wait for the current Insight refresh to finish, then try again.';
+      notifyListeners();
+      return;
+    }
+
+    _isGeneratingAiInterpretation = true;
+    _aiInterpretationError = null;
+    notifyListeners();
+
+    try {
+      final patternCount = GenerateInsightAiInterpretationUseCase.eligiblePatterns(insight).length;
+      await _analyticsService.logEvent(name: 'insight_ai_interpretation_requested', parameters: {'pattern_count': patternCount});
+      final interpretation = await _generateInsightAiInterpretationUseCase.execute(insight);
+      if (requestEpoch == _sessionEpoch) {
+        _lastAiInterpretation = interpretation;
+        _lastAiInterpretationUid = insight.uid;
+        _lastAiInterpretationInsightId = insight.firestoreId;
+        _lastAiInterpretationPeriodTo = insight.periodTo;
+      }
+    } catch (error) {
+      if (requestEpoch == _sessionEpoch) {
+        if (error is AiQuotaExceededException) {
+          _aiInterpretationError = 'The AI explanation limit was reached. Your rule-based findings are unchanged.';
+        } else if (error is AiAuthException) {
+          _aiInterpretationError = 'Please sign in to request an AI explanation.';
+        } else if (error is StateError && error.message.toString().contains('changed before')) {
+          _aiInterpretationError = 'Your Insight refreshed while this was running. Review the latest findings and try again.';
+        } else {
+          _aiInterpretationError = 'The AI explanation could not be generated. Your rule-based findings are unchanged.';
+        }
+      }
+      AppLogger.insights('Optional AI Insight explanation failed; deterministic Insight remains available.');
+    } finally {
+      if (requestEpoch == _sessionEpoch) {
+        _isGeneratingAiInterpretation = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Runs the on-device deterministic pipeline. Called after journal/profile
+  /// updates, dashboard-counter changes, screen bootstrap, and manual refresh.
   Future<void> generateNewInsight({bool force = false}) async {
     if (_isGenerating) return;
     _isGenerating = true;
     _generationError = null;
+    _aiInterpretationError = null;
+    _lastAiInterpretation = null;
+    _lastAiInterpretationUid = null;
+    _lastAiInterpretationInsightId = null;
+    _lastAiInterpretationPeriodTo = null;
     notifyListeners();
 
     AppLogger.insights('InsightsNotifier: generation started');
@@ -430,6 +502,10 @@ class InsightsNotifier with ChangeNotifier {
 
   void _onDataUpdated() {
     _fetchTodayCounts();
+    _scheduleGeneration();
+  }
+
+  void _scheduleGeneration() {
     _generationDebounce?.cancel();
     _generationDebounce = Timer(const Duration(seconds: 5), () {
       generateNewInsight().catchError((e, st) {
@@ -439,8 +515,10 @@ class InsightsNotifier with ChangeNotifier {
   }
 
   void _onSessionReset() {
+    _sessionEpoch++;
     _generationDebounce?.cancel();
     _bootstrapAttempted = false;
+    _hasSeenDashboardState = false;
     _todayMeals = 0;
     _todayCountsLoaded = false;
     _countsError = null;
@@ -448,6 +526,12 @@ class InsightsNotifier with ChangeNotifier {
     _todayScans = 0;
     _loadError = null;
     _generationError = null;
+    _aiInterpretationError = null;
+    _isGeneratingAiInterpretation = false;
+    _lastAiInterpretation = null;
+    _lastAiInterpretationUid = null;
+    _lastAiInterpretationInsightId = null;
+    _lastAiInterpretationPeriodTo = null;
     _isLoading = false;
     _state = const InsightsDashboardState();
     _insightHistory = [];

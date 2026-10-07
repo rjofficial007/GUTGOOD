@@ -10,6 +10,7 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/features/auth/data/services/usage_service.dart';
 import 'package:gutgood/features/chat/domain/repositories/chat_repository.dart';
+import 'package:gutgood/features/logs/data/services/domain_event_persister.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/auth_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
@@ -22,6 +23,7 @@ class ChatHistoryNotifier with ChangeNotifier {
     required ChatFirestoreService chatFirestoreService,
     required AuthFirestoreService authFirestoreService,
     required HistoryFirestoreService historyFirestoreService,
+    required DomainEventPersister domainEventPersister,
     required AiClient aiService,
     required AppStateService appStateService,
     required SharedPreferences prefs,
@@ -31,6 +33,7 @@ class ChatHistoryNotifier with ChangeNotifier {
        _chatFirestoreService = chatFirestoreService,
        _authFirestoreService = authFirestoreService,
        _historyFirestoreService = historyFirestoreService,
+       _domainEventPersister = domainEventPersister,
        _aiService = aiService,
        _appStateService = appStateService,
        _prefs = prefs,
@@ -54,6 +57,7 @@ class ChatHistoryNotifier with ChangeNotifier {
   final ChatFirestoreService _chatFirestoreService;
   final AuthFirestoreService _authFirestoreService;
   final HistoryFirestoreService _historyFirestoreService;
+  final DomainEventPersister _domainEventPersister;
   final AiClient _aiService;
   final AppStateService _appStateService;
   final SharedPreferences _prefs;
@@ -63,6 +67,7 @@ class ChatHistoryNotifier with ChangeNotifier {
   final List<ChatMessage> _streamedMessages = [];
   final List<ChatMessage> _paginatedMessages = [];
   final Set<String> _optimisticIds = {};
+  final Set<String> _resolvingConsumptionIds = {};
 
   bool _historyLoading = true;
   bool _isPaginationLoading = false;
@@ -276,6 +281,49 @@ class ChatHistoryNotifier with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<bool> resolveScanConsumption(ChatMessage message, {required bool consumed}) async {
+    final originalScan = message.scanData;
+    if (originalScan == null || !originalScan.needsConsumptionConfirmation || originalScan.consumed != null) return false;
+    if (!_resolvingConsumptionIds.add(message.localId)) return true;
+
+    try {
+      final originalScanId = originalScan.scanId;
+      var scan = originalScanId == null ? originalScan : (await _historyFirestoreService.getScanById(originalScanId) ?? originalScan);
+      if (scan.scanId == null || scan.scanId!.isEmpty) {
+        scan = scan.copyWith(scanId: '${message.localId}_scan', chatMessageId: message.localId);
+      }
+      if (scan.consumed != null && scan.consumed != consumed) return false;
+
+      MealLog? meal;
+      if (consumed) {
+        meal = await _domainEventPersister.persistConfirmedScanMeal(scan.copyWith(consumed: true), chatMessageId: message.localId);
+        if (meal == null) return false;
+      }
+
+      final resolvedScan = scan.copyWith(consumed: consumed);
+      final scanSaved = await _historyFirestoreService.trySaveToScanHistory(resolvedScan, scanId: resolvedScan.scanId);
+      if (!scanSaved && !consumed) return false;
+      await _historyFirestoreService.deleteScanMealProjections(
+        chatMessageId: message.localId,
+        scanId: resolvedScan.scanId!,
+        keepMealId: consumed ? meal?.firestoreId : null,
+      );
+
+      final resolvedMessage = message.copyWith(scanData: resolvedScan, mealLogs: meal == null ? const [] : [meal]);
+      replaceMessage(message.localId, resolvedMessage);
+      final chatSaved = await _chatFirestoreService.saveMessage(resolvedMessage);
+      _appStateService.notifyChatUpdated();
+      return consumed || (scanSaved && chatSaved != null);
+    } catch (e) {
+      AppLogger.error('ChatHistoryNotifier: failed to save scan consumption response', error: e);
+      return false;
+    } finally {
+      _resolvingConsumptionIds.remove(message.localId);
+    }
+  }
+
+  Future<bool> patchScanUserImageUrl({required String scanId, required String imageUrl}) => _historyFirestoreService.patchScanUserImageUrl(scanId: scanId, imageUrl: imageUrl);
 
   Future<void> deleteMessage(ChatMessage msg) async {
     removeMessage(msg.localId);

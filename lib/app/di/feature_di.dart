@@ -13,6 +13,7 @@ import 'package:gutgood/features/history/data/repositories/history_repository_im
 import 'package:gutgood/features/history/domain/repositories/history_repository.dart';
 import 'package:gutgood/features/history/presentation/providers/history_notifier.dart';
 import 'package:gutgood/features/history/presentation/providers/saved_foods_provider.dart';
+import 'package:gutgood/features/insights/application/usecases/generate_insight_ai_interpretation_usecase.dart';
 import 'package:gutgood/features/insights/application/usecases/generate_insight_usecase.dart';
 import 'package:gutgood/features/insights/data/repositories/insight_repository_impl.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
@@ -80,6 +81,7 @@ void initFeatureDI() {
         chatFirestoreService: sl(),
         authFirestoreService: sl(),
         historyFirestoreService: sl(),
+        domainEventPersister: sl(),
         aiService: sl(),
         appStateService: sl(),
         prefs: sl(),
@@ -112,11 +114,7 @@ void initFeatureDI() {
       () => InsightRepositoryImpl(
         historyFirestoreService: sl(),
         insightFirestoreService: sl(),
-        chatFirestoreService: sl(),
-        aiService: sl(),
         prefs: sl(),
-        analyticsService: sl(),
-        crashlyticsService: sl(),
       ),
     )
     ..registerLazySingleton(
@@ -126,6 +124,7 @@ void initFeatureDI() {
         sl<AuthRepository>(),
         sl<AnalyticsService>(),
         sl<GenerateInsightUseCase>(),
+        sl<GenerateInsightAiInterpretationUseCase>(),
         sl<GutScoreFirestoreService>(),
       ),
     )
@@ -157,7 +156,7 @@ void initFeatureDI() {
       ),
     )
     // --- Logs ---
-    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl(), streakService: sl(), notificationService: sl()))
+    ..registerLazySingleton<LogRepository>(() => LogRepositoryImpl(firestoreService: sl(), analyticsService: sl(), streakService: sl(), notificationService: sl(), appStateService: sl()))
     // --- History ---
     ..registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(firestoreService: sl()))
     ..registerLazySingleton(() => HistoryNotifier(repository: sl(), appStateService: sl(), auth: sl()))

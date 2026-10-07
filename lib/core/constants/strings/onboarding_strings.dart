@@ -15,7 +15,7 @@ class OnboardingStrings {
   static const String selectCyclePhase = 'Which phase are you in?';
   static const String aiPersonalization = 'Health Personalization';
   static const String builtAroundYou = 'Built around you';
-  static const String aiPersonalizationDesc = 'GUTGOOD builds your personalized story with every scan, chat, and body signal you log.';
+  static const String aiPersonalizationDesc = 'GUTGOOD builds your personalized story from meals you confirm and body signals you log.';
   static const String analysisComplete = 'Analysis Complete';
   static const String gutTeaReady = 'Ready to spill your gut tea?';
   static const String statusScanningGoals = 'Scanning your goals';

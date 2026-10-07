@@ -18,7 +18,9 @@ extension HighlightHealingSections on HighlightDetailScreen {
       final profile = context.watch<ProfileNotifier>();
       profileScore = profile.gutScore;
       profileHasScore = profile.hasGutScore;
-    } on ProviderNotFoundException {}
+    } on ProviderNotFoundException {
+      // Ignore if ProfileNotifier is not available in context.
+    }
 
     var series = scoreRecord == null ? [...args.chartValues] : [for (final score in scoreRecord.dailyScores) score.toDouble()];
     if (series.isEmpty && insight?.weeklyRecap?.gutScoreTrend?.isNotEmpty == true) {

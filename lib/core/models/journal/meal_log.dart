@@ -18,6 +18,7 @@ class MealLog extends Equatable {
     this.scanCategory,
     this.scanConfidence,
     this.scanVerdict,
+    this.consumptionConfirmed,
     required this.items,
     this.notes,
     this.mealType,
@@ -64,13 +65,14 @@ class MealLog extends Equatable {
       scanCategory: map['scanCategory']?.toString(),
       scanConfidence: _parseScanConfidence(map['scanConfidence']),
       scanVerdict: map['scanVerdict']?.toString(),
+      consumptionConfirmed: map['consumptionConfirmed'] is bool ? map['consumptionConfirmed'] as bool : null,
       items: items,
       notes: map['notes'],
       mealType: map['mealType'],
       photoUrl: map['photoUrl'],
       analysisResult: map['analysisResult'],
       source: map['source'],
-      foodTags: ModelUtils.parseList<String>(map['foodTags']),
+      foodTags: _parseFoodTags(map['foodTags']),
       createdAt: DateTimeUtils.parse(map['createdAt']),
       occurredAt: occurredAt,
       occurredAtProvenance: occurredAtProvenance,
@@ -79,6 +81,10 @@ class MealLog extends Equatable {
       model: map['model'] as String?,
     );
   }
+  static const _knownFoodTags = {'dairy', 'legumes', 'whole_grains', 'high_fiber', 'fried', 'spicy', 'fermented', 'high_sugar', 'high_sodium', 'caffeine', 'alcohol', 'processed_meat'};
+
+  static List<String> _parseFoodTags(dynamic value) =>
+      ModelUtils.parseList<String>(value).map((tag) => tag.replaceAll('#', '').trim().toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_')).where(_knownFoodTags.contains).toSet().toList();
 
   /// Legacy local persistence key, retained for backward-compatible records.
   final int? id;
@@ -108,6 +114,9 @@ class MealLog extends Equatable {
 
   /// AI verdict attached to the originating scan, when reported.
   final String? scanVerdict;
+
+  /// True only when the user confirmed a scan-derived meal was eaten.
+  final bool? consumptionConfirmed;
 
   /// List of specific items or dishes consumed.
   final List<String> items;
@@ -180,6 +189,7 @@ class MealLog extends Equatable {
     String? scanCategory,
     double? scanConfidence,
     String? scanVerdict,
+    bool? consumptionConfirmed,
     List<String>? items,
     String? notes,
     String? mealType,
@@ -203,6 +213,7 @@ class MealLog extends Equatable {
     scanCategory: scanCategory ?? this.scanCategory,
     scanConfidence: scanConfidence ?? this.scanConfidence,
     scanVerdict: scanVerdict ?? this.scanVerdict,
+    consumptionConfirmed: consumptionConfirmed ?? this.consumptionConfirmed,
     items: items ?? this.items,
     notes: notes ?? this.notes,
     mealType: mealType ?? this.mealType,
@@ -229,6 +240,7 @@ class MealLog extends Equatable {
     if (scanCategory != null) 'scanCategory': scanCategory,
     if (scanConfidence != null) 'scanConfidence': scanConfidence,
     if (scanVerdict != null) 'scanVerdict': scanVerdict,
+    if (consumptionConfirmed != null) 'consumptionConfirmed': consumptionConfirmed,
     'items': items,
     'notes': notes,
     'mealType': mealType,
@@ -237,8 +249,8 @@ class MealLog extends Equatable {
     'source': source,
     'foodTags': foodTags,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
-    'occurredAt': DateTimeUtils.toNullableTimestamp(occurredAt),
-    'occurredAtProvenance': occurredAtProvenance,
+    if (occurredAt != null) 'occurredAt': DateTimeUtils.toNullableTimestamp(occurredAt),
+    if (occurredAtProvenance != null) 'occurredAtProvenance': occurredAtProvenance,
   };
 
   /// Optimized map for AI context (no Firestore [Timestamp] objects).
@@ -250,11 +262,12 @@ class MealLog extends Equatable {
     'analysisResult': analysisResult,
     'source': source,
     'foodTags': foodTags,
+    if (consumptionConfirmed != null) 'consumptionConfirmed': consumptionConfirmed,
     'createdAt': createdAt.toIso8601String(),
     if (occurredAt != null) 'occurredAt': occurredAt!.toIso8601String(),
     if (occurredAtProvenance != null) 'occurredAtProvenance': occurredAtProvenance,
   };
 
   @override
-  List<Object?> get props => [id, firestoreId, chatMessageId, journalEntryId, scanId, scanCategory, scanConfidence, scanVerdict, items, createdAt, occurredAt, occurredAtProvenance, source];
+  List<Object?> get props => [id, firestoreId, chatMessageId, journalEntryId, scanId, scanCategory, scanConfidence, scanVerdict, consumptionConfirmed, items, createdAt, occurredAt, occurredAtProvenance, source];
 }

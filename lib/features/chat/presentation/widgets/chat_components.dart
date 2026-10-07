@@ -11,6 +11,26 @@ import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
 import 'package:gutgood/features/chat/presentation/providers/chat_composer_notifier.dart';
 import 'package:shimmer/shimmer.dart';
 
+/// Reserves only the space needed to keep the newest prompt at the viewport
+/// top. The response naturally fills this space as it streams.
+class ChatTurnSliver extends StatelessWidget {
+  const ChatTurnSliver({super.key, required this.anchorKey, required this.children});
+
+  final GlobalKey anchorKey;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => SliverLayoutBuilder(
+    builder: (context, constraints) => SliverToBoxAdapter(
+      child: ConstrainedBox(
+        key: anchorKey,
+        constraints: BoxConstraints(minHeight: constraints.viewportMainAxisExtent),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+      ),
+    ),
+  );
+}
+
 class AnimatedChatItem extends StatefulWidget {
   const AnimatedChatItem({super.key, required this.child, this.animate = true});
   final Widget child;

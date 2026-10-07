@@ -15,6 +15,7 @@ abstract class AppStateService {
   ValueNotifier<bool> get isLoggingOut;
   ValueNotifier<bool> get isRestoringPurchases;
 
+  /// Legacy app-wide content-change pulse (chat, journal, scanner, or resume).
   void notifyChatUpdated();
   void notifySavedFoodsUpdated();
   void notifyProfileUpdated();

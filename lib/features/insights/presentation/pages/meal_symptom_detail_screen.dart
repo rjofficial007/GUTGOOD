@@ -68,7 +68,7 @@ class MealSymptomDetailScreen extends StatelessWidget {
     final metaText = timeAfterStr.isNotEmpty ? '$reactionText • Observed $timeAfterStr after eating' : reactionText;
 
     final rawTypeLabel = style.label;
-    final severityLabel = (occurrence.symptomSeverity ?? 'Observed').toUpperCase();
+    final severityLabel = occurrence.symptomSeverity?.toUpperCase();
 
     return Container(
       height: 160.w,
@@ -139,29 +139,30 @@ class MealSymptomDetailScreen extends StatelessWidget {
                   ),
 
                   // Bottom Badge Tag Row
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.w),
-                    decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(100.w),
-                      border: Border.all(color: accentColor.withValues(alpha: 0.40), width: 0.8.w),
+                  if (severityLabel != null && severityLabel.isNotEmpty)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.w),
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(100.w),
+                        border: Border.all(color: accentColor.withValues(alpha: 0.40), width: 0.8.w),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 5.w,
+                            height: 5.w,
+                            decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
+                          ),
+                          Gap.w5,
+                          Text(
+                            '$severityLabel SEVERITY',
+                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.3),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 5.w,
-                          height: 5.w,
-                          decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
-                        ),
-                        Gap.w5,
-                        Text(
-                          '$severityLabel SEVERITY',
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 0.3),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),

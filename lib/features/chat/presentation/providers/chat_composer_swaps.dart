@@ -45,7 +45,7 @@ extension ChatComposerSwaps on ChatComposerNotifier {
           if (category != null && category.isNotEmpty) {
             final alternatives = await _offService.getBetterAlternatives(category, scan?.nutriscore ?? product?.nutriscore);
             if (alternatives.isNotEmpty) {
-              groundedSwaps = alternatives.take(3).map((p) => p.toSwap()).toList();
+              groundedSwaps = alternatives.take(4).map((p) => p.toSwap()).toList();
             }
           }
         } catch (e) {

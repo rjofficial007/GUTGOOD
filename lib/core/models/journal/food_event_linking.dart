@@ -31,10 +31,20 @@ String? nearestMealJournalEntryId({required DateTime symptomTime, required Itera
 /// projection in [meals].
 ///
 /// The scan collection is a source record and the meal collection is the
-/// consumed-food projection. New records have both; older records may have
-/// only the scan. The insight pipeline uses this boundary to count each food
-/// event once while retaining legacy scan-only records.
-List<ScanResult> standaloneScanRecords({required List<MealLog> meals, required List<ScanResult> scans}) => scans.where((scan) => !meals.any((meal) => meal.representsScanId(scan.scanId))).toList();
+/// consumed-food projection. Scan-only records count only after explicit
+/// confirmation; informational scans remain excluded from personal insights.
+List<ScanResult> standaloneScanRecords({required List<MealLog> meals, required List<ScanResult> scans}) =>
+    scans.where((scan) => scan.consumed == true && !meals.any((meal) => meal.representsScanId(scan.scanId))).toList();
+
+/// Keeps manually logged meals and only scan-linked meals with explicit
+/// consumption confirmation. This also excludes legacy auto-created meals
+/// whose scan has no confirmation status.
+List<MealLog> confirmedFoodMeals({required List<MealLog> meals, required List<ScanResult> scans}) => meals.where((meal) {
+  final scanId = meal.scanId?.trim();
+  if (scanId == null || scanId.isEmpty) return true;
+  if (meal.consumptionConfirmed == true) return true;
+  return scans.any((scan) => scan.consumed == true && meal.representsScanId(scan.scanId));
+}).toList();
 
 /// Returns journal meals that are not represented by a scan entry in [scans].
 /// This is useful for display counters where scan-derived meals should not be
@@ -43,6 +53,6 @@ List<MealLog> standaloneMealRecords({required List<MealLog> meals, required List
 
 /// Counts unique consumed-food events across typed meals and scan history.
 ///
-/// New scans already have a meal projection, so only scan-only legacy records
-/// are added to the meal count.
-int uniqueFoodEventCount({required List<MealLog> meals, required List<ScanResult> scans}) => meals.length + standaloneScanRecords(meals: meals, scans: scans).length;
+/// Scan-only records are included only after explicit consumption confirmation.
+int uniqueFoodEventCount({required List<MealLog> meals, required List<ScanResult> scans}) =>
+    confirmedFoodMeals(meals: meals, scans: scans).length + standaloneScanRecords(meals: meals, scans: scans).length;

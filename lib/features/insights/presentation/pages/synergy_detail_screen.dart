@@ -39,22 +39,6 @@ class SynergyDetailScreen extends StatelessWidget {
     final activeInsight = insight ?? _synergyLatestInsight(context);
     final activePattern = pattern ?? activeInsight?.detectedPatterns.firstOrNull;
 
-    final evidenceRef = activeInsight?.evidence?.patternRefs.firstOrNull;
-    final evidenceRatio = activePattern != null && (activePattern.evidenceRatio > 0 || activePattern.positiveCount + activePattern.negativeCount > 0)
-        ? (activePattern.evidenceRatio.clamp(0.0, 1.0) * 100).round()
-        : activeInsight?.topInsight?.evidenceRatio != null
-        ? (activeInsight!.topInsight!.evidenceRatio!.clamp(0.0, 1.0) * 100).round()
-        : evidenceRef == null
-        ? null
-        : (evidenceRef.evidenceRatio.clamp(0.0, 1.0) * 100).round();
-    final frequencyCount = activePattern?.frequency ?? activeInsight?.topInsight?.frequency;
-    final positiveCount =
-        activePattern?.positiveCount ??
-        activeInsight?.topInsight?.positiveCount;
-    final negativeCount =
-        activePattern?.negativeCount ??
-        activeInsight?.topInsight?.negativeCount;
-
     return Scaffold(
       backgroundColor: theme.scaffold,
       body: CustomScrollView(
@@ -78,18 +62,11 @@ class SynergyDetailScreen extends StatelessWidget {
                 Gap.h10,
 
                 // 2. WHAT WE OBSERVED CARD
-                _buildWhatWeObservedCard(context, activePattern, activeInsight),
+                _buildWhatWeObservedCard(context, activePattern),
                 Gap.h10,
 
                 // 3. THE EVIDENCE DASHBOARD
-                _buildTheEvidenceCard(
-                  context,
-                  patternType: activePattern?.type ?? 'digestion',
-                  evidenceRatio: evidenceRatio,
-                  frequency: frequencyCount,
-                  positive: positiveCount,
-                  negative: negativeCount,
-                ),
+                _buildTheEvidenceCard(context, activePattern),
                 Gap.h10,
 
                 // 4. INVOLVED FOODS SECTION

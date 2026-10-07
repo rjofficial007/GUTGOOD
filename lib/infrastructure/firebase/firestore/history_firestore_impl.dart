@@ -76,7 +76,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     final uid = _uid;
     // ponytail: serialize refreshes within this service instance; timestamp
     // checks in saveGutScore guard writes from other instances/devices.
-    _scoreRefresh = _scoreRefresh
+    return _scoreRefresh = _scoreRefresh
         .then((_) async {
           if (uid == null || uid != _uid) return;
           final userDoc = _db.collection('user_profiles').doc(uid);
@@ -101,7 +101,6 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         .catchError((Object error) {
           AppLogger.firestore('Error refreshing gut score; keeping the previous score', error: error);
         });
-    return _scoreRefresh;
   }
 
   @override
@@ -117,6 +116,21 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     } catch (e) {
       AppLogger.firestore('Error getting scan by ID: $scanId', error: e);
       return null;
+    }
+  }
+
+  @override
+  Future<bool> patchScanUserImageUrl({required String scanId, required String imageUrl}) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null || imageUrl.trim().isEmpty) return false;
+      await doc.collection('scan_history').doc(scanId).update({'userImageUrl': imageUrl});
+      final hash = imageHashFromFoodUrl(imageUrl);
+      if (hash != null) await _foodImages.addLink(hash: hash, kind: FoodImageLinks.kindScan, id: scanId);
+      return true;
+    } catch (e) {
+      AppLogger.firestore('Error patching scan photo: $scanId', error: e);
+      return false;
     }
   }
 
@@ -401,6 +415,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       final journalEntryId = log.journalEntryId ?? docRef.id;
       final data = {
         ...log.toMap(),
+        if (log.occurredAtProvenance == null) 'occurredAtProvenance': FieldValue.delete(),
         'firestoreId': docRef.id,
         'journalEntryId': journalEntryId,
         'type': 'meal',
@@ -417,6 +432,36 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     } catch (e) {
       AppLogger.firestore('Error logging meal to journal_logs', error: e);
       return null;
+    }
+  }
+
+  @override
+  Future<void> deleteScanMealProjections({required String chatMessageId, required String scanId, String? keepMealId}) async {
+    try {
+      final doc = _userDoc;
+      if (doc == null || scanId.isEmpty) return;
+
+      final mealIds = {'${chatMessageId}_meal', '${scanId}_meal'}..remove(keepMealId);
+      final refs = mealIds.map((id) => doc.collection('journal_logs').doc(id)).toList();
+      final snapshots = await Future.wait(refs.map((ref) => ref.get()));
+      final existing = <DocumentReference>[];
+      for (var i = 0; i < snapshots.length; i++) {
+        if (!snapshots[i].exists) continue;
+        final photoUrl = snapshots[i].data()?['photoUrl'] as String?;
+        final hash = photoUrl == null ? null : imageHashFromFoodUrl(photoUrl);
+        if (hash != null) await _foodImages.removeLink(hash: hash, kind: FoodImageLinks.kindMeal, id: refs[i].id);
+        existing.add(refs[i]);
+      }
+      if (existing.isEmpty) return;
+
+      final batch = _db.batch();
+      for (final ref in existing) {
+        batch.delete(ref);
+      }
+      await batch.commit();
+      await refreshGutScore();
+    } catch (e) {
+      AppLogger.firestore('Error removing unconfirmed scan meal projections', error: e);
     }
   }
 
@@ -455,7 +500,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   /// manually entered symptoms that do not carry an explicit meal reference.
   Future<String?> _nearestMealJournalEntryId(DateTime symptomTime) async {
     final meals = await getRecentMealLogs(limit: 50, since: symptomTime.subtract(journalSymptomMealLinkWindow), before: symptomTime.add(const Duration(seconds: 1)));
-    return nearestMealJournalEntryId(symptomTime: symptomTime, meals: meals);
+    return nearestMealJournalEntryId(symptomTime: symptomTime, meals: meals.where((meal) => meal.occurredAt != null && meal.occurredAtProvenance == OccurrenceProvenance.user));
   }
 
   @override
@@ -466,11 +511,18 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       // Keep the typed meal and symptom documents queryable independently, but
       // stamp the same journalEntryId so they form one journal event. Existing
       // callers may still provide the legacy lastMealFirestoreId field.
-      final journalEntryId = log.journalEntryId ?? log.lastMealFirestoreId ?? await _nearestMealJournalEntryId(log.eventTime);
+      final canUseClockForLink = log.occurredAt != null && log.occurredAtProvenance == OccurrenceProvenance.user;
+      final journalEntryId = log.journalEntryId ?? log.lastMealFirestoreId ?? (canUseClockForLink ? await _nearestMealJournalEntryId(log.eventTime) : null);
       // 🚀 PRD §13 & §14: Support deterministic IDs for idempotency.
       final docRef = doc.collection('journal_logs').doc(docId);
       final data = {
         ...log.toMap(),
+        if (log.severity == null) 'severity': FieldValue.delete(),
+        if (log.mood == null) 'mood': FieldValue.delete(),
+        if (log.sleep == null) 'sleep': FieldValue.delete(),
+        if (log.notes == null) 'notes': FieldValue.delete(),
+        if (log.provenance == null || log.provenance!.trim().isEmpty) 'provenance': FieldValue.delete(),
+        if (log.occurredAtProvenance == null) 'occurredAtProvenance': FieldValue.delete(),
         'firestoreId': docRef.id,
         'journalEntryId': journalEntryId,
         'lastMealFirestoreId': journalEntryId ?? log.lastMealFirestoreId,

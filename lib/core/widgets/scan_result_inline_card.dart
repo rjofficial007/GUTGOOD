@@ -1,10 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
@@ -55,12 +55,7 @@ class ScanResultInlineCard extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context, Color impactColor) {
     final colorScheme = context.appColorScheme;
-    var userImg = scanData.userImageUrl;
-    if (userImg != null && userImg.isEmpty) userImg = null;
-    var prodImg = scanData.imageUrl;
-    if (prodImg != null && prodImg.isEmpty) prodImg = null;
-
-    final displayImgUrl = userImg ?? prodImg;
+    final displayImgUrl = scanData.displayImageUrl;
 
     return Padding(
       padding: isEmbedded ? const EdgeInsets.only(bottom: 16) : EdgeInsets.all(AppSizes.p20),
@@ -77,15 +72,16 @@ class ScanResultInlineCard extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppSizes.r12),
-              child: DynamicFoodImage(
-                keyword: scanData.productName,
-                imageUrl: displayImgUrl,
-                width: 50.0.w,
-                height: 50.0.h,
-                fit: BoxFit.cover,
-                placeholder: Center(child: Icon(Icons.image_outlined, color: colorScheme.textMuted, size: 20)),
-                errorWidget: Center(child: Icon(Icons.image_outlined, color: colorScheme.textMuted, size: 20)),
-              ),
+              child: displayImgUrl == null
+                  ? Center(child: Icon(Icons.image_outlined, color: colorScheme.textMuted, size: 20))
+                  : CachedNetworkImage(
+                      imageUrl: displayImgUrl,
+                      width: 50.0.w,
+                      height: 50.0.h,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => Center(child: Icon(Icons.image_outlined, color: colorScheme.textMuted, size: 20)),
+                      errorWidget: (_, _, _) => Center(child: Icon(Icons.image_outlined, color: colorScheme.textMuted, size: 20)),
+                    ),
             ),
           ),
 

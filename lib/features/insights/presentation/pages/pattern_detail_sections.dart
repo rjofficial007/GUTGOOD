@@ -11,13 +11,9 @@ extension PatternDetailSections on PatternDetailScreen {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = PatternCardStyle.forType(pattern.type);
-    final text = pattern.trigger.isNotEmpty && pattern.typicalDelay?.trim().isNotEmpty == true
-        ? 'Repeated log history shows that eating ${pattern.trigger} is associated with a ${pattern.type.toLowerCase()} reaction within ${pattern.typicalDelay}.'
-        : pattern.trigger.isNotEmpty
-        ? 'Your logs show ${pattern.trigger} alongside a ${pattern.type.toLowerCase()} reaction.'
-        : pattern.timeframeDays > 0
-        ? 'Logged evidence indicates a recurring ${pattern.type.toLowerCase()} pattern over the last ${pattern.timeframeDays} days.'
-        : 'Logged evidence indicates a recurring ${pattern.type.toLowerCase()} pattern.';
+    final text = pattern.trigger.isNotEmpty
+        ? '${pattern.frequency} recorded ${pattern.reaction.toLowerCase()} observations were associated with ${pattern.trigger}. This association does not establish cause.'
+        : 'Your logs contain ${pattern.frequency} repeated ${pattern.type.toLowerCase()} observations. This association does not establish cause.';
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -60,7 +56,7 @@ extension PatternDetailSections on PatternDetailScreen {
   }
 
   /// 3. "The Evidence" Metric Dashboard Card
-  Widget _buildTheEvidenceCard(BuildContext context, {required int evidenceRatio, required int frequency, required int symptomLogs, required int normalLogs}) {
+  Widget _buildTheEvidenceCard(BuildContext context) {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = PatternCardStyle.forType(pattern.type);
@@ -95,7 +91,7 @@ extension PatternDetailSections on PatternDetailScreen {
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                     ),
                     Text(
-                      pattern.timeframeDays > 0 ? 'Based on your last ${pattern.timeframeDays} days of data.' : 'Based on your available logged data.',
+                      pattern.timeframeDays > 0 ? 'Matched entries from the last ${pattern.timeframeDays} days. Missing follow-ups are unknown, not symptom-free.' : 'Matched entries from your available logs. Missing follow-ups are unknown, not symptom-free.',
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary),
                     ),
                   ],
@@ -108,17 +104,8 @@ extension PatternDetailSections on PatternDetailScreen {
             children: [
               _buildMetricTile(
                 context,
-                title: '$evidenceRatio%',
-                label: 'Evidence Ratio',
-                icon: LucideIcons.pieChart,
-                color: isDark ? theme.purple : style.accentColor,
-                bg: isDark ? theme.cardSubtle : style.tagBg,
-              ),
-              Gap.w6,
-              _buildMetricTile(
-                context,
-                title: '${frequency}x',
-                label: 'Times Logged',
+                title: '${pattern.frequency}',
+                label: 'Matched Logs',
                 icon: LucideIcons.history,
                 color: isDark ? theme.purple : style.accentColor,
                 bg: isDark ? theme.cardSubtle : style.tagBg,
@@ -126,20 +113,29 @@ extension PatternDetailSections on PatternDetailScreen {
               Gap.w6,
               _buildMetricTile(
                 context,
-                title: '$symptomLogs',
-                label: 'Symptom Logs',
-                icon: LucideIcons.thumbsDown,
-                color: isDark ? theme.error : const Color(0xFFDC2626),
-                bg: isDark ? theme.errorSoft : const Color(0xFFFEF2F2),
+                title: '${pattern.totalSimilarMeals}',
+                label: 'Meals Logged',
+                icon: LucideIcons.utensils,
+                color: isDark ? theme.purple : style.accentColor,
+                bg: isDark ? theme.cardSubtle : style.tagBg,
               ),
               Gap.w6,
               _buildMetricTile(
                 context,
-                title: '$normalLogs',
-                label: 'Normal Logs',
-                icon: LucideIcons.thumbsUp,
-                color: isDark ? theme.success : const Color(0xFF15803D),
-                bg: isDark ? theme.successSoft : const Color(0xFFF0FDF4),
+                title: '${pattern.occurrences.length}',
+                label: 'Examples',
+                icon: LucideIcons.clipboardList,
+                color: isDark ? theme.purple : style.accentColor,
+                bg: isDark ? theme.cardSubtle : style.tagBg,
+              ),
+              Gap.w6,
+              _buildMetricTile(
+                context,
+                title: '${pattern.timeframeDays}',
+                label: 'Days Analyzed',
+                icon: LucideIcons.clock,
+                color: isDark ? theme.purple : style.accentColor,
+                bg: isDark ? theme.cardSubtle : style.tagBg,
               ),
             ],
           ),
@@ -240,7 +236,7 @@ extension PatternDetailSections on PatternDetailScreen {
                     style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                   ),
                   Text(
-                    'Foods frequently associated with this pattern.',
+                    'Foods appearing in these matched entries.',
                     style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary),
                   ),
                 ],
@@ -430,8 +426,8 @@ extension PatternDetailSections on PatternDetailScreen {
       latestInsight = null;
     }
 
-    final mealsCount = latestInsight?.evidence?.sampleSizes.meals ?? pattern.totalSimilarMeals;
-    final symptomsCount = latestInsight?.evidence?.sampleSizes.symptoms ?? pattern.occurrences.length;
+    final mealsCount = latestInsight?.evidence?.sampleSizes.meals ?? 0;
+    final symptomsCount = latestInsight?.evidence?.sampleSizes.symptoms ?? 0;
     final scansCount = latestInsight?.evidence?.sampleSizes.scans ?? 0;
 
     return Container(
@@ -464,7 +460,7 @@ extension PatternDetailSections on PatternDetailScreen {
           ),
           Gap.h2,
           Text(
-            'Based on your logged data.',
+            'Counts cover the analysis window. A meal without a symptom entry is not treated as symptom-free.',
             style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: theme.textSecondary),
           ),
           Gap.h10,
@@ -472,7 +468,7 @@ extension PatternDetailSections on PatternDetailScreen {
           InsightEvidenceMetricRow(
             icon: LucideIcons.utensils,
             title: 'Meals',
-            subtitle: 'Similar meals analyzed',
+            subtitle: 'Meal entries in window',
             value: '$mealsCount',
             iconBackground: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE),
             iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
@@ -485,7 +481,7 @@ extension PatternDetailSections on PatternDetailScreen {
           InsightEvidenceMetricRow(
             icon: LucideIcons.clipboardList,
             title: 'Symptoms',
-            subtitle: 'Pattern occurrences',
+            subtitle: 'Symptom entries in window',
             value: '$symptomsCount',
             iconBackground: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.20) : const Color(0xFFDBEAFE),
             iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),

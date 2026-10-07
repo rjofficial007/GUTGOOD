@@ -1,7 +1,7 @@
 # GutGood AI & Scanner Modes Overview
 
-**Current source alignment:** 2026-10-03
-**Prompt source:** `lib/core/ai/prompts/`
+**Current source alignment:** 2026-10-07
+**Prompt source:** `lib/core/ai/prompts/` and feature-owned AI use cases
 **AI boundary:** `lib/core/ai/client/`
 **Feature orchestration:** Chat, Scanner, and Insights under `lib/features/`
 
@@ -62,12 +62,12 @@ Chat builds a system instruction from user profile, recent history, pinned entit
 
 ## 3. Intelligence and synthesis modes
 
-### 🧠 Insights Synthesis Mode
-**Source:** `lib/core/ai/prompts/mode_prompts/insights_prompt.dart`
+### 🧠 Insights (deterministic client refresh)
 **Use case:** `lib/features/insights/application/usecases/generate_insight_usecase.dart`
-**Repository:** `lib/features/insights/data/repositories/insight_repository_impl.dart`
+**Rules:** `lib/features/insights/data/services/pattern_engine_service.dart`
+**Composer:** `lib/features/insights/domain/services/rule_based_insight_builder.dart`
 
-Builds personalized patterns and feed blocks from eligible journal data. The AI output is validated, normalized, and persisted through the Insights feature. Deterministic presentation derivations live under `lib/features/insights/presentation/widgets/insight_feed/`.
+The core Insights refresh reads stored journal data on the client, reuses the deterministic pattern engine and gut-score calculator, and upserts one `rule_based_latest` snapshot. Refresh makes no AI request and requires no Insights-generation Cloud Function. Separately, when rule-based observations exist in at least two areas, the user may tap **Explain these patterns with AI**. That optional request sends only the detected pattern summaries through the existing `aiProxy` (`usageType: system`) and asks for a cautious cross-pattern explanation plus one neutral follow-up logging question. It cannot change scores, counts, evidence labels, or detected patterns; raw chat, journal notes, and photos are not sent. The former full AI Insights-generation pipeline remains removed, while persisted legacy Insight fields remain readable. Chat and photo/scan interpretation remain AI-backed where they add value. Client refreshes run when the app is open or a supported client lifecycle event occurs; closed-app background generation is not guaranteed without a server-side trigger.
 
 ### 🩺 Health Assessment Mode
 **Source:** `lib/core/ai/prompts/mode_prompts/health_assessment_prompt.dart`

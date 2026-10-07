@@ -21,9 +21,7 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
-  double _progress = 0.0;
-
+class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -33,12 +31,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Future<void> _initializeAndNavigate() async {
     final stopwatch = Stopwatch()..start();
 
-    void updateProgress(double value) {
-      if (mounted) setState(() => _progress = value);
-    }
-
     try {
-      updateProgress(0.1);
       final remoteConfig = sl<RemoteConfigService>();
       final notificationService = sl<NotificationService>();
       final linkService = sl<LinkService>();
@@ -48,24 +41,19 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
       // 1. Initialize Remote Config first
       await remoteConfig.init();
-      updateProgress(0.3);
 
       // 2. Parallel initializations
       await Future.wait([notificationService.init(), linkService.init(), purchaseService.initialize()]);
-      updateProgress(0.6);
 
       // 2.5 Mark app opened (schedules daily reminder) after init
       await notificationService.markAppOpened();
-      updateProgress(0.7);
 
       // 3. Connectivity
       await connectionChecker.checkConnection();
       connectionChecker.startListening();
-      updateProgress(0.8);
 
       // 4. Background Data
       await appService.lookupUserCountry();
-      updateProgress(0.9);
 
       // 5. Initial Profile Fetch (if authenticated)
       final authRepository = sl<AuthRepository>();
@@ -79,10 +67,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           },
         );
       }
-      updateProgress(1.0);
     } catch (e) {
       AppLogger.error('SplashScreen: Initialization error: $e');
-      updateProgress(1.0);
     }
 
     stopwatch.stop();
@@ -99,17 +85,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => const Scaffold(
     backgroundColor: AppPalette.black,
-    body: Stack(
-      children: [
-        const Center(child: _SplashLogo()),
-        Align(
-          alignment: const Alignment(0, 0.25),
-          child: _BootProgressBar(progress: _progress),
-        ),
-      ],
-    ),
+    body: Center(child: _SplashLogo()),
   );
 }
 
@@ -118,19 +96,4 @@ class _SplashLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Image.asset(AppAssets.appIconBg, width: 60, color: AppPalette.white);
-}
-
-class _BootProgressBar extends StatelessWidget {
-  const _BootProgressBar({required this.progress});
-  final double progress;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 120,
-    height: 4,
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(2),
-      child: LinearProgressIndicator(value: progress, backgroundColor: AppPalette.white.withAlpha(51), valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.white)),
-    ),
-  );
 }

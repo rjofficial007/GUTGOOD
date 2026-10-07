@@ -17,7 +17,6 @@ class SymptomLog extends Equatable {
     required this.symptom,
     this.severity,
     this.notes,
-    this.energyLevel,
     this.mood,
     this.sleep,
     this.lastMealFirestoreId,
@@ -35,32 +34,22 @@ class SymptomLog extends Equatable {
 
   factory SymptomLog.fromMap(Map<String, dynamic> map) {
     final rawId = map['id'] ?? map['firestoreId'];
+    final rawProvenance = map['provenance']?.toString().trim();
     // P1-2: the AI's `time` estimate becomes a provenance-tagged occurrence,
     // never the ordering clock (createdAt below is log time only).
     final (occurredAt, occurredAtProvenance) = DateTimeUtils.occurredAtFromMap(map);
 
     var symptomName = map['symptom']?.toString() ?? map['name']?.toString() ?? map['feeling']?.toString() ?? map['title']?.toString() ?? map['type']?.toString();
 
-    final energyLevel = int.tryParse(map['energyLevel']?.toString() ?? '');
-
     if (symptomName == null || symptomName.trim().isEmpty || symptomName == 'Unknown') {
-      if (energyLevel != null && energyLevel >= 7) {
-        symptomName = 'Energetic';
-      } else if (energyLevel != null && energyLevel <= 3) {
-        symptomName = 'Low Energy';
-      } else if (map['mood'] != null && map['mood'].toString().isNotEmpty) {
+      if (map['mood'] != null && map['mood'].toString().isNotEmpty) {
         symptomName = map['mood'].toString();
       } else {
-        symptomName = 'Energetic';
+        symptomName = 'Unknown';
       }
     }
 
     symptomName = symptomName.trim();
-
-    // P2-4: no number invention. An absent energyLevel used to be inferred
-    // from the symptom name (Fatigue → 2, Energetic → 8), manufacturing
-    // clinical-looking data the user never gave. Null now stays null; the
-    // pattern engine only corroborates explicitly reported numbers.
 
     final parsedImageUrl =
         ModelUtils.parseString(map['imageUrl']) ??
@@ -78,14 +67,13 @@ class SymptomLog extends Equatable {
       symptom: symptomName,
       severity: int.tryParse(map['severity']?.toString() ?? ''),
       notes: map['notes']?.toString(),
-      energyLevel: energyLevel,
       mood: map['mood']?.toString(),
       sleep: map['sleep']?.toString(),
       lastMealFirestoreId: map['lastMealFirestoreId']?.toString() ?? map['lastMealId']?.toString() ?? map['journalEntryId']?.toString(),
       foodName: map['foodName']?.toString() ?? map['lastMealName']?.toString() ?? map['mealName']?.toString() ?? map['food']?.toString(),
       imageUrl: parsedImageUrl,
       source: map['source']?.toString(),
-      provenance: map['provenance']?.toString(),
+      provenance: rawProvenance == null || rawProvenance.isEmpty ? null : rawProvenance,
       createdAt: DateTimeUtils.parse(map['createdAt']),
       occurredAt: occurredAt,
       occurredAtProvenance: occurredAtProvenance,
@@ -119,9 +107,6 @@ class SymptomLog extends Equatable {
 
   /// Optional free-form user notes.
   final String? notes;
-
-  /// Subjective energy level at the time of reporting (1-10).
-  final int? energyLevel;
 
   /// Current mood identifier.
   final String? mood;
@@ -178,7 +163,6 @@ class SymptomLog extends Equatable {
     String? symptom,
     int? severity,
     String? notes,
-    int? energyLevel,
     String? mood,
     String? sleep,
     String? lastMealFirestoreId,
@@ -195,7 +179,6 @@ class SymptomLog extends Equatable {
     // Explicit clears: plain `?? this.x` params cannot null a field, but the
     // validator must be able to void insane numbers (out-of-range severity).
     bool clearSeverity = false,
-    bool clearEnergyLevel = false,
   }) => SymptomLog(
     id: id ?? this.id,
     firestoreId: firestoreId ?? this.firestoreId,
@@ -205,7 +188,6 @@ class SymptomLog extends Equatable {
     symptom: symptom ?? this.symptom,
     severity: clearSeverity ? null : (severity ?? this.severity),
     notes: notes ?? this.notes,
-    energyLevel: clearEnergyLevel ? null : (energyLevel ?? this.energyLevel),
     mood: mood ?? this.mood,
     sleep: sleep ?? this.sleep,
     lastMealFirestoreId: lastMealFirestoreId ?? this.lastMealFirestoreId,
@@ -229,44 +211,46 @@ class SymptomLog extends Equatable {
     'chatMessageId': chatMessageId,
     'journalEntryId': journalEntryId,
     'symptom': symptom,
-    'severity': severity,
-    'notes': notes,
-    'energyLevel': energyLevel,
-    'mood': mood,
-    'sleep': sleep,
+    if (severity != null) 'severity': severity,
+    if (notes != null) 'notes': notes,
+    if (mood != null) 'mood': mood,
+    if (sleep != null) 'sleep': sleep,
     'lastMealFirestoreId': lastMealFirestoreId,
     'foodName': foodName,
     'imageUrl': imageUrl,
     'source': source,
-    'provenance': provenance,
+    if (provenance?.trim().isNotEmpty == true) 'provenance': provenance,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
-    'occurredAt': DateTimeUtils.toNullableTimestamp(occurredAt),
-    'occurredAtProvenance': occurredAtProvenance,
+    if (occurredAt != null) 'occurredAt': DateTimeUtils.toNullableTimestamp(occurredAt),
+    if (occurredAtProvenance != null) 'occurredAtProvenance': occurredAtProvenance,
   };
 
   /// JSON-safe variant of [toMap] for navigation extras (route codec):
   /// identical but with ISO-8601 dates instead of Firestore Timestamps.
   /// Round-trips through [SymptomLog.fromMap].
-  Map<String, dynamic> toJsonMap() => {...toMap(), 'createdAt': createdAt.toIso8601String(), 'occurredAt': occurredAt?.toIso8601String()};
+  Map<String, dynamic> toJsonMap() => {
+    ...toMap(),
+    'createdAt': createdAt.toIso8601String(),
+    if (occurredAt != null) 'occurredAt': occurredAt!.toIso8601String(),
+  };
 
   /// Optimized map for AI context (no Firestore [Timestamp] objects).
   Map<String, dynamic> toAiMap() => {
     'symptom': symptom,
-    'severity': severity,
-    'notes': notes,
-    'energyLevel': energyLevel,
-    'mood': mood,
-    'sleep': sleep,
+    if (severity != null) 'severity': severity,
+    if (notes != null) 'notes': notes,
+    if (mood != null) 'mood': mood,
+    if (sleep != null) 'sleep': sleep,
     'lastMealFirestoreId': lastMealFirestoreId,
     'foodName': foodName,
     'imageUrl': imageUrl,
     'source': source,
     'createdAt': createdAt.toIso8601String(),
-    if (provenance != null) 'provenance': provenance,
+    if (provenance?.trim().isNotEmpty == true) 'provenance': provenance,
     if (occurredAt != null) 'occurredAt': occurredAt!.toIso8601String(),
     if (occurredAtProvenance != null) 'occurredAtProvenance': occurredAtProvenance,
   };
 
   @override
-  List<Object?> get props => [id, firestoreId, chatMessageId, journalEntryId, symptom, severity, createdAt, occurredAt, occurredAtProvenance, energyLevel, lastMealFirestoreId, foodName, imageUrl, provenance];
+  List<Object?> get props => [id, firestoreId, chatMessageId, journalEntryId, symptom, severity, createdAt, occurredAt, occurredAtProvenance, lastMealFirestoreId, foodName, imageUrl, provenance];
 }

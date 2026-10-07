@@ -5,31 +5,40 @@ import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
-/// Swap cards shown per recommendation (SwapItContainer). The prompts demand
-/// exactly this many; [normalizeSwapCards] enforces it client-side.
-const int kSwapCardCount = 3;
+/// Swap cards are shown only as a complete set of four.
+const int kSwapCardCount = 4;
 
-/// Normalizes parsed swaps to EXACTLY [kSwapCardCount] cards — all or nothing:
-///
-/// * extras are trimmed to the top 3;
-/// * shortfalls are backfilled from [fallback] (real OFF products, skipping
-///   barcode dupes);
-/// * if the list STILL isn't exactly 3, the section is dropped entirely
-///   (`[]`) — a 1-2 card "Better swaps" row reads as broken, not honest,
-///   and the parser never invents products.
+/// Keep meaningful, distinct recommendations and hydrate matching catalog facts.
+/// Catalog candidates are not recommendations until the response selects them.
 List<ProductSwap> normalizeSwapCards(List<ProductSwap> swaps, List<ProductSwap> fallback) {
-  final kept = swaps.take(kSwapCardCount).toList();
-  if (kept.length < kSwapCardCount && fallback.isNotEmpty) {
-    final seen = <String>{
-      for (final s in kept)
-        if (s.barcode != null && s.barcode!.isNotEmpty) s.barcode!,
-    };
-    for (final alt in fallback) {
-      if (kept.length >= kSwapCardCount) break;
-      final code = alt.barcode;
-      if (code != null && code.isNotEmpty && !seen.add(code)) continue;
-      kept.add(alt);
+  final kept = <ProductSwap>[];
+  final names = <String>{};
+  final barcodes = <String>{};
+  for (var swap in swaps) {
+    final name = swap.title.trim().toLowerCase();
+    if (name.isEmpty || name == 'string' || swap.subtitle.trim().isEmpty) continue;
+    final matches = fallback.where((candidate) => (swap.barcode?.isNotEmpty == true && candidate.barcode == swap.barcode) || candidate.title.trim().toLowerCase() == name);
+    if (matches.isNotEmpty) {
+      final product = matches.first;
+      swap = ProductSwap.fromMap({
+        ...swap.toAlternative().toMap(),
+        'foodId': product.barcode ?? product.title,
+        'name': product.title,
+        'barcode': product.barcode,
+        'nutriscore': product.nutriscore,
+        'imageUrl': product.imageUrl,
+      });
+    } else if (fallback.isNotEmpty) {
+      // Unmatched suggestions may be generic foods, but aren't catalog facts.
+      swap = ProductSwap.fromMap({...swap.toAlternative().toMap(), 'foodId': swap.title, 'barcode': null, 'nutriscore': null, 'imageUrl': null});
     }
+    final resolvedName = swap.title.trim().toLowerCase();
+    final code = swap.barcode?.trim();
+    if (names.contains(resolvedName) || (code?.isNotEmpty == true && barcodes.contains(code))) continue;
+    names.add(resolvedName);
+    if (code?.isNotEmpty == true) barcodes.add(code!);
+    kept.add(swap);
+    if (kept.length == kSwapCardCount) break;
   }
   return kept.length == kSwapCardCount ? kept : const [];
 }
@@ -215,87 +224,72 @@ class ProcessChatTagUseCase {
       }
     }
 
-    // --- STEP 2.5: FALLBACK SYMPTOM EXTRACTION FROM USER TEXT ---
-    // NOTE: this crude keyword-regex path only runs when the AI did not return a
-    // structured `symptoms` entry in [GUTGOOD_DATA] (or the legacy [SYMPTOM] tag).
-    // CRITICAL FIX: We now scan the ORIGINAL userText instead of the AI reply 'text'
-    // to prevent hallucinated symptoms (e.g. AI mentioning "fullness" in a reply
-    // shouldn't trigger a symptom log if the user didn't say it).
-    // P2-4: fallback records NEVER carry numbers the user didn't give — no
-    // invented severity/energy — and are tagged `keyword_fallback` so the
-    // pattern engine can exclude them from corroboration. The symptom NAME is
-    // still extracted (the user did say the word); only the quantification
-    // and the silent "confirmed log" status are withheld.
+    // --- STEP 2.5: EXPLICIT SYMPTOM EXTRACTION FROM USER TEXT ---
+    // This runs only when AI did not return a structured symptom. Match direct
+    // first-person reports (or an exact one-word report), never mentions,
+    // questions, or negations. These are user-reported observations, but no
+    // severity or event time is inferred.
     if (symptomLogs.isEmpty && userText != null && userText.trim().isNotEmpty) {
-      final userTextLower = userText.toLowerCase();
-      final fallbackSymptomCountBefore = symptomLogs.length;
+      final userTextLower = userText.toLowerCase().trim();
+      final symptomCountBefore = symptomLogs.length;
 
-      SymptomLog fallbackSymptom(String symptom, {String? sleep}) => SymptomLog(
+      bool explicitlyReports(List<String> terms) {
+        for (final term in terms) {
+          final escapedTerm = RegExp.escape(term);
+          final directReport = RegExp(
+            "\\bi(?:'m| am)?\\s+(?:(?:currently|really|very|so)\\s+)*(?:(?:feeling|feel|have|experiencing|get|getting)\\s+)?(?:a\\s+|an\\s+)?(?:(?:bad|mild|severe|poor)\\s+)?$escapedTerm\\b",
+          );
+          if (directReport.hasMatch(userTextLower) || userTextLower.replaceAll(RegExp(r'[.!?,;:]+$'), '').trim() == term) return true;
+        }
+        return false;
+      }
+
+      SymptomLog extractedSymptom(String symptom, {String? sleep}) => SymptomLog(
         symptom: symptom,
         sleep: sleep,
-        notes: 'Extracted from user message',
         chatMessageId: chatMessageId,
         createdAt: DateTime.now(),
         source: source ?? 'chat',
-        provenance: RecordProvenance.keywordFallback,
+        provenance: RecordProvenance.user,
       );
 
       // 1. Energy
-      if (userTextLower.contains('energetic') ||
-          userTextLower.contains('feel energetic') ||
-          userTextLower.contains('feeling energetic') ||
-          userTextLower.contains('high energy') ||
-          userTextLower.contains('energized')) {
-        symptomLogs.add(fallbackSymptom('Energetic'));
-      } else if (userTextLower.contains('tired') ||
-          userTextLower.contains('fatigue') ||
-          userTextLower.contains('exhausted') ||
-          userTextLower.contains('low energy') ||
-          userTextLower.contains('sluggish') ||
-          userTextLower.contains('brain fog')) {
-        symptomLogs.add(fallbackSymptom('Fatigue'));
+      if (explicitlyReports(['energetic', 'energized', 'high energy'])) {
+        symptomLogs.add(extractedSymptom('Energetic'));
+      } else if (explicitlyReports(['tired', 'fatigue', 'exhausted', 'low energy', 'sluggish', 'brain fog'])) {
+        symptomLogs.add(extractedSymptom('Fatigue'));
       }
       // 2. Bloating
-      else if (userTextLower.contains('bloat') || userTextLower.contains('bloated') || userTextLower.contains('bloating')) {
-        symptomLogs.add(fallbackSymptom('Bloating'));
+      else if (explicitlyReports(['bloat', 'bloated', 'bloating'])) {
+        symptomLogs.add(extractedSymptom('Bloating'));
       }
       // 3. Headache
-      else if (userTextLower.contains('headache') || userTextLower.contains('migraine') || userTextLower.contains('head pain')) {
-        symptomLogs.add(fallbackSymptom('Headache'));
+      else if (explicitlyReports(['headache', 'migraine', 'head pain'])) {
+        symptomLogs.add(extractedSymptom('Headache'));
       }
       // 4. Digestion
-      else if (userTextLower.contains('digest') ||
-          userTextLower.contains('indigestion') ||
-          userTextLower.contains('gas') ||
-          userTextLower.contains('constipat') ||
-          userTextLower.contains('diarrhea') ||
-          userTextLower.contains('reflux') ||
-          userTextLower.contains('heartburn')) {
-        symptomLogs.add(fallbackSymptom('Digestive Shift'));
+      else if (explicitlyReports(['indigestion', 'gas', 'constipation', 'diarrhea', 'reflux', 'heartburn'])) {
+        symptomLogs.add(extractedSymptom('Digestive Shift'));
       }
       // 5. Fullness & Satiety
-      else if (userTextLower.contains('full') || userTextLower.contains('satiat') || userTextLower.contains('stuffed') || userTextLower.contains('hungry') || userTextLower.contains('hunger')) {
+      else if (explicitlyReports(['full', 'stuffed', 'hungry', 'hunger'])) {
         final isHungry = userTextLower.contains('hungry') || userTextLower.contains('hunger');
-        symptomLogs.add(fallbackSymptom(isHungry ? 'Hunger' : 'Fullness'));
+        symptomLogs.add(extractedSymptom(isHungry ? 'Hunger' : 'Fullness'));
       }
       // 6. Sleep
-      else if (userTextLower.contains('sleep') || userTextLower.contains('insomnia') || userTextLower.contains('slept') || userTextLower.contains('rested')) {
+      else if (explicitlyReports(['insomnia', 'rested', 'poor sleep', 'bad sleep'])) {
         final isPoor = userTextLower.contains('poor') || userTextLower.contains('bad') || userTextLower.contains("can't sleep") || userTextLower.contains('insomnia');
-        symptomLogs.add(fallbackSymptom('Sleep Shift', sleep: isPoor ? 'Poor' : 'Good'));
+        symptomLogs.add(extractedSymptom('Sleep Shift', sleep: isPoor ? 'Poor' : 'Good'));
       }
       // Other physical reactions
-      else if (userTextLower.contains('nausea') || userTextLower.contains('nauseous')) {
-        symptomLogs.add(fallbackSymptom('Nausea'));
-      } else if (userTextLower.contains('cramp') || userTextLower.contains('stomach pain') || userTextLower.contains('stomach ache')) {
-        symptomLogs.add(fallbackSymptom('Abdominal Pain'));
+      else if (explicitlyReports(['nausea', 'nauseous'])) {
+        symptomLogs.add(extractedSymptom('Nausea'));
+      } else if (explicitlyReports(['cramps', 'stomach pain', 'stomach ache'])) {
+        symptomLogs.add(extractedSymptom('Abdominal Pain'));
       }
 
-      if (symptomLogs.length > fallbackSymptomCountBefore) {
-        AppLogger.warning(
-          'ProcessChatTagUseCase: keyword-regex symptom fallback fired '
-          '(AI did not return a structured symptoms entry) — extracted '
-          '"${symptomLogs.last.symptom}" from user text.',
-        );
+      if (symptomLogs.length > symptomCountBefore) {
+        AppLogger.ai('ProcessChatTagUseCase: recorded explicit user-reported symptom "${symptomLogs.last.symptom}" from user text.');
       }
     }
 
@@ -322,9 +316,7 @@ class ProcessChatTagUseCase {
       displayOutput = text.substring(0, startIndex).trim();
     }
 
-    // Better-swaps guarantee: exactly [kSwapCardCount] cards whenever swaps
-    // are emitted — trimmed, and backfilled from grounded OFF alternatives
-    // (see-more path) when the model emits fewer.
+    // Keep up to four supported recommendations, preserving rich details.
     swapsList = normalizeSwapCards(swapsList, fallbackSwaps);
 
     // 🚀 Professional Sync: Ensure swaps are attached to scanData for consistent UI & persistence.

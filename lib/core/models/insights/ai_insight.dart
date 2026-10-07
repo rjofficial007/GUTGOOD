@@ -6,17 +6,18 @@ import 'package:gutgood/core/models/insights/ai_insight_details.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
 import 'package:gutgood/core/models/insights/food_swap.dart';
 import 'package:gutgood/core/models/insights/insight_action.dart';
+import 'package:gutgood/core/models/insights/insight_ai_interpretation.dart';
 import 'package:gutgood/core/models/insights/insight_blocks.dart';
 import 'package:gutgood/core/models/insights/insight_evidence.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
-/// Represents a holistic snapshot of a user's gut health trends and AI-driven discoveries.
+/// Represents a persisted snapshot of a user's gut-health trends and journal evidence.
 ///
-/// This model is the core of the Insights experience. It aggregates data from
-/// chat history, meal logs, and symptoms to provide actionable advice conforming
-/// to the complete v2 data specification.
+/// The legacy class name and optional AI-specific fields remain for compatibility.
+/// Core snapshots are built deterministically from stored logs and rules; the
+/// optional [InsightAiInterpretation] is added only after an explicit user request.
 class AIInsight extends Equatable {
   const AIInsight({
     this.id,
@@ -61,6 +62,7 @@ class AIInsight extends Equatable {
     this.improving,
     this.watch,
     this.smartSwap,
+    this.aiInterpretation,
   });
 
   factory AIInsight.fromMap(Map<String, dynamic> map) {
@@ -184,12 +186,14 @@ class AIInsight extends Equatable {
       improving: ModelUtils.parseNestedModel<ImprovingBlock>(data['improving'], ImprovingBlock.fromMap),
       watch: ModelUtils.parseNestedModel<WatchBlock>(data['watch'], WatchBlock.fromMap),
       smartSwap: ModelUtils.parseNestedModel<SmartSwap>(data['smartSwap'], SmartSwap.fromMap),
+      aiInterpretation: ModelUtils.parseNestedModel<InsightAiInterpretation>(data['aiInterpretation'], InsightAiInterpretation.fromMap),
     );
   }
 
   static const String statusReady = 'ready';
   static const String statusInsufficientData = 'insufficient_data';
   static const String originClient = 'client';
+  static const String originRuleBased = 'rule_based';
 
   final int? id;
   final String? firestoreId;
@@ -233,6 +237,9 @@ class AIInsight extends Equatable {
   final ImprovingBlock? improving;
   final WatchBlock? watch;
   final SmartSwap? smartSwap;
+
+  /// Optional, user-requested AI prose layered over deterministic patterns.
+  final InsightAiInterpretation? aiInterpretation;
 
   static TopHighlight? _normalizeHighlight(TopHighlight? highlight) {
     if (highlight == null) return null;
@@ -292,6 +299,7 @@ class AIInsight extends Equatable {
     'improving': improving?.toMap(),
     'watch': watch?.toMap(),
     'smartSwap': smartSwap?.toMap(),
+    'aiInterpretation': aiInterpretation?.toMap(),
   };
 
   Map<String, dynamic> toJsonMap() {
@@ -345,6 +353,7 @@ class AIInsight extends Equatable {
     ImprovingBlock? improving,
     WatchBlock? watch,
     SmartSwap? smartSwap,
+    InsightAiInterpretation? aiInterpretation,
   }) => AIInsight(
     id: id ?? this.id,
     firestoreId: firestoreId ?? this.firestoreId,
@@ -388,6 +397,7 @@ class AIInsight extends Equatable {
     improving: improving ?? this.improving,
     watch: watch ?? this.watch,
     smartSwap: smartSwap ?? this.smartSwap,
+    aiInterpretation: aiInterpretation ?? this.aiInterpretation,
   );
 
   static List<BodyPattern> _synthesizeFallbackPatterns({
@@ -496,5 +506,5 @@ class AIInsight extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, firestoreId, gutScore, hasGutScore, type, confidenceLevel, status, updatedAt];
+  List<Object?> get props => [id, firestoreId, gutScore, hasGutScore, type, confidenceLevel, status, updatedAt, aiInterpretation];
 }

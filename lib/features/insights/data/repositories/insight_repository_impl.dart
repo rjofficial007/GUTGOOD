@@ -1,18 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:gutgood/core/ai/client/ai_client.dart';
-import 'package:gutgood/core/ai/prompts/prompt_catalog.dart';
-import 'package:gutgood/core/ai/protocol/ai_constants.dart';
-import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/utils/logger_service.dart';
-import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
-import 'package:gutgood/features/insights/domain/services/insight_response_validator.dart';
-import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
-import 'package:gutgood/infrastructure/firebase/crashlytics_service.dart';
-import 'package:gutgood/infrastructure/firebase/firestore/chat_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/insight_firestore_service.dart';
 import 'package:rxdart/rxdart.dart';
@@ -22,62 +12,30 @@ class InsightRepositoryImpl implements InsightRepository {
   InsightRepositoryImpl({
     required HistoryFirestoreService historyFirestoreService,
     required InsightFirestoreService insightFirestoreService,
-    required ChatFirestoreService chatFirestoreService,
-    required AiClient aiService,
     required SharedPreferences prefs,
-    required AnalyticsService analyticsService,
-    required CrashlyticsService crashlyticsService,
   }) : _historyFirestoreService = historyFirestoreService,
        _insightFirestoreService = insightFirestoreService,
-       _chatFirestoreService = chatFirestoreService,
-       _aiService = aiService,
-       _prefs = prefs,
-       _analyticsService = analyticsService,
-       _crashlyticsService = crashlyticsService;
+       _prefs = prefs;
 
   final HistoryFirestoreService _historyFirestoreService;
   final InsightFirestoreService _insightFirestoreService;
-  final ChatFirestoreService _chatFirestoreService;
-  final AiClient _aiService;
   final SharedPreferences _prefs;
-  final AnalyticsService _analyticsService;
-  final CrashlyticsService _crashlyticsService;
-
-  @override
-  Future<AIInsight?> getLatestInsight() async {
-    final cloud = await _insightFirestoreService.getLatestInsights();
-    if (cloud != null) return cloud;
-
-    final cached = _prefs.getString(StorageKeys.gutgoodInsightsCache);
-    if (cached == null) return null;
-
-    try {
-      final decoded = jsonDecode(cached);
-      if (decoded is! Map) throw const FormatException('Insight cache is not a JSON object');
-      return AIInsight.fromMap(Map<String, dynamic>.from(decoded));
-    } catch (_) {
-      // A corrupt local cache must behave like a cache miss rather than
-      // taking down the repository read path. Cloud data remains authoritative
-      // and the invalid entry is removed so subsequent reads recover normally.
-      AppLogger.warning('InsightRepo: ignoring malformed cached insight');
-      try {
-        await _prefs.remove(StorageKeys.gutgoodInsightsCache);
-      } catch (removeError) {
-        AppLogger.warning('InsightRepo: could not remove malformed insight cache: $removeError');
-      }
-      return null;
-    }
-  }
 
   @override
   Future<List<AIInsight>> getInsightHistory() async => _insightFirestoreService.getInsightsHistory();
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
-    await _insightFirestoreService.saveInsights(insight, useServerTimestamp: false);
-    // Cache the final stamped envelope, not the raw model response. This keeps
-    // local fallback metadata aligned with the Firestore document.
-    await _prefs.setString(StorageKeys.gutgoodInsightsCache, ModelUtils.safeJsonEncode(insight.toMap()));
+    await _insightFirestoreService.saveInsights(insight, useServerTimestamp: insight.origin == AIInsight.originRuleBased);
+  }
+
+  @override
+  Future<bool> saveAiInterpretation(AIInsight insight, InsightAiInterpretation interpretation) async {
+    final uid = insight.uid;
+    final insightId = insight.firestoreId;
+    final periodTo = insight.periodTo;
+    if (uid == null || uid.isEmpty || insightId == null || periodTo == null || insight.origin != AIInsight.originRuleBased) return false;
+    return _insightFirestoreService.saveAiInterpretation(uid: uid, insightId: insightId, expectedPeriodTo: periodTo, interpretation: interpretation);
   }
 
   @override
@@ -169,270 +127,4 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<List<BodyPattern>> getLatestPatterns() async => _insightFirestoreService.getLatestPatterns();
-
-  @override
-  Future<List<ChatMessage>> getRecentChat(DateTime since) async {
-    final chatHistory = await _chatFirestoreService.getMessages(since: since);
-    // Only include messages that mention food or symptoms to keep tokens low
-    return chatHistory.where((m) => m.foodMentions.isNotEmpty || m.symptomMentions.isNotEmpty).toList();
-  }
-
-  @override
-  Future<AIInsight> analyzeGutHealth({
-    required List<String> goals,
-    required List<String> sensitivities,
-    required List<String> lifestyle,
-    required String cyclePhase,
-    required String? chatSummary,
-    required List<ChatMessage> chatHistory,
-    required String? recentJournalText,
-    required String? historicalJournalSummary,
-    required String? scoreHistory,
-    required List<BodyPattern> patternCandidates,
-    int? lastScore,
-  }) async {
-    final historyJson = ModelUtils.safeJsonEncode(chatHistory.map((m) => m.toAiMap()).toList());
-    final preComputedPatternCandidates = patternCandidates.isNotEmpty ? ModelUtils.safeJsonEncode(patternCandidates.map((p) => p.toMap()).toList()) : null;
-
-    try {
-      AppLogger.insights('Generating insight. History: $scoreHistory');
-      final startTime = DateTime.now();
-
-      final prompt = Prompts.insightsAnalysisPrompt(
-        userGoals: goals,
-        userSensitivities: sensitivities,
-        userLifestyle: lifestyle,
-        cyclePhase: cyclePhase,
-        historyJson: historyJson,
-        historySummary: chatSummary,
-        recentJournalText: recentJournalText,
-        historicalJournalSummary: historicalJournalSummary,
-        scoreHistory: scoreHistory,
-        preComputedPatternCandidates: preComputedPatternCandidates,
-      );
-      Map<String, dynamic>? accepted;
-      for (var attempt = 0; attempt < 2; attempt++) {
-        final response = await _aiService.generateContent(
-          prompt: attempt == 0
-              ? prompt
-              : '$prompt\nCORRECTION: The previous response was incomplete. Eligibility is already met. Return the COMPLETE ready insight with a concrete summary and nextSteps. When a repeated negative food candidate exists, foodSwaps MUST contain at least one swap with its exact full trigger as source and at least four DISTINCT alternatives. Each alternative needs foodId, name, reason, a dynamic category derived from that alternative’s actual food or meal type (do not use a fixed category list), 1–3 benefitTags, exactly 3 grounded structuredBenefits, whyBetterOption, and nutrition. Give conservative typical single-serving nutrition estimates for recognizable complete meals; use null only when an individual value cannot be estimated reliably. The app labels these as estimates. Use null for unknown images. Respect user sensitivities, describe practical differences, and do not fabricate personal patterns or claim proven symptom relief.',
-          promptVersion: AiVersions.insightPromptVersion,
-        );
-        final jsonStr = ModelUtils.extractJson(response);
-        if (jsonStr == null) continue;
-
-        // A malformed or non-object response should consume this attempt and
-        // let the correction prompt run, not escape the loop and abort the
-        // whole generation pipeline before its retry.
-        final rawDecoded = _tryDecodeJson(jsonStr);
-        if (rawDecoded == null) {
-          AppLogger.warning('InsightRepo: AI response was not parseable JSON; retrying');
-          continue;
-        }
-        if (rawDecoded is! Map) {
-          AppLogger.warning('InsightRepo: AI response was valid JSON but not an object; retrying');
-          continue;
-        }
-        final decoded = Map<String, dynamic>.from(rawDecoded);
-        final validation = InsightResponseValidator.normalize(decoded, patternCandidates: patternCandidates);
-        if (validation.reasons.isNotEmpty) {
-          AppLogger.insights('Insight response normalized: ${validation.reasons.join('; ')}');
-        }
-        if (isUsableInsightResponse(validation.data)) {
-          accepted = validation.data;
-          break;
-        }
-        AppLogger.warning('InsightRepo: incomplete insight response; attempt=${attempt + 1}/2');
-      }
-      if (accepted == null) {
-        throw const FormatException('AI returned an incomplete insight: required food swaps or personalized content are missing');
-      }
-      final decoded = accepted;
-      final rawGutScore = decoded['gutScore'];
-      final modelScore = rawGutScore is Map<String, dynamic>
-          ? (rawGutScore['score'] as num?)?.toInt()
-          : rawGutScore is num
-              ? rawGutScore.toInt()
-              : null;
-      // The current prompt leaves gut-score calculation to the deterministic
-      // calculator in GenerateInsightUseCase. Only honor a model-provided
-      // score when it actually exists; never turn a missing score into a
-      // misleading negative delta from zero.
-      if (lastScore != null && modelScore != null) {
-        final diff = modelScore - lastScore;
-        decoded['scoreDiff'] = diff >= 0 ? '+$diff' : '$diff';
-      }
-      // Model/protocol metadata comes from the authenticated proxy response,
-      // not from fields the language model may echo inside its JSON payload.
-      final servedModel = _aiService.lastServedModel;
-      final servedPromptVersion = _aiService.lastPromptVersion;
-      decoded
-        ..remove('model')
-        ..remove('promptVersion')
-        ..remove('origin');
-      var insight = AIInsight.fromMap(decoded).copyWith(model: servedModel, promptVersion: servedPromptVersion);
-
-      // Enrich synthesized insight with user's uploaded food photos
-      insight = await _enrichInsightWithUserPhotos(insight);
-
-      final duration = DateTime.now().difference(startTime).inSeconds;
-      await _analyticsService.logEvent(name: 'insight_generated', parameters: {'gut_score': insight.gutScore, 'duration_sec': duration});
-
-      return insight;
-    } catch (e, st) {
-      AppLogger.error('InsightRepo: AI Analysis failed', error: e);
-      await _analyticsService.logEvent(name: 'insight_generation_failed', parameters: {'error': e.toString()});
-      await _crashlyticsService.recordError(e, st, reason: 'AI Insight generation failed');
-      rethrow;
-    }
-  }
-
-  Future<AIInsight> _enrichInsightWithUserPhotos(AIInsight insight) async {
-    try {
-      final recentScans = await getRecentScans(DateTime.now().subtract(const Duration(days: 30)));
-      if (recentScans.isEmpty) return insight;
-
-      final scanImageMap = <String, ScanResult>{};
-      for (final scan in recentScans) {
-        final url = scan.userImageUrl ?? scan.imageUrl;
-        if (url != null && url.isNotEmpty) {
-          final key = scan.productName.toLowerCase().trim();
-          if (key.isNotEmpty && !scanImageMap.containsKey(key)) {
-            scanImageMap[key] = scan;
-          }
-        }
-      }
-
-      if (scanImageMap.isEmpty) return insight;
-
-      ScanResult? findMatchingScan(String foodName) {
-        final norm = foodName.toLowerCase().trim();
-        if (norm.isEmpty) return null;
-        if (scanImageMap.containsKey(norm)) return scanImageMap[norm];
-        for (final entry in scanImageMap.entries) {
-          if (norm.contains(entry.key) || entry.key.contains(norm)) {
-            return entry.value;
-          }
-        }
-        return null;
-      }
-
-      var enrichedTopHealing = insight.topHealing;
-      if (enrichedTopHealing != null && (enrichedTopHealing.userImageUrl == null || enrichedTopHealing.userImageUrl!.isEmpty)) {
-        final match = findMatchingScan(enrichedTopHealing.food);
-        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
-        if (match != null && matchUrl != null) {
-          enrichedTopHealing = TopHighlight(
-            food: enrichedTopHealing.food,
-            effects: enrichedTopHealing.effects,
-            timeframe: enrichedTopHealing.timeframe,
-            frequency: enrichedTopHealing.frequency,
-            emoji: enrichedTopHealing.emoji,
-            imageUrl: enrichedTopHealing.imageUrl ?? matchUrl,
-            userImageUrl: matchUrl,
-            foodScanId: match.scanId,
-          );
-        }
-      }
-
-      var enrichedTopTrigger = insight.topTrigger;
-      if (enrichedTopTrigger != null && (enrichedTopTrigger.userImageUrl == null || enrichedTopTrigger.userImageUrl!.isEmpty)) {
-        final match = findMatchingScan(enrichedTopTrigger.food);
-        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
-        if (match != null && matchUrl != null) {
-          enrichedTopTrigger = TopHighlight(
-            food: enrichedTopTrigger.food,
-            effects: enrichedTopTrigger.effects,
-            timeframe: enrichedTopTrigger.timeframe,
-            frequency: enrichedTopTrigger.frequency,
-            emoji: enrichedTopTrigger.emoji,
-            imageUrl: enrichedTopTrigger.imageUrl ?? matchUrl,
-            userImageUrl: matchUrl,
-            foodScanId: match.scanId,
-          );
-        }
-      }
-
-      final enrichedHealingFoods = insight.healingFoods.map((hf) {
-        if (hf.userImageUrl != null && hf.userImageUrl!.isNotEmpty) return hf;
-        final match = findMatchingScan(hf.name);
-        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
-        if (match != null && matchUrl != null) {
-          return HealingFood(name: hf.name, effect: hf.effect, emoji: hf.emoji, imageUrl: hf.imageUrl ?? matchUrl, userImageUrl: matchUrl, foodScanId: match.scanId);
-        }
-        return hf;
-      }).toList();
-
-      final enrichedTriggerFoods = insight.triggerFoods.map((tf) {
-        if (tf.userImageUrl != null && tf.userImageUrl!.isNotEmpty) return tf;
-        final match = findMatchingScan(tf.name);
-        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
-        if (match != null && matchUrl != null) {
-          return TriggerFood(name: tf.name, effect: tf.effect, emoji: tf.emoji, imageUrl: tf.imageUrl ?? matchUrl, userImageUrl: matchUrl, foodScanId: match.scanId);
-        }
-        return tf;
-      }).toList();
-
-      final enrichedFoodImpacts = insight.foodImpacts.map((fi) {
-        if (fi.userImageUrl != null && fi.userImageUrl!.isNotEmpty) return fi;
-        final match = findMatchingScan(fi.food);
-        final matchUrl = match?.userImageUrl ?? match?.imageUrl;
-        if (match != null && matchUrl != null) {
-          return FoodImpact(
-            food: fi.food,
-            dateLabel: fi.dateLabel,
-            effect: fi.effect,
-            timeframeLabel: fi.timeframeLabel,
-            emoji: fi.emoji,
-            impactType: fi.impactType,
-            imageUrl: fi.imageUrl ?? matchUrl,
-            userImageUrl: matchUrl,
-            foodScanId: match.scanId,
-          );
-        }
-        return fi;
-      }).toList();
-
-      return insight.copyWith(topHealing: enrichedTopHealing, topTrigger: enrichedTopTrigger, healingFoods: enrichedHealingFoods, triggerFoods: enrichedTriggerFoods, foodImpacts: enrichedFoodImpacts);
-    } catch (e) {
-      AppLogger.warning('Failed to enrich insight with user photos: $e');
-      return insight;
-    }
-  }
-}
-
-Object? _tryDecodeJson(String value) {
-  try {
-    return jsonDecode(value);
-  } catch (_) {
-    return null;
-  }
-}
-
-/// Reject incomplete normalized responses before they reach cache or persistence.
-bool isUsableInsightResponse(Map<String, dynamic> data) {
-  final recap = data['weeklyRecap'];
-  if (recap is Map && recap['foodsLogged'] == 0) return false;
-  final patterns = data['detectedPatterns'];
-  final requiresSwaps =
-      patterns is List &&
-      patterns.whereType<Map>().any(
-        (pattern) => pattern['impactDirection'] == 'negative' && pattern['domain'] != BodyPattern.typeSleep && pattern['frequency'] is num && (pattern['frequency'] as num) >= 2,
-      );
-  final swaps = data['foodSwaps'];
-  if (requiresSwaps && (swaps is! List || swaps.isEmpty)) return false;
-  final top = data['topInsight'];
-  // `status` is application-owned metadata and is stamped after this
-  // eligibility check. Older/model responses may omit it; an explicit
-  // non-ready status still rejects the response.
-  final status = data['status']?.toString().trim().toLowerCase();
-  if ((status != null && status != 'ready') || top is! Map) return false;
-  final description = top['description'];
-  final steps = top['nextSteps'];
-  return description is String &&
-      description.trim().isNotEmpty &&
-      !description.toLowerCase().contains('synthesize a personalized summary') &&
-      top['title'] != 'Baseline Assessment Complete' &&
-      steps is List &&
-      steps.any((step) => step is String && step.trim().isNotEmpty);
 }

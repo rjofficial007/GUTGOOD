@@ -3,13 +3,14 @@ part of 'scan_result_widgets.dart';
 /// Better-swap presentation components.
 
 class ScanSwapsSection extends StatelessWidget {
-  const ScanSwapsSection({super.key, required this.swaps});
-  final List<ProductSwap> swaps;
+  const ScanSwapsSection({super.key, required this.foodSwap});
+  final FoodSwap foodSwap;
 
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
-    if (swaps.isEmpty) return const SizedBox.shrink();
+    final alternatives = foodSwap.alternatives;
+    if (alternatives.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -30,7 +31,7 @@ class ScanSwapsSection extends StatelessWidget {
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.titleSize.sp, fontWeight: FontWeight.w700, color: t.textPrimary),
                   ),
                   Text(
-                    'Simple swaps to make this meal even better.',
+                    'Options based on the available food data.',
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
                   ),
                 ],
@@ -44,9 +45,9 @@ class ScanSwapsSection extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            itemCount: swaps.length,
+            itemCount: alternatives.length,
             separatorBuilder: (_, _) => Gap.w10,
-            itemBuilder: (context, i) => _SwapCard(swap: swaps[i]),
+            itemBuilder: (context, i) => _SwapCard(alternative: alternatives[i]),
           ),
         ),
       ],
@@ -55,14 +56,15 @@ class ScanSwapsSection extends StatelessWidget {
 }
 
 class _SwapCard extends StatelessWidget {
-  const _SwapCard({required this.swap});
-  final ProductSwap swap;
+  const _SwapCard({required this.alternative});
+  final SwapAlternative alternative;
 
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final imageKeyword = swap.imageKeyword.isNotEmpty ? swap.imageKeyword : swap.title;
+    final imageKeyword = alternative.imageKeyword?.isNotEmpty == true ? alternative.imageKeyword! : alternative.name;
+    final swap = ProductSwap.fromMap(alternative.toMap());
     final cardShade = t.positive.withValues(alpha: isDark ? 0.16 : 0.08);
 
     return InkWell(
@@ -105,7 +107,7 @@ class _SwapCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6.r),
               ),
               child: Text(
-                swap.tag,
+                (alternative.tag ?? alternative.impactLevel).toUpperCase(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w900, letterSpacing: 0.6, color: t.positive),
@@ -113,7 +115,7 @@ class _SwapCard extends StatelessWidget {
             ),
             Gap.h4,
             Text(
-              swap.title,
+              alternative.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w700, color: t.textPrimary),
@@ -121,7 +123,7 @@ class _SwapCard extends StatelessWidget {
             Gap.h2,
             Expanded(
               child: Text(
-                swap.subtitle,
+                alternative.reason ?? alternative.whyBetterOption ?? '',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w400, height: 1.2, color: t.textSecondary),

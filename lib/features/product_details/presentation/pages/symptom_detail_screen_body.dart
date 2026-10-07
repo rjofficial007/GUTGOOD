@@ -31,10 +31,9 @@ class SymptomDetailScreen extends StatelessWidget {
                   Gap.h20,
 
                   // 2. Severity Gauge & Band Section + Expandable "Why this severity"
-                  DashboardEntrance(delay: 100, child: _SymptomSeveritySection(symptom: symptom)),
-                  Gap.h20,
+                  if (symptom.severity != null) ...[DashboardEntrance(delay: 100, child: _SymptomSeveritySection(symptom: symptom)), Gap.h20],
 
-                  // 3. Quick-Signal Metric Cards Row (Severity, Energy, Mood, Sleep)
+                  // 3. Quick-Signal Metric Cards Row (Severity, Mood, Sleep)
                   DashboardEntrance(delay: 150, child: _SymptomMetricsRow(symptom: symptom)),
                   Gap.h20,
 
@@ -68,8 +67,7 @@ class _SymptomHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
-    final severity = symptom.severity ?? 0;
-    final color = _severityColor(severity);
+    final color = symptom.severity == null ? t.textSecondary : _severityColor(symptom.severity!);
     final hasImage = symptom.imageUrl != null && symptom.imageUrl!.isNotEmpty;
     final size = 104.w;
 
@@ -135,9 +133,10 @@ class _SymptomHeader extends StatelessWidget {
                 spacing: 6.w,
                 runSpacing: 6.h,
                 children: [
-                  ProductDetailHeaderTag(label: 'Severity ${symptom.severity ?? 0}/10', color: color, uppercaseLabel: true),
+                  if (symptom.severity != null) ProductDetailHeaderTag(label: 'Severity ${symptom.severity}/10', color: _severityColor(symptom.severity!), uppercaseLabel: true),
                   ProductDetailHeaderTag(label: DateFormatter.formatFull(symptom.eventTime), color: t.textSecondary, uppercaseLabel: true),
-                  if (symptom.foodName != null && symptom.foodName!.isNotEmpty) ProductDetailHeaderTag(label: 'After ${symptom.foodName}', color: t.positive, icon: AppIcons.utensils, uppercaseLabel: true),
+                  if (symptom.foodName != null && symptom.foodName!.isNotEmpty)
+                    ProductDetailHeaderTag(label: 'After ${symptom.foodName}', color: t.positive, icon: AppIcons.utensils, uppercaseLabel: true),
                   if (symptom.source != null && symptom.source!.isNotEmpty) ProductDetailHeaderTag(label: symptom.source!.toUpperCase(), color: t.textSecondary, uppercaseLabel: true),
                 ],
               ),
@@ -172,7 +171,7 @@ class _SymptomSeveritySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
-    final severity = symptom.severity ?? 0;
+    final severity = symptom.severity!;
     final color = _severityColor(severity);
     final bandLabel = _severityBand(severity);
     final explanation = _severityExplanation(severity, symptom);
@@ -256,7 +255,7 @@ class _SymptomSeveritySection extends StatelessWidget {
 
   List<_SymptomFactor> _getSeverityFactors(SymptomLog symptom) {
     final factors = <_SymptomFactor>[];
-    final severity = symptom.severity ?? 0;
+    final severity = symptom.severity!;
 
     factors.add(
       _SymptomFactor(
@@ -265,11 +264,6 @@ class _SymptomSeveritySection extends StatelessWidget {
         phrase: severity <= 3 ? 'low physical discomfort' : (severity <= 6 ? 'moderate gut distress' : 'severe gut reaction'),
       ),
     );
-
-    if (symptom.energyLevel != null) {
-      final e = symptom.energyLevel!;
-      factors.add(_SymptomFactor(label: 'Energy Level · $e/10', isNegative: e < 5, phrase: e >= 7 ? 'good vitality retained' : 'reduced energy level'));
-    }
 
     if (symptom.mood != null && symptom.mood!.isNotEmpty) {
       factors.add(
@@ -288,4 +282,3 @@ class _SymptomSeveritySection extends StatelessWidget {
     return factors;
   }
 }
-

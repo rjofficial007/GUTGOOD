@@ -16,27 +16,15 @@ class ChatScreenState extends State<ChatScreen> {
   /// widget tree before attempting the one-time send scroll.
   static const int _maxAnchorAttempts = 12;
 
-  /// ID of the current turn's user message (the send-scroll anchor target).
-  /// Null when no turn is active.
+  /// Keep the latest sent turn tall enough to align its prompt at the top,
+  /// including after a short response completes.
   String? _latestUserMsgId;
 
   /// Stable key attached to the current turn's user message so the send
   /// scroll can locate the actual widget instead of guessing its offset.
   final GlobalKey _latestUserMsgKey = GlobalKey();
 
-  /// Whether the turn-scoped spacer below the conversation is enabled.
-  ///
-  /// The spacer exists ONLY between send and turn end. Positioning the new
-  /// user message near the top of the viewport is physically impossible
-  /// without trailing scroll extent (there is not enough content below the
-  /// message yet), so exactly one viewport of it is provided while the turn
-  /// is active — and removed the moment the turn ends, leaving zero
-  /// artificial space.
-  bool _turnSpacerEnabled = false;
-
-  /// Monotonic turn counter. Guards stale turn-end callbacks from a previous
-  /// send against disabling a newer turn's spacer.
-  int _turnSeq = 0;
+  bool _sendScrollCancelled = false;
 
   /// Distance from the newest content (in logical pixels) beyond which the
   /// manual jump control appears. Very large on purpose: the button must
@@ -63,8 +51,6 @@ class ChatScreenState extends State<ChatScreen> {
 
   ChatHistoryNotifier? _historyNotifier;
 
-  ChatComposerNotifier? _composerNotifier;
-
   Timer? _draftDebounce;
 
   @override
@@ -79,10 +65,7 @@ class ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
 
       _historyNotifier = context.read<ChatHistoryNotifier>();
-      _composerNotifier = context.read<ChatComposerNotifier>();
-
       _historyNotifier?.addListener(_handleHistoryLoaded);
-      _composerNotifier?.addListener(_handleComposerChangedForTurn);
 
       _handleHistoryLoaded();
 
@@ -96,7 +79,6 @@ class ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _historyNotifier?.removeListener(_handleHistoryLoaded);
-    _composerNotifier?.removeListener(_handleComposerChangedForTurn);
 
     _draftDebounce?.cancel();
 
@@ -118,12 +100,11 @@ class ChatScreenState extends State<ChatScreen> {
     if (notifier == null) return;
 
     if (!notifier.historyLoading && !_hasScrolledToBottomInitially && notifier.messages.isNotEmpty) {
+      _hasScrolledToBottomInitially = true;
       // If we are currently in a turn (user just sent a message), the
       // send-scroll anchor handles the positioning. A jump-to-bottom
-      // here would fight with it and, because of the turn spacer,
-      // push the new message off the top of the viewport.
+      // here would fight with it and push the new message away from view.
       if (_latestUserMsgId != null) {
-        _hasScrolledToBottomInitially = true;
         return;
       }
 
@@ -132,13 +113,7 @@ class ChatScreenState extends State<ChatScreen> {
           return;
         }
 
-        _scrollToBottomInitially();
-
-        _hasScrolledToBottomInitially = true;
-
-        if (mounted) {
-          setState(() {});
-        }
+        unawaited(_scrollToBottomInitially());
       });
     }
   }
@@ -147,17 +122,18 @@ class ChatScreenState extends State<ChatScreen> {
   // SCROLL
   // ===========================================================================
 
-  /// Returns the max scroll extent adjusted for the turn spacer. When the
-  /// spacer is active, the raw maxScrollExtent points to the bottom of a
-  /// huge empty area; this points to the end of the actual content.
+  /// The latest turn fills at least one viewport, rather than adding a whole
+  /// empty viewport after the messages.
   double get _effectiveMaxScrollExtent {
     if (!_scroll.hasClients) return 0.0;
-    final position = _scroll.position;
-    var max = position.maxScrollExtent;
-    if (_turnSpacerEnabled) {
-      max -= position.viewportDimension;
+    return _scroll.position.maxScrollExtent;
+  }
+
+  bool _handleUserScroll(UserScrollNotification notification) {
+    if (notification.direction != ScrollDirection.idle) {
+      _sendScrollCancelled = true;
     }
-    return max.clamp(0.0, position.maxScrollExtent);
+    return false;
   }
 
   void _onScroll() {
@@ -170,8 +146,7 @@ class ChatScreenState extends State<ChatScreen> {
      * reaching the top loads older messages.
      *
      * NOTE: besides pagination, this listener only re-evaluates the manual
-     * jump control's visibility. It never scrolls — the ONLY automatic
-     * scroll in this screen is the one-time send scroll below.
+     * jump control's visibility. Automatic positioning happens only on send.
      */
     if (_scroll.position.pixels <= 50) {
       context.read<ChatHistoryNotifier>().loadMore();
@@ -184,7 +159,7 @@ class ChatScreenState extends State<ChatScreen> {
   /// history load. Runs exactly once per screen lifetime; the second pass
   /// absorbs first-layout growth (fonts, images) that lands late.
   Future<void> _scrollToBottomInitially() async {
-    if (!mounted || !_scroll.hasClients) {
+    if (!mounted || !_scroll.hasClients || _latestUserMsgId != null) {
       return;
     }
 
@@ -192,7 +167,7 @@ class ChatScreenState extends State<ChatScreen> {
 
     await WidgetsBinding.instance.endOfFrame;
 
-    if (!mounted || !_scroll.hasClients) {
+    if (!mounted || !_scroll.hasClients || _latestUserMsgId != null) {
       return;
     }
 
@@ -248,8 +223,7 @@ class ChatScreenState extends State<ChatScreen> {
   }
 
   /// Runs ONLY from an explicit user tap: glides to the newest content,
-  /// then hides the control. This is the only viewport motion in the
-  /// screen besides the one-time send scroll (and the initial load).
+  /// then hides the control.
   Future<void> _jumpToLatest() async {
     if (!_scroll.hasClients) return;
 
@@ -264,153 +238,35 @@ class ChatScreenState extends State<ChatScreen> {
   // TURN-ANCHORED SEND SCROLL
   // ===========================================================================
   //
-  // The ONLY automatic scroll in this screen happens on user send:
-  //
-  //   SEND -> scroll ONCE to the new user message (near the top)
-  //        -> STOP. AI updates never move the viewport.
-  //
-  // AI responses (loading, streaming, cards, images, Firestore updates,
-  // rebuilds) NEVER trigger scrolling. The user scrolls manually.
+  // Reveal the sent prompt once. Streaming only grows the turn below it.
 
-  /// Ends the turn the moment the AI truly finishes (completion, error, or
-  /// stop) so the turn spacer is removed only after the complete response
-  /// has arrived. Never scrolls.
-  ///
-  /// This is the PRIMARY turn-end signal: [_send]'s future resolves when
-  /// streaming *starts*, not when it completes, so [_send] only ends the
-  /// turn itself on the error paths (which never stream). All paths are
-  /// idempotent.
-  void _handleComposerChangedForTurn() {
-    final composer = _composerNotifier;
-
-    if (composer == null || !_turnSpacerEnabled) return;
-
-    // The first composer notification of a turn always carries the ACTIVE
-    // flags (send() sets isLoading=true before notifying), so an idle
-    // observation here can only mean the turn actually ended.
-    if (!composer.isLoading && !composer.isStreaming) {
-      _endTurn(_turnSeq);
-    }
-  }
-
-  /// Ends the turn's scroll scaffolding: removes the trailing spacer.
-  /// Never moves the viewport itself.
-  void _endTurn(int seq) {
-    if (seq != _turnSeq || !_turnSpacerEnabled) return;
-
-    if (!mounted) return;
-
-    setState(() {
-      _turnSpacerEnabled = false;
-    });
-
-    AppLogger.debug('ChatScreen: turn ended, spacer removed');
-
-    // Spacer removal shrinks the scroll extent without moving any pixels,
-    // so no scroll notification fires — re-evaluate the jump control once
-    // layout has settled (this can only hide it, never show it).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      _syncJumpButtonVisibility();
-    });
-  }
-
-  /// Waits for the newly-sent user message to enter the widget tree, then
-  /// performs the ONE send scroll: glide it near the top of the viewport.
-  ///
-  /// If the user sent from far up in history, the new message is outside
-  /// the sliver's built range (slivers build lazily), so its position
-  /// cannot be measured yet. In that case the tail is first brought into
-  /// layout with an instant jump, and the SINGLE glide still runs once.
   Future<void> _anchorToLatestUserMessage() async {
-    if (!mounted) return;
-
     final requestedId = _latestUserMsgId;
-
-    if (requestedId == null) {
-      return;
-    }
+    if (requestedId == null) return;
 
     for (var i = 0; i < _maxAnchorAttempts; i++) {
       await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || _latestUserMsgId != requestedId || _sendScrollCancelled) return;
+      if (_latestUserMsgKey.currentContext != null) break;
+      if (_historyNotifier?.messages.any((message) => message.localId == requestedId) != true) return;
 
-      if (!mounted) return;
-
-      /*
-       * A newer message was sent; its own anchor chain owns the motion.
-       */
-      if (_latestUserMsgId != requestedId) {
-        return;
-      }
-
-      if (_latestUserMsgKey.currentContext != null) {
-        break;
-      }
-
-      /*
-       * The send failed before inserting a message (offline): nothing to
-       * anchor to — leave the viewport alone.
-       */
-      final composer = _composerNotifier;
-
-      if (composer != null && !composer.isLoading && !composer.isStreaming) {
-        return;
-      }
-
-      /*
-       * Message still outside the built range (user sent from far up):
-       * bring the tail into layout once, then measure on the next frame.
-       *
-       * We jump to the effective bottom (end of content) rather than the
-       * raw maxScrollExtent to avoid overshooting into the turn spacer.
-       */
-      if (i == 0 && _scroll.hasClients) {
-        _scroll.jumpTo(_effectiveMaxScrollExtent);
-      }
+      // Bring a new turn sent from older history into the sliver's built range.
+      if (_scroll.hasClients) _scroll.jumpTo(_effectiveMaxScrollExtent);
     }
 
-    if (!mounted) return;
-
-    if (_latestUserMsgId != requestedId) {
-      return;
-    }
-
-    await _glideToUserMessage(_latestUserMsgKey);
-  }
-
-  /// Glides the viewport exactly once so the sent user message sits near
-  /// the top (with breathing room). The AI response then appears and grows
-  /// below it without any further motion.
-  Future<void> _glideToUserMessage(GlobalKey key) async {
-    final messageContext = key.currentContext;
-    if (messageContext == null || !messageContext.mounted || !mounted || !_scroll.hasClients) {
-      return;
-    }
-
-    final renderObject = messageContext.findRenderObject();
-
-    if (renderObject == null || !renderObject.attached) {
-      return;
-    }
-
-    try {
-      final viewport = RenderAbstractViewport.of(renderObject);
-
-      final reveal = viewport.getOffsetToReveal(renderObject, 0.0);
-
-      final target = (reveal.offset - AppSizes.p24).clamp(_scroll.position.minScrollExtent, _scroll.position.maxScrollExtent);
-
-      /*
-       * Already correctly positioned.
-       */
-      if ((target - _scroll.position.pixels).abs() <= 2) {
-        return;
-      }
-
-      await _scroll.animateTo(target.toDouble(), duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
-    } catch (e, st) {
-      AppLogger.error('ChatScreen: send scroll failed', error: e, stackTrace: st);
+    // A second bounded pass absorbs keyboard/composer resizing and lazy-list
+    // measurement during the first animation. User gestures cancel both passes.
+    for (var pass = 0; pass < 2; pass++) {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || _latestUserMsgId != requestedId || _sendScrollCancelled) return;
+      final messageContext = _latestUserMsgKey.currentContext;
+      if (messageContext == null || !messageContext.mounted) return;
+      await Scrollable.ensureVisible(
+        messageContext,
+        alignment: 0,
+        duration: Duration(milliseconds: pass == 0 ? 350 : 120),
+        curve: Curves.easeOutCubic,
+      );
     }
   }
 
@@ -552,19 +408,12 @@ class ChatScreenState extends State<ChatScreen> {
 
     if (!mounted) return;
 
-    // ========================================================================
-    // NEW TURN — the send scroll below is the ONLY automatic scroll.
-    // ========================================================================
-
-    _turnSeq++;
-
-    final turnSeq = _turnSeq;
-
     final userMsgId = const Uuid().v4();
 
     setState(() {
       _latestUserMsgId = userMsgId;
-      _turnSpacerEnabled = true;
+      _hasScrolledToBottomInitially = true;
+      _sendScrollCancelled = false;
     });
 
     // ========================================================================
@@ -589,11 +438,6 @@ class ChatScreenState extends State<ChatScreen> {
     if (!mounted) return;
 
     if (error == null) {
-      // NOTE: the turn is deliberately NOT ended here. send() resolves as
-      // soon as the stream is *set up* (_streamReply returns right after
-      // stream.listen attaches) — the AI response is still arriving. The
-      // composer-idle watcher ends the turn when the AI truly finishes,
-      // which is also when the spacer is removed.
       _controller.clear();
 
       _clearDraft();
@@ -602,12 +446,6 @@ class ChatScreenState extends State<ChatScreen> {
 
       return;
     }
-
-    // The send never reached streaming (offline/empty/busy, queued, or the
-    // upload failed first): no completion will ever arrive, so drop the
-    // turn's scroll scaffolding immediately. (The upload-failed path also
-    // ends the turn internally via _finishTurn, making this idempotent.)
-    _endTurn(turnSeq);
 
     switch (error) {
       case ChatSendError.offline:
@@ -663,7 +501,7 @@ class ChatScreenState extends State<ChatScreen> {
             Expanded(
               child: Stack(
                 children: [
-                  const _MessageListView(),
+                  NotificationListener<UserScrollNotification>(onNotification: _handleUserScroll, child: const _MessageListView()),
                   if (_showJumpToLatest)
                     Positioned(
                       right: AppSizes.p16,
@@ -684,4 +522,3 @@ class ChatScreenState extends State<ChatScreen> {
 // =============================================================================
 // SUGGESTION CHIPS
 // =============================================================================
-

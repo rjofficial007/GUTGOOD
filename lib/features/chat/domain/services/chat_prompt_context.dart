@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:gutgood/core/models/chat/chat_message.dart';
 import 'package:gutgood/core/models/scans/scan_result_details.dart';
 
@@ -56,13 +58,10 @@ abstract final class ChatPromptContext {
   /// Builds the grounded "see more swaps" fragment, preserving the existing
   /// barcode/nutriscore echo instruction used by the AI prompt.
   static String swapsGroundingFragment(String userText, List<ProductSwap> grounded) {
-    final items = grounded
-        .map((swap) {
-          final grade = (swap.nutriscore == null || swap.nutriscore!.isEmpty) ? '?' : swap.nutriscore!;
-          final code = (swap.barcode == null || swap.barcode!.isEmpty) ? '?' : swap.barcode!;
-          return '${swap.title} (grade $grade, barcode $code)';
-        })
-        .join('; ');
-    return '$userText\n\n(REAL PRODUCT DATA — emit exactly 3 swap objects, one per product below, and copy each "barcode" and "nutriscore" value into its swap object: $items)';
+    final items = jsonEncode(grounded.map((swap) => {'name': swap.title, 'barcode': swap.barcode, 'nutriscore': swap.nutriscore, 'imageUrl': swap.imageUrl}).toList());
+    return '$userText\n\nREAL PRODUCT DATA: $items\n'
+        'Choose exactly 4 suitable alternatives from these candidates when four meaningful options are supported; otherwise return []. Never pad the list. '
+        'Copy each selected product\'s barcode, nutriscore and imageUrl exactly; never invent missing facts. '
+        'Use the shared swaps schema. Grades alone do not establish allergen safety or symptom benefits.';
   }
 }

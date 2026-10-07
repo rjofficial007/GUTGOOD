@@ -19,7 +19,8 @@ GutGood is a health-intelligence application built around:
 - Open Food Facts product information;
 - deterministic gut-health scoring;
 - meal, symptom, and scan history;
-- AI-generated Insights and patterns;
+- deterministic, client-generated Insights and patterns;
+- AI-assisted photo and chat interpretation where it adds value;
 - notifications and reminders;
 - usage limits and subscriptions.
 
@@ -157,7 +158,7 @@ lib/
     ├── chat/                     # Streaming chat, history, attachments, outbox
     ├── history/                  # Scan history, saved foods, journal timeline
     ├── home/                     # Main navigation shell
-    ├── insights/                 # Patterns, scores, AI Insights, feed UI
+    ├── insights/                 # Rule-based patterns, scores, persistence, and feed UI
     ├── logs/                     # Meal, symptom, and scan persistence policy
     ├── onboarding/               # Personalization and initial setup
     ├── product_details/          # Scan, symptom, additive, and swap details
@@ -469,74 +470,44 @@ lib/infrastructure/open_food_facts/off_service.dart
 
 ## 11. Insights flow
 
-Insights combine persisted activity, deterministic analysis, and AI interpretation:
+The core Insights refresh is deterministic and client-side:
 
 ```text
-Insights UI
+Insights UI / journal update / client lifecycle
     ↓
-InsightsNotifier
+InsightsNotifier (debounced while the client is active)
     ↓
-InsightRepository
+GenerateInsightUseCase
+    ├── recent meals, symptoms, and scans from Firestore
+    ├── PatternEngineService (rolling 30-day rules)
+    └── GutScoreCalculatorService (score + weekly recap)
     ↓
-meals, symptoms, scans, chat, and Insight history
+RuleBasedInsightBuilder
     ↓
-threshold checks
-    ↓
-PatternEngineService
-    ↓
-journal construction
-    ↓
-historical summarization
-    ↓
-AI Insight generation
-    ↓
-Insight persistence
+upsert `user_profiles/{uid}/insights/rule_based_latest`
     ↓
 Insights feed
 ```
 
-The Insight generation process checks:
+This core path does not request AI, does not gate analysis on the former daily AI threshold, and adds no Cloud Function. Manual meal/symptom writes signal the client notifier; scanner/chat/profile changes and dashboard-count stream updates also schedule a debounced refresh. The screen requests a refresh when opened.
 
-- whether an Insight was already generated today;
-- whether the user disabled Insights;
-- whether enough data exists for the daily threshold;
-- recent meals, symptoms, scans, and chat;
-- deterministic patterns;
-- recent and historical journal data;
-- the current profile context.
+Refresh is not guaranteed while the app is closed or suspended. Without a server-side trigger, the next refresh occurs when the app resumes, opens Insights, or receives a supported client-side update. AI-assisted photo/chat interpretation remains separate from core Insights generation. A distinct, user-triggered AI context action is available only when rule-based patterns span at least two areas; it receives pattern summaries only and cannot change the underlying findings.
 
-The important distinction is:
-
-```text
-PatternEngineService
-    = deterministic evidence and pattern detection
-
-AI generation
-    = interpretation and narrative explanation
-```
+The deterministic builder reports matched observations and log counts only. Missing symptom entries are treated as unknown, not symptom-free; the rule engine does not publish heuristic evidence ratios as confidence percentages.
 
 Important files:
 
 ```text
 lib/features/insights/application/usecases/generate_insight_usecase.dart
+lib/features/insights/application/usecases/generate_insight_ai_interpretation_usecase.dart
 lib/features/insights/data/repositories/insight_repository_impl.dart
 lib/features/insights/data/services/pattern_engine_service.dart
-lib/features/insights/domain/services/insight_generation_policy.dart
-lib/features/insights/domain/services/insight_response_validator.dart
+lib/features/insights/domain/services/rule_based_insight_builder.dart
 lib/features/insights/presentation/providers/insights_notifier.dart
 lib/features/insights/presentation/widgets/insight_feed/
 ```
 
-Before an AI response becomes an `AIInsight`, the feature-owned response validator applies deterministic safeguards:
-
-- no healing foods, triggers, detected patterns, or impact percentages without qualified pattern candidates;
-- one-occurrence evidence is capped at low confidence and low impact;
-- unsupported food explanations and mechanism details are removed;
-- multi-food exposures are retained as combination candidates rather than independent food causes;
-- balance percentages are recalculated from retained, evidence-matched food impacts;
-- explicit `detectedPatterns: []` remains empty rather than being converted into a fallback pattern.
-
-The final stamped envelope is then written to both Firestore and the local cache.
+The former full AI Insights synthesis prompt/API and supporting journal-generation pipeline remain removed. Legacy `AIInsight` fields remain readable so previously persisted documents continue to render; new snapshots are composed deterministically and saved to Firestore. A separate optional `GenerateInsightAiInterpretationUseCase` adds only user-requested cross-pattern prose for rule findings from multiple areas, stores it under `aiInterpretation`, and merges that field without rewriting the deterministic snapshot.
 
 ---
 
@@ -863,10 +834,10 @@ lib/features/insights/presentation/providers/insights_notifier.dart
 lib/features/insights/application/usecases/generate_insight_usecase.dart
 lib/features/insights/data/services/pattern_engine_service.dart
 lib/features/insights/data/repositories/insight_repository_impl.dart
-lib/features/insights/domain/services/insight_generation_policy.dart
+lib/features/insights/domain/services/rule_based_insight_builder.dart
 ```
 
-Goal: understand how raw user activity becomes evidence, patterns, and AI-generated narrative.
+Goal: understand how raw user activity becomes deterministic evidence, patterns, score, and recap.
 
 ### Stage 5: Cross-cutting systems
 

@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
+import 'package:gutgood/core/models/insights/food_swap.dart';
 import 'package:gutgood/core/models/scans/scan_result_details.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/gut_score_utils.dart';
@@ -38,11 +39,13 @@ class ScanResult extends Equatable {
     this.allergens,
     this.additives,
     this.additiveItems = const [],
+    this.foodTags = const [],
     this.ingredients = const [],
     this.nutrients,
     this.nutrientLevels,
     this.impacts = const [],
     this.swaps = const [],
+    this.foodSwap,
     this.cycleInsight,
     this.barcode,
     this.source,
@@ -52,8 +55,10 @@ class ScanResult extends Equatable {
     this.scanId,
     this.scanConfidence,
     this.scanVerdict,
+    this.consumed,
     this.chatMessageId,
     this.servingSize,
+    this.nutritionBasis,
     required this.createdAt,
     this.rawData,
     this.nutritionEstimated = false,
@@ -129,6 +134,21 @@ class ScanResult extends Equatable {
       });
     }
 
+    final rawSwaps = map['swaps'] is List && (map['swaps'] as List).isNotEmpty ? map['swaps'] as List : (resolvedRaw['swaps'] is List ? resolvedRaw['swaps'] as List : null);
+    final legacySwaps = ModelUtils.parseModelList<ProductSwap>(rawSwaps, ProductSwap.fromMap);
+    final storedFoodSwap = ModelUtils.parseNestedModel<FoodSwap>(map['foodSwap'] ?? resolvedRaw['foodSwap'], FoodSwap.fromMap);
+    final foodSwap =
+        (storedFoodSwap?.alternatives.isNotEmpty == true ? storedFoodSwap : null) ??
+        _foodSwapFromProductSwaps(
+          legacySwaps,
+          id: (map['scanId'] ?? map['barcode'] ?? map['productName'] ?? map['name'] ?? '').toString(),
+          sourceId: (map['barcode'] ?? map['scanId'] ?? map['productName'] ?? map['name'] ?? '').toString(),
+          sourceName: _extractProductName(map),
+          sourceImageUrl: map['imageUrl']?.toString(),
+        );
+    final scanSwaps = foodSwap?.alternatives.map((alternative) => ProductSwap.fromMap(alternative.toMap())).toList() ?? legacySwaps;
+    final mealTags = map['meal'] is Map ? (map['meal'] as Map)['foodTags'] : (resolvedRaw['meal'] as Map?)?['foodTags'];
+
     return ScanResult(
       productName: _extractProductName(map),
       brand: map['brand']?.toString() ?? map['restaurantName']?.toString() ?? 'GutGood',
@@ -147,16 +167,15 @@ class ScanResult extends Equatable {
       allergens: ModelUtils.parseString(map['allergens']),
       additives: ModelUtils.parseString(map['additives']),
       additiveItems: _additiveItemsFrom(map),
+      foodTags: ModelUtils.parseList<String>(map['foodTags']).isNotEmpty ? ModelUtils.parseList<String>(map['foodTags']) : ModelUtils.parseList<String>(mealTags),
       ingredients: ModelUtils.parseModelList<Ingredient>(map['ingredients'] as List?, Ingredient.fromMap),
       nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'] as Map?, NutrientData.fromMap),
       nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'] as Map?, NutrientLevels.fromMap),
       impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'] as List?, ImpactDetail.fromMap),
       // 🚀 Robust Recovery: Check primary field and rawData block for swaps.
       // We check for null or empty list to ensure old data with empty swaps is fixed.
-      swaps: ModelUtils.parseModelList<ProductSwap>(
-        (map['swaps'] is List && (map['swaps'] as List).isNotEmpty) ? map['swaps'] as List : (resolvedRaw['swaps'] as List? ?? (map['swaps'] as List?)),
-        ProductSwap.fromMap,
-      ),
+      swaps: scanSwaps,
+      foodSwap: foodSwap,
       cycleInsight: ModelUtils.parseNestedModel<CycleInsight>(map['cycleInsight'], CycleInsight.fromMap),
       barcode: map['barcode']?.toString(),
       source: map['source']?.toString(),
@@ -169,8 +188,10 @@ class ScanResult extends Equatable {
       scanId: (map['scanId'] ?? map['id'])?.toString(),
       scanConfidence: _parseScanConfidence(map['scanConfidence']),
       scanVerdict: map['scanVerdict']?.toString(),
+      consumed: map['consumed'] is bool ? map['consumed'] as bool : null,
       chatMessageId: map['chatMessageId']?.toString(),
       servingSize: map['servingSize']?.toString(),
+      nutritionBasis: _parseNutritionBasis(map['nutritionBasis']),
       // `time` in the AI scan payload is model supplied; it must not replace
       // the actual scan/save timestamp when hydrating a scan record.
       createdAt: DateTimeUtils.parse(map['createdAt'] ?? map['timestamp']),
@@ -243,6 +264,10 @@ class ScanResult extends Equatable {
   /// still get per-additive detail views and concern-based scoring.
   final List<String> additiveItems;
 
+  /// Meal tags retained from the scan's extracted meal candidate until the
+  /// user confirms it was eaten.
+  final List<String> foodTags;
+
   /// Resolved concern profiles for [additiveItems], de-duplicated.
   List<AdditiveConcern> get additiveConcerns => AdditiveConcernDb.resolveAll(additiveItems);
 
@@ -258,8 +283,17 @@ class ScanResult extends Equatable {
   /// Mapping of specific body impacts (e.g., inflammation, satiety).
   final List<ImpactDetail> impacts;
 
-  /// Healthier alternatives for this specific product.
+  /// Legacy card list retained for existing scan and chat widgets.
   final List<ProductSwap> swaps;
+
+  /// Canonical shared swap bundle used by scans and personalized insights.
+  /// Older records with a flat `swaps` list are normalized into this shape.
+  final FoodSwap? foodSwap;
+
+  /// Shared-model view of swaps, including legacy scan results built with
+  /// the former flat card list.
+  FoodSwap? get effectiveFoodSwap =>
+      foodSwap ?? _foodSwapFromProductSwaps(swaps, id: scanId ?? barcode ?? productName, sourceId: barcode ?? scanId ?? productName, sourceName: productName, sourceImageUrl: imageUrl ?? userImageUrl);
 
   /// Contextual advice based on the user's current hormonal phase.
   final CycleInsight? cycleInsight;
@@ -272,6 +306,18 @@ class ScanResult extends Equatable {
 
   /// Public URL to the actual photo taken by the user.
   final String? userImageUrl;
+
+  /// Barcode scans use the product catalog image when available.
+  bool get isBarcodeScan => barcode?.trim().isNotEmpty == true || (source?.toUpperCase().contains('BARCODE') ?? false);
+
+  /// Barcode scans prefer the catalog image; photo scans prefer the uploaded
+  /// photo. Returns null when neither has a usable URL.
+  String? get displayImageUrl {
+    final productImage = imageUrl?.trim();
+    if (isBarcodeScan) return productImage?.isNotEmpty == true ? productImage : null;
+    final userImage = userImageUrl?.trim();
+    return userImage?.isNotEmpty == true ? userImage : (productImage?.isNotEmpty == true ? productImage : null);
+  }
 
   /// List of names for ingredients flagged as risky during analysis.
   final List<String> flaggedIngredients;
@@ -292,11 +338,27 @@ class ScanResult extends Equatable {
   /// response. Kept on the scan as well as its meal projection.
   final String? scanVerdict;
 
+  /// Whether the user confirmed they ate this scanned food. Null means the
+  /// scan is awaiting an answer; false means informational scan only.
+  final bool? consumed;
+
   /// The localId of the ChatMessage that triggered this log.
   final String? chatMessageId;
 
   /// Serving size information (e.g., "100g", "1 pack").
   final String? servingSize;
+
+  /// Basis used for the nutrient values, preserved from the scan source.
+  /// Known values: per_serving, per_100g, per_100ml, pictured_portion.
+  final String? nutritionBasis;
+
+  String get nutritionBasisLabel => switch (nutritionBasis) {
+    'per_serving' => 'Per ${servingSize ?? 'serving'}',
+    'per_100g' => 'Per 100 g',
+    'per_100ml' => 'Per 100 ml',
+    'pictured_portion' => 'Estimated for pictured portion',
+    _ => nutritionEstimated ? 'Estimated for analyzed portion' : 'Nutrition basis not recorded',
+  };
 
   /// Record creation timestamp.
   final DateTime createdAt;
@@ -381,8 +443,8 @@ class ScanResult extends Equatable {
   }
 
   /// Returns true if this result is product-shaped for product-scan views and
-  /// score aggregates. It is not a persistence gate: every completed scan is
-  /// stored in `scan_history` and receives a consumed meal projection.
+  /// score aggregates. It is not a persistence gate: completed scans remain
+  /// in `scan_history`, while a separate confirmation gates meal projection.
   ///
   /// Generic utility scans such as restaurant menus or ingredient labels can
   /// still be separated into their dedicated history views.
@@ -410,6 +472,24 @@ class ScanResult extends Equatable {
 
     // 5. Fallback Heuristics for older scans or missing category
     return !_isGenericName(productName);
+  }
+
+  /// Food photos and barcode product scans need an explicit eaten/not-eaten
+  /// answer before they can affect personal food insights.
+  bool get needsConsumptionConfirmation {
+    final normalizedSource = (source ?? '').toUpperCase();
+    final normalizedCategory = (category ?? '').toUpperCase();
+    if (normalizedSource.contains('LABEL') ||
+        normalizedSource.contains('MENU') ||
+        normalizedCategory.contains('LABEL') ||
+        normalizedCategory.contains('MENU')) {
+      return false;
+    }
+    return (barcode?.isNotEmpty ?? false) ||
+        normalizedSource.contains('BARCODE') ||
+        normalizedSource == 'FOOD' ||
+        normalizedSource == 'MEAL' ||
+        {'FOOD', 'MEAL', 'PRODUCT', 'PACKAGING'}.contains(normalizedCategory);
   }
 
   bool _isGenericName(String name) {
@@ -440,11 +520,13 @@ class ScanResult extends Equatable {
     String? allergens,
     String? additives,
     List<String>? additiveItems,
+    List<String>? foodTags,
     List<Ingredient>? ingredients,
     NutrientData? nutrients,
     NutrientLevels? nutrientLevels,
     List<ImpactDetail>? impacts,
     List<ProductSwap>? swaps,
+    FoodSwap? foodSwap,
     CycleInsight? cycleInsight,
     String? barcode,
     String? source,
@@ -454,8 +536,11 @@ class ScanResult extends Equatable {
     String? scanId,
     double? scanConfidence,
     String? scanVerdict,
+    bool? consumed,
+    bool clearConsumed = false,
     String? chatMessageId,
     String? servingSize,
+    String? nutritionBasis,
     DateTime? createdAt,
     Map<String, dynamic>? rawData,
     bool? nutritionEstimated,
@@ -479,11 +564,23 @@ class ScanResult extends Equatable {
     allergens: allergens ?? this.allergens,
     additives: additives ?? this.additives,
     additiveItems: additiveItems ?? this.additiveItems,
+    foodTags: foodTags ?? this.foodTags,
     ingredients: ingredients ?? this.ingredients,
     nutrients: nutrients ?? this.nutrients,
     nutrientLevels: nutrientLevels ?? this.nutrientLevels,
     impacts: impacts ?? this.impacts,
-    swaps: swaps ?? this.swaps,
+    swaps: swaps ?? (foodSwap != null ? foodSwap.alternatives.map((alternative) => ProductSwap.fromMap(alternative.toMap())).toList() : this.swaps),
+    foodSwap:
+        foodSwap ??
+        (swaps != null
+            ? _foodSwapFromProductSwaps(
+                swaps,
+                id: scanId ?? this.scanId ?? barcode ?? this.barcode ?? productName ?? this.productName,
+                sourceId: barcode ?? this.barcode ?? scanId ?? this.scanId ?? productName ?? this.productName,
+                sourceName: productName ?? this.productName,
+                sourceImageUrl: imageUrl ?? this.imageUrl,
+              )
+            : this.foodSwap),
     cycleInsight: cycleInsight ?? this.cycleInsight,
     barcode: barcode ?? this.barcode,
     source: source ?? this.source,
@@ -493,8 +590,10 @@ class ScanResult extends Equatable {
     scanId: scanId ?? this.scanId,
     scanConfidence: scanConfidence ?? this.scanConfidence,
     scanVerdict: scanVerdict ?? this.scanVerdict,
+    consumed: clearConsumed ? null : (consumed ?? this.consumed),
     chatMessageId: chatMessageId ?? this.chatMessageId,
     servingSize: servingSize ?? this.servingSize,
+    nutritionBasis: nutritionBasis ?? this.nutritionBasis,
     createdAt: createdAt ?? this.createdAt,
     rawData: rawData ?? this.rawData,
     nutritionEstimated: nutritionEstimated ?? this.nutritionEstimated,
@@ -523,11 +622,12 @@ class ScanResult extends Equatable {
     'allergens': allergens,
     'additives': additives,
     'additiveItems': additiveItems,
+    'foodTags': foodTags,
     'ingredients': ingredients.map((e) => e.toMap()).toList(),
     'nutrients': nutrients?.toMap(),
     'nutrientLevels': nutrientLevels?.toMap(),
     'impacts': impacts.map((e) => e.toMap()).toList(),
-    'swaps': swaps.map((e) => e.toMap()).toList(),
+    if (effectiveFoodSwap != null) 'foodSwap': effectiveFoodSwap!.toMap(),
     'cycleInsight': cycleInsight?.toMap(),
     'barcode': barcode,
     'source': source,
@@ -537,8 +637,10 @@ class ScanResult extends Equatable {
     'scanId': scanId,
     if (scanConfidence != null) 'scanConfidence': scanConfidence,
     if (scanVerdict != null) 'scanVerdict': scanVerdict,
+    if (consumed != null) 'consumed': consumed,
     'chatMessageId': chatMessageId,
     'servingSize': servingSize,
+    'nutritionBasis': nutritionBasis,
     'createdAt': DateTimeUtils.toTimestamp(createdAt),
     'rawData': rawData,
     'nutritionEstimated': nutritionEstimated,
@@ -577,6 +679,8 @@ class ScanResult extends Equatable {
     'nutriscore': nutriscore,
     'novaGroup': novaGroup,
     'flaggedIngredients': flaggedIngredients,
+    if (foodTags.isNotEmpty) 'foodTags': foodTags,
+    if (consumed != null) 'consumed': consumed,
   };
 
   @override
@@ -584,6 +688,8 @@ class ScanResult extends Equatable {
     productName,
     brand,
     category,
+    swaps,
+    foodSwap,
     score,
     impactType,
     impact,
@@ -595,8 +701,11 @@ class ScanResult extends Equatable {
     scanId,
     scanConfidence,
     scanVerdict,
+    consumed,
+    foodTags,
     chatMessageId,
     servingSize,
+    nutritionBasis,
     createdAt,
     rawData,
     nutritionEstimated,
@@ -608,5 +717,19 @@ class ScanResult extends Equatable {
     final stored = ModelUtils.parseList<String>(map['additiveItems']);
     if (stored.isNotEmpty) return stored;
     return AdditiveConcernDb.parseItems(ModelUtils.parseString(map['additives']));
+  }
+
+  static String? _parseNutritionBasis(dynamic value) {
+    final basis = value?.toString().toLowerCase();
+    return const {'per_serving', 'per_100g', 'per_100ml', 'pictured_portion'}.contains(basis) ? basis : null;
+  }
+
+  static FoodSwap? _foodSwapFromProductSwaps(List<ProductSwap> swaps, {required String id, required String sourceId, required String sourceName, String? sourceImageUrl}) {
+    if (swaps.isEmpty) return null;
+    return FoodSwap(
+      id: id,
+      source: SwapSource(foodId: sourceId, name: sourceName, imageUrl: sourceImageUrl),
+      alternatives: swaps.map((swap) => swap.toAlternative()).toList(),
+    );
   }
 }

@@ -117,9 +117,8 @@ function buildOpenAIMessages(body: ProxyRequest): { messages: OpenAIMessage[]; i
   const messages: OpenAIMessage[] = [];
 
   // P3-4: middle-out (head + tail preserved) and REPORTED — it used to
-  // silently slice(0, cap), dropping the tail that carries SCHEMA TYPE
-  // RULES / the insights pattern evidence, yielding malformed JSON with no
-  // error anywhere.
+  // silently slice(0, cap), dropping schema/evidence rules near the end of
+  // long instructions and yielding malformed JSON with no error anywhere.
   const rawSystem = body.systemInstruction ?? '';
   const systemCut = truncateMiddle(rawSystem, MAX_SYSTEM_CHARS);
   const system = systemCut.text;
@@ -140,8 +139,8 @@ function buildOpenAIMessages(body: ProxyRequest): { messages: OpenAIMessage[]; i
     else messages.push({ role: 'assistant', content: cut.text });
   }
 
-  // One-shot prompts (insights / product analysis) legitimately exceed the
-  // per-turn user-text cap, so they get their own (larger) ceiling.
+  // One-shot analysis prompts may exceed the per-turn user-text cap, so they
+  // get their own (larger) ceiling.
   const rawPrompt = body.userText ?? body.prompt ?? '';
   const promptCap = body.userText ? MAX_TEXT_CHARS : MAX_PROMPT_CHARS;
   const promptCut = truncateMiddle(rawPrompt, promptCap);

@@ -89,5 +89,28 @@ void main() {
       expect(msg.swapData?.map((s) => s.title), ['Oat milk']);
       expect(msg.imageHashes, ['abcdef0123456789']);
     });
+
+    test('barcode scan preview keeps catalog and captured image URLs distinct', () {
+      final barcodeScan = scan().copyWith(
+        barcode: '123456789',
+        source: 'barcode',
+        imageUrl: 'https://example.com/product.jpg',
+        userImageUrl: 'https://example.com/barcode-photo.jpg',
+      );
+      final saved = fatMessage().copyWith(scanData: barcodeScan).toMap();
+      final restored = ChatMessage.fromMap(saved).scanData!;
+
+      expect(restored.imageUrl, 'https://example.com/product.jpg');
+      expect(restored.userImageUrl, 'https://example.com/barcode-photo.jpg');
+      expect(restored.displayImageUrl, 'https://example.com/product.jpg');
+    });
+
+    test('copyWith can clear a raw attachment image from a barcode result', () {
+      final message = fatMessage().copyWith(imageUrls: const ['https://example.com/barcode-photo.jpg']);
+      final cleared = message.copyWith(imageUrls: const [], clearImageUrl: true);
+
+      expect(cleared.imageUrl, isNull);
+      expect(cleared.imageUrls, isEmpty);
+    });
   });
 }

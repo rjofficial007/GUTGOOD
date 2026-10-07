@@ -226,8 +226,7 @@ class JournalTimelineEntry extends StatelessWidget {
         type = AppStrings.bodySignal;
         subtitle = [
           if (symptom.notes != null && symptom.notes!.isNotEmpty) symptom.notes!,
-          if (symptom.energyLevel != null) AppStrings.energyCount(symptom.energyLevel!),
-          if ((symptom.notes == null || symptom.notes!.isEmpty) && symptom.energyLevel == null) '${AppStrings.severity}: ${symptom.severity}/10',
+          if (symptom.notes == null || symptom.notes!.isEmpty) '${AppStrings.severity}: ${symptom.severity}/10',
         ].join(' • ');
         typeColor = AppPalette.pink;
         trailing = null; // Removed chevron until detail screen is implemented

@@ -147,7 +147,8 @@ void main() {
       expect(find.text('GUTGOOD SCORE'), findsOneWidget);
       expect(find.textContaining('6 pts'), findsOneWidget);
       expect(find.textContaining('Fast food dinners'), findsOneWidget);
-      expect(find.textContaining('94% match'), findsOneWidget);
+      expect(find.textContaining('94% match'), findsNothing);
+      expect(find.textContaining('Repeated observation'), findsWidgets);
       // Card titles keep their casing; only tags are uppercased.
       expect(find.text('Late Iced Coffee'), findsOneWidget);
       expect(find.textContaining('TO WATCH'), findsOneWidget);
@@ -215,9 +216,10 @@ void main() {
     testWidgets('renders the tick fan with real episode counts', (tester) async {
       await pumpBento(tester, const InsightBentoPattern(pattern: kPattern));
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('High · 94%'), findsOneWidget);
-      expect(find.text('4 / 5'), findsOneWidget);
-      expect(find.textContaining('BIOLOGICAL ROOT'), findsOneWidget);
+      expect(find.textContaining('High · 94%'), findsNothing);
+      expect(find.text('MATCHED LOGS'), findsOneWidget);
+      expect(find.text('MEALS LOGGED'), findsOneWidget);
+      expect(find.textContaining('WHAT WE OBSERVED'), findsOneWidget);
       expect(find.text('Chicken Bowl'), findsOneWidget);
       expect(find.text('Apple & Nuts'), findsOneWidget);
     });
@@ -234,9 +236,10 @@ void main() {
       );
       await pumpBento(tester, const InsightBentoSynergy(summary: summary, patterns: [kPattern, kPattern]));
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('2× RISK'), findsOneWidget);
+      expect(find.textContaining('Logged associations'), findsOneWidget);
+      expect(find.textContaining('2× RISK'), findsNothing);
       expect(find.textContaining('Driver 1'), findsOneWidget);
-      expect(find.textContaining('RESCUE PROTOCOL'), findsOneWidget);
+      expect(find.text('Continue tracking'), findsOneWidget);
     });
   });
 

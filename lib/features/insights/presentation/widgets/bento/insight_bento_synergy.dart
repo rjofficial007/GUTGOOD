@@ -21,18 +21,19 @@ class InsightBentoSynergy extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 24.w),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
-          // The multiplier hero at hero scale: coral wash, ⚠️ tile, filled
-          // "N× RISK" pill, headline + description, spike chart, episode count.
+          // Neutral association summary; logged co-occurrence is not a risk score.
           PatternHeroCard(
             accent: _coral,
             deep: _coralDeep,
             tone: _coralTone,
-            emoji: '⚠️',
-            title: AppStrings.bentoMultiplier,
+            emoji: '📝',
+            title: 'Observed patterns',
             sub: summary.type.isNotEmpty ? summary.type : null,
-            pill: AppStrings.bentoRiskPill(drivers.length),
-            headline: summary.title,
-            description: summary.description,
+            pill: 'Logged associations',
+            headline: drivers.isEmpty ? 'Keep logging to build a baseline' : '${drivers.first.trigger} → ${drivers.first.reaction}',
+            description: drivers.isEmpty
+                ? 'No repeated logged pattern is available yet.'
+                : '${drivers.first.description} This is an association in your logs, not proof of cause.',
             chart: SizedBox(
               height: 44.w,
               width: double.infinity,
@@ -56,7 +57,7 @@ class InsightBentoSynergy extends StatelessWidget {
                     backgroundColor: patternTone(drivers[i].type),
                     icon: patternIcon(drivers[i].type),
                     tag: patternName(drivers[i].type),
-                    meta: drivers[i].evidenceRatio > 0 ? '${(drivers[i].evidenceRatio.clamp(0.0, 1.0) * 100).round()}%' : null,
+                    meta: '${drivers[i].frequency} matched log${drivers[i].frequency == 1 ? '' : 's'}',
                     title: drivers[i].trigger,
                     body: drivers[i].description,
                     chartPainter: patternSeries(drivers[i]).length >= 2 ? WorkingBarsPainter(color: patternAccent(drivers[i].type), values: patternSeries(drivers[i])) : null,
@@ -64,10 +65,17 @@ class InsightBentoSynergy extends StatelessWidget {
                     onTap: () => context.push(AppRoutes.patternDetail, extra: drivers[i]),
                   ),
                 ),
-              if ((summary.observation ?? '').isNotEmpty)
-                BentoTile(
+              if (drivers.isNotEmpty)
+                const BentoTile(
                   spanTwo: true,
-                  InsightHighlightCard(accentColor: _teal, backgroundColor: _tealTone, icon: AppIcons.zap, tag: AppStrings.bentoRescueProtocol, title: summary.observation!, body: summary.strength),
+                  InsightHighlightCard(
+                    accentColor: _teal,
+                    backgroundColor: _tealTone,
+                    icon: AppIcons.zap,
+                    tag: 'NEXT STEP',
+                    title: 'Continue tracking',
+                    body: 'Log meals you actually ate and how you feel afterward. Missing follow-ups are unknown, not symptom-free.',
+                  ),
                 ),
             ],
           ),

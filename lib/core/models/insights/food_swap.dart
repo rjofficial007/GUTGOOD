@@ -34,26 +34,28 @@ class SwapBenefit extends Equatable {
 }
 
 class SwapNutrition extends Equatable {
-  const SwapNutrition({this.calories, this.protein, this.totalFat, this.fiber});
+  const SwapNutrition({this.calories, this.protein, this.totalFat, this.fiber, this.basis});
 
   factory SwapNutrition.fromMap(Map<String, dynamic> map) => SwapNutrition(
     calories: map['calories'] is num ? (map['calories'] as num).toInt() : int.tryParse(map['calories']?.toString() ?? ''),
     protein: map['protein']?.toString(),
     totalFat: (map['totalFat'] ?? map['total_fat'])?.toString(),
     fiber: map['fiber']?.toString(),
+    basis: map['basis']?.toString(),
   );
 
   final int? calories;
   final String? protein;
   final String? totalFat;
   final String? fiber;
+  final String? basis;
 
   bool get hasData => calories != null || protein?.trim().isNotEmpty == true || totalFat?.trim().isNotEmpty == true || fiber?.trim().isNotEmpty == true;
 
-  Map<String, dynamic> toMap() => {'calories': calories, 'protein': protein, 'totalFat': totalFat, 'fiber': fiber};
+  Map<String, dynamic> toMap() => {'calories': calories, 'protein': protein, 'totalFat': totalFat, 'fiber': fiber, 'basis': basis};
 
   @override
-  List<Object?> get props => [calories, protein, totalFat, fiber];
+  List<Object?> get props => [calories, protein, totalFat, fiber, basis];
 }
 
 class SwapAlternative extends Equatable {
@@ -61,7 +63,13 @@ class SwapAlternative extends Equatable {
     required this.foodId,
     required this.name,
     this.imageUrl,
+    this.imageKeyword,
     this.reason,
+    this.tag,
+    this.badge,
+    this.isBlackBadge = false,
+    this.barcode,
+    this.nutriscore,
     this.impactLevel = 'unknown',
     this.category = '',
     this.benefitTags = const [],
@@ -71,12 +79,18 @@ class SwapAlternative extends Equatable {
   });
 
   factory SwapAlternative.fromMap(Map<String, dynamic> map) => SwapAlternative(
-    foodId: (map['foodId'] ?? map['id'] ?? '').toString(),
-    name: (map['name'] ?? map['food'] ?? '').toString(),
+    foodId: (map['foodId'] ?? map['id'] ?? map['barcode'] ?? map['name'] ?? map['title'] ?? '').toString(),
+    name: (map['name'] ?? map['food'] ?? map['title'] ?? '').toString(),
     imageUrl: map['imageUrl']?.toString(),
-    reason: map['reason']?.toString(),
+    imageKeyword: map['imageKeyword']?.toString(),
+    reason: (map['reason'] ?? map['subtitle'])?.toString(),
+    tag: map['tag']?.toString(),
+    badge: map['badge']?.toString(),
+    isBlackBadge: ModelUtils.parseBool(map['isBlackBadge']),
+    barcode: map['barcode']?.toString(),
+    nutriscore: map['nutriscore']?.toString(),
     impactLevel: map['impactLevel']?.toString() ?? 'unknown',
-    category: map['category']?.toString() ?? '',
+    category: (map['category'] ?? map['badge'])?.toString() ?? '',
     benefitTags: ModelUtils.parseList<String>(map['benefitTags'] ?? map['benefits'] ?? []),
     benefits: ModelUtils.parseModelList<SwapBenefit>(map['structuredBenefits'] ?? map['whyItWorks'], SwapBenefit.fromMap),
     whyBetterOption: map['whyBetterOption']?.toString() ?? map['whyBetter']?.toString(),
@@ -86,7 +100,13 @@ class SwapAlternative extends Equatable {
   final String foodId;
   final String name;
   final String? imageUrl;
+  final String? imageKeyword;
   final String? reason;
+  final String? tag;
+  final String? badge;
+  final bool isBlackBadge;
+  final String? barcode;
+  final String? nutriscore;
   final String impactLevel;
   final String category;
   final List<String> benefitTags;
@@ -98,7 +118,13 @@ class SwapAlternative extends Equatable {
     'foodId': foodId,
     'name': name,
     'imageUrl': imageUrl,
+    'imageKeyword': imageKeyword,
     'reason': reason,
+    'tag': tag,
+    'badge': badge,
+    'isBlackBadge': isBlackBadge,
+    'barcode': barcode,
+    'nutriscore': nutriscore,
     'impactLevel': impactLevel,
     'category': category,
     'benefitTags': benefitTags,
@@ -108,7 +134,7 @@ class SwapAlternative extends Equatable {
   };
 
   @override
-  List<Object?> get props => [foodId, name, imageUrl, reason, impactLevel, category, benefitTags, benefits, whyBetterOption, nutrition];
+  List<Object?> get props => [foodId, name, imageUrl, imageKeyword, reason, tag, badge, isBlackBadge, barcode, nutriscore, impactLevel, category, benefitTags, benefits, whyBetterOption, nutrition];
 }
 
 class FoodSwap extends Equatable {

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/models/scans/scan_result_details.dart';
+import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
@@ -74,14 +76,9 @@ class SwapItContainer extends StatelessWidget {
 
                   return Padding(
                     padding: EdgeInsets.only(right: idx == swaps.length - 1 ? 0 : AppSizes.p12),
-                    child: SwapCard(
-                      title: swap.title,
-                      subtitle: swap.subtitle,
-                      imageKeyword: swap.imageKeyword,
-                      imageUrl: swap.imageUrl,
-                      tag: idx == 0 ? AppStrings.primeChoice : AppStrings.validSwap,
-                      badge: idx == 0 ? AppStrings.topPick : null,
-                      width: 140,
+                    child: InkWell(
+                      onTap: () => context.push(AppRoutes.swapDetail, extra: swap),
+                      child: SwapCard(title: swap.title, subtitle: swap.subtitle, imageKeyword: swap.imageKeyword, imageUrl: swap.imageUrl, tag: swap.tag, badge: swap.badge, width: 140),
                     ),
                   );
                 }).toList(),

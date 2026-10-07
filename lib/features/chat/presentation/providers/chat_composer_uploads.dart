@@ -89,8 +89,22 @@ extension ChatComposerUploads on ChatComposerNotifier {
       if (aiLocalId != null && firstUrl != null) {
         final url = firstUrl;
         final aiMsg = _findMessage(aiLocalId);
-        if (aiMsg != null && aiMsg.imageUrl == null) {
-          _historyNotifier.replaceMessage(aiLocalId, aiMsg.copyWith(imageUrl: url, imageUrls: [url], imageHashes: firstHash == null ? null : [firstHash]));
+        if (aiMsg != null) {
+          final updatedScan = aiMsg.scanData?.copyWith(userImageUrl: url);
+          final displayImageUrl = updatedScan == null ? url : (updatedScan.isBarcodeScan ? updatedScan.displayImageUrl : updatedScan.displayImageUrl ?? url);
+          final updatedAiMessage = aiMsg.copyWith(
+            scanData: updatedScan,
+            imageUrl: displayImageUrl,
+            imageUrls: displayImageUrl != null ? [displayImageUrl] : (updatedScan?.isBarcodeScan == true ? const [] : null),
+            imageHashes: firstHash == null ? null : [firstHash],
+            clearImageUrl: displayImageUrl == null && updatedScan?.isBarcodeScan == true,
+          );
+          final savedAiMessage = await _repository.saveMessage(updatedAiMessage);
+          _historyNotifier.replaceMessage(aiLocalId, savedAiMessage.copyWith(clearLocalImages: true));
+          final scanId = updatedScan?.scanId;
+          if (scanId?.trim().isNotEmpty == true) {
+            await _historyNotifier.patchScanUserImageUrl(scanId: scanId!, imageUrl: url);
+          }
         }
       }
     } catch (e) {

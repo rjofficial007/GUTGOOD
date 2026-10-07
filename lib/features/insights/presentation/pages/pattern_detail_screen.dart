@@ -30,11 +30,6 @@ class PatternDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.insightTheme;
-    final evidenceRatio = (pattern.evidenceRatio * 100).round();
-    final frequency = pattern.frequency;
-    final symptomLogs = pattern.positiveCount > 0 ? pattern.positiveCount : (pattern.occurrences.isNotEmpty ? pattern.occurrences.length : pattern.frequency);
-    final normalLogs = pattern.negativeCount;
-
     return Scaffold(
       backgroundColor: theme.scaffold,
       body: CustomScrollView(
@@ -57,7 +52,7 @@ class PatternDetailScreen extends StatelessWidget {
                 Gap.h10,
 
                 // 3. THE EVIDENCE DASHBOARD
-                _buildTheEvidenceCard(context, evidenceRatio: evidenceRatio, frequency: frequency, symptomLogs: symptomLogs, normalLogs: normalLogs),
+                _buildTheEvidenceCard(context),
                 Gap.h10,
 
                 // 4. INVOLVED FOODS SECTION

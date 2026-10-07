@@ -43,17 +43,17 @@ void main() {
   });
 
   group('DomainEventPersister', () {
-    test('label/menu scan is still consumed and persisted as typed records', () async {
+    test('label/menu scan is retained without becoming a consumed meal', () async {
       final result = AiAnalysisResult(text: 'label', intent: UserIntent.ingredientAnalysis, scan: _menuScan(), symptoms: [_symptom()]);
 
       final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
 
       expect(outcome.chatOnlyReason, isNull);
       expect(outcome.persistedScan, isTrue);
-      expect(outcome.persistedMeal, isTrue);
+      expect(outcome.persistedMeal, isFalse);
       expect(outcome.persistedSymptoms, isTrue);
-      expect(outcome.result.meal, isNotNull);
-      expect(outcome.result.symptoms.single.journalEntryId, 'meal-id');
+      expect(outcome.result.meal, isNull);
+      expect(outcome.result.symptoms.single.journalEntryId, isNull);
       verify(
         () => history.trySaveToScanHistory(
           any(),
@@ -61,7 +61,7 @@ void main() {
           scanId: 'msg1_scan',
         ),
       ).called(1);
-      verify(() => history.logMeal(any(), docId: 'msg1_meal')).called(1);
+      verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
       verify(() => history.logSymptom(any(), docId: 'msg1_symptom_0')).called(1);
     });
 
@@ -80,14 +80,14 @@ void main() {
       verifyNever(() => history.logSymptom(any(), docId: any(named: 'docId')));
     });
 
-    test('low-confidence scan still creates scan and consumed meal records', () async {
+    test('low-confidence scan still creates a scan-history record only', () async {
       final result = AiAnalysisResult(text: 'x', scan: _scan(), confidence: 0.2);
 
       final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
 
       expect(outcome.chatOnlyReason, isNull);
       expect(outcome.persistedScan, isTrue);
-      expect(outcome.persistedMeal, isTrue);
+      expect(outcome.persistedMeal, isFalse);
       expect(outcome.validationReasons.join(' '), contains('confidence'));
       final persistedScan = verify(
         () => history.trySaveToScanHistory(
@@ -97,19 +97,17 @@ void main() {
         ),
       ).captured.single as ScanResult;
       expect(persistedScan.scanConfidence, 0.2);
-      final meal = verify(() => history.logMeal(captureAny(), docId: 'msg1_meal')).captured.single as MealLog;
-      expect(meal.scanConfidence, 0.2);
-      expect(meal.scanCategory, 'food');
+      verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
     });
 
-    test('non-food verdict scan still creates scan and consumed meal records', () async {
+    test('non-food verdict scan remains in scan history without a meal', () async {
       final result = AiAnalysisResult(text: 'x', scan: _scan(), verdict: Verdict.nonFood);
 
       final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
 
       expect(outcome.chatOnlyReason, isNull);
       expect(outcome.persistedScan, isTrue);
-      expect(outcome.persistedMeal, isTrue);
+      expect(outcome.persistedMeal, isFalse);
       expect(outcome.validationReasons.join(' '), contains('non_food'));
       final persistedScan = verify(
         () => history.trySaveToScanHistory(
@@ -119,11 +117,10 @@ void main() {
         ),
       ).captured.single as ScanResult;
       expect(persistedScan.scanVerdict, Verdict.nonFood);
-      final meal = verify(() => history.logMeal(captureAny(), docId: 'msg1_meal')).captured.single as MealLog;
-      expect(meal.scanVerdict, Verdict.nonFood);
+      verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
     });
 
-    test('uncertain scans also create a meal projection with evidence metadata', () async {
+    test('uncertain scans remain scan history until the user confirms them', () async {
       final outcome = await persister.persist(
         AiAnalysisResult(text: 'x', scan: _scan(), verdict: Verdict.uncertain),
         chatMessageId: 'uncertain-msg',
@@ -131,18 +128,18 @@ void main() {
       );
 
       expect(outcome.persistedScan, isTrue);
-      expect(outcome.persistedMeal, isTrue);
-      final meal = verify(() => history.logMeal(captureAny(), docId: 'uncertain-msg_meal')).captured.single as MealLog;
-      expect(meal.scanVerdict, Verdict.uncertain);
+      expect(outcome.persistedMeal, isFalse);
+      verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
     });
 
-    test('every scan creates a consumed meal projection', () async {
+    test('model-supplied meal blocks do not count before scan confirmation', () async {
       final result = AiAnalysisResult(text: 'x', intent: UserIntent.healthAssessment, scan: _scan(), meal: _meal(), confidence: 0.88, verdict: Verdict.food);
 
       final outcome = await persister.persist(result, chatMessageId: 'msg1', persistedTagBlocks: <String>{});
 
       expect(outcome.persistedScan, isTrue);
-      expect(outcome.persistedMeal, isTrue);
+      expect(outcome.persistedMeal, isFalse);
+      expect(outcome.result.meal, isNull);
       final persistedScan = verify(
         () => history.trySaveToScanHistory(
           captureAny(),
@@ -152,14 +149,26 @@ void main() {
       ).captured.single as ScanResult;
       expect(persistedScan.scanConfidence, 0.88);
       expect(persistedScan.scanVerdict, Verdict.food);
-      final meal = verify(() => history.logMeal(captureAny(), docId: 'msg1_meal')).captured.single as MealLog;
-      expect(meal.scanId, 'msg1_scan');
-      expect(meal.scanCategory, 'food');
-      expect(meal.scanConfidence, 0.88);
-      expect(meal.scanVerdict, Verdict.food);
+      verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
     });
 
-    test('failed scan writes are reported while the consumed meal still persists', () async {
+    test('confirmed scan creates one meal projection', () async {
+      final outcome = await persister.persist(
+        AiAnalysisResult(text: 'x', scan: _scan().copyWith(consumed: true, foodTags: const ['dairy']), confidence: 0.88, verdict: Verdict.food),
+        chatMessageId: 'confirmed-msg',
+        persistedTagBlocks: <String>{},
+      );
+
+      expect(outcome.persistedScan, isTrue);
+      expect(outcome.persistedMeal, isTrue);
+      final meal = verify(() => history.logMeal(captureAny(), docId: 'confirmed-msg_meal')).captured.single as MealLog;
+      expect(meal.scanId, 'confirmed-msg_scan');
+      expect(meal.scanCategory, 'food');
+      expect(meal.consumptionConfirmed, isTrue);
+      expect(meal.foodTags, ['dairy']);
+    });
+
+    test('failed scan writes are reported without creating a meal', () async {
       when(
         () => history.trySaveToScanHistory(
           any(),
@@ -175,7 +184,7 @@ void main() {
       );
 
       expect(outcome.persistedScan, isFalse);
-      expect(outcome.persistedMeal, isTrue);
+      expect(outcome.persistedMeal, isFalse);
       expect(outcome.persistenceFailures, ['scan']);
       verify(() => history.trySaveToScanHistory(any(), userImageUrl: any(named: 'userImageUrl'), scanId: 'failed-scan_scan')).called(1);
     });
@@ -236,7 +245,7 @@ void main() {
       expect(outcome.result.symptoms.first.firestoreId, 'sym-id');
     });
 
-    test('unattached symptom links to the nearest earlier meal within four hours', () async {
+    test('unconfirmed timestamps do not auto-link a symptom to a nearby meal', () async {
       final mealTime = DateTime.now().subtract(const Duration(hours: 1));
       when(
         () => history.getRecentMealLogs(
@@ -252,10 +261,34 @@ void main() {
         persistedTagBlocks: <String>{},
       );
 
-      expect(outcome.result.symptoms.single.journalEntryId, 'nearest-meal');
+      expect(outcome.result.symptoms.single.journalEntryId, isNull);
       final symptom = verify(() => history.logSymptom(captureAny(), docId: 'msg1_symptom_0')).captured.single as SymptomLog;
-      expect(symptom.journalEntryId, 'nearest-meal');
-      expect(symptom.lastMealFirestoreId, 'nearest-meal');
+      expect(symptom.journalEntryId, isNull);
+      expect(symptom.lastMealFirestoreId, isNull);
+      verifyNever(() => history.getRecentMealLogs(limit: any(named: 'limit'), since: any(named: 'since'), before: any(named: 'before')));
+    });
+
+    test('user-confirmed timestamps can link to the nearest earlier meal', () async {
+      final symptomTime = DateTime.now();
+      final mealTime = symptomTime.subtract(const Duration(hours: 1));
+      when(
+        () => history.getRecentMealLogs(
+          limit: any(named: 'limit'),
+          since: any(named: 'since'),
+          before: any(named: 'before'),
+        ),
+      ).thenAnswer((_) async => [MealLog(firestoreId: 'nearest-meal', items: const ['Oats'], createdAt: mealTime, occurredAt: mealTime, occurredAtProvenance: OccurrenceProvenance.user)]);
+
+      final outcome = await persister.persist(
+        AiAnalysisResult(
+          text: 'x',
+          symptoms: [SymptomLog(symptom: 'Bloating', createdAt: symptomTime, occurredAt: symptomTime, occurredAtProvenance: OccurrenceProvenance.user)],
+        ),
+        chatMessageId: 'msg1',
+        persistedTagBlocks: <String>{},
+      );
+
+      expect(outcome.result.symptoms.single.journalEntryId, 'nearest-meal');
     });
 
     test('symptom remains standalone when no earlier meal is within four hours', () async {
@@ -297,7 +330,7 @@ void main() {
           scanId: any(named: 'scanId'),
         ),
       ).called(1);
-      verify(() => history.logMeal(any(), docId: 'msg1_meal')).called(1);
+      verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
     });
 
     test('isLabelOrMenuTurn unifies source, category, and intent signals', () {

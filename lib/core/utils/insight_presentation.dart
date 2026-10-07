@@ -1,8 +1,7 @@
 /// P2-10: thin presentation mapping for insights, owned by Dart.
 ///
-/// The LLM emits data only (no emoji/icon/color keys — see `InsightsPrompt`
-/// rule 5). These resolvers fill visuals deterministically so stored docs and
-/// future readers never depend on model-invented presentation.
+/// These resolvers fill visuals deterministically so current and legacy stored
+/// documents do not depend on model-invented presentation.
 class InsightPresentation {
   InsightPresentation._();
 

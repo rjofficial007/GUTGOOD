@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/ai/classification/ai_classifier_service.dart';
 import 'package:gutgood/core/ai/client/ai_client.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
@@ -38,7 +39,7 @@ class MockStreakService extends Mock implements StreakService {}
 
 /// A realistic persisted barcode scan: label facts present, model score
 /// deliberately bogus (1) so a pass-through bug can't hide behind it.
-ScanResult _cachedScan({DateTime? createdAt}) => ScanResult(
+ScanResult _cachedScan({DateTime? createdAt, int? promptVersion = AiVersions.visionPromptVersion}) => ScanResult(
   productName: 'Cache Yogurt',
   brand: 'Cache Brand',
   category: 'food',
@@ -54,6 +55,7 @@ ScanResult _cachedScan({DateTime? createdAt}) => ScanResult(
   ingredients: const [Ingredient(name: 'Milk powder', impact: '', colorName: 'low')],
   flaggedIngredients: const ['Whey'],
   createdAt: createdAt ?? DateTime.now(),
+  promptVersion: promptVersion,
 );
 
 void main() {
@@ -105,6 +107,14 @@ void main() {
   });
 
   group('getCachedBarcodeScan (P0-3)', () {
+    test('older and unversioned prompts require fresh analysis', () async {
+      for (final version in [null, AiVersions.visionPromptVersion - 1]) {
+        when(() => history.getLatestScanByBarcode(any())).thenAnswer((_) async => _cachedScan(promptVersion: version));
+        expect(await repo.getCachedBarcodeScan(barcode: '111222333', sensitivities: const []), isNull);
+      }
+      verifyNever(() => chat.saveMessage(any()));
+    });
+
     test('miss (never scanned) returns null and records nothing', () async {
       when(() => history.getLatestScanByBarcode(any())).thenAnswer((_) async => null);
 
@@ -153,7 +163,7 @@ void main() {
       expect(result.impact, expected.explanation, reason: 'The engine recomposes the explanation fresh.');
     });
 
-    test('fresh hit creates a new scan event and consumed meal projection', () async {
+    test('fresh hit creates a new scan event without a meal before confirmation', () async {
       final cached = _cachedScan().copyWith(scanId: 'original-scan', chatMessageId: 'original-turn');
       when(() => history.getLatestScanByBarcode(any())).thenAnswer((_) async => cached);
 
@@ -169,10 +179,9 @@ void main() {
       final message = verify(() => chat.saveMessage(captureAny())).captured.single as ChatMessage;
       final restored = ChatMessage.fromMap(message.toMap());
       expect(restored.scanData?.scanId, scanId);
-      expect(message.mealLogs, hasLength(1));
-      expect(message.mealLogs.single.scanId, scanId);
-      expect(message.mealLogs.single.journalEntryId, 'cached-meal-id');
-      expect(message.mealLogs.single.createdAt, cachedResult.createdAt);
+      expect(message.mealLogs, isEmpty);
+      expect(cachedResult.consumed, isNull);
+      expect(message.imageUrl, cachedResult.imageUrl);
       verify(
         () => history.trySaveToScanHistory(
           any(),
@@ -180,7 +189,7 @@ void main() {
           scanId: scanId,
         ),
       ).called(1);
-      verify(() => history.logMeal(any(), docId: '${scanId}_meal')).called(1);
+      verifyNever(() => history.logMeal(any(), docId: any(named: 'docId')));
       verifyNever(() => history.logSymptom(any(), docId: any(named: 'docId')));
     });
 

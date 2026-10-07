@@ -22,7 +22,6 @@ class ScanWatchSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.bentoTheme;
-    final serving = scanData.servingSize ?? '1 serving';
 
     final negativeItems = <_ScanFactor>[];
 
@@ -31,14 +30,7 @@ class ScanWatchSection extends StatelessWidget {
     if (n != null) {
       if ((n.sugars ?? 0) > 10) {
         negativeItems.add(
-          _ScanFactor(
-            icon: AppIcons.candy,
-            iconColor: t.negative,
-            title: 'High Sugar',
-            subtitle: (n.sugars ?? 0) > 20 ? 'Too much sugar added' : 'High in sugar',
-            valueText: '${(n.sugars ?? 0).toInt()}g',
-            badgeColor: t.negative,
-          ),
+          _ScanFactor(icon: AppIcons.candy, iconColor: t.negative, title: 'Sugar', subtitle: 'Total sugars in this basis', valueText: '${(n.sugars ?? 0).toInt()}g', badgeColor: t.negative),
         );
       }
       if ((n.salt ?? 0) > 0.5) {
@@ -47,7 +39,7 @@ class ScanWatchSection extends StatelessWidget {
             icon: AppIcons.scale,
             iconColor: t.negative,
             title: 'Sodium',
-            subtitle: (n.salt ?? 0) > 1.5 ? 'High sodium content' : 'Moderate sodium',
+            subtitle: 'Salt-derived sodium estimate in this basis',
             valueText: '${((n.salt ?? 0) * 400).toInt()}mg',
             badgeColor: t.negative,
           ),
@@ -59,7 +51,7 @@ class ScanWatchSection extends StatelessWidget {
             icon: AppIcons.droplet,
             iconColor: t.orange,
             title: 'Saturated Fat',
-            subtitle: 'Pro-inflammatory fat level',
+            subtitle: 'Saturated fat in this basis',
             valueText: '${(n.saturatedFat ?? 0).toInt()}g',
             badgeColor: t.orange,
           ),
@@ -67,7 +59,7 @@ class ScanWatchSection extends StatelessWidget {
       }
       if ((n.calories ?? 0) > 250) {
         negativeItems.add(
-          _ScanFactor(icon: AppIcons.flame, iconColor: t.orange, title: 'Calories', subtitle: 'High caloric density', valueText: '${(n.calories ?? 0).toInt()} Cal', badgeColor: t.orange),
+          _ScanFactor(icon: AppIcons.flame, iconColor: t.orange, title: 'Calories', subtitle: 'Energy in this basis', valueText: '${(n.calories ?? 0).toInt()} Cal', badgeColor: t.orange),
         );
       }
     }
@@ -92,9 +84,7 @@ class ScanWatchSection extends StatelessWidget {
     for (final ing in scanData.ingredients) {
       if (['red', 'orange', 'yellow'].contains(ing.colorName.toLowerCase())) {
         final color = ing.colorName.toLowerCase() == 'red' ? t.negative : t.orange;
-        negativeItems.add(
-          _ScanFactor(icon: AppIcons.leaf, iconColor: color, title: ing.name, subtitle: ing.impact.isNotEmpty ? ing.impact : 'Potential trigger or moderate ingredient', badgeColor: color),
-        );
+        negativeItems.add(_ScanFactor(icon: AppIcons.leaf, iconColor: color, title: ing.name, subtitle: ing.impact.isNotEmpty ? ing.impact : 'Ingredient to review', badgeColor: color));
       }
     }
 
@@ -135,7 +125,7 @@ class ScanWatchSection extends StatelessWidget {
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.titleSize.sp, fontWeight: FontWeight.w700, color: t.textPrimary),
                   ),
                   Text(
-                    AppStrings.perServing(serving),
+                    scanData.nutritionBasisLabel,
                     style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: BentoMetrics.footSize.sp, fontWeight: FontWeight.w400, color: t.textSecondary),
                   ),
                 ],
@@ -149,4 +139,3 @@ class ScanWatchSection extends StatelessWidget {
     );
   }
 }
-

@@ -5,6 +5,7 @@ import 'package:gutgood/app/router/app_router.dart';
 import 'package:gutgood/app/theme/app_theme.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/di/di_instance.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/offline_banner.dart';
@@ -79,6 +80,7 @@ class _GutGoodShellState extends State<_GutGoodShell> with WidgetsBindingObserve
     if (state == AppLifecycleState.resumed) {
       sl<InternetConnectionChecker>().checkConnection();
       unawaited(sl<HistoryFirestoreService>().refreshGutScore());
+      sl<AppStateService>().notifyChatUpdated();
     }
   }
 

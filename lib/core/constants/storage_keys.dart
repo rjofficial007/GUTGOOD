@@ -11,8 +11,6 @@ class StorageKeys {
   static const String cycleSyncEnabled = 'cycle_sync_enabled';
   static const String cyclePhase = 'cycle_phase';
   static const String aiCommStyle = 'ai_comm_style';
-  static const String gutgoodInsightsCache = 'gutgood_insights_cache';
-  static const String lastInsightRun = 'last_insight_run';
   static const String chatDraft = 'chat_draft';
   static const String pendingMergeAnonUid = 'pending_merge_anon_uid';
   static const String pendingMergeProvider = 'pending_merge_provider';

@@ -19,7 +19,7 @@ ScanResult _scan({String? userImageUrl}) =>
 
 MealLog _meal() => MealLog(items: const ['Pizza'], createdAt: DateTime.now());
 
-SymptomLog _symptom({int? severity, int? energyLevel}) => SymptomLog(symptom: 'Bloating', severity: severity, energyLevel: energyLevel, createdAt: DateTime.now());
+SymptomLog _symptom({int? severity}) => SymptomLog(symptom: 'Bloating', severity: severity, createdAt: DateTime.now());
 
 void main() {
   group('AiResponseValidator', () {
@@ -92,23 +92,22 @@ void main() {
       expect(out.persistRecords, isFalse);
     });
 
-    test('out-of-range severity/energy are voided but the symptom persists', () {
-      final out = AiResponseValidator.validate(_result(symptoms: [_symptom(severity: 99, energyLevel: 0)]));
+    test('out-of-range severity is voided but the symptom persists', () {
+      final out = AiResponseValidator.validate(_result(symptoms: [_symptom(severity: 99)]));
 
       expect(out.persistRecords, isTrue, reason: 'Bad numbers sanitize; they do not block the record.');
       expect(out.result.symptoms, hasLength(1));
       expect(out.result.symptoms.first.severity, isNull);
-      expect(out.result.symptoms.first.energyLevel, isNull);
       expect(out.reasons, isNotEmpty);
     });
 
-    test('in-range numbers (incl. boundaries 1/10) pass through untouched', () {
-      final out = AiResponseValidator.validate(_result(symptoms: [_symptom(severity: 1, energyLevel: 10), _symptom(severity: 7, energyLevel: 4)]));
+    test('in-range severity passes through untouched', () {
+      final out = AiResponseValidator.validate(_result(symptoms: [_symptom(severity: 1), _symptom(severity: 7)]));
 
       expect(out.persistRecords, isTrue);
       expect(out.reasons, isEmpty);
       expect(out.result.symptoms[0].severity, 1);
-      expect(out.result.symptoms[0].energyLevel, 10);
+      expect(out.result.symptoms[1].severity, 7);
     });
   });
 

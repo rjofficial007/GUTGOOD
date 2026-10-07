@@ -6,11 +6,9 @@ import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insi
 
 /// Deterministic derivations backing the Insights cards.
 ///
-/// Philosophy carried over from `BentoData`: the AI's v3 blocks
-/// (`improving`/`watch`/`smartSwap`) win when present; every value they
-/// provide has a deterministic fallback computed here from the fields legacy
-/// docs already carry, so the UI renders identically before/after
-/// regeneration and never blocks on the model.
+/// Legacy v3 blocks (`improving`/`watch`/`smartSwap`) are still honored when
+/// reading older documents. Current rule-based snapshots omit them, so the UI
+/// derives values from stored patterns, score history, and other local fields.
 
 /// One row of the "Recent timeline" inside the watch card.
 class InsightTimelineEntry {
@@ -33,7 +31,7 @@ class InsightWatchData {
     required this.description,
     required this.meta,
     required this.reactionTime,
-    required this.riskLevel,
+    required this.evidenceTier,
     required this.windowLabel,
     required this.timeline,
     this.pattern,
@@ -52,7 +50,7 @@ class InsightWatchData {
 
   /// Empty string = stat unknown (renders "—").
   final String reactionTime;
-  final String riskLevel;
+  final String evidenceTier;
   final String windowLabel;
   final List<InsightTimelineEntry> timeline;
   final BodyPattern? pattern;
@@ -111,7 +109,7 @@ abstract final class InsightFeedDerivations {
     return series[series.length - 2].round();
   }
 
-  /// Streak: the AI's `improving.streakDays`, else derived from how many
+  /// Streak: a legacy `improving.streakDays` value, else derived from how many
   /// consecutive positive score deltas the history ends with (min 1 when a
   /// feed exists at all).
   static int streakDays(AIInsight insight, List<AIInsight> history, {int? seriesDerivedDelta}) {
@@ -247,8 +245,8 @@ abstract final class InsightFeedDerivations {
     return null;
   }
 
-  /// Reaction delay: AI `watch.reactionTime`, else the modal `timeAfter`
-  /// across the pattern's occurrences, else "—".
+  /// Reaction delay: a legacy `watch.reactionTime`, else the modal `timeAfter`
+  /// across the pattern's occurrences, else an explicit learning placeholder.
   static String reactionTime(AIInsight insight, BodyPattern? pattern) {
     final ai = insight.watch?.reactionTime;
     if (ai != null && ai.isNotEmpty && ai.toLowerCase() != 'n/a' && ai != '—') return ai;
@@ -263,24 +261,8 @@ abstract final class InsightFeedDerivations {
     return best.key;
   }
 
-  /// Risk level: AI `watch.riskLevel`, else banded off the evidence ratio.
-  static String riskLevel(AIInsight insight, BodyPattern? pattern) {
-    final ai = insight.watch?.riskLevel;
-    if (ai != null && ai.isNotEmpty) return ai;
-    if (pattern == null) return 'Unknown';
-    final ratio = pattern.evidenceRatio;
-    if (ratio.isFinite && ratio > 0) {
-      if (ratio >= 0.8) return 'High';
-      if (ratio >= 0.5) return 'Medium';
-      return 'Low';
-    }
-    final total = pattern.positiveCount + pattern.negativeCount;
-    if (total == 0) return 'Unknown';
-    final measuredRatio = pattern.positiveCount / total;
-    if (measuredRatio >= 0.8) return 'High';
-    if (measuredRatio >= 0.5) return 'Medium';
-    return 'Low';
-  }
+  /// Descriptive tier only; not a probability or a medical risk estimate.
+  static String evidenceTier(BodyPattern? pattern) => pattern?.evidenceLabel ?? 'Observation';
 
   /// Resolves the "Something to Watch" card; null hides the whole card.
   static InsightWatchData? buildWatchData(AIInsight insight, List<BodyPattern> patterns) {
@@ -297,6 +279,8 @@ abstract final class InsightFeedDerivations {
         ? reaction
         : '$trigger → $reaction';
 
+    final baseDescription = pattern.description.isNotEmpty ? pattern.description : 'This pattern was identified in your logged data.';
+    final description = '$baseDescription This is an observed association, not proof of cause. Missing symptom follow-ups are unknown.';
     final windowDays = insight.watch?.windowDays ?? pattern.timeframeDays;
     final occurrences = [...pattern.occurrences]..sort((a, b) => b.date.compareTo(a.date));
     final timeline = <InsightTimelineEntry>[
@@ -317,10 +301,10 @@ abstract final class InsightFeedDerivations {
 
     return InsightWatchData(
       title: title,
-      description: pattern.description.isNotEmpty ? pattern.description : 'This pattern was identified in your logged data.',
+      description: description,
       meta: windowDays > 0 ? 'Pattern • ${pattern.frequency}× in ${windowDays}d' : 'Pattern • ${pattern.frequency} observations',
       reactionTime: reactionTime(insight, pattern),
-      riskLevel: riskLevel(insight, pattern),
+      evidenceTier: evidenceTier(pattern),
       windowLabel: windowDays <= 0 ? 'Period unavailable' : '${windowDays}d',
       timeline: timeline,
       pattern: pattern,

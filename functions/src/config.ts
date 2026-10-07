@@ -46,7 +46,7 @@ export const MAX_IMAGES_PER_REQUEST = 4;
 export const MAX_IMAGE_BASE64_CHARS = 1_600_000; // ≈1.2 MB decoded
 export const MAX_HISTORY_MESSAGES = 30;
 export const MAX_TEXT_CHARS = 8_000;   // per-turn user text
-export const MAX_PROMPT_CHARS = 32_000; // one-shot prompts (insights, analysis)
+export const MAX_PROMPT_CHARS = 32_000; // one-shot analysis prompts
 // The chat system instruction measures 15.9k chars for a light profile and
 // 16.4k for a power user, so 16k truncated real requests mid-instruction.
 // Keep this above the worst case and log whenever it is hit (see ai_proxy).

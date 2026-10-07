@@ -110,16 +110,26 @@ class BodyPattern extends Equatable {
   final String impactDirection;
   final String impactLevel;
 
-  // Statistical Evidence
-  final double evidenceRatio; // e.g. 0.8 means 80% of meals with this food were symptomatic
-  final int positiveCount; // symptomatic occurrences
-  final int negativeCount; // asymptomatic occurrences
+  // Legacy evidence fields remain for schema compatibility. The passive-log
+  // engine writes an evidenceRatio of 0 and a negativeCount of 0 because an
+  // absent symptom entry is not a confirmed symptom-free follow-up.
+  final double evidenceRatio;
+  final int positiveCount; // matched reported outcomes in the rule engine
+  final int negativeCount; // explicit symptom-free follow-ups, when available
 
   /// Durable-doc schema version (§17), stamped as `v`.
   final int schemaVersion;
 
   // Domain Alias
   String get domain => type;
+
+  /// Plain-language tier for user-facing copy. These are heuristic labels,
+  /// not calibrated probabilities or medical confidence estimates.
+  String get evidenceLabel => switch (confidence.toLowerCase()) {
+    'medium' || 'high' => 'Repeated observation',
+    'low' => 'Early observation',
+    _ => 'Observation',
+  };
 
   // Insight Categories
   static const String typeBloating = 'bloating';

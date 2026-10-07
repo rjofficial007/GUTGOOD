@@ -3,12 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/models/insights/ai_insight.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
 import 'package:gutgood/core/models/insights/gut_experiment.dart';
+import 'package:gutgood/core/models/insights/insight_ai_interpretation.dart';
 import 'package:gutgood/core/models/user/health_alert.dart';
+import 'package:gutgood/core/utils/date_time_utils.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 
 abstract class InsightFirestoreService {
   Future<String?> saveInsights(AIInsight insight, {bool useServerTimestamp = true});
-  Future<AIInsight?> getLatestInsights();
+  Future<bool> saveAiInterpretation({required String uid, required String insightId, required DateTime expectedPeriodTo, required InsightAiInterpretation interpretation});
   Stream<AIInsight?> getLatestInsightsStream();
   Future<List<AIInsight>> getInsightsHistory();
   Future<void> savePatternData(List<BodyPattern> patterns);
@@ -42,7 +44,9 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
     try {
       final doc = _userDoc;
       if (doc == null) return null;
-      final docRef = doc.collection('insights').doc();
+      final collection = doc.collection('insights');
+      final requestedId = insight.firestoreId?.trim();
+      final docRef = requestedId != null && requestedId.isNotEmpty ? collection.doc(requestedId) : collection.doc();
       final data = {...insight.toMap(), 'firestoreId': docRef.id, 'updatedAt': useServerTimestamp ? FieldValue.serverTimestamp() : Timestamp.fromDate(insight.updatedAt)};
       await docRef.set(data);
       return docRef.id;
@@ -53,16 +57,30 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
   }
 
   @override
-  Future<AIInsight?> getLatestInsights() async {
+  Future<bool> saveAiInterpretation({required String uid, required String insightId, required DateTime expectedPeriodTo, required InsightAiInterpretation interpretation}) async {
+    final userDoc = _userDoc;
+    if (userDoc == null || _uid != uid || insightId != 'rule_based_latest') return false;
+
+    final insightDoc = userDoc.collection('insights').doc(insightId);
     try {
-      final doc = _userDoc;
-      if (doc == null) return null;
-      final snapshot = await doc.collection('insights').orderBy('updatedAt', descending: true).limit(1).get();
-      if (snapshot.docs.isEmpty) return null;
-      return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
+      return await _db.runTransaction<bool>((transaction) async {
+        final snapshot = await transaction.get(insightDoc);
+        if (!snapshot.exists) return false;
+
+        final data = snapshot.data();
+        if (data == null || data['origin'] != AIInsight.originRuleBased) return false;
+        final rawPeriod = data['period'];
+        final savedPeriodTo = rawPeriod is Map<String, dynamic> ? DateTimeUtils.tryParse(rawPeriod['to']) : null;
+        if (savedPeriodTo == null || !savedPeriodTo.isAtSameMomentAs(expectedPeriodTo)) return false;
+
+        // Merge only the optional AI prose: the deterministic snapshot and its
+        // updatedAt ordering remain untouched.
+        transaction.set(insightDoc, {'aiInterpretation': interpretation.toMap()}, SetOptions(merge: true));
+        return true;
+      });
     } catch (e) {
-      AppLogger.firestore('Error getting latest insights', error: e);
-      return null;
+      AppLogger.firestore('Error saving AI Insight interpretation', error: e);
+      return false;
     }
   }
 

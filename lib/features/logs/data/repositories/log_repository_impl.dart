@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';
+import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/services/streak_service.dart';
 import 'package:gutgood/features/logs/domain/repositories/log_repository.dart';
 import 'package:gutgood/infrastructure/firebase/analytics_service.dart';
@@ -14,18 +15,23 @@ class LogRepositoryImpl implements LogRepository {
     required AnalyticsService analyticsService,
     required StreakService streakService,
     required NotificationService notificationService,
+    required AppStateService appStateService,
   }) : _firestoreService = firestoreService,
        _analyticsService = analyticsService,
        _streakService = streakService,
-       _notificationService = notificationService;
+       _notificationService = notificationService,
+       _appStateService = appStateService;
   final HistoryFirestoreService _firestoreService;
   final AnalyticsService _analyticsService;
   final StreakService _streakService;
   final NotificationService _notificationService;
+  final AppStateService _appStateService;
 
   @override
   Future<void> logSymptom(SymptomLog log) async {
-    await _firestoreService.logSymptom(log);
+    final logId = await _firestoreService.logSymptom(log);
+    if (logId == null) return;
+    _appStateService.notifyChatUpdated();
     await _streakService.markActivityToday();
     unawaited(_notificationService.scheduleNoMealLoggedReminder());
     await _analyticsService.logEvent(name: 'symptom_logged', parameters: <String, Object?>{'symptom': log.symptom, 'severity': log.severity});
@@ -33,7 +39,9 @@ class LogRepositoryImpl implements LogRepository {
 
   @override
   Future<void> logMeal(MealLog log) async {
-    await _firestoreService.logMeal(log);
+    final logId = await _firestoreService.logMeal(log);
+    if (logId == null) return;
+    _appStateService.notifyChatUpdated();
     await _streakService.markActivityToday();
     // A meal now exists today — re-evaluate (silences today's "no meals
     // logged" reminder and keeps the daily series anchored from tomorrow).

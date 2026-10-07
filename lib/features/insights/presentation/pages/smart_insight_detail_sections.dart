@@ -65,7 +65,7 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
   }
 
   /// 3. "The Evidence" Metric Dashboard Card
-  Widget _buildTheEvidenceCard(BuildContext context, {required int? evidenceRatio, required int? frequency, required int? symptomLogs, required int? normalLogs, required bool isEarlyObservation}) {
+  Widget _buildTheEvidenceCard(BuildContext context, {required BodyPattern? pattern, required bool isEarlyObservation, required int observationCount}) {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = PatternCardStyle.forType(insight.domain ?? insight.type);
@@ -100,7 +100,7 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                     ),
                     Text(
-                      isEarlyObservation ? 'One reported observation — comparison data is not available yet.' : 'Based on your logged historical data.',
+                      isEarlyObservation ? 'Early logged observation; missing follow-ups are unknown.' : 'Matched entries from your logs; missing follow-ups are unknown.',
                       style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary, height: 1.25),
                     ),
                   ],
@@ -133,7 +133,7 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          frequency == null ? 'One observation recorded' : '$frequency observation${frequency == 1 ? '' : 's'} recorded',
+                          '$observationCount matched observation${observationCount == 1 ? '' : 's'} recorded',
                           style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
                         ),
                         Gap.h3,
@@ -152,17 +152,8 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
               children: [
                 _buildMetricTile(
                   context,
-                  title: evidenceRatio == null ? '—' : '$evidenceRatio%',
-                  label: 'Evidence Ratio',
-                  icon: LucideIcons.pieChart,
-                  color: isDark ? theme.purple : style.accentColor,
-                  bg: isDark ? theme.cardSubtle : style.tagBg,
-                ),
-                Gap.w6,
-                _buildMetricTile(
-                  context,
-                  title: frequency == null ? '—' : '$frequency×',
-                  label: 'Times Logged',
+                  title: '${pattern?.frequency ?? observationCount}',
+                  label: 'Matched Logs',
                   icon: LucideIcons.history,
                   color: isDark ? theme.purple : style.accentColor,
                   bg: isDark ? theme.cardSubtle : style.tagBg,
@@ -170,20 +161,29 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
                 Gap.w6,
                 _buildMetricTile(
                   context,
-                  title: symptomLogs == null ? '—' : '$symptomLogs',
-                  label: 'Symptom Logs',
-                  icon: LucideIcons.thumbsDown,
-                  color: isDark ? theme.error : const Color(0xFFDC2626),
-                  bg: isDark ? theme.errorSoft : const Color(0xFFFEF2F2),
+                  title: '${pattern?.totalSimilarMeals ?? 0}',
+                  label: 'Meals Logged',
+                  icon: LucideIcons.utensils,
+                  color: isDark ? theme.purple : style.accentColor,
+                  bg: isDark ? theme.cardSubtle : style.tagBg,
                 ),
                 Gap.w6,
                 _buildMetricTile(
                   context,
-                  title: normalLogs == null ? '—' : '$normalLogs',
-                  label: 'Normal Logs',
-                  icon: LucideIcons.thumbsUp,
-                  color: isDark ? theme.success : const Color(0xFF15803D),
-                  bg: isDark ? theme.successSoft : const Color(0xFFF0FDF4),
+                  title: '${pattern?.occurrences.length ?? 0}',
+                  label: 'Examples',
+                  icon: LucideIcons.clipboardList,
+                  color: isDark ? theme.purple : style.accentColor,
+                  bg: isDark ? theme.cardSubtle : style.tagBg,
+                ),
+                Gap.w6,
+                _buildMetricTile(
+                  context,
+                  title: '${pattern?.timeframeDays ?? 0}',
+                  label: 'Days Analyzed',
+                  icon: LucideIcons.clock,
+                  color: isDark ? theme.purple : style.accentColor,
+                  bg: isDark ? theme.cardSubtle : style.tagBg,
                 ),
               ],
             ),
@@ -409,7 +409,7 @@ extension SmartInsightDetailSections on SmartInsightDetailScreen {
         for (final p in patterns.take(3)) ...[
           InsightPatternPill(
             title: '${p.trigger} → ${p.reaction}',
-            subtitle: '${p.frequency}× • ${p.confidence} confidence',
+            subtitle: '${p.frequency} matched logs • ${p.evidenceLabel}',
             emoji: p.involvedFoods.isEmpty ? null : InsightPresentation.emojiForFood(p.involvedFoods.first),
             onTap: () => context.push(AppRoutes.patternDetail, extra: p),
           ),

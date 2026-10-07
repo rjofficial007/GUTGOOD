@@ -5,7 +5,7 @@ import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_serv
 import 'package:gutgood/infrastructure/firebase/firestore/insight_firestore_service.dart';
 
 abstract class PatternEngineService {
-  Future<List<BodyPattern>> runAnalysis();
+  Future<List<BodyPattern>> runAnalysis({List<MealLog>? mealData, List<SymptomLog>? symptomData, List<ScanResult>? scanData});
 }
 
 class PatternEngineServiceImpl implements PatternEngineService {
@@ -22,9 +22,11 @@ class PatternEngineServiceImpl implements PatternEngineService {
   /// the existing (type ==, createdAt orderBy) composite already serves it.
   static const _analysisWindowDays = 30;
   static const _fetchLimit = 150;
+  // Two repeats on separate days can surface as an early, low-confidence
+  // signal. Medium confidence still requires three observations on three days.
   static const _minFrequency = 2;
 
-  /// P1-7: per-detector causality windows, exact [Duration] comparisons (the
+  /// P1-7: per-detector timing windows, exact [Duration] comparisons (the
   /// old `inHours <= N` checks leaked almost an extra hour via truncation).
   static const _bloatWindow = Duration(hours: 4);
   static const _energyWindow = Duration(hours: 4);
@@ -33,7 +35,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
   static const _fullnessWindow = Duration(hours: 3);
 
   @override
-  Future<List<BodyPattern>> runAnalysis() async {
+  Future<List<BodyPattern>> runAnalysis({List<MealLog>? mealData, List<SymptomLog>? symptomData, List<ScanResult>? scanData}) async {
     final startedAt = DateTime.now();
     final stopwatch = Stopwatch()..start();
     AppLogger.insights(
@@ -41,19 +43,19 @@ class PatternEngineServiceImpl implements PatternEngineService {
     );
 
     final since = startedAt.subtract(const Duration(days: _analysisWindowDays));
-    final fetchedMeals = await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since);
-    final fetchedScans = await _historyFirestoreService.getRecentScans(limit: _fetchLimit, since: since);
-    final journalMeals = fetchedMeals.where((meal) => !meal.createdAt.isAfter(startedAt) && !meal.eventTime.isAfter(startedAt)).toList();
-    final scanHistory = fetchedScans.where((scan) => !scan.createdAt.isAfter(startedAt)).toList();
+    final fetchedMeals = (mealData ?? (await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since))).take(_fetchLimit).toList();
+    final fetchedScans = (scanData ?? (await _historyFirestoreService.getRecentScans(limit: _fetchLimit, since: since))).take(_fetchLimit).toList();
+    final candidateJournalMeals = fetchedMeals.where((meal) => !meal.createdAt.isAfter(startedAt) && !meal.eventTime.isAfter(startedAt) && !meal.createdAt.isBefore(since)).toList();
+    final scanHistory = fetchedScans.where((scan) => !scan.createdAt.isAfter(startedAt) && !scan.createdAt.isBefore(since)).toList();
+    final journalMeals = confirmedFoodMeals(meals: candidateJournalMeals, scans: scanHistory);
 
-    // Scans are now persisted as consumed meal projections. Keep the legacy
-    // scan-to-meal fallback for older scan_history documents, but never count a
-    // scan twice when its journal meal already carries the originating scanId.
+    // Only scans explicitly confirmed as eaten can use the scan-only fallback;
+    // informational scans stay in scan history without entering patterns.
     final scanMeals = standaloneScanRecords(meals: journalMeals, scans: scanHistory).map((s) => s.toMealLog()).toList();
     final meals = [...journalMeals, ...scanMeals];
 
-    final fetchedSymptoms = await _historyFirestoreService.getRecentSymptomLogs(limit: _fetchLimit, since: since);
-    final allSymptoms = fetchedSymptoms.where((symptom) => !symptom.createdAt.isAfter(startedAt) && !symptom.eventTime.isAfter(startedAt)).toList();
+    final fetchedSymptoms = (symptomData ?? (await _historyFirestoreService.getRecentSymptomLogs(limit: _fetchLimit, since: since))).take(_fetchLimit).toList();
+    final allSymptoms = fetchedSymptoms.where((symptom) => !symptom.createdAt.isAfter(startedAt) && !symptom.eventTime.isAfter(startedAt) && !symptom.createdAt.isBefore(since)).toList();
     // P2-4: keyword-guessed symptoms (no structured AI entry, no user numbers)
     // are excluded from corroboration until a confirmation flow exists. They
     // still render in chat/history and still feed the insight journal text.
@@ -67,7 +69,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
       'minimumFrequency': _minFrequency,
       'counts': {
         'journalMeals': journalMeals.length,
-        'excludedFutureMeals': fetchedMeals.length - journalMeals.length,
+        'excludedUnconfirmedScanMeals': candidateJournalMeals.length - journalMeals.length,
+        'excludedFutureMeals': fetchedMeals.length - candidateJournalMeals.length,
         'scans': scanHistory.length,
         'excludedFutureScans': fetchedScans.length - scanHistory.length,
         'legacyStandaloneScanMeals': scanMeals.length,
@@ -82,10 +85,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
             (meal) => {
               'id': meal.journalEntryId ?? meal.firestoreId,
               'items': meal.items,
-              'foodTags': meal.foodTags,
               'createdAt': meal.createdAt.toIso8601String(),
               'eventTime': meal.eventTime.toIso8601String(),
-              'occurredAtProvenance': meal.occurredAtProvenance,
+              if (meal.foodTags.isNotEmpty) 'foodTags': meal.foodTags,
+              if (meal.occurredAtProvenance != null) 'occurredAtProvenance': meal.occurredAtProvenance,
             },
           )
           .toList(),
@@ -94,14 +97,13 @@ class PatternEngineServiceImpl implements PatternEngineService {
             (symptom) => {
               'id': symptom.journalEntryId ?? symptom.firestoreId,
               'symptom': symptom.symptom,
-              'severity': symptom.severity,
-              'energyLevel': symptom.energyLevel,
-              'mood': symptom.mood,
-              'sleep': symptom.sleep,
+              if (symptom.severity != null) 'severity': symptom.severity,
+              if (symptom.mood != null) 'mood': symptom.mood,
+              if (symptom.sleep != null) 'sleep': symptom.sleep,
               'createdAt': symptom.createdAt.toIso8601String(),
               'eventTime': symptom.eventTime.toIso8601String(),
-              'provenance': symptom.provenance,
-              'occurredAtProvenance': symptom.occurredAtProvenance,
+              if (symptom.provenance?.trim().isNotEmpty == true) 'provenance': symptom.provenance,
+              if (symptom.occurredAtProvenance != null) 'occurredAtProvenance': symptom.occurredAtProvenance,
             },
           )
           .toList(),
@@ -134,15 +136,15 @@ class PatternEngineServiceImpl implements PatternEngineService {
     // A symptom after a meal containing several foods does not establish that
     // each item was independently causal. Collapse those exposures into one
     // conservative combination candidate before handing evidence to Insights.
-    final allPatterns = _collapseCoOccurringPatterns(rawPatterns, meals);
+    final allPatterns = _collapseCoOccurringPatterns(rawPatterns, meals).where(_meetsEvidenceThreshold).toList();
 
     AppLogger.insights(
       'Detector results: raw=${rawPatterns.length}, afterCoOccurrenceCollapse=${allPatterns.length}, timeframeDays=$timeframeDays; detectors=bloating,energy,headache,digestion,fullness,sleep',
     );
     if (allPatterns.isNotEmpty) {
-      // Sort by confidence (High first) and frequency. Rank map: the old
-      // two-level comparator is inconsistent once Low exists.
-      int rank(String c) => c == BodyPattern.confidenceHigh ? 0 : (c == BodyPattern.confidenceMedium ? 1 : 2);
+      // Repeated observations sort before early ones, then by frequency. This
+      // passive-log engine deliberately never emits a calibrated High tier.
+      int rank(String c) => c == BodyPattern.confidenceMedium ? 0 : 1;
       allPatterns.sort((a, b) {
         final rankCmp = rank(a.confidence).compareTo(rank(b.confidence));
         if (rankCmp != 0) return rankCmp;
@@ -161,15 +163,24 @@ class PatternEngineServiceImpl implements PatternEngineService {
     return allPatterns;
   }
 
-  /// P1-7/§H: confidence combines frequency with the evidence ratio.
-  /// High = freq ≥ 5 AND ratio ≥ 0.66 AND ≥ 1 negative observed (without a
-  /// contrast case, 5-of-5 can't be distinguished from coincidence, so it
-  /// caps at Medium). 3-of-3 reads Medium; 3-of-20 reads Low.
-  String _getConfidence({required int frequency, required double evidenceRatio, required int negativeCount}) {
-    if (frequency >= 5 && evidenceRatio >= 0.66 && negativeCount >= 1) return BodyPattern.confidenceHigh;
-    if (evidenceRatio >= 0.4) return BodyPattern.confidenceMedium;
+  /// Passive logging has no explicit symptom-free check-in, so an absent
+  /// symptom document is unknown rather than a negative outcome. These tiers
+  /// describe repeated observations only; this engine cannot assign High.
+  String _getConfidence({required int frequency, required int distinctDays}) {
+    if (frequency >= 3 && distinctDays >= 3) return BodyPattern.confidenceMedium;
     return BodyPattern.confidenceLow;
   }
+
+  bool _meetsEvidenceThreshold(BodyPattern pattern) =>
+      pattern.frequency >= _minFrequency && pattern.occurrences.map((occurrence) => occurrence.date).toSet().length >= _minFrequency;
+
+  int _distinctDays(Iterable<MealLog> meals) => meals
+      .map((meal) {
+        final date = meal.eventTime.toLocal();
+        return '${date.year}-${date.month}-${date.day}';
+      })
+      .toSet()
+      .length;
 
   /// P1-7: normalizes food-item keys so "Pizza", "pizza " and "2x Pizza" group
   /// together instead of fragmenting into separate triggers.
@@ -193,12 +204,19 @@ class PatternEngineServiceImpl implements PatternEngineService {
         if (mealId != null && symptomLink == mealId) {
           return !explicitMealMention.isContradiction;
         }
-        return explicitMealMention.matches && gap.abs() <= window;
+        return _hasUserConfirmedTiming(meal, s) && explicitMealMention.matches && gap.abs() <= window;
       }
+      if (!_hasUserConfirmedTiming(meal, s)) return false;
       return !gap.isNegative && gap <= window;
     }).toList()
       ..sort((a, b) => a.eventTime.compareTo(b.eventTime));
   }
+
+  bool _hasUserConfirmedTiming(MealLog meal, SymptomLog symptom) =>
+      meal.occurredAt != null &&
+      symptom.occurredAt != null &&
+      meal.occurredAtProvenance == OccurrenceProvenance.user &&
+      symptom.occurredAtProvenance == OccurrenceProvenance.user;
 
   ({bool matches, bool isContradiction}) _explicitlyMentionsMeal(SymptomLog symptom, MealLog meal) {
     final notes = _foodKey('${symptom.foodName ?? ''} ${symptom.notes ?? ''}');
@@ -268,8 +286,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
       final frequency = combinationOccurrences.length;
       final totalSimilarMeals = combinationMeals.length;
-      final negativeCount = (totalSimilarMeals - frequency).clamp(0, totalSimilarMeals).toInt();
-      final evidenceRatio = totalSimilarMeals == 0 ? 0.0 : frequency / totalSimilarMeals;
+      final distinctDays = combinationOccurrences.map((occurrence) => occurrence.date).toSet().length;
       final label = involvedKeys.map(_capitalize).join(' + ');
 
       collapsed.add(
@@ -279,9 +296,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
           trigger: label,
           reaction: pattern.reaction,
           frequency: frequency,
-          confidence: _getConfidence(frequency: frequency, evidenceRatio: evidenceRatio, negativeCount: negativeCount),
-          confidenceScore: pattern.confidenceScore,
-          description: 'Meals containing $label were followed by ${pattern.reaction.toLowerCase()} in $frequency recent logs.',
+          confidence: _getConfidence(frequency: frequency, distinctDays: distinctDays),
+          confidenceScore: 0.0,
+          description: '$frequency logs linked ${pattern.reaction.toLowerCase()} observations with meals containing $label. This is an observed association, not proof of cause.',
           involvedFoods: involvedKeys,
           relatedFoodIds: pattern.relatedFoodIds,
           recommendation: pattern.recommendation,
@@ -294,9 +311,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
           typicalDelay: pattern.typicalDelay,
           impactDirection: pattern.impactDirection,
           impactLevel: pattern.impactLevel,
-          evidenceRatio: evidenceRatio,
+          evidenceRatio: 0.0,
           positiveCount: frequency,
-          negativeCount: negativeCount,
+          negativeCount: 0,
           schemaVersion: pattern.schemaVersion,
         ),
       );
@@ -327,11 +344,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
         BodyPattern.fromMap({
           ...pattern.toMap(),
           'id': '${pattern.type}_${pattern.reaction}_${keys.join('_')}'.toLowerCase().replaceAll(RegExp('[^a-z0-9]+'), '_'),
-          'confidenceScore': pattern.confidence == BodyPattern.confidenceHigh
-              ? 0.85
-              : pattern.confidence == BodyPattern.confidenceMedium
-              ? 0.65
-              : 0.5,
+          'confidenceScore': 0.0,
           'impactDirection': positive ? 'positive' : 'negative',
           'impactLevel': pattern.confidence == BodyPattern.confidenceHigh
               ? 'high'
@@ -385,9 +398,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
           var icon = 'leaf';
           if (e.key.contains('dairy')) icon = 'milk';
           if (e.key.contains('fried')) icon = 'utensils';
-          if (e.key.contains('carb')) icon = 'wheat';
+          if (e.key.contains('carb') || e.key.contains('whole_grain')) icon = 'wheat';
           if (e.key.contains('sodium')) icon = 'droplet';
-          return CommonFactor(label: _capitalize(e.key), icon: icon);
+          final label = e.key.split('_').map(_capitalize).join(' ');
+          return CommonFactor(label: label, icon: icon);
         })
         .take(5)
         .toList();
@@ -413,23 +427,21 @@ class PatternEngineServiceImpl implements PatternEngineService {
       final food = e.key;
       final symptomaticMeals = e.value;
       final totalSimilar = meals.where((m) => m.items.any((i) => _foodKey(i) == food)).length;
-      final asymptomatic = totalSimilar - symptomaticMeals.length;
-      final ratio = totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0;
 
       return BodyPattern(
         type: BodyPattern.typeBloating,
         trigger: _capitalize(food),
         reaction: 'Bloating',
         frequency: symptomaticMeals.length,
-        confidence: _getConfidence(frequency: symptomaticMeals.length, evidenceRatio: ratio, negativeCount: asymptomatic),
-        description: 'You reported bloating after ${symptomaticMeals.length} of your recent meals containing $food.',
+        confidence: _getConfidence(frequency: symptomaticMeals.length, distinctDays: _distinctDays(symptomaticMeals)),
+        description: '${symptomaticMeals.length} logged observations associated bloating with meals containing $food. This is an observed association, not proof of cause.',
         involvedFoods: _involvedFoods(food, symptomaticMeals),
         updatedAt: DateTime.now().toIso8601String(),
         totalSimilarMeals: totalSimilar,
         timeframeDays: timeframeDays,
-        evidenceRatio: ratio,
+        evidenceRatio: 0.0,
         positiveCount: symptomaticMeals.length,
-        negativeCount: asymptomatic,
+        negativeCount: 0,
         occurrences: symptomaticMeals.map((m) {
           final s = _symptomsAfter(bloatingLogs, m, _bloatWindow).first;
           return _occurrence(m, s, 'Bloating');
@@ -440,16 +452,16 @@ class PatternEngineServiceImpl implements PatternEngineService {
   }
 
   bool _reportsHighEnergy(SymptomLog log) => RegExp(r'^(energetic|energized|high energy)$', caseSensitive: false).hasMatch(log.symptom.trim());
+  bool _reportsLowEnergy(SymptomLog log) => RegExp(r'^(low energy|fatigue|tired|sluggish|exhausted)$', caseSensitive: false).hasMatch(log.symptom.trim());
 
   PatternOccurrence _occurrence(MealLog meal, SymptomLog symptom, String reaction) {
     final gap = symptom.eventTime.difference(meal.eventTime);
-    final knownTiming = meal.occurredAt != null && symptom.occurredAt != null && meal.occurredAtProvenance == OccurrenceProvenance.user && symptom.occurredAtProvenance == OccurrenceProvenance.user;
-    final label = knownTiming
-        ? _formatTimeAfter(meal.eventTime, symptom.eventTime)
-        : 'Logged ${_formatTimeAfter(meal.createdAt, symptom.createdAt).toLowerCase()}';
+    final knownTiming = _hasUserConfirmedTiming(meal, symptom);
+    final recordedMealTime = knownTiming ? meal.eventTime : meal.createdAt;
+    final label = knownTiming ? _formatTimeAfter(meal.eventTime, symptom.eventTime) : 'Timing not confirmed';
     return PatternOccurrence(
-      date: meal.eventTime.toIso8601String().substring(0, 10),
-      dateLabel: _formatDate(meal.eventTime),
+      date: recordedMealTime.toIso8601String().substring(0, 10),
+      dateLabel: _formatDate(recordedMealTime),
       mealId: meal.journalEntryId ?? meal.firestoreId ?? meal.eventTime.toIso8601String(),
       mealName: meal.items.join(', '),
       imageUrl: meal.photoUrl,
@@ -468,7 +480,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
   /// 2. Energy Pattern
   List<BodyPattern> _detectEnergyPatterns(List<MealLog> meals, List<SymptomLog> symptoms, {required int timeframeDays}) {
     final patterns = <BodyPattern>[];
-    final energyLogs = symptoms.where((s) => s.energyLevel != null || _reportsHighEnergy(s)).toList();
+    final energyLogs = symptoms.where((s) => _reportsHighEnergy(s) || _reportsLowEnergy(s)).toList();
 
     final highEnergyTriggers = <String, List<MealLog>>{};
     final lowEnergyTriggers = <String, List<MealLog>>{};
@@ -483,10 +495,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
         for (final item in meal.items) {
           final key = _foodKey(item);
           if (key.isEmpty) continue;
-          if (_reportsHighEnergy(log) || (log.energyLevel ?? 0) >= 7) {
+          if (_reportsHighEnergy(log)) {
             if (!highEnergyTriggers.containsKey(key)) highEnergyTriggers[key] = [];
             if (!highEnergyTriggers[key]!.contains(meal)) highEnergyTriggers[key]!.add(meal);
-          } else if (log.energyLevel != null && log.energyLevel! <= 3) {
+          } else if (_reportsLowEnergy(log)) {
             if (!lowEnergyTriggers.containsKey(key)) lowEnergyTriggers[key] = [];
             if (!lowEnergyTriggers[key]!.contains(meal)) lowEnergyTriggers[key]!.add(meal);
           }
@@ -497,23 +509,21 @@ class PatternEngineServiceImpl implements PatternEngineService {
     highEnergyTriggers.forEach((food, symptomaticMeals) {
       if (symptomaticMeals.length >= _minFrequency) {
         final totalSimilar = meals.where((m) => m.items.any((i) => _foodKey(i) == food)).length;
-        final asymptomatic = totalSimilar - symptomaticMeals.length;
-        final ratio = totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0;
         patterns.add(
           BodyPattern(
             type: BodyPattern.typeEnergy,
             trigger: _capitalize(food),
             reaction: 'High Energy',
             frequency: symptomaticMeals.length,
-            confidence: _getConfidence(frequency: symptomaticMeals.length, evidenceRatio: ratio, negativeCount: asymptomatic),
-            description: 'Meals containing $food were followed by higher energy levels in ${symptomaticMeals.length} logs.',
+            confidence: _getConfidence(frequency: symptomaticMeals.length, distinctDays: _distinctDays(symptomaticMeals)),
+            description: '${symptomaticMeals.length} logged observations associated higher energy with meals containing $food. This is an observed association, not proof of cause.',
             involvedFoods: _involvedFoods(food, symptomaticMeals),
             updatedAt: DateTime.now().toIso8601String(),
             totalSimilarMeals: totalSimilar,
             timeframeDays: timeframeDays,
-            evidenceRatio: ratio,
+            evidenceRatio: 0.0,
             positiveCount: symptomaticMeals.length,
-            negativeCount: asymptomatic,
+            negativeCount: 0,
             occurrences: symptomaticMeals.map((m) {
               final s = _symptomsAfter(energyLogs, m, _energyWindow).first;
               return _occurrence(m, s, 'Energized');
@@ -527,23 +537,21 @@ class PatternEngineServiceImpl implements PatternEngineService {
     lowEnergyTriggers.forEach((food, symptomaticMeals) {
       if (symptomaticMeals.length >= _minFrequency) {
         final totalSimilar = meals.where((m) => m.items.any((i) => _foodKey(i) == food)).length;
-        final asymptomatic = totalSimilar - symptomaticMeals.length;
-        final ratio = totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0;
         patterns.add(
           BodyPattern(
             type: BodyPattern.typeEnergy,
             trigger: _capitalize(food),
             reaction: 'Energy Drop',
             frequency: symptomaticMeals.length,
-            confidence: _getConfidence(frequency: symptomaticMeals.length, evidenceRatio: ratio, negativeCount: asymptomatic),
-            description: 'You noticed energy drops after ${symptomaticMeals.length} meals containing $food.',
+            confidence: _getConfidence(frequency: symptomaticMeals.length, distinctDays: _distinctDays(symptomaticMeals)),
+            description: '${symptomaticMeals.length} logged observations associated lower energy with meals containing $food. This is an observed association, not proof of cause.',
             involvedFoods: _involvedFoods(food, symptomaticMeals),
             updatedAt: DateTime.now().toIso8601String(),
             totalSimilarMeals: totalSimilar,
             timeframeDays: timeframeDays,
-            evidenceRatio: ratio,
+            evidenceRatio: 0.0,
             positiveCount: symptomaticMeals.length,
-            negativeCount: asymptomatic,
+            negativeCount: 0,
             occurrences: symptomaticMeals.map((m) {
               final s = _symptomsAfter(energyLogs, m, _energyWindow).first;
               return _occurrence(m, s, 'Sluggish');
@@ -590,23 +598,21 @@ class PatternEngineServiceImpl implements PatternEngineService {
       final food = e.key;
       final symptomaticMeals = e.value;
       final totalSimilar = meals.where((m) => m.items.any((i) => _foodKey(i) == food)).length;
-      final asymptomatic = totalSimilar - symptomaticMeals.length;
-      final ratio = totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0;
 
       return BodyPattern(
         type: BodyPattern.typeHeadache,
         trigger: _capitalize(food),
         reaction: reaction,
         frequency: symptomaticMeals.length,
-        confidence: _getConfidence(frequency: symptomaticMeals.length, evidenceRatio: ratio, negativeCount: asymptomatic),
-        description: 'You reported $plural after ${symptomaticMeals.length} recent meals containing $food.',
+        confidence: _getConfidence(frequency: symptomaticMeals.length, distinctDays: _distinctDays(symptomaticMeals)),
+        description: '${symptomaticMeals.length} logged observations associated $plural with meals containing $food. This is an observed association, not proof of cause.',
         involvedFoods: _involvedFoods(food, symptomaticMeals),
         updatedAt: DateTime.now().toIso8601String(),
         totalSimilarMeals: totalSimilar,
         timeframeDays: timeframeDays,
-        evidenceRatio: ratio,
+        evidenceRatio: 0.0,
         positiveCount: symptomaticMeals.length,
-        negativeCount: asymptomatic,
+        negativeCount: 0,
         occurrences: symptomaticMeals.map((m) {
           final s = _symptomsAfter(headacheLogs, m, _headacheWindow).first;
           return _occurrence(m, s, reaction);
@@ -637,23 +643,21 @@ class PatternEngineServiceImpl implements PatternEngineService {
       final food = e.key;
       final symptomaticMeals = e.value;
       final totalSimilar = meals.where((m) => m.items.any((i) => _foodKey(i) == food)).length;
-      final asymptomatic = totalSimilar - symptomaticMeals.length;
-      final ratio = totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0;
 
       return BodyPattern(
         type: BodyPattern.typeDigestion,
         trigger: _capitalize(food),
         reaction: 'Digestive Discomfort',
         frequency: symptomaticMeals.length,
-        confidence: _getConfidence(frequency: symptomaticMeals.length, evidenceRatio: ratio, negativeCount: asymptomatic),
-        description: 'Meals containing $food were frequently followed by digestive discomfort (${symptomaticMeals.length} times).',
+        confidence: _getConfidence(frequency: symptomaticMeals.length, distinctDays: _distinctDays(symptomaticMeals)),
+        description: '${symptomaticMeals.length} logged observations associated digestive discomfort with meals containing $food. This is an observed association, not proof of cause.',
         involvedFoods: _involvedFoods(food, symptomaticMeals),
         updatedAt: DateTime.now().toIso8601String(),
         totalSimilarMeals: totalSimilar,
         timeframeDays: timeframeDays,
-        evidenceRatio: ratio,
+        evidenceRatio: 0.0,
         positiveCount: symptomaticMeals.length,
-        negativeCount: asymptomatic,
+        negativeCount: 0,
         occurrences: symptomaticMeals.map((m) {
           final s = _symptomsAfter(digestionLogs, m, _digestionWindow).first;
           return _occurrence(m, s, 'Discomfort');
@@ -703,23 +707,21 @@ class PatternEngineServiceImpl implements PatternEngineService {
     satedTriggers.forEach((food, symptomaticMeals) {
       if (symptomaticMeals.length >= _minFrequency) {
         final totalSimilar = meals.where((m) => m.items.any((i) => _foodKey(i) == food)).length;
-        final asymptomatic = totalSimilar - symptomaticMeals.length;
-        final ratio = totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0;
         patterns.add(
           BodyPattern(
             type: BodyPattern.typeFullness,
             trigger: _capitalize(food),
             reaction: 'Satiety',
             frequency: symptomaticMeals.length,
-            confidence: _getConfidence(frequency: symptomaticMeals.length, evidenceRatio: ratio, negativeCount: asymptomatic),
-            description: 'Meals with $food kept you satisfied for significantly longer in ${symptomaticMeals.length} recent logs.',
+            confidence: _getConfidence(frequency: symptomaticMeals.length, distinctDays: _distinctDays(symptomaticMeals)),
+            description: '${symptomaticMeals.length} logged observations associated satiety with meals containing $food. This is an observed association, not proof of cause.',
             involvedFoods: _involvedFoods(food, symptomaticMeals),
             updatedAt: DateTime.now().toIso8601String(),
             totalSimilarMeals: totalSimilar,
             timeframeDays: timeframeDays,
-            evidenceRatio: ratio,
+            evidenceRatio: 0.0,
             positiveCount: symptomaticMeals.length,
-            negativeCount: asymptomatic,
+            negativeCount: 0,
             occurrences: symptomaticMeals.map((m) {
               final s = _symptomsAfter(fullnessLogs, m, _fullnessWindow).first;
               return _occurrence(m, s, 'Satisfied');
@@ -733,23 +735,21 @@ class PatternEngineServiceImpl implements PatternEngineService {
     hungryTriggers.forEach((food, symptomaticMeals) {
       if (symptomaticMeals.length >= _minFrequency) {
         final totalSimilar = meals.where((m) => m.items.any((i) => _foodKey(i) == food)).length;
-        final asymptomatic = totalSimilar - symptomaticMeals.length;
-        final ratio = totalSimilar > 0 ? symptomaticMeals.length / totalSimilar : 0.0;
         patterns.add(
           BodyPattern(
             type: BodyPattern.typeFullness,
             trigger: _capitalize(food),
             reaction: 'Hunger',
             frequency: symptomaticMeals.length,
-            confidence: _getConfidence(frequency: symptomaticMeals.length, evidenceRatio: ratio, negativeCount: asymptomatic),
-            description: 'You reported feeling hungry shortly after ${symptomaticMeals.length} meals containing $food.',
+            confidence: _getConfidence(frequency: symptomaticMeals.length, distinctDays: _distinctDays(symptomaticMeals)),
+            description: '${symptomaticMeals.length} logged observations associated hunger with meals containing $food. This is an observed association, not proof of cause.',
             involvedFoods: _involvedFoods(food, symptomaticMeals),
             updatedAt: DateTime.now().toIso8601String(),
             totalSimilarMeals: totalSimilar,
             timeframeDays: timeframeDays,
-            evidenceRatio: ratio,
+            evidenceRatio: 0.0,
             positiveCount: symptomaticMeals.length,
-            negativeCount: asymptomatic,
+            negativeCount: 0,
             occurrences: symptomaticMeals.map((m) {
               final s = _symptomsAfter(fullnessLogs, m, _fullnessWindow).first;
               return _occurrence(m, s, 'Hungry');
@@ -772,11 +772,21 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final lateDinnerMeals = <MealLog>[];
 
     for (final log in sleepLogs) {
+      if (log.occurredAt == null || log.occurredAtProvenance != OccurrenceProvenance.user) continue;
       final isGoodSleep = log.sleep!.toLowerCase().contains('good') || log.sleep!.toLowerCase().contains('great');
       final isPoorSleep = log.sleep!.toLowerCase().contains('poor') || log.sleep!.toLowerCase().contains('interrupted');
 
       final eveningBefore = DateTime(log.eventTime.year, log.eventTime.month, log.eventTime.day).subtract(const Duration(hours: 6));
-      final eveningMeals = meals.where((m) => m.eventTime.isAfter(eveningBefore) && m.eventTime.isBefore(log.eventTime) && m.eventTime.hour >= 18).toList();
+      final eveningMeals = meals
+          .where(
+            (m) =>
+                m.occurredAt != null &&
+                m.occurredAtProvenance == OccurrenceProvenance.user &&
+                m.eventTime.isAfter(eveningBefore) &&
+                m.eventTime.isBefore(log.eventTime) &&
+                m.eventTime.hour >= 18,
+          )
+          .toList();
 
       if (eveningMeals.isNotEmpty) {
         // P1-7: latest by EVENT TIME — Firestore returns newest-first, so the
@@ -794,22 +804,20 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
     if (earlyDinnerMeals.length >= _minFrequency) {
       final totalSimilar = meals.where((m) => m.eventTime.hour >= 18 && m.eventTime.hour < 20).length;
-      final asymptomatic = totalSimilar - earlyDinnerMeals.length;
-      final earlyRatio = totalSimilar > 0 ? earlyDinnerMeals.length / totalSimilar : 0.0;
       patterns.add(
         BodyPattern(
           type: BodyPattern.typeSleep,
           trigger: 'Earlier dinners',
           reaction: 'Better Sleep',
           frequency: earlyDinnerMeals.length,
-          confidence: _getConfidence(frequency: earlyDinnerMeals.length, evidenceRatio: earlyRatio, negativeCount: asymptomatic),
-          description: 'Earlier dinners were associated with better sleep quality in ${earlyDinnerMeals.length} of your recent logs.',
+          confidence: _getConfidence(frequency: earlyDinnerMeals.length, distinctDays: _distinctDays(earlyDinnerMeals)),
+          description: 'Earlier dinners coincided with better-sleep reports in ${earlyDinnerMeals.length} logged observations.',
           updatedAt: DateTime.now().toIso8601String(),
           totalSimilarMeals: totalSimilar,
           timeframeDays: timeframeDays,
-          evidenceRatio: earlyRatio,
+          evidenceRatio: 0.0,
           positiveCount: earlyDinnerMeals.length,
-          negativeCount: asymptomatic,
+          negativeCount: 0,
           occurrences: earlyDinnerMeals
               .map((m) => PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Good Sleep', timeAfter: 'Next morning'))
               .toList(),
@@ -819,22 +827,20 @@ class PatternEngineServiceImpl implements PatternEngineService {
 
     if (lateDinnerMeals.length >= _minFrequency) {
       final totalSimilar = meals.where((m) => m.eventTime.hour >= 20).length;
-      final asymptomatic = totalSimilar - lateDinnerMeals.length;
-      final lateRatio = totalSimilar > 0 ? lateDinnerMeals.length / totalSimilar : 0.0;
       patterns.add(
         BodyPattern(
           type: BodyPattern.typeSleep,
           trigger: 'Late night eating',
           reaction: 'Interrupted Sleep',
           frequency: lateDinnerMeals.length,
-          confidence: _getConfidence(frequency: lateDinnerMeals.length, evidenceRatio: lateRatio, negativeCount: asymptomatic),
-          description: 'Late dinners (after 8:00 PM) correlated with poorer sleep quality ${lateDinnerMeals.length} times.',
+          confidence: _getConfidence(frequency: lateDinnerMeals.length, distinctDays: _distinctDays(lateDinnerMeals)),
+          description: 'Late dinners (after 8:00 PM) coincided with poorer-sleep reports ${lateDinnerMeals.length} times.',
           updatedAt: DateTime.now().toIso8601String(),
           totalSimilarMeals: totalSimilar,
           timeframeDays: timeframeDays,
-          evidenceRatio: lateRatio,
+          evidenceRatio: 0.0,
           positiveCount: lateDinnerMeals.length,
-          negativeCount: asymptomatic,
+          negativeCount: 0,
           occurrences: lateDinnerMeals
               .map((m) => PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Poor Sleep', timeAfter: 'Next morning'))
               .toList(),

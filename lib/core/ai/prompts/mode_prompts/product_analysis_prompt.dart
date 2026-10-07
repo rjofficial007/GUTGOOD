@@ -23,7 +23,8 @@ RULES:
 - Prefer addition/context over restriction.
 - Do NOT compute the numeric "score" field — set it to 50 as a placeholder.
 - List EVERY additive from PRODUCT DATA as separate short labels in "additiveItems" (E-codes first, e.g. "E621", else names like "Palm Oil"); [] if none.
-- Explicitly set "isOrganic": true if the product data contains "organic" or "bio" labels/tags; else false.
+- Set "isOrganic" from the supplied product data; use null when unknown.
+- Recommend exactly 4 distinct swaps using the shared schema when four supplied alternatives offer meaningful improvements; otherwise return []. Explain the comparison and relevant tradeoffs. Do not invent product facts or pad with unsuitable options.
 - Do not diagnose allergies or intolerances.
 - Do not use fear-based language or call products "toxic".
 

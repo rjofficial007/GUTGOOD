@@ -32,7 +32,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 
 10. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
     - Populate the "symptoms" array if the user is reporting a current feeling (either positive like "energetic/focused" or negative like "bloated/tired").
-    - Ensure the "energyLevel" and "mood" fields are populated if mentioned.
+    - Record only details the user actually stated; never invent numeric ratings.
     
 ${PromptFormattingRules.gutGoodDataBlockRequired}
 

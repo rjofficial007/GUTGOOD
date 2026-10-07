@@ -51,6 +51,15 @@ class FakeInsightsNotifier extends ChangeNotifier implements InsightsNotifier {
   bool get isGenerating => fakeIsGenerating;
 
   @override
+  bool get isGeneratingAiInterpretation => false;
+
+  @override
+  String? get aiInterpretationError => null;
+
+  @override
+  InsightAiInterpretation? aiInterpretationFor(AIInsight insight) => insight.aiInterpretation;
+
+  @override
   int get totalMeals => fakeTotalMeals;
 
   @override
@@ -60,7 +69,7 @@ class FakeInsightsNotifier extends ChangeNotifier implements InsightsNotifier {
   int get totalScans => fakeTotalScans;
 
   @override
-  int get totalFoodScans => fakeTotalScans + fakeTotalMeals;
+  int get totalFoodScans => fakeTotalMeals;
 
   @override
   int get todayMeals => fakeTotalMeals;
@@ -72,7 +81,7 @@ class FakeInsightsNotifier extends ChangeNotifier implements InsightsNotifier {
   int get todayScans => fakeTotalScans;
 
   @override
-  int get todayFoodScans => fakeTotalScans + fakeTotalMeals;
+  int get todayFoodScans => fakeTotalMeals;
 
   @override
   List<AIInsight> get insightHistory => fakeLatestInsight != null ? [fakeLatestInsight!] : [];
@@ -88,6 +97,9 @@ class FakeInsightsNotifier extends ChangeNotifier implements InsightsNotifier {
 
   @override
   Future<void> generateNewInsight({bool force = false}) async {}
+
+  @override
+  Future<void> generateAiInterpretation(AIInsight insight) async {}
 
   @override
   Future<void> markAllAlertsAsRead() async {}

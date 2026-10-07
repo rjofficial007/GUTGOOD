@@ -22,7 +22,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
 6. REQUIRED LOGGING (ABSOLUTELY MANDATORY):
    If a specific food product or meal is identified, you MUST include exactly ONE [GUTGOOD_DATA] block at the very end of your response.
    - Populate the "scan" object and set "category" to "food", "menu", "label", "packaging", or "non-food" based on the content.
-   - If the user is reporting a symptom or physical feeling (e.g., feeling energetic), you MUST also populate the "symptoms" array. Ensure the "energyLevel" and "mood" fields are populated if mentioned.
+   - If the user reports a symptom or physical feeling (e.g., feeling energetic), populate the "symptoms" array. Record only details they actually stated; never invent numeric ratings.
    
 ${PromptFormattingRules.gutGoodDataBlockRequired}
 
