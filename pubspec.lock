@@ -653,6 +653,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  genz_insights:
+    dependency: "direct main"
+    description:
+      path: "packages/genz_insights"
+      relative: true
+    source: path
+    version: "0.1.0"
   get_it:
     dependency: "direct main"
     description:

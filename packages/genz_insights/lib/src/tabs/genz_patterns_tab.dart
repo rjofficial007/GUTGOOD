@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:gutgood/core/router/app_routes.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../genz_theme.dart';
 import '../widgets/genz_tile.dart';
@@ -82,7 +80,7 @@ class _GenzPatternsTabState extends State<GenzPatternsTab> {
                         color: GenzColors.lime,
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
-                      child: const Text('unlocked', style: TextStyle(color: GenzColors.ink, fontFamily: 'InterTight', fontSize: 34, fontWeight: FontWeight.w900, height: 0.98, letterSpacing: -1.6)),
+                      child: const Text('unlocked', style: TextStyle(color: GenzColors.ink, fontFamily: GenzFonts.primary, fontSize: 38, fontWeight: FontWeight.w900, height: 0.98, letterSpacing: -1.8)),
                     ),
                   ),
                 ),
@@ -112,7 +110,7 @@ class _GenzPatternsTabState extends State<GenzPatternsTab> {
               crossAxisCount: 2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.65, // ~165/258
+              mainAxisExtent: 258,
             ),
             itemBuilder: (context, index) {
               final item = patterns[index];
@@ -122,7 +120,7 @@ class _GenzPatternsTabState extends State<GenzPatternsTab> {
 
           const SizedBox(height: 26),
           Center(
-            child: Text('tap a card to see the receipts.', style: TextStyle(color: GenzColors.mu(context), fontSize: 12, fontWeight: FontWeight.w700, fontFamily: 'InterTight')),
+            child: Text('tap a card to see the receipts.', style: TextStyle(color: GenzColors.mu(context), fontSize: 12, fontWeight: FontWeight.w700, fontFamily: GenzFonts.primary)),
           ),
           const SizedBox(height: 8),
         ],
@@ -145,7 +143,8 @@ class _GenzPatternsTabState extends State<GenzPatternsTab> {
           child: Text(
             label,
             style: TextStyle(
-              fontFamily: 'InterTight',
+              fontFamily: GenzFonts.primary,
+              fontFamilyFallback: GenzFonts.fallback,
               fontSize: 14,
               fontWeight: FontWeight.w900,
               color: isSelected ? GenzColors.ink : GenzColors.tx(context),
@@ -165,18 +164,18 @@ class _GenzPatternsTabState extends State<GenzPatternsTab> {
         right: -2,
         top: 46,
         child: Transform.rotate(
-          angle: item.isEven ? -0.1 : 0.1, // ~ +/- 6 degrees
-          child: Image.asset('assets/images/${item.asset}', width: 112, height: 112),
+          angle: item.isEven ? 0.1 : -0.1, // prototype alternates +6 and -6 degrees
+          child: GenzArt(asset: 'assets/images/${item.asset}', width: 112, height: 112),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GenzSticker(text: item.sticker, tone: GenzTone.ink),
+          GenzSticker(text: item.sticker),
           const Spacer(),
-          Text(item.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -1, height: 1, fontFamily: 'InterTight')),
+          Text(item.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -1, height: 1, fontFamily: GenzFonts.primary)),
           const SizedBox(height: 3),
-          Text(item.subtitle, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: item.tone == GenzTone.blue ? Colors.white.withOpacity(0.78) : GenzColors.ink.withOpacity(0.62), fontFamily: 'InterTight')),
+          Text(item.subtitle, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: item.tone == GenzTone.blue ? Colors.white.withOpacity(0.78) : GenzColors.ink.withOpacity(0.62), fontFamily: GenzFonts.primary)),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -187,10 +186,10 @@ class _GenzPatternsTabState extends State<GenzPatternsTab> {
                   color: item.tone == GenzTone.blue ? Colors.white : GenzColors.ink,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(LucideIcons.arrowRight, color: item.tone == GenzTone.blue ? GenzColors.blue : _getToneColor(item.tone), size: 16),
+                child: Icon(LucideIcons.arrowUpRight, color: item.tone == GenzTone.blue ? GenzColors.blue : _getToneColor(item.tone), size: 16),
               ),
               const SizedBox(width: 8),
-              Text('seen ${item.seenCount}×', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, fontFamily: 'InterTight')),
+              Text('seen ${item.seenCount}×', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, fontFamily: GenzFonts.primary)),
             ],
           ),
         ],

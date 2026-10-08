@@ -1,0 +1,16 @@
+name: genz_insights_example
+description: Example host app for the genz_insights package.
+publish_to: none
+
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  genz_insights:
+    path: ../
+
+flutter:
+  uses-material-design: true

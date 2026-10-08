@@ -1,5 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:gutgood/core/theme/app_color_scheme.dart';
+
+/// Font resolution mirrored from `docs/insight_genz_formatted.html`:
+/// SF Pro Rounded, ui-rounded, Inter, Helvetica Neue, Arial, system-ui, sans-serif.
+/// Flutter cannot represent CSS generic families directly, so Android's
+/// `sans-serif-rounded` is inserted as the platform equivalent of `ui-rounded`.
+class GenzFonts {
+  static const String primary = 'SF Pro Rounded';
+  static const List<String> fallback = <String>[
+    'ui-rounded',
+    'sans-serif-rounded',
+    'Inter',
+    'Helvetica Neue',
+    'Arial',
+    'system-ui',
+    'sans-serif',
+  ];
+}
 
 class GenzColors {
   // Constant Palette Colors
@@ -22,22 +38,24 @@ class GenzColors {
   static Color mu(BuildContext context) => isDark(context) ? const Color(0xFF9B9BB0) : const Color(0xFF6C6C7C);
   static Color ln(BuildContext context) => isDark(context) ? const Color(0x1CFFFFFF) : const Color(0x1C0B0B12);
   static Color nav(BuildContext context) => isDark(context) ? const Color(0xFF171722) : const Color(0xFF0B0B12);
-  static Color scaffoldBg(BuildContext context) => context.appColorScheme.cardBackground;
+  static Color scaffoldBg(BuildContext context) => bg(context);
   static Color tileInk(BuildContext context) => isDark(context) ? const Color(0xFF1A1A27) : const Color(0xFF0B0B12);
 }
 
 class GenzStyles {
   static TextStyle h1(BuildContext context) => TextStyle(
-        fontFamily: 'InterTight',
-        fontSize: 34,
+        fontFamily: GenzFonts.primary,
+        fontFamilyFallback: GenzFonts.fallback,
+        fontSize: 38,
         fontWeight: FontWeight.w900,
-        letterSpacing: -1.6,
+        letterSpacing: -1.8,
         height: 0.98,
         color: GenzColors.tx(context),
       );
 
   static TextStyle eyebrow(BuildContext context) => TextStyle(
-        fontFamily: 'InterTight',
+        fontFamily: GenzFonts.primary,
+        fontFamilyFallback: GenzFonts.fallback,
         fontSize: 11.5,
         fontWeight: FontWeight.w800,
         letterSpacing: 1.2,
@@ -45,7 +63,8 @@ class GenzStyles {
       );
 
   static TextStyle h2(BuildContext context) => TextStyle(
-        fontFamily: 'InterTight',
+        fontFamily: GenzFonts.primary,
+        fontFamilyFallback: GenzFonts.fallback,
         fontSize: 22,
         fontWeight: FontWeight.w900,
         letterSpacing: -0.8,
@@ -53,16 +72,18 @@ class GenzStyles {
       );
 
   static const TextStyle big = TextStyle(
-    fontFamily: 'InterTight',
-    fontSize: 84,
+    fontFamily: GenzFonts.primary,
+    fontFamilyFallback: GenzFonts.fallback,
+    fontSize: 104,
     fontWeight: FontWeight.w900,
-    letterSpacing: -4,
+    letterSpacing: -6,
     height: 0.82,
     color: GenzColors.ink,
   );
 
   static const TextStyle title = TextStyle(
-    fontFamily: 'InterTight',
+    fontFamily: GenzFonts.primary,
+    fontFamilyFallback: GenzFonts.fallback,
     fontSize: 30,
     fontWeight: FontWeight.w900,
     letterSpacing: -1.3,
@@ -70,7 +91,8 @@ class GenzStyles {
   );
 
   static const TextStyle caption = TextStyle(
-    fontFamily: 'InterTight',
+    fontFamily: GenzFonts.primary,
+    fontFamilyFallback: GenzFonts.fallback,
     fontSize: 14.5,
     fontWeight: FontWeight.w600,
     height: 1.35,
