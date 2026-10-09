@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:genz_insights/genz_insights.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
@@ -325,6 +326,12 @@ class AppRouter {
               GoRoute(
                 path: AppRoutes.cyclePhase,
                 builder: (context, state) => CyclePhaseScreen(currentPhase: state.extra as String?),
+              ),
+              GoRoute(
+                path: AppRoutes.genzInsight,
+                builder: (context, state) => InsightGenzScreen(
+                  onOpenRoute: (path) => context.push(path),
+                ),
               ),
             ],
           ),

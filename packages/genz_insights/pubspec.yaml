@@ -1,0 +1,17 @@
+name: genz_insights
+description: A portable Flutter GenZ Insights screen with demo details and bundled image assets.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  lucide_icons_flutter: ^3.1.22
+
+flutter:
+  assets:
+    - assets/images/

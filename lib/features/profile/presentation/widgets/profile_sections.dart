@@ -109,6 +109,12 @@ class PersonalizationSection extends StatelessWidget {
         showCard: true,
         children: [
           AppTile(
+            icon: AppIcons.sparkles,
+            title: 'GenZ Insights',
+            subtitle: 'New insights experience',
+            onTap: () => unawaited(context.push(AppRoutes.genzInsight)),
+          ),
+          AppTile(
             icon: AppIcons.target,
             title: AppStrings.goals,
             subtitle: '${goals.length} ${AppStrings.activeCount}',

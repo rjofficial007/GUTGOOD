@@ -39,6 +39,7 @@ class AppRoutes {
   static const String lifestyle = '/lifestyle';
   static const String notifications = '/notifications';
   static const String cyclePhase = '/cycle-phase';
+  static const String genzInsight = '/genz-insight';
 
   // Overlays
   static const String scanner = '/scanner/:mode';
