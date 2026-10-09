@@ -19,7 +19,7 @@ export interface UsageCheckResult {
   limit: number;
   alreadyCounted: boolean;
   /** Why a request was rejected ('quota' = daily/lifetime action limit). */
-  reason: 'ok' | 'quota';
+  reason: 'ok' | 'quota' | 'profile_missing';
 }
 
 function todayKey(timezoneOffsetMinutes: number = 0): string {
@@ -115,6 +115,10 @@ export async function checkAndConsume(
   return admin.firestore().runTransaction(async (tx) => {
     // 🔴 CRITICAL FIX: All reads must happen BEFORE any writes in a transaction.
     const [snap, userSnap] = await Promise.all([tx.get(ref), tx.get(userRef)]);
+
+    if (!userSnap.exists) {
+      return { allowed: false, premium: isPremium, count: 0, limit, alreadyCounted: false, reason: 'profile_missing' };
+    }
 
     const data = snap.data() ?? {};
     const userData = userSnap.data() ?? {};
@@ -216,7 +220,8 @@ export async function refund(
 
   try {
     await admin.firestore().runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
+      const [snap, userSnap] = await Promise.all([tx.get(ref), tx.get(userRef)]);
+      if (!userSnap.exists) return;
       const data = snap.data() ?? {};
       const recentIds: string[] = Array.isArray(data.recentIds) ? data.recentIds : [];
 
@@ -257,16 +262,22 @@ export async function recordTokens(
 
   const today = todayKey(timezoneOffsetMinutes);
   const ref = admin.firestore().doc(`user_profiles/${uid}/daily_usage/${today}`);
+  const userRef = admin.firestore().doc(`user_profiles/${uid}`);
 
   try {
-    await ref.set(
-      {
-        tokens_in: admin.firestore.FieldValue.increment(Math.max(0, Math.round(inputTokens) || 0)),
-        tokens_out: admin.firestore.FieldValue.increment(Math.max(0, Math.round(outputTokens) || 0)),
-        requests: admin.firestore.FieldValue.increment(1),
-      },
-      { merge: true },
-    );
+    await admin.firestore().runTransaction(async (tx) => {
+      const profile = await tx.get(userRef);
+      if (!profile.exists) return;
+      tx.set(
+        ref,
+        {
+          tokens_in: admin.firestore.FieldValue.increment(Math.max(0, Math.round(inputTokens) || 0)),
+          tokens_out: admin.firestore.FieldValue.increment(Math.max(0, Math.round(outputTokens) || 0)),
+          requests: admin.firestore.FieldValue.increment(1),
+        },
+        { merge: true },
+      );
+    });
   } catch (e) {
     console.error('recordTokens failed', e);
   }

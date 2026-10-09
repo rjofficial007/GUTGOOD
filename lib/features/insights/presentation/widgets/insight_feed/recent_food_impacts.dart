@@ -3,9 +3,10 @@ part of 'insights_feed.dart';
 /// Recent food-impact list components.
 
 class _RecentFoodImpactsSection extends StatelessWidget {
-  const _RecentFoodImpactsSection({this.impacts = const []});
+  const _RecentFoodImpactsSection({this.impacts = const [], this.onSeeAll});
 
   final List<FoodImpact> impacts;
+  final VoidCallback? onSeeAll;
 
   @override
   Widget build(BuildContext context) {
@@ -21,16 +22,7 @@ class _RecentFoodImpactsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(LucideIcons.clock, size: 15.w, color: context.insightColor(const Color(0xFF0F172A))),
-                Gap.w6,
-                Text(
-                  'Recent Food Impacts',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-                ),
-              ],
-            ),
+            _RecentFoodImpactsHeader(onSeeAll: onSeeAll),
             Gap.h4,
             Text(
               'No recent food impacts recorded yet. Log your meals to see how specific foods affect your gut.',
@@ -44,21 +36,7 @@ class _RecentFoodImpactsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(LucideIcons.clock, size: 15.w, color: context.insightColor(const Color(0xFF0F172A))),
-                Gap.w6,
-                Text(
-                  'Recent Food Impacts',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-                ),
-              ],
-            ),
-          ],
-        ),
+          _RecentFoodImpactsHeader(onSeeAll: onSeeAll),
         Gap.h8,
 
         Container(
@@ -86,6 +64,40 @@ class _RecentFoodImpactsSection extends StatelessWidget {
       ],
     );
   }
+}
+
+class _RecentFoodImpactsHeader extends StatelessWidget {
+  const _RecentFoodImpactsHeader({this.onSeeAll});
+
+  final VoidCallback? onSeeAll;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Row(
+          children: [
+            Icon(LucideIcons.clock, size: 15.w, color: context.insightColor(const Color(0xFF0F172A))),
+            Gap.w6,
+            Text('Recent Food Impacts', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)))),
+          ],
+        ),
+      ),
+      if (onSeeAll != null)
+        TextButton(
+          onPressed: onSeeAll,
+          style: TextButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.w), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('See All', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: context.insightColor(const Color(0xFF334155)))),
+              Gap.w3,
+              Icon(Icons.arrow_forward_rounded, size: 12.w, color: context.insightColor(const Color(0xFF334155))),
+            ],
+          ),
+        ),
+    ],
+  );
 }
 
 class _FoodImpactRow extends StatelessWidget {

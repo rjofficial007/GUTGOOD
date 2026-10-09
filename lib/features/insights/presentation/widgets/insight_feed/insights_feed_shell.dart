@@ -94,11 +94,10 @@ class _InsightsFeedState extends State<InsightsFeed> {
                   Gap.h10,
 
                   // 5. Recent Food Impacts List
-                  _RecentFoodImpactsSection(impacts: widget.data.foodImpacts),
-                  Gap.h10,
-
-                  // 6. Your Next Steps Action Cards
-                  _YourNextStepsSection(actions: widget.data.actionsList, insight: widget.data),
+                  _RecentFoodImpactsSection(
+                    impacts: widget.data.foodImpacts,
+                    onSeeAll: () => context.push(AppRoutes.foodIntelligence, extra: widget.data),
+                  ),
                 ],
               ] else if (_selectedFilter == 'Weekly Recap') ...[
                 // -------------------------------------------------------------------

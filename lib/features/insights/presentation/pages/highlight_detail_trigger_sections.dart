@@ -8,9 +8,7 @@ extension HighlightTriggerSections on HighlightDetailScreen {
     final insight = _highlightInsightOf(context);
     final pattern = insight?.detectedPatterns.where((p) => p.type.toLowerCase().contains('trigger') || p.reaction.isNotEmpty).firstOrNull;
 
-    final loggedFoodName = pattern?.involvedFoods.isNotEmpty == true
-        ? pattern!.involvedFoods.first
-        : (pattern?.trigger.isNotEmpty == true ? pattern!.trigger : '');
+    final loggedFoodName = pattern?.involvedFoods.isNotEmpty == true ? pattern!.involvedFoods.first : (pattern?.trigger.isNotEmpty == true ? pattern!.trigger : '');
     final foodName = loggedFoodName.isEmpty ? 'Food not identified' : loggedFoodName;
 
     final occurrences = pattern?.occurrences ?? const <PatternOccurrence>[];
@@ -62,11 +60,7 @@ extension HighlightTriggerSections on HighlightDetailScreen {
                 _buildLatestObservationSection(context, occurrences: occurrences),
                 Gap.h10,
 
-                // 3. WHAT TO DO NEXT CARD
-                _buildWhatToDoNextCard(context),
-                Gap.h10,
-
-                // 4. WANT A DIFFERENT OPTION? (Better Swaps)
+                // 3. WANT A DIFFERENT OPTION? (Better Swaps)
                 if (loggedFoodName.isNotEmpty) _buildBetterSwapsOptionCard(context, foodName: loggedFoodName),
                 Gap.h12,
               ]),
@@ -148,7 +142,11 @@ extension HighlightTriggerSections on HighlightDetailScreen {
                             Icon(LucideIcons.triangleAlert, size: 10.w, color: pillFg),
                             Gap.w4,
                             Text(
-                              pattern == null ? 'NO MATCHING PATTERN' : isSingleObservation ? 'POSSIBLE CONNECTION' : 'OBSERVED IN LOGS',
+                              pattern == null
+                                  ? 'NO MATCHING PATTERN'
+                                  : isSingleObservation
+                                  ? 'POSSIBLE CONNECTION'
+                                  : 'OBSERVED IN LOGS',
                               style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: pillFg),
                             ),
                           ],
@@ -202,17 +200,19 @@ extension HighlightTriggerSections on HighlightDetailScreen {
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8.w, offset: Offset(0, 2.w))],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: !hasFoodName ? Icon(LucideIcons.utensils, size: 28.w, color: pillFg) : InsightUiKit.foodImage(
-                    foodName,
-                    imageUrl: foodImageUrl,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    placeholder: Container(color: context.insightColor(const Color(0xFFF1F5F9))),
-                    errorWidget: Container(
-                      color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.20) : const Color(0xFFFEE2E2),
-                      child: Icon(LucideIcons.utensils, size: 28.w, color: pillFg),
-                    ),
-                  ),
+                  child: !hasFoodName
+                      ? Icon(LucideIcons.utensils, size: 28.w, color: pillFg)
+                      : InsightUiKit.foodImage(
+                          foodName,
+                          imageUrl: foodImageUrl,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          placeholder: Container(color: context.insightColor(const Color(0xFFF1F5F9))),
+                          errorWidget: Container(
+                            color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.20) : const Color(0xFFFEE2E2),
+                            child: Icon(LucideIcons.utensils, size: 28.w, color: pillFg),
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -320,102 +320,7 @@ extension HighlightTriggerSections on HighlightDetailScreen {
     );
   }
 
-  /// 3. What to do next Card
-  Widget _buildWhatToDoNextCard(BuildContext context) {
-    final theme = context.insightTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF102319) : const Color(0xFFF4FAF5),
-        borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.3) : const Color(0xFFDCFCE7), width: 1.w),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 28.w,
-                height: 28.w,
-                decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.2) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
-                alignment: Alignment.center,
-                child: Icon(LucideIcons.lightbulb, size: 14.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-              ),
-              Gap.w8,
-              Text(
-                'What to do next',
-                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
-              ),
-            ],
-          ),
-          Gap.h8,
-          Text(
-            'Keep logging this food and how you feel afterward. A few more observations can help GutGood determine if there\'s a consistent pattern.',
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, color: theme.textSecondary, height: 1.3),
-          ),
-          Gap.h12,
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    context.go(AppRoutes.chat);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 12.w),
-                    decoration: BoxDecoration(color: isDark ? Colors.white : const Color(0xFF0F172A), borderRadius: BorderRadius.circular(100.r)),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(LucideIcons.utensils, size: 14.w, color: isDark ? const Color(0xFF0F172A) : Colors.white),
-                        Gap.w8,
-                        Text(
-                          'Log a Meal',
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF0F172A) : Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Gap.w8,
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    context.go(AppRoutes.chat);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 12.w),
-                    decoration: BoxDecoration(
-                      color: isDark ? theme.card : Colors.white,
-                      borderRadius: BorderRadius.circular(100.r),
-                      border: Border.all(color: theme.border, width: 1.w),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(LucideIcons.smile, size: 14.w, color: theme.textPrimary),
-                        Gap.w8,
-                        Text(
-                          'Log a Symptom',
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w700, color: theme.textPrimary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 4. Better Swaps Option Card ("Want a different option?")
+  /// 3. Better Swaps Option Card ("Want a different option?")
   Widget _buildBetterSwapsOptionCard(BuildContext context, {required String foodName}) {
     final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -483,5 +388,4 @@ extension HighlightTriggerSections on HighlightDetailScreen {
       ),
     );
   }
-
 }

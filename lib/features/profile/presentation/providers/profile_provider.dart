@@ -288,7 +288,14 @@ class ProfileNotifier with ChangeNotifier {
       updatedAt: DateTime.now(),
     );
 
-    await _firestoreService.updateUserProfile(updatedProfile);
+    // A missing Firestore profile means an earlier auth-time create failed.
+    // Create the root now and let failures stop onboarding; otherwise later
+    // child-collection writes can leave an italicized, data-less parent.
+    if (_profile == null) {
+      await _firestoreService.saveUserProfile(updatedProfile);
+    } else {
+      await _firestoreService.updateUserProfile(updatedProfile);
+    }
     _profile = updatedProfile; // 🟢 Optimistic update to ensure downstream calls (like markOnboardingComplete) have fresh data.
 
     await _analyticsService.logEvent(

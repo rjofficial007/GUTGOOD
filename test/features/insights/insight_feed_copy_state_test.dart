@@ -27,31 +27,50 @@ void main() {
     ),
   );
 
-  testWidgets('uses the centered empty state for Patterns and keeps the learning banner', (tester) async {
-    final insight = AIInsight(gutScore: 70, updatedAt: DateTime.now());
+  testWidgets(
+    'uses the centered empty state for Patterns and keeps the learning banner',
+    (tester) async {
+      final insight = AIInsight(gutScore: 70, updatedAt: DateTime.now());
 
-    await tester.pumpWidget(
-      host(
-        Scaffold(
-          body: CustomScrollView(
-            slivers: [InsightsFeed(data: insight, patterns: const [], series: const [0, 70, 0, 0, 0, 0, 0])],
+      await tester.pumpWidget(
+        host(
+          Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                InsightsFeed(
+                  data: insight,
+                  patterns: const [],
+                  series: const [0, 70, 0, 0, 0, 0, 0],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Patterns'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Patterns'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Your meals.\nYour reactions.\nYour patterns.'), findsOneWidget);
-    expect(find.text('Keep logging your food scans and symptoms to discover recurring body patterns and tailored triggers.'), findsOneWidget);
-    expect(find.text('Patterns get smarter over time'), findsOneWidget);
-    expect(find.text('Scan food'), findsNothing);
-    expect(find.text('Track symptoms'), findsNothing);
-  });
+      expect(
+        find.text('Your meals.\nYour reactions.\nYour patterns.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Keep logging your food scans and symptoms to discover recurring body patterns and tailored triggers.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Patterns get smarter over time'), findsOneWidget);
+      expect(find.text('Scan food'), findsNothing);
+      expect(find.text('Track symptoms'), findsNothing);
+    },
+  );
 
-  testWidgets('labels a one-scored-day recap as only scored day', (tester) async {
+  testWidgets('labels a one-scored-day recap as only scored day', (
+    tester,
+  ) async {
     final insight = AIInsight(
       gutScore: 70,
       updatedAt: DateTime.now(),
@@ -69,29 +88,52 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(host(Scaffold(body: SingleChildScrollView(child: WeeklyRecapView(data: insight)))));
+    await tester.pumpWidget(
+      host(
+        Scaffold(
+          body: SingleChildScrollView(child: WeeklyRecapView(data: insight)),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Only Scored Day'), findsOneWidget);
     expect(find.text('meal'), findsOneWidget);
   });
 
-  testWidgets('uses the screenshot-style empty state before a completed recap exists', (tester) async {
-    final insight = AIInsight(
-      gutScore: 70,
-      updatedAt: DateTime.now(),
-      weeklyRecap: const WeeklyRecap(gutScoreTrend: [0, 70, 0, 0, 0, 0, 0]),
-    );
+  testWidgets(
+    'uses the screenshot-style empty state before a completed recap exists',
+    (tester) async {
+      final insight = AIInsight(
+        gutScore: 70,
+        updatedAt: DateTime.now(),
+        weeklyRecap: const WeeklyRecap(gutScoreTrend: [0, 70, 0, 0, 0, 0, 0]),
+      );
 
-    await tester.pumpWidget(host(Scaffold(body: SingleChildScrollView(child: WeeklyRecapView(data: insight)))));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        host(
+          Scaffold(
+            body: SingleChildScrollView(child: WeeklyRecapView(data: insight)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Your week.\nYour score.\nYour recap.'), findsOneWidget);
-    expect(find.text('Keep logging meals and symptoms this week. Your Sunday–Saturday recap will appear here on Saturday.'), findsOneWidget);
-    expect(find.text('Your weekly recap gets clearer over time'), findsOneWidget);
-    expect(find.text('Scan food'), findsNothing);
-    expect(find.text('Track symptoms'), findsNothing);
-  });
+      expect(find.text('Your week.\nYour score.\nYour recap.'), findsOneWidget);
+      expect(
+        find.text(
+          'Keep logging meals and symptoms this week. Your Sunday–Saturday recap will appear here on Saturday.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Your weekly recap gets clearer over time'),
+        findsOneWidget,
+      );
+      expect(find.text('Scan food'), findsNothing);
+      expect(find.text('Track symptoms'), findsNothing);
+    },
+  );
 
   test('makes the current Sunday–Saturday recap available on Saturday', () {
     final saturday = DateTime(2026, 10, 10, 12);
@@ -102,7 +144,10 @@ void main() {
     );
 
     expect(isWeeklyRecapAvailable(recap, at: saturday), isTrue);
-    expect(isWeeklyRecapAvailable(recap, at: DateTime(2026, 10, 9, 12)), isFalse);
+    expect(
+      isWeeklyRecapAvailable(recap, at: DateTime(2026, 10, 9, 12)),
+      isFalse,
+    );
   });
 
   testWidgets('labels a single current score as a baseline', (tester) async {
@@ -112,7 +157,13 @@ void main() {
       host(
         Scaffold(
           body: CustomScrollView(
-            slivers: [InsightsFeed(data: insight, patterns: const [], series: const [0, 70, 0, 0, 0, 0, 0])],
+            slivers: [
+              InsightsFeed(
+                data: insight,
+                patterns: const [],
+                series: const [0, 70, 0, 0, 0, 0, 0],
+              ),
+            ],
           ),
         ),
       ),
@@ -123,24 +174,37 @@ void main() {
     expect(find.text('Starting baseline'), findsOneWidget);
   });
 
-  testWidgets('current insight score falls back to the profile score while its record stream loads', (tester) async {
-    final insight = AIInsight(gutScore: 70, updatedAt: DateTime.now());
-    final insights = MockInsightsNotifier();
-    final profile = MockProfileNotifier();
-    when(() => insights.latestScoreRecord).thenReturn(null);
-    when(() => profile.gutScore).thenReturn(74);
+  testWidgets(
+    'current insight score falls back to the profile score while its record stream loads',
+    (tester) async {
+      final insight = AIInsight(gutScore: 70, updatedAt: DateTime.now());
+      final insights = MockInsightsNotifier();
+      final profile = MockProfileNotifier();
+      when(() => insights.latestScoreRecord).thenReturn(null);
+      when(() => profile.gutScore).thenReturn(74);
 
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [ChangeNotifierProvider<InsightsNotifier>.value(value: insights), ChangeNotifierProvider<ProfileNotifier>.value(value: profile)],
-        child: MaterialApp(home: Builder(builder: (context) => Text('${WhyScoreSheet.resolveScore(context, insight)}'))),
-      ),
-    );
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<InsightsNotifier>.value(value: insights),
+            ChangeNotifierProvider<ProfileNotifier>.value(value: profile),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) =>
+                  Text('${WhyScoreSheet.resolveScore(context, insight)}'),
+            ),
+          ),
+        ),
+      );
 
-    expect(find.text('74'), findsOneWidget);
-  });
+      expect(find.text('74'), findsOneWidget);
+    },
+  );
 
-  testWidgets('uses neutral copy and styling when no trigger exists', (tester) async {
+  testWidgets('uses neutral copy and styling when no trigger exists', (
+    tester,
+  ) async {
     final insight = AIInsight(gutScore: 70, updatedAt: DateTime.now());
 
     await tester.pumpWidget(
@@ -148,7 +212,11 @@ void main() {
         Scaffold(
           body: CustomScrollView(
             slivers: [
-              InsightsFeed(data: insight, patterns: const [], series: const [0, 70, 0, 0, 0, 0, 0]),
+              InsightsFeed(
+                data: insight,
+                patterns: const [],
+                series: const [0, 70, 0, 0, 0, 0, 0],
+              ),
             ],
           ),
         ),
@@ -156,37 +224,138 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('PATTERN CHECK'), findsOneWidget);
+    expect(find.text('Pattern Check'), findsOneWidget);
     expect(find.text('No confirmed trigger yet'), findsOneWidget);
-    final header = tester.widget<Text>(find.text('PATTERN CHECK'));
+    final header = tester.widget<Text>(find.text('Pattern Check'));
     expect(header.style?.color, const Color(0xFF334155));
   });
 
-  testWidgets('uses the screenshot-style empty state for Food Impact without evidence', (tester) async {
-    final insight = AIInsight(gutScore: 70, updatedAt: DateTime.now());
+  testWidgets(
+    'uses the screenshot-style empty state for Food Impact without evidence',
+    (tester) async {
+      final insight = AIInsight(gutScore: 70, updatedAt: DateTime.now());
+
+      await tester.pumpWidget(
+        host(
+          Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                InsightsFeed(
+                  data: insight,
+                  patterns: const [],
+                  series: const [0, 70, 0, 0, 0, 0, 0],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Food Impact'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Your food.\nYour gut.\nYour impact.'), findsOneWidget);
+      expect(
+        find.text(
+          'Keep scanning foods and logging meals and symptoms to understand how they affect your gut.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Food impacts get clearer over time'), findsOneWidget);
+      expect(find.text('Scan food'), findsNothing);
+      expect(find.text('Track symptoms'), findsNothing);
+    },
+  );
+
+  testWidgets('shows Food Impact totals, four categories, and an explanation', (
+    tester,
+  ) async {
+    const negativeImpact = FoodImpact(
+      food: 'Pizza',
+      dateLabel: 'Today',
+      effect: 'Reported bloating',
+      timeframeLabel: '2 hours',
+      emoji: '🍕',
+      impactType: 'negative',
+    );
+    const positiveImpact = FoodImpact(
+      food: 'Oats',
+      dateLabel: 'Today',
+      effect: 'Reported comfortable digestion',
+      timeframeLabel: '2 hours',
+      emoji: '🥣',
+      impactType: 'positive',
+    );
+    final unknownImpact = FoodImpact.fromMap(const {
+      'food': 'Pasta',
+      'dateLabel': 'Today',
+      'effect': 'No clear response yet',
+      'timeframeLabel': '2 hours',
+    });
+    final insight = AIInsight(
+      gutScore: 70,
+      updatedAt: DateTime.now(),
+      foodImpacts: [
+        positiveImpact,
+        negativeImpact,
+        negativeImpact,
+        unknownImpact,
+      ],
+    );
 
     await tester.pumpWidget(
       host(
         Scaffold(
           body: CustomScrollView(
-            slivers: [InsightsFeed(data: insight, patterns: const [], series: const [0, 70, 0, 0, 0, 0, 0])],
+            slivers: [
+              InsightsFeed(data: insight, patterns: const [], series: const []),
+            ],
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
-
     await tester.tap(find.text('Food Impact'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Your food.\nYour gut.\nYour impact.'), findsOneWidget);
-    expect(find.text('Keep scanning foods and logging meals and symptoms to understand how they affect your gut.'), findsOneWidget);
-    expect(find.text('Food impacts get clearer over time'), findsOneWidget);
-    expect(find.text('Scan food'), findsNothing);
-    expect(find.text('Track symptoms'), findsNothing);
+    expect(find.text('Food Impact So Far'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
+    expect(find.text('Supportive Food Patterns'), findsOneWidget);
+    expect(find.text('Observed Near Symptoms'), findsOneWidget);
+    expect(find.text('Negative Impact'), findsOneWidget);
+    expect(find.text('Not Enough Data'), findsOneWidget);
+    expect(find.text('50%'), findsOneWidget);
+    expect(find.text('25%'), findsNWidgets(2));
+    await tester.scrollUntilVisible(
+      find.text('Your Top Foods'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Your Top Foods'), findsOneWidget);
+    expect(find.text('Based on your logs, these foods are linked to positive impact for you.'), findsOneWidget);
+    expect(find.text('Oats'), findsWidgets);
+    expect(find.text('Top Foods This Week'), findsNothing);
+    expect(
+      find.textContaining('No specific healing or trigger foods'),
+      findsNothing,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Recent Food Impacts'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Recent Food Impacts'), findsOneWidget);
+    expect(find.text('See All'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('labels a single top insight as an early observation', (tester) async {
+  testWidgets('labels a single top insight as an early observation', (
+    tester,
+  ) async {
     final insight = AIInsight(
       gutScore: 70,
       updatedAt: DateTime.now(),
@@ -202,13 +371,19 @@ void main() {
       host(
         Scaffold(
           body: CustomScrollView(
-            slivers: [InsightsFeed(data: insight, patterns: const [], series: const [0, 70, 0, 0, 0, 0, 0])],
+            slivers: [
+              InsightsFeed(
+                data: insight,
+                patterns: const [],
+                series: const [0, 70, 0, 0, 0, 0, 0],
+              ),
+            ],
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('1 reported observation'), findsOneWidget);
+    expect(find.text('Early observation · 1 observation'), findsOneWidget);
   });
 }

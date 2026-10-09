@@ -277,7 +277,7 @@ class InsightStrings {
   static const String bentoToWatch = 'To watch';
   static const String bentoWorking = 'Working';
   static const String bentoInvestigating = 'Investigating';
-  static const String bentoTopFoods = 'Top foods this week';
+  static const String bentoTopFoods = 'Your Top Foods';
   static const String bentoTopWin = 'Top win';
   static const String bentoCulprit = 'Culprit';
   static const String bentoRecovery = 'Recovery';

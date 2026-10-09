@@ -9,8 +9,20 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasHealing = insight?.healingSummary?.foods.isNotEmpty == true || insight?.healingFoods.isNotEmpty == true;
-    final hasTrigger = insight?.triggerSummary?.foods.isNotEmpty == true || insight?.triggerFoods.isNotEmpty == true;
+    final positiveFromImpacts = _foodsFromImpacts(positive: true);
+    final negativeFromImpacts = _foodsFromImpacts(positive: false);
+    final healingList = insight?.healingSummary?.foods.isNotEmpty == true
+        ? insight!.healingSummary!.foods
+        : insight?.healingFoods.isNotEmpty == true
+        ? insight!.healingFoods.map((f) => InsightFood(foodId: 'h_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect)).toList()
+        : positiveFromImpacts;
+    final triggerList = insight?.triggerSummary?.foods.isNotEmpty == true
+        ? insight!.triggerSummary!.foods
+        : insight?.triggerFoods.isNotEmpty == true
+        ? insight!.triggerFoods.map((f) => InsightFood(foodId: 't_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect)).toList()
+        : negativeFromImpacts;
+    final hasHealing = healingList.isNotEmpty;
+    final hasTrigger = triggerList.isNotEmpty;
 
     if (!hasHealing && !hasTrigger) {
       return Container(
@@ -37,22 +49,6 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
         ),
       );
     }
-
-    final healingList = insight?.healingSummary?.foods.isNotEmpty == true
-        ? insight!.healingSummary!.foods
-        : (insight?.healingFoods.isNotEmpty == true
-              ? insight!.healingFoods
-                    .map((f) => InsightFood(foodId: 'h_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
-                    .toList()
-              : <InsightFood>[]);
-
-    final triggerList = insight?.triggerSummary?.foods.isNotEmpty == true
-        ? insight!.triggerSummary!.foods
-        : (insight?.triggerFoods.isNotEmpty == true
-              ? insight!.triggerFoods
-                    .map((f) => InsightFood(foodId: 't_${f.name}', name: f.name, emoji: f.emoji, imageUrl: f.userImageUrl ?? f.imageUrl, effect: f.effect))
-                    .toList()
-              : <InsightFood>[]);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -297,6 +293,31 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
         );
       },
     );
+  }
+
+  List<InsightFood> _foodsFromImpacts({required bool positive}) {
+    final grouped = <String, List<FoodImpact>>{};
+    for (final impact in insight?.foodImpacts ?? const <FoodImpact>[]) {
+      final type = impact.impactType.toLowerCase().trim();
+      final matches = positive
+          ? const {'positive', 'healing', 'good', 'supportive'}.contains(type)
+          : const {'negative', 'trigger', 'bad', 'watch'}.contains(type);
+      if (!matches || impact.food.trim().isEmpty) continue;
+      grouped.putIfAbsent(impact.food.trim().toLowerCase(), () => []).add(impact);
+    }
+
+    final entries = grouped.entries.toList()..sort((a, b) => b.value.length.compareTo(a.value.length));
+    return [
+      for (final entry in entries)
+        InsightFood(
+          foodId: '${positive ? 'positive' : 'negative'}_${entry.key}',
+          name: entry.value.first.food.trim(),
+          emoji: entry.value.first.emoji,
+          imageUrl: entry.value.first.userImageUrl ?? entry.value.first.imageUrl,
+          effect: entry.value.first.effect,
+          impactLevel: positive ? 'positive' : 'negative',
+        ),
+    ];
   }
 }
 

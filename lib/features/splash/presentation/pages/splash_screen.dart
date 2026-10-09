@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/di/di_instance.dart';
+import 'package:gutgood/core/models/user/user_profile.dart';
 import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
@@ -57,15 +58,33 @@ class _SplashScreenState extends State<SplashScreen> {
 
       // 5. Initial Profile Fetch (if authenticated)
       final authRepository = sl<AuthRepository>();
-      if (authRepository.currentUser != null) {
+      final user = authRepository.currentUser;
+      if (user != null) {
         AppLogger.info('SplashScreen: User authenticated, warming up Firestore cache.');
-        await sl<AuthFirestoreService>().getUserMetadata().timeout(
+        var profileReadTimedOut = false;
+        final firestoreService = sl<AuthFirestoreService>();
+        final profile = await firestoreService.getUserMetadata().timeout(
           const Duration(seconds: 5),
           onTimeout: () {
+            profileReadTimedOut = true;
             AppLogger.warning('SplashScreen: Firestore warmup timed out. Proceeding with cache.');
             return null;
           },
         );
+        if (profile == null && !profileReadTimedOut) {
+          final now = DateTime.now();
+          await firestoreService.createUserProfileIfMissing(UserProfile(
+            uid: user.uid,
+            displayName: user.displayName ?? (user.isAnonymous ? 'Guest' : null),
+            email: user.email ?? (user.isAnonymous ? 'No email synced' : null),
+            isAnonymous: user.isAnonymous,
+            authProvider: user.authProvider ?? (user.isAnonymous ? 'anonymous' : null),
+            onboarded: false,
+            updatedAt: now,
+            createdAt: now,
+          ));
+          AppLogger.info('SplashScreen: Created missing profile for authenticated user.');
+        }
       }
     } catch (e) {
       AppLogger.error('SplashScreen: Initialization error: $e');

@@ -47,19 +47,22 @@ class InsightBentoPattern extends StatelessWidget {
               style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: 13.sp, color: PatternSurface.isDark(context) ? const Color(0xFFC3C9D4) : const Color(0xFF3A3F47), height: 1.55),
             ),
           ),
-          Gap.h16,
           if (pattern.involvedFoods.isNotEmpty) ...[
+            Gap.h16,
             _SectionCard(
               title: 'FOODS IN THESE MEALS',
               color: accent,
               child: Wrap(
                 spacing: 8.w,
                 runSpacing: 8.w,
-                children: [for (final food in pattern.involvedFoods) Chip(label: Text(food))],
+                children: [
+                  for (final food in pattern.involvedFoods)
+                    Chip(label: Text(food), visualDensity: VisualDensity.compact),
+                ],
               ),
             ),
-            Gap.h16,
           ],
+          Gap.h16,
           // 6. Recent Episodes
           if (pattern.occurrences.isNotEmpty)
             _SectionCard(

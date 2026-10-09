@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/di/di_instance.dart';
 import 'package:gutgood/core/models/models.dart';
@@ -11,7 +10,6 @@ import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_app_bar.dart';
-import 'package:gutgood/core/widgets/journal_event_sheet.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ui_kit.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/notification_service.dart';
@@ -236,18 +234,8 @@ class _SwapDetailScreenState extends State<SwapDetailScreen> {
                     child: ElevatedButton(
                       onPressed: () async {
                         try {
-                          final choice = await showJournalEventSheet(context, title: 'When did you eat this?');
-                          if (choice == null) return;
                           final logId = await sl<HistoryFirestoreService>().logMeal(
-                            MealLog(
-                              items: [alternative.name],
-                              notes: alternative.reason ?? 'Better food swap selection',
-                              mealType: _currentMealType(),
-                              source: 'swap',
-                              createdAt: DateTime.now(),
-                              occurredAt: choice.occurredAt,
-                              occurredAtProvenance: OccurrenceProvenance.user,
-                            ),
+                            MealLog(items: [alternative.name], notes: alternative.reason ?? 'Better food swap selection', mealType: _currentMealType(), source: 'swap', createdAt: DateTime.now()),
                           );
                           if (logId == null) throw StateError('Meal log was not persisted');
                           sl<AppStateService>().notifyChatUpdated();

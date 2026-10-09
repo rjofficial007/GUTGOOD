@@ -85,10 +85,12 @@ class AuthRepositoryImpl implements AuthRepository {
     final existing = _firebaseAuth.currentUser;
 
     if (existing != null && !existing.isAnonymous) {
+      await _ensureProfileExists(existing);
       return AuthUserModel.fromFirebase(existing);
     }
 
     if (existing != null && existing.isAnonymous) {
+      await _ensureProfileExists(existing);
       return AuthUserModel.fromFirebase(existing);
     }
 
@@ -97,6 +99,9 @@ class AuthRepositoryImpl implements AuthRepository {
       final userCredential = await _firebaseAuth.signInAnonymously();
       final user = userCredential.user;
       if (user == null) return null;
+      if (_firebaseAuth.currentUser?.uid != user.uid) {
+        throw StateError('Firebase Auth changed before the guest profile could be created.');
+      }
 
       final profile = UserProfile(
         uid: user.uid,
@@ -122,6 +127,24 @@ class AuthRepositoryImpl implements AuthRepository {
       AppLogger.auth('Anonymous sign-in failed', error: e);
       rethrow;
     }
+  }
+
+  Future<void> _ensureProfileExists(firebase.User user) async {
+    if (_firebaseAuth.currentUser?.uid != user.uid) {
+      throw StateError('Firebase Auth changed before the user profile could be checked.');
+    }
+    final now = DateTime.now();
+    await _firestoreService.createUserProfileIfMissing(UserProfile(
+      uid: user.uid,
+      displayName: user.displayName ?? (user.isAnonymous ? 'Guest' : null),
+      email: user.email ?? (user.isAnonymous ? 'No email synced' : null),
+      photoUrl: user.photoURL,
+      isAnonymous: user.isAnonymous,
+      authProvider: user.providerData.isNotEmpty ? user.providerData.first.providerId : (user.isAnonymous ? 'anonymous' : null),
+      onboarded: false,
+      updatedAt: now,
+      createdAt: now,
+    ));
   }
 
   @override
@@ -402,6 +425,10 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   Future<void> _finalizeAuth(firebase.User user, {String? displayName, String? email, String? photoUrl}) async {
+    if (_firebaseAuth.currentUser?.uid != user.uid) {
+      throw StateError('Firebase Auth changed before the user profile could be finalized.');
+    }
+
     final existingProfile = await _firestoreService.getUserMetadata();
 
     var bestName = (displayName != null && displayName.isNotEmpty) ? displayName : null;

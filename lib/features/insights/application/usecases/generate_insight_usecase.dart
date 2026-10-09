@@ -62,29 +62,37 @@ class GenerateInsightUseCase {
 
     final fetchedMeals = streams[0] as List<MealLog>;
     final fetchedSymptoms = streams[1] as List<SymptomLog>;
-    var fetchedScans = streams[2] as List<ScanResult>;
+    final fetchedScans = streams[2] as List<ScanResult>;
     final previousPatterns = streams[3] as List<BodyPattern>;
-    final candidateMeals = fetchedMeals.where((meal) => !meal.createdAt.isAfter(nowLocal) && !meal.eventTime.isAfter(nowLocal) && !meal.eventTime.isBefore(periodFrom)).toList();
-    final symptoms = fetchedSymptoms.where((symptom) => !symptom.createdAt.isAfter(nowLocal) && !symptom.eventTime.isAfter(nowLocal) && !symptom.eventTime.isBefore(periodFrom)).toList();
-    // A meal can reference a product scanned before this analysis window.
-    final missingIds = candidateMeals
+    final candidateMeals = fetchedMeals.where((meal) => !meal.createdAt.isAfter(nowLocal) && !meal.eventTime.isAfter(nowLocal)).toList();
+    final symptoms = fetchedSymptoms.where((symptom) => !symptom.createdAt.isAfter(nowLocal) && !symptom.eventTime.isAfter(nowLocal)).toList();
+    final recentScans = fetchedScans.where((scan) => !scan.createdAt.isAfter(nowLocal)).toList();
+    // A user can scan a product before the 30-day insight window and confirm
+    // the meal later. Resolve only missing scan sources linked from this
+    // bounded meal snapshot so the score can still use the source rating.
+    final recentScanIds = recentScans.map((scan) => scan.scanId).toSet();
+    final linkedScanIds = candidateMeals
         .where((meal) => meal.consumptionConfirmed == true)
-        .map((meal) => meal.scanId)
+        .map((meal) => meal.scanId?.trim())
         .whereType<String>()
-        .where((id) => id.isNotEmpty && !fetchedScans.any((scan) => scan.scanId == id))
-        .toSet();
-    if (missingIds.isNotEmpty) fetchedScans = [...fetchedScans, ...await _insightRepository.getScansByIds(missingIds.toList())];
-    final scans = fetchedScans.where((scan) => !scan.createdAt.isAfter(nowLocal)).toList();
+        .where((id) => id.isNotEmpty && !recentScanIds.contains(id))
+        .toSet()
+        .toList();
+    final linkedScans = linkedScanIds.isEmpty ? <ScanResult>[] : await _insightRepository.getScansByIds(linkedScanIds);
+    final scans = [...recentScans, ...linkedScans.where((scan) => !scan.createdAt.isAfter(nowLocal))];
     final meals = confirmedFoodMeals(meals: candidateMeals, scans: scans);
 
     // PatternEngineService is deterministic and runs independently of the old
     // daily AI threshold. Reuse the fetched journal snapshot to avoid repeating
-    // three Firestore history reads; both documents are published together after analysis.
+    // three Firestore history reads. saveInsight writes both the insight and
+    // pattern_data/latest in one batch, so skip the engine's separate write.
     final patterns = await _patternEngineService.runAnalysis(mealData: meals, symptomData: symptoms, scanData: scans, persistResults: false);
 
     final isSaturday = nowLocal.weekday == DateTime.saturday;
     final currentWeekStart = GutScoreCalculatorService.startOfLocalWeek(nowLocal);
-    final recapWeekStart = isSaturday ? currentWeekStart : DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day - 7);
+    final recapWeekStart = isSaturday
+        ? currentWeekStart
+        : DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day - 7);
     final recapWeekEndExclusive = isSaturday ? nowLocal.add(const Duration(microseconds: 1)) : currentWeekStart;
     final recapWeekEnd = recapWeekEndExclusive.subtract(const Duration(microseconds: 1));
 
@@ -121,8 +129,18 @@ class GenerateInsightUseCase {
 
     // Keep the current score separate from the completed-week recap. A
     // deterministic journal refresh remains the score source of truth.
-    final currentRecord = _gutScoreCalculatorService.calculateWeeklyRecord(uid: profile?.uid ?? '', scans: scans, symptoms: symptoms, meals: meals, asOf: nowLocal);
-    final scoreRecord = currentRecord;
+    final currentRecord = _gutScoreCalculatorService.calculateWeeklyRecord(
+      uid: profile?.uid ?? '',
+      scans: scans,
+      symptoms: symptoms,
+      meals: meals,
+      asOf: nowLocal,
+    );
+    final latestRecord = await _gutScoreFirestoreService?.getLatestGutScore();
+    final hasCurrentScore = latestRecord != null &&
+        latestRecord.uid == currentRecord.uid &&
+        latestRecord.periodFrom.isAtSameMomentAs(currentRecord.periodFrom);
+    final scoreRecord = hasCurrentScore ? latestRecord : currentRecord;
 
     final standaloneScans = standaloneScanRecords(meals: meals, scans: scans);
     final insight = _insightBuilder.build(
@@ -142,9 +160,19 @@ class GenerateInsightUseCase {
       return;
     }
 
+    // The journal writer normally refreshes this score as logs arrive. Seed a
+    // missing/new-week score here as well, without overwriting a current-week
+    // server snapshot that may be fresher than an offline journal read.
+    if (!hasCurrentScore && profile != null && _gutScoreFirestoreService != null) {
+      try {
+        await _gutScoreFirestoreService.saveGutScore(currentRecord);
+      } catch (error) {
+        AppLogger.warning('Could not persist the current GutGood score: $error');
+      }
+    }
+
     // The repository uses the stable `rule_based_latest` document ID, so
     // refreshes update one current snapshot instead of growing AI history.
-    await _gutScoreFirestoreService?.saveGutScore(currentRecord);
     await _insightRepository.saveInsight(insight);
     await _notifyForNewPatterns(profile, previousPatterns, patterns, nowLocal);
 
@@ -154,7 +182,12 @@ class GenerateInsightUseCase {
     );
   }
 
-  Future<void> _notifyForNewPatterns(UserProfile? profile, List<BodyPattern> previousPatterns, List<BodyPattern> currentPatterns, DateTime now) async {
+  Future<void> _notifyForNewPatterns(
+    UserProfile? profile,
+    List<BodyPattern> previousPatterns,
+    List<BodyPattern> currentPatterns,
+    DateTime now,
+  ) async {
     if (profile == null || !profile.notifPrefs.enableAll || !profile.notifPrefs.insightUpdates) return;
 
     String key(BodyPattern pattern) => pattern.id ?? '${pattern.type}|${pattern.trigger}|${pattern.reaction}';

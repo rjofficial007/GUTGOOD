@@ -53,6 +53,7 @@ class ChatBubble extends StatelessWidget {
     this.onViewFullReport,
     this.onScannerModeSelected,
     this.onScanConsumptionResolved,
+    this.isResolvingConsumption = false,
   });
 
   final String text;
@@ -88,6 +89,7 @@ class ChatBubble extends StatelessWidget {
   final VoidCallback? onViewFullReport;
   final void Function(ScannerMode)? onScannerModeSelected;
   final Future<bool> Function(bool consumed)? onScanConsumptionResolved;
+  final bool isResolvingConsumption;
 
   String get _displayText => isUser ? text : stripAiStructuredDataForDisplay(text);
 
@@ -324,23 +326,36 @@ class ChatBubble extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(AppStrings.didYouEatThis, style: context.bodyBold.copyWith(color: context.appColorScheme.textPrimary)),
-      Gap.h8,
-      Row(
-        children: [
-          Expanded(
-            child: FilledButton(
-              onPressed: onScanConsumptionResolved == null ? null : () => onScanConsumptionResolved!(true),
-              child: const FittedBox(fit: BoxFit.scaleDown, child: Text(AppStrings.yesIAteIt)),
-            ),
-          ),
-          Gap.w8,
-          Expanded(
-            child: OutlinedButton(
-              onPressed: onScanConsumptionResolved == null ? null : () => onScanConsumptionResolved!(false),
-              child: const FittedBox(fit: BoxFit.scaleDown, child: Text(AppStrings.justChecking)),
-            ),
-          ),
-        ],
+      Gap.h10,
+      SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: onScanConsumptionResolved == null || isResolvingConsumption ? null : () => onScanConsumptionResolved!(true),
+          child: isResolvingConsumption
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                    Gap.w8,
+                    const Text(AppStrings.loggingMeal),
+                  ],
+                )
+              : const Text(AppStrings.yesIAteIt),
+        ),
+      ),
+      Center(
+        child: TextButton(
+          onPressed: onScanConsumptionResolved == null || isResolvingConsumption ? null : () => onScanConsumptionResolved!(false),
+          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+          child: const Text(AppStrings.justChecking),
+        ),
       ),
     ],
   );

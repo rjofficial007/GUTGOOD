@@ -20,20 +20,25 @@ const ANONYMOUS_TTL_DAYS = 14;
 
 async function purgeUserData(uid: string): Promise<void> {
   const db = admin.firestore();
+  const errors: unknown[] = [];
   try {
     await db.recursiveDelete(db.doc(`user_profiles/${uid}`));
   } catch (e) {
     functionsV1.logger.error(`purge: Firestore cleanup failed for ${uid}`, e);
+    errors.push(e);
   }
   try {
     await admin.storage().bucket().deleteFiles({ prefix: `users/${uid}/` });
   } catch (e) {
     functionsV1.logger.error(`purge: Storage cleanup failed for ${uid}`, e);
+    errors.push(e);
   }
+  if (errors.length > 0) throw new Error(`Failed to fully purge user data for ${uid}: ${errors.length} cleanup operation(s) failed.`);
 }
 
 export const onUserDeleted = functionsV1
   .region(REGION)
+  .runWith({ failurePolicy: true })
   .auth.user()
   .onDelete(async (user) => {
     functionsV1.logger.info(`onUserDeleted: purging data for ${user.uid}`);

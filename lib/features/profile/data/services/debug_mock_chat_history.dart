@@ -5,8 +5,8 @@ part of 'debug_mock_data_service.dart';
 extension DebugMockChatHistory on DebugMockDataService {
   Future<void> _seedMockChatHistory(DateTime now) async {
     AppLogger.mock('Seeding mock chat history...');
-    final msg1Id = const Uuid().v4();
-    final msg2Id = const Uuid().v4();
+    const msg1Id = 'debug_mock_user_yogurt';
+    const msg2Id = 'debug_mock_ai_yogurt';
 
     // 1. User asks about a meal
     await _chatFirestoreService.saveMessage(
@@ -33,13 +33,13 @@ extension DebugMockChatHistory on DebugMockDataService {
     );
 
     // 3. User asks about bloating
-    final msg3Id = const Uuid().v4();
+    const msg3Id = 'debug_mock_user_pizza_symptom';
     await _chatFirestoreService.saveMessage(
       ChatMessage(localId: msg3Id, role: 'user', text: 'I feel a bit bloated after that pizza I had last night. Any advice?', createdAt: now.subtract(const Duration(minutes: 5)), source: 'chat'),
     );
 
     // 4. AI responds with symptom logging and advice
-    final msg4Id = const Uuid().v4();
+    const msg4Id = 'debug_mock_ai_pizza_symptom';
     await _chatFirestoreService.saveMessage(
       ChatMessage(
         localId: msg4Id,

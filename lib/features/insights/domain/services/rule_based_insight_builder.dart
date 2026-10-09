@@ -2,6 +2,7 @@ import 'package:gutgood/core/models/insights/ai_insight.dart';
 import 'package:gutgood/core/models/insights/ai_insight_details.dart';
 import 'package:gutgood/core/models/insights/body_pattern.dart';
 import 'package:gutgood/core/models/insights/insight_evidence.dart';
+import 'package:gutgood/core/utils/insight_presentation.dart';
 
 /// Builds the durable Insights snapshot from deterministic calculations only.
 /// No model, prompt, or network service is involved.
@@ -43,39 +44,8 @@ class RuleBasedInsightBuilder {
           );
 
     final hasRecentEvidence = sampleSizes.meals + sampleSizes.scans + sampleSizes.symptoms > 0;
-
-    // Food Impact is derived only from explicit meal-response occurrences
-    // already counted by the rule engine. Keep each row tied to that evidence;
-    // do not infer impact from scans or from meals with no reported response.
-    final foodImpactEntries = <({String date, FoodImpact impact})>[];
-    final seenOccurrences = <String>{};
-    for (final pattern in patterns) {
-      if (pattern.impactDirection != 'positive' && pattern.impactDirection != 'negative') continue;
-      for (final occurrence in pattern.occurrences) {
-        final sourceKey = occurrence.mealId != null && occurrence.symptomId != null
-            ? '${occurrence.mealId}:${occurrence.symptomId}'
-            : '${occurrence.date}:${occurrence.mealName}:${occurrence.reaction}:${pattern.type}';
-        if (!seenOccurrences.add(sourceKey)) continue;
-        foodImpactEntries.add((
-          date: occurrence.date,
-          impact: FoodImpact(
-            food: occurrence.mealName.isNotEmpty ? occurrence.mealName : pattern.trigger,
-            dateLabel: occurrence.dateLabel?.isNotEmpty == true ? occurrence.dateLabel! : occurrence.date,
-            effect: 'Reported ${occurrence.reaction}',
-            timeframeLabel: occurrence.timeAfter,
-            emoji: '🍽️',
-            impactType: pattern.impactDirection,
-            imageUrl: occurrence.imageUrl,
-            userImageUrl: occurrence.imageUrl,
-          ),
-        ));
-      }
-    }
-    foodImpactEntries.sort((a, b) => b.date.compareTo(a.date));
-    final recentFoodImpacts = foodImpactEntries.take(50).map((entry) => entry.impact).toList();
-    final positiveCount = recentFoodImpacts.where((impact) => impact.impactType == 'positive').length;
-    final negativeCount = recentFoodImpacts.where((impact) => impact.impactType == 'negative').length;
-    final impactCount = positiveCount + negativeCount;
+    final foodImpacts = _buildFoodImpacts(patterns);
+    final foodImpactBalance = _buildFoodImpactBalance(foodImpacts);
 
     return AIInsight(
       firestoreId: latestDocumentId,
@@ -84,15 +54,8 @@ class RuleBasedInsightBuilder {
       hasGutScore: hasGutScore,
       topInsight: topInsight,
       detectedPatterns: patterns,
-      foodImpacts: recentFoodImpacts,
-      foodImpactBalance: impactCount == 0
-          ? null
-          : FoodImpactBalance(
-              positivePercent: (positiveCount * 100 / impactCount).round(),
-              neutralPercent: 0,
-              negativePercent: (negativeCount * 100 / impactCount).round(),
-              periodLabel: 'Last 30 days · $impactCount meal-response observations',
-            ),
+      foodImpacts: foodImpacts,
+      foodImpactBalance: foodImpactBalance,
       weeklyRecap: weeklyRecap,
       type: 'Rule-based',
       confidenceLevel: topPattern?.evidenceLabel ?? 'Building baseline',
@@ -103,6 +66,97 @@ class RuleBasedInsightBuilder {
       actions: nextSteps,
       status: hasRecentEvidence ? AIInsight.statusReady : AIInsight.statusInsufficientData,
       origin: AIInsight.originRuleBased,
+    );
+  }
+
+  static List<FoodImpact> _buildFoodImpacts(List<BodyPattern> patterns) {
+    final rawImpacts = <({FoodImpact impact, String isoDate})>[];
+    final seen = <String>{};
+
+    for (final pattern in patterns) {
+      final direction = pattern.impactDirection.toLowerCase().trim();
+      final isPositive = direction == 'positive' ||
+          const ['High Energy', 'Satiety', 'Better Sleep', 'Energized'].contains(pattern.reaction);
+      final isNegative = direction == 'negative' ||
+          const ['Bloating', 'Energy Drop', 'Headache', 'Indigestion', 'Restless Sleep', 'Sluggish', 'Heartburn/Indigestion', 'Skin Flare-up', 'Migraine', 'Severe Bloating'].contains(pattern.reaction) ||
+          pattern.type == BodyPattern.typeBloating ||
+          pattern.type == BodyPattern.typeHeadache ||
+          pattern.type == BodyPattern.typeDigestion;
+
+      final impactType = isPositive ? 'positive' : (isNegative ? 'negative' : direction);
+
+      for (final occurrence in pattern.occurrences) {
+        final mealName = occurrence.mealName.trim().isNotEmpty
+            ? occurrence.mealName.trim()
+            : pattern.trigger.trim();
+        if (mealName.isEmpty) continue;
+
+        final isoDate = occurrence.date.trim();
+        final dateLabel = occurrence.dateLabel?.trim().isNotEmpty == true
+            ? occurrence.dateLabel!.trim()
+            : isoDate;
+        final effect = occurrence.reaction.trim().isNotEmpty
+            ? occurrence.reaction.trim()
+            : pattern.reaction.trim();
+        final timeframeLabel = occurrence.timeAfterLabel?.trim().isNotEmpty == true
+            ? occurrence.timeAfterLabel!.trim()
+            : (occurrence.timeAfter.trim().isNotEmpty ? occurrence.timeAfter.trim() : 'After meal');
+
+        final mealId = occurrence.mealId?.trim();
+        final symptomId = occurrence.symptomId?.trim();
+        final key = (mealId != null && mealId.isNotEmpty && symptomId != null && symptomId.isNotEmpty)
+            ? '${mealId}_$symptomId'
+            : '${isoDate}_${mealName.toLowerCase()}_${effect.toLowerCase()}_${pattern.type}';
+
+        if (!seen.add(key)) continue;
+
+        rawImpacts.add((
+          impact: FoodImpact(
+            food: mealName,
+            dateLabel: dateLabel,
+            effect: effect,
+            timeframeLabel: timeframeLabel,
+            emoji: InsightPresentation.emojiForFood(mealName),
+            impactType: impactType,
+            imageUrl: occurrence.imageUrl,
+            userImageUrl: occurrence.imageUrl,
+          ),
+          isoDate: isoDate,
+        ));
+      }
+    }
+
+    rawImpacts.sort((a, b) => b.isoDate.compareTo(a.isoDate));
+
+    return rawImpacts.map((e) => e.impact).take(50).toList();
+  }
+
+  static FoodImpactBalance? _buildFoodImpactBalance(List<FoodImpact> foodImpacts) {
+    if (foodImpacts.isEmpty) return null;
+
+    var positiveCount = 0;
+    var negativeCount = 0;
+
+    for (final impact in foodImpacts) {
+      final type = impact.impactType.toLowerCase().trim();
+      if (type == 'positive' || type == 'healing' || type == 'good' || type == 'supportive') {
+        positiveCount++;
+      } else if (type == 'negative' || type == 'trigger' || type == 'bad' || type == 'watch') {
+        negativeCount++;
+      }
+    }
+
+    final total = positiveCount + negativeCount;
+    if (total == 0) return null;
+
+    final positivePercent = (positiveCount * 100 / total).round();
+    final negativePercent = 100 - positivePercent;
+
+    return FoodImpactBalance(
+      positivePercent: positivePercent,
+      neutralPercent: 0,
+      negativePercent: negativePercent,
+      periodLabel: '30-day window',
     );
   }
 }

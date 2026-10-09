@@ -116,6 +116,47 @@ void main() {
       verify(() => mockSharedPreferences.setBool('onboarded', false)).called(1);
     });
 
+    test('signInAnonymously fails when profile creation fails', () async {
+      final mockUser = MockUser();
+      final mockCredential = MockUserCredential();
+
+      when(() => mockUser.uid).thenReturn('anon-123');
+      when(() => mockUser.email).thenReturn(null);
+      when(() => mockUser.isAnonymous).thenReturn(true);
+      when(() => mockUser.displayName).thenReturn(null);
+      when(() => mockUser.providerData).thenReturn(const []);
+      when(() => mockCredential.user).thenReturn(mockUser);
+
+      firebase.User? currentUser;
+      when(() => mockFirebaseAuth.currentUser).thenAnswer((_) => currentUser);
+      when(() => mockFirebaseAuth.signInAnonymously()).thenAnswer((_) async {
+        currentUser = mockUser;
+        return mockCredential;
+      });
+      when(() => mockFirestoreService.saveUserProfile(any())).thenThrow(StateError('write failed'));
+
+      await expectLater(repository.signInAnonymously(), throwsA(isA<StateError>()));
+      verifyNever(() => mockSharedPreferences.setBool(any(), any()));
+      verifyNever(() => mockAppStateService.notifyProfileUpdated());
+    });
+
+    test('existing anonymous Auth user repairs a missing Firestore profile', () async {
+      final mockUser = MockUser();
+      when(() => mockUser.uid).thenReturn('anon-123');
+      when(() => mockUser.email).thenReturn(null);
+      when(() => mockUser.isAnonymous).thenReturn(true);
+      when(() => mockUser.displayName).thenReturn(null);
+      when(() => mockUser.photoURL).thenReturn(null);
+      when(() => mockUser.providerData).thenReturn(const []);
+      when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+      when(() => mockFirestoreService.createUserProfileIfMissing(any())).thenAnswer((_) async {});
+
+      await repository.signInAnonymously();
+
+      verify(() => mockFirestoreService.createUserProfileIfMissing(any())).called(1);
+      verifyNever(() => mockFirebaseAuth.signInAnonymously());
+    });
+
     test('signOut cleans up services and session', () async {
       final mockUser = MockUser();
       when(() => mockUser.isAnonymous).thenReturn(false);

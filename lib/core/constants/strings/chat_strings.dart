@@ -15,6 +15,7 @@ class ChatStrings {
   static const String didYouEatThis = 'Did you eat this?';
   static const String yesIAteIt = 'Yes, I ate it';
   static const String justChecking = 'Just checking';
+  static const String loggingMeal = 'Logging meal...';
 
   static const String restaurantSurvivalMode = '🍽️ Restaurant Survival Mode: Upload a menu photo to get gut-friendly picks.';
   static const String viewPremiumBenefits = 'View Premium Benefits';

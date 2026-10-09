@@ -256,6 +256,10 @@ export const aiProxy = functions
         timezoneOffset,
       );
       if (!usage.allowed) {
+        if (usage.reason === 'profile_missing') {
+          fail(res, 409, 'profile_not_initialized', { message: 'Your account profile is not ready. Please retry shortly.' });
+          return;
+        }
         fail(res, 429, 'quota_exceeded', {
           type: usageType,
           limit: usage.limit,

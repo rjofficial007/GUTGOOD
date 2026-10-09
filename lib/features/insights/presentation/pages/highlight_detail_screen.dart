@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
-import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/insight_theme.dart';
 import 'package:gutgood/core/utils/insight_values.dart';
 import 'package:gutgood/core/utils/responsive.dart';
@@ -17,13 +15,13 @@ import 'package:gutgood/features/profile/presentation/providers/profile_provider
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
+part 'aligned_day_labels_row.dart';
+part 'highlight_box.dart';
+part 'highlight_contributing_card.dart';
+part 'highlight_detail_healing_sections.dart';
+part 'highlight_detail_helpers.dart';
 // Top Healing / Top Trigger detail screen.
 
 part 'highlight_detail_page.dart';
-part 'highlight_detail_healing_sections.dart';
 part 'highlight_detail_trigger_sections.dart';
-part 'highlight_detail_helpers.dart';
-part 'highlight_contributing_card.dart';
-part 'highlight_box.dart';
 part 'highlight_trigger_stat_col.dart';
-part 'aligned_day_labels_row.dart';

@@ -56,6 +56,9 @@ export const onScanCreated = functions
     const { uid } = context.params;
     const scanData = snapshot.data();
     if (!scanData) return;
+    const db = admin.firestore();
+    const userRef = db.doc(`user_profiles/${uid}`);
+    if (!(await userRef.get()).exists) return;
 
     // 1. Update Streak
     await handleActivityStreak(uid, scanData.createdAt);
@@ -76,9 +79,6 @@ export const onScanCreated = functions
     const name = (scanData.productName || '').toLowerCase();
     if (source === 'menu' || category === 'menu' || name.includes('menu')) return;
 
-    const db = admin.firestore();
-    const userRef = db.doc(`user_profiles/${uid}`);
-
     // Get scans from last 3 days
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
@@ -96,40 +96,36 @@ export const onScanCreated = functions
 
     // PRD §13: Trigger warning after 3 processed items in 3 days.
     if (processedScans.length >= 3) {
-      const userSnap = await userRef.get();
-      const userData = userSnap.data() || {};
-
-      // Throttle: only one warning per week to avoid spamming.
-      const lastWarningStr = userData.lastProcessedWarningTime || '';
-      const lastWarning = lastWarningStr ? new Date(lastWarningStr) : new Date(0);
-
       const now = new Date();
-      const diffDays = (now.getTime() - lastWarning.getTime()) / (1000 * 3600 * 24);
+      const alertData = {
+        title: 'Processed Food Alert',
+        message: 'You\'ve logged several processed foods lately. These can disrupt your gut microbiome. Try swapping for "Healing Foods" from your Insights.',
+        type: 'processed_food',
+        isRead: false,
+      };
+      const alertRef = userRef.collection('health_alerts').doc();
+      const fcmToken = await db.runTransaction(async (tx) => {
+        const profile = await tx.get(userRef);
+        if (!profile.exists) return null;
 
-      if (diffDays >= 7) {
-        functions.logger.info(`onScanCreated: Triggering processed food warning for ${uid}`);
+        // Throttle atomically with the alert write, and never create an alert
+        // under a data-less profile if the Auth user was just removed.
+        const lastWarningValue = profile.data()?.lastProcessedWarningTime;
+        const lastWarning = lastWarningValue?.toDate instanceof Function
+          ? lastWarningValue.toDate()
+          : new Date(lastWarningValue || 0);
+        if (now.getTime() - lastWarning.getTime() < 7 * 24 * 60 * 60 * 1000) return null;
 
-        // 1. Log Health Alert (Surfaces in the "Recent Alerts" UI)
-        const alertData = {
-          title: 'Processed Food Alert',
-          message: 'You\'ve logged several processed foods lately. These can disrupt your gut microbiome. Try swapping for "Healing Foods" from your Insights.',
-          type: 'processed_food',
-          isRead: false,
-        };
-
-        await userRef.collection('health_alerts').add({
-          ...alertData,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-
-        // 2. Update throttle timestamp
-        await userRef.update({
+        tx.create(alertRef, { ...alertData, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+        tx.update(userRef, {
           lastProcessedWarningTime: admin.firestore.Timestamp.fromDate(now),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+        return profile.data()?.fcmToken as string | undefined;
+      });
 
-        // 3. Send Push Notification via FCM
-        const fcmToken = userData.fcmToken;
+      if (fcmToken !== null) {
+        functions.logger.info(`onScanCreated: Triggering processed food warning for ${uid}`);
         if (fcmToken) {
           try {
             await admin.messaging().send({

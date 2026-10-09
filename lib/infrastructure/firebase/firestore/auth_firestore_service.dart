@@ -9,6 +9,7 @@ import 'package:gutgood/infrastructure/firebase/storage_service.dart';
 
 abstract class AuthFirestoreService {
   Future<void> saveUserProfile(UserProfile profile);
+  Future<void> createUserProfileIfMissing(UserProfile profile);
   Future<void> updateUserProfile(UserProfile profile);
   Future<UserProfile?> getUserMetadata();
   Stream<UserProfile?> getUserMetadataStream();
@@ -38,26 +39,47 @@ class AuthFirestoreServiceImpl implements AuthFirestoreService {
 
   @override
   Future<void> saveUserProfile(UserProfile profile) async {
+    final uid = _uid;
+    if (uid == null) throw StateError('Cannot create a user profile without an authenticated Firebase user.');
+    if (profile.uid != uid) throw StateError('Cannot create a profile for a different Firebase user.');
+
     try {
-      final doc = _userDoc;
-      if (doc == null) return;
+      final doc = _users.doc(uid);
       await doc.set(profile.toMap(), SetOptions(merge: true));
     } catch (e) {
       AppLogger.error('AuthFirestoreService: Error saving user profile', error: e);
+      rethrow;
     }
   }
 
   @override
+  Future<void> createUserProfileIfMissing(UserProfile profile) async {
+    final uid = _uid;
+    if (uid == null) throw StateError('Cannot create a user profile without an authenticated Firebase user.');
+    if (profile.uid != uid) throw StateError('Cannot create a profile for a different Firebase user.');
+
+    final doc = _users.doc(uid);
+    await _db.runTransaction((transaction) async {
+      final existing = await transaction.get(doc);
+      if (!existing.exists) transaction.set(doc, profile.toMap());
+    });
+  }
+
+  @override
   Future<void> updateUserProfile(UserProfile profile) async {
+    final uid = _uid;
+    if (uid == null) throw StateError('Cannot update a user profile without an authenticated Firebase user.');
+    if (profile.uid != uid) throw StateError('Cannot update a profile for a different Firebase user.');
+
     try {
-      final doc = _userDoc;
-      if (doc == null) return;
+      final doc = _users.doc(uid);
       // 🟢 Fix: Use set with merge: true instead of update() to ensure the
       // operation succeeds even if the document hasn't been fully initialized
       // in Firestore yet (common during fast onboarding flows).
       await doc.set(profile.toUpdateMap(), SetOptions(merge: true));
     } catch (e) {
       AppLogger.error('AuthFirestoreService: Error updating user profile', error: e);
+      rethrow;
     }
   }
 

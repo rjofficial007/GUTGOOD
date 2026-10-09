@@ -69,6 +69,7 @@ class ChatHistoryNotifier with ChangeNotifier {
   final List<ChatMessage> _paginatedMessages = [];
   final Set<String> _optimisticIds = {};
   final Set<String> _resolvingConsumptionIds = {};
+  final Map<String, ChatMessage> _localConsumptionResolutions = {};
 
   bool _historyLoading = true;
   bool _isPaginationLoading = false;
@@ -100,6 +101,8 @@ class ChatHistoryNotifier with ChangeNotifier {
 
   bool get historyLoading => _historyLoading;
   String? get cachedSummary => _cachedSummary;
+  bool isResolvingScanConsumption(String messageId) => _resolvingConsumptionIds.contains(messageId);
+  Set<String> get resolvingScanConsumptionIds => Set.unmodifiable(_resolvingConsumptionIds);
 
   // Context getters for Composer
   List<String> get userGoals => _userGoals;
@@ -147,6 +150,18 @@ class ChatHistoryNotifier with ChangeNotifier {
             final inMemory = <String, ChatMessage>{for (final m in _streamedMessages) m.localId: m};
             final merged = serverMessages.map((srv) {
               final existing = inMemory[srv.localId];
+              final localResolution = _localConsumptionResolutions[srv.localId];
+              if (localResolution != null) {
+                final expectedConsumed = localResolution.scanData?.consumed;
+                if (srv.scanData?.consumed == expectedConsumed) {
+                  _localConsumptionResolutions.remove(srv.localId);
+                } else {
+                  // A snapshot can arrive between the local update and its
+                  // Firestore echo. Keep the user's confirmation visible
+                  // until the server sends that resolved scan preview.
+                  return srv.copyWith(scanData: localResolution.scanData, mealLogs: localResolution.mealLogs);
+                }
+              }
               if (existing != null && existing.localImages?.isNotEmpty == true && srv.imageUrls.isEmpty) {
                 return srv.copyWith(localImages: existing.localImages, isSending: existing.isSending);
               }
@@ -230,6 +245,7 @@ class ChatHistoryNotifier with ChangeNotifier {
     _streamedMessages.clear();
     _paginatedMessages.clear();
     _optimisticIds.clear();
+    _localConsumptionResolutions.clear();
     _cachedSummary = null;
     _summarizedThroughMessageId = null;
     _historyLoading = false;
@@ -272,6 +288,7 @@ class ChatHistoryNotifier with ChangeNotifier {
     _streamedMessages.removeWhere((m) => m.localId == localId);
     _paginatedMessages.removeWhere((m) => m.localId == localId);
     _optimisticIds.remove(localId);
+    _localConsumptionResolutions.remove(localId);
     notifyListeners();
   }
 
@@ -295,6 +312,7 @@ class ChatHistoryNotifier with ChangeNotifier {
     final originalScan = message.scanData;
     if (originalScan == null || !originalScan.needsConsumptionConfirmation || originalScan.consumed != null) return false;
     if (!_resolvingConsumptionIds.add(message.localId)) return true;
+    notifyListeners();
 
     try {
       final originalScanId = originalScan.scanId;
@@ -319,6 +337,7 @@ class ChatHistoryNotifier with ChangeNotifier {
 
       if (uid != _auth.currentUser?.uid) return false;
       final resolvedMessage = message.copyWith(scanData: resolvedScan, mealLogs: meal == null ? const [] : [meal]);
+      _localConsumptionResolutions[message.localId] = resolvedMessage;
       replaceMessage(message.localId, resolvedMessage);
       final chatSaved = await _chatFirestoreService.saveMessage(resolvedMessage);
       _appStateService.notifyChatUpdated();
@@ -328,6 +347,7 @@ class ChatHistoryNotifier with ChangeNotifier {
       return false;
     } finally {
       _resolvingConsumptionIds.remove(message.localId);
+      notifyListeners();
     }
   }
 

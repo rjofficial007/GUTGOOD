@@ -256,12 +256,26 @@ void main() {
     when(() => historyFirestoreService.deleteScanMealProjections(chatMessageId: 'turn', scanId: 'turn_scan', keepMealId: 'turn_meal')).thenAnswer((_) async {});
     when(() => chatFirestoreService.saveMessage(resolvedMessage)).thenAnswer((_) async => 'turn');
     notifier.addOptimisticMessage(message);
+    controller.add([message]);
+    await Future<void>.delayed(Duration.zero);
 
-    final saved = await notifier.resolveScanConsumption(message, consumed: true);
+    final saveOperation = notifier.resolveScanConsumption(message, consumed: true);
+    expect(notifier.isResolvingScanConsumption(message.localId), isTrue);
+    final saved = await saveOperation;
 
     expect(saved, isTrue);
+    expect(notifier.isResolvingScanConsumption(message.localId), isFalse);
     expect(notifier.messages.single.scanData?.consumed, isTrue);
     expect(notifier.messages.single.mealLogs.single.items, ['Oats']);
+    // An older Firestore snapshot must not bring the confirmation buttons back.
+    controller.add([message]);
+    await Future<void>.delayed(Duration.zero);
+    expect(notifier.messages.single.scanData?.consumed, isTrue);
+
+    // The persisted echo then confirms the resolution on the server.
+    controller.add([resolvedMessage]);
+    await Future<void>.delayed(Duration.zero);
+    expect(notifier.messages.single.scanData?.consumed, isTrue);
     verify(() => domainEventPersister.persistConfirmedScanMeal(resolvedScan, chatMessageId: 'turn')).called(1);
   });
 }

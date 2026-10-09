@@ -24,7 +24,7 @@ class TopInsightCard extends StatelessWidget {
     final reportedCount = observationCount ?? topInsight.frequency ?? 1;
     final count = reportedCount < 1 ? 1 : reportedCount;
     final isEarlyObservation = count <= 1;
-    final statusText = isEarlyObservation ? '$count reported observation' : '$count observations recorded';
+    final statusText = isEarlyObservation ? 'Early observation · $count observation' : 'Top insight · $count observations';
 
     return Container(
       decoration: BoxDecoration(
@@ -49,20 +49,12 @@ class TopInsightCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        isEarlyObservation ? 'EARLY OBSERVATION' : 'TOP INSIGHT',
+                        statusText,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w800, color: Colors.white.withValues(alpha: 0.88), letterSpacing: 0.7),
                       ),
                       Gap.h2,
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(LucideIcons.info, size: 11.w, color: Colors.white.withValues(alpha: 0.9)),
-                          Gap.w4,
-                          Text(statusText, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: Colors.white, height: 1)),
-                        ],
-                      ),
                       Gap.h10,
                       Text(
                         titleText,

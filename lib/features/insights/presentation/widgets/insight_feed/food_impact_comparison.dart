@@ -155,7 +155,7 @@ class _WatchCardWidget extends StatelessWidget {
         children: [
           _SideCardHeader(
             icon: hasTrigger ? LucideIcons.triangleAlert : LucideIcons.info,
-            label: hasTrigger ? 'SOMETHING TO WATCH' : 'PATTERN CHECK',
+            label: hasTrigger ? 'Something to Watch' : 'Pattern Check',
             iconBackground: iconBackground,
             iconColor: Colors.white,
             labelColor: primary,

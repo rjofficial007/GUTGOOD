@@ -217,6 +217,14 @@ The existing optional AI explanation remains a user-requested operation over sav
 
 Food-photo analysis, conversational chat, and AI-generated swap recommendations retain their existing AI paths. This work does not remove those API calls or redesign their prompts.
 
+### Development mock-data button
+
+The Profile **Generate 30 Days Mock Data** action writes synthetic records to the signed-in user's Firestore profile. Its meal and symptom fixtures now include user-provenance event times, and its synthetic product scans are explicitly marked consumed. Label and menu scans remain informational. Record IDs are stable per calendar date and fixture item, and the seeded chat messages and experiment use stable IDs, so repeated taps on the same day overwrite those fixtures rather than adding another copy.
+
+After seeding, the button invokes the regular deterministic `GenerateInsightUseCase`. The old handcrafted Patterns, fabricated score history, and canned latest Insight were removed from this flow. The sample scan-detail records remain as informational UI fixtures. This button does not call AI and no longer changes the local Pro status or toggles whichever foods happen to be most recent in the user's scan history.
+
+Older mock documents created by earlier versions used random IDs. This update leaves those records in place because their identity cannot be safely distinguished from other user records after the fact.
+
 ## 12. Subscription changes removed
 
 The rollback removed the newly added server entitlement module, RevenueCat callable and webhook exports, associated secrets/setup instructions, entitlement check script, protected subscription-field changes, and new client verification calls.
@@ -259,3 +267,4 @@ This document adds no runtime changes. These checks are not a claim of live Fire
 - [Insight and Pattern batch save](/Volumes/Data/SVN/gutgood_app/Source/gutgood_app/lib/infrastructure/firebase/firestore/insight_firestore_service.dart)
 - [Dashboard snapshot selection](/Volumes/Data/SVN/gutgood_app/Source/gutgood_app/lib/features/insights/data/repositories/insight_repository_impl.dart)
 - [Automatic refresh and optional AI explanation](/Volumes/Data/SVN/gutgood_app/Source/gutgood_app/lib/features/insights/presentation/providers/insights_notifier.dart)
+- [Development mock-data generator](/Volumes/Data/SVN/gutgood_app/Source/gutgood_app/lib/features/profile/data/services/debug_mock_thirty_days.dart)

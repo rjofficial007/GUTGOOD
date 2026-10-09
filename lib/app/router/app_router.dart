@@ -221,6 +221,10 @@ class AppRouter {
                 path: AppRoutes.foodIntelligence,
                 builder: (context, state) => FoodIntelligenceScreen(insight: state.extra is AIInsight ? state.extra as AIInsight : null),
               ),
+              GoRoute(
+                path: AppRoutes.topFoods,
+                builder: (context, state) => TopFoodsScreen(insight: state.extra is AIInsight ? state.extra as AIInsight : null),
+              ),
               GoRoute(path: AppRoutes.notificationArchive, builder: (context, state) => const NotificationArchiveScreen()),
             ],
           ),

@@ -26,14 +26,14 @@ void main() {
 
   group('getProduct session memo (P0-3)', () {
     test('repeat lookup of the same barcode hits the fetch once', () async {
-      canned['999000111222'] = const OffProduct(productName: 'Cache Cola', barcode: '999000111222');
+      canned['0999000111222'] = const OffProduct(productName: 'Cache Cola', barcode: '0999000111222');
 
       final first = await service.getProduct('999000111222');
       final second = await service.getProduct('999000111222');
 
       expect(first, isNotNull);
       expect(second?.productName, first?.productName);
-      expect(fetchLog, ['999000111222']);
+      expect(fetchLog, ['0999000111222']);
     });
 
     test('different barcodes each hit the fetch', () async {

@@ -262,7 +262,7 @@ void main() {
           throwOnError: true,
         ),
       ).captured;
-      expect(captured[0], isNull);
+      expect(captured[0], 150, reason: 'The date range bounds the query, and the page limit keeps each Firestore read bounded.');
       final since = captured[1] as DateTime;
       expect(DateTime.now().difference(since).inDays, 30);
     });

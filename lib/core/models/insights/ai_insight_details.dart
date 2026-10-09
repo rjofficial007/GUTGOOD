@@ -233,7 +233,7 @@ class FoodImpact extends Equatable {
     final img = map['userImageUrl']?.toString() ?? map['imageUrl']?.toString();
     final effectStr = (map['effect'] ?? map['impact'] ?? '').toString();
     final rawImpactType = map['impactType'] ?? map['impactDirection'] ?? map['type'];
-    var impactType = (rawImpactType ?? 'neutral').toString().toLowerCase();
+    var impactType = (rawImpactType ?? 'unknown').toString().toLowerCase();
 
     if (rawImpactType == null && InsightValues.isPositiveReaction('$effectStr $food')) {
       impactType = 'positive';

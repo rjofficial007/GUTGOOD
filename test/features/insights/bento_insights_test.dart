@@ -154,7 +154,7 @@ void main() {
       // Card titles keep their casing; only tags are uppercased.
       expect(find.text('Late Iced Coffee'), findsOneWidget);
       expect(find.textContaining('TO WATCH'), findsOneWidget);
-      expect(find.textContaining(RegExp('Top Foods This Week', caseSensitive: false)), findsOneWidget);
+      expect(find.textContaining(RegExp('Your Top Foods', caseSensitive: false)), findsOneWidget);
     });
 
     testWidgets('renders in dark mode with the derived palette', (tester) async {
@@ -246,7 +246,11 @@ void main() {
   });
 
   group('Screen 07 — food intelligence', () {
-    testWidgets('counts boosters vs watch items from real food impacts', (tester) async {
+    testWidgets('uses the Top Foods page tabs and shared card layout', (tester) async {
+      tester.view.physicalSize = const Size(320, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.lightTheme,
@@ -261,9 +265,127 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('FOOD INTELLIGENCE'), findsWidgets);
+      expect(find.text('Food Intelligence'), findsWidgets);
+      expect(find.text('Most Positive'), findsOneWidget);
+      expect(find.text('Most Negative'), findsOneWidget);
+      expect(find.text('Most Logged'), findsOneWidget);
+      expect(find.text('Recent'), findsNothing);
       expect(find.text('Berry Oatmeal'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('French Fries'), 300, scrollable: find.byType(Scrollable).last);
       expect(find.text('French Fries'), findsOneWidget);
+      await tester.drag(find.byType(ListView), const Offset(0, 700));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Most Logged'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Most Logged'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Most Negative'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Most Negative'));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(find.text('French Fries')).dy, lessThan(tester.getTopLeft(find.text('Berry Oatmeal')).dy));
+
+      await tester.drag(find.byType(Scrollable).first, const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Berry Oatmeal'));
+      await tester.pumpAndSettle();
+      expect(find.text('Your observations'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Screen 08 — top foods', () {
+    testWidgets('shows the separate top-food list and sorting controls', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final base = buildInsight();
+      final insight = base.copyWith(foodImpacts: [
+        ...base.foodImpacts,
+        const FoodImpact(food: 'Berry Oatmeal', dateLabel: 'Fri', effect: 'Reported Energetic', timeframeLabel: 'AM', emoji: '🫐', impactType: 'positive'),
+        const FoodImpact(food: 'Berry Oatmeal', dateLabel: 'Sat', effect: 'Reported Good digestion', timeframeLabel: 'AM', emoji: '🫐', impactType: 'positive'),
+      ]);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: Builder(
+            builder: (context) {
+              Responsive.init(context);
+              return TopFoodsScreen(insight: insight);
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Your Top Foods'), findsOneWidget);
+      expect(find.text('Most Positive'), findsOneWidget);
+      expect(find.text('Most Logged'), findsOneWidget);
+      expect(find.text('Recent'), findsOneWidget);
+      expect(find.text('Berry Oatmeal'), findsOneWidget);
+      expect(find.text('3 observations'), findsOneWidget);
+      expect(find.text('Energetic'), findsOneWidget);
+      expect(find.text('Good digestion'), findsOneWidget);
+      expect(find.text('Positive'), findsOneWidget);
+      expect(find.text('French Fries'), findsNothing);
+
+      await tester.tap(find.text('Most Logged'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(tester.getTopLeft(find.text('Berry Oatmeal')).dy, lessThan(tester.getTopLeft(find.text('Chia seeds')).dy));
+
+      await tester.tap(find.text('Berry Oatmeal'));
+      await tester.pumpAndSettle();
+      expect(find.text('Your observations'), findsOneWidget);
+      expect(find.text('3 recorded meal-response observations'), findsOneWidget);
+      expect(find.text('Reported Energetic'), findsOneWidget);
+      expect(find.text('Reported Good digestion'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chia seeds'));
+      await tester.pumpAndSettle();
+      expect(find.text('No individual meal-response observations are available for this food yet.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('sorts by evidence and recency and excludes unclassified foods', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final insight = AIInsight(
+        gutScore: 50,
+        updatedAt: DateTime.utc(2026, 10, 9),
+        foodImpacts: const [
+          FoodImpact(food: 'Recent Apple', dateLabel: 'Today', effect: 'Reported energy', timeframeLabel: '2 hours later', emoji: '🍎', impactType: 'positive'),
+          FoodImpact(food: 'Older Salmon', dateLabel: 'Yesterday', effect: 'Reported less bloating', timeframeLabel: '3 hours later', emoji: '🐟', impactType: 'positive'),
+          FoodImpact(food: 'Older Salmon', dateLabel: 'Monday', effect: 'Reported fullness', timeframeLabel: '2 hours later', emoji: '🐟', impactType: 'positive'),
+          FoodImpact(food: 'Unclassified Food', dateLabel: 'Monday', effect: '', timeframeLabel: '', emoji: '🍽️', impactType: 'unknown'),
+        ],
+      );
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Builder(builder: (context) {
+          Responsive.init(context);
+          return TopFoodsScreen(insight: insight);
+        }),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('Unclassified Food'), findsNothing);
+      expect(tester.getTopLeft(find.text('Older Salmon')).dy, lessThan(tester.getTopLeft(find.text('Recent Apple')).dy));
+
+      await tester.tap(find.text('Recent'));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(find.text('Recent Apple')).dy, lessThan(tester.getTopLeft(find.text('Older Salmon')).dy));
+
+      await tester.tap(find.text('Most Positive'));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(find.text('Older Salmon')).dy, lessThan(tester.getTopLeft(find.text('Recent Apple')).dy));
+      expect(tester.takeException(), isNull);
     });
   });
 

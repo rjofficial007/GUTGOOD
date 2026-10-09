@@ -192,7 +192,6 @@ async function mergeProfileRoot(
   permRef: admin.firestore.DocumentReference,
 ): Promise<void> {
   const [anonSnap, permSnap] = await Promise.all([anonRef.get(), permRef.get()]);
-  if (!anonSnap.exists) return;
   const anon = anonSnap.data() ?? {};
   const perm = permSnap.data() ?? {};
 
@@ -206,6 +205,21 @@ async function mergeProfileRoot(
     goals: union('goals'),
     sensitivities: union('sensitivities'),
     lifestyle: union('lifestyle'),
+    ...(!permSnap.exists
+      ? {
+          uid: permRef.id,
+          onboarded: false,
+          isAnonymous: false,
+          isPremium: false,
+          subscriptionStatus: 'free',
+          gutScore: 0,
+          streak: 0,
+          longestStreak: 0,
+          notificationPreferences: {},
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        }
+      : {}),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
   if (!permSnap.exists || perm.onboarded !== true) {
     if (anon.onboarded === true) update.onboarded = true;
@@ -287,6 +301,11 @@ export const mergeAnonymousAccount = functions
       throw new functions.https.HttpsError('failed-precondition', 'Source account is not anonymous.');
     }
 
+    // Create the destination root before any subcollection copy. Firestore
+    // otherwise permits child docs under a missing parent, leaving an
+    // italicized, data-less user_profiles entry if a later merge step fails.
+    await mergeProfileRoot(db, anonRef, permRef);
+
     functions.logger.info(`merge: ${anonymousUid} -> ${permanentUid}`);
     const moved: Record<string, number> = {};
 
@@ -321,10 +340,7 @@ export const mergeAnonymousAccount = functions
     // 4. Daily usage (idempotent per-source fold).
     moved.daily_usage = await mergeDailyUsage(db, anonRef, permRef, anonymousUid);
 
-    // 5. Profile root (personalization union).
-    await mergeProfileRoot(db, anonRef, permRef);
-
-    // 6. Marker LAST: everything before this is naturally idempotent or deduped.
+    // 5. Marker LAST: everything before this is naturally idempotent or deduped.
     await markerRef.set({ mergedAt: admin.firestore.FieldValue.serverTimestamp() });
 
     // 7. Cleanup: wipe the anonymous subtree + reclaim the identity.

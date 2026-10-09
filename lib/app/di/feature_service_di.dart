@@ -24,7 +24,7 @@ void initFeatureServiceDI() {
     ..registerLazySingleton<LinkService>(() => LinkServiceImpl(authRepository: sl(), prefs: sl(), firebaseAuth: sl(), appStateService: sl()))
     ..registerLazySingleton<UsageService>(() => UsageServiceImpl(authRepository: sl(), authFirestoreService: sl(), usageFirestoreService: sl(), purchaseService: sl(), prefs: sl()))
     ..registerLazySingleton<DebugMockDataService>(
-      () => DebugMockDataService(historyFirestoreService: sl(), insightFirestoreService: sl(), chatFirestoreService: sl(), purchaseService: sl(), foodImageService: sl()),
+      () => DebugMockDataService(historyFirestoreService: sl(), insightFirestoreService: sl(), chatFirestoreService: sl(), generateInsightUseCase: sl()),
     )
     ..registerLazySingleton(() => ThemeNotifier(sl()));
 }

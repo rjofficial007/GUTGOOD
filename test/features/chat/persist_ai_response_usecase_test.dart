@@ -48,7 +48,7 @@ void main() {
   });
 
   group('PersistAiResponseUseCase', () {
-    test('should persist everything in the result', () async {
+    test('persists scan and symptoms without logging an unconfirmed scan as a meal', () async {
       final now = DateTime.now();
       final result = AiAnalysisResult(
         text: 'Analysis',
@@ -79,7 +79,7 @@ void main() {
           scanId: any(named: 'scanId'),
         ),
       ).called(1);
-      verify(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId'))).called(1);
+      verifyNever(() => mockFirestoreService.logMeal(any(), docId: any(named: 'docId')));
       verify(() => mockFirestoreService.logSymptom(any(), docId: any(named: 'docId'))).called(1);
       verify(() => mockStreakService.markActivityToday()).called(1);
     });
@@ -106,7 +106,7 @@ void main() {
       verifyNever(() => mockFirestoreService.logSymptom(any(), docId: any(named: 'docId')));
     });
 
-    test('should persist label/menu scans as consumed food records', () async {
+    test('retains a label scan without counting it as a consumed food', () async {
       final now = DateTime.now();
       final labelResult = AiAnalysisResult(
         text: 'Label Analysis',
@@ -121,7 +121,7 @@ void main() {
       final persistedTags = <String>{};
       final output = await useCase.call(labelResult, source: 'label', chatMessageId: 'label-turn', persistedTagBlocks: persistedTags);
 
-      expect(output.meal, isNotNull);
+      expect(output.meal, isNull);
       verify(
         () => mockFirestoreService.trySaveToScanHistory(
           any(),
@@ -129,7 +129,7 @@ void main() {
           scanId: 'label-turn_scan',
         ),
       ).called(1);
-      verify(() => mockFirestoreService.logMeal(any(), docId: 'label-turn_meal')).called(1);
+      verifyNever(() => mockFirestoreService.logMeal(any(), docId: 'label-turn_meal'));
     });
 
     test('should persist a scan even when AI reports low confidence', () async {
@@ -149,8 +149,7 @@ void main() {
       final output = await useCase.call(lowConfidenceResult, chatMessageId: 'low-confidence-turn', persistedTagBlocks: persistedTags);
 
       expect(output, isNot(equals(lowConfidenceResult)));
-      expect(output.meal, isNotNull);
-      expect(output.meal!.firestoreId, 'meal_id');
+      expect(output.meal, isNull);
       verify(
         () => mockFirestoreService.trySaveToScanHistory(
           any(),
@@ -158,7 +157,7 @@ void main() {
           scanId: 'low-confidence-turn_scan',
         ),
       ).called(1);
-      verify(() => mockFirestoreService.logMeal(any(), docId: 'low-confidence-turn_meal')).called(1);
+      verifyNever(() => mockFirestoreService.logMeal(any(), docId: 'low-confidence-turn_meal'));
       verify(() => mockFirestoreService.logSymptom(any(), docId: 'low-confidence-turn_symptom_0')).called(1);
       verify(() => mockStreakService.markActivityToday()).called(1);
     });

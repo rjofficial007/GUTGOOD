@@ -115,7 +115,7 @@ class OffServiceImpl implements OffService {
     off.ProductField.IMAGE_NUTRITION_URL,
     off.ProductField.NUTRISCORE, // legacy `nutrition_grade_fr` — still served (grade)
     off.ProductField.NOVA_GROUP,
-    off.ProductField.ECOSCORE_GRADE,
+    off.ProductField.ECOSCORE_GRADE, // SDK field maps environmental_score_grade on API v3.1+
     off.ProductField.ECOSCORE_SCORE,
     off.ProductField.INGREDIENTS_TEXT,
     off.ProductField.INGREDIENTS,
@@ -127,8 +127,7 @@ class OffServiceImpl implements OffService {
     off.ProductField.CATEGORIES,
     off.ProductField.CATEGORIES_TAGS,
     off.ProductField.COMPARED_TO_CATEGORY,
-    off.ProductField.NUTRIMENTS,
-    off.ProductField.NUTRIMENT_DATA_PER,
+    off.ProductField.NUTRITION,
     off.ProductField.NO_NUTRITION_DATA,
     off.ProductField.NUTRIENT_LEVELS,
     off.ProductField.SERVING_SIZE,
@@ -194,7 +193,7 @@ class OffServiceImpl implements OffService {
     _setUserAgentComment('scan');
     try {
       final result = await off.OpenFoodAPIClient.getProductV3(
-        off.ProductQueryConfiguration(barcode, version: off.ProductQueryVersion.v3, language: _language, country: _country, fields: _productFields),
+        off.ProductQueryConfiguration(barcode, version: off.ProductQueryVersion.latestVersion, language: _language, country: _country, fields: _productFields),
       );
       if (result.result?.id == off.ProductResultV3.resultProductNotFound) return null;
       final product = result.product;
@@ -233,7 +232,7 @@ class OffServiceImpl implements OffService {
     // table — that path is unchanged. Grade (the user-visible signal) is
     // bit-identical to before.
     final novaGroup = product.novaGroup;
-    final ecoscore = product.ecoscoreGrade?.toLowerCase();
+    final ecoscore = product.environmentalScoreGrade?.toLowerCase();
 
     // Ingredients & Additives
     // (main-language text — same primary key the raw client preferred; the
@@ -258,8 +257,22 @@ class OffServiceImpl implements OffService {
     final categoriesTags = product.categoriesTags ?? const <String>[];
     final categoryTag = categoriesTags.isNotEmpty ? categoriesTags.last : null;
 
-    // Nutrition (per 100 g, same as the raw `nutriments` map before)
-    double? nutrient(off.Nutrient n) => product.nutriments?.getValue(n, off.PerSize.oneHundredGrams);
+    // API v3.5 nutrition is represented as input sets; prefer as-sold packaging
+    // facts, then other as-sold facts, and only then the first available set.
+    final inputSets = off.NutritionHelper().getInputSets(product) ?? const <off.NutritionSet>[];
+    int nutritionSetPriority(off.NutritionSet set) =>
+        (set.key.preparation == off.NutritionSetKey.preparationAsSold ? 2 : 0) +
+        (set.key.source == off.NutritionSetKey.sourcePackaging ? 1 : 0);
+    off.NutritionSet? setFor(off.PerSize perSize) {
+      final candidates = inputSets.where((set) => set.key.perSize == perSize).toList()
+        ..sort((a, b) => nutritionSetPriority(b).compareTo(nutritionSetPriority(a)));
+      return candidates.isEmpty ? null : candidates.first;
+    }
+    final primaryNutritionSet = setFor(off.PerSize.oneHundredGrams) ?? setFor(off.PerSize.oneHundredMilliliters);
+    double? nutrient(off.Nutrient n) {
+      final value = primaryNutritionSet?.nutritionValues?[n];
+      return (value?.valueComputed ?? value?.value)?.toDouble();
+    }
     final nutrients = NutrientData(
       calories: nutrient(off.Nutrient.energyKCal),
       fat: nutrient(off.Nutrient.fat),
@@ -336,7 +349,10 @@ class OffServiceImpl implements OffService {
     };
 
     // Per-serving nutrients (for the 100g ↔ serving toggle on the details page).
-    double? servingValue(off.Nutrient n) => product.nutriments?.getValue(n, off.PerSize.serving);
+    double? servingValue(off.Nutrient n) {
+      final value = setFor(off.PerSize.serving)?.nutritionValues?[n];
+      return (value?.valueComputed ?? value?.value)?.toDouble();
+    }
     final servingNutrients = NutrientData(
       calories: servingValue(off.Nutrient.energyKCal),
       fat: servingValue(off.Nutrient.fat),
@@ -367,7 +383,7 @@ class OffServiceImpl implements OffService {
       isOrganic: YukaScore.detectOrganic(labels),
       novaGroup: novaGroup,
       ecoscore: ecoscore,
-      ecoscoreScore: product.ecoscoreScore?.round(),
+      ecoscoreScore: product.environmentalScoreScore?.round(),
       ingredientsText: ingredientsText,
       ingredients: ingredientsList,
       ingredientsDetail: ingredientsDetail.isEmpty ? null : ingredientsDetail,
@@ -385,7 +401,7 @@ class OffServiceImpl implements OffService {
       countries: product.countries,
       comparedToCategory: product.comparedToCategory,
       servingSize: product.servingSize,
-      nutrientDataPer: product.nutrimentDataPer,
+      nutrientDataPer: primaryNutritionSet?.key.perSize.offTag,
       nutrientLevels: nutrientLevels,
       nutrients: nutrients,
       servingNutrients: (servingNutrients.calories != null || servingNutrients.proteins != null) ? servingNutrients : null,
@@ -536,7 +552,7 @@ class OffServiceImpl implements OffService {
         final result = await off.OpenFoodAPIClient.searchProducts(
           null,
           off.ProductSearchQueryConfiguration(
-            version: off.ProductQueryVersion.v3,
+            version: off.ProductQueryVersion.latestVersion,
             language: _language,
             country: _country,
             fields: const [off.ProductField.BARCODE, off.ProductField.NAME, off.ProductField.BRANDS, off.ProductField.IMAGE_FRONT_URL, off.ProductField.NUTRISCORE],

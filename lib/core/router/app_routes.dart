@@ -20,6 +20,7 @@ class AppRoutes {
   static const String smartInsightDetail = '/smart-insight-detail';
   static const String fiberSynergyDetail = '/fiber-synergy-detail';
   static const String foodIntelligence = '/food-intelligence';
+  static const String topFoods = '/top-foods';
   static const String notificationArchive = '/notification-archive';
 
   // History Sub-routes

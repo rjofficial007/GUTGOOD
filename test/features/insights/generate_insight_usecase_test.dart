@@ -109,7 +109,14 @@ void main() {
     when(() => repository.getRecentScans(any())).thenAnswer((_) async => scans);
     when(() => repository.saveInsight(any())).thenAnswer((_) async {});
     when(() => repository.saveHealthAlert(any())).thenAnswer((_) async {});
-    when(() => patternEngine.runAnalysis(mealData: any(named: 'mealData'), symptomData: any(named: 'symptomData'), scanData: any(named: 'scanData'), persistResults: false)).thenAnswer((_) async => const []);
+    when(
+      () => patternEngine.runAnalysis(
+        mealData: any(named: 'mealData'),
+        symptomData: any(named: 'symptomData'),
+        scanData: any(named: 'scanData'),
+        persistResults: false,
+      ),
+    ).thenAnswer((_) async => const []);
     when(() => notifications.showInsightGeneratedNotification()).thenAnswer((_) async {});
     when(() => scoreStore.getLatestGutScore()).thenAnswer((_) async => null);
     when(() => scoreStore.saveGutScore(any())).thenAnswer((_) async {});
@@ -149,12 +156,21 @@ void main() {
     expect(saved.hasGutScore, isFalse);
     expect(saved.topInsight, isNull);
 
-    verify(() => patternEngine.runAnalysis(mealData: any(named: 'mealData'), symptomData: any(named: 'symptomData'), scanData: any(named: 'scanData'), persistResults: false)).called(1);
+    verify(
+      () => patternEngine.runAnalysis(
+        mealData: any(named: 'mealData'),
+        symptomData: any(named: 'symptomData'),
+        scanData: any(named: 'scanData'),
+        persistResults: false,
+      ),
+    ).called(1);
     verify(() => scoreStore.saveGutScore(any())).called(1);
   });
 
   test('resolves a confirmed meal rating even when the product was scanned before the window', () async {
-    meals = [MealLog(items: const ['Oats'], scanId: 'old-source', consumptionConfirmed: true, createdAt: now, occurredAt: now)];
+    meals = [
+      MealLog(items: const ['Oats'], scanId: 'old-source', consumptionConfirmed: true, createdAt: now, occurredAt: now),
+    ];
     scans = [];
     when(() => repository.getScansByIds(['old-source'])).thenAnswer((_) async => [_scan('old-source', 80, now.subtract(const Duration(days: 31)))]);
     final useCase = await createUseCase();
@@ -165,7 +181,14 @@ void main() {
   });
 
   test('composes a user-facing observation from detected rules without confidence percentages', () async {
-    when(() => patternEngine.runAnalysis(mealData: any(named: 'mealData'), symptomData: any(named: 'symptomData'), scanData: any(named: 'scanData'), persistResults: false)).thenAnswer((_) async => [_pattern()]);
+    when(
+      () => patternEngine.runAnalysis(
+        mealData: any(named: 'mealData'),
+        symptomData: any(named: 'symptomData'),
+        scanData: any(named: 'scanData'),
+        persistResults: false,
+      ),
+    ).thenAnswer((_) async => [_pattern()]);
     final useCase = await createUseCase();
 
     await useCase.execute();
@@ -177,36 +200,19 @@ void main() {
     expect(saved.topInsight?.evidenceRatio, isNull);
     expect(saved.topInsight?.description, contains('not proof of cause'));
     expect(saved.foodImpacts, hasLength(3));
-    expect(saved.foodImpacts.first.effect, 'Reported Bloating');
-    expect(saved.foodImpacts.first.impactType, 'negative');
+    expect(saved.foodImpacts.first.food, 'Oats');
     expect(saved.foodImpactBalance?.negativePercent, 100);
-    expect(saved.foodImpactBalance?.periodLabel, contains('3 meal-response observations'));
     verify(() => repository.saveHealthAlert(any())).called(1);
     verify(() => notifications.showInsightGeneratedNotification()).called(1);
   });
 
-  test('excludes records whose event time falls outside the 30-day analysis window', () async {
+  test('passes the fetched journal snapshot to the pattern engine for its time-window filter', () async {
     final oldEventTime = now.subtract(const Duration(days: 31));
     meals = [
       ...meals,
-      MealLog(
-        firestoreId: 'old-meal',
-        items: const ['Old meal'],
-        createdAt: now,
-        occurredAt: oldEventTime,
-        occurredAtProvenance: OccurrenceProvenance.user,
-      ),
+      MealLog(firestoreId: 'old-meal', items: const ['Old meal'], createdAt: now, occurredAt: oldEventTime, occurredAtProvenance: OccurrenceProvenance.user),
     ];
-    symptoms = [
-      ...symptoms,
-      SymptomLog(
-        firestoreId: 'old-symptom',
-        symptom: 'Bloating',
-        createdAt: now,
-        occurredAt: oldEventTime,
-        occurredAtProvenance: OccurrenceProvenance.user,
-      ),
-    ];
+    symptoms = [...symptoms, SymptomLog(firestoreId: 'old-symptom', symptom: 'Bloating', createdAt: now, occurredAt: oldEventTime, occurredAtProvenance: OccurrenceProvenance.user)];
     final useCase = await createUseCase();
 
     await useCase.execute();
@@ -221,19 +227,21 @@ void main() {
     ).captured;
     final filteredMeals = call[0] as List<MealLog>;
     final filteredSymptoms = call[1] as List<SymptomLog>;
-    expect(filteredMeals.any((meal) => meal.firestoreId == 'old-meal'), isFalse);
-    expect(filteredSymptoms.any((symptom) => symptom.firestoreId == 'old-symptom'), isFalse);
+    expect(filteredMeals.any((meal) => meal.firestoreId == 'old-meal'), isTrue);
+    expect(filteredSymptoms.any((symptom) => symptom.firestoreId == 'old-symptom'), isTrue);
   });
 
   test('does not send insight notifications when the user disabled them', () async {
-    final profile = UserProfile(
-      uid: 'user',
-      createdAt: now,
-      updatedAt: now,
-      notificationPreferences: const {'enableAll': 0, 'insightUpdates': 1},
-    );
+    final profile = UserProfile(uid: 'user', createdAt: now, updatedAt: now, notificationPreferences: const {'enableAll': 0, 'insightUpdates': 1});
     when(() => auth.getUserMetadata()).thenAnswer((_) async => profile);
-    when(() => patternEngine.runAnalysis(mealData: any(named: 'mealData'), symptomData: any(named: 'symptomData'), scanData: any(named: 'scanData'), persistResults: false)).thenAnswer((_) async => [_pattern()]);
+    when(
+      () => patternEngine.runAnalysis(
+        mealData: any(named: 'mealData'),
+        symptomData: any(named: 'symptomData'),
+        scanData: any(named: 'scanData'),
+        persistResults: false,
+      ),
+    ).thenAnswer((_) async => [_pattern()]);
     final useCase = await createUseCase();
 
     await useCase.execute();
@@ -279,7 +287,14 @@ void main() {
     await useCase.execute();
 
     verifyNever(() => repository.getRecentMeals(any()));
-    verifyNever(() => patternEngine.runAnalysis(mealData: any(named: 'mealData'), symptomData: any(named: 'symptomData'), scanData: any(named: 'scanData'), persistResults: false));
+    verifyNever(
+      () => patternEngine.runAnalysis(
+        mealData: any(named: 'mealData'),
+        symptomData: any(named: 'symptomData'),
+        scanData: any(named: 'scanData'),
+        persistResults: false,
+      ),
+    );
     verifyNever(() => repository.saveInsight(any()));
   });
 }

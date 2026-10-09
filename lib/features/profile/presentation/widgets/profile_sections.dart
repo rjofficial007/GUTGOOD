@@ -18,6 +18,7 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/theme/theme_provider.dart';
 import 'package:gutgood/core/utils/bottom_sheet_helper.dart';
 import 'package:gutgood/core/utils/image_utils.dart';
+import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/profile_header.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
@@ -328,16 +329,7 @@ class DebugToolsSection extends StatelessWidget {
               unawaited(profileNotifier.refresh());
             },
           ),
-          AppTile(
-            icon: AppIcons.refreshCcw,
-            title: AppStrings.resetDailyUsage,
-            onTap: () async {
-              await sl<UsageService>().resetLimitsForTesting();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.limitsReset)));
-              }
-            },
-          ),
+
           AppTile(
             icon: AppIcons.bell,
             title: AppStrings.testPushNotification,
@@ -377,22 +369,56 @@ class DebugToolsSection extends StatelessWidget {
               }
             },
           ),
-          AppTile(
-            icon: Icons.data_array,
-            title: AppStrings.generateMockData,
-            subtitle: AppStrings.generateMockDataSubtitle,
-            onTap: () async {
-              await sl<DebugMockDataService>().generateThirtyDaysData();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.mockDataGenerated)));
-              }
-            },
-            showBottomBorder: false,
-          ),
+          const _GenerateMockDataTile(),
         ],
       ),
     );
   }
+}
+
+class _GenerateMockDataTile extends StatefulWidget {
+  const _GenerateMockDataTile();
+
+  @override
+  State<_GenerateMockDataTile> createState() => _GenerateMockDataTileState();
+}
+
+class _GenerateMockDataTileState extends State<_GenerateMockDataTile> {
+  bool _isGenerating = false;
+
+  Future<void> _generate() async {
+    if (_isGenerating) return;
+    setState(() => _isGenerating = true);
+    try {
+      await sl<DebugMockDataService>().generateThirtyDaysData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.mockDataGenerated)));
+      }
+    } catch (error, stackTrace) {
+      AppLogger.error('Debug mock data generation failed', error: error, stackTrace: stackTrace);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.mockDataGenerationFailed)));
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AppTile(
+    icon: Icons.data_array,
+    title: AppStrings.generateMockData,
+    subtitle: _isGenerating ? AppStrings.mockDataGenerating : AppStrings.generateMockDataSubtitle,
+    trailing: _isGenerating
+        ? SizedBox(
+            width: 18.w,
+            height: 18.w,
+            child: CircularProgressIndicator(strokeWidth: 2.w),
+          )
+        : Icon(AppIcons.chevronRight, size: 16.w, color: context.appColorScheme.textMuted),
+    onTap: _generate,
+    showBottomBorder: false,
+  );
 }
 
 class AppVersionInfo extends StatelessWidget {

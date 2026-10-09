@@ -29,7 +29,6 @@ part 'insights_feed_shell.dart';
 part 'food_impact_balance.dart';
 part 'food_impact_healing_cards.dart';
 part 'recent_food_impacts.dart';
-part 'next_steps_cards.dart';
 part 'patterns_smarter_banner.dart';
 part 'food_impact_comparison.dart';
 part 'top_foods.dart';

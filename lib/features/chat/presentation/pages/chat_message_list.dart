@@ -54,6 +54,7 @@ class _MessageSliverListState extends State<_MessageSliverList> {
     final screenState = context.findAncestorStateOfType<ChatScreenState>()!;
 
     final allMessages = context.select<ChatHistoryNotifier, List<ChatMessage>>((n) => n.messages);
+    final resolvingConsumptionIds = context.select<ChatHistoryNotifier, Set<String>>((n) => n.resolvingScanConsumptionIds);
 
     /*
      * IMPORTANT:
@@ -76,6 +77,7 @@ class _MessageSliverListState extends State<_MessageSliverList> {
 
     Widget buildMessage(BuildContext ctx, int i) {
       final msg = messages[i];
+      final isResolvingConsumption = resolvingConsumptionIds.contains(msg.localId);
 
       final prevMsg = i > 0 ? messages[i - 1] : null;
 
@@ -174,6 +176,7 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                     }
                   },
                   scanData: msg.scanData,
+                  isResolvingConsumption: isResolvingConsumption,
                   isLoadingSwaps: msg.localId == loadingSwapsMessageId,
                   onScanConsumptionResolved: (consumed) async {
                     DateTime? occurredAt;

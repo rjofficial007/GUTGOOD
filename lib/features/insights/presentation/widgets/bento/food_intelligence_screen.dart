@@ -25,85 +25,136 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
     final watchCount = items.where((i) => i.category == 'watch').length;
     final totalCount = items.length;
 
-    final filteredItems = switch (_selectedFilter) {
-      'Healing' => items.where((i) => i.category == 'healing').toList(),
-      'Good' => items.where((i) => i.category == 'good').toList(),
-      'Watch' => items.where((i) => i.category == 'watch').toList(),
-      _ => items,
-    };
+    _sortFoodItems(items, activeInsight);
+    final topFoodItems = items.map((item) => _toTopFoodInsight(item, activeInsight)).toList();
 
     final positiveCount = healingCount + goodCount;
     final positiveRatio = totalCount > 0 ? ((positiveCount / totalCount) * 100).round() : 100;
 
     return Scaffold(
-      backgroundColor: context.appColorScheme.cardBackground,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          GutSliverAppBar(title: 'FOOD INTELLIGENCE', centerTitle: true, showBrandingIcon: false, backgroundColor: theme.scaffold),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(16.w, 8.w, 16.w, 28.w),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // 1. HERO INTELLIGENCE DASHBOARD CARD
-                _FoodIntelligenceHeroCard(positiveRatio: positiveRatio, positiveCount: positiveCount, watchCount: watchCount, totalCount: totalCount),
-                Gap.h16,
-
-                // 2. FILTER CATEGORY CHIPS
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  clipBehavior: Clip.none,
-                  child: Row(
-                    children: [
-                      _FilterChip(label: 'All ($totalCount)', isSelected: _selectedFilter == 'All', onTap: () => setState(() => _selectedFilter = 'All')),
-                      Gap.w8,
-                      _FilterChip(
-                        label: 'Healing ($healingCount)',
-                        icon: LucideIcons.sprout,
-                        iconColor: const Color(0xFF15803D),
-                        isSelected: _selectedFilter == 'Healing',
-                        onTap: () => setState(() => _selectedFilter = 'Healing'),
-                      ),
-                      Gap.w8,
-                      _FilterChip(
-                        label: 'Good ($goodCount)',
-                        icon: LucideIcons.sparkles,
-                        iconColor: const Color(0xFF16A34A),
-                        isSelected: _selectedFilter == 'Good',
-                        onTap: () => setState(() => _selectedFilter = 'Good'),
-                      ),
-                      Gap.w8,
-                      _FilterChip(
-                        label: 'Watch ($watchCount)',
-                        icon: LucideIcons.triangleAlert,
-                        iconColor: const Color(0xFFDC2626),
-                        isSelected: _selectedFilter == 'Watch',
-                        onTap: () => setState(() => _selectedFilter = 'Watch'),
-                      ),
-                    ],
-                  ),
-                ),
-                Gap.h16,
-
-                // 3. FOOD ITEMS SEPARATE LIST CARDS (using shared TopFoodTile)
-                if (filteredItems.isEmpty) ...[
-                  _EmptyFoodIntelligenceCard(filter: _selectedFilter),
-                ] else ...[
-                  Column(
-                    children: [
-                      for (final food in filteredItems) ...[TopFoodTile(item: food), Gap.h10],
-                    ],
-                  ),
-                ],
-                Gap.h16,
-
-                // 4. HABIT ENCOURAGEMENT FOOTER
-                const _HabitFooterCard(),
-              ]),
+      backgroundColor: theme.scaffold,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _TopFoodsPageHeader(
+              title: 'Food Intelligence',
+              subtitle: 'Foods and responses found in your meal logs.',
+              onInfo: () => _showFoodIntelligenceInfo(context),
             ),
-          ),
-        ],
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    for (final filter in const ['All', 'Most Positive', 'Most Negative', 'Most Logged']) ...[
+                      if (filter != 'All') SizedBox(width: 6.w),
+                      _TopFoodsFilterChip(label: filter, selected: filter == _selectedFilter, onTap: () => setState(() => _selectedFilter = filter)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            Gap.h12,
+            Expanded(
+              child: ListView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 28.w),
+                children: [
+                  _FoodIntelligenceHeroCard(positiveRatio: positiveRatio, positiveCount: positiveCount, watchCount: watchCount, totalCount: totalCount),
+                  Gap.h16,
+                  if (topFoodItems.isEmpty)
+                    _EmptyFoodIntelligenceCard(filter: _selectedFilter)
+                  else
+                    for (final item in topFoodItems) ...[
+                      _TopFoodInsightCard(item: item, statusLabel: item.statusLabel),
+                      Gap.h10,
+                    ],
+                  Gap.h16,
+                  const _HabitFooterCard(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _sortFoodItems(List<TopFoodItemData> items, AIInsight? insight) {
+    int observations(TopFoodItemData item) => int.tryParse(RegExp(r'\d+').firstMatch(item.frequency)?.group(0) ?? '') ?? 0;
+    final negativeCounts = <String, int>{};
+    for (var i = 0; i < (insight?.foodImpacts.length ?? 0); i++) {
+      final impact = insight!.foodImpacts[i];
+      final key = impact.food.toLowerCase().trim();
+      if (const {'negative', 'trigger', 'watch', 'bad'}.contains(impact.impactType.toLowerCase())) {
+        negativeCounts.update(key, (count) => count + 1, ifAbsent: () => 1);
+      }
+    }
+
+    int negativeObservations(TopFoodItemData item) => negativeCounts[item.title.toLowerCase().trim()] ?? 0;
+    switch (_selectedFilter) {
+      case 'Most Positive':
+        items.sort((a, b) {
+          final byPositive = (b.isPositive ? 1 : 0).compareTo(a.isPositive ? 1 : 0);
+          if (byPositive != 0) return byPositive;
+          final byCount = observations(b).compareTo(observations(a));
+          return byCount != 0 ? byCount : a.title.compareTo(b.title);
+        });
+      case 'Most Logged':
+        items.sort((a, b) {
+          final byCount = observations(b).compareTo(observations(a));
+          return byCount != 0 ? byCount : a.title.compareTo(b.title);
+        });
+      case 'Most Negative':
+        items.sort((a, b) {
+          final byNegative = negativeObservations(b).compareTo(negativeObservations(a));
+          if (byNegative != 0) return byNegative;
+          final byWatchCategory = (b.category == 'watch' ? 1 : 0).compareTo(a.category == 'watch' ? 1 : 0);
+          if (byWatchCategory != 0) return byWatchCategory;
+          final byCount = observations(b).compareTo(observations(a));
+          return byCount != 0 ? byCount : a.title.compareTo(b.title);
+        });
+      default:
+        items.sort((a, b) {
+          final byPositive = (b.isPositive ? 1 : 0).compareTo(a.isPositive ? 1 : 0);
+          if (byPositive != 0) return byPositive;
+          final byCount = observations(b).compareTo(observations(a));
+          return byCount != 0 ? byCount : a.title.compareTo(b.title);
+        });
+    }
+  }
+
+  _TopFoodInsight _toTopFoodInsight(TopFoodItemData food, AIInsight? insight) {
+    final item = _TopFoodInsight(name: food.title, imageUrl: food.imageUrl, effect: food.description, statusLabel: food.badge, isTopFood: food.isPositive);
+    final key = food.title.toLowerCase().trim();
+    for (final impact in insight?.foodImpacts ?? const <FoodImpact>[]) {
+      if (impact.food.toLowerCase().trim() != key) continue;
+      item.observations++;
+      item.impacts.add(impact);
+      final type = impact.impactType.toLowerCase();
+      if (const {'positive', 'healing', 'good', 'supportive'}.contains(type)) {
+        item.positiveObservations++;
+        item.addEffect(impact.effect);
+      } else if (const {'negative', 'trigger', 'watch', 'bad'}.contains(type)) {
+        item.negativeObservations++;
+      }
+    }
+    if (item.observations == 0) {
+      item.observations = int.tryParse(RegExp(r'\d+').firstMatch(food.frequency)?.group(0) ?? '') ?? 0;
+    }
+    if (item.effects.isEmpty && food.description?.trim().isNotEmpty == true) item.addEffect(food.description);
+    return item;
+  }
+
+  void _showFoodIntelligenceInfo(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('About Food Intelligence'),
+        content: const Text('These foods and responses come from your logged meal history. The tabs reorder your foods by positive observations, negative observations, or response count. Associations in your logs do not prove that a food caused a response.'),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))],
       ),
     );
   }
@@ -286,60 +337,64 @@ class _FoodIntelligenceHeroCard extends StatelessWidget {
         children: [
           // Header Row
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32.w,
-                    height: 32.w,
-                    decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
-                    child: Center(
-                      child: Icon(LucideIcons.leaf, size: 16.w, color: Colors.white),
-                    ),
-                  ),
-                  Gap.w10,
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Food Intelligence',
-                        style: TextStyle(
-                          fontFamily: InsightTheme.fontFamily,
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF0F172A),
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      Text(
-                        'Foods shaping your gut health',
-                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textTertiary),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-
-              // Positive Ratio Badge
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
-                decoration: BoxDecoration(
-                  color: theme.card,
-                  borderRadius: BorderRadius.circular(16.w),
-                  border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7)),
-                  boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.04), blurRadius: 6.w, offset: const Offset(0, 2))],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                width: 32.w,
+                height: 32.w,
+                decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
+                child: Center(child: Icon(LucideIcons.leaf, size: 16.w, color: Colors.white)),
+              ),
+              Gap.w10,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(LucideIcons.trendingUp, size: 13.w, color: theme.success),
-                    Gap.w4,
                     Text(
-                      '$positiveRatio% Positive',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: theme.success),
+                      'Food Impact So Far',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: InsightTheme.fontFamily,
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF0F172A),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    Text(
+                      'Foods shaping your gut health',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textTertiary),
                     ),
                   ],
+                ),
+              ),
+              Gap.w8,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
+                    decoration: BoxDecoration(
+                      color: theme.card,
+                      borderRadius: BorderRadius.circular(16.w),
+                      border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7)),
+                      boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.04), blurRadius: 6.w, offset: const Offset(0, 2))],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.trendingUp, size: 13.w, color: theme.success),
+                        Gap.w4,
+                        Text(
+                          '$positiveRatio% Positive',
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: theme.success),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -533,52 +588,6 @@ class _HabitFooterCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.isSelected, required this.onTap, this.icon, this.iconColor});
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final IconData? icon;
-  final Color? iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final selectedBg = isDark ? Colors.white : const Color(0xFF171717);
-    final selectedFg = isDark ? Colors.black : Colors.white;
-    final unselectedFg = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
-    final unselectedBorder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.w),
-        decoration: BoxDecoration(
-          color: isSelected ? selectedBg : Colors.transparent,
-          borderRadius: BorderRadius.circular(100.w),
-          border: Border.all(color: isSelected ? selectedBg : unselectedBorder, width: 1.w),
-          boxShadow: isSelected && !isDark ? [BoxShadow(color: const Color(0xFF17171B).withValues(alpha: 0.15), blurRadius: 4.w, offset: Offset(0, 2.w))] : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: InsightTheme.fontFamily,
-            fontSize: 12.sp,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            color: isSelected ? selectedFg : unselectedFg,
-            letterSpacing: -0.2,
-          ),
-        ),
       ),
     );
   }

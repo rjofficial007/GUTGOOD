@@ -16,6 +16,13 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    /** Prevent Firestore from creating data-less parents via child-only writes. */
+    function isOwnerWithProfile(userId) {
+      return isOwner(userId)
+        && (exists(/databases/$(database)/documents/user_profiles/$(userId))
+          || existsAfter(/databases/$(database)/documents/user_profiles/$(userId)));
+    }
+
     /**
      * Validates client-written premium fields.
      * Premium is managed via RevenueCat; the app mirrors the status here for
@@ -32,9 +39,10 @@ service cloud.firestore {
     }
 
     /** Enforces structure for UserProfile documents. */
-    function isValidUserProfile() {
+    function isValidUserProfile(userId) {
       let data = request.resource.data;
       return isValidPremiumFields()
+        && data.get('uid', userId) == userId
         && data.get('onboarded', false) is bool
         && data.get('gutScore', 0) is number
         && data.get('gutScore', 0) >= 0
@@ -97,12 +105,12 @@ service cloud.firestore {
 
       /** Create user profile: includes onboarding and gut health constraints. */
       allow create: if isOwner(userId)
-        && isValidUserProfile()
+        && isValidUserProfile(userId)
         && request.resource.size() < 256 * 1024;
 
       /** Update profile: prevents clients from tampering with server-authoritative streak data. */
       allow update: if isOwner(userId)
-        && isValidUserProfile()
+        && isValidUserProfile(userId)
         && (request.resource.data.get('streak', 0) == resource.data.get('streak', 0))
         && (request.resource.data.get('lastActivityDate', '') == resource.data.get('lastActivityDate', ''))
         && request.resource.size() < 256 * 1024;
@@ -111,24 +119,24 @@ service cloud.firestore {
 
       /** Chat History: Full conversations, excluding bulky analysis payloads (now reference-based). */
       match /chat_history/{docId} {
-        allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidChatMessage();
-        allow update: if isOwner(userId) && isValidChatMessage();
-        allow delete: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
+        allow create: if isOwnerWithProfile(userId) && isValidChatMessage();
+        allow update: if isOwnerWithProfile(userId) && isValidChatMessage();
+        allow delete: if isOwnerWithProfile(userId);
       }
 
       /** Scan History: Unified home for Product, Label, and Menu analyses. */
       match /scan_history/{docId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
-        allow delete: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
+        allow write: if isOwnerWithProfile(userId) && request.resource.size() < 512 * 1024;
+        allow delete: if isOwnerWithProfile(userId);
       }
 
       /** Journal Logs: Unified timeline for Meals (consumption) and Symptoms (reactions). */
       match /journal_logs/{docId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
-        allow delete: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
+        allow write: if isOwnerWithProfile(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwnerWithProfile(userId);
       }
 
       /**
@@ -138,8 +146,8 @@ service cloud.firestore {
        * need to, since unlinking (not deleting) is the lifecycle.
        */
       match /food_images/{hash} {
-        allow read: if isOwner(userId);
-        allow create, update: if isOwner(userId) && request.resource.size() < 64 * 1024;
+        allow read: if isOwnerWithProfile(userId);
+        allow create, update: if isOwnerWithProfile(userId) && request.resource.size() < 64 * 1024;
       }
 
       /**
@@ -149,30 +157,30 @@ service cloud.firestore {
        * here (unlike food_images, which only the server sweeps).
        */
       match /saved_foods/{key} {
-        allow read: if isOwner(userId);
-        allow create, update: if isOwner(userId) && request.resource.size() < 256 * 1024;
-        allow delete: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
+        allow create, update: if isOwnerWithProfile(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwnerWithProfile(userId);
       }
 
       /** AI Insights: Generated patterns and health trends. */
       match /insights/{docId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 512 * 1024;
-        allow delete: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
+        allow write: if isOwnerWithProfile(userId) && request.resource.size() < 512 * 1024;
+        allow delete: if isOwnerWithProfile(userId);
       }
 
       /** Gut Scores: Deterministically calculated daily and weekly gut scores. */
       match /gut_scores/{docId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
-        allow delete: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
+        allow write: if isOwnerWithProfile(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwnerWithProfile(userId);
       }
 
       /** Gut Experiments: User's active or past gut health trial protocols. */
       match /experiments/{docId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
-        allow delete: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
+        allow write: if isOwnerWithProfile(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwnerWithProfile(userId);
       }
 
       /**
@@ -180,14 +188,14 @@ service cloud.firestore {
        * Clients can READ for paywall logic, but only server (aiProxy) can write.
        */
       match /daily_usage/{docId} {
-        allow read: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
         allow write: if false;
       }
 
       /** Pattern Engine state: latest analysis evidence. */
       match /pattern_data/{docId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 512 * 1024 && isValidPatternData();
+        allow read: if isOwnerWithProfile(userId);
+        allow write: if isOwnerWithProfile(userId) && request.resource.size() < 512 * 1024 && isValidPatternData();
       }
 
       /**
@@ -196,20 +204,20 @@ service cloud.firestore {
        * dashboard, insight gating, and the profile average — never write.
        */
       match /counters/{docId} {
-        allow read: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
         allow write: if false;
       }
 
       /** Health Alerts: Surfaced alerts for UPFs or cycle-specific sensitivities. */
       match /health_alerts/{docId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && request.resource.size() < 256 * 1024;
-        allow delete: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
+        allow write: if isOwnerWithProfile(userId) && request.resource.size() < 256 * 1024;
+        allow delete: if isOwnerWithProfile(userId);
       }
 
       /** Guest->Permanent merge markers. Server-side only (Admin SDK). */
       match /merges/{anonUid} {
-        allow read: if isOwner(userId);
+        allow read: if isOwnerWithProfile(userId);
         allow write: if false;
       }
     }

@@ -427,6 +427,7 @@ class AppStrings {
   static const String didYouEatThis = ChatStrings.didYouEatThis;
   static const String yesIAteIt = ChatStrings.yesIAteIt;
   static const String justChecking = ChatStrings.justChecking;
+  static const String loggingMeal = ChatStrings.loggingMeal;
   static const String restaurantSurvivalMode = ChatStrings.restaurantSurvivalMode;
   static const String findingSwaps = ChatStrings.findingSwaps;
   static const String moreSwapsPrompt = ChatStrings.moreSwapsPrompt;
@@ -898,9 +899,11 @@ class AppStrings {
   static const String fcmTokenCopied = ProfileStrings.fcmTokenCopied;
   static const String generateMockData = ProfileStrings.generateMockData;
   static const String generateMockDataSubtitle = ProfileStrings.generateMockDataSubtitle;
+  static const String mockDataGenerating = ProfileStrings.mockDataGenerating;
   static const String generateInsightDebug = ProfileStrings.generateInsightDebug;
   static const String generateInsightDebugSubtitle = ProfileStrings.generateInsightDebugSubtitle;
   static const String mockDataGenerated = ProfileStrings.mockDataGenerated;
+  static const String mockDataGenerationFailed = ProfileStrings.mockDataGenerationFailed;
   static const String guestAiActivity = ProfileStrings.guestAiActivity;
   static const String dailyAiActivity = ProfileStrings.dailyAiActivity;
   static const String aiChats = ProfileStrings.aiChats;

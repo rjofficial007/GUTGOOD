@@ -50,7 +50,7 @@ String getFallbackDynamicImageUrl(String? keyword) {
 }
 
 /// Loads a supplied food image first, otherwise resolves one through Pexels.
-class DynamicFoodImage extends StatelessWidget {
+class DynamicFoodImage extends StatefulWidget {
   const DynamicFoodImage({
     super.key,
     required this.keyword,
@@ -73,38 +73,76 @@ class DynamicFoodImage extends StatelessWidget {
   final Widget? errorWidget;
 
   @override
+  State<DynamicFoodImage> createState() => _DynamicFoodImageState();
+}
+
+class _DynamicFoodImageState extends State<DynamicFoodImage> {
+  Future<String>? _imageUrlFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    usePexelsFoodImages.addListener(_onImageSourceChanged);
+    _refreshImageUrlIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant DynamicFoodImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.keyword != widget.keyword || oldWidget.imageUrl != widget.imageUrl) _refreshImageUrlIfNeeded();
+  }
+
+  @override
+  void dispose() {
+    usePexelsFoodImages.removeListener(_onImageSourceChanged);
+    super.dispose();
+  }
+
+  void _onImageSourceChanged() {
+    if (mounted && !_hasUsableImageUrl(widget.imageUrl)) setState(_refreshImageUrlIfNeeded);
+  }
+
+  void _refreshImageUrlIfNeeded() {
+    _imageUrlFuture = _hasUsableImageUrl(widget.imageUrl) ? null : getDynamicImageUrl(widget.keyword);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final suppliedUrl = imageUrl?.trim();
+    final suppliedUrl = widget.imageUrl?.trim();
     if (suppliedUrl != null && suppliedUrl.isNotEmpty && !_isPlaceholderUrl(suppliedUrl)) {
       return _networkImage(suppliedUrl);
     }
 
-    return ValueListenableBuilder<bool>(
-      valueListenable: usePexelsFoodImages,
-      builder: (context, _, _) => FutureBuilder<String>(
-        future: getDynamicImageUrl(keyword),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) return _placeholder();
-          return _networkImage(snapshot.data ?? getFallbackDynamicImageUrl(keyword));
-        },
-      ),
+    return FutureBuilder<String>(
+      future: _imageUrlFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) return _placeholder();
+        return _networkImage(snapshot.data ?? getFallbackDynamicImageUrl(widget.keyword));
+      },
     );
   }
 
   Widget _networkImage(String url) => CachedNetworkImage(
     imageUrl: url,
-    width: width,
-    height: height,
-    fit: fit,
-    alignment: alignment,
+    width: widget.width,
+    height: widget.height,
+    fit: widget.fit,
+    alignment: widget.alignment,
+    fadeInDuration: Duration.zero,
+    placeholderFadeInDuration: Duration.zero,
     placeholder: (_, _) => _placeholder(),
-    errorWidget: (_, _, _) => errorWidget ?? const Icon(Icons.fastfood_outlined),
+    errorWidget: (_, _, _) => widget.errorWidget ?? const Icon(Icons.fastfood_outlined),
   );
 
-  Widget _placeholder() => placeholder ?? const Center(child: CircularProgressIndicator(strokeWidth: 2));
+  Widget _placeholder() => widget.placeholder ?? const Center(child: CircularProgressIndicator(strokeWidth: 2));
 
   bool _isPlaceholderUrl(String url) {
     final host = Uri.tryParse(url)?.host.toLowerCase();
     return host == 'example.com' || host?.endsWith('.example.com') == true || url.contains('unsplash.com');
+  }
+
+  bool _hasUsableImageUrl(String? url) {
+    final value = url?.trim();
+    return value != null && value.isNotEmpty && !_isPlaceholderUrl(value);
   }
 }

@@ -112,10 +112,12 @@ class ProfileStrings {
   static const String copyFcmTokenSubtitle = 'Tap to copy your push token for testing';
   static const String fcmTokenCopied = 'FCM Token copied to clipboard!';
   static const String generateMockData = 'Generate 30 Days Mock Data';
-  static const String generateMockDataSubtitle = 'Adds meal logs, symptoms, and insights';
+  static const String generateMockDataSubtitle = 'Adds 30 days of meals and symptoms, 20 scans, chat, an experiment, and refreshed Insights.';
+  static const String mockDataGenerating = 'Generating meals, symptoms, scans, and Insights…';
   static const String generateInsightDebug = 'Generate Insight';
   static const String generateInsightDebugSubtitle = 'Force a fresh insight from current journal data';
-  static const String mockDataGenerated = '2 weeks of mock data generated!';
+  static const String mockDataGenerated = '30-day mock data generated; Insights refreshed.';
+  static const String mockDataGenerationFailed = 'Could not generate mock data. Check your connection and try again.';
   static const String guestAiActivity = 'GUEST ACTIVITY';
   static const String dailyAiActivity = 'DAILY ACTIVITY';
   static const String aiChats = 'Chats';

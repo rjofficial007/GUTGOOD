@@ -1,141 +1,153 @@
 part of 'insights_feed.dart';
 
+/// Distribution of logged foods and the responses users recorded afterward.
 class _FoodImpactBalanceHeroCard extends StatelessWidget {
   const _FoodImpactBalanceHeroCard({this.balance, this.foodImpacts = const []});
 
   final FoodImpactBalance? balance;
   final List<FoodImpact> foodImpacts;
 
-  static const _positive = Color(0xFF22C55E);
-  static const _neutral = Color(0xFFF59E0B);
-  static const _negative = Color(0xFFEF4444);
+  static const _positive = Color(0xFF16A765);
+  static const _neutral = Color(0xFFF5A623);
+  static const _negative = Color(0xFFEF5350);
+  static const _unknown = Color(0xFFCBD5E1);
 
   @override
   Widget build(BuildContext context) {
-    var positive = balance?.positivePercent ?? 0;
-    var neutral = balance?.neutralPercent ?? 0;
-    var negative = balance?.negativePercent ?? 0;
-
-    if ((balance == null || (positive == 0 && neutral == 0 && negative == 0)) && foodImpacts.isNotEmpty) {
-      var positiveCount = 0;
-      var negativeCount = 0;
-      for (final impact in foodImpacts) {
-        if (impact.impactType == 'positive') positiveCount++;
-        if (impact.impactType == 'negative') negativeCount++;
-      }
-      positive = (positiveCount * 100 / foodImpacts.length).round();
-      negative = (negativeCount * 100 / foodImpacts.length).round();
-      neutral = (100 - positive - negative).clamp(0, 100);
+    final counts = <String, int>{'positive': 0, 'neutral': 0, 'negative': 0, 'unknown': 0};
+    for (final impact in foodImpacts) {
+      if (impact.food.trim().isEmpty) continue;
+      final type = switch (impact.impactType.toLowerCase().trim()) {
+        'positive' || 'healing' || 'good' || 'supportive' => 'positive',
+        'neutral' => 'neutral',
+        'negative' || 'trigger' || 'bad' || 'watch' => 'negative',
+        _ => 'unknown',
+      };
+      counts[type] = counts[type]! + 1;
     }
 
-    positive = positive.clamp(0, 100);
-    neutral = neutral.clamp(0, 100);
-    negative = negative.clamp(0, 100);
-    final total = positive + neutral + negative;
-    if (total > 0 && total != 100) {
-      positive = (positive * 100 / total).round();
-      negative = (negative * 100 / total).round();
-      neutral = 100 - positive - negative;
-    }
-
-    final border = context.insightColor(const Color(0xFFE2E8F0));
+    final observations = counts.values.fold<int>(0, (sum, value) => sum + value);
+    final storedTotal = (balance?.positivePercent ?? 0) + (balance?.neutralPercent ?? 0) + (balance?.negativePercent ?? 0);
+    int percent(String key, int fallback) => observations > 0 ? (counts[key]! * 100 / observations).round() : fallback.clamp(0, 100).toInt();
+    final positive = percent('positive', balance?.positivePercent ?? 0);
+    final neutral = percent('neutral', balance?.neutralPercent ?? 0);
+    final negative = percent('negative', balance?.negativePercent ?? 0);
+    final unknown = percent('unknown', 0);
+    final chartTotal = observations > 0 ? observations : storedTotal;
+    double ratio(String key, int fallback) => chartTotal == 0 ? 0 : (observations > 0 ? counts[key]! : fallback) / chartTotal;
     final secondary = context.insightColor(const Color(0xFF64748B));
-    final hasData = positive + neutral + negative > 0;
 
     return Container(
       width: double.infinity,
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
         color: context.insightTheme.card,
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: border),
-        boxShadow: [BoxShadow(color: context.insightColor(const Color(0xFF0F172A)).withValues(alpha: 0.03), blurRadius: 10.w, offset: Offset(0, 2.w))],
+        borderRadius: BorderRadius.circular(20.w),
+        border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
+        boxShadow: [BoxShadow(color: context.insightColor(const Color(0xFF0F172A)).withValues(alpha: 0.035), blurRadius: 12.w, offset: Offset(0, 3.w))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- Card Content ---
-          if (hasData)
-            Padding(
-              padding: EdgeInsets.all(14.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      // Left Donut Chart
-                      Expanded(
-                        flex: 5,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final size = math.min(constraints.maxWidth, 116.w);
-                            return SizedBox(
-                              width: size,
-                              height: size,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  CustomPaint(
-                                    size: Size(size, size),
-                                    painter: _FoodImpactDonutPainter(
-                                      positiveRatio: positive / 100,
-                                      neutralRatio: neutral / 100,
-                                      negativeRatio: negative / 100,
-                                      positiveColor: _positive,
-                                      neutralColor: _neutral,
-                                      negativeColor: _negative,
-                                      emptyColor: border,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      Gap.w14,
-                      // Right Vertical Legend Stack
-                      Expanded(
-                        flex: 5,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _ImpactBalanceLegend(color: _positive, label: 'Positive Impact', value: positive),
-                            Gap.h8,
-                            _ImpactBalanceLegend(color: _neutral, label: 'Neutral Impact', value: neutral),
-                            Gap.h8,
-                            _ImpactBalanceLegend(color: _negative, label: 'Negative Impact', value: negative),
-                          ],
-                        ),
-                      ),
-                    ],
+          Row(
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(color: _positive.withValues(alpha: 0.12), shape: BoxShape.circle),
+                child: Icon(LucideIcons.barChart, size: 18.w, color: const Color(0xFF14532D)),
+              ),
+              Gap.w10,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Food Impact So Far', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)))),
+                    Gap.h2,
+                    Text('Based on your logged meals and how you felt afterward.', maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: secondary)),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'About food impact',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('About food impact'),
+                    content: const Text('These summaries compare foods you logged with symptoms and feelings you reported afterward. They show associations in your logs and do not prove that a food caused a reaction.'),
+                    actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Got it'))],
                   ),
-                  if (foodImpacts.isNotEmpty) ...[
-                    Gap.h8,
-                    Text(
-                      'Based on ${foodImpacts.length} logged meal–response observations. Associations do not prove cause.',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, height: 1.3, color: secondary),
+                ),
+                icon: Icon(Icons.info_outline_rounded, size: 18.w, color: secondary),
+              ),
+            ],
+          ),
+          Gap.h14,
+          Row(
+            children: [
+              Expanded(
+                flex: 5,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = math.min(constraints.maxWidth, 116.w);
+                    return SizedBox(
+                      width: size,
+                      height: size,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CustomPaint(
+                            size: Size.square(size),
+                            painter: _FoodImpactDonutPainter(
+                              positiveRatio: ratio('positive', balance?.positivePercent ?? 0),
+                              neutralRatio: ratio('neutral', balance?.neutralPercent ?? 0),
+                              negativeRatio: ratio('negative', balance?.negativePercent ?? 0),
+                              unknownRatio: ratio('unknown', 0),
+                              positiveColor: _positive,
+                              neutralColor: _neutral,
+                              negativeColor: _negative,
+                              unknownColor: _unknown,
+                            ),
+                          ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('$observations', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 22.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)))),
+                              Text('total\nobservations', textAlign: TextAlign.center, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, height: 1.15, color: secondary)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Gap.w12,
+              Expanded(
+                flex: 7,
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: _ImpactBalanceLegend(color: _positive, label: 'Positive Impact', value: positive, observations: counts['positive']!)),
+                        Gap.w8,
+                        Expanded(child: _ImpactBalanceLegend(color: _neutral, label: 'Neutral Impact', value: neutral, observations: counts['neutral']!)),
+                      ],
+                    ),
+                    Gap.h12,
+                    Row(
+                      children: [
+                        Expanded(child: _ImpactBalanceLegend(color: _negative, label: 'Negative Impact', value: negative, observations: counts['negative']!)),
+                        Gap.w8,
+                        Expanded(child: _ImpactBalanceLegend(color: _unknown, label: 'Not Enough Data', value: unknown, observations: counts['unknown']!)),
+                      ],
                     ),
                   ],
-                ],
+                ),
               ),
-            )
-          else
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Row(
-                children: [
-                  Icon(LucideIcons.pieChart, size: 20.w, color: secondary),
-                  Gap.w12,
-                  Expanded(
-                    child: Text(
-                      'Log meals and how you feel to build your food impact analytics view.',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, height: 1.35, color: secondary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            ],
+          ),
         ],
       ),
     );
@@ -143,11 +155,12 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
 }
 
 class _ImpactBalanceLegend extends StatelessWidget {
-  const _ImpactBalanceLegend({required this.color, required this.label, required this.value});
+  const _ImpactBalanceLegend({required this.color, required this.label, required this.value, required this.observations});
 
   final Color color;
   final String label;
   final int value;
+  final int observations;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -155,28 +168,25 @@ class _ImpactBalanceLegend extends StatelessWidget {
     children: [
       Row(
         children: [
-          Container(
-            width: 8.w,
-            height: 8.w,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          Gap.w6,
+          Container(width: 8.w, height: 8.w, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Gap.w5,
           Expanded(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w500, color: context.insightColor(const Color(0xFF64748B))),
+              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
             ),
           ),
         ],
       ),
       Padding(
-        padding: EdgeInsets.only(left: 14.w, top: 2.w),
-        child: Text(
-          '$value%',
-          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-        ),
+        padding: EdgeInsets.only(left: 13.w, top: 2.w),
+        child: Text('$value%', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)))),
+      ),
+      Padding(
+        padding: EdgeInsets.only(left: 13.w),
+        child: Text('$observations observation${observations == 1 ? '' : 's'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, color: context.insightColor(const Color(0xFF64748B)))),
       ),
     ],
   );
@@ -187,19 +197,21 @@ class _FoodImpactDonutPainter extends CustomPainter {
     required this.positiveRatio,
     required this.neutralRatio,
     required this.negativeRatio,
+    required this.unknownRatio,
     required this.positiveColor,
     required this.neutralColor,
     required this.negativeColor,
-    required this.emptyColor,
+    required this.unknownColor,
   });
 
   final double positiveRatio;
   final double neutralRatio;
   final double negativeRatio;
+  final double unknownRatio;
   final Color positiveColor;
   final Color neutralColor;
   final Color negativeColor;
-  final Color emptyColor;
+  final Color unknownColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -207,42 +219,30 @@ class _FoodImpactDonutPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (math.min(size.width, size.height) - strokeWidth) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
-
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-
-    final totalRatio = positiveRatio + neutralRatio + negativeRatio;
-
-    if (totalRatio <= 0) {
-      paint.color = emptyColor;
+    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = strokeWidth..strokeCap = StrokeCap.butt;
+    final total = positiveRatio + neutralRatio + negativeRatio + unknownRatio;
+    if (total <= 0) {
+      paint.color = unknownColor;
       canvas.drawArc(rect, 0, 2 * math.pi, false, paint);
       return;
     }
 
-    var startAngle = -math.pi / 2; // Top center angle
-
-    void drawArcSegment(double ratio, Color color) {
+    var start = -math.pi / 2;
+    void segment(double ratio, Color color) {
       if (ratio <= 0) return;
-      final sweepAngle = 2 * math.pi * ratio;
       paint.color = color;
-      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
-      startAngle += sweepAngle;
+      final sweep = 2 * math.pi * ratio / total;
+      canvas.drawArc(rect, start, sweep, false, paint);
+      start += sweep;
     }
 
-    drawArcSegment(positiveRatio, positiveColor);
-    drawArcSegment(neutralRatio, neutralColor);
-    drawArcSegment(negativeRatio, negativeColor);
+    segment(positiveRatio, positiveColor);
+    segment(neutralRatio, neutralColor);
+    segment(negativeRatio, negativeColor);
+    segment(unknownRatio, unknownColor);
   }
 
   @override
-  bool shouldRepaint(covariant _FoodImpactDonutPainter oldDelegate) =>
-      oldDelegate.positiveRatio != positiveRatio ||
-      oldDelegate.neutralRatio != neutralRatio ||
-      oldDelegate.negativeRatio != negativeRatio ||
-      oldDelegate.positiveColor != positiveColor ||
-      oldDelegate.neutralColor != neutralColor ||
-      oldDelegate.negativeColor != negativeColor ||
-      oldDelegate.emptyColor != emptyColor;
+  bool shouldRepaint(covariant _FoodImpactDonutPainter old) =>
+      old.positiveRatio != positiveRatio || old.neutralRatio != neutralRatio || old.negativeRatio != negativeRatio || old.unknownRatio != unknownRatio;
 }

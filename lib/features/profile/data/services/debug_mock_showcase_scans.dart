@@ -25,12 +25,9 @@ extension DebugMockShowcaseScans on DebugMockDataService {
 
     // --- SHOWCASE 1: instant noodles (ultra-processed, additive-heavy) -> 28 ---
     const noodlesUrl = 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80';
-    const noodlesHash = 'noodles_mock_hash'; // Usually sha256_16
-    await _foodImageService.registerImage(hash: noodlesHash, storagePath: 'users/debug/food_images/$noodlesHash.jpg', downloadUrl: noodlesUrl);
-
     const noodlesNutrients = NutrientData(calories: 420, fat: 15, saturatedFat: 7, carbs: 62, sugars: 3, fiber: 5.2, proteins: 8, salt: 2.2);
     const noodlesItems = ['E621', 'E631', 'Palm Oil'];
-    await _historyFirestoreService.saveToScanHistory(
+    await _saveMockScan(
       ScanResult(
         productName: 'Masala Instant Noodles',
         brand: 'Maggi',
@@ -72,15 +69,13 @@ extension DebugMockShowcaseScans on DebugMockDataService {
         isSaved: true,
         nutritionEstimated: false,
       ),
+      scanId: 'debug_mock_scan_noodles',
     );
 
     // --- SHOWCASE 2: greek yogurt (clean label, high score) -> 72 ---
     const yogurtUrl = 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80';
-    const yogurtHash = 'yogurt_mock_hash';
-    await _foodImageService.registerImage(hash: yogurtHash, storagePath: 'users/debug/food_images/$yogurtHash.jpg', downloadUrl: yogurtUrl);
-
     const yogurtNutrients = NutrientData(calories: 95, fat: 6, saturatedFat: 5, carbs: 7, sugars: 5, fiber: 0, proteins: 9.5, salt: 0.3);
-    await _historyFirestoreService.saveToScanHistory(
+    await _saveMockScan(
       ScanResult(
         productName: 'Greek Yogurt - Blueberry',
         brand: 'Epigamia',
@@ -121,11 +116,12 @@ extension DebugMockShowcaseScans on DebugMockDataService {
         isSaved: true,
         nutritionEstimated: false,
       ),
+      scanId: 'debug_mock_scan_yogurt',
     );
 
     // --- SHOWCASE 3: photo scan; the uploaded photo is the display image ---
     const photoMealUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
-    await _historyFirestoreService.saveToScanHistory(
+    await _saveMockScan(
       ScanResult(
         productName: 'Chicken & Grain Bowl',
         brand: 'GutGood',
@@ -140,12 +136,13 @@ extension DebugMockShowcaseScans on DebugMockDataService {
         isSaved: true,
         nutritionEstimated: true,
       ),
+      scanId: 'debug_mock_scan_bowl',
     );
 
     AppLogger.mock('Showcase scans seeded (barcode products, photo meal + menu).');
 
     // --- SEED MENU SCAN SHOWCASE ---
-    await _historyFirestoreService.saveToScanHistory(
+    await _saveMockScan(
       ScanResult(
         productName: 'Avocado Toast & Poached Egg',
         brand: 'The Breakfast Club',
@@ -159,13 +156,7 @@ extension DebugMockShowcaseScans on DebugMockDataService {
         createdAt: now.subtract(const Duration(days: 2)),
         isSaved: true,
       ),
+      scanId: 'debug_mock_scan_menu',
     );
-
-    // --- SEED SAVED FOODS ---
-    final savedItems = await _historyFirestoreService.getScanHistory(limit: 3);
-    for (final item in savedItems) {
-      await _historyFirestoreService.toggleSaveFood(item);
-    }
-    AppLogger.mock('Seeded ${savedItems.length} saved foods.');
   }
 }

@@ -40,17 +40,18 @@ export const generateFoodThumb = onObjectFinalized({ region: 'us-east1' }, async
       metadata: { metadata: { firebaseStorageDownloadTokens: token } },
     });
     const thumbUrl = `https://firebasestorage.googleapis.com/v0/b/${event.data.bucket}/o/${encodeURIComponent(thumbPath)}?alt=media&token=${token}`;
-
-    await admin
-      .firestore()
-      .collection('user_profiles')
-      .doc(uid)
-      .collection('food_images')
-      .doc(hash)
-      .set(
+    const db = admin.firestore();
+    const profileRef = db.collection('user_profiles').doc(uid);
+    const imageRef = profileRef.collection('food_images').doc(hash);
+    await db.runTransaction(async (tx) => {
+      const profile = await tx.get(profileRef);
+      if (!profile.exists) return;
+      tx.set(
+        imageRef,
         { thumbPath, thumbUrl, width: meta.width ?? 0, height: meta.height ?? 0, bytes: bytes.length, backfilledAt: admin.firestore.FieldValue.serverTimestamp() },
         { merge: true },
       );
+    });
     logger.info(`food_images: thumb generated for ${uid}/${hash}`);
   } catch (e) {
     logger.error(`food_images: thumb generation failed for ${path}`, e);

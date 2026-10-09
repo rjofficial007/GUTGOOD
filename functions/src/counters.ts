@@ -62,7 +62,9 @@ export function isLoggableForAverage(data: Record<string, unknown>): boolean {
 
 /** One-time full recompute used to seed the counters doc (lazy backfill). */
 async function seedCounters(uid: string): Promise<void> {
+  const db = admin.firestore();
   const userRef = admin.firestore().doc(`user_profiles/${uid}`);
+  const counterRef = countersRef(uid);
   const [scansSnap, mealsSnap, symptomsSnap] = await Promise.all([
     userRef.collection('scan_history').get(),
     userRef.collection('journal_logs').where('type', '==', 'meal').get(),
@@ -80,13 +82,17 @@ async function seedCounters(uid: string): Promise<void> {
     foodScoreCount += 1;
   }
 
-  await countersRef(uid).set({
-    scans: scansSnap.size,
-    meals: mealsSnap.size,
-    symptoms: symptomsSnap.size,
-    foodScoreSum,
-    foodScoreCount,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  await db.runTransaction(async (tx) => {
+    const [user, counters] = await Promise.all([tx.get(userRef), tx.get(counterRef)]);
+    if (!user.exists || counters.exists) return;
+    tx.set(counterRef, {
+      scans: scansSnap.size,
+      meals: mealsSnap.size,
+      symptoms: symptomsSnap.size,
+      foodScoreSum,
+      foodScoreCount,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
   });
   functions.logger.info(
     `counters: seeded for ${uid} (scans=${scansSnap.size} meals=${mealsSnap.size} symptoms=${symptomsSnap.size} scores=${foodScoreCount})`,
@@ -94,19 +100,27 @@ async function seedCounters(uid: string): Promise<void> {
 }
 
 async function applyIncrement(uid: string, delta: Record<string, number>): Promise<void> {
+  const db = admin.firestore();
+  const userRef = db.doc(`user_profiles/${uid}`);
   const ref = countersRef(uid);
-  const snap = await ref.get();
-  if (!snap.exists) {
+  const shouldSeed = await db.runTransaction(async (tx) => {
+    const [user, counters] = await Promise.all([tx.get(userRef), tx.get(ref)]);
+    if (!user.exists) return false;
+    if (!counters.exists) return true;
+
+    const update: Record<string, unknown> = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+    for (const [field, amount] of Object.entries(delta)) {
+      if (amount !== 0) update[field] = admin.firestore.FieldValue.increment(amount);
+    }
+    tx.set(ref, update, { merge: true });
+    return false;
+  });
+
+  if (shouldSeed) {
     // Lazy backfill: the triggering write is already in the collections, so a
     // straight recompute includes it — applying a delta on top would double it.
     await seedCounters(uid);
-    return;
   }
-  const update: Record<string, unknown> = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
-  for (const [field, amount] of Object.entries(delta)) {
-    if (amount !== 0) update[field] = admin.firestore.FieldValue.increment(amount);
-  }
-  await ref.set(update, { merge: true });
 }
 
 async function applyDecrement(uid: string, delta: Record<string, number>): Promise<void> {
