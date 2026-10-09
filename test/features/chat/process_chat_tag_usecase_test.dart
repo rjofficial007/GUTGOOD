@@ -51,6 +51,43 @@ void main() {
       expect(result.scan?.productName, 'Oats');
     });
 
+    test('food photo strips unsupported label and packaging claims before persistence', () {
+      final result = useCase.call(
+        '[GUTGOOD_DATA]${jsonEncode({
+          'image_mode': 'FOOD',
+          'scan': {
+            'productName': 'Dessert Platter',
+            'category': 'meal',
+            'allergens': 'Contains gluten, dairy, and nuts.',
+            'additives': 'None',
+            'additiveItems': ['E621'],
+            'servingSize': '1 platter',
+            'servingsPerPack': 4,
+            'portionEaten': '1 serving',
+            'nutriscore': 'B',
+            'novaGroup': 2,
+            'nutritionBasis': 'per_serving',
+            'cycleInsight': {'phase': 'string', 'description': 'string', 'tags': []},
+          },
+        })}[/GUTGOOD_DATA]',
+        isFinal: true,
+      );
+
+      final scan = result.scan!;
+      expect(scan.allergens, isNull);
+      expect(scan.additives, isNull);
+      expect(scan.additiveItems, isEmpty);
+      expect(scan.servingSize, isNull);
+      expect(scan.nutriscore, isNull);
+      expect(scan.novaGroup, isNull);
+      expect(scan.nutritionEstimated, isTrue);
+      expect(scan.cycleInsight, isNull);
+      final storedScan = scan.rawData!['scan'] as Map<String, dynamic>;
+      expect(storedScan['allergens'], isNull);
+      expect(storedScan['additives'], isNull);
+      expect(storedScan['cycleInsight'], isNull);
+    });
+
     test('should extract intent when [INTENT] tag is present', () {
       const text = 'Help me [INTENT]{"category": "meal_analysis", "confidence": 0.9}[/INTENT]';
 
@@ -189,6 +226,7 @@ void main() {
         'swaps': [
           {
             'name': 'Plain yogurt',
+            'replaces': 'Original yogurt',
             'reason': 'An option without added sugar',
             'tag': 'NO ADDED SUGAR',
             'benefitTags': ['No added sugar'],
@@ -198,12 +236,28 @@ void main() {
             'whyBetterOption': 'The supplied labels show less added sugar per 100 g.',
             'nutrition': {'calories': 65, 'protein': '4 g', 'basis': 'per 100 g'},
           },
-          {'name': 'Kefir', 'reason': 'Another supported option', 'tag': 'T'},
-          {'name': 'Soy yogurt', 'reason': 'Another supported option', 'tag': 'T'},
-          {'name': 'Cottage cheese', 'reason': 'Another supported option', 'tag': 'T'},
+          {'name': 'Kefir', 'replaces': 'Original yogurt', 'reason': 'Another supported option', 'tag': 'T'},
+          {'name': 'Soy yogurt', 'replaces': 'Original yogurt', 'reason': 'Another supported option', 'tag': 'T'},
+          {'name': 'Cottage cheese', 'replaces': 'Original yogurt', 'reason': 'Another supported option', 'tag': 'T'},
         ],
       };
-      final result = useCase.call('[GUTGOOD_DATA]${jsonEncode(payload)}[/GUTGOOD_DATA]', isFinal: true);
+      final result = useCase.call(
+        '[GUTGOOD_DATA]${jsonEncode(payload)}[/GUTGOOD_DATA]',
+        isFinal: true,
+        fallbackSwaps: const [
+          ProductSwap(
+            title: 'Plain yogurt',
+            subtitle: 'Catalog alternative',
+            imageKeyword: 'plain yogurt',
+            tag: 'NO ADDED SUGAR',
+            alternative: SwapAlternative(
+              foodId: 'plain-yogurt-123',
+              name: 'Plain yogurt',
+              nutrition: SwapNutrition(calories: 65, protein: '4 g', basis: 'per 100 g'),
+            ),
+          ),
+        ],
+      );
       expect(result.swaps, hasLength(4));
       final restored = AiAnalysisResult.fromMap(result.toMap());
       final card = ProductSwap.fromMap(restored.swaps.first.toMap()).toAlternative();
@@ -216,7 +270,7 @@ void main() {
       }
     });
 
-    test('shows exactly four distinct valid swaps and does not manufacture a quota', () {
+    test('shows up to four distinct usable swaps without hiding partial results', () {
       const a = ProductSwap(title: 'A', subtitle: 'Supported reason', imageKeyword: 'a', tag: 'T');
       const duplicate = ProductSwap(title: ' a ', subtitle: 'Same food', imageKeyword: 'a', tag: 'T');
       const b = ProductSwap(title: 'B', subtitle: 'Another reason', imageKeyword: 'b', tag: 'T');
@@ -225,8 +279,84 @@ void main() {
       const invalid = ProductSwap(title: '', subtitle: '', imageKeyword: '', tag: 'T');
       expect(normalizeSwapCards([a, b, c, d], []), [a, b, c, d]);
       expect(normalizeSwapCards([a, duplicate, invalid, b, c, d], []), [a, b, c, d]);
-      expect(normalizeSwapCards([a, b, c], []), isEmpty);
+      expect(normalizeSwapCards([a, b, c], []), [a, b, c]);
       expect(normalizeSwapCards([], [a, b]), isEmpty);
+    });
+
+    test('ice cream photo keeps swaps and labels supplied nutrition as an estimate', () {
+      final swaps = ['Coconut milk ice cream', 'Soy frozen yogurt bowl', 'Oat milk ice cream', 'Banana nice cream'].map((name) => {
+        'name': name,
+        'replaces': 'vanilla ice cream',
+        'reason': 'A different frozen dessert base; check its label.',
+        'nutrition': {'calories': 150, 'protein': 2, 'basis': 'per serving'},
+      }).toList();
+      AiAnalysisResult parse(List<Map<String, Object>> alternatives) => useCase.call(
+        '**Would I swap anything?**\nTry a different frozen dessert.\n**The GutGood take:**\nEnjoy your dessert.\n'
+        '[GUTGOOD_DATA]${jsonEncode({
+          'scan': {'productName': 'Vanilla Ice Cream', 'category': 'meal', 'swaps': swaps},
+          'swaps': alternatives,
+        })}[/GUTGOOD_DATA]',
+        isFinal: true,
+      );
+
+      final complete = parse(swaps);
+      expect(complete.swaps, hasLength(4));
+      expect(complete.scan!.swaps, hasLength(4));
+      expect(complete.swaps.every((swap) => swap.toAlternative().nutrition.hasData), isTrue);
+      expect(complete.swaps.first.toAlternative().nutrition.basis, contains('not verified'));
+      expect(complete.text, contains('Would I swap anything?'));
+
+      final partial = parse(swaps.take(1).toList());
+      expect(partial.swaps, hasLength(1));
+      expect(partial.scan!.swaps, hasLength(1));
+      expect(partial.text, contains('Would I swap anything?'));
+
+    });
+
+    test('dessert spread keeps component swaps in chat and scan persistence', () {
+      final result = useCase.call('[GUTGOOD_DATA]${jsonEncode({
+        'scan': {'productName': 'Dessert Spread', 'category': 'meal'},
+        'swaps': [
+          for (final name in ['Fruit Parfait', 'Yogurt with Berries', 'Chia Seed Pudding', 'Dark Chocolate Bark with Nuts'])
+            {'name': name, 'replaces': 'Chocolate Cake', 'reason': 'A different dessert option.', 'nutrition': {'calories': 150}},
+        ],
+      })}[/GUTGOOD_DATA]', isFinal: true);
+      expect(result.swaps, hasLength(4));
+      expect(result.scan!.swaps, hasLength(4));
+      expect(result.swaps.first.toAlternative().replaces, 'Chocolate Cake');
+      expect(result.swaps.every((swap) => swap.toAlternative().nutrition.hasData), isTrue);
+      expect(result.swaps.first.toAlternative().nutrition.basis, contains('not verified'));
+      final restored = AiAnalysisResult.fromMap(result.toMap());
+      expect(restored.swaps.map((swap) => swap.title), result.swaps.map((swap) => swap.title));
+    });
+
+    test('keeps swap details and marks unsupported nutrition as an estimate', () {
+      const a = ProductSwap(
+        title: 'Chickpeas',
+        subtitle: 'Adds a plant-based option.',
+        imageKeyword: 'chickpeas',
+        tag: 'ALTERNATIVE',
+        alternative: SwapAlternative(
+          foodId: 'Chickpeas',
+          name: 'Chickpeas',
+          whyBetterOption: 'Replace the rice with chickpeas for a different texture.',
+          benefits: [SwapBenefit(title: 'Plant-based', description: 'A legume option.', icon: 'leaf')],
+          nutrition: SwapNutrition(calories: 164, fiber: '7.6 g', basis: 'per 100 g'),
+        ),
+      );
+      const b = ProductSwap(title: 'B', subtitle: 'Reason B', imageKeyword: 'b', tag: 'T');
+      const c = ProductSwap(title: 'C', subtitle: 'Reason C', imageKeyword: 'c', tag: 'T');
+      const d = ProductSwap(title: 'D', subtitle: 'Reason D', imageKeyword: 'd', tag: 'T');
+
+      final normalized = normalizeSwapCards([a, b, c, d], []);
+
+      expect(normalized, hasLength(4));
+      expect(normalized.first.toAlternative().whyBetterOption, contains('Replace the rice'));
+      expect(normalized.first.toAlternative().benefits.single.title, 'Plant-based');
+      expect(normalized.first.toAlternative().nutrition.hasData, isTrue);
+      expect(normalized.first.toAlternative().nutrition.basis, contains('not verified'));
+      expect(normalized.first.barcode, isNull);
+      expect(normalized.first.nutriscore, isNull);
     });
 
     test('no swaps emitted stays empty without fallback (never manufactured)', () {

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/constants/app_icons.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
@@ -14,6 +15,7 @@ import 'package:gutgood/core/router/app_routes.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/core/widgets/journal_event_sheet.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 import 'package:gutgood/features/auth/presentation/pages/paywall_screen.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
@@ -29,7 +31,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:upgrader/upgrader.dart';
 import 'package:uuid/uuid.dart';
-
 
 part 'chat_screen_state.dart';
 part 'chat_suggestions_section.dart';

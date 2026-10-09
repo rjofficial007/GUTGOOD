@@ -207,6 +207,7 @@ class ScannerNotifier with ChangeNotifier {
     required Function(Uint8List image, String mode) onImageCaptured,
     required Function(String message) onError,
     required VoidCallback onHaptic,
+    bool fallbackToPhotoWhenBarcodeMissing = false,
   }) async {
     _isProcessing = true;
     notifyListeners();
@@ -227,6 +228,8 @@ class ScannerNotifier with ChangeNotifier {
 
         if (code != null) {
           await onBarcodeFound(code, bytes);
+        } else if (fallbackToPhotoWhenBarcodeMissing) {
+          onImageCaptured(bytes, 'food');
         } else {
           onError(AppStrings.noBarcodeDetected);
         }
@@ -235,7 +238,11 @@ class ScannerNotifier with ChangeNotifier {
       }
     } catch (e) {
       AppLogger.error('ScannerNotifier: Photo capture error', error: e);
-      onError(AppStrings.failedToAnalyzeProduct);
+      if (mode == 'barcode' && fallbackToPhotoWhenBarcodeMissing) {
+        onImageCaptured(bytes, 'food');
+      } else {
+        onError(AppStrings.failedToAnalyzeProduct);
+      }
     } finally {
       _isProcessing = false;
       notifyListeners();

@@ -28,7 +28,15 @@ class InsightBentoLearning extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Top Centered Display Title (Matching Chat Empty State UI/UX)
-        Text('Your food.\nYour symptoms.\nYour insights.', style: context.displayMd.copyWith(height: 1.2, letterSpacing: -0.5), textAlign: TextAlign.center),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Your food.\nYour symptoms.\nYour insights.',
+            style: context.displayMd.copyWith(height: 1.2, letterSpacing: -0.5),
+            textAlign: TextAlign.center,
+            softWrap: false,
+          ),
+        ),
         Gap.h16,
 
         // Subtitle Paragraph
@@ -55,7 +63,7 @@ class InsightBentoLearning extends StatelessWidget {
               total: maxFoodScans,
               isDone: foodDone,
               accentColor: scheme.textPrimary,
-              onTap: () => context.push(AppRoutes.scannerPath('meal')),
+              onTap: () => openScannerAndProcessResult(context, 'meal'),
             ),
             _LearningCard(
               icon: AppIcons.heart,
@@ -110,4 +118,3 @@ class InsightBentoLearning extends StatelessWidget {
     );
   }
 }
-

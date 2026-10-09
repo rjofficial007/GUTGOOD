@@ -51,6 +51,8 @@ AIInsight buildInsight({int gutScore = 50, String? scoreDiff = '+6'}) => AIInsig
   weeklyRecap: const WeeklyRecap(
     dateRange: 'Aug 24–31',
     avgScore: 50,
+    gutScoreTrend: [30, 45, 40, 55, 62, 68, 50],
+    scoredDayIndices: [0, 1, 2, 3, 4, 5, 6],
     scoreSub: '68% (4 days)',
     bestDay: 'Saturday',
     foodsLogged: 4,
@@ -141,11 +143,11 @@ void main() {
 
   group('Screen 01 — bento feed', () {
     testWidgets('renders the score hero and every bento section', (tester) async {
-      await pumpBento(tester, InsightBentoFeed(data: buildInsight(), patterns: const [kPattern]));
+      await pumpBento(tester, InsightBentoFeed(data: buildInsight(), patterns: const [kPattern], series: const [44, 50]));
       expect(tester.takeException(), isNull);
       expect(find.text('50'), findsOneWidget);
       expect(find.text('GUTGOOD SCORE'), findsOneWidget);
-      expect(find.textContaining('6 pts'), findsOneWidget);
+      expect(find.textContaining('+6 vs previous scored day'), findsOneWidget);
       expect(find.textContaining('Fast food dinners'), findsOneWidget);
       expect(find.textContaining('94% match'), findsNothing);
       expect(find.textContaining('Repeated observation'), findsWidgets);
@@ -206,7 +208,7 @@ void main() {
     });
 
     testWidgets('omits the sparkline when there is only one data point', (tester) async {
-      await pumpBento(tester, InsightBentoRecap(recap: buildInsight().weeklyRecap!, series: const [50]));
+      await pumpBento(tester, const InsightBentoRecap(recap: WeeklyRecap(avgScore: 50, gutScoreTrend: [50], scoredDayIndices: [0]), series: [50]));
       expect(tester.takeException(), isNull);
       expect(find.byType(FoilSparkCard), findsNothing);
     });
@@ -236,7 +238,7 @@ void main() {
       );
       await pumpBento(tester, const InsightBentoSynergy(summary: summary, patterns: [kPattern, kPattern]));
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('Logged associations'), findsOneWidget);
+      expect(find.textContaining('LOGGED ASSOCIATIONS'), findsOneWidget);
       expect(find.textContaining('2× RISK'), findsNothing);
       expect(find.textContaining('Driver 1'), findsOneWidget);
       expect(find.text('Continue tracking'), findsOneWidget);

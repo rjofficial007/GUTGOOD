@@ -45,7 +45,6 @@ extension DebugMockShowcaseScans on DebugMockDataService {
         barcode: '8901030821232',
         servingSize: '70g pack (1 serving)',
         imageUrl: noodlesUrl,
-        userImageUrl: noodlesUrl,
         nutrients: noodlesNutrients,
         additives: 'Contains flavour enhancers E621, E631 and palm oil.',
         additiveItems: noodlesItems,
@@ -95,7 +94,6 @@ extension DebugMockShowcaseScans on DebugMockDataService {
         barcode: '8908001234567',
         servingSize: '100g cup',
         imageUrl: yogurtUrl,
-        userImageUrl: yogurtUrl,
         nutrients: yogurtNutrients,
         additives: 'No additives detected.',
         additiveItems: const [],
@@ -125,7 +123,26 @@ extension DebugMockShowcaseScans on DebugMockDataService {
       ),
     );
 
-    AppLogger.mock('Showcase scans seeded (noodles 28 + yogurt 72 + menu 78).');
+    // --- SHOWCASE 3: photo scan; the uploaded photo is the display image ---
+    const photoMealUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
+    await _historyFirestoreService.saveToScanHistory(
+      ScanResult(
+        productName: 'Chicken & Grain Bowl',
+        brand: 'GutGood',
+        score: 81,
+        impactType: ImpactType.positive,
+        impact: 'A balanced meal with protein, whole grains, and vegetables.',
+        category: 'food',
+        source: 'photo',
+        userImageUrl: photoMealUrl,
+        nutrients: const NutrientData(calories: 520, fat: 18, saturatedFat: 4, carbs: 58, sugars: 7, fiber: 9, proteins: 32, salt: 0.8),
+        createdAt: now.subtract(const Duration(hours: 2)),
+        isSaved: true,
+        nutritionEstimated: true,
+      ),
+    );
+
+    AppLogger.mock('Showcase scans seeded (barcode products, photo meal + menu).');
 
     // --- SEED MENU SCAN SHOWCASE ---
     await _historyFirestoreService.saveToScanHistory(

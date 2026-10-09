@@ -34,18 +34,21 @@ void main() {
       () => history.getRecentMealLogs(
         limit: any(named: 'limit'),
         since: any(named: 'since'),
+        throwOnError: any(named: 'throwOnError'),
       ),
     ).thenAnswer((_) async => []);
     when(
       () => history.getRecentScans(
         limit: any(named: 'limit'),
         since: any(named: 'since'),
+        throwOnError: any(named: 'throwOnError'),
       ),
     ).thenAnswer((_) async => []);
     when(
       () => history.getRecentSymptomLogs(
         limit: any(named: 'limit'),
         since: any(named: 'since'),
+        throwOnError: any(named: 'throwOnError'),
       ),
     ).thenAnswer((_) async => []);
     when(() => insights.savePatternData(any())).thenAnswer((_) async {});
@@ -56,24 +59,54 @@ void main() {
       () => history.getRecentMealLogs(
         limit: any(named: 'limit'),
         since: any(named: 'since'),
+        throwOnError: any(named: 'throwOnError'),
       ),
     ).thenAnswer((_) async => meals);
     when(
       () => history.getRecentScans(
         limit: any(named: 'limit'),
         since: any(named: 'since'),
+        throwOnError: any(named: 'throwOnError'),
       ),
     ).thenAnswer((_) async => scans);
     when(
       () => history.getRecentSymptomLogs(
         limit: any(named: 'limit'),
         since: any(named: 'since'),
+        throwOnError: any(named: 'throwOnError'),
       ),
     ).thenAnswer((_) async => symptoms);
     return engine.runAnalysis();
   }
 
   group('PatternEngineService (P1-7)', () {
+    test('does not correlate records whose event times are outside the 30-day window', () async {
+      final now = DateTime.now();
+      final oldEventTime = now.subtract(const Duration(days: 31));
+      final oldMeal = MealLog(
+        firestoreId: 'old-meal',
+        journalEntryId: 'old-meal',
+        items: const ['Oats'],
+        createdAt: now,
+        occurredAt: oldEventTime,
+        occurredAtProvenance: OccurrenceProvenance.user,
+      );
+      final oldSymptom = SymptomLog(
+        firestoreId: 'old-symptom',
+        journalEntryId: 'old-meal',
+        lastMealFirestoreId: 'old-meal',
+        symptom: 'bloated',
+        createdAt: now,
+        occurredAt: oldEventTime,
+        occurredAtProvenance: OccurrenceProvenance.user,
+      );
+
+      final patterns = await runWith(meals: [oldMeal], symptoms: [oldSymptom]);
+
+      expect(patterns, isEmpty);
+      verify(() => insights.savePatternData(const <BodyPattern>[])).called(1);
+    });
+
     test('repeated burgers and explicit energetic reports survive incomplete scan detail', () async {
       final now = DateTime.now();
       final meals = <MealLog>[];
@@ -226,9 +259,10 @@ void main() {
         () => history.getRecentMealLogs(
           limit: captureAny(named: 'limit'),
           since: captureAny(named: 'since'),
+          throwOnError: true,
         ),
       ).captured;
-      expect(captured[0], 150);
+      expect(captured[0], isNull);
       final since = captured[1] as DateTime;
       expect(DateTime.now().difference(since).inDays, 30);
     });
@@ -461,7 +495,7 @@ void main() {
       final meals = scans
           .map(
             (scan) =>
-                MealLog(firestoreId: '${scan.scanId}_meal', journalEntryId: '${scan.scanId}_meal', scanId: scan.scanId, items: const ['Scan Oats'], createdAt: scan.createdAt, occurredAt: scan.createdAt, occurredAtProvenance: OccurrenceProvenance.user),
+                MealLog(firestoreId: '${scan.scanId}_meal', journalEntryId: '${scan.scanId}_meal', scanId: scan.scanId, consumptionConfirmed: true, items: const ['Scan Oats'], createdAt: scan.createdAt, occurredAt: scan.createdAt, occurredAtProvenance: OccurrenceProvenance.user),
           )
           .toList();
       final symptoms = meals.map((meal) => _symptom('Bloating', meal.createdAt.add(const Duration(hours: 2)))).toList();

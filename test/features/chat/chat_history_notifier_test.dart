@@ -61,6 +61,9 @@ void main() {
     appStateService = MockAppStateService();
     prefs = MockSharedPreferences();
     auth = MockFirebaseAuth();
+    final user = MockUser();
+    when(() => user.uid).thenReturn('user');
+    when(() => auth.currentUser).thenReturn(user);
     usageService = MockUsageService();
     domainEventPersister = MockDomainEventPersister();
     controller = StreamController<List<ChatMessage>>.broadcast();
@@ -215,6 +218,15 @@ void main() {
     });
   });
 
+  test('a timing sheet from a cleared chat cannot write into a later session', () async {
+    final meal = MealLog(items: const ['Oats'], firestoreId: 'old-meal', createdAt: DateTime.now());
+    final message = ChatMessage(localId: 'old-turn', role: 'ai', text: 'Meal logged', mealLogs: [meal], createdAt: DateTime.now());
+    notifier
+      ..addOptimisticMessage(message)
+      ..clearHistory();
+    expect(await notifier.confirmJournalTiming(message, meal: meal, occurredAt: DateTime.now()), isFalse);
+  });
+
   test('confirming a scanned food persists the meal and closes the chat prompt', () async {
     final scan = ScanResult(
       productName: 'Oats',
@@ -235,11 +247,13 @@ void main() {
     when(() => historyFirestoreService.getScanById('turn_scan')).thenAnswer((_) async => scan);
     when(() => domainEventPersister.persistConfirmedScanMeal(resolvedScan, chatMessageId: 'turn')).thenAnswer((_) async => meal);
     when(
-      () => historyFirestoreService.trySaveToScanHistory(resolvedScan, userImageUrl: any(named: 'userImageUrl'), scanId: 'turn_scan'),
+      () => historyFirestoreService.trySaveToScanHistory(
+        resolvedScan,
+        userImageUrl: any(named: 'userImageUrl'),
+        scanId: 'turn_scan',
+      ),
     ).thenAnswer((_) async => true);
-    when(
-      () => historyFirestoreService.deleteScanMealProjections(chatMessageId: 'turn', scanId: 'turn_scan', keepMealId: 'turn_meal'),
-    ).thenAnswer((_) async {});
+    when(() => historyFirestoreService.deleteScanMealProjections(chatMessageId: 'turn', scanId: 'turn_scan', keepMealId: 'turn_meal')).thenAnswer((_) async {});
     when(() => chatFirestoreService.saveMessage(resolvedMessage)).thenAnswer((_) async => 'turn');
     notifier.addOptimisticMessage(message);
 

@@ -103,41 +103,28 @@ class AiClassifierServiceImpl implements AiClassifierService {
   /// Every text-only turn used to pay a full round trip to the model purely to
   /// pick a prompt, and streaming cannot start until that returns (~0.5-1.5 s
   /// of dead time before the first token). These patterns cover the phrasings
-  /// that dominate real traffic; anything that misses still goes to the model,
-  /// so this is purely additive. Ordered most-specific first.
+  /// that dominate real traffic. Unmatched wording falls back to the general
+  /// analysis prompt, avoiding a second model round trip before chat. Ordered
+  /// most-specific first.
   static const Map<String, List<String>> _intentKeywords = {
-    UserIntent.mealRating: ['rate my', 'rate this', 'how did i do', 'give me a score', 'score this', 'grade this', 'out of ten'],
+    UserIntent.mealRating: ['rate my', 'rate this', 'how did i do', 'give me a score', 'score this', 'grade this', 'out of ten', 'how is my lunch', 'thoughts on that lunch', 'thoughts on my lunch'],
     UserIntent.healthAssessment: ['is this healthy', 'is this balanced', 'is this good for me', 'good for my gut', 'should i eat this'],
     UserIntent.nutritionAnalysis: ['how many calories', 'how much protein', 'how many carbs', 'how much sugar', 'nutrition facts', 'macros'],
     UserIntent.mealPlanning: ['what should i eat', 'what can i have for', 'plan my', 'meal plan'],
     UserIntent.menuRecommendation: ['what should i order', 'what to order', 'best thing on the menu'],
     UserIntent.swapRequest: ['what should i improve', 'suggest a swap', 'what to swap', 'make it healthier', 'healthier alternative', 'instead of this', 'better option'],
-    UserIntent.symptomAnalysis: [
-      'bloat',
-      'cramp',
-      'nausea',
-      'constipat',
-      'diarrh',
-      'heartburn',
-      'acid reflux',
-      'stomach',
-      'symptom',
-      'how am i doing',
-      'i feel',
-      'feeling',
-      'tired',
-    ],
+    UserIntent.symptomAnalysis: ['bloat', 'cramp', 'nausea', 'constipat', 'diarrh', 'heartburn', 'acid reflux', 'stomach', 'symptom', 'how am i doing', 'i feel', 'feeling', 'tired'],
   };
 
   @override
-  Future<String> classifyTextIntent({required String userText, String? historySummary}) async {
+  Future<String> classifyTextIntent({required String userText, String? historySummary}) {
     AppLogger.ai('AiClassifier: Starting text intent detection');
 
     final normalizedText = userText.trim().toLowerCase();
 
     // Fast-path client overrides for common user intent phrases
     if (normalizedText == 'what am i getting from this?' || normalizedText == 'what do you think of this meal?') {
-      return 'COMPLETE_ANALYSIS';
+      return Future.value(UserIntent.completeAnalysis);
     }
 
     for (final entry in _intentKeywords.entries) {
@@ -145,67 +132,15 @@ class AiClassifierServiceImpl implements AiClassifierService {
         if (normalizedText.contains(keyword)) {
           // No model call, so the reply can start streaming immediately.
           AppLogger.ai('AiClassifier: fast-path intent ${entry.key} (matched "$keyword")');
-          return entry.key;
+          return Future.value(entry.key);
         }
       }
     }
 
-    final prompt = historySummary != null ? 'History Summary: $historySummary\n\nUser Message: "$userText"' : 'User Message: "$userText"';
-
-    try {
-      final raw = await _aiService.generateContent(systemInstruction: Prompts.intentDetectionInstruction, prompt: prompt, usageType: 'system');
-
-      final result = _parseIntent(raw);
-      AppLogger.info('AiClassifier: Text Intent -> $result');
-      return result;
-    } catch (e) {
-      AppLogger.error('AiClassifier: Text intent detection failed', error: e);
-      return 'COMPLETE_ANALYSIS';
-    }
-  }
-
-  /// Reduces the model's reply to a canonical [UserIntent] token.
-  ///
-  /// The intent prompt asks for `{"intent": "CATEGORY_NAME"}` and the request
-  /// runs in JSON mode, so the raw reply is a JSON object. It used to be
-  /// returned verbatim (e.g. `{"intent":"MEAL_RATING"}`), which:
-  ///  - silently defeated the server-side per-intent `max_tokens` budget in
-  ///    `resolveMaxTokens()` (an exact-match lookup that can never match a JSON
-  ///    string), so every turn paid the flat 2048-token ceiling;
-  ///  - only worked client-side by accident (`_getPromptForIntent` matches with
-  ///    `.contains()`);
-  ///  - leaked raw JSON into analytics and Firestore as the "intent".
-  static String _parseIntent(String raw) {
-    final text = raw.trim();
-    if (text.isEmpty) return UserIntent.completeAnalysis;
-
-    // 1. Happy path: JSON object carrying an "intent" key.
-    try {
-      final decoded = jsonDecode(text);
-      if (decoded is Map<String, dynamic>) {
-        final token = _canonicalIntent(decoded['intent']?.toString());
-        if (token != null) return token;
-      }
-    } catch (_) {
-      // Not JSON (plain-text reply, or prose around it) — fall through.
-    }
-
-    // 2. Tolerant fallback: a bare token, or prose that mentions one.
-    final token = _canonicalIntent(text.toUpperCase());
-    if (token != null) return token;
-
-    AppLogger.warning('AiClassifier: unrecognised intent "$text"; defaulting to ${UserIntent.completeAnalysis}');
-    return UserIntent.completeAnalysis;
-  }
-
-  /// Maps any string to a [UserIntent] constant, or `null` if none matches.
-  static String? _canonicalIntent(String? raw) {
-    final candidate = raw?.trim().toUpperCase() ?? '';
-    if (candidate.isEmpty) return null;
-    if (UserIntent.all.contains(candidate)) return candidate;
-    for (final intent in UserIntent.all) {
-      if (candidate.contains(intent)) return intent;
-    }
-    return null;
+    // Intent is only used to choose a prompt. If no deterministic rule matches,
+    // let the main response model handle the request with the general analysis
+    // prompt instead of paying for a second AI round trip first.
+    AppLogger.ai('AiClassifier: no local intent match; using ${UserIntent.completeAnalysis} without a classifier call.');
+    return Future.value(UserIntent.completeAnalysis);
   }
 }

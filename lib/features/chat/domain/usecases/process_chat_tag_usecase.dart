@@ -2,11 +2,24 @@ import 'dart:convert';
 
 import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/utils/ai_display_text.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
-/// Swap cards are shown only as a complete set of four.
+/// Maximum cards returned per generation; keep usable partial results.
 const int kSwapCardCount = 4;
+
+SwapNutrition _markSwapNutritionAsEstimate(SwapNutrition nutrition) {
+  if (!nutrition.hasData || nutrition.basis?.toLowerCase().contains('not verified') == true) return nutrition;
+  final basis = nutrition.basis?.trim();
+  return SwapNutrition(
+    calories: nutrition.calories,
+    protein: nutrition.protein,
+    totalFat: nutrition.totalFat,
+    fiber: nutrition.fiber,
+    basis: basis?.isNotEmpty == true ? 'AI estimate · $basis · not verified' : 'AI-generated estimate · serving basis not recorded · not verified',
+  );
+}
 
 /// Keep meaningful, distinct recommendations and hydrate matching catalog facts.
 /// Catalog candidates are not recommendations until the response selects them.
@@ -17,20 +30,25 @@ List<ProductSwap> normalizeSwapCards(List<ProductSwap> swaps, List<ProductSwap> 
   for (var swap in swaps) {
     final name = swap.title.trim().toLowerCase();
     if (name.isEmpty || name == 'string' || swap.subtitle.trim().isEmpty) continue;
+    final replaces = swap.toAlternative().replaces?.trim().toLowerCase();
+    if (name == replaces) continue;
     final matches = fallback.where((candidate) => (swap.barcode?.isNotEmpty == true && candidate.barcode == swap.barcode) || candidate.title.trim().toLowerCase() == name);
-    if (matches.isNotEmpty) {
-      final product = matches.first;
+    final product = matches.isEmpty ? null : matches.first;
+    final details = swap.toAlternative();
+    final hasUnverifiedFacts = product == null && (fallback.isNotEmpty || details.nutrition.hasData || swap.imageUrl != null || swap.barcode != null || swap.nutriscore != null);
+    if (product != null || hasUnverifiedFacts) {
+      // Keep model-provided nutrition visible as an explicitly unverified
+      // estimate; matched catalog facts take precedence when available.
+      final nutrition = product?.toAlternative().nutrition ?? _markSwapNutritionAsEstimate(details.nutrition);
       swap = ProductSwap.fromMap({
-        ...swap.toAlternative().toMap(),
-        'foodId': product.barcode ?? product.title,
-        'name': product.title,
-        'barcode': product.barcode,
-        'nutriscore': product.nutriscore,
-        'imageUrl': product.imageUrl,
+        ...details.toMap(),
+        'foodId': product?.barcode ?? product?.title ?? swap.title,
+        'name': product?.title ?? swap.title,
+        'barcode': product?.barcode,
+        'nutriscore': product?.nutriscore,
+        'imageUrl': product?.imageUrl,
+        'nutrition': nutrition.toMap(),
       });
-    } else if (fallback.isNotEmpty) {
-      // Unmatched suggestions may be generic foods, but aren't catalog facts.
-      swap = ProductSwap.fromMap({...swap.toAlternative().toMap(), 'foodId': swap.title, 'barcode': null, 'nutriscore': null, 'imageUrl': null});
     }
     final resolvedName = swap.title.trim().toLowerCase();
     final code = swap.barcode?.trim();
@@ -40,7 +58,7 @@ List<ProductSwap> normalizeSwapCards(List<ProductSwap> swaps, List<ProductSwap> 
     kept.add(swap);
     if (kept.length == kSwapCardCount) break;
   }
-  return kept.length == kSwapCardCount ? kept : const [];
+  return kept;
 }
 
 class ProcessChatTagUseCase {
@@ -119,6 +137,33 @@ class ProcessChatTagUseCase {
 
       if (decoded['scan'] != null && decoded['scan'] is Map<String, dynamic>) {
         final scanMap = Map<String, dynamic>.from(decoded['scan']);
+        final isFoodPhoto = decoded['image_mode']?.toString().toUpperCase() == 'FOOD';
+        if (isFoodPhoto) {
+          // A food photo cannot establish label-only facts or packaging data.
+          for (final key in ['allergens', 'additives', 'servingsPerPack', 'servingSize', 'portionEaten', 'nutriscore', 'novaGroup']) {
+            scanMap[key] = null;
+          }
+          scanMap['additiveItems'] = <String>[];
+          scanMap['nutritionBasis'] = 'pictured_portion';
+          scanMap['nutritionEstimated'] = true;
+          final cycle = scanMap['cycleInsight'];
+          if (cycle is Map) {
+            final cycleMap = Map<String, dynamic>.from(cycle);
+            for (final key in ['phase', 'description']) {
+              final value = cycleMap[key]?.toString().trim().toLowerCase();
+              if (value == 'string' || value == 'null' || value == 'unknown' || value == '') cycleMap[key] = null;
+            }
+            final tags = cycleMap['tags'];
+            if (tags is List) {
+              cycleMap['tags'] = tags.where((tag) => tag is Map && tag.values.every((value) => value?.toString().toLowerCase() != 'string')).toList();
+            }
+            if (cycleMap['phase'] == null && cycleMap['description'] == null && (cycleMap['tags'] as List?)?.isEmpty != false) {
+              scanMap['cycleInsight'] = null;
+            } else {
+              scanMap['cycleInsight'] = cycleMap;
+            }
+          }
+        }
         if (decoded['menu'] != null) {
           scanMap['menu'] = decoded['menu'];
         }
@@ -131,9 +176,10 @@ class ProcessChatTagUseCase {
         // 🚀 Professional ID Mapping: Ensure the scanId used in Firestore (convention: msgId_scan)
         // is attached to the model so hydration works correctly when viewing full reports.
         // We also pass 'decoded' as rawData so all context (meal strategy, etc.) is preserved.
+        final rawData = Map<String, dynamic>.from(decoded)..['scan'] = scanMap;
         scanData = ScanResult.fromMap(
           scanMap,
-        ).copyWith(source: imageMode ?? source, userImageUrl: imageUrl, chatMessageId: chatMessageId, scanId: chatMessageId != null ? '${chatMessageId}_scan' : null, rawData: decoded);
+        ).copyWith(source: imageMode ?? source, userImageUrl: imageUrl, chatMessageId: chatMessageId, scanId: chatMessageId != null ? '${chatMessageId}_scan' : null, rawData: rawData);
       }
 
       if (decoded['menu'] != null && decoded['menu'] is Map<String, dynamic>) {
@@ -244,14 +290,8 @@ class ProcessChatTagUseCase {
         return false;
       }
 
-      SymptomLog extractedSymptom(String symptom, {String? sleep}) => SymptomLog(
-        symptom: symptom,
-        sleep: sleep,
-        chatMessageId: chatMessageId,
-        createdAt: DateTime.now(),
-        source: source ?? 'chat',
-        provenance: RecordProvenance.user,
-      );
+      SymptomLog extractedSymptom(String symptom, {String? sleep}) =>
+          SymptomLog(symptom: symptom, sleep: sleep, chatMessageId: chatMessageId, createdAt: DateTime.now(), source: source ?? 'chat', provenance: RecordProvenance.user);
 
       // 1. Energy
       if (explicitlyReports(['energetic', 'energized', 'high energy'])) {
@@ -305,22 +345,12 @@ class ProcessChatTagUseCase {
     }
 
     // --- STEP 3: UI STRIPPING ---
-    final firstTagRegex = RegExp(r'\[(GUTGOOD_DATA|INTENT|SYMPTOM|MEAL|SCAN|SWAPS|SCAN_CONTEXT)\]', caseSensitive: false);
-    final match = firstTagRegex.firstMatch(text);
+    displayOutput = stripAiStructuredDataForDisplay(text);
 
-    if (match != null) {
-      var startIndex = match.start;
-      while (startIndex > 0 && (text[startIndex - 1] == '#' || text[startIndex - 1] == ' ' || text[startIndex - 1] == '\n' || text[startIndex - 1] == '\r')) {
-        startIndex--;
-      }
-      displayOutput = text.substring(0, startIndex).trim();
-    }
-
-    // Keep up to four supported recommendations, preserving rich details.
     swapsList = normalizeSwapCards(swapsList, fallbackSwaps);
 
     // 🚀 Professional Sync: Ensure swaps are attached to scanData for consistent UI & persistence.
-    if (scanData != null && swapsList.isNotEmpty && scanData.swaps.isEmpty) {
+    if (scanData != null) {
       scanData = scanData.copyWith(swaps: swapsList);
     }
 

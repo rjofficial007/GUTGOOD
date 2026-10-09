@@ -1,7 +1,7 @@
 class ScannerStrings {
   const ScannerStrings._();
 
-  static const String history = 'HISTORY';
+  static const String history = 'History';
   static const String noScansYet = 'No scans yet';
   static const String startScanningProducts = 'Start scanning products to see their impact on your gut health.';
   static const String scanResult = 'Scan Result';
@@ -132,7 +132,8 @@ class ScannerStrings {
   static const String additivesSubtitle = 'These are the additives in this product and how they may impact your health.';
   static const String totalAdditives = 'TOTAL ADDITIVES';
   static const String whyDoesThisMatter = 'Why does this matter?';
-  static const String whyAdditivesMatterBody = 'Some additives are safe, while others may cause issues for certain people or impact gut health over time. We look at the type of additive, the latest research and your overall diet patterns.';
+  static const String whyAdditivesMatterBody =
+      'Some additives are safe, while others may cause issues for certain people or impact gut health over time. We look at the type of additive, the latest research and your overall diet patterns.';
   static const String relatedAdditives = 'Related additives';
   static const String gutGoodTake = 'GutGood Take';
   static const String whoToBeCareful = 'Who to be careful';

@@ -26,8 +26,39 @@ ScanResult _testScan() => ScanResult(
 );
 
 void main() {
+  test('AI impacts prose does not crash scan parsing; valid impact lists survive', () {
+    for (final impacts in [
+      null,
+      'This pizza provides fiber.',
+      42,
+      const {'title': 'Wrong shape'},
+    ]) {
+      final scan = ScanResult.fromMap({'productName': 'Veggie Pizza', 'impacts': impacts, 'impact': 'Vegetable toppings'});
+      expect(scan.productName, 'Veggie Pizza');
+      expect(scan.impacts, isEmpty);
+      expect(scan.impact, 'Vegetable toppings');
+    }
+    final scan = ScanResult.fromMap(const {
+      'productName': 'Veggie Pizza',
+      'impacts': [
+        {'title': 'Fiber', 'level': 'positive', 'color': 'green'},
+      ],
+    });
+    expect(scan.impacts, hasLength(1));
+    expect(scan.impacts.single.title, 'Fiber');
+  });
+
+  test('cycle insight placeholders are sanitized instead of shown literally', () {
+    final scan = ScanResult.fromMap(const {
+      'productName': 'Dessert Platter',
+      'cycleInsight': {'phase': 'string', 'description': 'string', 'tags': <String>[]},
+    });
+    expect(scan.cycleInsight!.phase, 'Unknown');
+    expect(scan.cycleInsight!.description, isEmpty);
+    expect(scan.cycleInsight!.tags, isEmpty);
+  });
   test('non-finite scan scores are rejected without throwing', () {
-    for (final value in [double.nan, double.infinity, double.negativeInfinity, 'NaN', 'Infinity', null]) {
+    for (final value in const [double.nan, double.infinity, double.negativeInfinity, 'NaN', 'Infinity', null]) {
       expect(ModelUtils.parseScore(value), 0);
     }
   });

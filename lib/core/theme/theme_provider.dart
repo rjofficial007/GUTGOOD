@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeNotifier extends ChangeNotifier {
-  ThemeNotifier(this._prefs)
-      : _themeMode = _loadTheme(_prefs),
-        _hasExplicitPreference = _prefs.containsKey(_themeKey);
+  ThemeNotifier(this._prefs) : _themeMode = _loadTheme(_prefs);
   static const String _themeKey = 'theme_mode';
   final SharedPreferences _prefs;
   ThemeMode _themeMode;
-  bool _hasExplicitPreference;
 
   ThemeMode get themeMode => _themeMode;
-  bool get hasExplicitPreference => _hasExplicitPreference;
 
   static ThemeMode _loadTheme(SharedPreferences prefs) {
     try {
@@ -26,9 +22,8 @@ class ThemeNotifier extends ChangeNotifier {
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
-    if (_themeMode == mode && _hasExplicitPreference) return;
+    if (_themeMode == mode) return;
     _themeMode = mode;
-    _hasExplicitPreference = true;
     notifyListeners();
 
     String themeStr;

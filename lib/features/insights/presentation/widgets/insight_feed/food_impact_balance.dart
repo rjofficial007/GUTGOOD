@@ -57,54 +57,66 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
           if (hasData)
             Padding(
               padding: EdgeInsets.all(14.w),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left Donut Chart
-                  Expanded(
-                    flex: 5,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final size = math.min(constraints.maxWidth, 116.w);
-                        return SizedBox(
-                          width: size,
-                          height: size,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              CustomPaint(
-                                size: Size(size, size),
-                                painter: _FoodImpactDonutPainter(
-                                  positiveRatio: positive / 100,
-                                  neutralRatio: neutral / 100,
-                                  negativeRatio: negative / 100,
-                                  positiveColor: _positive,
-                                  neutralColor: _neutral,
-                                  negativeColor: _negative,
-                                  emptyColor: border,
-                                ),
+                  Row(
+                    children: [
+                      // Left Donut Chart
+                      Expanded(
+                        flex: 5,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final size = math.min(constraints.maxWidth, 116.w);
+                            return SizedBox(
+                              width: size,
+                              height: size,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  CustomPaint(
+                                    size: Size(size, size),
+                                    painter: _FoodImpactDonutPainter(
+                                      positiveRatio: positive / 100,
+                                      neutralRatio: neutral / 100,
+                                      negativeRatio: negative / 100,
+                                      positiveColor: _positive,
+                                      neutralColor: _neutral,
+                                      negativeColor: _negative,
+                                      emptyColor: border,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            );
+                          },
+                        ),
+                      ),
+                      Gap.w14,
+                      // Right Vertical Legend Stack
+                      Expanded(
+                        flex: 5,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _ImpactBalanceLegend(color: _positive, label: 'Positive Impact', value: positive),
+                            Gap.h8,
+                            _ImpactBalanceLegend(color: _neutral, label: 'Neutral Impact', value: neutral),
+                            Gap.h8,
+                            _ImpactBalanceLegend(color: _negative, label: 'Negative Impact', value: negative),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  Gap.w14,
-                  // Right Vertical Legend Stack
-                  Expanded(
-                    flex: 5,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _ImpactBalanceLegend(color: _positive, label: 'Positive Impact', value: positive),
-                        Gap.h8,
-                        _ImpactBalanceLegend(color: _neutral, label: 'Neutral Impact', value: neutral),
-                        Gap.h8,
-                        _ImpactBalanceLegend(color: _negative, label: 'Negative Impact', value: negative),
-                      ],
+                  if (foodImpacts.isNotEmpty) ...[
+                    Gap.h8,
+                    Text(
+                      'Based on ${foodImpacts.length} logged meal–response observations. Associations do not prove cause.',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, height: 1.3, color: secondary),
                     ),
-                  ),
+                  ],
                 ],
               ),
             )

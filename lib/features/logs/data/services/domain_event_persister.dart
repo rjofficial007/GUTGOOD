@@ -155,7 +155,8 @@ class DomainEventPersister {
     );
   }
 
-  Future<MealLog?> persistConfirmedScanMeal(ScanResult scan, {required String chatMessageId}) async {
+  Future<MealLog?> persistConfirmedScanMeal(ScanResult scan, {required String chatMessageId, DateTime? occurredAt}) async {
+    if (scan.consumed != true || occurredAt?.isAfter(DateTime.now()) == true) return null;
     final mealId = '${chatMessageId}_meal';
     final meal = mealFromScan(
       scan,
@@ -165,7 +166,7 @@ class DomainEventPersister {
       photoUrl: scan.userImageUrl,
       scanConfidence: scan.scanConfidence,
       scanVerdict: scan.scanVerdict,
-    ).copyWith(journalEntryId: mealId);
+    ).copyWith(journalEntryId: mealId, createdAt: DateTime.now(), occurredAt: occurredAt, occurredAtProvenance: occurredAt == null ? null : OccurrenceProvenance.user);
     final id = await _history.logMeal(meal, docId: mealId);
     if (id == null) return null;
     onMealPersisted?.call();

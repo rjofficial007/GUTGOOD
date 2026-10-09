@@ -179,18 +179,19 @@ class SymptomLog extends Equatable {
     // Explicit clears: plain `?? this.x` params cannot null a field, but the
     // validator must be able to void insane numbers (out-of-range severity).
     bool clearSeverity = false,
+    bool clearMealLink = false,
   }) => SymptomLog(
     id: id ?? this.id,
     firestoreId: firestoreId ?? this.firestoreId,
     uid: uid ?? this.uid,
     chatMessageId: chatMessageId ?? this.chatMessageId,
-    journalEntryId: journalEntryId ?? this.journalEntryId,
+    journalEntryId: clearMealLink ? null : (journalEntryId ?? this.journalEntryId),
     symptom: symptom ?? this.symptom,
     severity: clearSeverity ? null : (severity ?? this.severity),
     notes: notes ?? this.notes,
     mood: mood ?? this.mood,
     sleep: sleep ?? this.sleep,
-    lastMealFirestoreId: lastMealFirestoreId ?? this.lastMealFirestoreId,
+    lastMealFirestoreId: clearMealLink ? null : (lastMealFirestoreId ?? this.lastMealFirestoreId),
     foodName: foodName ?? this.foodName,
     imageUrl: imageUrl ?? this.imageUrl,
     source: source ?? this.source,

@@ -104,8 +104,18 @@ class Ingredient extends Equatable {
 class CycleInsight extends Equatable {
   const CycleInsight({required this.phase, required this.description, this.tags});
 
-  factory CycleInsight.fromMap(Map<String, dynamic> map) =>
-      CycleInsight(phase: map['phase']?.toString() ?? 'Unknown', description: map['description']?.toString() ?? '', tags: ModelUtils.parseModelList<CycleTag>(map['tags'], CycleTag.fromMap));
+  factory CycleInsight.fromMap(Map<String, dynamic> map) {
+    String? clean(dynamic value) {
+      final text = value?.toString().trim();
+      if (text == null || text.isEmpty || {'string', 'null', 'unknown'}.contains(text.toLowerCase())) return null;
+      return text;
+    }
+
+    final tags = ModelUtils.parseModelList<CycleTag>(map['tags'], CycleTag.fromMap)
+        .where((tag) => tag.text.trim().isNotEmpty && tag.text.toLowerCase() != 'string' && tag.icon.toLowerCase() != 'string' && tag.color.toLowerCase() != 'string')
+        .toList();
+    return CycleInsight(phase: clean(map['phase']) ?? 'Unknown', description: clean(map['description']) ?? '', tags: tags);
+  }
   final String phase;
   final String description;
   final List<CycleTag>? tags;

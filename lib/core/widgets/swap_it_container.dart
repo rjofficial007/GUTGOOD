@@ -10,14 +10,42 @@ import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/widgets/widgets.dart';
 
-class SwapItContainer extends StatelessWidget {
-  const SwapItContainer({super.key, required this.swaps, this.onSeeMore, this.isEmbedded = false});
+class SwapItContainer extends StatefulWidget {
+  const SwapItContainer({super.key, required this.swaps, this.onSeeMore, this.isEmbedded = false, this.isLoading = false});
   final List<ProductSwap> swaps;
   final VoidCallback? onSeeMore;
   final bool isEmbedded;
+  final bool isLoading;
+
+  @override
+  State<SwapItContainer> createState() => _SwapItContainerState();
+}
+
+class _SwapItContainerState extends State<SwapItContainer> {
+  final ScrollController _swapsScroll = ScrollController();
+
+  @override
+  void didUpdateWidget(covariant SwapItContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.swaps.length > oldWidget.swaps.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_swapsScroll.hasClients) {
+          _swapsScroll.animateTo(_swapsScroll.position.maxScrollExtent, duration: const Duration(milliseconds: 350), curve: Curves.easeOutCubic);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _swapsScroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final swaps = widget.swaps;
+    final isEmbedded = widget.isEmbedded;
     final colorScheme = context.appColorScheme;
 
     return Container(
@@ -67,6 +95,7 @@ class SwapItContainer extends StatelessWidget {
           Padding(
             padding: isEmbedded ? EdgeInsets.symmetric(vertical: AppSizes.p8) : EdgeInsets.all(AppSizes.p20),
             child: SingleChildScrollView(
+              controller: _swapsScroll,
               scrollDirection: Axis.horizontal,
               clipBehavior: Clip.none,
               child: Row(
@@ -86,7 +115,7 @@ class SwapItContainer extends StatelessWidget {
             ),
           ),
 
-          FooterActionButton(label: AppStrings.seeMoreSwaps, onTap: onSeeMore, isEmbedded: isEmbedded, icon: AppIcons.refreshCcw),
+          FooterActionButton(label: AppStrings.seeMoreSwaps, onTap: widget.onSeeMore, isEmbedded: isEmbedded, icon: AppIcons.refreshCcw, isLoading: widget.isLoading),
         ],
       ),
     );

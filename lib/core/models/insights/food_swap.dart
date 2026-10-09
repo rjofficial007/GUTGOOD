@@ -74,6 +74,7 @@ class SwapAlternative extends Equatable {
     this.category = '',
     this.benefitTags = const [],
     this.benefits = const [],
+    this.replaces,
     this.whyBetterOption,
     this.nutrition = const SwapNutrition(),
   });
@@ -93,6 +94,7 @@ class SwapAlternative extends Equatable {
     category: (map['category'] ?? map['badge'])?.toString() ?? '',
     benefitTags: ModelUtils.parseList<String>(map['benefitTags'] ?? map['benefits'] ?? []),
     benefits: ModelUtils.parseModelList<SwapBenefit>(map['structuredBenefits'] ?? map['whyItWorks'], SwapBenefit.fromMap),
+    replaces: map['replaces']?.toString(),
     whyBetterOption: map['whyBetterOption']?.toString() ?? map['whyBetter']?.toString(),
     nutrition: map['nutrition'] is Map<String, dynamic> ? SwapNutrition.fromMap(map['nutrition'] as Map<String, dynamic>) : const SwapNutrition(),
   );
@@ -111,6 +113,7 @@ class SwapAlternative extends Equatable {
   final String category;
   final List<String> benefitTags;
   final List<SwapBenefit> benefits;
+  final String? replaces;
   final String? whyBetterOption;
   final SwapNutrition nutrition;
 
@@ -129,12 +132,13 @@ class SwapAlternative extends Equatable {
     'category': category,
     'benefitTags': benefitTags,
     'structuredBenefits': benefits.map((e) => e.toMap()).toList(),
+    if (replaces?.trim().isNotEmpty == true) 'replaces': replaces,
     'whyBetterOption': whyBetterOption,
     'nutrition': nutrition.toMap(),
   };
 
   @override
-  List<Object?> get props => [foodId, name, imageUrl, imageKeyword, reason, tag, badge, isBlackBadge, barcode, nutriscore, impactLevel, category, benefitTags, benefits, whyBetterOption, nutrition];
+  List<Object?> get props => [foodId, name, imageUrl, imageKeyword, reason, tag, badge, isBlackBadge, barcode, nutriscore, impactLevel, category, benefitTags, benefits, replaces, whyBetterOption, nutrition];
 }
 
 class FoodSwap extends Equatable {

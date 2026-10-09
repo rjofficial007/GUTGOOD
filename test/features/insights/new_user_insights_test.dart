@@ -182,7 +182,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('No supportive foods identified from your logs yet. Keep recording meals and how you feel.'), findsOneWidget);
+    expect(find.text('No recurring pattern yet'), findsOneWidget);
     expect(find.text('Vegetable Fiber'), findsNothing);
     expect(find.text('Fermented Foods'), findsNothing);
     expect(find.text('High Impact'), findsNothing);

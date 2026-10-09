@@ -44,6 +44,39 @@ class RuleBasedInsightBuilder {
 
     final hasRecentEvidence = sampleSizes.meals + sampleSizes.scans + sampleSizes.symptoms > 0;
 
+    // Food Impact is derived only from explicit meal-response occurrences
+    // already counted by the rule engine. Keep each row tied to that evidence;
+    // do not infer impact from scans or from meals with no reported response.
+    final foodImpactEntries = <({String date, FoodImpact impact})>[];
+    final seenOccurrences = <String>{};
+    for (final pattern in patterns) {
+      if (pattern.impactDirection != 'positive' && pattern.impactDirection != 'negative') continue;
+      for (final occurrence in pattern.occurrences) {
+        final sourceKey = occurrence.mealId != null && occurrence.symptomId != null
+            ? '${occurrence.mealId}:${occurrence.symptomId}'
+            : '${occurrence.date}:${occurrence.mealName}:${occurrence.reaction}:${pattern.type}';
+        if (!seenOccurrences.add(sourceKey)) continue;
+        foodImpactEntries.add((
+          date: occurrence.date,
+          impact: FoodImpact(
+            food: occurrence.mealName.isNotEmpty ? occurrence.mealName : pattern.trigger,
+            dateLabel: occurrence.dateLabel?.isNotEmpty == true ? occurrence.dateLabel! : occurrence.date,
+            effect: 'Reported ${occurrence.reaction}',
+            timeframeLabel: occurrence.timeAfter,
+            emoji: '🍽️',
+            impactType: pattern.impactDirection,
+            imageUrl: occurrence.imageUrl,
+            userImageUrl: occurrence.imageUrl,
+          ),
+        ));
+      }
+    }
+    foodImpactEntries.sort((a, b) => b.date.compareTo(a.date));
+    final recentFoodImpacts = foodImpactEntries.take(50).map((entry) => entry.impact).toList();
+    final positiveCount = recentFoodImpacts.where((impact) => impact.impactType == 'positive').length;
+    final negativeCount = recentFoodImpacts.where((impact) => impact.impactType == 'negative').length;
+    final impactCount = positiveCount + negativeCount;
+
     return AIInsight(
       firestoreId: latestDocumentId,
       uid: uid,
@@ -51,6 +84,15 @@ class RuleBasedInsightBuilder {
       hasGutScore: hasGutScore,
       topInsight: topInsight,
       detectedPatterns: patterns,
+      foodImpacts: recentFoodImpacts,
+      foodImpactBalance: impactCount == 0
+          ? null
+          : FoodImpactBalance(
+              positivePercent: (positiveCount * 100 / impactCount).round(),
+              neutralPercent: 0,
+              negativePercent: (negativeCount * 100 / impactCount).round(),
+              periodLabel: 'Last 30 days · $impactCount meal-response observations',
+            ),
       weeklyRecap: weeklyRecap,
       type: 'Rule-based',
       confidenceLevel: topPattern?.evidenceLabel ?? 'Building baseline',

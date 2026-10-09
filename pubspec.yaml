@@ -16,8 +16,6 @@ dependencies:
 
   # UI & Design System
   flutter_animate: ^4.5.2
-  genz_insights:
-    path: packages/genz_insights
   lucide_icons_flutter: ^3.1.22
   shimmer: ^4.0.0
 

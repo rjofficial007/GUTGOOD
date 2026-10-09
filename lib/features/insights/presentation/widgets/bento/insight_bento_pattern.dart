@@ -48,6 +48,18 @@ class InsightBentoPattern extends StatelessWidget {
             ),
           ),
           Gap.h16,
+          if (pattern.involvedFoods.isNotEmpty) ...[
+            _SectionCard(
+              title: 'FOODS IN THESE MEALS',
+              color: accent,
+              child: Wrap(
+                spacing: 8.w,
+                runSpacing: 8.w,
+                children: [for (final food in pattern.involvedFoods) Chip(label: Text(food))],
+              ),
+            ),
+            Gap.h16,
+          ],
           // 6. Recent Episodes
           if (pattern.occurrences.isNotEmpty)
             _SectionCard(
@@ -365,4 +377,3 @@ class _RecommendationCard extends StatelessWidget {
     ),
   );
 }
-

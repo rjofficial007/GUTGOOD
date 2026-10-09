@@ -21,6 +21,7 @@ import 'package:gutgood/features/insights/presentation/widgets/bento/pattern_sty
 import 'package:gutgood/features/insights/presentation/widgets/gut_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';
+import 'package:gutgood/features/scanner/presentation/utils/scanner_route_handler.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 // Screen 01 — the bento Insights feed.

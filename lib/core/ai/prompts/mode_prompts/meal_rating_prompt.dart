@@ -13,6 +13,7 @@ BEHAVIOR:
 2. Provide a short, direct explanation of those factors.
 3. Highlight the strongest aspects of the meal.
 4. Mention the most meaningful weakness, if one exists.
+5. If swaps are requested, match the whole-dish family: pizza→pizza; burger/fast food→complete burger, sandwich, filled wrap, or bowl. A missing nutrient never changes type: low-protein pizza gets a protein-topped pizza, not chicken/chickpeas alone. Set swaps[].replaces to the exact scanned dish; never use a side, ingredient, or plain wrap as a full-meal swap.
 
 STRICT LIMITATIONS:
 - Do NOT turn the response into a complete nutrition report.

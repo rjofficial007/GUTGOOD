@@ -7,22 +7,23 @@ import 'package:gutgood/core/theme/app_text_styles.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 
 class FooterActionButton extends StatelessWidget {
-
   const FooterActionButton({
     super.key,
     required this.label,
     this.onTap,
     this.isEmbedded = false,
     this.icon,
+    this.isLoading = false,
   });
   final String label;
   final VoidCallback? onTap;
   final bool isEmbedded;
   final IconData? icon;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
-    if (onTap == null) return const SizedBox.shrink();
+    if (onTap == null && !isLoading) return const SizedBox.shrink();
     final colorScheme = context.appColorScheme;
 
     return Padding(
@@ -33,7 +34,7 @@ class FooterActionButton extends StatelessWidget {
           Material(
             color: AppPalette.transparent,
             child: InkWell(
-              onTap: onTap,
+              onTap: isLoading ? null : onTap,
               borderRadius: BorderRadius.circular(AppSizes.r24),
               child: Container(
                 width: double.infinity,
@@ -46,7 +47,14 @@ class FooterActionButton extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon ?? AppIcons.arrowRight, size: isEmbedded ? 11.sp : 12, color: colorScheme.textPrimary),
+                    if (isLoading)
+                      SizedBox(
+                        width: isEmbedded ? 11.sp : 12,
+                        height: isEmbedded ? 11.sp : 12,
+                        child: CircularProgressIndicator(strokeWidth: 1.5, color: colorScheme.textPrimary),
+                      )
+                    else
+                      Icon(icon ?? AppIcons.arrowRight, size: isEmbedded ? 11.sp : 12, color: colorScheme.textPrimary),
                     Gap.w8,
                     Text(
                       label.toUpperCase(),

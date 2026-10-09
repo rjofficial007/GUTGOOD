@@ -484,7 +484,7 @@ class _EmptyFoodIntelligenceCard extends StatelessWidget {
               'Log a Meal',
               style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w700),
             ),
-            onPressed: () => context.push(AppRoutes.scannerPath('meal')),
+            onPressed: () => openScannerAndProcessResult(context, 'meal'),
           ),
         ],
       ),

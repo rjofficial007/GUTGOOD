@@ -9,13 +9,10 @@ import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class InsightRepositoryImpl implements InsightRepository {
-  InsightRepositoryImpl({
-    required HistoryFirestoreService historyFirestoreService,
-    required InsightFirestoreService insightFirestoreService,
-    required SharedPreferences prefs,
-  }) : _historyFirestoreService = historyFirestoreService,
-       _insightFirestoreService = insightFirestoreService,
-       _prefs = prefs;
+  InsightRepositoryImpl({required HistoryFirestoreService historyFirestoreService, required InsightFirestoreService insightFirestoreService, required SharedPreferences prefs})
+    : _historyFirestoreService = historyFirestoreService,
+      _insightFirestoreService = insightFirestoreService,
+      _prefs = prefs;
 
   final HistoryFirestoreService _historyFirestoreService;
   final InsightFirestoreService _insightFirestoreService;
@@ -26,7 +23,8 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
-    await _insightFirestoreService.saveInsights(insight, useServerTimestamp: insight.origin == AIInsight.originRuleBased);
+    final savedId = await _insightFirestoreService.saveInsights(insight, useServerTimestamp: insight.origin == AIInsight.originRuleBased);
+    if (savedId == null) throw StateError('Insight snapshot was not saved.');
   }
 
   @override
@@ -112,18 +110,28 @@ class InsightRepositoryImpl implements InsightRepository {
     _insightFirestoreService.getHealthAlertsStream(),
     // Single-doc counters read replaces three full-collection live snapshots.
     _historyFirestoreService.watchHistoryCounts(),
-    (AIInsight? latestInsight, List<BodyPattern> patterns, List<HealthAlert> alerts, HistoryCounts counts) =>
-        InsightsDashboardState(latestInsight: latestInsight, patterns: patterns, alerts: alerts, totalMeals: counts.meals, totalSymptoms: counts.symptoms, totalScans: counts.scans),
+    (AIInsight? latestInsight, List<BodyPattern> patterns, List<HealthAlert> alerts, HistoryCounts counts) => InsightsDashboardState(
+      latestInsight: latestInsight,
+      patterns: latestInsight?.origin == AIInsight.originRuleBased ? latestInsight!.detectedPatterns : patterns,
+      alerts: alerts,
+      totalMeals: counts.meals,
+      totalSymptoms: counts.symptoms,
+      totalScans: counts.scans,
+    ),
   ).distinct();
 
   @override
-  Future<List<MealLog>> getRecentMeals(DateTime since) async => _historyFirestoreService.getRecentMealLogs(since: since);
+  Future<List<MealLog>> getRecentMeals(DateTime since) async => _historyFirestoreService.getRecentMealLogs(since: since, throwOnError: true);
 
   @override
-  Future<List<SymptomLog>> getRecentSymptoms(DateTime since) async => _historyFirestoreService.getRecentSymptomLogs(since: since);
+  Future<List<SymptomLog>> getRecentSymptoms(DateTime since) async => _historyFirestoreService.getRecentSymptomLogs(since: since, throwOnError: true);
 
   @override
-  Future<List<ScanResult>> getRecentScans(DateTime since) async => _historyFirestoreService.getRecentScans(since: since);
+  Future<List<ScanResult>> getRecentScans(DateTime since) async => _historyFirestoreService.getRecentScans(since: since, throwOnError: true);
+
+  @override
+  Future<List<ScanResult>> getScansByIds(List<String> scanIds) async =>
+      (await Future.wait(scanIds.map((id) => _historyFirestoreService.getScanById(id, throwOnError: true)))).whereType<ScanResult>().toList();
 
   @override
   Future<List<BodyPattern>> getLatestPatterns() async => _insightFirestoreService.getLatestPatterns();

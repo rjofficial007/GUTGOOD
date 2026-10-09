@@ -95,7 +95,7 @@ class _TopFoodsSection extends StatelessWidget {
             ),
             Gap.w8,
             GestureDetector(
-              onTap: () => context.push(AppRoutes.scannerPath('meal')),
+              onTap: () => openScannerAndProcessResult(context, 'meal'),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
                 decoration: BoxDecoration(color: const Color(0xFF15803D), borderRadius: BorderRadius.circular(12.w)),

@@ -11,6 +11,7 @@ import 'package:gutgood/core/services/gut_score_calculator_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/food_image_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/gut_score_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/insight_firestore_service.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAuth extends Mock implements FirebaseAuth {}
@@ -113,7 +114,7 @@ void main() {
 
   test('scan, meal, symptom and deletion writes all refresh the same score', () async {
     final now = DateTime.now();
-    final scan = ScanResult(productName: 'Oats', brand: 'Brand', category: 'food', score: 80, impactType: ImpactType.positive, impact: '', createdAt: now);
+    final scan = ScanResult(productName: 'Oats', brand: 'Brand', consumed: true, category: 'food', score: 80, impactType: ImpactType.positive, impact: '', createdAt: now);
     expect(await history.trySaveToScanHistory(scan, scanId: 'msg_scan'), isTrue);
     expect(
       await history.logMeal(
@@ -177,7 +178,7 @@ void main() {
 
   test('queued refreshes publish in order and include the newest scan', () async {
     final now = DateTime.now();
-    Map<String, dynamic> scan(int score) => ScanResult(productName: 'Oats', brand: 'Brand', score: score, impactType: ImpactType.positive, impact: '', createdAt: now).toMap();
+    Map<String, dynamic> scan(int score) => ScanResult(productName: 'Oats', brand: 'Brand', consumed: true, score: score, impactType: ImpactType.positive, impact: '', createdAt: now).toMap();
     scanDocs = [stored('scan', scan(80))];
     final firstSaveStarted = Completer<void>();
     final releaseFirstSave = Completer<void>();
@@ -212,6 +213,73 @@ void main() {
     verifyNever(() => scores.saveGutScore(any()));
   });
 
+  test('rule-based insight and pattern evidence are committed in one batch', () async {
+    final insights = MockCollection();
+    final patterns = MockCollection();
+    final insightRef = MockDoc();
+    final patternRef = MockDoc();
+    final batch = MockBatch();
+    when(() => profileRef.collection('insights')).thenReturn(insights);
+    when(() => profileRef.collection('pattern_data')).thenReturn(patterns);
+    when(() => insights.doc('rule_based_latest')).thenReturn(insightRef);
+    when(() => patterns.doc('latest')).thenReturn(patternRef);
+    when(() => insightRef.id).thenReturn('rule_based_latest');
+    when(() => db.batch()).thenReturn(batch);
+    when(() => batch.set<Map<String, dynamic>>(any(), any())).thenAnswer((_) {});
+    when(batch.commit).thenAnswer((_) async {});
+    final snapshot = AIInsight(
+      uid: 'user',
+      firestoreId: 'rule_based_latest',
+      origin: AIInsight.originRuleBased,
+      gutScore: 0,
+      hasGutScore: false,
+      updatedAt: DateTime.now(),
+      detectedPatterns: const [],
+    );
+    final service = InsightFirestoreServiceImpl(auth: auth, db: db);
+
+    expect(await service.saveInsights(snapshot), 'rule_based_latest');
+    verify(() => batch.set<Map<String, dynamic>>(insightRef, any())).called(1);
+    final evidence = verify(() => batch.set<Map<String, dynamic>>(patternRef, captureAny())).captured.single as Map<String, dynamic>;
+    expect(evidence['patterns'], isEmpty);
+    verify(batch.commit).called(1);
+    verifyNever(() => insightRef.set(any()));
+  });
+
+  test('complete analysis pages past 150 records with a document cursor', () async {
+    final first = MockQuery();
+    final second = MockQuery();
+    final firstSnapshot = MockQuerySnapshot();
+    final secondSnapshot = MockQuerySnapshot();
+    final now = DateTime.now();
+    final docs = List.generate(
+      150,
+      (index) => stored('meal-$index', {
+        'type': 'meal',
+        'items': ['Oats'],
+        'createdAt': now,
+      }),
+    );
+    when(() => journal.where('type', isEqualTo: 'meal')).thenReturn(first);
+    when(() => first.orderBy('createdAt', descending: true)).thenReturn(first);
+    when(() => first.limit(150)).thenReturn(first);
+    when(() => first.startAfterDocument(docs.last)).thenReturn(second);
+    when(() => second.limit(150)).thenReturn(second);
+    when(() => firstSnapshot.docs).thenReturn(docs);
+    final lastDoc = stored('meal-150', {
+      'type': 'meal',
+      'items': ['Rice'],
+      'createdAt': now,
+    });
+    when(() => secondSnapshot.docs).thenReturn([lastDoc]);
+    when(() => first.get(const GetOptions(source: Source.server))).thenAnswer((_) async => firstSnapshot);
+    when(() => second.get(const GetOptions(source: Source.server))).thenAnswer((_) async => secondSnapshot);
+
+    final meals = await history.getRecentMealLogs(throwOnError: true);
+    expect(meals, hasLength(151));
+    expect(meals.last.firestoreId, 'meal-150');
+  });
+
   group('atomic score persistence', () {
     late GutScoreFirestoreService service;
     late MockTransaction transaction;
@@ -238,7 +306,7 @@ void main() {
       final now = DateTime.now();
       record = const GutScoreCalculatorService().calculateWeeklyRecord(
         uid: 'user',
-        scans: [ScanResult(productName: 'Oats', brand: 'Brand', score: 80, impactType: ImpactType.positive, impact: '', createdAt: now)],
+        scans: [ScanResult(productName: 'Oats', brand: 'Brand', consumed: true, score: 80, impactType: ImpactType.positive, impact: '', createdAt: now)],
         symptoms: const [],
         meals: const [],
         asOf: now,

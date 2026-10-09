@@ -18,7 +18,7 @@ class InsightBentoFeed extends StatelessWidget {
     final t = context.bentoTheme;
     final score = WhyScoreSheet.resolveScore(context, data);
     final scoreRecord = WhyScoreSheet.resolveRecord(context);
-    final scored = scoreRecord?.scoredScores ?? const <int>[];
+    final scored = scoreRecord?.scoredScores ?? series.where((score) => score > 0).map((score) => score.round()).toList();
     final delta = scored.length < 2 ? null : scored.last - scored[scored.length - 2];
     final foods = BentoData.topFoods(data, limit: 4);
 

@@ -11,6 +11,7 @@ import 'package:gutgood/core/models/scans/scanner_mode.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_palette.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
+import 'package:gutgood/core/utils/ai_display_text.dart';
 import 'package:gutgood/core/utils/date_formatter.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/widgets/chat/image_preview_dialog.dart';
@@ -47,6 +48,7 @@ class ChatBubble extends StatelessWidget {
     this.onQuotaPressed,
     this.scanData,
     this.swapData,
+    this.isLoadingSwaps = false,
     this.onSeeMoreSwaps,
     this.onViewFullReport,
     this.onScannerModeSelected,
@@ -81,16 +83,20 @@ class ChatBubble extends StatelessWidget {
   final VoidCallback? onQuotaPressed;
   final ScanResult? scanData;
   final List<ProductSwap>? swapData;
+  final bool isLoadingSwaps;
   final VoidCallback? onSeeMoreSwaps;
   final VoidCallback? onViewFullReport;
   final void Function(ScannerMode)? onScannerModeSelected;
   final Future<bool> Function(bool consumed)? onScanConsumptionResolved;
 
-  bool get _isInitialGreeting => !isUser && (text == AppStrings.chatInitialGreeting || text.startsWith('What’s good') || text.startsWith("What's good"));
+  String get _displayText => isUser ? text : stripAiStructuredDataForDisplay(text);
+
+  bool get _isInitialGreeting => !isUser && (_displayText == AppStrings.chatInitialGreeting || _displayText.startsWith('What’s good') || _displayText.startsWith("What's good"));
 
   void _copyToClipboard(BuildContext context) {
-    if (text.isEmpty) return;
-    Clipboard.setData(ClipboardData(text: text));
+    final copiedText = _displayText;
+    if (copiedText.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: copiedText));
     HapticHelper.medium();
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.messageCopied), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)));
   }
@@ -226,8 +232,9 @@ class ChatBubble extends StatelessWidget {
 
   Widget _buildAiMessage(BuildContext context, String formattedTime) {
     final colorScheme = context.appColorScheme;
+    final displayText = _displayText;
     return Semantics(
-      label: 'Message: $text',
+      label: 'Message: $displayText',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -258,13 +265,13 @@ class ChatBubble extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (_isInitialGreeting) _buildGreetingHeader(context) else _buildMarkdownContent(context),
+                              if (_isInitialGreeting) _buildGreetingHeader(context) else _buildMarkdownContent(context, displayText),
                               if (_isInitialGreeting) ...[Gap.h12, _buildGreetingActionCards(context)],
                               if (swapData != null && swapData!.isNotEmpty) ...[
                                 Gap.h12,
                                 Divider(color: colorScheme.borderSubtle, height: 1),
                                 Gap.h16,
-                                SwapItContainer(swaps: swapData!, isEmbedded: true, onSeeMore: onSeeMoreSwaps),
+                                SwapItContainer(swaps: swapData!, isEmbedded: true, onSeeMore: onSeeMoreSwaps, isLoading: isLoadingSwaps),
                               ],
                               if (scanData != null) ...[
                                 Gap.h12,
@@ -338,10 +345,10 @@ class ChatBubble extends StatelessWidget {
     ],
   );
 
-  Widget _buildMarkdownContent(BuildContext context) {
+  Widget _buildMarkdownContent(BuildContext context, String displayText) {
     final colorScheme = context.appColorScheme;
     return MarkdownBody(
-      data: isStreaming ? '$text ▌' : text,
+      data: isStreaming ? '$displayText ▌' : displayText,
       selectable: !isStreaming,
       styleSheet: MarkdownStyleSheet(
         p: context.body.copyWith(height: 1.6, letterSpacing: -0.1),

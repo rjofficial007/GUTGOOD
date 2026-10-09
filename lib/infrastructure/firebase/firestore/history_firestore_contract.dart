@@ -14,7 +14,10 @@ abstract class HistoryFirestoreService {
   /// the historical best-effort contract.
   Future<bool> trySaveToScanHistory(ScanResult scanData, {String? userImageUrl, String? scanId});
 
-  Future<ScanResult?> getScanById(String scanId);
+  Future<ScanResult?> getScanById(String scanId, {bool throwOnError = false});
+
+  /// Appends distinct alternatives to an existing scan without creating a new record.
+  Future<bool> appendScanSwaps({required String scanId, required List<ProductSwap> swaps});
 
   /// Updates an existing scan with its uploaded user photo without creating a partial scan record.
   Future<bool> patchScanUserImageUrl({required String scanId, required String imageUrl});
@@ -22,11 +25,11 @@ abstract class HistoryFirestoreService {
   /// Newest scan for [barcode], or null when never scanned. Backs the personal
   /// barcode cache (P0-3). Requires the (barcode, createdAt) composite index.
   Future<ScanResult?> getLatestScanByBarcode(String barcode);
-  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since, DateTime? before});
+  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since, DateTime? before, bool throwOnError = false});
   Future<List<ScanResult>> getLabelScans({int? limit, DateTime? since, DateTime? before});
   Future<List<ScanResult>> getMenuScans({int? limit, DateTime? since, DateTime? before});
 
-  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since, DateTime? before});
+  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since, DateTime? before, bool throwOnError = false});
 
   /// Saved-foods list (P2-6: single `saved_foods` collection read + lazy
   /// migration of pre-P2-6 flags). Returns full scans, newest first.
@@ -40,10 +43,10 @@ abstract class HistoryFirestoreService {
 
   Future<String?> logMeal(MealLog log, {String? docId});
   Future<void> deleteScanMealProjections({required String chatMessageId, required String scanId, String? keepMealId});
-  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before});
+  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before, bool throwOnError = false});
 
   Future<String?> logSymptom(SymptomLog log, {String? docId});
-  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before});
+  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before, bool throwOnError = false});
 
   /// Count of meal logs with `createdAt >= [since]`.
   /// Returns -1 when the query itself failed (offline, permission, index) so

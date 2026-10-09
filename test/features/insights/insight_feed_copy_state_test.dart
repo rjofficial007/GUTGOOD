@@ -156,9 +156,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Pattern Check'), findsOneWidget);
-    expect(find.text('No triggers yet'), findsOneWidget);
-    final header = tester.widget<Text>(find.text('Pattern Check'));
+    expect(find.text('PATTERN CHECK'), findsOneWidget);
+    expect(find.text('No confirmed trigger yet'), findsOneWidget);
+    final header = tester.widget<Text>(find.text('PATTERN CHECK'));
     expect(header.style?.color, const Color(0xFF334155));
   });
 
@@ -209,6 +209,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Early observation · 1 observation'), findsOneWidget);
+    expect(find.text('1 reported observation'), findsOneWidget);
   });
 }

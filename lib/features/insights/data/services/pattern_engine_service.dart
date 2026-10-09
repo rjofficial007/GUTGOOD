@@ -5,7 +5,7 @@ import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_serv
 import 'package:gutgood/infrastructure/firebase/firestore/insight_firestore_service.dart';
 
 abstract class PatternEngineService {
-  Future<List<BodyPattern>> runAnalysis({List<MealLog>? mealData, List<SymptomLog>? symptomData, List<ScanResult>? scanData});
+  Future<List<BodyPattern>> runAnalysis({List<MealLog>? mealData, List<SymptomLog>? symptomData, List<ScanResult>? scanData, bool persistResults = true});
 }
 
 class PatternEngineServiceImpl implements PatternEngineService {
@@ -17,11 +17,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
   final InsightFirestoreService _insightFirestoreService;
 
   /// P1-7: the analysis looks back a fixed TIME window (not just "last N
-  /// logs"), so heavy and light loggers get comparable statistics. The limit
-  /// stays as a cost guard. Range-on-createdAt needs no new Firestore index:
+  /// logs"), so heavy and light loggers get comparable statistics. Reads are
+  /// paginated to include the complete window. Range-on-createdAt needs no new Firestore index:
   /// the existing (type ==, createdAt orderBy) composite already serves it.
   static const _analysisWindowDays = 30;
-  static const _fetchLimit = 150;
   // Two repeats on separate days can surface as an early, low-confidence
   // signal. Medium confidence still requires three observations on three days.
   static const _minFrequency = 2;
@@ -35,17 +34,19 @@ class PatternEngineServiceImpl implements PatternEngineService {
   static const _fullnessWindow = Duration(hours: 3);
 
   @override
-  Future<List<BodyPattern>> runAnalysis({List<MealLog>? mealData, List<SymptomLog>? symptomData, List<ScanResult>? scanData}) async {
+  Future<List<BodyPattern>> runAnalysis({List<MealLog>? mealData, List<SymptomLog>? symptomData, List<ScanResult>? scanData, bool persistResults = true}) async {
     final startedAt = DateTime.now();
     final stopwatch = Stopwatch()..start();
     AppLogger.insights(
-      '========== PATTERN GENERATION START ========== deviceTime=$startedAt (${startedAt.timeZoneName}, UTC${startedAt.timeZoneOffset}); windowDays=$_analysisWindowDays; fetchLimit=$_fetchLimit; minFrequency=$_minFrequency; mealSymptomWindows={bloating:$_bloatWindow, energy:$_energyWindow, headache:$_headacheWindow, digestion:$_digestionWindow, fullness:$_fullnessWindow}',
+      '========== PATTERN GENERATION START ========== deviceTime=$startedAt (${startedAt.timeZoneName}, UTC${startedAt.timeZoneOffset}); windowDays=$_analysisWindowDays; minFrequency=$_minFrequency; mealSymptomWindows={bloating:$_bloatWindow, energy:$_energyWindow, headache:$_headacheWindow, digestion:$_digestionWindow, fullness:$_fullnessWindow}',
     );
 
     final since = startedAt.subtract(const Duration(days: _analysisWindowDays));
-    final fetchedMeals = (mealData ?? (await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since))).take(_fetchLimit).toList();
-    final fetchedScans = (scanData ?? (await _historyFirestoreService.getRecentScans(limit: _fetchLimit, since: since))).take(_fetchLimit).toList();
-    final candidateJournalMeals = fetchedMeals.where((meal) => !meal.createdAt.isAfter(startedAt) && !meal.eventTime.isAfter(startedAt) && !meal.createdAt.isBefore(since)).toList();
+    final fetchedMeals = (mealData ?? (await _historyFirestoreService.getRecentMealLogs(limit: null, since: since, throwOnError: true))).toList();
+    final fetchedScans = (scanData ?? (await _historyFirestoreService.getRecentScans(limit: null, since: since, throwOnError: true))).toList();
+    final candidateJournalMeals = fetchedMeals
+        .where((meal) => !meal.createdAt.isAfter(startedAt) && !meal.eventTime.isAfter(startedAt) && !meal.createdAt.isBefore(since) && !meal.eventTime.isBefore(since))
+        .toList();
     final scanHistory = fetchedScans.where((scan) => !scan.createdAt.isAfter(startedAt) && !scan.createdAt.isBefore(since)).toList();
     final journalMeals = confirmedFoodMeals(meals: candidateJournalMeals, scans: scanHistory);
 
@@ -54,8 +55,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final scanMeals = standaloneScanRecords(meals: journalMeals, scans: scanHistory).map((s) => s.toMealLog()).toList();
     final meals = [...journalMeals, ...scanMeals];
 
-    final fetchedSymptoms = (symptomData ?? (await _historyFirestoreService.getRecentSymptomLogs(limit: _fetchLimit, since: since))).take(_fetchLimit).toList();
-    final allSymptoms = fetchedSymptoms.where((symptom) => !symptom.createdAt.isAfter(startedAt) && !symptom.eventTime.isAfter(startedAt) && !symptom.createdAt.isBefore(since)).toList();
+    final fetchedSymptoms = (symptomData ?? (await _historyFirestoreService.getRecentSymptomLogs(limit: null, since: since, throwOnError: true))).toList();
+    final allSymptoms = fetchedSymptoms
+        .where((symptom) => !symptom.createdAt.isAfter(startedAt) && !symptom.eventTime.isAfter(startedAt) && !symptom.createdAt.isBefore(since) && !symptom.eventTime.isBefore(since))
+        .toList();
     // P2-4: keyword-guessed symptoms (no structured AI entry, no user numbers)
     // are excluded from corroboration until a confirmation flow exists. They
     // still render in chat/history and still feed the insight journal text.
@@ -65,7 +68,6 @@ class PatternEngineServiceImpl implements PatternEngineService {
       'startedAtDeviceLocal': startedAt.toIso8601String(),
       'windowStart': since.toIso8601String(),
       'windowDays': _analysisWindowDays,
-      'fetchLimitPerCollection': _fetchLimit,
       'minimumFrequency': _minFrequency,
       'counts': {
         'journalMeals': journalMeals.length,
@@ -110,8 +112,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
     });
 
     if (meals.isEmpty || symptoms.isEmpty) {
-      AppLogger.insights('Pattern generation skipped: meals=${meals.length}, eligibleSymptoms=${symptoms.length}; clearing stale patterns.');
-      await _savePatterns([]); // P1-7: clear stale patterns, same as no-match
+      AppLogger.insights('Pattern generation skipped: meals=${meals.length}, eligibleSymptoms=${symptoms.length}; no eligible meal-response pairs.');
+      if (persistResults) await _savePatterns([]); // P1-7: clear stale patterns, same as no-match
       AppLogger.data('PATTERN GENERATION OUTPUT', const <BodyPattern>[]);
       AppLogger.insights('Pattern generation complete: 0 patterns; elapsed=${stopwatch.elapsedMilliseconds}ms');
       return [];
@@ -123,7 +125,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final earliestMeal = meals.map((m) => m.eventTime).reduce((a, b) => a.isBefore(b) ? a : b);
     final earliestSymptom = symptoms.map((s) => s.eventTime).reduce((a, b) => a.isBefore(b) ? a : b);
     final earliest = earliestMeal.isBefore(earliestSymptom) ? earliestMeal : earliestSymptom;
-    final timeframeDays = DateTime.now().difference(earliest).inDays.clamp(1, _analysisWindowDays);
+    final timeframeDays = startedAt.difference(earliest).inDays.clamp(1, _analysisWindowDays);
 
     final rawPatterns = [
       ..._detectBloatingPatterns(meals, symptoms, timeframeDays: timeframeDays),
@@ -151,15 +153,22 @@ class PatternEngineServiceImpl implements PatternEngineService {
         return b.frequency.compareTo(a.frequency);
       });
 
+      // Firestore permits at most 50 patterns; store recent evidence previews
+      // after counting the complete window, so thresholds remain accurate.
+      if (allPatterns.length > 50) allPatterns.removeRange(50, allPatterns.length);
+      for (var index = 0; index < allPatterns.length; index++) {
+        final occurrences = [...allPatterns[index].occurrences]..sort((a, b) => b.date.compareTo(a.date));
+        allPatterns[index] = BodyPattern.fromMap({...allPatterns[index].toMap(), 'occurrences': occurrences.take(30).map((occurrence) => occurrence.toMap()).toList()});
+      }
       AppLogger.insights('Found ${allPatterns.length} meaningful patterns.');
-      await _savePatterns(allPatterns);
+      if (persistResults) await _savePatterns(allPatterns);
     } else {
       AppLogger.insights('No patterns reached the threshold.');
-      await _savePatterns([]); // Clear stale patterns if any
+      if (persistResults) await _savePatterns([]); // Clear stale patterns if any
     }
 
     AppLogger.data('PATTERN GENERATION OUTPUT', allPatterns.map((pattern) => pattern.toMap()).toList());
-    AppLogger.insights('Pattern generation complete: ${allPatterns.length} patterns saved; elapsed=${stopwatch.elapsedMilliseconds}ms');
+    AppLogger.insights('Pattern generation complete: ${allPatterns.length} patterns ${persistResults ? 'saved' : 'calculated'}; elapsed=${stopwatch.elapsedMilliseconds}ms');
     return allPatterns;
   }
 
@@ -171,8 +180,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     return BodyPattern.confidenceLow;
   }
 
-  bool _meetsEvidenceThreshold(BodyPattern pattern) =>
-      pattern.frequency >= _minFrequency && pattern.occurrences.map((occurrence) => occurrence.date).toSet().length >= _minFrequency;
+  bool _meetsEvidenceThreshold(BodyPattern pattern) => pattern.frequency >= _minFrequency && pattern.occurrences.map((occurrence) => occurrence.date).toSet().length >= _minFrequency;
 
   int _distinctDays(Iterable<MealLog> meals) => meals
       .map((meal) {
@@ -208,15 +216,11 @@ class PatternEngineServiceImpl implements PatternEngineService {
       }
       if (!_hasUserConfirmedTiming(meal, s)) return false;
       return !gap.isNegative && gap <= window;
-    }).toList()
-      ..sort((a, b) => a.eventTime.compareTo(b.eventTime));
+    }).toList()..sort((a, b) => a.eventTime.compareTo(b.eventTime));
   }
 
   bool _hasUserConfirmedTiming(MealLog meal, SymptomLog symptom) =>
-      meal.occurredAt != null &&
-      symptom.occurredAt != null &&
-      meal.occurredAtProvenance == OccurrenceProvenance.user &&
-      symptom.occurredAtProvenance == OccurrenceProvenance.user;
+      meal.occurredAt != null && symptom.occurredAt != null && meal.occurredAtProvenance == OccurrenceProvenance.user && symptom.occurredAtProvenance == OccurrenceProvenance.user;
 
   ({bool matches, bool isContradiction}) _explicitlyMentionsMeal(SymptomLog symptom, MealLog meal) {
     final notes = _foodKey('${symptom.foodName ?? ''} ${symptom.notes ?? ''}');
@@ -224,18 +228,9 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final mealItems = meal.items.map(_foodKey).where((item) => item.length >= 4).toSet();
     final mentionsMeal = mealItems.any(notes.contains);
     final foodName = _foodKey(symptom.foodName ?? '');
-    final explicitFoodContext = foodName.isNotEmpty
-        ? foodName
-        : RegExp(r'\b(?:after eating|after having|after consuming|ate)\s+([a-z0-9 ]{4,})')
-              .firstMatch(notes)
-              ?.group(1)
-              ?.trim() ??
-              '';
+    final explicitFoodContext = foodName.isNotEmpty ? foodName : RegExp(r'\b(?:after eating|after having|after consuming|ate)\s+([a-z0-9 ]{4,})').firstMatch(notes)?.group(1)?.trim() ?? '';
     // Generic wording like "after eating a meal" cannot override a stored link.
-    final namesOtherMeal = explicitFoodContext.isNotEmpty &&
-        explicitFoodContext != 'meal' &&
-        explicitFoodContext != 'food' &&
-        !mentionsMeal;
+    final namesOtherMeal = explicitFoodContext.isNotEmpty && explicitFoodContext != 'meal' && explicitFoodContext != 'food' && !mentionsMeal;
     return (matches: mentionsMeal, isContradiction: namesOtherMeal);
   }
 
@@ -327,14 +322,11 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final distinct = <BodyPattern>[];
     for (final pattern in collapsed) {
       final ids = pattern.occurrences.map((o) => o.mealId).whereType<String>().toSet();
-      // ponytail: O(n²), conservative 80% overlap suppression for at most 150
-      // meals; use explicit exposure groups if independent ingredient trials exist.
+      // ponytail: O(n²), conservative 80% overlap suppression within the 30-day
+      // window; use explicit exposure groups if independent ingredient trials exist.
       if (ids.isNotEmpty &&
           distinct.any(
-            (p) =>
-                p.type == pattern.type &&
-                p.reaction == pattern.reaction &&
-                ids.intersection(p.occurrences.map((o) => o.mealId).whereType<String>().toSet()).length / ids.length >= 0.8,
+            (p) => p.type == pattern.type && p.reaction == pattern.reaction && ids.intersection(p.occurrences.map((o) => o.mealId).whereType<String>().toSet()).length / ids.length >= 0.8,
           )) {
         continue;
       }
@@ -779,12 +771,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
       final eveningBefore = DateTime(log.eventTime.year, log.eventTime.month, log.eventTime.day).subtract(const Duration(hours: 6));
       final eveningMeals = meals
           .where(
-            (m) =>
-                m.occurredAt != null &&
-                m.occurredAtProvenance == OccurrenceProvenance.user &&
-                m.eventTime.isAfter(eveningBefore) &&
-                m.eventTime.isBefore(log.eventTime) &&
-                m.eventTime.hour >= 18,
+            (m) => m.occurredAt != null && m.occurredAtProvenance == OccurrenceProvenance.user && m.eventTime.isAfter(eveningBefore) && m.eventTime.isBefore(log.eventTime) && m.eventTime.hour >= 18,
           )
           .toList();
 
@@ -819,7 +806,16 @@ class PatternEngineServiceImpl implements PatternEngineService {
           positiveCount: earlyDinnerMeals.length,
           negativeCount: 0,
           occurrences: earlyDinnerMeals
-              .map((m) => PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Good Sleep', timeAfter: 'Next morning'))
+              .map(
+                (m) => PatternOccurrence(
+                  date: m.eventTime.toIso8601String().substring(0, 10),
+                  dateLabel: _formatDate(m.eventTime),
+                  mealName: m.items.join(', '),
+                  imageUrl: m.photoUrl,
+                  reaction: 'Good Sleep',
+                  timeAfter: 'Next morning',
+                ),
+              )
               .toList(),
         ),
       );
@@ -842,7 +838,16 @@ class PatternEngineServiceImpl implements PatternEngineService {
           positiveCount: lateDinnerMeals.length,
           negativeCount: 0,
           occurrences: lateDinnerMeals
-              .map((m) => PatternOccurrence(date: _formatDate(m.eventTime), mealName: m.items.join(', '), imageUrl: m.photoUrl, reaction: 'Poor Sleep', timeAfter: 'Next morning'))
+              .map(
+                (m) => PatternOccurrence(
+                  date: m.eventTime.toIso8601String().substring(0, 10),
+                  dateLabel: _formatDate(m.eventTime),
+                  mealName: m.items.join(', '),
+                  imageUrl: m.photoUrl,
+                  reaction: 'Poor Sleep',
+                  timeAfter: 'Next morning',
+                ),
+              )
               .toList(),
         ),
       );
@@ -857,6 +862,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
       AppLogger.insights('Synced ${patterns.length} patterns to Firestore');
     } catch (e) {
       AppLogger.error('PatternEngine: Sync failed', error: e);
+      rethrow;
     }
   }
 }

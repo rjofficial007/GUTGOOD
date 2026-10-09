@@ -49,8 +49,8 @@ class GutScoreCalculatorService {
     final start = startOfLocalWeek(asOf);
     final logCutoff = recordedThrough ?? asOf;
     bool inWindow(DateTime time) => !time.isBefore(start) && !time.isAfter(asOf);
-    final weekScans = scans.where((scan) => scan.isLoggableProduct && inWindow(scan.createdAt)).toList();
-    final weekMeals = meals.where((meal) => !meal.createdAt.isAfter(logCutoff) && inWindow(meal.eventTime)).toList();
+    final weekScans = confirmedFoodScans(meals: meals, scans: scans).where((scan) => inWindow(scan.createdAt)).toList();
+    final weekMeals = confirmedFoodMeals(meals: meals, scans: scans).where((meal) => !meal.createdAt.isAfter(logCutoff) && inWindow(meal.eventTime)).toList();
     final weekSymptoms = symptoms.where((symptom) => !symptom.createdAt.isAfter(logCutoff) && inWindow(symptom.eventTime)).toList();
     final scoredIndices = weekScans.map((scan) => scan.createdAt.toLocal().weekday % 7).toSet().toList()..sort();
     return GutScoreRecord(
@@ -72,11 +72,12 @@ class GutScoreCalculatorService {
   ///
   /// When [scans] is empty the result is **0** — never a fabricated baseline.
   int calculateGutScore({required List<ScanResult> scans, required List<SymptomLog> symptoms, required List<MealLog> meals}) {
-    if (scans.isEmpty) return 0;
+    final consumedScans = confirmedFoodScans(meals: meals, scans: scans);
+    if (consumedScans.isEmpty) return 0;
 
-    final scanAvg = calculateAvgScanScore(scans);
+    final scanAvg = calculateAvgScanScore(consumedScans);
     final penalty = calculateSymptomPenalty(symptoms);
-    final bonus = calculateConsistencyBonus(meals: meals, scans: scans);
+    final bonus = calculateConsistencyBonus(meals: meals, scans: consumedScans);
 
     final rawScore = scanAvg - penalty + bonus;
     return rawScore.clamp(0, 100);
@@ -122,10 +123,10 @@ class GutScoreCalculatorService {
   /// Calculates logging consistency bonus based on unique days logged (0 to 10 points bonus).
   int calculateConsistencyBonus({required List<MealLog> meals, required List<ScanResult> scans}) {
     final uniqueDays = <String>{};
-    for (final meal in meals) {
+    for (final meal in confirmedFoodMeals(meals: meals, scans: scans)) {
       uniqueDays.add(dayKey(meal.eventTime));
     }
-    for (final scan in scans) {
+    for (final scan in confirmedFoodScans(meals: meals, scans: scans)) {
       uniqueDays.add(dayKey(scan.createdAt));
     }
     return (uniqueDays.length * 2).clamp(0, 10);
@@ -142,12 +143,14 @@ class GutScoreCalculatorService {
   List<int> calculateWeeklyTrend({required List<ScanResult> scans, required List<SymptomLog> symptoms, required List<MealLog> meals, required DateTime endDate, DateTime? recordedThrough}) {
     final scores = <int>[];
     final sunday = startOfLocalWeek(endDate);
+    final consumedScans = confirmedFoodScans(meals: meals, scans: scans);
+    final consumedMeals = confirmedFoodMeals(meals: meals, scans: scans);
 
     for (var i = 0; i < 7; i++) {
       final dayStart = DateTime(sunday.year, sunday.month, sunday.day + i);
       final dayEnd = DateTime(sunday.year, sunday.month, sunday.day + i + 1);
 
-      final dayScans = scans.where((s) {
+      final dayScans = consumedScans.where((s) {
         final t = s.createdAt.toLocal();
         return s.isLoggableProduct && !t.isAfter(endDate) && !t.isBefore(dayStart) && t.isBefore(dayEnd);
       }).toList();
@@ -155,7 +158,7 @@ class GutScoreCalculatorService {
         final t = s.eventTime.toLocal();
         return !s.createdAt.isAfter(recordedThrough ?? endDate) && !t.isAfter(endDate) && !t.isBefore(dayStart) && t.isBefore(dayEnd);
       }).toList();
-      final dayMeals = meals.where((m) {
+      final dayMeals = consumedMeals.where((m) {
         final t = m.eventTime.toLocal();
         return !m.createdAt.isAfter(recordedThrough ?? endDate) && !t.isAfter(endDate) && !t.isBefore(dayStart) && t.isBefore(dayEnd);
       }).toList();

@@ -6,22 +6,16 @@ class FullAnalysisPrompt {
   static const String instruction =
       '''
 PURPOSE:
-Provide a scannable, data-driven gut-health breakdown focused on personal progress and key impact factors.
-
-BEHAVIOR:
-1. Prioritize the key takeaway and include a rating that matches the structured scan score.
-2. Connect findings to the user's personal goal and recent history.
-3. Keep prose concise, spacious, and scannable.
+Give a concise food analysis grounded in supplied data.
 
 STRUCTURE (MANDATORY ORDER):
-1. Greeting: **[A bold, high-energy personalized greeting praising the meal's look]**. [Single relevant emoji]
+1. Greeting: **[Brief friendly greeting about the food]**. [One relevant emoji]
    ${PromptFormattingRules.boldGreeting}
 
 2. Rating: **GutGood Rating: X/100**
    (STRICT RULE: Use exactly "GutGood Rating: " followed by the score. This value MUST match scan.score in [GUTGOOD_DATA].)
 
-3. Identification: I’m seeing **[Item 1] + [Item 2] + [Item 3]**.
-   (STRICT RULE: You MUST identify the food items before providing the analysis).
+3. Identify the main foods before analysis: I’m seeing **[Item 1] + [Item 2] + [Item 3]**.
 
 4. Header: **What's working**
    ${PromptFormattingRules.exactHeaderNoMarkdown}
@@ -31,36 +25,29 @@ STRUCTURE (MANDATORY ORDER):
 6. Header: **What this [mealType] is missing**
    ${PromptFormattingRules.exactHeader}
 
-7. Content: **[Missing Ingredient].** \n\n [Conversational explanation connected to user goals].
+7. Content: State only a meaningful improvement, or "No change needed." Drinks, snacks and desserts need not be complete meals. Never demand protein or a side snack merely to balance a drink.
 
 8. Header: **Would I swap anything?**
    ${PromptFormattingRules.exactHeader}
 
-9. Content: Single Emoji **[Swap Item]**: [Targeted recommendation].
+9. In prose, mention at most ONE swap. In [GUTGOOD_DATA], return FOUR distinct swap objects whenever four reasonable options exist; never let the prose limit the JSON array. For platters, alternatives may replace an identified item (cake/mousse); otherwise replace the complete scanned food. Do not replace an assumed ingredient. Keep type (pizza→pizza, cake→cake, mousse→mousse/parfait, mocktail→mocktail/spritzer, ice cream→frozen dessert). If four are not reasonable, return [] rather than 1–3.
 
 10. Header: **The GutGood take:**
     ${PromptFormattingRules.exactHeader}
 
-11. Content: [One-sentence progress summary connecting this meal to their overall gut trajectory].
+11. Content: One grounded takeaway. Mention personal goals only if supplied.
 
-12. REQUIRED LOGGING (ABSOLUTELY MANDATORY):
-   You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response.
+12. REQUIRED: End with exactly ONE [GUTGOOD_DATA] block.
    
    Within this block:
    - "intent": MUST be "COMPLETE_ANALYSIS".
-   - "scan": Populate FULLY using the schema provided.
-   - For meals, estimate visible fields using the shared schema rules and mark approximate nutrition as estimated.
-   - scan.productName: The name of the overall dish.
-   - scan.brand: Use "GutGood" for non-packaged meals.
-   - scan.category: Use "meal".
-   - scan.impact: summarize the strongest supported nutrition benefit or concern and why it matters.
-   - scan.score: provide a 0-100 fallback only; GutGood computes the displayed score from available data. NOVA does not affect the score.
-   - scan.isOrganic: Explicitly set to true if the meal photo or product data clearly shows organic certification labels (USDA Organic, EU Bio, etc.) or "bio"/"organic" mentions; use null when unknown.
+   - Fill scan using the schema. For unlabelled meals, estimate visible nutrition and set nutritionEstimated=true.
+   - Name the overall dish; category="meal"; use brand="GutGood" if unbranded. Score is a fallback recalculated by the app. Organic requires visible evidence.
    
    Also populate the "meal" object for the daily journal:
-   - meal.summary: MUST be a short, appetizing 1-sentence description of the food itself (e.g., "Refreshing chia pudding with tropical mango and creamy coconut"). This is used for the header identification.
+   - meal.summary: one short food description.
    
-   "swaps": provide exactly 4 distinct, supported alternatives using the shared schema when four meaningful options are supported; otherwise use []. Never add filler. Populate the "symptoms" array if the user reports a current feeling (positive or negative), and record only details they actually stated; never invent numeric ratings.
+   "swaps": JSON array has FOUR distinct suitable alternatives when reasonable, otherwise []; never return 1–3. Generic swaps have null nutrition and no quantified or comparative benefit unless source data supports it. Symptoms: user-reported only, no invented ratings.
    
 ${PromptFormattingRules.gutGoodDataBlockRequired}
 

@@ -12,7 +12,6 @@ import 'package:gutgood/core/router/route_codec.dart';
 import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/theme/app_color_scheme.dart';
 import 'package:gutgood/core/theme/app_text_styles.dart';
-import 'package:gutgood/core/theme/theme_provider.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
 import 'package:gutgood/features/auth/presentation/pages/email_login_screen.dart';
 import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart';
@@ -22,7 +21,6 @@ import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dar
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
-import 'package:genz_insights/genz_insights.dart';
 import 'package:gutgood/features/insights/presentation/pages/highlight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insight_detail_screen.dart';
 import 'package:gutgood/features/insights/presentation/pages/insights_history_screen.dart';
@@ -153,10 +151,7 @@ class AppRouter {
 
       // Main Application Shell
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => MainShell(
-          navigationShell: navigationShell,
-          isGenzInsights: state.uri.path == AppRoutes.insightGenz,
-        ),
+        builder: (context, state, navigationShell) => MainShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
             navigatorKey: _shellNavigatorChatKey,
@@ -184,14 +179,6 @@ class AppRouter {
                 },
               ),
               GoRoute(path: AppRoutes.insightHistory, builder: (context, state) => const InsightsHistoryScreen()),
-              GoRoute(
-                path: AppRoutes.insightGenz,
-                builder: (context, state) => InsightGenzScreen(
-                  onLightModeChanged: (isLightMode) => context.read<ThemeNotifier>().setThemeMode(
-                    isLightMode ? ThemeMode.light : ThemeMode.dark,
-                  ),
-                ),
-              ),
               GoRoute(
                 path: AppRoutes.patternDetail,
                 builder: (context, state) {
@@ -347,7 +334,7 @@ class AppRouter {
         path: AppRoutes.scanner,
         builder: (context, state) {
           final modeName = state.pathParameters['mode'];
-          final mode = modeName != null ? ScannerMode.values.where((m) => m.name == modeName).firstOrNull : null;
+          final mode = modeName == 'meal' ? ScannerMode.food : (modeName != null ? ScannerMode.values.where((m) => m.name == modeName).firstOrNull : null);
           return SuperScannerScreen(initialMode: mode);
         },
       ),

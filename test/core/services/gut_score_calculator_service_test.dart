@@ -22,6 +22,31 @@ void main() {
       expect(service.calculateAvgScanScore(scans), 70);
     });
 
+    test('informational and explicitly uneaten scans do not produce a personal score', () {
+      final now = DateTime.now();
+      final scans = [
+        ScanResult(productName: 'Checking oats', brand: 'B', score: 90, impactType: ImpactType.positive, impact: '', createdAt: now),
+        ScanResult(productName: 'Not eaten', brand: 'B', score: 10, consumed: false, impactType: ImpactType.negative, impact: '', createdAt: now),
+      ];
+      final record = service.calculateWeeklyRecord(uid: 'user', scans: scans, meals: const [], symptoms: const [], asOf: now);
+      expect(record.hasScore, isFalse);
+      expect(record.scansCount, 0);
+      expect(service.calculateConsistencyBonus(meals: const [], scans: scans), 0);
+      expect(service.calculateAvgScanScore(scans), 50, reason: 'Product ratings remain available for informational scans.');
+    });
+
+    test('a confirmed meal scores the eating day rather than the scan day', () {
+      final eatenAt = DateTime(2026, 10, 6, 12);
+      final scans = [ScanResult(scanId: 'scan', productName: 'Oats', brand: 'B', score: 80, impactType: ImpactType.positive, impact: '', createdAt: DateTime(2026, 10, 3))];
+      final meals = [
+        MealLog(scanId: 'scan', consumptionConfirmed: true, items: const ['Oats'], createdAt: eatenAt, occurredAt: eatenAt),
+      ];
+      final record = service.calculateWeeklyRecord(uid: 'user', scans: scans, meals: meals, symptoms: const [], asOf: eatenAt);
+      expect(record.scoredDayIndices, [2]);
+      expect(record.gutScore, 82);
+      expect(scans.single.createdAt, DateTime(2026, 10, 3));
+    });
+
     test('calculateSymptomPenalty caps at 30 points', () {
       final symptoms = <SymptomLog>[
         SymptomLog(symptom: 'Bloating', severity: 10, createdAt: DateTime.now()),
@@ -34,7 +59,7 @@ void main() {
 
     test('calculateGutScore combines scan avg, symptom penalty, and consistency bonus', () {
       final now = DateTime.now();
-      final scans = [ScanResult(productName: 'P1', brand: 'B', score: 85, impactType: ImpactType.positive, impact: '', createdAt: now)];
+      final scans = [ScanResult(productName: 'P1', brand: 'B', consumed: true, score: 85, impactType: ImpactType.positive, impact: '', createdAt: now)];
       final symptoms = <SymptomLog>[SymptomLog(symptom: 'Bloating', severity: 1, createdAt: now)];
       final meals = [
         MealLog(items: const ['Oats'], createdAt: now),
@@ -53,7 +78,7 @@ void main() {
     });
 
     ScanResult scan(int score, DateTime at, {String category = 'food'}) =>
-        ScanResult(productName: 'Oats', brand: 'Brand', score: score, category: category, impactType: ImpactType.neutral, impact: '', createdAt: at);
+        ScanResult(productName: 'Oats', brand: 'Brand', consumed: true, score: score, category: category, impactType: ImpactType.neutral, impact: '', createdAt: at);
 
     test('weekly score, counts and daily trend use the same calendar window', () {
       final monday = DateTime(2026, 10, 5, 10);

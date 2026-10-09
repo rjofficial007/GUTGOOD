@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gutgood/core/ai/protocol/ai_constants.dart';
+import 'package:gutgood/core/models/insights/food_swap.dart';
 import 'package:gutgood/core/models/journal/food_event_linking.dart';
 import 'package:gutgood/core/models/journal/history_counts.dart';
 import 'package:gutgood/core/models/journal/meal_log.dart';
 import 'package:gutgood/core/models/journal/symptom_log.dart';
 import 'package:gutgood/core/models/scans/scan_result.dart';
+import 'package:gutgood/core/models/scans/scan_result_details.dart';
 import 'package:gutgood/core/models/user/food_image.dart';
 import 'package:gutgood/core/services/gut_score_calculator_service.dart';
 import 'package:gutgood/core/utils/date_time_utils.dart';

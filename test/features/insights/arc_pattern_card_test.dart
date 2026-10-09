@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/models/models.dart';
+import 'package:gutgood/core/utils/image_utils.dart';
 import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/insights/presentation/widgets/arc_pattern_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
 
 void main() {
+  setUp(() => usePexelsFoodImages.value = false);
+  tearDown(() => usePexelsFoodImages.value = true);
   Widget createTestWidget(Widget child) => MaterialApp(
     home: Scaffold(
       body: Builder(

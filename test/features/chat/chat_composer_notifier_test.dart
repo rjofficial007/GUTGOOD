@@ -162,6 +162,179 @@ void main() {
     );
   });
 
+  group('ChatComposerNotifier - See more swaps', () {
+    test('uses general suggestions when fewer than four unseen catalog alternatives remain', () async {
+      final scan = ScanResult(
+        productName: 'Packaged snack',
+        brand: '',
+        score: 70,
+        impactType: ImpactType.neutral,
+        impact: 'neutral',
+        barcode: '1234567890123',
+        category: 'snack',
+        createdAt: DateTime(2026),
+      );
+      final originalMessage = ChatMessage(localId: 'barcode-message', firestoreId: 'barcode-message', role: 'ai', text: 'Here are alternatives.', scanData: scan, createdAt: DateTime.now());
+      final messages = <ChatMessage>[originalMessage];
+      when(() => historyNotifier.messages).thenReturn(messages);
+      when(() => historyNotifier.userGoals).thenReturn(<String>[]);
+      when(() => historyNotifier.userSensitivities).thenReturn(<String>[]);
+      when(() => historyNotifier.replaceMessage(any(), any())).thenAnswer((invocation) {
+        messages[0] = invocation.positionalArguments[1] as ChatMessage;
+      });
+      when(() => repository.saveMessage(any())).thenAnswer((invocation) async => invocation.positionalArguments[0] as ChatMessage);
+      when(() => offService.getProduct(scan.barcode!)).thenAnswer((_) async => const OffProduct(productName: 'Packaged snack', categoryTag: 'en:snacks'));
+      when(() => offService.getBetterAlternatives(any(), any())).thenAnswer((_) async => const [OffProduct(productName: 'One catalog option', barcode: '9876543210123')]);
+      when(
+        () => repository.sendMessageStream(
+          systemInstruction: any(named: 'systemInstruction'),
+          history: any(named: 'history'),
+          userText: any(named: 'userText'),
+          images: any(named: 'images'),
+          intent: any(named: 'intent'),
+          promptVersion: any(named: 'promptVersion'),
+        ),
+      ).thenAnswer(
+        (_) => Stream.value(
+            '[{"name":"Pear","replaces":"Packaged snack","reason":"Adds fiber.","category":"fruit","tag":"HIGH_FIBER","imageKeyword":"pear",'
+          '"benefitTags":["Fiber source"],"structuredBenefits":[{"title":"Fiber","description":"Contains dietary fiber.","icon":"leaf"}],'
+          '"whyBetterOption":"Compared with the packaged snack, a whole pear provides fiber; portion size still matters.",'
+            '"nutrition":{"calories":80,"protein":"1 g","totalFat":"0 g","fiber":"5 g","basis":"per serving"}},'
+            '{"name":"Oats","replaces":"Packaged snack","reason":"Adds whole grains."},'
+            '{"name":"Kiwi","replaces":"Packaged snack","reason":"Adds variety."},{"name":"Chia","replaces":"Packaged snack","reason":"Adds fiber."}]',
+        ),
+      );
+      when(
+        () => analyticsService.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async {});
+
+      final result = await notifier.handleSeeMoreSwaps(originalMessage);
+
+      expect(result, isNull);
+      expect(messages.single.swapData, hasLength(4));
+      final pear = messages.single.swapData!.first.alternative!;
+      expect(pear.whyBetterOption, contains('whole pear'));
+      expect(pear.benefits.single.title, 'Fiber');
+      expect(pear.nutrition.hasData, isTrue, reason: 'supplied nutrition should reach the Swap Details screen');
+      expect(pear.nutrition.basis, contains('not verified'));
+      expect(messages.single.swapData![1].alternative!.nutrition.hasData, isFalse, reason: 'unknown nutrition remains hidden');
+      final request = verify(
+        () => repository.sendMessageStream(
+          systemInstruction: captureAny(named: 'systemInstruction'),
+          history: any(named: 'history'),
+          userText: captureAny(named: 'userText'),
+          images: any(named: 'images'),
+          intent: any(named: 'intent'),
+          promptVersion: any(named: 'promptVersion'),
+        ),
+      ).captured;
+        expect(request[0], contains('exactly 4 NEW distinct objects'));
+        expect(request[0], contains('Return exactly four distinct alternatives'));
+        expect(request[0], contains('Match whole-dish type: pizza→pizza'));
+        expect(request[0], contains('Set replaces to the exact scanned dish or product'));
+        expect(request[0], contains('A missing nutrient never changes type'));
+        expect(request[0], contains('Avoid generic health claims and unsupported weight-loss, calorie, symptom-relief, or disease claims'));
+      expect(request[1], isNot(contains('availableProducts')));
+    });
+
+    test('appends only new swaps to the original AI message without persisting a scan turn', () async {
+      const originalSwaps = [
+        ProductSwap(title: 'Berry bowl', subtitle: 'More fiber', imageKeyword: 'berries', tag: 'HIGH_FIBER'),
+        ProductSwap(title: 'Banana', subtitle: 'Potassium source', imageKeyword: 'banana', tag: 'POTASSIUM'),
+        ProductSwap(title: 'Chia pudding', subtitle: 'Fiber source', imageKeyword: 'chia pudding', tag: 'HIGH_FIBER'),
+        ProductSwap(title: 'Kiwi', subtitle: 'Vitamin C source', imageKeyword: 'kiwi', tag: 'VITAMIN_C'),
+      ];
+      const addedSwapsJson = '''[
+        {"name":"Coconut milk ice cream","replaces":"Vanilla Ice Cream","reason":"Different base; compare labels.","imageKeyword":"coconut ice cream","tag":"ALTERNATIVE"},
+        {"name":"Soy frozen yogurt","replaces":"Vanilla Ice Cream","reason":"Different base; compare labels.","imageKeyword":"soy frozen yogurt","tag":"ALTERNATIVE"},
+        {"name":"Oat milk ice cream","replaces":"Vanilla Ice Cream","reason":"Different base; compare labels.","imageKeyword":"oat ice cream","tag":"ALTERNATIVE"},
+        {"name":"Banana nice cream","replaces":"Vanilla Ice Cream","reason":"Fruit base; texture differs.","imageKeyword":"banana nice cream","tag":"ALTERNATIVE"}
+      ]''';
+      final originalScan = ScanResult(
+        productName: 'Vanilla Ice Cream',
+        brand: '',
+        score: 70,
+        impactType: ImpactType.neutral,
+        impact: 'A dessert scan.',
+        scanId: 'scan-1',
+        createdAt: DateTime(2026),
+      );
+      final originalMessage = ChatMessage(
+        localId: 'original-ai-message',
+        firestoreId: 'original-ai-message',
+        role: 'ai',
+        text: 'Here are a few ideas.',
+        foodMentions: const ['Vanilla Ice Cream'],
+        scanData: originalScan,
+        swapData: originalSwaps,
+        analysisResult: AiAnalysisResult(text: 'Here are a few ideas.', scan: originalScan, swaps: originalSwaps),
+        createdAt: DateTime.now(),
+      );
+      final messages = <ChatMessage>[originalMessage];
+      when(() => historyNotifier.messages).thenReturn(messages);
+      when(() => historyNotifier.userGoals).thenReturn(<String>[]);
+      when(() => historyNotifier.userSensitivities).thenReturn(<String>[]);
+      when(() => historyNotifier.appendScanSwaps(scanId: any(named: 'scanId'), swaps: any(named: 'swaps'))).thenAnswer((_) async => true);
+      when(() => historyNotifier.replaceMessage(any(), any())).thenAnswer((invocation) {
+        final index = messages.indexWhere((message) => message.localId == invocation.positionalArguments[0]);
+        if (index >= 0) messages[index] = invocation.positionalArguments[1] as ChatMessage;
+      });
+      when(() => repository.saveMessage(any())).thenAnswer((invocation) async => (invocation.positionalArguments[0] as ChatMessage).copyWith(firestoreId: 'original-ai-message'));
+      when(
+        () => repository.sendMessageStream(
+          systemInstruction: any(named: 'systemInstruction'),
+          history: any(named: 'history'),
+          userText: any(named: 'userText'),
+          images: any(named: 'images'),
+          intent: any(named: 'intent'),
+          promptVersion: any(named: 'promptVersion'),
+        ),
+      ).thenAnswer((_) => Stream.value(addedSwapsJson));
+      when(
+        () => analyticsService.logEvent(
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) async {});
+
+      final result = await notifier.handleSeeMoreSwaps(originalMessage);
+
+      expect(result, isNull);
+      expect(messages, hasLength(1));
+      expect(messages.single.localId, originalMessage.localId);
+      expect(messages.single.scanData!.scanId, 'scan-1');
+      expect(messages.single.scanData!.swaps, hasLength(8));
+      expect(messages.single.swapData!.map((swap) => swap.title), ['Berry bowl', 'Banana', 'Chia pudding', 'Kiwi', 'Coconut milk ice cream', 'Soy frozen yogurt', 'Oat milk ice cream', 'Banana nice cream']);
+      verify(() => historyNotifier.appendScanSwaps(scanId: 'scan-1', swaps: any(named: 'swaps'))).called(1);
+      final request = verify(
+        () => repository.sendMessageStream(
+          systemInstruction: captureAny(named: 'systemInstruction'),
+          history: captureAny(named: 'history'),
+          userText: captureAny(named: 'userText'),
+          images: any(named: 'images'),
+          intent: any(named: 'intent'),
+          promptVersion: any(named: 'promptVersion'),
+        ),
+      ).captured;
+      expect(request[1], isEmpty, reason: 'pagination sends no redundant chat history');
+      expect(request[2], contains('Vanilla Ice Cream'));
+      expect(request[2], contains('alreadyShown'));
+      verifyNever(() => historyNotifier.addOptimisticMessage(any()));
+      verifyNever(
+        () => persistAiResponseUseCase.call(
+          any(),
+          chatMessageId: any(named: 'chatMessageId'),
+          imageUrl: any(named: 'imageUrl'),
+          source: any(named: 'source'),
+          persistedTagBlocks: any(named: 'persistedTagBlocks'),
+        ),
+      );
+    });
+  });
+
   group('ChatComposerNotifier - Attachments', () {
     test('addAttachment compresses and adds image', () async {
       final bytes = Uint8List(10);
@@ -253,114 +426,126 @@ void main() {
       expect(result, ChatSendError.empty);
     });
 
-    test('image turn streams from bytes when the upload fails (P1-3a)', () async {
-      final messages = <ChatMessage>[];
+    for (final failure in ['none', 'parsing', 'persistence']) {
+      test('image turn releases loading after upload failure and $failure failure', () async {
+        final messages = <ChatMessage>[];
 
-      when(() => auth.currentUser).thenReturn(MockUser());
-      when(() => historyNotifier.messages).thenReturn(messages);
-      when(() => historyNotifier.userGoals).thenReturn(<String>[]);
-      when(() => historyNotifier.userSensitivities).thenReturn(<String>[]);
-      when(() => historyNotifier.userLifestyle).thenReturn(<String>[]);
-      when(() => historyNotifier.cyclePhase).thenReturn('');
-      when(() => historyNotifier.commStyle).thenReturn('');
-      when(() => historyNotifier.cachedSummary).thenReturn(null);
-      when(() => historyNotifier.addOptimisticMessage(any())).thenAnswer((inv) {
-        messages.insert(0, inv.positionalArguments[0] as ChatMessage);
+        when(() => auth.currentUser).thenReturn(MockUser());
+        when(() => historyNotifier.messages).thenReturn(messages);
+        when(() => historyNotifier.userGoals).thenReturn(<String>[]);
+        when(() => historyNotifier.userSensitivities).thenReturn(<String>[]);
+        when(() => historyNotifier.userLifestyle).thenReturn(<String>[]);
+        when(() => historyNotifier.cyclePhase).thenReturn('');
+        when(() => historyNotifier.commStyle).thenReturn('');
+        when(() => historyNotifier.cachedSummary).thenReturn(null);
+        when(() => historyNotifier.addOptimisticMessage(any())).thenAnswer((inv) {
+          messages.insert(0, inv.positionalArguments[0] as ChatMessage);
+        });
+        when(() => historyNotifier.replaceMessage(any(), any())).thenAnswer((inv) {
+          final idx = messages.indexWhere((m) => m.localId == inv.positionalArguments[0]);
+          if (idx != -1) messages[idx] = inv.positionalArguments[1] as ChatMessage;
+        });
+        when(() => historyNotifier.precomputeSummary()).thenAnswer((_) async {});
+        when(() => storageService.compressForAi(any())).thenAnswer((inv) async => inv.positionalArguments[0] as Uint8List);
+        when(
+          () => uploadOutbox.uploadOrEnqueue(
+            bytes: any(named: 'bytes'),
+            chatLocalId: any(named: 'chatLocalId'),
+            index: any(named: 'index'),
+          ),
+        ).thenThrow(const SocketException('unreachable'));
+        when(
+          () => aiClassifierService.classifyImage(
+            imageBytes: any(named: 'imageBytes'),
+            userText: any(named: 'userText'),
+            modeHint: any(named: 'modeHint'),
+          ),
+        ).thenAnswer((_) async => const AiClassificationResult(imageMode: 'FOOD', intent: 'COMPLETE_ANALYSIS', confidence: 1.0));
+        when(() => repository.saveMessage(any())).thenAnswer((inv) async => (inv.positionalArguments[0] as ChatMessage).copyWith(firestoreId: 'f1'));
+        when(
+          () => sendMessageStreamUseCase.call(
+            systemInstruction: any(named: 'systemInstruction'),
+            history: any(named: 'history'),
+            userText: any(named: 'userText'),
+            images: any(named: 'images'),
+            intent: any(named: 'intent'),
+            promptVersion: any(named: 'promptVersion'),
+          ),
+        ).thenAnswer((_) => Stream.value('Hello there'));
+        when(
+          () => processChatTagUseCase.call(
+            any(),
+            userText: any(named: 'userText'),
+            imageUrl: any(named: 'imageUrl'),
+            source: any(named: 'source'),
+            chatMessageId: any(named: 'chatMessageId'),
+            isFinal: any(named: 'isFinal'),
+            promptVersion: any(named: 'promptVersion'),
+            servedModel: any(named: 'servedModel'),
+          ),
+        ).thenAnswer((inv) {
+          if (failure == 'parsing') throw const FormatException('Malformed AI data');
+          return AiAnalysisResult(text: inv.positionalArguments[0] as String);
+        });
+        when(
+          () => persistAiResponseUseCase.call(
+            any(),
+            chatMessageId: any(named: 'chatMessageId'),
+            imageUrl: any(named: 'imageUrl'),
+            source: any(named: 'source'),
+            persistedTagBlocks: any(named: 'persistedTagBlocks'),
+          ),
+        ).thenAnswer((inv) async {
+          if (failure == 'persistence') throw StateError('Persistence failed');
+          return inv.positionalArguments[0] as AiAnalysisResult;
+        });
+        when(
+          () => analyticsService.logEvent(
+            name: any(named: 'name'),
+            parameters: any(named: 'parameters'),
+          ),
+        ).thenAnswer((_) async {});
+
+        await notifier.addAttachment(Uint8List(10));
+        final result = await notifier.send(text: 'what is this');
+
+        // The turn is accepted and streams from in-memory bytes despite the
+        // failed upload — no uploadFailed, no killed turn.
+        expect(result, isNull);
+        final streamedImages =
+            verify(
+                  () => sendMessageStreamUseCase.call(
+                    systemInstruction: any(named: 'systemInstruction'),
+                    history: any(named: 'history'),
+                    userText: any(named: 'userText'),
+                    images: captureAny(named: 'images'),
+                    intent: any(named: 'intent'),
+                    promptVersion: any(named: 'promptVersion'),
+                  ),
+                ).captured.single
+                as List<Uint8List>?;
+        expect(streamedImages, hasLength(1));
+
+        // The user message was saved immediately (durable) without URLs.
+        final userSaves = verify(() => repository.saveMessage(captureAny())).captured.cast<ChatMessage>().where((m) => m.role == 'user').toList();
+        expect(userSaves, isNotEmpty);
+        expect(userSaves.first.imageUrls, isEmpty);
+
+        // After the background upload fails, the turn still completes: the
+        // user message is NOT failed, the AI reply lands, and the upload sits
+        // queued (spinner stays) instead of dying.
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        final userMsg = messages.firstWhere((m) => m.role == 'user');
+        expect(userMsg.sendFailed, isFalse, reason: 'a failed upload degrades to local bytes; it must not fail the turn');
+        expect(userMsg.isSending, isTrue, reason: 'queued upload keeps the spinner until flushUploads settles it');
+        expect(notifier.isLoading, isFalse);
+        expect(notifier.isStreaming, isFalse);
+        final reply = messages.firstWhere((m) => m.role == 'ai');
+        if (failure != 'parsing') expect(reply.text, 'Hello there');
+        if (failure != 'none') expect(reply.errorKind, ChatErrorKind.connection);
+        verifyNever(() => storageService.uploadFoodImage(any()));
       });
-      when(() => historyNotifier.replaceMessage(any(), any())).thenAnswer((inv) {
-        final idx = messages.indexWhere((m) => m.localId == inv.positionalArguments[0]);
-        if (idx != -1) messages[idx] = inv.positionalArguments[1] as ChatMessage;
-      });
-      when(() => historyNotifier.precomputeSummary()).thenAnswer((_) async {});
-      when(() => storageService.compressForAi(any())).thenAnswer((inv) async => inv.positionalArguments[0] as Uint8List);
-      when(
-        () => uploadOutbox.uploadOrEnqueue(
-          bytes: any(named: 'bytes'),
-          chatLocalId: any(named: 'chatLocalId'),
-          index: any(named: 'index'),
-        ),
-      ).thenThrow(const SocketException('unreachable'));
-      when(
-        () => aiClassifierService.classifyImage(
-          imageBytes: any(named: 'imageBytes'),
-          userText: any(named: 'userText'),
-          modeHint: any(named: 'modeHint'),
-        ),
-      ).thenAnswer((_) async => const AiClassificationResult(imageMode: 'FOOD', intent: 'COMPLETE_ANALYSIS', confidence: 1.0));
-      when(() => repository.saveMessage(any())).thenAnswer((inv) async => (inv.positionalArguments[0] as ChatMessage).copyWith(firestoreId: 'f1'));
-      when(
-        () => sendMessageStreamUseCase.call(
-          systemInstruction: any(named: 'systemInstruction'),
-          history: any(named: 'history'),
-          userText: any(named: 'userText'),
-          images: any(named: 'images'),
-          intent: any(named: 'intent'),
-          promptVersion: any(named: 'promptVersion'),
-        ),
-      ).thenAnswer((_) => Stream.value('Hello there'));
-      when(
-        () => processChatTagUseCase.call(
-          any(),
-          userText: any(named: 'userText'),
-          imageUrl: any(named: 'imageUrl'),
-          source: any(named: 'source'),
-          chatMessageId: any(named: 'chatMessageId'),
-          isFinal: any(named: 'isFinal'),
-          promptVersion: any(named: 'promptVersion'),
-          servedModel: any(named: 'servedModel'),
-        ),
-      ).thenAnswer((inv) => AiAnalysisResult(text: inv.positionalArguments[0] as String));
-      when(
-        () => persistAiResponseUseCase.call(
-          any(),
-          chatMessageId: any(named: 'chatMessageId'),
-          imageUrl: any(named: 'imageUrl'),
-          source: any(named: 'source'),
-          persistedTagBlocks: any(named: 'persistedTagBlocks'),
-        ),
-      ).thenAnswer((inv) async => inv.positionalArguments[0] as AiAnalysisResult);
-      when(
-        () => analyticsService.logEvent(
-          name: any(named: 'name'),
-          parameters: any(named: 'parameters'),
-        ),
-      ).thenAnswer((_) async {});
-
-      await notifier.addAttachment(Uint8List(10));
-      final result = await notifier.send(text: 'what is this');
-
-      // The turn is accepted and streams from in-memory bytes despite the
-      // failed upload — no uploadFailed, no killed turn.
-      expect(result, isNull);
-      final streamedImages =
-          verify(
-                () => sendMessageStreamUseCase.call(
-                  systemInstruction: any(named: 'systemInstruction'),
-                  history: any(named: 'history'),
-                  userText: any(named: 'userText'),
-                  images: captureAny(named: 'images'),
-                  intent: any(named: 'intent'),
-                  promptVersion: any(named: 'promptVersion'),
-                ),
-              ).captured.single
-              as List<Uint8List>?;
-      expect(streamedImages, hasLength(1));
-
-      // The user message was saved immediately (durable) without URLs.
-      final userSaves = verify(() => repository.saveMessage(captureAny())).captured.cast<ChatMessage>().where((m) => m.role == 'user').toList();
-      expect(userSaves, isNotEmpty);
-      expect(userSaves.first.imageUrls, isEmpty);
-
-      // After the background upload fails, the turn still completes: the
-      // user message is NOT failed, the AI reply lands, and the upload sits
-      // queued (spinner stays) instead of dying.
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      final userMsg = messages.firstWhere((m) => m.role == 'user');
-      expect(userMsg.sendFailed, isFalse, reason: 'a failed upload degrades to local bytes; it must not fail the turn');
-      expect(userMsg.isSending, isTrue, reason: 'queued upload keeps the spinner until flushUploads settles it');
-      expect(messages.firstWhere((m) => m.role == 'ai').text, 'Hello there');
-      verifyNever(() => storageService.uploadFoodImage(any()));
-    });
+    }
 
     test('flushUploads hydrates the in-memory message', () async {
       final bytes = Uint8List.fromList([1, 2, 3]);

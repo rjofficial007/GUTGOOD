@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gutgood/core/ai/client/ai_client.dart';
+import 'package:gutgood/core/ai/protocol/ai_constants.dart';
 import 'package:gutgood/core/constants/app_strings.dart';
 import 'package:gutgood/core/constants/storage_keys.dart';
 import 'package:gutgood/core/models/models.dart';
@@ -106,6 +107,12 @@ class ChatHistoryNotifier with ChangeNotifier {
   List<String> get userLifestyle => _userLifestyle;
   String get commStyle => _commStyle;
   String get cyclePhase => _cyclePhase;
+
+  Future<bool> appendScanSwaps({required String scanId, required List<ProductSwap> swaps}) async {
+    final updated = await _historyFirestoreService.appendScanSwaps(scanId: scanId, swaps: swaps);
+    if (updated) _appStateService.notifyChatUpdated();
+    return updated;
+  }
 
   @override
   void dispose() {
@@ -282,7 +289,9 @@ class ChatHistoryNotifier with ChangeNotifier {
     }
   }
 
-  Future<bool> resolveScanConsumption(ChatMessage message, {required bool consumed}) async {
+  Future<bool> resolveScanConsumption(ChatMessage message, {required bool consumed, DateTime? occurredAt}) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null || !messages.any((item) => item.localId == message.localId)) return false;
     final originalScan = message.scanData;
     if (originalScan == null || !originalScan.needsConsumptionConfirmation || originalScan.consumed != null) return false;
     if (!_resolvingConsumptionIds.add(message.localId)) return true;
@@ -295,21 +304,20 @@ class ChatHistoryNotifier with ChangeNotifier {
       }
       if (scan.consumed != null && scan.consumed != consumed) return false;
 
+      if (uid != _auth.currentUser?.uid) return false;
       MealLog? meal;
       if (consumed) {
-        meal = await _domainEventPersister.persistConfirmedScanMeal(scan.copyWith(consumed: true), chatMessageId: message.localId);
+        meal = await _domainEventPersister.persistConfirmedScanMeal(scan.copyWith(consumed: true), chatMessageId: message.localId, occurredAt: occurredAt);
         if (meal == null) return false;
       }
 
+      if (uid != _auth.currentUser?.uid) return false;
       final resolvedScan = scan.copyWith(consumed: consumed);
       final scanSaved = await _historyFirestoreService.trySaveToScanHistory(resolvedScan, scanId: resolvedScan.scanId);
-      if (!scanSaved && !consumed) return false;
-      await _historyFirestoreService.deleteScanMealProjections(
-        chatMessageId: message.localId,
-        scanId: resolvedScan.scanId!,
-        keepMealId: consumed ? meal?.firestoreId : null,
-      );
+      if (uid != _auth.currentUser?.uid || (!scanSaved && !consumed)) return false;
+      await _historyFirestoreService.deleteScanMealProjections(chatMessageId: message.localId, scanId: resolvedScan.scanId!, keepMealId: consumed ? meal?.firestoreId : null);
 
+      if (uid != _auth.currentUser?.uid) return false;
       final resolvedMessage = message.copyWith(scanData: resolvedScan, mealLogs: meal == null ? const [] : [meal]);
       replaceMessage(message.localId, resolvedMessage);
       final chatSaved = await _chatFirestoreService.saveMessage(resolvedMessage);
@@ -320,6 +328,60 @@ class ChatHistoryNotifier with ChangeNotifier {
       return false;
     } finally {
       _resolvingConsumptionIds.remove(message.localId);
+    }
+  }
+
+  Future<List<MealLog>> recentConfirmedMeals() async {
+    final since = DateTime.now().subtract(const Duration(days: 30));
+    final data = await Future.wait([_historyFirestoreService.getRecentMealLogs(since: since, throwOnError: true), _historyFirestoreService.getRecentScans(since: since, throwOnError: true)]);
+    return confirmedFoodMeals(meals: data[0] as List<MealLog>, scans: data[1] as List<ScanResult>).where((meal) => !meal.eventTime.isAfter(DateTime.now())).toList();
+  }
+
+  Future<bool> confirmJournalTiming(ChatMessage message, {MealLog? meal, SymptomLog? symptom, required DateTime occurredAt, String? linkedMealId}) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null || occurredAt.isAfter(DateTime.now())) return false;
+    try {
+      final current = messages.where((item) => item.localId == message.localId).firstOrNull;
+      if (current == null) return false;
+      if (meal != null && meal.firestoreId != null) {
+        final source = current.mealLogs.where((item) => item.firestoreId == meal.firestoreId).firstOrNull;
+        if (source == null) return false;
+        final updated = source.copyWith(occurredAt: occurredAt, occurredAtProvenance: OccurrenceProvenance.user);
+        if (await _historyFirestoreService.logMeal(updated, docId: meal.firestoreId) == null || uid != _auth.currentUser?.uid) return false;
+        _appStateService.notifyChatUpdated();
+        final next = current.copyWith(mealLogs: current.mealLogs.map((item) => item.firestoreId == meal.firestoreId ? updated : item).toList());
+        if (await _chatFirestoreService.saveMessage(next) == null) return false;
+        replaceMessage(next.localId, next);
+      } else if (symptom != null && symptom.firestoreId != null) {
+        final recentMeals = await recentConfirmedMeals();
+        if (linkedMealId != null && !recentMeals.any((meal) => (meal.journalEntryId ?? meal.firestoreId) == linkedMealId)) return false;
+        if (uid != _auth.currentUser?.uid) return false;
+        final mealId = linkedMealId ?? nearestMealJournalEntryId(symptomTime: occurredAt, meals: recentMeals.where((meal) => meal.occurredAtProvenance == OccurrenceProvenance.user));
+        final source = current.symptomLogs.where((item) => item.firestoreId == symptom.firestoreId).firstOrNull;
+        if (source == null) return false;
+        final selectedMeal = recentMeals.where((meal) => (meal.journalEntryId ?? meal.firestoreId) == linkedMealId).firstOrNull;
+        final updated = source.copyWith(
+          foodName: selectedMeal?.items.firstOrNull,
+          occurredAt: occurredAt,
+          occurredAtProvenance: OccurrenceProvenance.user,
+          provenance: RecordProvenance.user,
+          journalEntryId: mealId,
+          lastMealFirestoreId: mealId,
+          clearMealLink: mealId == null,
+        );
+        if (await _historyFirestoreService.logSymptom(updated, docId: symptom.firestoreId) == null || uid != _auth.currentUser?.uid) return false;
+        _appStateService.notifyChatUpdated();
+        final next = current.copyWith(symptomLogs: current.symptomLogs.map((item) => item.firestoreId == symptom.firestoreId ? updated : item).toList());
+        if (await _chatFirestoreService.saveMessage(next) == null) return false;
+        replaceMessage(next.localId, next);
+      } else {
+        return false;
+      }
+      _appStateService.notifyChatUpdated();
+      return true;
+    } catch (error) {
+      AppLogger.error('Could not confirm journal timing', error: error);
+      return false;
     }
   }
 

@@ -48,6 +48,8 @@ class ChatScreenState extends State<ChatScreen> {
   final ImagePicker _picker = ImagePicker();
 
   bool _hasScrolledToBottomInitially = false;
+  bool _initialScrollScheduled = false;
+  bool _initialScrollCancelled = false;
 
   ChatHistoryNotifier? _historyNotifier;
 
@@ -99,22 +101,17 @@ class ChatScreenState extends State<ChatScreen> {
 
     if (notifier == null) return;
 
-    if (!notifier.historyLoading && !_hasScrolledToBottomInitially && notifier.messages.isNotEmpty) {
-      _hasScrolledToBottomInitially = true;
+    if (!notifier.historyLoading && !_hasScrolledToBottomInitially && !_initialScrollScheduled && !_initialScrollCancelled && notifier.messages.isNotEmpty) {
       // If we are currently in a turn (user just sent a message), the
       // send-scroll anchor handles the positioning. A jump-to-bottom
       // here would fight with it and push the new message away from view.
       if (_latestUserMsgId != null) {
+        _hasScrolledToBottomInitially = true;
         return;
       }
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_scroll.hasClients) {
-          return;
-        }
-
-        unawaited(_scrollToBottomInitially());
-      });
+      _initialScrollScheduled = true;
+      unawaited(_scrollToBottomInitially());
     }
   }
 
@@ -132,6 +129,7 @@ class ChatScreenState extends State<ChatScreen> {
   bool _handleUserScroll(UserScrollNotification notification) {
     if (notification.direction != ScrollDirection.idle) {
       _sendScrollCancelled = true;
+      if (!_hasScrolledToBottomInitially) _initialScrollCancelled = true;
     }
     return false;
   }
@@ -156,22 +154,33 @@ class ChatScreenState extends State<ChatScreen> {
   }
 
   /// Positions the conversation at the newest content after the initial
-  /// history load. Runs exactly once per screen lifetime; the second pass
-  /// absorbs first-layout growth (fonts, images) that lands late.
+  /// history load. Waits for the history list to replace its loading view and
+  /// attach its scroll position before marking the initial scroll complete.
   Future<void> _scrollToBottomInitially() async {
-    if (!mounted || !_scroll.hasClients || _latestUserMsgId != null) {
-      return;
+    try {
+      // ponytail: bounded frame retries cover the loading-view/list swap and
+      // lazy sliver layout; a post-frame callback alone can run before attach.
+      for (var attempt = 0; attempt < 12; attempt++) {
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || _initialScrollCancelled || _latestUserMsgId != null) return;
+        if (!_scroll.hasClients || !_scroll.position.hasContentDimensions) continue;
+
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || _initialScrollCancelled || _latestUserMsgId != null) return;
+        if (!_scroll.hasClients || !_scroll.position.hasContentDimensions) continue;
+
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || _initialScrollCancelled || _latestUserMsgId != null) return;
+        if (_scroll.hasClients && _scroll.position.extentAfter <= 1) {
+          _hasScrolledToBottomInitially = true;
+          return;
+        }
+      }
+    } finally {
+      _initialScrollScheduled = false;
     }
-
-    _scroll.jumpTo(_effectiveMaxScrollExtent);
-
-    await WidgetsBinding.instance.endOfFrame;
-
-    if (!mounted || !_scroll.hasClients || _latestUserMsgId != null) {
-      return;
-    }
-
-    _scroll.jumpTo(_effectiveMaxScrollExtent);
   }
 
   // ===========================================================================
@@ -468,6 +477,11 @@ class ChatScreenState extends State<ChatScreen> {
       case ChatSendError.busy:
       case ChatSendError.empty:
         break;
+
+      case ChatSendError.failed:
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.errorGeneral), behavior: SnackBarBehavior.floating));
+        }
     }
   }
 

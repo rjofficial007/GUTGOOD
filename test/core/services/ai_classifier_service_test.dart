@@ -36,67 +36,11 @@ void main() {
       expect(result.confidence, 0.9);
     });
 
-    test('classifyTextIntent returns correct intent on success', () async {
-      const intentResponse = 'MEAL_RATING';
-
-      when(
-        () => mockAiService.generateContent(
-          systemInstruction: any(named: 'systemInstruction'),
-          prompt: any(named: 'prompt'),
-          usageType: 'system',
-        ),
-      ).thenAnswer((_) async => intentResponse);
-
-      final result = await classifierService.classifyTextIntent(userText: 'How is my lunch?');
-
-      expect(result, 'MEAL_RATING');
-    });
-
-    test('classifyTextIntent falls back to COMPLETE_ANALYSIS on error', () async {
-      when(
-        () => mockAiService.generateContent(
-          systemInstruction: any(named: 'systemInstruction'),
-          prompt: any(named: 'prompt'),
-          usageType: 'system',
-        ),
-      ).thenThrow(Exception('AI Error'));
-
-      final result = await classifierService.classifyTextIntent(userText: 'Hello');
-
-      expect(result, 'COMPLETE_ANALYSIS');
-    });
-
-    test('classifyTextIntent parses the JSON object the prompt asks for', () async {
-      // The intent prompt requests {"intent": "CATEGORY_NAME"} and the request
-      // runs in JSON mode, so this is the real production shape. Returning the
-      // raw JSON string silently broke the server-side per-intent max_tokens
-      // budget (resolveMaxTokens does an exact-match lookup).
-      when(
-        () => mockAiService.generateContent(
-          systemInstruction: any(named: 'systemInstruction'),
-          prompt: any(named: 'prompt'),
-          usageType: 'system',
-        ),
-      ).thenAnswer((_) async => '{"intent": "MEAL_RATING"}');
-
-      // Deliberately does not match any fast-path keyword, so the JSON branch runs.
-      final result = await classifierService.classifyTextIntent(userText: 'So, thoughts on that lunch?');
-
-      expect(result, 'MEAL_RATING');
-    });
-
-    test('classifyTextIntent normalises a canonical token from prose', () async {
-      when(
-        () => mockAiService.generateContent(
-          systemInstruction: any(named: 'systemInstruction'),
-          prompt: any(named: 'prompt'),
-          usageType: 'system',
-        ),
-      ).thenAnswer((_) async => 'The best match is SWAP_REQUEST here.');
-
-      final result = await classifierService.classifyTextIntent(userText: 'Make it healthier');
-
-      expect(result, 'SWAP_REQUEST');
+    test('meal rating phrasing keeps its specialized route without a classifier call', () async {
+      for (final phrase in ['So, thoughts on that lunch?', 'How is my lunch?']) {
+        expect(await classifierService.classifyTextIntent(userText: phrase), 'MEAL_RATING');
+      }
+      verifyZeroInteractions(mockAiService);
     });
 
     test('classifyTextIntent resolves common phrasings on-device without a model call', () async {
@@ -119,18 +63,11 @@ void main() {
       expect(result, 'HEALTH_ASSESSMENT');
     });
 
-    test('classifyTextIntent falls back to COMPLETE_ANALYSIS for an unknown intent', () async {
-      when(
-        () => mockAiService.generateContent(
-          systemInstruction: any(named: 'systemInstruction'),
-          prompt: any(named: 'prompt'),
-          usageType: 'system',
-        ),
-      ).thenAnswer((_) async => '{"intent": "FLY_TO_THE_MOON"}');
-
+    test('greetings use the general route without a classifier model call', () async {
       final result = await classifierService.classifyTextIntent(userText: 'Hello');
 
       expect(result, 'COMPLETE_ANALYSIS');
+      verifyZeroInteractions(mockAiService);
     });
   });
 

@@ -91,10 +91,25 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
             userDoc.collection('journal_logs').where('createdAt', isGreaterThanOrEqualTo: since).get(),
           ]);
           if (uid != _uid) return;
-          final scans = snapshots[0].docs.map((doc) => ScanResult.fromMap({...doc.data(), 'id': doc.id})).toList();
+          var scans = snapshots[0].docs.map((doc) => ScanResult.fromMap({...doc.data(), 'id': doc.id})).toList();
           final journal = snapshots[1].docs;
           final meals = journal.where((doc) => doc.data()['type'] == 'meal').map((doc) => MealLog.fromMap({...doc.data(), 'id': doc.id})).toList();
           final symptoms = journal.where((doc) => doc.data()['type'] == 'symptom').map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
+          // A product may have been scanned in an earlier week, then eaten
+          // now. Resolve its source rating through the confirmed meal link.
+          final missingIds = meals
+              .where((meal) => meal.consumptionConfirmed == true && !meal.eventTime.isBefore(GutScoreCalculatorService.startOfLocalWeek(now)))
+              .map((meal) => meal.scanId)
+              .whereType<String>()
+              .where((id) => id.isNotEmpty && !scans.any((scan) => scan.scanId == id))
+              .toSet();
+          final missingSources = await Future.wait(missingIds.map((id) => userDoc.collection('scan_history').doc(id).get()));
+          if (uid != _uid) return;
+          scans = [
+            ...scans,
+            for (final source in missingSources)
+              if (source.exists) ScanResult.fromMap({...source.data()!, 'id': source.id}),
+          ];
           final record = const GutScoreCalculatorService().calculateWeeklyRecord(uid: uid, scans: scans, meals: meals, symptoms: symptoms, asOf: now);
           await _gutScoreService.saveGutScore(record);
         })
@@ -104,7 +119,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<ScanResult?> getScanById(String scanId) async {
+  Future<ScanResult?> getScanById(String scanId, {bool throwOnError = false}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return null;
@@ -115,7 +130,50 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       return ScanResult.fromMap({...snap.data()!, 'id': snap.id});
     } catch (e) {
       AppLogger.firestore('Error getting scan by ID: $scanId', error: e);
+      if (throwOnError) rethrow;
       return null;
+    }
+  }
+
+  @override
+  Future<bool> appendScanSwaps({required String scanId, required List<ProductSwap> swaps}) async {
+    final userDoc = _userDoc;
+    if (userDoc == null || scanId.trim().isEmpty || swaps.isEmpty) return false;
+
+    try {
+      final scanRef = userDoc.collection('scan_history').doc(scanId);
+      return await _db.runTransaction<bool>((transaction) async {
+        final snapshot = await transaction.get(scanRef);
+        final data = snapshot.data();
+        if (!snapshot.exists || data == null) return false;
+
+        final scan = ScanResult.fromMap({...data, 'scanId': scanId});
+        final existing = scan.effectiveFoodSwap;
+        final alternatives = [...?existing?.alternatives];
+        final names = alternatives.map((item) => item.name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet();
+        final barcodes = alternatives.map((item) => item.barcode?.trim()).whereType<String>().where((barcode) => barcode.isNotEmpty).toSet();
+
+        for (final swap in swaps) {
+          final alternative = swap.toAlternative();
+          final name = alternative.name.trim().toLowerCase();
+          final barcode = alternative.barcode?.trim();
+          if (name.isEmpty || names.contains(name) || (barcode?.isNotEmpty == true && barcodes.contains(barcode))) continue;
+          alternatives.add(alternative);
+          names.add(name);
+          if (barcode?.isNotEmpty == true) barcodes.add(barcode!);
+        }
+
+        final updated = FoodSwap(
+          id: existing?.id.isNotEmpty == true ? existing!.id : scanId,
+          source: existing?.source ?? SwapSource(foodId: scan.barcode ?? scanId, name: scan.productName, imageUrl: scan.imageUrl ?? scan.userImageUrl),
+          alternatives: alternatives,
+        );
+        transaction.update(scanRef, {'foodSwap': updated.toMap(), 'swaps': alternatives.map((alternative) => ProductSwap.fromMap(alternative.toMap()).toMap()).toList()});
+        return true;
+      });
+    } catch (e) {
+      AppLogger.firestore('Error appending swaps to scan history: $scanId', error: e);
+      return false;
     }
   }
 
@@ -149,8 +207,23 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
     }
   }
 
+  // Document cursors retain records sharing a timestamp at page boundaries.
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _historyDocuments(Query<Map<String, dynamic>> query, {required bool allPages}) async {
+    if (!allPages) return (await query.get()).docs;
+    final documents = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+    var page = query.limit(150);
+    while (true) {
+      // A complete analysis requires server data; an incomplete offline cache
+      // must never overwrite the saved insight snapshot.
+      final snapshot = await page.get(const GetOptions(source: Source.server));
+      documents.addAll(snapshot.docs);
+      if (snapshot.docs.length < 150) return documents;
+      page = query.startAfterDocument(snapshot.docs.last).limit(150);
+    }
+  }
+
   @override
-  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since, DateTime? before}) async {
+  Future<List<ScanResult>> getScanHistory({int? limit, DateTime? since, DateTime? before, bool throwOnError = false}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
@@ -173,10 +246,10 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         query = query.limit(limit * 2);
       }
 
-      final snapshot = await query.get();
+      final documents = await _historyDocuments(query, allPages: throwOnError && limit == null);
 
       final results = <ScanResult>[];
-      for (final doc in snapshot.docs) {
+      for (final doc in documents) {
         try {
           final data = doc.data();
           final scan = ScanResult.fromMap({...data, 'id': doc.id});
@@ -195,6 +268,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
       return results;
     } catch (e) {
       AppLogger.firestore('Error getting scan history', error: e);
+      if (throwOnError) rethrow;
       return [];
     }
   }
@@ -291,7 +365,8 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since, DateTime? before}) async => getScanHistory(limit: limit, since: since, before: before);
+  Future<List<ScanResult>> getRecentScans({int? limit, DateTime? since, DateTime? before, bool throwOnError = false}) async =>
+      getScanHistory(limit: limit, since: since, before: before, throwOnError: throwOnError);
 
   @override
   Future<void> toggleSaveFood(ScanResult scanData) async {
@@ -466,7 +541,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before}) async {
+  Future<List<MealLog>> getRecentMealLogs({int? limit, DateTime? since, DateTime? before, bool throwOnError = false}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
@@ -486,11 +561,12 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         query = query.limit(limit);
       }
 
-      final snapshot = await query.get();
-      final results = snapshot.docs.map((doc) => MealLog.fromMap({...doc.data(), 'id': doc.id})).toList();
+      final documents = await _historyDocuments(query, allPages: throwOnError && limit == null);
+      final results = documents.map((doc) => MealLog.fromMap({...doc.data(), 'id': doc.id})).toList();
       return results;
     } catch (e) {
       AppLogger.firestore('Error getting recent meal logs', error: e);
+      if (throwOnError) rethrow;
       return [];
     }
   }
@@ -541,7 +617,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
   }
 
   @override
-  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before}) async {
+  Future<List<SymptomLog>> getRecentSymptomLogs({int? limit, DateTime? since, DateTime? before, bool throwOnError = false}) async {
     try {
       final doc = _userDoc;
       if (doc == null) return [];
@@ -561,11 +637,12 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
         query = query.limit(limit);
       }
 
-      final snapshot = await query.get();
-      final results = snapshot.docs.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
+      final documents = await _historyDocuments(query, allPages: throwOnError && limit == null);
+      final results = documents.map((doc) => SymptomLog.fromMap({...doc.data(), 'id': doc.id})).toList();
       return results;
     } catch (e) {
       AppLogger.firestore('Error getting recent symptom logs', error: e);
+      if (throwOnError) rethrow;
       return [];
     }
   }

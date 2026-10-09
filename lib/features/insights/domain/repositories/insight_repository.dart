@@ -21,5 +21,6 @@ abstract class InsightRepository {
   Future<List<MealLog>> getRecentMeals(DateTime since);
   Future<List<SymptomLog>> getRecentSymptoms(DateTime since);
   Future<List<ScanResult>> getRecentScans(DateTime since);
+  Future<List<ScanResult>> getScansByIds(List<String> scanIds);
   Future<List<BodyPattern>> getLatestPatterns();
 }

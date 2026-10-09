@@ -82,18 +82,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
               backgroundColor: context.appColorScheme.cardBackground,
               appBar: GutAppBar(
                 title: AppStrings.insightsTab,
-                actions: [
-                  IconButton(
-                    icon: const Icon(LucideIcons.sparkles),
-                    tooltip: 'GenZ View',
-                    onPressed: () => context.push(AppRoutes.insightGenz),
-                  ),
-                  IconButton(
-                    icon: const Icon(LucideIcons.history),
-                    tooltip: 'Insight History',
-                    onPressed: () => context.push(AppRoutes.insightHistory),
-                  ),
-                ],
+                actions: [IconButton(icon: const Icon(LucideIcons.history), tooltip: 'Insight History', onPressed: () => context.push(AppRoutes.insightHistory))],
               ),
               body: Center(
                 child: SingleChildScrollView(
@@ -108,18 +97,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             slivers: [
               GutSliverAppBar(
                 title: AppStrings.insightsTab,
-                actions: [
-                  IconButton(
-                    icon: const Icon(LucideIcons.sparkles),
-                    tooltip: 'GenZ View',
-                    onPressed: () => context.push(AppRoutes.insightGenz),
-                  ),
-                  IconButton(
-                    icon: const Icon(LucideIcons.history),
-                    tooltip: 'Insight History',
-                    onPressed: () => context.push(AppRoutes.insightHistory),
-                  ),
-                ],
+                actions: [IconButton(icon: const Icon(LucideIcons.history), tooltip: 'Insight History', onPressed: () => context.push(AppRoutes.insightHistory))],
               ),
               if (isLoading)
                 const SliverPadding(

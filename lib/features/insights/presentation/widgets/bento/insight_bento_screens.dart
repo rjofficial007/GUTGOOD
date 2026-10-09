@@ -19,6 +19,7 @@ import 'package:gutgood/features/insights/presentation/widgets/insight_score_car
 import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
 import 'package:gutgood/features/insights/presentation/widgets/top_food_tile.dart';
 import 'package:gutgood/features/insights/presentation/widgets/why_score_sheet.dart';
+import 'package:gutgood/features/scanner/presentation/utils/scanner_route_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';

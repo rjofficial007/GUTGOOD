@@ -21,8 +21,7 @@ String? nearestMealJournalEntryId({required DateTime symptomTime, required Itera
     final gap = symptomTime.difference(meal.eventTime);
     final journalId = _stableMealJournalId(meal);
     return !gap.isNegative && gap <= journalSymptomMealLinkWindow && journalId != null;
-  }).toList()
-    ..sort((a, b) => symptomTime.difference(a.eventTime).compareTo(symptomTime.difference(b.eventTime)));
+  }).toList()..sort((a, b) => symptomTime.difference(a.eventTime).compareTo(symptomTime.difference(b.eventTime)));
   if (candidates.isEmpty) return null;
   return _stableMealJournalId(candidates.first);
 }
@@ -56,3 +55,19 @@ List<MealLog> standaloneMealRecords({required List<MealLog> meals, required List
 /// Scan-only records are included only after explicit consumption confirmation.
 int uniqueFoodEventCount({required List<MealLog> meals, required List<ScanResult> scans}) =>
     confirmedFoodMeals(meals: meals, scans: scans).length + standaloneScanRecords(meals: meals, scans: scans).length;
+
+/// Score projections use confirmed consumption and the meal's occurrence time,
+/// leaving the source scan's original createdAt unchanged in Firestore.
+List<ScanResult> confirmedFoodScans({required List<MealLog> meals, required List<ScanResult> scans}) {
+  // ponytail: linear meal lookup per scan in the 30-day snapshot; index scan
+  // references if high journal volumes make this scan-by-meal loop expensive.
+  final confirmedMeals = confirmedFoodMeals(meals: meals, scans: scans);
+  final results = <ScanResult>[];
+  for (final scan in scans) {
+    if (!scan.isLoggableProduct || scan.consumed == false) continue;
+    final meal = confirmedMeals.where((meal) => meal.representsScanId(scan.scanId)).firstOrNull;
+    if (scan.consumed != true && meal == null) continue;
+    results.add(scan.copyWith(consumed: true, createdAt: meal?.eventTime ?? scan.createdAt));
+  }
+  return results;
+}

@@ -43,12 +43,23 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
   Future<String?> saveInsights(AIInsight insight, {bool useServerTimestamp = true}) async {
     try {
       final doc = _userDoc;
-      if (doc == null) return null;
+      if (doc == null || (insight.uid != null && insight.uid != _uid)) return null;
       final collection = doc.collection('insights');
       final requestedId = insight.firestoreId?.trim();
       final docRef = requestedId != null && requestedId.isNotEmpty ? collection.doc(requestedId) : collection.doc();
       final data = {...insight.toMap(), 'firestoreId': docRef.id, 'updatedAt': useServerTimestamp ? FieldValue.serverTimestamp() : Timestamp.fromDate(insight.updatedAt)};
-      await docRef.set(data);
+      if (insight.origin == AIInsight.originRuleBased) {
+        final batch = _db.batch()
+          ..set(docRef, data)
+          ..set(doc.collection('pattern_data').doc('latest'), {
+            'patterns': insight.detectedPatterns.map((pattern) => pattern.toMap()).toList(),
+            'periodTo': data['period'] is Map ? (data['period'] as Map)['to'] : null,
+            'updatedAt': data['updatedAt'],
+          });
+        await batch.commit();
+      } else {
+        await docRef.set(data);
+      }
       return docRef.id;
     } catch (e) {
       AppLogger.firestore('Error saving insights', error: e);
@@ -129,6 +140,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       await doc.collection('pattern_data').doc('latest').set({'patterns': patterns.map((p) => p.toMap()).toList(), 'updatedAt': FieldValue.serverTimestamp()});
     } catch (e) {
       AppLogger.firestore('Error saving pattern data', error: e);
+      rethrow;
     }
   }
 

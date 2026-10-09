@@ -76,8 +76,8 @@ class SchemaDefinitions {
     "servingSize": "string|null",
     "servingsPerPack": "number|null",
     "portionEaten": "string|null",
-    "allergens": "summary string",
-    "additives": "summary string",
+    "allergens": "summary string|null",
+    "additives": "summary string|null",
     "additiveItems": ["E-code or additive name per item, e.g. E621, E150d, Palm Oil"],
     "impacts": [{"title": "string", "level": "string", "color": "green|gold|red"}],
     "ingredients": [
@@ -85,8 +85,8 @@ $ingredientSchema
     ],
     "impact": "narrative summary",
     "cycleInsight": {
-      "phase": "string",
-      "description": "string",
+      "phase": "string|null",
+      "description": "string|null",
       "tags": [
         {
           "text": "string",
@@ -136,6 +136,7 @@ $ingredientSchema
   "swaps": [
     {
       "name": "specific alternative food or product",
+      "replaces": "exact source dish or product replaced",
       "reason": "short explanation for the card",
       "category": "food category",
       "tag": "short supported benefit or ALTERNATIVE",
@@ -189,11 +190,14 @@ SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - nutriscore: "A","B","C","D","E", or JSON null.
 - meal.time and symptoms[].time: omit unless the user explicitly stated when the event happened; when included, use ISO 8601. Never estimate event time from message or scan time.
 - symptoms: ALWAYS an array of OBJECTS (not strings). Each object MUST have at minimum a "symptom" field.
-- swaps: return exactly 4 distinct, practical alternatives when four suitable improvements are supported; otherwise return []. Never pad the list. All swap fields describe the alternative, not the original food. The app assigns IDs and source food; do not invent foodId, relatedPatternId or impactLevel.
-- swaps[].reason and whyBetterOption: explain the actual substitution and supported comparison. Respect the supplied allergies, sensitivities and dietary preferences; do not claim guaranteed tolerance, symptom relief or gut healing. Unknown allergen information is not proof of safety.
-- swaps[].benefitTags and structuredBenefits: include up to 3 supported benefits, or []. Avoid generic filler. Keep each description to one short sentence.
-- swaps[].imageKeyword: a real search phrase matching name, never "string". Copy barcode, nutriscore and imageUrl only from supplied product data; otherwise null. A generic food must not be presented as a verified branded product.
-- swaps[].nutrition: use only supplied nutrition with an explicit basis (e.g. "per 100 g" or "per 150 g serving"). Calories are numeric kcal; protein, totalFat and fiber are strings with units. If values or their basis are unknown, use null. Do not invent estimates or compare different portion bases.
+- swaps: four supported or []; exact replaces=scan.productName; same dish family (pizza→pizza; burger/fast food→complete main). No sides or ingredients as meal swaps.
+- Multi-item scans: replaces may name an identified food (cake/mousse). Never assume ingredients. Mocktail→mocktail/spritzer. Unknown recipes cannot support sugar-reduction claims.
+- swaps[].reason/whyBetterOption: a concise card reason plus a source-specific comparison and tradeoff. Avoid vague benefits and unsupported health, calorie, weight-loss, symptom or disease claims.
+- swaps[].benefitTags/structuredBenefits: up to 3 consistent, evidence-supported benefits, or [].
+- swaps[].imageKeyword: match the name. imageUrl/barcode/nutriscore require supplied product facts; otherwise null.
+- swaps[].nutrition: supplied label/catalog values with basis only. Calories in kcal, macros with units; unknown values/basis are null. Never estimate or compare bases.
+- Generic swap benefits must not claim lower sugar/calories, more fiber, probiotics, or health effects without source nutrition/ingredients. State that recipe and nutrition vary instead.
+- Photo-only: allergens/additives, pack details and portion are null unless legible. Never output "string" placeholders. Leave cycle fields null/empty unless profile supplies a cycle phase; never infer it from food or image.
 - For food-photo or barcode scans, meal may describe a candidate food event and its supported foodTags; a scan is not proof it was eaten, and the app asks the user before counting it. For text-only turns, populate meal only when the user reports eating it. A swap request or meal plan alone is not a meal log.
 - symptoms[].severity: omit unless the user explicitly supplied a 1-10 severity. Never assign a default rating.
 - symptoms[].mood, symptoms[].sleep and symptoms[].notes: include only details the user explicitly reported; otherwise omit them.

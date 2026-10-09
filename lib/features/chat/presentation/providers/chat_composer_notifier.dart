@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,6 +14,7 @@ import 'package:gutgood/core/services/app_state_service.dart';
 import 'package:gutgood/core/utils/haptic_helper.dart';
 import 'package:gutgood/core/utils/image_hash.dart';
 import 'package:gutgood/core/utils/logger_service.dart';
+import 'package:gutgood/core/utils/model_utils.dart';
 import 'package:gutgood/features/chat/application/usecases/persist_ai_response_usecase.dart';
 import 'package:gutgood/features/chat/data/services/chat_outbox_service.dart';
 import 'package:gutgood/features/chat/data/services/image_upload_outbox.dart';
@@ -41,7 +43,7 @@ part 'chat_composer_swaps.dart';
 /// [ChatSendError.queued] is not a failure: the text was accepted into the
 /// offline outbox and will auto-send on reconnect. The UI treats it like a
 /// send (clears the composer) but ends the turn immediately — nothing streams.
-enum ChatSendError { offline, busy, empty, uploadFailed, queued }
+enum ChatSendError { offline, busy, empty, uploadFailed, queued, failed }
 
 class ChatComposerNotifier with ChangeNotifier {
   ChatComposerNotifier({
@@ -115,6 +117,7 @@ class ChatComposerNotifier with ChangeNotifier {
   final List<ChatAttachment> _attachments = [];
 
   String? _activeAiLocalId;
+  String? _loadingSwapsMessageId;
   StreamSubscription<String>? _aiSubscription;
   Timer? _flushTimer;
   DateTime? _lastPersistTime;
@@ -165,6 +168,7 @@ class ChatComposerNotifier with ChangeNotifier {
   List<ChatAttachment> get pendingAttachments => List.unmodifiable(_attachments);
   bool get isLoading => _isLoading;
   bool get isStreaming => _isStreaming;
+  String? get loadingSwapsMessageId => _loadingSwapsMessageId;
   bool get canRegenerate => !_isLoading && _hasLastRequest;
   String? get pendingHiddenContext => _pendingHiddenContext;
 
@@ -192,6 +196,7 @@ class ChatComposerNotifier with ChangeNotifier {
     _lastSentImageUrl = null;
     _isLoading = false;
     _isStreaming = false;
+    _loadingSwapsMessageId = null;
     // Queued texts belong to the old session — drop them (and their bubbles)
     // rather than sending one account's words as another.
     for (final entry in _outbox.pending) {

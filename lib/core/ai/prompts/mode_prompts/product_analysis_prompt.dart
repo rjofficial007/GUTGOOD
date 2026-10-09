@@ -25,6 +25,8 @@ RULES:
 - List EVERY additive from PRODUCT DATA as separate short labels in "additiveItems" (E-codes first, e.g. "E621", else names like "Palm Oil"); [] if none.
 - Set "isOrganic" from the supplied product data; use null when unknown.
 - Recommend exactly 4 distinct swaps using the shared schema when four supplied alternatives offer meaningful improvements; otherwise return []. Explain the comparison and relevant tradeoffs. Do not invent product facts or pad with unsuitable options.
+- Each swap must match the scanned whole-dish family: pizza→pizza; burger/fast food→complete burger, sandwich, filled wrap, or bowl. Missing nutrients never change type. Never use sides, ingredients, or plain wraps as full-meal swaps. Give a supported advantage and tradeoff.
+- Set swaps[].replaces to the exact scanned dish or product name.
 - Do not diagnose allergies or intolerances.
 - Do not use fear-based language or call products "toxic".
 

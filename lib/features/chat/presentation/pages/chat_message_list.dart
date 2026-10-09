@@ -67,6 +67,7 @@ class _MessageSliverListState extends State<_MessageSliverList> {
     final isStreaming = context.select<ChatComposerNotifier, bool>((n) => n.isStreaming);
 
     final isLoading = context.select<ChatComposerNotifier, bool>((n) => n.isLoading);
+    final loadingSwapsMessageId = context.select<ChatComposerNotifier, String?>((n) => n.loadingSwapsMessageId);
 
     final latestAiIndex = _latestAiIndex(messages);
 
@@ -100,7 +101,12 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                   text: msg.text,
                   isUser: msg.role == 'user',
                   createdAt: msg.createdAt,
-                  isLoading: msg.role == 'ai' && (msg.text.isEmpty || msg.text == AppStrings.findingSwaps) && msg.errorKind == ChatErrorKind.none && msg.scanData == null && msg.swapData == null,
+                  isLoading:
+                      msg.role == 'ai' &&
+                      msg.errorKind == ChatErrorKind.none &&
+                      ((isLatestAi && isLoading) || msg.text.isEmpty || msg.text == AppStrings.findingSwaps) &&
+                      msg.scanData == null &&
+                      msg.swapData == null,
                   imageUrls: msg.imageUrls,
                   imageHashes: msg.imageHashes,
                   localImages: msg.localImages,
@@ -168,8 +174,15 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                     }
                   },
                   scanData: msg.scanData,
+                  isLoadingSwaps: msg.localId == loadingSwapsMessageId,
                   onScanConsumptionResolved: (consumed) async {
-                    final didSave = await historyNotifier.resolveScanConsumption(msg, consumed: consumed);
+                    DateTime? occurredAt;
+                    if (consumed) {
+                      final choice = await showJournalEventSheet(ctx, title: 'When did you eat this?');
+                      if (choice == null) return false;
+                      occurredAt = choice.occurredAt;
+                    }
+                    final didSave = await historyNotifier.resolveScanConsumption(msg, consumed: consumed, occurredAt: occurredAt);
                     if (!didSave && ctx.mounted) {
                       ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text(AppStrings.errorGeneral), behavior: SnackBarBehavior.floating));
                     }
@@ -178,9 +191,11 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                   swapData: msg.swapData,
                   onSeeMoreSwaps: () async {
                     final messenger = ScaffoldMessenger.of(context);
-                    final error = await composerNotifier.handleSeeMoreSwaps(msg.text, msg.scanData);
+                    final error = await composerNotifier.handleSeeMoreSwaps(msg);
                     if (error == ChatSendError.offline && context.mounted) {
                       messenger.showSnackBar(const SnackBar(content: Text(AppStrings.offlineMessage), behavior: SnackBarBehavior.floating));
+                    } else if (error == ChatSendError.failed && context.mounted) {
+                      messenger.showSnackBar(const SnackBar(content: Text(AppStrings.errorGeneral), behavior: SnackBarBehavior.floating));
                     }
                   },
                   onViewFullReport: msg.scanData != null
@@ -196,6 +211,50 @@ class _MessageSliverListState extends State<_MessageSliverList> {
                     }
                   },
                 ),
+                if (msg.role == 'ai' && !isLoading && !isStreaming) ...[
+                  for (final meal in msg.mealLogs.where((meal) => meal.firestoreId != null))
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.schedule, size: 16),
+                        label: Text(
+                          meal.occurredAtProvenance == OccurrenceProvenance.user
+                              ? 'Meal time · ${MaterialLocalizations.of(ctx).formatMediumDate(meal.eventTime.toLocal())} ${TimeOfDay.fromDateTime(meal.eventTime.toLocal()).format(ctx)}'
+                              : 'Confirm meal time · ${meal.items.firstOrNull ?? "Meal"}',
+                        ),
+                        onPressed: () async {
+                          final choice = await showJournalEventSheet(ctx, title: 'When did you eat this?', initialTime: meal.eventTime);
+                          if (choice == null) return;
+                          final saved = await historyNotifier.confirmJournalTiming(msg, meal: meal, occurredAt: choice.occurredAt);
+                          if (!saved && ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text(AppStrings.errorGeneral)));
+                        },
+                      ),
+                    ),
+                  for (final symptom in msg.symptomLogs.where((symptom) => symptom.firestoreId != null))
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.schedule, size: 16),
+                        label: Text(
+                          symptom.occurredAtProvenance == OccurrenceProvenance.user
+                              ? '${symptom.symptom} · ${MaterialLocalizations.of(ctx).formatMediumDate(symptom.eventTime.toLocal())} ${TimeOfDay.fromDateTime(symptom.eventTime.toLocal()).format(ctx)}'
+                              : 'Confirm symptom time · ${symptom.symptom}',
+                        ),
+                        onPressed: () async {
+                          try {
+                            final meals = await historyNotifier.recentConfirmedMeals();
+                            if (!ctx.mounted) return;
+                            final choice = await showJournalEventSheet(ctx, title: 'When did you feel this?', initialTime: symptom.eventTime, meals: meals, initialMealId: symptom.lastMealFirestoreId);
+                            if (choice == null) return;
+                            final saved = await historyNotifier.confirmJournalTiming(msg, symptom: symptom, occurredAt: choice.occurredAt, linkedMealId: choice.mealId);
+                            if (!saved && ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text(AppStrings.errorGeneral)));
+                          } catch (_) {
+                            if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text(AppStrings.errorGeneral)));
+                          }
+                        },
+                      ),
+                    ),
+                ],
               ],
             ),
           ),

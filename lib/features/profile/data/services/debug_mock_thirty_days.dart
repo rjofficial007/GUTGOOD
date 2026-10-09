@@ -687,8 +687,6 @@ extension DebugMockThirtyDays on DebugMockDataService {
       ),
     );
 
-    await _insightFirestoreService.saveInsights(latestInsight, useServerTimestamp: false);
-
     // --- SEED ACTIVE GUT EXPERIMENT DATA ---
     final expStart = now.subtract(const Duration(days: 3));
     final mockExperiment = GutExperiment(
@@ -754,6 +752,13 @@ extension DebugMockThirtyDays on DebugMockDataService {
 
     // --- CHAT HISTORY SEEDING ---
     await _seedMockChatHistory(now);
+
+    // Save the showcase snapshot last so any automatic refresh caused by the
+    // seeded journal records cannot leave the Food Impact tab on an empty result.
+    await _insightFirestoreService.saveInsights(
+      latestInsight.copyWith(updatedAt: DateTime.now()),
+      useServerTimestamp: false,
+    );
 
     AppLogger.mock('Complete 30-day history, detailed patterns, and weekly insights generated.');
   }

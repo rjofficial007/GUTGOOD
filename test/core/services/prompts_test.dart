@@ -39,6 +39,19 @@ void main() {
       expect(instruction, contains('symptoms[].sleep'));
     });
 
+    test('shares swap relevance and evidence rules across chat and barcode prompts', () {
+      final chatInstruction = Prompts.chatSystemInstruction(userGoals: const [], userSensitivities: const [], intent: 'MEAL_SWAPS', mode: 'FOOD');
+      final barcodeInstruction = Prompts.barcodeAnalysisSystemInstruction;
+
+      for (final instruction in [chatInstruction, barcodeInstruction]) {
+        expect(instruction, contains('replaces=scan.productName'));
+        expect(instruction, contains('same dish family (pizza→pizza; burger/fast food→complete main)'));
+        expect(instruction, contains('No sides or ingredients as meal swaps'));
+        expect(instruction, contains('unsupported health, calorie, weight-loss, symptom or disease claims'));
+        expect(instruction, contains('Never estimate or compare bases'));
+      }
+    });
+
     test('renders pinned entities in the dynamic section; omits the block when empty', () {
       final withPins = Prompts.chatSystemInstruction(
         userGoals: const [],
@@ -117,8 +130,8 @@ void main() {
       final prompt = Prompts.visionAnalysisSystemInstruction(mode: mode, userGoals: [], userSensitivities: [], cyclePhase: 'Luteal');
       expect(prompt, contains('SCHEMA TYPE RULES'));
       expect(prompt, contains('"structuredBenefits"'));
-      expect(prompt, contains('exactly 4 distinct, practical alternatives'));
-      expect(prompt, contains('Never pad the list'));
+        expect(prompt, contains('swaps: four supported or []'));
+        expect(prompt, contains('same dish family (pizza→pizza; burger/fast food→complete main)'));
       expect(prompt, contains('"impacts": [{"title"'));
     }
     for (final mode in ['LABEL', 'MENU']) {

@@ -43,6 +43,16 @@ void main() {
   });
 
   group('DomainEventPersister', () {
+    test('confirmed scan timing is user-provided and future times are rejected', () async {
+      final occurredAt = DateTime.now().subtract(const Duration(hours: 2));
+      final meal = await persister.persistConfirmedScanMeal(_scan().copyWith(consumed: true), chatMessageId: 'confirmed', occurredAt: occurredAt);
+      expect(meal?.occurredAt, occurredAt);
+      expect(meal?.occurredAtProvenance, OccurrenceProvenance.user);
+      expect(meal?.consumptionConfirmed, isTrue);
+      expect(await persister.persistConfirmedScanMeal(_scan().copyWith(consumed: true), chatMessageId: 'future', occurredAt: DateTime.now().add(const Duration(hours: 1))), isNull);
+      verifyNever(() => history.logMeal(any(), docId: 'future_meal'));
+    });
+
     test('label/menu scan is retained without becoming a consumed meal', () async {
       final result = AiAnalysisResult(text: 'label', intent: UserIntent.ingredientAnalysis, scan: _menuScan(), symptoms: [_symptom()]);
 

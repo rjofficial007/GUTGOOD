@@ -171,7 +171,7 @@ class ScanResult extends Equatable {
       ingredients: ModelUtils.parseModelList<Ingredient>(map['ingredients'] as List?, Ingredient.fromMap),
       nutrients: ModelUtils.parseNestedModel<NutrientData>(map['nutrients'] as Map?, NutrientData.fromMap),
       nutrientLevels: ModelUtils.parseNestedModel<NutrientLevels>(map['nutrientLevels'] as Map?, NutrientLevels.fromMap),
-      impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'] as List?, ImpactDetail.fromMap),
+      impacts: ModelUtils.parseModelList<ImpactDetail>(map['impacts'], ImpactDetail.fromMap),
       // 🚀 Robust Recovery: Check primary field and rawData block for swaps.
       // We check for null or empty list to ensure old data with empty swaps is fixed.
       swaps: scanSwaps,

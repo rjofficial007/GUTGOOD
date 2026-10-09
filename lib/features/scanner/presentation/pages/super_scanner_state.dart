@@ -313,6 +313,10 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
       final image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
       if (image == null) return;
       final bytes = await image.readAsBytes();
+      if (bytes.isEmpty) {
+        messenger.showSnackBar(const SnackBar(content: Text(AppStrings.failedToAnalyzeProduct), behavior: SnackBarBehavior.floating));
+        return;
+      }
 
       await notifier.handlePhotoCapture(
         bytes: bytes,
@@ -336,6 +340,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
           if (mounted) messenger.showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
         },
         onHaptic: () => unawaited(HapticFeedback.lightImpact()),
+        fallbackToPhotoWhenBarcodeMissing: true,
       );
     } catch (e) {
       debugPrint('Scanner: Gallery pick error: $e');
