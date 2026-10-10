@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:genz_insights/src/genz_theme.dart';
+import 'package:genz_insights/src/insight_genz_screen.dart';
+import 'package:genz_insights/src/states/genz_state_views.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-
-import 'genz_theme.dart';
-import 'insight_genz_screen.dart';
-import 'states/genz_state_views.dart';
 
 /// Full-screen integration with a standard four-item bottom navigation bar.
 ///
@@ -11,13 +10,7 @@ import 'states/genz_state_views.dart';
 /// navigation shell. When no theme callback is provided, this wrapper handles
 /// the light-mode setting locally for standalone use.
 class GenzInsightsPage extends StatefulWidget {
-  const GenzInsightsPage({
-    super.key,
-    required this.onNavigationSelected,
-    this.initialState = GenzDataState.full,
-    this.onOpenRoute,
-    this.onLightModeChanged,
-  });
+  const GenzInsightsPage({super.key, required this.onNavigationSelected, this.initialState = GenzDataState.full, this.onOpenRoute, this.onLightModeChanged});
 
   /// Called with 0 = chat, 1 = insights, 2 = history, and 3 = profile.
   final ValueChanged<int> onNavigationSelected;
@@ -46,15 +39,11 @@ class _GenzInsightsPageState extends State<GenzInsightsPage> {
   @override
   Widget build(BuildContext context) {
     final parentTheme = Theme.of(context);
-    final brightness = _localLightMode == null
-        ? parentTheme.brightness
-        : (_localLightMode! ? Brightness.light : Brightness.dark);
+    final brightness = _localLightMode == null ? parentTheme.brightness : (_localLightMode! ? Brightness.light : Brightness.dark);
     final theme = parentTheme.copyWith(
       brightness: brightness,
       colorScheme: parentTheme.colorScheme.copyWith(brightness: brightness),
-      scaffoldBackgroundColor: brightness == Brightness.dark
-          ? const Color(0xFF0B0B12)
-          : const Color(0xFFF3F1EC),
+      scaffoldBackgroundColor: brightness == Brightness.dark ? const Color(0xFF0B0B12) : const Color(0xFFF3F1EC),
     );
 
     return Theme(
@@ -62,14 +51,8 @@ class _GenzInsightsPageState extends State<GenzInsightsPage> {
       child: Builder(
         builder: (themeContext) => Scaffold(
           backgroundColor: GenzColors.scaffoldBg(themeContext),
-          body: InsightGenzScreen(
-            initialState: widget.initialState,
-            onOpenRoute: widget.onOpenRoute,
-            onLightModeChanged: _handleLightModeChanged,
-          ),
-          bottomNavigationBar: _StandardBottomNavigation(
-            onSelect: widget.onNavigationSelected,
-          ),
+          body: InsightGenzScreen(initialState: widget.initialState, onOpenRoute: widget.onOpenRoute, onLightModeChanged: _handleLightModeChanged),
+          bottomNavigationBar: _StandardBottomNavigation(onSelect: widget.onNavigationSelected),
         ),
       ),
     );
@@ -90,33 +73,22 @@ class _StandardBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(
-          color: GenzColors.sf(context),
-          border: Border(top: BorderSide(color: GenzColors.ln(context), width: 0.5)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                for (var index = 0; index < _items.length; index++)
-                  _buildItem(context, index, _items[index]),
-              ],
-            ),
-          ),
-        ),
-      );
+    decoration: BoxDecoration(
+      color: GenzColors.sf(context),
+      border: Border(top: BorderSide(color: GenzColors.ln(context), width: 0.5)),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(children: [for (var index = 0; index < _items.length; index++) _buildItem(context, index, _items[index])]),
+      ),
+    ),
+  );
 
-  Widget _buildItem(
-    BuildContext context,
-    int index,
-    ({IconData icon, String label}) item,
-  ) {
+  Widget _buildItem(BuildContext context, int index, ({IconData icon, String label}) item) {
     const selectedIndex = 1;
     final active = index == selectedIndex;
-    final color = active
-        ? (GenzColors.isDark(context) ? Colors.white : GenzColors.ink)
-        : GenzColors.mu(context);
+    final color = active ? (GenzColors.isDark(context) ? Colors.white : GenzColors.ink) : GenzColors.mu(context);
 
     return Expanded(
       child: Semantics(
@@ -134,13 +106,7 @@ class _StandardBottomNavigation extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   item.label,
-                  style: TextStyle(
-                    color: color,
-                    fontFamily: GenzFonts.primary,
-                    fontFamilyFallback: GenzFonts.fallback,
-                    fontSize: 10,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  ),
+                  style: TextStyle(color: color, fontFamily: GenzFonts.primary, fontFamilyFallback: GenzFonts.fallback, fontSize: 10, fontWeight: active ? FontWeight.w700 : FontWeight.w500),
                 ),
               ],
             ),

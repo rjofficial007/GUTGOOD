@@ -68,7 +68,7 @@ void main() {
     },
   );
 
-  testWidgets('labels a one-scored-day recap as only scored day', (
+  testWidgets('renders a weekly recap when it contains a single scored day', (
     tester,
   ) async {
     final insight = AIInsight(
@@ -97,8 +97,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Only Scored Day'), findsOneWidget);
-    expect(find.text('meal'), findsOneWidget);
+    expect(find.text('Your Weekly Recap'), findsOneWidget);
+    expect(find.text('Avg GutGood Score'), findsOneWidget);
+    expect(find.text('70'), findsOneWidget);
   });
 
   testWidgets(
@@ -335,7 +336,12 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Your Top Foods'), findsOneWidget);
-    expect(find.text('Based on your logs, these foods are linked to positive impact for you.'), findsOneWidget);
+    expect(
+      find.text(
+        'Based on your logs, these foods are linked to positive impact for you.',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Oats'), findsWidgets);
     expect(find.text('Top Foods This Week'), findsNothing);
     expect(

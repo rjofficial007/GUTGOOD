@@ -5,33 +5,9 @@ import 'dart:math' as math;
 import 'package:gutgood/core/data/additive_concern_db.dart';
 import 'package:gutgood/core/utils/model_utils.dart';
 
-/// Product scoring built on the method Yuka publishes openly.
-///
-/// Source: https://help.yuka.io/l/en/article/ijzgfvi1jq-how-are-food-products-scored
-///
-///   * **60% nutritional quality** — derived from Nutri-Score.
-///   * **30% additives** — by risk level.
-///   * **10% organic dimension** — a bonus for certified-organic products.
-///   * **Any high-risk additive caps the final score at 49/100**, however good
-///     the nutrition is.
-///
-/// Two things are worth being precise about, because they are easy to
-/// misrepresent:
-///
-/// 1. **The weights (60/30/10) and the 49 cap are Yuka's, published.**
-/// 2. **The intra-grade curve is ours.** Yuka publishes a correspondence table
-///    that smooths Nutri-Score into a score out of 100 (27 steps, solids and
-///    liquids separately), but only as an image. We reproduce the published
-///    *band edges* (A: 100–75, B: 75–55, C: 55–35, D: 35–10, E: 10–0) and
-///    interpolate *within* a band using the underlying Nutri-Score points.
-///    That delivers Yuka's stated goal — "avoid threshold effects that could
-///    lead to significant rating differences between two products with similar
-///    nutritional values" — but it will not match Yuka to the decimal.
-///
-/// The Nutri-Score points themselves are computed with the **original**
-/// Nutri-Score algorithm (the one Yuka states it uses), so where a product has
-/// no Nutri-Score on the label we can still derive one from its nutrients
-/// instead of guessing.
+/// GutGood packaged-food score, using 60% nutrition, 30% additive concern, and
+/// 10% processing / ingredient quality. Yuka's published approach is a QA
+/// reference; the scoring rules and deductions here are GutGood's.
 /// Nutri-Score letter grades, best (A) to worst (E).
 enum NutriScoreGrade { a, b, c, d, e }
 
@@ -71,7 +47,7 @@ class NutriScoreResult {
   final Map<String, int> componentPoints;
 }
 
-/// The full, explainable result of a Yuka-style evaluation.
+/// The full, explainable result of a GutGood evaluation.
 class YukaScoreBreakdown {
   const YukaScoreBreakdown({
     required this.hasData,
@@ -83,7 +59,6 @@ class YukaScoreBreakdown {
     required this.explanation,
     this.grade,
     this.gradeEstimated = false,
-    this.scoreBeforeCap,
     this.nutriScorePoints = const {},
   });
 
@@ -91,11 +66,8 @@ class YukaScoreBreakdown {
   /// score the model produced rather than inventing a neutral number.
   final bool hasData;
 
-  /// Final score, 0–100, already capped for high-risk additives.
+  /// Final score, 0–100.
   final int score;
-
-  /// Score before the high-risk additive cap, when the cap actually bit.
-  final int? scoreBeforeCap;
 
   final int nutritionSubscore;
   final int additiveSubscore;
@@ -110,8 +82,7 @@ class YukaScoreBreakdown {
   /// Breakdown of Nutri-Score points (the logic inputs).
   final Map<String, int> nutriScorePoints;
 
-  /// Contributions that sum to [score] (except when the cap applied, in which
-  /// case the cap factor is the difference).
+  /// Contributions that sum to [score].
   final List<ScoreFactor> factors;
 
   /// Engine-authored "why this score", in plain language.
@@ -137,7 +108,6 @@ class _Band {
 /// - **60% Nutritional Quality** — derived from Nutri-Score.
 /// - **30% Additive Quality / Risk** — by risk level.
 /// - **10% Ingredient & Processing Quality** — derived from NOVA group & organic certification.
-/// - Any high-risk additive caps the final score at 49/100.
 class YukaScore {
   YukaScore._();
 
@@ -147,12 +117,8 @@ class YukaScore {
   static const int processingWeight = 10;
   static const int organicWeight = 10; // Alias for backward compatibility
 
-  /// Published ceiling for any product containing a high-risk additive.
-  static const int highRiskCap = 49;
-
-  /// Additive penalties, per Yuka's risk bands. Each band is capped so a long
-  /// ingredient list cannot run away with the score — Yuka penalises by risk,
-  /// not by count, and so do we.
+  /// Additive penalties by concern level. Each band is capped so a long
+  /// ingredient list cannot run away with the score.
   static const int _lowPenalty = 2;
   static const int _lowBandCap = 6;
   static const int _moderatePenalty = 10;
@@ -277,16 +243,17 @@ class YukaScore {
   }
 
   static int additiveSubscore(List<AdditiveConcern> concerns) {
-    if (concerns.isEmpty) return 100;
-
     var low = 0;
     var moderate = 0;
     var high = 0;
     for (final c in concerns) {
       switch (c.level) {
         case AdditiveConcernLevel.low:
-        case AdditiveConcernLevel.unknown:
           low++;
+        case AdditiveConcernLevel.unknown:
+          // Missing evidence is not evidence of risk; unknown additives are
+          // reported but do not reduce the score until they can be assessed.
+          break;
         case AdditiveConcernLevel.moderate:
           moderate++;
         case AdditiveConcernLevel.higher:
@@ -299,7 +266,17 @@ class YukaScore {
     return (100 - penalty).clamp(0, 100).toInt();
   }
 
-  static bool _isHighRisk(AdditiveConcern c) => c.level == AdditiveConcernLevel.higher;
+  static bool isBeverageCategory(String? category) {
+    final value = category?.toLowerCase().replaceAll('_', '-');
+    return value != null && RegExp('beverage|drink|water|juice|soda|soft-drink|tea|coffee').hasMatch(value);
+  }
+
+  /// Avoid treating zero-calorie soft drinks as water: require a water product
+  /// name/category and zero energy/sugar, both of which come from the label.
+  static bool isPlainWater({required String? productName, required String? category, required num? energyKcal, required num? sugarG}) {
+    final water = '${productName ?? ''} ${category ?? ''}'.toLowerCase();
+    return RegExp(r'\b(water|waters)\b').hasMatch(water) && energyKcal == 0 && sugarG == 0;
+  }
 
   /// Label fragments that indicate an official organic certification.
   ///
@@ -385,6 +362,7 @@ class YukaScore {
     bool? isOrganic,
     int? novaGroup,
     bool isBeverage = false,
+    bool isWater = false,
   }) {
     final concerns = additiveConcerns ?? const <AdditiveConcern>[];
     final organic = isOrganic ?? false;
@@ -395,7 +373,11 @@ class YukaScore {
     var estimated = false;
     var componentPoints = <String, int>{};
 
-    if (nutriscoreScore != null) {
+    if (isWater) {
+      // Plain water is the beverage Nutri-Score A exception.
+      grade = NutriScoreGrade.a;
+      points = -15;
+    } else if (nutriscoreScore != null) {
       points = nutriscoreScore.toDouble();
       grade = gradeFromPoints(nutriscoreScore, isBeverage: isBeverage);
     }
@@ -436,44 +418,36 @@ class YukaScore {
     final additivePts = (additive * additiveWeight / 100).round();
     final processingPts = (processing * processingWeight / 100).round();
 
-    var score = (nutritionPts + additivePts + processingPts).clamp(0, 100);
-    int? beforeCap;
-
-    final hasHighRisk = concerns.any(_isHighRisk);
-    if (hasHighRisk && score > highRiskCap) {
-      beforeCap = score;
-      score = highRiskCap;
-    }
+    final score = (nutritionPts + additivePts + processingPts).clamp(0, 100);
 
     // --- factors (contributions; they sum to the score) --------------------
     final factors = <ScoreFactor>[
       ScoreFactor(
-        label: hasNutrition
-            ? 'Nutrition · Nutri-Score ${grade.letter}${estimated ? ' (estimated)' : ''} · $nutritionPts/$nutritionWeight'
-            : 'Nutrition · not enough data · $nutritionPts/$nutritionWeight',
+        label: isWater
+            ? 'Nutrition · Plain water, zero calories & sugar · $nutritionPts/$nutritionWeight (0 lost)'
+            : hasNutrition
+            ? 'Nutrition · Nutri-Score ${grade.letter}${estimated ? ' (estimated: ${_nutrientPointSummary(componentPoints)})' : ''} · $nutritionPts/$nutritionWeight (${nutritionWeight - nutritionPts} lost)'
+            : 'Nutrition · not enough data · neutral $nutritionPts/$nutritionWeight',
         delta: nutritionPts,
-        phrase: hasNutrition ? 'a Nutri-Score of ${grade.letter}' : 'incomplete nutrition data',
+        phrase: isWater ? 'plain water with zero calories and sugar' : hasNutrition ? 'a Nutri-Score of ${grade.letter}' : 'incomplete nutrition data',
       ),
       ScoreFactor(
-        label: 'Additives · ${_additiveSummary(concerns)} · $additivePts/$additiveWeight',
+        label: 'Additives · ${_additiveSummary(concerns)} · $additivePts/$additiveWeight (${additiveWeight - additivePts} lost)',
         delta: additivePts,
         phrase: concerns.isEmpty ? 'no additives detected' : _additivePhrase(concerns),
       ),
       ScoreFactor(
-        label: 'Processing & Ingredients · ${_processingSummary(novaGroup, organic)} · $processingPts/$processingWeight',
+        label: novaGroup == null && !organic
+            ? 'Processing & Ingredients · NOVA not available · neutral $processingPts/$processingWeight'
+            : 'Processing & Ingredients · ${_processingSummary(novaGroup, organic)} · $processingPts/$processingWeight (${processingWeight - processingPts} lost)',
         delta: processingPts,
         phrase: _processingPhrase(novaGroup, organic),
       ),
     ];
 
-    if (beforeCap != null) {
-      factors.add(ScoreFactor(label: 'High-concern additive cap · max $highRiskCap', delta: highRiskCap - beforeCap, phrase: 'a high-concern additive, which caps the score at $highRiskCap'));
-    }
-
     return YukaScoreBreakdown(
       hasData: true,
       score: score,
-      scoreBeforeCap: beforeCap,
       nutritionSubscore: nutrition,
       additiveSubscore: additive,
       processingSubscore: processing,
@@ -481,7 +455,7 @@ class YukaScore {
       gradeEstimated: estimated,
       nutriScorePoints: componentPoints,
       factors: factors,
-      explanation: _explain(score, nutritionPts, additivePts, processingPts, grade, estimated, beforeCap, concerns, novaGroup, organic),
+      explanation: _explain(score, nutritionPts, additivePts, processingPts, grade, estimated, novaGroup, organic, isWater),
     );
   }
 
@@ -502,6 +476,8 @@ class YukaScore {
     return parts.join(' · ');
   }
 
+  static String _nutrientPointSummary(Map<String, int> points) => points.entries.where((entry) => entry.value != 0).map((entry) => '${entry.key} ${entry.value > 0 ? '+' : ''}${entry.value}').join(', ');
+
   static String _processingPhrase(int? novaGroup, bool organic) {
     if (novaGroup == 1) {
       return organic ? 'unprocessed organic ingredients' : 'unprocessed whole ingredients';
@@ -514,14 +490,20 @@ class YukaScore {
 
   static String _additiveSummary(List<AdditiveConcern> concerns) {
     if (concerns.isEmpty) return 'none detected';
+    String namesFor(AdditiveConcernLevel level) {
+      final items = concerns.where((c) => c.level == level).toList();
+      final names = items.take(3).map((c) => c.code.isNotEmpty ? c.code : c.name).join(', ');
+      return names.isEmpty ? '' : ': $names${items.length > 3 ? ', +${items.length - 3} more' : ''}';
+    }
     var low = 0;
     var moderate = 0;
     var high = 0;
     for (final c in concerns) {
       switch (c.level) {
         case AdditiveConcernLevel.low:
-        case AdditiveConcernLevel.unknown:
           low++;
+        case AdditiveConcernLevel.unknown:
+          break;
         case AdditiveConcernLevel.moderate:
           moderate++;
         case AdditiveConcernLevel.higher:
@@ -529,9 +511,11 @@ class YukaScore {
       }
     }
     final parts = <String>[];
-    if (high > 0) parts.add('$high high concern');
-    if (moderate > 0) parts.add('$moderate moderate');
-    if (low > 0) parts.add('$low low');
+    if (high > 0) parts.add('$high high concern${namesFor(AdditiveConcernLevel.higher)}');
+    if (moderate > 0) parts.add('$moderate moderate${namesFor(AdditiveConcernLevel.moderate)}');
+    if (low > 0) parts.add('$low low${namesFor(AdditiveConcernLevel.low)}');
+    final unknown = concerns.where((c) => c.level == AdditiveConcernLevel.unknown).length;
+    if (unknown > 0) parts.add('$unknown unknown${namesFor(AdditiveConcernLevel.unknown)} (no deduction)');
     return parts.join(', ');
   }
 
@@ -547,24 +531,21 @@ class YukaScore {
     int processingPts,
     NutriScoreGrade? grade,
     bool estimated,
-    int? beforeCap,
-    List<AdditiveConcern> concerns,
     int? novaGroup,
     bool organic,
+    bool isWater,
   ) {
     final buffer = StringBuffer('Score $score out of 100 — ')
       ..write(
-        grade != null
+        isWater
+            ? 'nutrition $nutritionPts/$nutritionWeight (plain water: zero calories and sugar)'
+            : grade != null
             ? 'nutrition $nutritionPts/$nutritionWeight (Nutri-Score ${grade.letter}${estimated ? ', estimated from its nutrients' : ''})'
             : 'nutrition $nutritionPts/$nutritionWeight (incomplete data)',
       )
       ..write(', additives $additivePts/$additiveWeight')
       ..write(' and processing & ingredients $processingPts/$processingWeight (${_processingSummary(novaGroup, organic)}).');
 
-    if (beforeCap != null) {
-      final names = concerns.where(_isHighRisk).map((c) => c.code.isNotEmpty ? c.code : c.name).take(2).join(', ');
-      buffer.write(' It would have scored $beforeCap, but $names ${concerns.where(_isHighRisk).length == 1 ? 'is' : 'are'} classed high-concern, which caps any product at $highRiskCap.');
-    }
     return buffer.toString();
   }
 }

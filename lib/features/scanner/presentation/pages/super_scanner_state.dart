@@ -22,6 +22,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
   String? _guidanceError;
   Timer? _autoCaptureTimer;
   bool _isSheetOpen = false;
+  bool _isCapturingPhoto = false;
 
   final List<ScannerModeOption> _modes = const [
     ScannerModeOption(mode: ScannerMode.menu, label: AppStrings.restaurantMenuLabel),
@@ -263,12 +264,33 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     return picture.toImage(src.width.toInt(), src.height.toInt());
   }
 
+  Future<bool> _waitForCameraReady() async {
+    bool isReady() => _scannerController.value.isInitialized && _scannerController.value.isRunning;
+
+    if (!await waitForScannerReady(_scannerController) || !mounted || !isReady()) return false;
+
+    // The controller can be running before the platform preview has painted
+    // its first camera frame into the RepaintBoundary.
+    await WidgetsBinding.instance.endOfFrame;
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    await WidgetsBinding.instance.endOfFrame;
+    return mounted && isReady();
+  }
+
   Future<void> _capturePhoto() async {
     final notifier = context.read<ScannerNotifier>();
-    if (notifier.isProcessing) return;
-    if (!mounted) return;
+    if (notifier.isProcessing || _isCapturingPhoto || !mounted) return;
+
+    setState(() => _isCapturingPhoto = true);
 
     try {
+      if (!await _waitForCameraReady()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.failedToAnalyzeProduct), behavior: SnackBarBehavior.floating));
+        }
+        return;
+      }
+
       final bytes = await _captureFrameBytes();
       if (bytes == null) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.couldNotAnalyzeVision), behavior: SnackBarBehavior.floating));
@@ -300,6 +322,8 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
     } catch (e) {
       debugPrint('Scanner: Capture error: $e');
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.failedToAnalyzeProduct), behavior: SnackBarBehavior.floating));
+    } finally {
+      if (mounted) setState(() => _isCapturingPhoto = false);
     }
   }
 
@@ -390,7 +414,7 @@ class _SuperScannerScreenState extends State<SuperScannerScreen> with WidgetsBin
                 child: _ScannerBottomDock(
                   modePageController: _modePageController,
                   currentMode: _currentMode,
-                  isProcessing: notifier.isProcessing,
+                  isProcessing: notifier.isProcessing || _isCapturingPhoto,
                   modes: _modes,
                   onGalleryTap: _pickFromGallery,
                   onShutterTap: _capturePhoto,

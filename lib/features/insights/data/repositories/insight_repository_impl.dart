@@ -26,7 +26,8 @@ class InsightRepositoryImpl implements InsightRepository {
 
   @override
   Future<void> saveInsight(AIInsight insight) async {
-    await _insightFirestoreService.saveInsights(insight, useServerTimestamp: insight.origin == AIInsight.originRuleBased);
+    final savedId = await _insightFirestoreService.saveInsights(insight, useServerTimestamp: insight.origin == AIInsight.originRuleBased);
+    if (savedId == null) throw StateError('Insight was not saved for the active user.');
   }
 
   @override
@@ -117,18 +118,18 @@ class InsightRepositoryImpl implements InsightRepository {
   ).distinct();
 
   @override
-  Future<List<MealLog>> getRecentMeals(DateTime since) async => _historyFirestoreService.getRecentMealLogs(since: since);
+  Future<List<MealLog>> getRecentMeals(DateTime since) async => _historyFirestoreService.getRecentMealLogs(since: since, throwOnError: true);
 
   @override
-  Future<List<SymptomLog>> getRecentSymptoms(DateTime since) async => _historyFirestoreService.getRecentSymptomLogs(since: since);
+  Future<List<SymptomLog>> getRecentSymptoms(DateTime since) async => _historyFirestoreService.getRecentSymptomLogs(since: since, throwOnError: true);
 
   @override
-  Future<List<ScanResult>> getRecentScans(DateTime since) async => _historyFirestoreService.getRecentScans(since: since);
+  Future<List<ScanResult>> getRecentScans(DateTime since) async => _historyFirestoreService.getRecentScans(since: since, throwOnError: true);
 
   @override
   Future<List<ScanResult>> getScansByIds(List<String> scanIds) async {
     final ids = scanIds.map((id) => id.trim()).where((id) => id.isNotEmpty).toSet();
-    final scans = await Future.wait(ids.map(_historyFirestoreService.getScanById));
+    final scans = await Future.wait(ids.map((id) => _historyFirestoreService.getScanById(id, throwOnError: true)));
     return scans.whereType<ScanResult>().toList();
   }
 

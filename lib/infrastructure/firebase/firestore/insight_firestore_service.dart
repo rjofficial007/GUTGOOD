@@ -49,6 +49,16 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       final docRef = requestedId != null && requestedId.isNotEmpty ? collection.doc(requestedId) : collection.doc();
       final data = {...insight.toMap(), 'firestoreId': docRef.id, 'updatedAt': useServerTimestamp ? FieldValue.serverTimestamp() : Timestamp.fromDate(insight.updatedAt)};
       if (insight.origin == AIInsight.originRuleBased) {
+        // Keep today's user-requested explanation when background insight
+        // refreshes rewrite the stable latest-insight document.
+        final existingSnapshot = await docRef.get();
+        final existingInterpretation = existingSnapshot.data()?['aiInterpretation'];
+        if (existingInterpretation is Map<String, dynamic>) {
+          final savedInterpretation = InsightAiInterpretation.fromMap(existingInterpretation);
+          if (savedInterpretation.wasGeneratedOn(DateTime.now())) {
+            data['aiInterpretation'] = savedInterpretation.toMap();
+          }
+        }
         final batch = _db.batch()
           ..set(docRef, data)
           ..set(doc.collection('pattern_data').doc('latest'), {
@@ -63,7 +73,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       return docRef.id;
     } catch (e) {
       AppLogger.firestore('Error saving insights', error: e);
-      return null;
+      rethrow;
     }
   }
 
@@ -83,6 +93,11 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
         final rawPeriod = data['period'];
         final savedPeriodTo = rawPeriod is Map<String, dynamic> ? DateTimeUtils.tryParse(rawPeriod['to']) : null;
         if (savedPeriodTo == null || !savedPeriodTo.isAtSameMomentAs(expectedPeriodTo)) return false;
+        final existingInterpretation = data['aiInterpretation'];
+        // Transactionally reject a second same-day save from another device.
+        if (existingInterpretation is Map<String, dynamic> && InsightAiInterpretation.fromMap(existingInterpretation).wasGeneratedOn(DateTime.now())) {
+          return false;
+        }
 
         // Merge only the optional AI prose: the deterministic snapshot and its
         // updatedAt ordering remain untouched.
@@ -113,7 +128,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
         })
         .map((snapshot) {
           if (snapshot.docs.isEmpty) return null;
-          return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id});
+          return AIInsight.fromMap({...snapshot.docs.first.data(), 'id': snapshot.docs.first.id, 'uid': _uid});
         });
   }
 
@@ -123,12 +138,12 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       final doc = _userDoc;
       if (doc == null) return [];
       final snapshot = await doc.collection('insights').orderBy('updatedAt', descending: true).get();
-      final results = snapshot.docs.map((doc) => AIInsight.fromMap({...doc.data(), 'id': doc.id})).toList();
+      final results = snapshot.docs.map((doc) => AIInsight.fromMap({...doc.data(), 'id': doc.id, 'uid': _uid})).toList();
       // AppLogger.data('INSIGHTS_HISTORY_RAW', results.map((r) => r.toMap()).toList());
       return results;
     } catch (e) {
       AppLogger.firestore('Error getting insights history', error: e);
-      return [];
+      rethrow;
     }
   }
 
@@ -156,7 +171,7 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
       return (data['patterns'] as List).map((p) => BodyPattern.fromMap(p as Map<String, dynamic>)).toList();
     } catch (e) {
       AppLogger.firestore('Error getting latest patterns', error: e);
-      return [];
+      rethrow;
     }
   }
 
@@ -188,10 +203,11 @@ class InsightFirestoreServiceImpl implements InsightFirestoreService {
   Future<void> saveHealthAlert(HealthAlert alert) async {
     try {
       final doc = _userDoc;
-      if (doc == null) return;
+      if (doc == null) throw StateError('Cannot save a health alert without an authenticated Firebase user.');
       await doc.collection('health_alerts').add(alert.toMap());
     } catch (e) {
       AppLogger.firestore('Error saving health alert', error: e);
+      rethrow;
     }
   }
 

@@ -168,7 +168,7 @@ class _InsightHistoryTile extends StatelessWidget {
                     backgroundColor: trackColor,
                     valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
                   ),
-                  Text(insight.hasGutScore ? '$score' : '—', style: context.labelBold),
+                  Text(insight.hasGutScore ? '$score' : '0', style: context.labelBold),
                 ],
               ),
             ),

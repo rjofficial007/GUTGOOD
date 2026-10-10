@@ -262,9 +262,31 @@ void main() {
           throwOnError: true,
         ),
       ).captured;
-      expect(captured[0], 150, reason: 'The date range bounds the query, and the page limit keeps each Firestore read bounded.');
+      expect(captured[0], isNull, reason: 'The 30-day range is paged fully instead of imposing a record-count cap.');
       final since = captured[1] as DateTime;
       expect(DateTime.now().difference(since).inDays, 30);
+    });
+
+    test('analysis includes repeated evidence after the first 150 records', () async {
+      final now = DateTime.now();
+      final meals = <MealLog>[];
+      final symptoms = <SymptomLog>[];
+      for (var i = 0; i < 150; i++) {
+        final at = now.subtract(Duration(days: i % 25, minutes: i));
+        final id = 'filler-$i';
+        meals.add(MealLog(firestoreId: id, journalEntryId: id, items: ['Filler $i'], createdAt: at, occurredAt: at, occurredAtProvenance: OccurrenceProvenance.user));
+        symptoms.add(SymptomLog(firestoreId: 'symptom-$i', journalEntryId: id, lastMealFirestoreId: id, symptom: 'Bloating', createdAt: at.add(const Duration(hours: 1)), occurredAt: at.add(const Duration(hours: 1)), occurredAtProvenance: OccurrenceProvenance.user));
+      }
+      for (var i = 0; i < 2; i++) {
+        final at = now.subtract(Duration(days: i + 1));
+        final id = 'oats-$i';
+        meals.add(MealLog(firestoreId: id, journalEntryId: id, items: const ['Oats'], createdAt: at, occurredAt: at, occurredAtProvenance: OccurrenceProvenance.user));
+        symptoms.add(SymptomLog(firestoreId: 'oats-symptom-$i', journalEntryId: id, lastMealFirestoreId: id, symptom: 'Bloating', createdAt: at.add(const Duration(hours: 1)), occurredAt: at.add(const Duration(hours: 1)), occurredAtProvenance: OccurrenceProvenance.user));
+      }
+
+      final patterns = await runWith(meals: meals, symptoms: symptoms);
+
+      expect(patterns.any((pattern) => pattern.trigger == 'Oats' && pattern.frequency == 2), isTrue);
     });
 
     test('bloating: 3-of-3 reads Medium; 5-of-5 caps at Medium without a contrast case', () async {

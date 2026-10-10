@@ -9,21 +9,13 @@ import 'package:gutgood/core/utils/model_utils.dart';
 /// Maximum cards returned per generation; keep usable partial results.
 const int kSwapCardCount = 4;
 
-SwapNutrition _markSwapNutritionAsEstimate(SwapNutrition nutrition) {
-  if (!nutrition.hasData || nutrition.basis?.toLowerCase().contains('not verified') == true) return nutrition;
-  final basis = nutrition.basis?.trim();
-  return SwapNutrition(
-    calories: nutrition.calories,
-    protein: nutrition.protein,
-    totalFat: nutrition.totalFat,
-    fiber: nutrition.fiber,
-    basis: basis?.isNotEmpty == true ? 'AI estimate · $basis · not verified' : 'AI-generated estimate · serving basis not recorded · not verified',
-  );
-}
-
 /// Keep meaningful, distinct recommendations and hydrate matching catalog facts.
 /// Catalog candidates are not recommendations until the response selects them.
-List<ProductSwap> normalizeSwapCards(List<ProductSwap> swaps, List<ProductSwap> fallback) {
+List<ProductSwap> normalizeSwapCards(
+  List<ProductSwap> swaps,
+  List<ProductSwap> fallback, {
+  String? sourceFoodName,
+}) {
   final kept = <ProductSwap>[];
   final names = <String>{};
   final barcodes = <String>{};
@@ -32,22 +24,57 @@ List<ProductSwap> normalizeSwapCards(List<ProductSwap> swaps, List<ProductSwap> 
     if (name.isEmpty || name == 'string' || swap.subtitle.trim().isEmpty) continue;
     final replaces = swap.toAlternative().replaces?.trim().toLowerCase();
     if (name == replaces) continue;
+    final source = (sourceFoodName ?? replaces ?? '').toLowerCase();
+    // ponytail: explicit dish families only; use catalog categories if this
+    // grows into a general food taxonomy. Mixed platters retain component swaps.
+    final isPlatter = RegExp(r'\b(platter|spread|assortment)\b').hasMatch(source);
+    if (!isPlatter) {
+      final families = <String, RegExp>{
+        'pizza': RegExp(r'\bpizza\b'),
+        'burger': RegExp(r'\b(burger|sandwich|filled wrap|bowl)\b'),
+        'taco': RegExp(r'\btacos?\b'),
+        'noodles': RegExp(r'\b(noodles?|pasta)\b'),
+        'mocktail': RegExp(r'\b(mocktail|spritzer)\b'),
+      };
+      final family = families.entries.where((entry) =>
+          RegExp('\\b${entry.key}\\b').hasMatch(source)).firstOrNull;
+      if (family != null && !family.value.hasMatch(name)) continue;
+      if (source.contains('pizza') && name.endsWith('crust')) continue;
+    }
     final matches = fallback.where((candidate) => (swap.barcode?.isNotEmpty == true && candidate.barcode == swap.barcode) || candidate.title.trim().toLowerCase() == name);
     final product = matches.isEmpty ? null : matches.first;
     final details = swap.toAlternative();
-    final hasUnverifiedFacts = product == null && (fallback.isNotEmpty || details.nutrition.hasData || swap.imageUrl != null || swap.barcode != null || swap.nutriscore != null);
-    if (product != null || hasUnverifiedFacts) {
-      // Keep model-provided nutrition visible as an explicitly unverified
-      // estimate; matched catalog facts take precedence when available.
-      final nutrition = product?.toAlternative().nutrition ?? _markSwapNutritionAsEstimate(details.nutrition);
+    final unsupportedClaim = RegExp(
+      r'\b(higher|lower|fewer|high protein|high fiber|more nutrients|muscle recovery|heart health|sustained energy|low glycemic|easier (?:to digest|digestion)|reliev\w*|prevent\w*|treat\w*)\b',
+      caseSensitive: false,
+    );
+    if (product == null && unsupportedClaim.hasMatch(
+        '${swap.subtitle} ${details.whyBetterOption ?? ''}')) {
+      continue;
+    }
+    final supportedBenefits = details.benefits.where((benefit) =>
+        product != null || !unsupportedClaim.hasMatch(
+            '${benefit.title} ${benefit.description}')).toList();
+    final supportedTags = details.benefitTags.where((tag) =>
+        product != null || !unsupportedClaim.hasMatch(tag)).toList();
+    final needsSanitization = product != null || details.nutrition.hasData ||
+        swap.imageUrl != null || swap.barcode != null || swap.nutriscore != null ||
+        supportedBenefits.length != details.benefits.length ||
+        supportedTags.length != details.benefitTags.length ||
+        unsupportedClaim.hasMatch(swap.tag);
+    if (needsSanitization) {
       swap = ProductSwap.fromMap({
-        ...details.toMap(),
-        'foodId': product?.barcode ?? product?.title ?? swap.title,
-        'name': product?.title ?? swap.title,
-        'barcode': product?.barcode,
-        'nutriscore': product?.nutriscore,
-        'imageUrl': product?.imageUrl,
-        'nutrition': nutrition.toMap(),
+      ...details.toMap(),
+      'foodId': product?.barcode ?? product?.title ?? swap.title,
+      'name': product?.title ?? swap.title,
+      'reason': swap.subtitle,
+      'barcode': product?.barcode,
+      'nutriscore': product?.nutriscore,
+      'imageUrl': product?.imageUrl,
+      'nutrition': (product?.toAlternative().nutrition ?? const SwapNutrition()).toMap(),
+      'structuredBenefits': supportedBenefits.map((benefit) => benefit.toMap()).toList(),
+      'benefitTags': supportedTags,
+      if (product == null && unsupportedClaim.hasMatch(swap.tag)) 'tag': 'Alternative',
       });
     }
     final resolvedName = swap.title.trim().toLowerCase();
@@ -137,13 +164,46 @@ class ProcessChatTagUseCase {
 
       if (decoded['scan'] != null && decoded['scan'] is Map<String, dynamic>) {
         final scanMap = Map<String, dynamic>.from(decoded['scan']);
-        final isFoodPhoto = decoded['image_mode']?.toString().toUpperCase() == 'FOOD';
+        final trustedMode = source?.toUpperCase();
+        if (ImageMode.all.contains(trustedMode)) {
+          imageMode = trustedMode;
+          decoded['image_mode'] = trustedMode;
+        }
+        final isFoodPhoto = imageMode?.toUpperCase() == ImageMode.food;
         if (isFoodPhoto) {
           // A food photo cannot establish label-only facts or packaging data.
           for (final key in ['allergens', 'additives', 'servingsPerPack', 'servingSize', 'portionEaten', 'nutriscore', 'novaGroup']) {
             scanMap[key] = null;
           }
           scanMap['additiveItems'] = <String>[];
+          scanMap['brand'] = '';
+          if (!(userText?.toLowerCase().contains('organic') ?? false)) scanMap['isOrganic'] = null;
+          final photoIngredients = scanMap['ingredients'];
+          if (photoIngredients is List) {
+            scanMap['ingredients'] = photoIngredients.whereType<Map>().where((ingredient) {
+              final name = ingredient['name']?.toString().toLowerCase() ?? '';
+              final hiddenClaim = RegExp('whole wheat|whole grain|organic|gluten.free').hasMatch(name);
+              return !hiddenClaim || (userText?.toLowerCase().contains(name) ?? false);
+            }).map((ingredient) {
+              final item = Map<String, dynamic>.from(ingredient);
+              if (item['confidence'] == 1) item['confidence'] = null;
+              return item;
+            }).toList();
+          }
+          if (decoded['meal'] is Map) {
+            final meal = Map<String, dynamic>.from(decoded['meal']);
+            final type = meal['mealType']?.toString().toLowerCase();
+            if (type != null && !(userText?.toLowerCase().contains(type) ?? false)) {
+              meal['mealType'] = null;
+            }
+            meal['foodTags'] = <String>[];
+            decoded['meal'] = meal;
+          }
+          // Do not turn an invented per-slice estimate into a pictured portion.
+          if (scanMap['nutritionBasis'] != 'pictured_portion') {
+            scanMap['nutrients'] = null;
+            scanMap['nutrientLevels'] = null;
+          }
           scanMap['nutritionBasis'] = 'pictured_portion';
           scanMap['nutritionEstimated'] = true;
           final cycle = scanMap['cycleInsight'];
@@ -347,7 +407,16 @@ class ProcessChatTagUseCase {
     // --- STEP 3: UI STRIPPING ---
     displayOutput = stripAiStructuredDataForDisplay(text);
 
-    swapsList = normalizeSwapCards(swapsList, fallbackSwaps);
+    swapsList = normalizeSwapCards(swapsList, fallbackSwaps, sourceFoodName: scanData?.productName);
+
+    if (scanData?.rawData != null) {
+      final raw = Map<String, dynamic>.from(scanData!.rawData!);
+      raw['swaps'] = swapsList.map((swap) => swap.toMap()).toList();
+      final rawScan = ModelUtils.parseMap(raw['scan']);
+      rawScan['swaps'] = raw['swaps'];
+      raw['scan'] = rawScan;
+      scanData = scanData.copyWith(rawData: raw);
+    }
 
     // 🚀 Professional Sync: Ensure swaps are attached to scanData for consistent UI & persistence.
     if (scanData != null) {

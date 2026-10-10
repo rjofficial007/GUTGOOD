@@ -30,7 +30,7 @@ class InsightScoreCard extends StatelessWidget {
               label: value == null ? 'Gut score unavailable' : 'Gut score $value out of 100',
               excludeSemantics: true,
               child: Text.rich(TextSpan(children: [
-                TextSpan(text: value == null ? '—' : '$value', style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -2)),
+                TextSpan(text: value == null ? '0' : '$value', style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -2)),
                 TextSpan(text: ' / 100', style: theme.textTheme.titleMedium?.copyWith(color: colors.onSurfaceVariant)),
               ])),
             ),

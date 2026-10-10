@@ -30,7 +30,7 @@ class _IngredientsBody extends StatelessWidget {
           for (var i = 0; i < details.length; i++) ...[if (i > 0) Gap.h12, _ingredientRow(context, details[i], allergenHints, scheme)]
         else if ((product.ingredientsText ?? '').isNotEmpty)
           Text(product.ingredientsText!, style: context.bodySm.copyWith(height: 1.55)),
-        if (product.imageIngredientsUrl != null && details.isEmpty && (product.ingredientsText ?? '').isEmpty) Text('Ingredients listed on the packaging photo.', style: context.caption),
+        if (product.imageIngredientsUrl != null && details.isEmpty && (product.ingredientsText ?? '').isEmpty) Text('Ingredients listed on the packaging photo.', style: context.bodySm),
       ],
     );
   }
@@ -54,9 +54,9 @@ class _IngredientsBody extends StatelessWidget {
         children: [
           Icon(icon, size: 13.sp, color: color),
           Gap.w6,
-          Text(label, style: context.caption.copyWith(color: scheme.textPrimary)),
+          Text(label, style: context.bodySm.copyWith(color: scheme.textPrimary)),
           Gap.w4,
-          Text('· $verdictText', style: context.captionBold.copyWith(color: color)),
+          Text('· $verdictText', style: context.labelBold.copyWith(color: color, fontSize: 12.sp)),
         ],
       ),
     );
@@ -78,13 +78,13 @@ class _IngredientsBody extends StatelessWidget {
                 style: context.bodySm.copyWith(fontWeight: isAllergen ? FontWeight.w800 : FontWeight.w600, color: isAllergen ? scheme.error : scheme.textPrimary),
               ),
             ),
-            if (percentText != null) ...[Gap.w8, Text(percentText, style: context.captionBold.copyWith(color: scheme.textSecondary))],
+            if (percentText != null) ...[Gap.w8, Text(percentText, style: context.labelBold.copyWith(color: scheme.textSecondary, fontSize: 12.sp))],
           ],
         ),
         if (detail.subIngredients.isNotEmpty)
           Padding(
             padding: EdgeInsets.only(top: AppSizes.p4, left: AppSizes.p8),
-            child: Text('Contains: ${detail.subIngredients.join(', ')}', style: context.captionMicro),
+            child: Text('Contains: ${detail.subIngredients.join(', ')}', style: context.bodySm.copyWith(color: scheme.textSecondary)),
           ),
         if (isAllergen)
           Padding(
@@ -96,7 +96,7 @@ class _IngredientsBody extends StatelessWidget {
                 Gap.w4,
                 Text(
                   'Allergen',
-                  style: context.captionMicro.copyWith(color: scheme.error, fontWeight: FontWeight.w700),
+                  style: context.labelBold.copyWith(color: scheme.error, fontSize: 11.5.sp, fontWeight: FontWeight.w700),
                 ),
               ],
             ),

@@ -38,7 +38,8 @@ class FooterActionButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSizes.r24),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                constraints: const BoxConstraints(minHeight: 48),
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppSizes.r24),
                   border: Border.all(color: colorScheme.border, width: 1),
@@ -49,12 +50,12 @@ class FooterActionButton extends StatelessWidget {
                   children: [
                     if (isLoading)
                       SizedBox(
-                        width: isEmbedded ? 11.sp : 12,
-                        height: isEmbedded ? 11.sp : 12,
+                        width: isEmbedded ? 14.sp : 14,
+                        height: isEmbedded ? 14.sp : 14,
                         child: CircularProgressIndicator(strokeWidth: 1.5, color: colorScheme.textPrimary),
                       )
                     else
-                      Icon(icon ?? AppIcons.arrowRight, size: isEmbedded ? 11.sp : 12, color: colorScheme.textPrimary),
+                      Icon(icon ?? AppIcons.arrowRight, size: isEmbedded ? 14.sp : 14, color: colorScheme.textPrimary),
                     Gap.w8,
                     Text(
                       label.toUpperCase(),

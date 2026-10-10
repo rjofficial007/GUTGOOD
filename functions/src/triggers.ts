@@ -12,6 +12,15 @@ import { REGION } from './config';
 import { calculateStreakUpdate, getLocalDate } from './usage';
 import { onScanWrite, onScanRemoved, onJournalWrite, onJournalRemoved } from './counters';
 
+function eventTimestamp(value: string): admin.firestore.Timestamp {
+  const milliseconds = Date.parse(value);
+  if (!Number.isFinite(milliseconds)) throw new Error(`Invalid Firestore event timestamp: ${value}`);
+  const seconds = Math.floor(milliseconds / 1000);
+  const fraction = value.match(/\.(\d+)/)?.[1] ?? '';
+  const nanoseconds = Number(fraction.padEnd(9, '0').slice(0, 9));
+  return new admin.firestore.Timestamp(seconds, nanoseconds);
+}
+
 /**
  * Shared helper to update user streak based on activity time.
  */
@@ -51,6 +60,7 @@ async function handleActivityStreak(uid: string, docTime: any, docOffset?: numbe
 
 export const onScanCreated = functions
   .region(REGION)
+  .runWith({ failurePolicy: true })
   .firestore.document('user_profiles/{uid}/scan_history/{docId}')
   .onCreate(async (snapshot, context) => {
     const { uid } = context.params;
@@ -66,7 +76,7 @@ export const onScanCreated = functions
     // 1b. Bump history counters (dashboard + gating + profile average).
     // Runs for every scan, including non-processed ones (the NOVA guard below
     // returns early — counters must not).
-    await onScanWrite(uid, scanData);
+    await onScanWrite(uid, scanData, eventTimestamp(context.timestamp), context.eventId);
 
     // 2. Process warnings (existing logic)
     const novaGroup = (scanData.novaGroup || '').toString();
@@ -168,13 +178,14 @@ export const onScanCreated = functions
  */
 export const onJournalEntryCreated = functions
   .region(REGION)
+  .runWith({ failurePolicy: true })
   .firestore.document('user_profiles/{uid}/journal_logs/{docId}')
   .onCreate(async (snapshot, context) => {
     const { uid } = context.params;
     const data = snapshot.data();
     if (data) {
       await handleActivityStreak(uid, data.createdAt);
-      await onJournalWrite(uid, data);
+      await onJournalWrite(uid, data, eventTimestamp(context.timestamp), context.eventId);
     }
   });
 
@@ -184,10 +195,11 @@ export const onJournalEntryCreated = functions
  */
 export const onScanDeleted = functions
   .region(REGION)
+  .runWith({ failurePolicy: true })
   .firestore.document('user_profiles/{uid}/scan_history/{docId}')
   .onDelete(async (snapshot, context) => {
     const { uid } = context.params;
-    await onScanRemoved(uid, snapshot.data());
+    await onScanRemoved(uid, snapshot.data(), eventTimestamp(context.timestamp), context.eventId);
   });
 
 /**
@@ -195,10 +207,11 @@ export const onScanDeleted = functions
  */
 export const onJournalEntryDeleted = functions
   .region(REGION)
+  .runWith({ failurePolicy: true })
   .firestore.document('user_profiles/{uid}/journal_logs/{docId}')
   .onDelete(async (snapshot, context) => {
     const { uid } = context.params;
-    await onJournalRemoved(uid, snapshot.data());
+    await onJournalRemoved(uid, snapshot.data(), eventTimestamp(context.timestamp), context.eventId);
   });
 
 /**

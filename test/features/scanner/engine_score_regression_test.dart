@@ -126,7 +126,8 @@ void main() {
       final scan = await runVision(bareScan(score: 82));
 
       expect(scan, isNotNull);
-      expect(scan!.score, 82, reason: 'Engine has no inputs here; overriding a reasoned 82 with a flat 50 would make every photo scan look identical.');
+      expect(scan!.impact, contains('Provisional visual score'));
+      expect(scan.score, 82, reason: 'Engine has no inputs here; overriding a reasoned 82 with a flat 50 would make every photo scan look identical.');
     });
 
     test('a photo scan WITH extracted signals is still scored by the engine', () async {
@@ -136,10 +137,19 @@ void main() {
       expect(scan!.score, greaterThan(50), reason: 'Nutri-Score A / NOVA 1 must raise the score above the neutral baseline.');
     });
 
-    test('engine override preserves the model-authored narrative', () async {
+    test('NOVA changes the production scan score by the processing weight', () async {
+      final minimallyProcessed = await runVision(bareScan().copyWith(nutriscore: 'a', novaGroup: '1'));
+      final ultraProcessed = await runVision(bareScan().copyWith(nutriscore: 'a', novaGroup: '4'));
+
+      expect(minimallyProcessed!.score - ultraProcessed!.score, 10);
+    });
+
+    test('engine override supplies the calculation explanation', () async {
       final scan = await runVision(bareScan(score: 20).copyWith(nutriscore: 'a', impact: 'Mostly whole foods. High in fibre.'));
 
-      expect(scan!.impact, 'Mostly whole foods. High in fibre.');
+      expect(scan!.impact, contains('nutrition'));
+      expect(scan.impact, contains('additives'));
+      expect(scan.impact, contains('processing'));
       expect(scan.score, greaterThan(50));
     });
   });

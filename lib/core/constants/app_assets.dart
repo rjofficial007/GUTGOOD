@@ -7,6 +7,7 @@ class AppAssets {
   static const String appleLogo = 'assets/images/apple_logo.png';
   static const String googleLogo = 'assets/images/google_logo.png';
   static const String mascotDiscovery = 'assets/images/mascot_deep_discovery.png';
+  static const String calender = 'assets/images/calender.png';
 
   // Animations
   static const String streakAnimation = 'assets/animations/streak.json';

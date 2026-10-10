@@ -54,7 +54,7 @@ class AdditiveConcern {
     tip: map['tip']?.toString() ?? '',
   );
 
-  /// Fallback for items not in the database. Penalized like low.
+  /// Fallback for items not in the database. Tracked without a score penalty.
   factory AdditiveConcern.unknown(String rawLabel) {
     final label = rawLabel.trim().isEmpty ? 'Unknown additive' : rawLabel.trim();
     return AdditiveConcern(
@@ -64,9 +64,7 @@ class AdditiveConcern {
       whyUsed: 'Used for processing, texture, color, flavor or shelf life.',
       level: AdditiveConcernLevel.unknown,
       whyFlagged: 'Limited data',
-      explanation:
-          'We don\'t have a full profile for $label yet, so we treat it gently in your score. '
-          'As a rule of thumb, fewer hard-to-pronounce ingredients usually means a kinder food for your gut.',
+      explanation: 'We don\'t have enough information to assess $label, so it is recorded without reducing the product score.',
     );
   }
 
@@ -118,13 +116,13 @@ class AdditiveConcern {
     AdditiveConcernLevel.unknown => 'Limited data',
   };
 
-  /// Points this additive costs on the displayed score: the engine's
-  /// 30%-weighted contribution (25/10/2 subscore pts → 8/3/1).
+  /// Points this additive costs on the displayed score, rounded from the
+  /// engine's 30%-weighted contribution. Unknown concerns have no deduction.
   int get scoreImpactPts => switch (level) {
-    AdditiveConcernLevel.higher => 8,
+    AdditiveConcernLevel.higher => 7,
     AdditiveConcernLevel.moderate => 3,
     AdditiveConcernLevel.low => 1,
-    AdditiveConcernLevel.unknown => 1,
+    AdditiveConcernLevel.unknown => 0,
   };
 
   /// Title shown in rows: 'E621 · Monosodium Glutamate' or just the name.

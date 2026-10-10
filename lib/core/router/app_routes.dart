@@ -28,6 +28,7 @@ class AppRoutes {
   static const String allScans = '/all-scans';
   static const String scanResult = '/scan-result';
   static const String symptomDetail = '/symptom-detail';
+  static const String mealDetail = '/meal-detail';
   static const String additiveDetail = '/additive-detail';
   static const String scanListDetail = '/scan-list-detail';
   static const String additivesList = '/additives-list';

@@ -147,7 +147,7 @@ $ingredientSchema
       "benefitTags": ["short supported benefit"],
       "structuredBenefits": [{"title": "short label", "description": "supported explanation", "icon": "leaf|dumbbell|arrow_down|flame"}],
       "whyBetterOption": "specific comparison with the original food, including relevant tradeoffs",
-      "nutrition": {"calories": null, "protein": null, "totalFat": null, "fiber": null, "basis": null}
+      "nutrition": {"calories": null, "protein": null, "totalFat": null, "carbohydrates": null, "fiber": null, "sugars": null, "saturatedFat": null, "sodium": null, "servingSize": null, "basis": null}
     }
   ],
   "insight": {
@@ -193,9 +193,9 @@ SCHEMA TYPE RULES (apply to [GUTGOOD_DATA] JSON block)
 - swaps: four supported or []; exact replaces=scan.productName; same dish family (pizza→pizza; burger/fast food→complete main). No sides or ingredients as meal swaps.
 - Multi-item scans: replaces may name an identified food (cake/mousse). Never assume ingredients. Mocktail→mocktail/spritzer. Unknown recipes cannot support sugar-reduction claims.
 - swaps[].reason/whyBetterOption: a concise card reason plus a source-specific comparison and tradeoff. Avoid vague benefits and unsupported health, calorie, weight-loss, symptom or disease claims.
-- swaps[].benefitTags/structuredBenefits: up to 3 consistent, evidence-supported benefits, or [].
+- swaps[].benefitTags/structuredBenefits: Return 1-3 distinct structuredBenefits when supported, each with title, description, and icon (leaf, dumbbell, arrow_down, or flame). These cards describe useful features of this specific alternative: preparation, texture, flavor, or an ingredient characteristic. They do not require a nutrient comparison. Use a short title and a specific one-sentence description; do not repeat numeric macros, serving sizes, or the whyBetterOption sentence. Populate benefitTags with the same titles. Use higher/lower/fewer claims only with verified source and alternative data on the same basis. Never infer fewer additives from missing ingredients or claim easier digestion, symptom relief, or sustained energy from a food name. If no features are supported, use [] for both arrays.
 - swaps[].imageKeyword: match the name. imageUrl/barcode/nutriscore require supplied product facts; otherwise null.
-- swaps[].nutrition: supplied label/catalog values with basis only. Calories in kcal, macros with units; unknown values/basis are null. Never estimate or compare bases.
+- swaps[].nutrition: supplied label/catalog values with basis only. Include calories, protein, totalFat, carbohydrates, fiber, sugars, saturatedFat, sodium, servingSize, and basis; calories are a numeric kcal value, gram values include g, sodium includes mg. Unknown values/basis are null. Never estimate or compare bases.
 - Generic swap benefits must not claim lower sugar/calories, more fiber, probiotics, or health effects without source nutrition/ingredients. State that recipe and nutrition vary instead.
 - Photo-only: allergens/additives, pack details and portion are null unless legible. Never output "string" placeholders. Leave cycle fields null/empty unless profile supplies a cycle phase; never infer it from food or image.
 - For food-photo or barcode scans, meal may describe a candidate food event and its supported foodTags; a scan is not proof it was eaten, and the app asks the user before counting it. For text-only turns, populate meal only when the user reports eating it. A swap request or meal plan alone is not a meal log.

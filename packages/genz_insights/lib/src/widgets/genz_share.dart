@@ -36,7 +36,7 @@ void showGenzToast(BuildContext context, String message) {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 24, offset: const Offset(0, 8)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 24, offset: const Offset(0, 8)),
                   ],
                 ),
                 child: Text(

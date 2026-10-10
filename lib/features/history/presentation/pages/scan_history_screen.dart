@@ -192,9 +192,7 @@ class _TimelineBody extends StatelessWidget {
             ...groupEntries.asMap().entries.map((e) {
               final entryIndex = e.key;
               final entry = e.value;
-              // Meal entries have no detail destination; scans and symptoms navigate.
-              final hasDetail = entry.type != JournalEntryType.meal;
-              return JournalTimelineEntry(entry: entry, isFirst: entryIndex == 0, isLast: entryIndex == groupEntries.length - 1, onTap: hasDetail ? () => _handleEntryTap(context, entry) : null);
+              return JournalTimelineEntry(entry: entry, isFirst: entryIndex == 0, isLast: entryIndex == groupEntries.length - 1, onTap: () => _handleEntryTap(context, entry));
             }),
           ],
         );
@@ -208,7 +206,9 @@ class _TimelineBody extends StatelessWidget {
   }
 
   void _handleEntryTap(BuildContext context, JournalEntry entry) {
-    if (entry.type == JournalEntryType.scan && entry.scan != null) {
+    if (entry.type == JournalEntryType.meal && entry.meal != null) {
+      context.push(AppRoutes.mealDetail, extra: entry.meal);
+    } else if (entry.type == JournalEntryType.scan && entry.scan != null) {
       // All scan types render in the unified scan result screen.
       context.push(
         AppRoutes.scanResult,

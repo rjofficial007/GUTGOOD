@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gutgood/core/constants/app_assets.dart';
 import 'package:gutgood/core/constants/app_sizes.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/core/router/app_routes.dart';
@@ -13,6 +14,7 @@ import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/features/insights/application/usecases/generate_insight_ai_interpretation_usecase.dart';
 import 'package:gutgood/features/insights/presentation/pages/better_swaps_screen.dart';
 import 'package:gutgood/features/insights/presentation/providers/insights_notifier.dart';
+import 'package:gutgood/features/insights/presentation/widgets/food_impact_section_header.dart';
 import 'package:gutgood/features/insights/presentation/widgets/gut_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_ai_context_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_feed/insight_feed_derivations.dart';
@@ -25,13 +27,12 @@ import 'package:gutgood/features/scanner/presentation/utils/scanner_route_handle
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
-part 'insights_feed_shell.dart';
 part 'food_impact_balance.dart';
-part 'food_impact_healing_cards.dart';
-part 'recent_food_impacts.dart';
-part 'patterns_smarter_banner.dart';
 part 'food_impact_comparison.dart';
+part 'food_impact_healing_cards.dart';
+part 'insights_feed_shell.dart';
+part 'patterns_smarter_banner.dart';
+part 'recent_food_impacts.dart';
 part 'top_foods.dart';
-part 'weekly_recap_shell.dart';
-part 'weekly_recap_evidence.dart';
 part 'weekly_recap_cards.dart';
+part 'weekly_recap_shell.dart';

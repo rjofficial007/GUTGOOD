@@ -73,7 +73,7 @@ extension ChatComposerSwaps on ChatComposerNotifier {
       final response = StringBuffer();
       await for (final chunk in _repository.sendMessageStream(
         systemInstruction:
-            '''You recommend practical alternatives for the source food. Return ONLY a JSON array of exactly 4 NEW distinct objects, with no prose or wrapper object. Exclude every item in alreadyShown. Each object must contain: name, replaces, reason, category, tag, imageKeyword, imageUrl, barcode, nutriscore, benefitTags, structuredBenefits, whyBetterOption, nutrition. Set replaces to the exact scanned dish or product, or an identified food in a multi-item scan. Match whole-dish type: pizza→pizza; burger/fast food→complete burger, sandwich, filled wrap, or bowl. A missing nutrient never changes type: low-protein pizza gets a protein-topped pizza, not chicken/chickpeas alone. Never use a side, ingredient, or plain wrap as a full-meal swap; don't change tacos into noodles or a snack into a meal. For packaged food, keep the same product type. If the source is vague, use close variants, not random healthy foods. Give a specific reason and source comparison with a real tradeoff. Avoid generic health claims and unsupported weight-loss, calorie, symptom-relief, or disease claims. Include up to 3 supported structuredBenefits with title, description, and icon; use [] when none are supported. Nutrition requires calories, protein, totalFat, fiber, and basis; unknowns are null. Never estimate. Copy facts only from availableProducts; generic alternatives have null imageUrl, barcode, and nutriscore. Respect goals and sensitivities. Return exactly four distinct alternatives.''',
+            '''You recommend practical alternatives for the source food. Return ONLY a JSON array of exactly 4 NEW distinct objects, with no prose or wrapper object. Exclude every item in alreadyShown. Each object must contain: name, replaces, reason, category, tag, imageKeyword, imageUrl, barcode, nutriscore, impactLevel, benefitTags, structuredBenefits, whyBetterOption, nutrition. Set replaces to the exact scanned dish or product, or an identified food in a multi-item scan. Match whole-dish type: pizza→pizza; burger/fast food→complete burger, sandwich, filled wrap, or bowl. A missing nutrient never changes type: low-protein pizza gets a protein-topped pizza, not chicken/chickpeas alone. Never use a side, ingredient, or plain wrap as a full-meal swap; don't change tacos into noodles or a snack into a meal. For packaged food, keep the same product type. If the source is vague, use close variants, not random healthy foods. Give a specific reason and source comparison with a real tradeoff. Avoid generic health claims and unsupported weight-loss, calorie, symptom-relief, or disease claims. Return 1-3 distinct structuredBenefits when supported, each with title, description, and icon (leaf, dumbbell, arrow_down, or flame). These cards describe useful features of this specific alternative: preparation, texture, flavor, or an ingredient characteristic. They do not require a nutrient comparison. Use a short title and a specific one-sentence description; do not repeat numeric macros, serving sizes, or the whyBetterOption sentence. Populate benefitTags with the same titles. Use higher/lower/fewer claims only with verified source and alternative data on the same basis. Never infer fewer additives from missing ingredients or claim easier digestion, symptom relief, or sustained energy from a food name. If no features are supported, use [] for both arrays. Nutrition requires calories, protein, totalFat, carbohydrates, fiber, sugars, saturatedFat, sodium, servingSize, and basis. Calories are a numeric kcal value, gram values include g, and sodium includes mg. Unknown values are null. Never estimate. Copy facts only from availableProducts; generic alternatives have null imageUrl, barcode, and nutriscore. Respect goals and sensitivities. Return exactly four distinct alternatives.''',
         history: const [],
         userText: ModelUtils.safeJsonEncode(requestContext),
         intent: 'meal_swaps',
@@ -89,37 +89,7 @@ extension ChatComposerSwaps on ChatComposerNotifier {
 
       final parsed = decoded
           .whereType<Map>()
-          .map((item) {
-            final swap = ProductSwap.fromMap(Map<String, dynamic>.from(item));
-            // Keep the qualitative details for the Swap Details screen, but
-            // only normalizeSwapCards may restore product facts from OFF.
-            final alternative = swap.alternative;
-            return ProductSwap(
-              title: swap.title,
-              subtitle: swap.subtitle,
-              imageKeyword: swap.imageKeyword,
-              tag: swap.tag,
-              badge: swap.badge,
-              benefits: swap.benefits,
-              alternative: alternative == null
-                  ? null
-                  : SwapAlternative(
-                      foodId: swap.title,
-                      name: swap.title,
-                      imageKeyword: swap.imageKeyword,
-                      reason: swap.subtitle,
-                      tag: swap.tag,
-                      badge: swap.badge,
-                      impactLevel: alternative.impactLevel,
-                      category: alternative.category,
-                      benefitTags: alternative.benefitTags,
-                      benefits: alternative.benefits,
-                      replaces: alternative.replaces,
-                      whyBetterOption: alternative.whyBetterOption,
-                      nutrition: alternative.nutrition,
-                    ),
-            );
-          })
+          .map((item) => ProductSwap.fromMap(Map<String, dynamic>.from(item)))
           .where((swap) {
             final name = swap.title.trim().toLowerCase();
             final code = swap.barcode?.trim();
@@ -127,7 +97,7 @@ extension ChatComposerSwaps on ChatComposerNotifier {
           })
           .take(kSwapCardCount)
           .toList();
-      final newSwaps = normalizeSwapCards(parsed, groundedSwaps ?? const []);
+      final newSwaps = normalizeSwapCards(parsed, groundedSwaps ?? const [], sourceFoodName: foodName);
       if (newSwaps.isEmpty) throw const FormatException('Swap response did not contain any usable new alternatives.');
 
       final currentIndex = _historyNotifier.messages.indexWhere((item) => item.localId == message.localId);

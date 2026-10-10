@@ -33,17 +33,14 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
           borderRadius: BorderRadius.circular(18.w),
           border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
         ),
-        child: Column(
+        child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Healing & Trigger Foods',
-              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-            ),
-            Gap.h4,
-            Text(
-              'No specific healing or trigger foods identified yet. Keep logging meals to discover foods that support or upset your gut.',
-              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: context.insightColor(const Color(0xFF64748B))),
+            FoodImpactSectionHeader(
+              title: 'Healing & Trigger Foods',
+              subtitle: 'No specific foods identified yet. Keep logging meals to discover what supports or upsets your gut.',
+              icon: LucideIcons.utensils,
+              iconColor: Color(0xFFF5A623),
             ),
           ],
         ),
@@ -60,44 +57,23 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
           spacing: 10.w,
           runSpacing: 10.w,
           children: [
-          // Left Card: Top Healing Foods
-          if (healingList.isNotEmpty) ...[
-            Container(
+            // Left Card: Top Healing Foods
+            if (healingList.isNotEmpty) ...[
+              Container(
                 width: cardWidth,
-                padding: EdgeInsets.all(10.w),
+                padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF102319) : const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(18.w),
-                  border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFBBF7D0)),
+                  color: isDark ? const Color(0xFF111F19) : const Color(0xFFF5FBF7),
+                  borderRadius: BorderRadius.circular(20.w),
+                  border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.22) : const Color(0xFFD8EFE2)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 22.w,
-                          height: 22.w,
-                          decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
-                          child: Icon(LucideIcons.trophy, size: 11.w, color: Colors.white),
-                        ),
-                        Gap.w4,
-                        Expanded(
-                          child: Text(
-                            'Supportive Food Patterns',
-                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Gap.h2,
-                    Text(
-                      'Foods logged near better reported outcomes.',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569))),
-                    ),
-                    Gap.h8,
+                    const FoodImpactSectionHeader(title: 'Supportive Food Patterns', subtitle: 'Foods logged near better reported outcomes.', icon: LucideIcons.leaf, iconColor: Color(0xFF15803D)),
+                    Gap.h12,
                     for (var i = 0; i < healingList.take(2).length; i++) ...[
-                      if (i > 0) Gap.h6,
+                      if (i > 0) Gap.h8,
                       _HealingFoodItemTile(
                         imageUrl: healingList[i].imageUrl,
                         title: healingList[i].name,
@@ -108,104 +84,85 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                   ],
                 ),
               ),
-          ],
+            ],
 
-          // Right Card: Top Trigger Food
-          if (triggerList.isNotEmpty) ...[
-            Container(
+            // Right Card: Top Trigger Food
+            if (triggerList.isNotEmpty) ...[
+              Container(
                 width: cardWidth,
-                padding: EdgeInsets.all(10.w),
+                padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF231416) : const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(18.w),
-                  border: Border.all(color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.45) : const Color(0xFFFCA5A5), width: 1.2.w),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626)).withValues(alpha: isDark ? 0.08 : 0.04),
-                      blurRadius: 10.w,
-                      offset: Offset(0, 2.w),
-                    ),
-                  ],
+                  color: isDark ? const Color(0xFF1C1718) : const Color(0xFFFFFAFA),
+                  borderRadius: BorderRadius.circular(20.w),
+                  border: Border.all(color: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.55) : const Color(0xFFFECACA)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 22.w,
-                          height: 22.w,
-                          decoration: const BoxDecoration(color: Color(0xFFDC2626), shape: BoxShape.circle),
-                          child: Icon(LucideIcons.triangleAlert, size: 11.w, color: Colors.white),
-                        ),
-                        Gap.w4,
-                        Expanded(
-                          child: Text(
-                      'Observed Near Symptoms',
-                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.5.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFFF87171) : const Color(0xFF991B1B)),
-                          ),
-                        ),
-                      ],
+                    const FoodImpactSectionHeader(
+                      title: 'Observed Near Symptoms',
+                      subtitle: 'Logged around symptoms. This is an association, not proof of cause.',
+                      icon: LucideIcons.triangleAlert,
+                      iconColor: Color(0xFFDC2626),
                     ),
-                    Gap.h2,
-                    Text(
-                      'Logged alongside symptoms; this does not prove they caused them.',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: context.insightColor(const Color(0xFF475569))),
-                    ),
-                    Gap.h8,
+                    Gap.h12,
 
                     Container(
-                      padding: EdgeInsets.all(6.w),
-                      decoration: BoxDecoration(color: context.insightTheme.card, borderRadius: BorderRadius.circular(12.w)),
+                      padding: EdgeInsets.all(9.w),
+                      decoration: BoxDecoration(
+                        color: context.insightTheme.card,
+                        borderRadius: BorderRadius.circular(15.w),
+                        border: Border.all(color: context.insightTheme.borderSubtle),
+                      ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(8.w),
+                            borderRadius: BorderRadius.circular(11.w),
                             child: DynamicFoodImage(
                               keyword: triggerList.first.name,
                               imageUrl: triggerList.first.imageUrl,
-                              width: 40.w,
-                              height: 40.w,
+                              width: 56.w,
+                              height: 56.w,
                               fit: BoxFit.cover,
+                              placeholder: Container(color: const Color(0xFFFEE2E2)),
+                              errorWidget: Container(
+                                color: const Color(0xFFFEF2F2),
+                                alignment: Alignment.center,
+                                child: Icon(LucideIcons.utensils, size: 22.w, color: const Color(0xFFB42318)),
+                              ),
                             ),
                           ),
-                          Gap.w6,
+                          Gap.w10,
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   triggerList.first.name,
-                                  maxLines: 2,
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontFamily: InsightTheme.fontFamily,
-                                    fontSize: 10.5.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: context.insightColor(const Color(0xFF0F172A)),
-                                    height: 1.1,
+                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                                ),
+                                if (triggerList.first.effect?.trim().isNotEmpty == true) ...[
+                                  Gap.h3,
+                                  Text(
+                                    triggerList.first.effect!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.2),
                                   ),
-                                ),
-                                Gap.h2,
-                                  if (triggerList.first.effect?.trim().isNotEmpty == true) Text(
-                                  triggerList.first.effect!,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF475569)), height: 1.15),
-                                ),
-                                Gap.h3,
+                                  Gap.h6,
+                                ] else
+                                  Gap.h6,
                                 Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.w),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
-                                    borderRadius: BorderRadius.circular(6.w),
-                                    border: Border.all(color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.35) : const Color(0xFFFECACA), width: 0.8.w),
-                                  ),
+                                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.w),
+                                  decoration: BoxDecoration(color: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(20.w)),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(LucideIcons.triangleAlert, size: 7.w, color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C)),
-                                      Gap.w2,
+                                      Icon(LucideIcons.triangleAlert, size: 10.w, color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB42318)),
+                                      Gap.w4,
                                       Flexible(
                                         child: Text(
                                           'Symptom observation',
@@ -213,9 +170,9 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontFamily: InsightTheme.fontFamily,
-                                            fontSize: 7.5.sp,
+                                            fontSize: 9.sp,
                                             fontWeight: FontWeight.w700,
-                                            color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+                                            color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB42318),
                                           ),
                                         ),
                                       ),
@@ -228,10 +185,10 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Gap.h8,
+                    Gap.h10,
                     Material(
                       color: isDark ? const Color(0xFF991B1B) : const Color(0xFFDC2626),
-                      borderRadius: BorderRadius.circular(10.w),
+                      borderRadius: BorderRadius.circular(14.w),
                       child: InkWell(
                         onTap: () {
                           FoodSwap? matchingSwap;
@@ -242,26 +199,22 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                               break;
                             }
                           }
-                          final swapObj =
-                              matchingSwap ??
-                              (insight?.foodSwaps.isNotEmpty == true
-                                  ? insight!.foodSwaps.first
-                                  : FoodSwap(
-                                      id: 'swap_${triggerList.first.name.toLowerCase()}',
-                                      source: SwapSource(foodId: 'food_trigger', name: triggerList.first.name),
-                                      alternatives: const [],
-                                    ));
+                          final swapObj = matchingSwap ?? FoodSwap(
+                            id: 'swap_${triggerList.first.name.toLowerCase()}',
+                            source: SwapSource(foodId: 'food_trigger', name: triggerList.first.name),
+                            alternatives: const [],
+                          );
                           Navigator.of(context).push(MaterialPageRoute(builder: (_) => BetterSwapsScreen(swap: swapObj)));
                         },
-                        borderRadius: BorderRadius.circular(10.w),
+                        borderRadius: BorderRadius.circular(14.w),
                         child: Container(
                           width: double.infinity,
-                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 7.w),
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 11.w),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(LucideIcons.repeat, size: 11.w, color: Colors.white),
-                              Gap.w6,
+                              Icon(LucideIcons.repeat, size: 14.w, color: Colors.white),
+                              Gap.w8,
                               Builder(
                                 builder: (_) {
                                   FoodSwap? match;
@@ -272,14 +225,16 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                                       break;
                                     }
                                   }
-                                  final count = match?.alternatives.length ?? (insight?.foodSwaps.isNotEmpty == true ? insight!.foodSwaps.first.alternatives.length : 0);
-                                  final label = count > 0 ? 'Find Swaps ($count Options) →' : 'Find Better Swaps →';
+                                  final count = match?.alternatives.length ?? 0;
+                                  final label = count > 0 ? 'Find Better Swaps ($count Options)' : 'Find Better Swaps';
                                   return Text(
                                     label,
-                                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.2),
+                                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, color: Colors.white),
                                   );
                                 },
                               ),
+                              Gap.w6,
+                              Icon(Icons.arrow_forward_rounded, size: 14.w, color: Colors.white),
                             ],
                           ),
                         ),
@@ -288,7 +243,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
                   ],
                 ),
               ),
-          ],
+            ],
           ],
         );
       },
@@ -299,9 +254,7 @@ class _SideBySideHealingAndTriggerCards extends StatelessWidget {
     final grouped = <String, List<FoodImpact>>{};
     for (final impact in insight?.foodImpacts ?? const <FoodImpact>[]) {
       final type = impact.impactType.toLowerCase().trim();
-      final matches = positive
-          ? const {'positive', 'healing', 'good', 'supportive'}.contains(type)
-          : const {'negative', 'trigger', 'bad', 'watch'}.contains(type);
+      final matches = positive ? const {'positive', 'healing', 'good', 'supportive'}.contains(type) : const {'negative', 'trigger', 'bad', 'watch'}.contains(type);
       if (!matches || impact.food.trim().isEmpty) continue;
       grouped.putIfAbsent(impact.food.trim().toLowerCase(), () => []).add(impact);
     }
@@ -330,52 +283,76 @@ class _HealingFoodItemTile extends StatelessWidget {
   final String badge;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.all(8.w),
-    decoration: BoxDecoration(color: context.insightTheme.card, borderRadius: BorderRadius.circular(12.w)),
-    child: Row(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(9.w),
-          child: DynamicFoodImage(keyword: title, imageUrl: imageUrl, width: 44.w, height: 44.w, fit: BoxFit.cover),
-        ),
-        Gap.w10,
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+  Widget build(BuildContext context) {
+    final theme = context.insightTheme;
+    return Container(
+      padding: EdgeInsets.all(9.w),
+      decoration: BoxDecoration(
+        color: theme.card,
+        borderRadius: BorderRadius.circular(15.w),
+        border: Border.all(color: theme.borderSubtle),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(11.w),
+            child: DynamicFoodImage(
+              keyword: title,
+              imageUrl: imageUrl,
+              width: 56.w,
+              height: 56.w,
+              fit: BoxFit.cover,
+              placeholder: Container(color: const Color(0xFFE7F6E7)),
+              errorWidget: Container(
+                color: const Color(0xFFE7F6E7),
+                alignment: Alignment.center,
+                child: Icon(LucideIcons.leaf, size: 22.w, color: const Color(0xFF15803D)),
               ),
-              Gap.h2,
-              Text(
-                sub,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, color: context.insightColor(const Color(0xFF475569))),
-              ),
-              Gap.h4,
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.w),
-                decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), borderRadius: BorderRadius.circular(8.w)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(LucideIcons.leaf, size: 9.w, color: const Color(0xFF15803D)),
-                    Gap.w3,
-                    Text(badge, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF15803D))),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+          Gap.w10,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                ),
+                Gap.h2,
+                Text(
+                  sub,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: context.insightColor(const Color(0xFF475569))),
+                ),
+                Gap.h4,
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.w),
+                  decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), borderRadius: BorderRadius.circular(20.w)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(LucideIcons.leaf, size: 10.w, color: theme.success),
+                      Gap.w4,
+                      Text(
+                        badge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w700, color: theme.success),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // =============================================================================

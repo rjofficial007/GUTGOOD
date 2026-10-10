@@ -20,7 +20,7 @@ class Responsive {
   static double get scaleWidth => screenWidth / _baseWidth;
   static double get scaleHeight => screenHeight / _baseHeight;
 
-  // Use the smaller scale factor to ensure content fits on both axes without extreme stretching
+  // Keep text proportional to the smaller viewport dimension.
   static double get scaleText => math.min(scaleWidth, scaleHeight);
 
   // Scaled pixel (for fonts)

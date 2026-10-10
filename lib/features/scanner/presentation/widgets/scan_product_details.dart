@@ -130,7 +130,7 @@ class ScanProductDetails extends StatelessWidget {
               style: context.title.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w900),
             ),
             const Spacer(),
-            Text('Open Food Facts', style: context.caption.copyWith(color: context.appColorScheme.textMuted)),
+            Text('Open Food Facts', style: context.bodySm.copyWith(color: context.appColorScheme.textMuted)),
           ],
         ),
         Gap.h4,

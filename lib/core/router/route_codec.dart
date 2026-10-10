@@ -35,6 +35,8 @@ class _RouteEncoder extends Converter<Object?, Object?> {
       encoded = {'__type': 'InsightSummary', 'data': input.toMap()};
     } else if (input is SymptomLog) {
       encoded = {'__type': 'SymptomLog', 'data': input.toJsonMap()};
+    } else if (input is MealLog) {
+      encoded = {'__type': 'MealLog', 'data': input.toMap()};
     } else if (input is AdditiveConcern) {
       encoded = {'__type': 'AdditiveConcern', 'data': input.toMap()};
     } else if (input is ScanListDetailArgs) {
@@ -81,6 +83,8 @@ class _RouteDecoder extends Converter<Object?, Object?> {
           return InsightSummary.fromMap(data);
         case 'SymptomLog':
           return SymptomLog.fromMap(data);
+        case 'MealLog':
+          return MealLog.fromMap(data);
         case 'AdditiveConcern':
           return AdditiveConcern.fromMap(data);
         case 'ScanListDetailArgs':

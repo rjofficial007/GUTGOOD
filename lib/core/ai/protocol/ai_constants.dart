@@ -98,18 +98,21 @@ class AiVersions {
 
   /// J-4 §17: chat builder (`Prompts.chatSystemInstruction`) version, stamped
   /// on ChatMessage + the scan/meal/symptom records extracted from chat turns.
-  /// 1 = first versioned baseline (post-J-3 dedupe). Bump on any wording change.
-  static const int chatPromptVersion = 2;
+  /// Version 3 adds complete nullable swap macro fields to the response schema.
+  static const int chatPromptVersion = 5;
+
+  /// Independent version for the Better Food Swaps request/cache contract.
+  static const int swapPromptVersion = 3;
 
   /// J-4 §17: one-shot analysis builders (`visionAnalysisSystemInstruction`,
   /// `barcodeAnalysisSystemInstruction`, `productAnalysisPrompt`) version,
   /// stamped on ScanResults from the scanner flows. Builder identity comes
   /// from `ScanResult.source` ('chat' vs image-mode/barcode values).
-  static const int visionPromptVersion = 2;
+  static const int visionPromptVersion = 3;
 
   /// Optional, user-requested synthesis of multiple rule-detected Insight
   /// patterns. This prompt cannot change scores, counts, or detected patterns.
-  static const int insightInterpretationPromptVersion = 1;
+  static const int insightInterpretationPromptVersion = 2;
 
   // NOTE: the classifier (`imageClassificationInstruction`,
   // `intentDetectionInstruction`) and summarizer builders are intentionally

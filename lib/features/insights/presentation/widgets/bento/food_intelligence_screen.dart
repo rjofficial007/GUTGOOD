@@ -29,31 +29,27 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
     final topFoodItems = items.map((item) => _toTopFoodInsight(item, activeInsight)).toList();
 
     final positiveCount = healingCount + goodCount;
-    final positiveRatio = totalCount > 0 ? ((positiveCount / totalCount) * 100).round() : 100;
+    final positiveRatio = totalCount > 0 ? ((positiveCount / totalCount) * 100).round() : 0;
 
     return Scaffold(
       backgroundColor: theme.scaffold,
       body: SafeArea(
         child: Column(
           children: [
-            _TopFoodsPageHeader(
-              title: 'Food Intelligence',
-              subtitle: 'Foods and responses found in your meal logs.',
-              onInfo: () => _showFoodIntelligenceInfo(context),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: SingleChildScrollView(
+            _TopFoodsPageHeader(title: 'Food Intelligence', subtitle: 'Foods and responses found in your meal logs.', onInfo: () => _showFoodIntelligenceInfo(context)),
+            SizedBox(
+              height: 38.w,
+              child: ListView.separated(
                 scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: [
-                    for (final filter in const ['All', 'Most Positive', 'Most Negative', 'Most Logged']) ...[
-                      if (filter != 'All') SizedBox(width: 6.w),
-                      _TopFoodsFilterChip(label: filter, selected: filter == _selectedFilter, onTap: () => setState(() => _selectedFilter = filter)),
-                    ],
-                  ],
-                ),
+                itemCount: 4,
+                separatorBuilder: (_, _) => SizedBox(width: 8.w),
+                itemBuilder: (context, index) {
+                  const filters = ['All', 'Most Positive', 'Most Negative', 'Most Logged'];
+                  final filter = filters[index];
+                  return _TopFoodsFilterChip(label: filter, selected: filter == _selectedFilter, onTap: () => setState(() => _selectedFilter = filter));
+                },
               ),
             ),
             Gap.h12,
@@ -67,12 +63,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
                   if (topFoodItems.isEmpty)
                     _EmptyFoodIntelligenceCard(filter: _selectedFilter)
                   else
-                    for (final item in topFoodItems) ...[
-                      _TopFoodInsightCard(item: item, statusLabel: item.statusLabel),
-                      Gap.h10,
-                    ],
-                  Gap.h16,
-                  const _HabitFooterCard(),
+                    for (final item in topFoodItems) ...[_TopFoodInsightCard(item: item, statusLabel: item.statusLabel), Gap.h10],
                 ],
               ),
             ),
@@ -153,7 +144,9 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('About Food Intelligence'),
-        content: const Text('These foods and responses come from your logged meal history. The tabs reorder your foods by positive observations, negative observations, or response count. Associations in your logs do not prove that a food caused a response.'),
+        content: const Text(
+          'These foods and responses come from your logged meal history. The tabs reorder your foods by positive observations, negative observations, or response count. Associations in your logs do not prove that a food caused a response.',
+        ),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it'))],
       ),
     );
@@ -190,17 +183,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
         final occurrences = countOccurrences(f.name);
         final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
         final desc = f.effect?.trim().isNotEmpty == true ? f.effect : null;
-        list.add(
-          TopFoodItemData(
-            title: f.name,
-            frequency: countStr,
-            description: desc,
-            badge: 'Supportive',
-            isPositive: true,
-            category: 'healing',
-            imageUrl: f.imageUrl,
-          ),
-        );
+        list.add(TopFoodItemData(title: f.name, frequency: countStr, description: desc, badge: 'Supportive', isPositive: true, category: 'healing', imageUrl: f.imageUrl));
       }
     }
 
@@ -211,17 +194,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final occurrences = countOccurrences(f.name);
       final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
       final desc = f.effect.trim().isNotEmpty ? f.effect : null;
-      list.add(
-        TopFoodItemData(
-          title: f.name,
-          frequency: countStr,
-          description: desc,
-          badge: 'Supportive',
-          isPositive: true,
-          category: 'healing',
-          imageUrl: f.userImageUrl ?? f.imageUrl,
-        ),
-      );
+      list.add(TopFoodItemData(title: f.name, frequency: countStr, description: desc, badge: 'Supportive', isPositive: true, category: 'healing', imageUrl: f.userImageUrl ?? f.imageUrl));
     }
 
     // 3. Positive / Good Food Impacts
@@ -234,17 +207,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final occurrences = countOccurrences(fi.food);
       final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
       final desc = fi.effect.trim().isNotEmpty ? fi.effect : null;
-      list.add(
-        TopFoodItemData(
-          title: fi.food,
-          frequency: countStr,
-          description: desc,
-          badge: 'Good',
-          isPositive: true,
-          category: 'good',
-          imageUrl: fi.userImageUrl ?? fi.imageUrl,
-        ),
-      );
+      list.add(TopFoodItemData(title: fi.food, frequency: countStr, description: desc, badge: 'Good', isPositive: true, category: 'good', imageUrl: fi.userImageUrl ?? fi.imageUrl));
     }
 
     // 4. Trigger Summary Foods
@@ -266,17 +229,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final occurrences = countOccurrences(f.name);
       final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
       final desc = f.effect.trim().isNotEmpty ? f.effect : null;
-      list.add(
-        TopFoodItemData(
-          title: f.name,
-          frequency: countStr,
-          description: desc,
-          badge: 'Watch',
-          isPositive: false,
-          category: 'watch',
-          imageUrl: f.userImageUrl ?? f.imageUrl,
-        ),
-      );
+      list.add(TopFoodItemData(title: f.name, frequency: countStr, description: desc, badge: 'Watch', isPositive: false, category: 'watch', imageUrl: f.userImageUrl ?? f.imageUrl));
     }
 
     // 6. Food Impacts (Watch / Negative)
@@ -289,17 +242,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
       final occurrences = countOccurrences(fi.food);
       final countStr = occurrences > 0 ? '${occurrences}x logged' : '';
       final desc = fi.effect.trim().isNotEmpty ? fi.effect : null;
-      list.add(
-        TopFoodItemData(
-          title: fi.food,
-          frequency: countStr,
-          description: desc,
-          badge: 'Watch',
-          isPositive: false,
-          category: 'watch',
-          imageUrl: fi.userImageUrl ?? fi.imageUrl,
-        ),
-      );
+      list.add(TopFoodItemData(title: fi.food, frequency: countStr, description: desc, badge: 'Watch', isPositive: false, category: 'watch', imageUrl: fi.userImageUrl ?? fi.imageUrl));
     }
 
     return list;
@@ -316,129 +259,67 @@ class _FoodIntelligenceHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = context.insightTheme;
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF102319) : const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(22.w),
-        border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7), width: 1.w),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF15803D).withValues(alpha: isDark ? 0.10 : 0.05),
-            blurRadius: 12.w,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: theme.card,
+        borderRadius: BorderRadius.circular(20.w),
+        border: Border.all(color: theme.borderSubtle),
+        boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.04), blurRadius: 14.w, offset: Offset(0, 4.w))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
+          const FoodImpactSectionHeader(title: 'Food Impact So Far', subtitle: 'Based on your logged meals and how you felt afterward.'),
+          Gap.h12,
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 32.w,
-                height: 32.w,
-                decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
-                child: Center(child: Icon(LucideIcons.leaf, size: 16.w, color: Colors.white)),
-              ),
-              Gap.w10,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Food Impact So Far',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: InsightTheme.fontFamily,
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF0F172A),
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    Text(
-                      'Foods shaping your gut health',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textTertiary),
-                    ),
-                  ],
-                ),
+              Text(
+                '$positiveRatio%',
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 24.sp, fontWeight: FontWeight.w800, color: theme.success),
               ),
               Gap.w8,
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
-                    decoration: BoxDecoration(
-                      color: theme.card,
-                      borderRadius: BorderRadius.circular(16.w),
-                      border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7)),
-                      boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.04), blurRadius: 6.w, offset: const Offset(0, 2))],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(LucideIcons.trendingUp, size: 13.w, color: theme.success),
-                        Gap.w4,
-                        Text(
-                          '$positiveRatio% Positive',
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, color: theme.success),
-                        ),
-                      ],
-                    ),
-                  ),
+              Expanded(
+                child: Text(
+                  totalCount == 0 ? 'Log meals to build your food balance.' : 'of your tracked foods are supportive',
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, color: theme.textSecondary),
                 ),
               ),
             ],
           ),
-          Gap.h14,
-
-          // Visual Progress Bar
+          Gap.h8,
           ClipRRect(
-            borderRadius: BorderRadius.circular(8.w),
+            borderRadius: BorderRadius.circular(20.w),
             child: SizedBox(
-              height: 7.w,
+              height: 8.w,
               child: Row(
                 children: [
-                  Expanded(
-                    flex: positiveRatio > 0 ? positiveRatio : 1,
-                    child: Container(color: const Color(0xFF16A34A)),
-                  ),
-                  if (100 - positiveRatio > 0)
-                    Expanded(
-                      flex: 100 - positiveRatio,
-                      child: Container(color: const Color(0xFFEF4444)),
-                    ),
+                  if (totalCount == 0)
+                    Expanded(child: Container(color: theme.borderSubtle))
+                  else ...[
+                    if (positiveRatio > 0)
+                      Expanded(
+                        flex: positiveRatio,
+                        child: Container(color: theme.success),
+                      ),
+                    if (positiveRatio < 100)
+                      Expanded(
+                        flex: 100 - positiveRatio,
+                        child: Container(color: const Color(0xFFDC2626)),
+                      ),
+                  ],
                 ],
               ),
             ),
           ),
-          Gap.h12,
-
-          // Stats Chips Row
+          Gap.h10,
           Row(
             children: [
-              _HeroStatPill(
-                icon: LucideIcons.sprout,
-                iconColor: context.insightColor(const Color(0xFF15803D)),
-                bgColor: context.insightColor(const Color(0xFFDCFCE7)),
-                label: '$positiveCount Gut Supporting',
-              ),
+              _HeroStatPill(icon: LucideIcons.sprout, iconColor: theme.success, bgColor: theme.successSoft, label: '$positiveCount Supportive'),
               Gap.w8,
-              _HeroStatPill(
-                icon: LucideIcons.triangleAlert,
-                iconColor: context.insightColor(const Color(0xFF991B1B)),
-                bgColor: context.insightColor(const Color(0xFFFEE2E2)),
-                label: '$watchCount To Monitor',
-              ),
+              _HeroStatPill(icon: LucideIcons.triangleAlert, iconColor: const Color(0xFFDC2626), bgColor: const Color(0xFFFEF2F2), label: '$watchCount To Monitor'),
             ],
           ),
         ],
@@ -540,52 +421,6 @@ class _EmptyFoodIntelligenceCard extends StatelessWidget {
               style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w700),
             ),
             onPressed: () => openScannerAndProcessResult(context, 'meal'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HabitFooterCard extends StatelessWidget {
-  const _HabitFooterCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final theme = context.insightTheme;
-    return Container(
-      padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF102319) : const Color(0xFFF4FAF5),
-        borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7), width: 1.w),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32.w,
-            height: 32.w,
-            decoration: BoxDecoration(color: context.insightColor(const Color(0xFFDCFCE7)), shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Icon(LucideIcons.sprout, size: 16.w, color: theme.success),
-          ),
-          Gap.w10,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Keep Building Good Habits',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF0F172A)),
-                ),
-                Gap.h2,
-                Text(
-                  'Small, consistent choices add up to a healthier, happier gut.',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: theme.textSecondary),
-                ),
-              ],
-            ),
           ),
         ],
       ),

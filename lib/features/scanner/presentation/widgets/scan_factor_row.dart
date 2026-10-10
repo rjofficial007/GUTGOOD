@@ -36,11 +36,11 @@ class _FactorRowState extends State<_FactorRow> {
                         factor.label,
                         style: context.body.copyWith(fontWeight: FontWeight.w700, color: scheme.textPrimary),
                       ),
-                      Text(factor.description, style: context.caption.copyWith(color: scheme.textSecondary)),
+                      Text(factor.description, style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.4)),
                     ],
                   ),
                 ),
-                if (factor.value.isNotEmpty) Text(factor.value, style: context.captionBold.copyWith(color: scheme.textSecondary)),
+                if (factor.value.isNotEmpty) Text(factor.value, style: context.labelBold.copyWith(color: scheme.textSecondary, fontSize: 12.sp)),
                 Gap.w12,
                 if (factor.useTick)
                   Icon(AppIcons.check, size: 16.sp, color: factor.color)
@@ -76,14 +76,14 @@ class _FactorRowState extends State<_FactorRow> {
                             ),
                             Gap.w10,
                             Expanded(
-                              child: Text(label, style: context.caption.copyWith(color: scheme.textPrimary)),
+                              child: Text(label, style: context.bodySm.copyWith(color: scheme.textPrimary)),
                             ),
                           ],
                         ),
                       );
                     }).toList(),
                   )
-                : Text(factor.longDescription, style: context.caption.copyWith(color: scheme.textSecondary, height: 1.4)),
+                : Text(factor.longDescription, style: context.bodySm.copyWith(color: scheme.textSecondary, height: 1.5)),
           ),
       ],
     );

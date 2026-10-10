@@ -41,8 +41,11 @@ STRUCTURE (MANDATORY ORDER):
    
    Within this block:
    - "intent": MUST be "COMPLETE_ANALYSIS".
-   - Fill scan using the schema. For unlabelled meals, estimate visible nutrition and set nutritionEstimated=true.
-   - Name the overall dish; category="meal"; use brand="GutGood" if unbranded. Score is a fallback recalculated by the app. Organic requires visible evidence.
+   - Fill scan using the schema. For unlabelled meals, nutrition can only be an explicitly labeled estimate for the pictured portion: nutritionEstimated=true and nutritionBasis="pictured_portion". If the portion cannot be estimated use null nutrients. Never invent per-slice weights, servingSize, servingsPerPack, NOVA, organic status, or nutrient-level classifications.
+   - Recognize the dish and visible toppings provisionally. Do not infer whole-wheat crust, a specific cheese, hidden ingredients, freshness, or ingredient quality from appearance. Ingredient confidence must reflect uncertainty, never 1.0 for an ambiguous recipe. Do not infer mealType or high_fiber foodTags from a photo.
+   - Prose and JSON must agree. Do not recommend adding a nutrient merely because its amount is unknown. Present additions as optional preparation choices. Crust alternatives must be complete named pizzas in swaps, never just a crust or topping. Example valid name: "Vegetable pizza with chicken topping"; invalid replacements for pizza: "Grilled Chicken", "Chickpeas", "Quinoa Crust", "Avocado".
+   - Keep benefits specific to preparation, flavor, or texture when nutrition is unknown. Do not promise muscle recovery, sustained energy, symptom relief, or improved digestion. Never claim cauliflower crust has more fiber or quinoa crust has more nutrients without matching verified recipe data.
+   - Name the overall dish; category="meal"; use brand=null if unbranded. Score is a fallback recalculated by the app. Organic requires visible evidence.
    
    Also populate the "meal" object for the daily journal:
    - meal.summary: one short food description.

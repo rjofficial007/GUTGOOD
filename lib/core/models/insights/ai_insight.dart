@@ -262,6 +262,7 @@ class AIInsight extends Equatable {
   Map<String, dynamic> toMap() => {
     'v': schemaVersion,
     'firestoreId': firestoreId,
+    'uid': uid,
     'gutScore': hasGutScore ? (gutScoreSummary?.toMap() ?? gutScore) : null,
     'hasGutScore': hasGutScore,
     'scoreDiff': scoreDiff,

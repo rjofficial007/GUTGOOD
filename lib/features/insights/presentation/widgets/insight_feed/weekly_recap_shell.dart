@@ -53,60 +53,305 @@ class WeeklyRecapView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. Average Gut Score Card
-        _WeeklyAverageScoreCard(recap: recap, data: data),
+        _WeeklyRecapOverview(recap: recap, history: history),
         Gap.h10,
-
-        // 2. Row of 3 Stat Cards (Best/Only Scored Day, Foods Logged, Your Evidence)
-        _WeeklyRecapStatCardsRow(recap: recap, data: data),
+        _WeeklyRecapObservation(data: data, recap: recap, patterns: patterns),
         Gap.h10,
-
-        // 3. Weekly Highlights Card
-        _WeeklyHighlightsCard(recap: recap),
+        _WeeklyRecapHighlights(recap: recap, impacts: data.foodImpacts),
         Gap.h10,
-
-        // 4. Side-by-Side Top Healing Food & Top Trigger Food
-        _WeeklyTopFoodsRow(data: data),
-        Gap.h10,
-
-        // 5. Your Weekly Insight Card
-        _YourWeeklyInsightCard(data: data),
+        _RecentFoodImpactsSection(
+          impacts: data.foodImpacts,
+          onSeeAll: () => context.push(AppRoutes.foodIntelligence, extra: data),
+        ),
       ],
     );
   }
 }
 
-class _WeeklyAverageScoreCard extends StatelessWidget {
-  const _WeeklyAverageScoreCard({required this.recap, required this.data});
+class _WeeklyRecapOverview extends StatelessWidget {
+  const _WeeklyRecapOverview({required this.recap, required this.history});
   final WeeklyRecap? recap;
-  final AIInsight data;
+  final List<AIInsight> history;
 
   @override
   Widget build(BuildContext context) {
-    final currentScore = WhyScoreSheet.resolveScore(context, data);
-    final scoreRecord = WhyScoreSheet.resolveRecord(context);
-    final trendInts = scoreRecord?.dailyScores ?? const <int>[];
-
-    final trendDoubles = trendInts.map((e) => e.toDouble()).toList();
-    final avgScore = currentScore;
-    final hasAnyScore = WhyScoreSheet.hasScore(context, data);
-
-    if (!hasAnyScore) {
-      return InsightScoreCard(score: null, delta: null, onTap: null, onWhyTap: () => WhyScoreSheet.show(context, data));
-    }
-
-    const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-    return GutScoreCard(
-      score: avgScore,
-      title: 'GUTGOOD SCORE',
-      subtitle: 'Your current gut score.',
-      showChevron: false,
-      series: trendDoubles.isNotEmpty ? trendDoubles : [avgScore.toDouble()],
-      scoredDayIndices: scoreRecord?.scoredDayIndices,
-      labels: labels,
+    final score = recap?.avgScore;
+    final previous = history.where((item) => item.weeklyRecap?.avgScore != null && (recap?.periodFrom == null || item.weeklyRecap?.periodTo?.isBefore(recap!.periodFrom!) == true)).toList()
+      ..sort((a, b) => (b.weeklyRecap?.periodTo ?? DateTime(0)).compareTo(a.weeklyRecap?.periodTo ?? DateTime(0)));
+    final previousScore = previous.firstOrNull?.weeklyRecap?.avgScore;
+    final delta = score != null && previousScore != null ? score - previousScore : null;
+    final from = recap?.periodFrom?.toLocal();
+    final to = recap?.periodTo?.toLocal();
+    final date = from != null && to != null ? '${_month(from.month)} ${from.day} – ${_month(to.month)} ${to.day}' : (recap?.dateRange ?? 'This week');
+    final stats = [
+      (LucideIcons.utensils, const Color(0xFF2563EB), const Color(0xFFEFF6FF), const Color(0xFFDBEAFE), (recap?.foodsLogged ?? 0).toString(), 'Meals Logged'),
+      (LucideIcons.gauge, const Color(0xFF15803D), const Color(0xFFF0FDF4), const Color(0xFFDCFCE7), (score ?? 0).toString(), 'Avg GutGood Score'),
+      (LucideIcons.trendingUp, const Color(0xFF7C3AED), const Color(0xFFF5F3FF), const Color(0xFFEDE9FE), '${delta != null && delta > 0 ? '+' : ''}${delta ?? 0}', 'Score Change'),
+    ];
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: context.insightTheme.card,
+        borderRadius: BorderRadius.circular(22.w),
+        border: Border.all(color: const Color(0xFFE8EAF2)),
+        boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withValues(alpha: .04), blurRadius: 14.w, offset: Offset(0, 4.w))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 30.w,
+                          height: 30.w,
+                          decoration: const BoxDecoration(color: Color(0xFFEFF6FF), shape: BoxShape.circle),
+                          child: Icon(LucideIcons.calendarDays, size: 15.w, color: const Color(0xFF2563EB)),
+                        ),
+                        Gap.w6,
+                        Expanded(
+                          child: Text(
+                            date.toUpperCase(),
+                            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, letterSpacing: .5, color: const Color(0xFF7A8193)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Gap.h8,
+                    Text(
+                      'Your Weekly Recap',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 20.sp, fontWeight: FontWeight.w800, letterSpacing: -.5, color: context.insightColor(const Color(0xFF101828))),
+                    ),
+                    Text(
+                      'Here’s what we learned from your meals and how you felt.',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, height: 1.35, color: context.insightColor(const Color(0xFF667085))),
+                    ),
+                  ],
+                ),
+              ),
+              Image.asset(AppAssets.calender, width: 76.w, height: 82.w, fit: BoxFit.contain),
+            ],
+          ),
+          Gap.h14,
+          Row(
+            children: [
+              for (var i = 0; i < stats.length; i++) ...[
+                if (i > 0) Gap.w6,
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.all(10.w),
+                    constraints: BoxConstraints(minHeight: 94.w),
+                    decoration: BoxDecoration(color: stats[i].$3, borderRadius: BorderRadius.circular(17.w)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 29.w,
+                          height: 29.w,
+                          decoration: BoxDecoration(color: stats[i].$4, shape: BoxShape.circle),
+                          child: Icon(stats[i].$1, size: 17.w, color: stats[i].$2),
+                        ),
+                        Gap.h5,
+                        Text(
+                          stats[i].$5,
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: const Color(0xFF101828)),
+                        ),
+                        Text(
+                          stats[i].$6,
+                          maxLines: 2,
+                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, height: 1.2, color: const Color(0xFF667085)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
+
+  String _month(int month) => const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month - 1];
+}
+
+class _WeeklyRecapObservation extends StatelessWidget {
+  const _WeeklyRecapObservation({required this.data, required this.recap, required this.patterns});
+  final AIInsight data;
+  final WeeklyRecap? recap;
+  final List<BodyPattern> patterns;
+
+  @override
+  Widget build(BuildContext context) {
+    final negative = data.foodImpacts.where((item) => const {'negative', 'trigger', 'bad', 'watch'}.contains(item.impactType.toLowerCase())).toList();
+    final text = recap?.summary?.trim().isNotEmpty == true
+        ? recap!.summary!.trim()
+        : data.topInsight?.description.trim().isNotEmpty == true
+        ? data.topInsight!.description.trim()
+        : patterns.firstOrNull?.description.trim().isNotEmpty == true
+        ? patterns.first.description.trim()
+        : 'Keep logging meals and symptoms to reveal a useful pattern for this week.';
+    final color = negative.isEmpty ? const Color(0xFF15803D) : const Color(0xFFB42318);
+    final surface = negative.isEmpty ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2);
+    final image = negative.firstOrNull;
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(20.w),
+        border: Border.all(color: color.withValues(alpha: .16)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38.w,
+            height: 38.w,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            child: Icon(negative.isEmpty ? LucideIcons.sparkles : LucideIcons.triangleAlert, size: 19.w, color: Colors.white),
+          ),
+          Gap.w10,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  negative.isEmpty ? 'A Positive Pattern' : 'Key Observation',
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: color),
+                ),
+                Gap.h4,
+                Text(
+                  text,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, height: 1.35, color: context.insightColor(const Color(0xFF475467))),
+                ),
+              ],
+            ),
+          ),
+          if (image != null) ...[
+            Gap.w8,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(13.w),
+              child: DynamicFoodImage(keyword: image.food, imageUrl: image.userImageUrl ?? image.imageUrl, width: 62.w, height: 62.w, fit: BoxFit.cover),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _WeeklyRecapHighlights extends StatelessWidget {
+  const _WeeklyRecapHighlights({required this.recap, required this.impacts});
+  final WeeklyRecap? recap;
+  final List<FoodImpact> impacts;
+
+  @override
+  Widget build(BuildContext context) {
+    final highlights = (recap?.highlights ?? const []).where((item) => item is RecapHighlight ? item.text.trim().isNotEmpty : item is String && item.trim().isNotEmpty).toList();
+    final good = <String>[];
+    final watch = <String>[];
+    for (final item in highlights) {
+      final text = item is RecapHighlight ? item.text : item.toString();
+      final positive = item is RecapHighlight && item.color.toLowerCase().contains('green');
+      (positive ? good : watch).add(text);
+    }
+    if (good.isEmpty) good.addAll(impacts.where((i) => const {'positive', 'healing', 'good', 'supportive'}.contains(i.impactType.toLowerCase())).take(3).map((i) => '${i.food}: ${i.effect}'));
+    if (watch.isEmpty) watch.addAll(impacts.where((i) => const {'negative', 'trigger', 'bad', 'watch'}.contains(i.impactType.toLowerCase())).take(3).map((i) => '${i.food}: ${i.effect}'));
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _RecapListCard(
+              title: 'What Went Well',
+              icon: LucideIcons.arrowUp,
+              color: const Color(0xFF15803D),
+              background: const Color(0xFFF0FDF7),
+              items: good,
+              empty: 'Keep logging to discover what is working well.',
+            ),
+          ),
+          Gap.w8,
+          Expanded(
+            child: _RecapListCard(
+              title: 'Keep an Eye On',
+              icon: LucideIcons.eye,
+              color: const Color(0xFFB7791F),
+              background: const Color(0xFFFFFBEB),
+              items: watch,
+              empty: 'No watch patterns recorded this week.',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecapListCard extends StatelessWidget {
+  const _RecapListCard({required this.title, required this.icon, required this.color, required this.background, required this.items, required this.empty});
+  final String title;
+  final IconData icon;
+  final Color color;
+  final Color background;
+  final List<String> items;
+  final String empty;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.all(11.w),
+    decoration: BoxDecoration(
+      color: background,
+      borderRadius: BorderRadius.circular(19.w),
+      border: Border.all(color: color.withValues(alpha: .12)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 17.w, color: color),
+            Gap.w6,
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 2,
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: color),
+              ),
+            ),
+          ],
+        ),
+        Gap.h8,
+        for (final item in (items.isEmpty ? [empty] : items.take(3)))
+          Padding(
+            padding: EdgeInsets.only(bottom: 7.w),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(items.isEmpty ? LucideIcons.dot : LucideIcons.circleCheck, size: 13.w, color: color),
+                Gap.w5,
+                Expanded(
+                  child: Text(
+                    item,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, height: 1.3, color: context.insightColor(const Color(0xFF475467))),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _ForYouGutScoreCard extends StatelessWidget {
@@ -156,214 +401,6 @@ class _ForYouGutScoreCard extends StatelessWidget {
       scoredDayIndices: scoreRecord?.scoredDayIndices,
       labels: labels,
       onTap: () => WhyScoreSheet.show(context, data),
-    );
-  }
-}
-
-class _WeeklyRecapStatCardsRow extends StatelessWidget {
-  const _WeeklyRecapStatCardsRow({required this.recap, required this.data});
-
-  final WeeklyRecap? recap;
-  final AIInsight data;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bestDay = (recap?.bestDay != null && recap!.bestDay!.isNotEmpty) ? recap!.bestDay! : '—';
-    final scoredDayCount = recap?.scoredDayCount ?? 0;
-    final bestDayTitle = scoredDayCount == 1 ? 'Only Scored Day' : 'Best Day';
-    // Prefer recap counts (7-day). Fall back to evidence sample sizes so the
-    // card never shows a blank "—" when the insight has real logs.
-    final isCompletedRecap = recap?.periodTo != null;
-    final mealCount = isCompletedRecap ? 0 : (data.evidence?.sampleSizes.meals ?? 0);
-    final scanCount = isCompletedRecap ? 0 : (data.evidence?.sampleSizes.scans ?? 0);
-    final foodsLogged = recap?.foodsLogged ?? (mealCount + scanCount);
-    final foodsLabel = isCompletedRecap
-        ? (recap?.loggedSub ?? (foodsLogged == 1 ? 'meal' : 'meals'))
-        : mealCount > 0 && scanCount > 0
-        ? 'meals and scans'
-        : scanCount > 0
-        ? (scanCount == 1 ? 'scan' : 'scans')
-        : mealCount > 0
-        ? (mealCount == 1 ? 'meal' : 'meals')
-        : (recap?.loggedSub ?? 'foods');
-
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 1. Best/Only Scored Day Card
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(10.w),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF102319) : const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(16.w),
-                border: Border.all(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.28) : const Color(0xFFDCFCE7)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(4.w),
-                        decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.18) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
-                        child: Icon(LucideIcons.calendar, size: 11.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-                      ),
-                      Gap.w4,
-                      Expanded(
-                        child: Text(
-                          bestDayTitle,
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Gap.h6,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              bestDay,
-                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 16.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.1),
-                            ),
-                            Gap.h2,
-                            Text(
-                              recap?.dateRange ?? 'No best day recorded',
-                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(LucideIcons.leaf, size: 20.w, color: isDark ? const Color(0xFF4ADE80).withValues(alpha: 0.25) : const Color(0xFF86EFAC).withValues(alpha: 0.7)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Gap.w6,
-
-          // 2. Foods Logged Card
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(10.w),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF231A14) : const Color(0xFFFFFBF5),
-                borderRadius: BorderRadius.circular(16.w),
-                border: Border.all(color: isDark ? const Color(0xFFF97316).withValues(alpha: 0.28) : const Color(0xFFFFEDD5)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(4.w),
-                        decoration: BoxDecoration(color: isDark ? const Color(0xFFF97316).withValues(alpha: 0.18) : const Color(0xFFFFEDD5), shape: BoxShape.circle),
-                        child: Icon(LucideIcons.utensils, size: 11.w, color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC2410C)),
-                      ),
-                      Gap.w4,
-                      Expanded(
-                        child: Text(
-                          'Foods Logged',
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFFFB923C) : const Color(0xFF9A3412)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Gap.h6,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '$foodsLogged',
-                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 17.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.1),
-                            ),
-                            Gap.h2,
-                            Text(
-                              foodsLabel,
-                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(LucideIcons.utensils, size: 18.w, color: isDark ? const Color(0xFFFB923C).withValues(alpha: 0.20) : const Color(0xFFFED7AA).withValues(alpha: 0.7)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Gap.w6,
-
-          // 3. Your Evidence Card
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(10.w),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF111E2E) : const Color(0xFFF0F9FF),
-                borderRadius: BorderRadius.circular(16.w),
-                border: Border.all(color: isDark ? const Color(0xFF38BDF8).withValues(alpha: 0.28) : const Color(0xFFE0F2FE)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(4.w),
-                            decoration: BoxDecoration(color: isDark ? const Color(0xFF0284C7).withValues(alpha: 0.20) : const Color(0xFFE0F2FE), shape: BoxShape.circle),
-                            child: Icon(LucideIcons.barChart2, size: 11.w, color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1)),
-                          ),
-                          Gap.w3,
-                          Expanded(
-                            child: Text(
-                              'Your Evidence',
-                              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1)),
-                            ),
-                          ),
-                          Icon(LucideIcons.info, size: 10.w, color: isDark ? const Color(0xFF64748B) : context.insightColor(const Color(0xFF94A3B8))),
-                        ],
-                      ),
-                      Gap.h6,
-                      _EvidenceRow(label: 'Meals', count: data.evidence?.sampleSizes.meals),
-                      Gap.h2,
-                      _EvidenceRow(label: 'Symptoms', count: data.evidence?.sampleSizes.symptoms),
-                      Gap.h2,
-                      _EvidenceRow(label: 'Scans', count: data.evidence?.sampleSizes.scans),
-                    ],
-                  ),
-                  Gap.h4,
-                  Text(
-                    'More data = more insights',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 7.5.sp, color: context.insightColor(const Color(0xFF64748B))),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

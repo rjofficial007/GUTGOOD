@@ -23,6 +23,7 @@ class InsightsNotifier with ChangeNotifier {
     _appStateService.chatUpdated.addListener(_onDataUpdated);
     _appStateService.profileUpdated.addListener(_onDataUpdated);
     _appStateService.sessionReset.addListener(_onSessionReset);
+    _scheduleInterpretationDayReset();
 
     // 🟢 Reactive Data Loading: Restart stream whenever auth state changes
     _authSub = _authRepository.authStateChanges.listen((user) {
@@ -90,11 +91,10 @@ class InsightsNotifier with ChangeNotifier {
   String? _aiInterpretationError;
   InsightAiInterpretation? _lastAiInterpretation;
   String? _lastAiInterpretationUid;
-  String? _lastAiInterpretationInsightId;
-  DateTime? _lastAiInterpretationPeriodTo;
   bool _bootstrapAttempted = false;
   bool _hasSeenDashboardState = false;
   Timer? _generationDebounce;
+  Timer? _interpretationDayReset;
   StreamSubscription<InsightsDashboardState>? _dashboardSub;
   StreamSubscription<GutExperiment?>? _experimentSub;
   StreamSubscription<GutScoreRecord?>? _scoreSub;
@@ -289,13 +289,22 @@ class InsightsNotifier with ChangeNotifier {
   String? get aiInterpretationError => _aiInterpretationError;
 
   InsightAiInterpretation? aiInterpretationFor(AIInsight insight) {
+    final now = DateTime.now();
     final persisted = insight.aiInterpretation;
-    if (persisted != null) return persisted;
+    if (persisted?.wasGeneratedOn(now) == true) return persisted;
 
     final local = _lastAiInterpretation;
-    final periodTo = insight.periodTo;
-    if (local == null || periodTo == null || _lastAiInterpretationUid != insight.uid || _lastAiInterpretationInsightId != insight.firestoreId) return null;
-    return _lastAiInterpretationPeriodTo?.isAtSameMomentAs(periodTo) == true ? local : null;
+    if (local == null || !local.wasGeneratedOn(now) || _lastAiInterpretationUid != insight.uid) return null;
+    return local;
+  }
+
+  void _scheduleInterpretationDayReset() {
+    final now = DateTime.now();
+    final nextLocalDay = DateTime(now.year, now.month, now.day + 1);
+    _interpretationDayReset = Timer(nextLocalDay.difference(now), () {
+      notifyListeners();
+      if (!_disposed) _scheduleInterpretationDayReset();
+    });
   }
 
   Future<void> markAllAlertsAsRead() async {
@@ -405,6 +414,7 @@ class InsightsNotifier with ChangeNotifier {
     _disposed = true;
     _authSub?.cancel();
     _generationDebounce?.cancel();
+    _interpretationDayReset?.cancel();
     _dashboardSub?.cancel();
     _experimentSub?.cancel();
     _scoreSub?.cancel();
@@ -418,7 +428,7 @@ class InsightsNotifier with ChangeNotifier {
   /// This is intentionally separate from [generateNewInsight] and is never
   /// called during background or lifecycle refreshes.
   Future<void> generateAiInterpretation(AIInsight insight) async {
-    if (_isGeneratingAiInterpretation || insight.aiInterpretation != null) return;
+    if (_isGeneratingAiInterpretation || aiInterpretationFor(insight) != null) return;
     final requestUid = insight.uid;
     if (requestUid == null || requestUid.isEmpty || (_activeUid != null && _activeUid != requestUid)) {
       _aiInterpretationError = 'Refresh Insights and try again with the current saved findings.';
@@ -443,19 +453,17 @@ class InsightsNotifier with ChangeNotifier {
       if (requestEpoch == _sessionEpoch) {
         _lastAiInterpretation = interpretation;
         _lastAiInterpretationUid = insight.uid;
-        _lastAiInterpretationInsightId = insight.firestoreId;
-        _lastAiInterpretationPeriodTo = insight.periodTo;
       }
     } catch (error) {
       if (requestEpoch == _sessionEpoch) {
         if (error is AiQuotaExceededException) {
-          _aiInterpretationError = 'The AI explanation limit was reached. Your rule-based findings are unchanged.';
+          _aiInterpretationError = 'The pattern summary limit was reached. Your findings are unchanged.';
         } else if (error is AiAuthException) {
-          _aiInterpretationError = 'Please sign in to request an AI explanation.';
+          _aiInterpretationError = 'Please sign in to request a pattern summary.';
         } else if (error is StateError && error.message.toString().contains('changed before')) {
           _aiInterpretationError = 'Your Insight refreshed while this was running. Review the latest findings and try again.';
         } else {
-          _aiInterpretationError = 'The AI explanation could not be generated. Your rule-based findings are unchanged.';
+          _aiInterpretationError = 'The pattern summary could not be generated. Your findings are unchanged.';
         }
       }
       AppLogger.insights('Optional AI Insight explanation failed; deterministic Insight remains available.');
@@ -474,10 +482,6 @@ class InsightsNotifier with ChangeNotifier {
     _isGenerating = true;
     _generationError = null;
     _aiInterpretationError = null;
-    _lastAiInterpretation = null;
-    _lastAiInterpretationUid = null;
-    _lastAiInterpretationInsightId = null;
-    _lastAiInterpretationPeriodTo = null;
     notifyListeners();
 
     AppLogger.insights('InsightsNotifier: generation started');
@@ -530,8 +534,6 @@ class InsightsNotifier with ChangeNotifier {
     _isGeneratingAiInterpretation = false;
     _lastAiInterpretation = null;
     _lastAiInterpretationUid = null;
-    _lastAiInterpretationInsightId = null;
-    _lastAiInterpretationPeriodTo = null;
     _isLoading = false;
     _state = const InsightsDashboardState();
     _insightHistory = [];

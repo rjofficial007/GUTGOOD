@@ -262,6 +262,7 @@ class HistoryFirestoreServiceImpl implements HistoryFirestoreService {
           if (limit != null && results.length >= limit) break;
         } catch (e) {
           AppLogger.error('Failed to parse scan history document ${doc.id}', error: e);
+          if (throwOnError) rethrow;
         }
       }
 

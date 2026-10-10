@@ -182,9 +182,14 @@ class ScannerRepositoryImpl implements ScannerRepository {
         scan.copyWith(
           barcode: product.barcode,
           imageUrl: product.imageUrl,
+          category: product.categoryTag ?? product.category ?? scan.category,
           additiveItems: mergedAdditives.toList(),
+          nutriscore: product.nutriscore,
           nutriscoreScore: product.nutriscoreScore,
+          novaGroup: product.novaGroup?.toString(),
           isOrganic: product.isOrganic,
+          nutrients: product.nutrients,
+          nutrientLevels: product.nutrientLevels,
           createdAt: DateTime.now(),
         ),
         nutriscore: product.nutriscore,
@@ -258,7 +263,7 @@ class ScannerRepositoryImpl implements ScannerRepository {
     // (Values are estimates here — `nutritionEstimated` already tells the UI.)
     final visionScan = result.scan;
     if (visionScan != null) {
-      result = result.copyWith(scan: _scoreService.applyEngineScore(visionScan, deferToModelWhenNoData: true, onDiagnostic: AppLogger.ai));
+      result = result.copyWith(scan: _scoreService.applyEngineScore(visionScan, deferToModelWhenNoData: true, refreshExplanation: true, onDiagnostic: AppLogger.ai));
     }
 
     // Add classification info to result

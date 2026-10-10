@@ -13,6 +13,7 @@ import 'package:gutgood/features/insights/presentation/widgets/bento/bento_data.
 import 'package:gutgood/features/insights/presentation/widgets/bento/bento_widgets.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/insight_bento_feed.dart';
 import 'package:gutgood/features/insights/presentation/widgets/bento/pattern_style.dart';
+import 'package:gutgood/features/insights/presentation/widgets/food_impact_section_header.dart';
 import 'package:gutgood/features/insights/presentation/widgets/gut_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/insight_score_card.dart';
 import 'package:gutgood/features/insights/presentation/widgets/pattern_grid.dart';
@@ -23,9 +24,9 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
-part 'insight_bento_recap.dart';
+part 'food_intelligence_screen.dart';
 part 'insight_bento_history.dart';
 part 'insight_bento_pattern.dart';
+part 'insight_bento_recap.dart';
 part 'insight_bento_synergy.dart';
-part 'food_intelligence_screen.dart';
 part 'top_foods_screen.dart';

@@ -65,43 +65,22 @@ class _TopFoodsSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(18.w),
           border: Border.all(color: context.insightColor(const Color(0xFFE2E8F0))),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFDCFCE7), shape: BoxShape.circle),
-              child: Icon(LucideIcons.leaf, size: 16.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D)),
-            ),
-            Gap.w10,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Discover Your Top Foods',
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-                  ),
-                  Gap.h2,
-                  Text(
-                    'Log a few meals and we’ll start finding what works for you.',
-                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, color: context.insightColor(const Color(0xFF64748B))),
-                  ),
-                ],
+        child: FoodImpactSectionHeader(
+          title: 'Discover Your Top Foods',
+          subtitle: 'Log a few meals and we’ll start finding what works for you.',
+          icon: LucideIcons.leaf,
+          iconColor: const Color(0xFF15803D),
+          trailing: GestureDetector(
+            onTap: () => openScannerAndProcessResult(context, 'meal'),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
+              decoration: BoxDecoration(color: const Color(0xFF15803D), borderRadius: BorderRadius.circular(12.w)),
+              child: Text(
+                'Log Meal',
+                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: Colors.white),
               ),
             ),
-            Gap.w8,
-            GestureDetector(
-              onTap: () => openScannerAndProcessResult(context, 'meal'),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.w),
-                decoration: BoxDecoration(color: const Color(0xFF15803D), borderRadius: BorderRadius.circular(12.w)),
-                child: Text(
-                  'Log Meal',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.sp, fontWeight: FontWeight.w700, color: Colors.white),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       );
     }
@@ -117,66 +96,19 @@ class _TopFoodsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 44.w,
-                height: 44.w,
-                decoration: BoxDecoration(color: isDark ? const Color(0xFF22C55E).withValues(alpha: 0.20) : const Color(0xFFD9F5E7), shape: BoxShape.circle),
-                child: Icon(LucideIcons.leaf, size: 23.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF087443)),
-              ),
-              Gap.w10,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Your Top Foods',
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
-                    ),
-                    Gap.h3,
-                    Text(
-                      'Based on your logs, these foods are linked to positive impact for you.',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, height: 1.25, color: context.insightColor(const Color(0xFF64748B))),
-                    ),
-                  ],
-                ),
-              ),
-              Gap.w8,
-              Material(
-                color: context.insightTheme.card,
-                borderRadius: BorderRadius.circular(30.w),
-                child: InkWell(
-                  onTap: () => context.push(AppRoutes.topFoods, extra: insight),
-                  borderRadius: BorderRadius.circular(30.w),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 8.w),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30.w),
-                      border: Border.all(color: context.insightColor(const Color(0xFFDCE5E1))),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 7.w, offset: Offset(0, 2.w))],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'View All',
-                          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF087443)),
-                        ),
-                        Gap.w3,
-                        Icon(Icons.arrow_forward_rounded, size: 12.w, color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF087443)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          FoodImpactSectionHeader(
+            title: 'Your Top Foods',
+            subtitle: 'Based on your logs, these foods are linked to positive impact for you.',
+            icon: LucideIcons.leaf,
+            iconColor: const Color(0xFF15803D),
+            trailing: FoodImpactSectionAction(
+              label: 'View All',
+              onPressed: () => context.push(AppRoutes.topFoods, extra: insight),
+            ),
           ),
           Gap.h12,
           SizedBox(
-            height: 112.w * math.max(1.0, MediaQuery.textScalerOf(context).scale(10) / 10),
+            height: 150.w * math.max(1.0, MediaQuery.textScalerOf(context).scale(10) / 10),
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: foodItems.length,
@@ -207,7 +139,7 @@ class _WeeklyTopFoodCard extends StatelessWidget {
     final description = item.description?.trim().isNotEmpty == true ? item.description! : 'Positive response in your logs';
 
     return SizedBox(
-      width: 90.w,
+      width: 120.w,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: context.insightTheme.card,
@@ -233,7 +165,7 @@ class _WeeklyTopFoodCard extends StatelessWidget {
                   keyword: item.title,
                   imageUrl: item.imageUrl,
                   width: double.infinity,
-                  height: 52.w,
+                  height: 80.w,
                   fit: BoxFit.cover,
                   placeholder: Container(color: lightGreen),
                   errorWidget: Container(

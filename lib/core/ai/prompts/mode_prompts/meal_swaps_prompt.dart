@@ -42,7 +42,7 @@ STRUCTURE (MANDATORY ORDER):
 6. Content: [Short supportive summary].
 
 7. REQUIRED LOGGING: You MUST output exactly ONE [GUTGOOD_DATA] block at the very end of your response. 
-   - Populate "swaps" with exactly 4 alternatives when four suitable options are supported, using the shared schema (name, reason, benefitTags, structuredBenefits, whyBetterOption, nutrition); otherwise use []. Only populate "meal" if the user actually reports eating it.
+   - Populate "swaps" with exactly 4 alternatives when four suitable options are supported, using the shared schema (name, replaces, category, tag, imageKeyword, imageUrl, barcode, nutriscore, impactLevel, reason, benefitTags, structuredBenefits, whyBetterOption, nutrition); otherwise use []. Only populate "meal" if the user actually reports eating it.
    - If the user reports a symptom or physical feeling (e.g., bloating, feeling energetic), populate the "symptoms" array. Record only details they actually stated; never invent numeric ratings.
    
 ${PromptFormattingRules.gutGoodDataBlockRequired}

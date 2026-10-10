@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:genz_insights/genz_insights.dart';
@@ -19,6 +20,7 @@ import 'package:gutgood/features/auth/presentation/providers/auth_provider.dart'
 import 'package:gutgood/features/chat/presentation/pages/chat_screen.dart';
 import 'package:gutgood/features/chat/presentation/pages/notification_archive_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/all_scans_screen.dart';
+import 'package:gutgood/features/history/presentation/pages/meal_detail_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/saved_foods_screen.dart';
 import 'package:gutgood/features/history/presentation/pages/scan_history_screen.dart';
 import 'package:gutgood/features/home/presentation/pages/main_shell.dart';
@@ -259,6 +261,15 @@ class AppRouter {
                 },
               ),
               GoRoute(
+                path: AppRoutes.mealDetail,
+                builder: (context, state) {
+                  if (state.extra is MealLog) {
+                    return MealDetailScreen(meal: state.extra as MealLog);
+                  }
+                  return const ScanHistoryScreen();
+                },
+              ),
+              GoRoute(
                 path: AppRoutes.additiveDetail,
                 builder: (context, state) {
                   if (state.extra is AdditiveConcern) {
@@ -329,9 +340,23 @@ class AppRouter {
               ),
               GoRoute(
                 path: AppRoutes.genzInsight,
-                builder: (context, state) => InsightGenzScreen(
-                  onOpenRoute: (path) => context.push(path),
-                ),
+                redirect: (context, state) => kDebugMode ? null : AppRoutes.insights,
+                pageBuilder: (context, state) {
+                  final screen = InsightGenzScreen(
+                    onBack: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go(AppRoutes.profile);
+                      }
+                    },
+                    onOpenRoute: (path) => context.push(path),
+                  );
+                  if (defaultTargetPlatform == TargetPlatform.iOS) {
+                    return CupertinoPage<void>(key: state.pageKey, child: screen);
+                  }
+                  return MaterialPage<void>(key: state.pageKey, child: screen);
+                },
               ),
             ],
           ),

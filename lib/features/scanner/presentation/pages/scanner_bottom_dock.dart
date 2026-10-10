@@ -56,7 +56,7 @@ class _ScannerBottomDock extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _SimpleIconButton(icon: AppIcons.image, onTap: onGalleryTap),
-            _ShutterButton(onTap: onShutterTap, isActive: true, isProcessing: isProcessing),
+            _ShutterButton(onTap: isProcessing ? null : onShutterTap, isActive: true, isProcessing: isProcessing),
             _SimpleIconButton(
               icon: AppIcons.refreshCw,
               onTap: () {

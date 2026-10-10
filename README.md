@@ -159,24 +159,9 @@ For local Firebase emulators, see [`docs/FIREBASE_SETUP_GUIDE.md`](docs/FIREBASE
 
 ---
 
-## ✅ Validation notes
+## ✅ Validation
 
-The repository's static checks currently verify:
-
-- Internal package imports resolve, excluding the intentionally generated `firebase_options.dart` file.
-- Relative imports and Dart `part` relationships resolve.
-- Feature-domain code does not import infrastructure or platform SDKs.
-- No stale imports remain for moved adapters or old source paths.
-- No standalone export-only compatibility files remain under `lib/`.
-- Firebase, AI, payments, Open Food Facts, and platform adapters use the corresponding `lib/infrastructure/` boundaries.
-
-Run the SDK-independent architecture check with:
-
-```bash
-python3 tool/check_architecture.py
-```
-
-Then run `flutter analyze`, `flutter test`, and the platform build in a configured Flutter environment before release. This workspace does not contain the Dart or Flutter executables.
+Run `flutter analyze`, `flutter test`, and a platform build in a configured Flutter environment before release. The architecture-check script referenced by older documentation is not present in this repository.
 
 ---
 

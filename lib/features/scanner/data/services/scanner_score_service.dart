@@ -72,6 +72,8 @@ class ScannerScoreService {
   }) {
     final resolvedAdditives = <String>{...?additiveItems, ...scan.additiveItems};
     final additiveConcerns = AdditiveConcernDb.resolveAll(resolvedAdditives);
+    final resolvedEnergy = energyKcal ?? scan.nutrients?.calories;
+    final resolvedSugar = sugarG ?? scan.nutrients?.sugars;
 
     final breakdown = YukaScore.evaluate(
       nutriscore: nutriscore ?? scan.nutriscore,
@@ -84,6 +86,9 @@ class ScannerScoreService {
       saturatedFatG: saturatedFatG ?? scan.nutrients?.saturatedFat,
       additiveConcerns: additiveConcerns,
       isOrganic: isOrganic ?? scan.isOrganic,
+      novaGroup: novaGroup ?? int.tryParse(scan.novaGroup ?? ''),
+      isBeverage: YukaScore.isBeverageCategory(scan.category),
+      isWater: YukaScore.isPlainWater(productName: scan.productName, category: scan.category, energyKcal: resolvedEnergy, sugarG: resolvedSugar),
     );
 
     // Photo scans may have a useful model score even when no numeric engine
@@ -91,7 +96,7 @@ class ScannerScoreService {
     // scan appear neutral.
     if (!breakdown.hasData && deferToModelWhenNoData) {
       onDiagnostic?.call('ScannerRepository: engine had no usable inputs — keeping model score ${scan.score}');
-      return scan;
+      return scan.copyWith(impact: 'Provisional visual score: there is not enough nutrition data to explain exact point deductions.');
     }
 
     // No signal at all and no model score to defer to: stay neutral, but keep

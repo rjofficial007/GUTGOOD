@@ -17,7 +17,7 @@ class ScoreGauge extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: score.toDouble()),
       duration: const Duration(milliseconds: 1500),
-      curve: Curves.easeOutQuart,
+      curve: Curves.easeOutCubic,
       builder: (context, value, _) => LayoutBuilder(
         builder: (context, constraints) {
           final size = constraints.maxWidth;
@@ -30,13 +30,13 @@ class ScoreGauge extends StatelessWidget {
               children: [
                 CustomPaint(
                   size: Size(size, size),
-                  painter: _GaugePainter(score: value.toInt(), color: color),
+                  painter: _GaugePainter(score: value.clamp(0.0, 100.0), color: color),
                 ),
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${value.toInt()}',
+                      '${value.round()}',
                       style: TextStyle(fontFamily: InsightBentoTheme.fontFamily, fontSize: fontSize ?? (size * 0.28).clamp(24, 42).sp, fontWeight: FontWeight.w700, height: 0.9, color: textColor),
                     ),
                     Text(
@@ -56,7 +56,7 @@ class ScoreGauge extends StatelessWidget {
 
 class _GaugePainter extends CustomPainter {
   _GaugePainter({required this.score, required this.color});
-  final int score;
+  final double score;
   final Color color;
 
   @override

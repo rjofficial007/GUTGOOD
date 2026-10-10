@@ -50,24 +50,28 @@ function rewriteUrls(value: unknown, fromUid: string, toUid: string, depth = 0):
   return value;
 }
 
-/** Natural-key hash used for content-based dedupe across collections. */
-function naturalKey(collection: string, data: admin.firestore.DocumentData): string {
-  if (ID_COLLECTIONS.includes(collection)) {
-    if (data.localId) return `lid:${data.localId}`;
-    const items = Array.isArray(data.items) ? data.items.join(',') : '';
-    const body = (data.text || data.message || '').toString();
-    const time = (data.createdAt || data.time || data.timestamp || '').toString();
-    return `${data.role ?? ''}|${body}|${items}|${data.symptom ?? ''}|${data.title ?? ''}|${time}`;
+/** Stable key used to dedupe a source document against the destination. */
+function naturalKey(collection: string, data: admin.firestore.DocumentData, documentId?: string): string {
+  if (collection === 'journal_logs') {
+    return `journal:${documentId ?? data.firestoreId ?? ''}`;
   }
-  if (SCAN_COLLECTIONS.includes(collection)) {
-    const barcode = (data.barcode ?? '').toString();
-    return barcode ? `bc:${barcode}` : `pn:${(data.productName ?? '').toString().toLowerCase()}`;
+  if (ID_COLLECTIONS.includes(collection)) {
+    return `${collection}:${documentId ?? data.firestoreId ?? ''}`;
+  }
+  if (collection === 'scan_history') {
+    const scanId = documentId || (data.scanId ?? '').toString().trim();
+    return `scan:${scanId}`;
+  }
+  if (collection === 'saved_foods') {
+    const barcode = (data.barcode ?? '').toString().trim();
+    if (barcode) return `bc:${barcode}`;
+    const productName = (data.productName ?? '').toString().trim().toLowerCase();
+    return productName ? `pn:${productName}` : `id:${documentId ?? data.firestoreId ?? ''}`;
   }
   if (collection === INSIGHT_COLLECTION) {
-    const title = data.topInsight?.title ?? data.title ?? '';
-    return `${data.type ?? ''}|${title}|${data.gutScore ?? ''}`;
+    return `insight:${documentId ?? data.firestoreId ?? ''}`;
   }
-  return JSON.stringify(data).slice(0, 512);
+  return `id:${documentId ?? data.firestoreId ?? ''}`;
 }
 
 async function migrateStorage(fromUid: string, toUid: string): Promise<number> {
@@ -81,6 +85,7 @@ async function migrateStorage(fromUid: string, toUid: string): Promise<number> {
       copied++;
     } catch (e) {
       functions.logger.error(`merge: failed to copy ${file.name}`, e);
+      throw e;
     }
   }
   return copied;
@@ -96,9 +101,23 @@ async function mergeSubcollection(
   toUid: string,
   extraFields: Record<string, unknown> = {},
 ): Promise<number> {
-  // Load ALL target keys first (content-addressed dedupe).
-  const target = await permRef.collection(targetCollection).orderBy(admin.firestore.FieldPath.documentId()).limit(READ_LIMIT).get();
-  const existingKeys = new Set(target.docs.map((d) => naturalKey(targetCollection, d.data())));
+  // ponytail: holds all target natural keys in memory (O(n)); use a dedicated key index if merge sizes outgrow this.
+  const targetRef = permRef.collection(targetCollection);
+  const existingKeys = new Set<string>();
+  const existingIds = new Set<string>();
+  let targetCursor: admin.firestore.QueryDocumentSnapshot | null = null;
+  while (true) {
+    let targetQuery = targetRef.orderBy(admin.firestore.FieldPath.documentId()).limit(READ_LIMIT);
+    if (targetCursor) targetQuery = targetQuery.startAfter(targetCursor);
+
+    const target = await targetQuery.get();
+    for (const doc of target.docs) {
+      existingKeys.add(naturalKey(targetCollection, doc.data(), doc.id));
+      existingIds.add(doc.id);
+    }
+    if (target.size < READ_LIMIT) break;
+    targetCursor = target.docs[target.docs.length - 1];
+  }
 
   let moved = 0;
   let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
@@ -115,9 +134,17 @@ async function mergeSubcollection(
 
     for (const doc of source.docs) {
       const raw = doc.data();
-      const key = naturalKey(targetCollection, raw);
+      const key = naturalKey(targetCollection, { ...raw, ...extraFields }, doc.id);
+      if (existingIds.has(doc.id)) {
+        if (existingKeys.has(key)) continue;
+        throw new functions.https.HttpsError(
+          'failed-precondition',
+          `Cannot merge ${sourceCollection}: destination ${targetCollection}/${doc.id} already contains different data.`,
+        );
+      }
       if (existingKeys.has(key)) continue;
       existingKeys.add(key);
+      existingIds.add(doc.id);
 
       let data: admin.firestore.DocumentData = { ...raw, ...extraFields, migratedFrom: fromUid };
       for (const field of Object.keys(data)) {
@@ -129,7 +156,9 @@ async function mergeSubcollection(
       // 🚀 Professional Data Linkage: Preserve the document ID during merge.
       // This ensures that cross-document references (e.g. ChatMessage.mealLogs[0].firestoreId)
       // remain valid in the new user's subtree.
-      batch.set(permRef.collection(targetCollection).doc(doc.id), data);
+      // create() closes the race between the target-ID snapshot above and a
+      // concurrent write by the signed-in destination account.
+      batch.create(permRef.collection(targetCollection).doc(doc.id), data);
       pending++;
       moved++;
 
@@ -191,71 +220,68 @@ async function mergeProfileRoot(
   anonRef: admin.firestore.DocumentReference,
   permRef: admin.firestore.DocumentReference,
 ): Promise<void> {
-  const [anonSnap, permSnap] = await Promise.all([anonRef.get(), permRef.get()]);
-  const anon = anonSnap.data() ?? {};
-  const perm = permSnap.data() ?? {};
-
-  const union = (field: string): string[] => {
-    const a = Array.isArray(anon[field]) ? (anon[field] as string[]) : [];
-    const b = Array.isArray(perm[field]) ? (perm[field] as string[]) : [];
-    return [...new Set([...b, ...a])];
-  };
-
-  const update: Record<string, unknown> = {
-    goals: union('goals'),
-    sensitivities: union('sensitivities'),
-    lifestyle: union('lifestyle'),
-    ...(!permSnap.exists
-      ? {
-          uid: permRef.id,
-          onboarded: false,
-          isAnonymous: false,
-          isPremium: false,
-          subscriptionStatus: 'free',
-          gutScore: 0,
-          streak: 0,
-          longestStreak: 0,
-          notificationPreferences: {},
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        }
-      : {}),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  };
-  if (!permSnap.exists || perm.onboarded !== true) {
-    if (anon.onboarded === true) update.onboarded = true;
-  }
-  if (!perm.cycleSyncEnabled && anon.cycleSyncEnabled === true) {
-    update.cycleSyncEnabled = true;
-    if (anon.cyclePhase) update.cyclePhase = anon.cyclePhase;
-  }
-  if (anon.notificationPreferences && !perm.notificationPreferences) {
-    update.notificationPreferences = anon.notificationPreferences;
-  }
-  if (anon.timezoneOffset !== undefined && perm.timezoneOffset === undefined) {
-    update.timezoneOffset = anon.timezoneOffset;
-  }
-
-  // 🟢 Streak Merge Logic: Keep the best streak/date
-  const anonStreak = Number(anon.streak ?? 0);
-  const permStreak = Number(perm.streak ?? 0);
-  if (anonStreak > permStreak) {
-    update.streak = anonStreak;
-    if (anon.lastActivityDate) update.lastActivityDate = anon.lastActivityDate;
-  } else if (anonStreak === permStreak && anonStreak > 0) {
-    // If streaks are equal, prefer the one with the latest activity date
-    const anonDate = (anon.lastActivityDate ?? '').toString();
-    const permDate = (perm.lastActivityDate ?? '').toString();
-    if (anonDate > permDate) {
-      update.lastActivityDate = anonDate;
-    }
-  }
-
-  // NEVER copy: isPremium, subscriptionStatus, gutScore, authProvider.
-  // Premium is client-side (RevenueCat SDK entitlement): the new account must
-  // re-derive it from the SDK on next launch — never inherit it from a guest
-  // profile, or a guest could smuggle a premium flag into a paid account.
-
   await db.runTransaction(async (tx) => {
+    const [anonSnap, permSnap] = await Promise.all([tx.get(anonRef), tx.get(permRef)]);
+    const anon = anonSnap.data() ?? {};
+    const perm = permSnap.data() ?? {};
+
+    const union = (field: string): string[] => {
+      const a = Array.isArray(anon[field]) ? (anon[field] as string[]) : [];
+      const b = Array.isArray(perm[field]) ? (perm[field] as string[]) : [];
+      return [...new Set([...b, ...a])];
+    };
+
+    const update: Record<string, unknown> = {
+      goals: union('goals'),
+      sensitivities: union('sensitivities'),
+      lifestyle: union('lifestyle'),
+      ...(!permSnap.exists
+        ? {
+            uid: permRef.id,
+            onboarded: false,
+            isAnonymous: false,
+            isPremium: false,
+            subscriptionStatus: 'free',
+            gutScore: 0,
+            streak: 0,
+            longestStreak: 0,
+            notificationPreferences: {},
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          }
+        : {}),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    if (!permSnap.exists || perm.onboarded !== true) {
+      if (anon.onboarded === true) update.onboarded = true;
+    }
+    if (!perm.cycleSyncEnabled && anon.cycleSyncEnabled === true) {
+      update.cycleSyncEnabled = true;
+      if (anon.cyclePhase) update.cyclePhase = anon.cyclePhase;
+    }
+    if (anon.notificationPreferences && !perm.notificationPreferences) {
+      update.notificationPreferences = anon.notificationPreferences;
+    }
+    if (anon.timezoneOffset !== undefined && perm.timezoneOffset === undefined) {
+      update.timezoneOffset = anon.timezoneOffset;
+    }
+
+    // Keep the better streak and its matching activity date.
+    const anonStreak = Number(anon.streak ?? 0);
+    const permStreak = Number(perm.streak ?? 0);
+    if (anonStreak > permStreak) {
+      update.streak = anonStreak;
+      if (anon.lastActivityDate) update.lastActivityDate = anon.lastActivityDate;
+    } else if (anonStreak === permStreak && anonStreak > 0) {
+      const anonDate = (anon.lastActivityDate ?? '').toString();
+      const permDate = (perm.lastActivityDate ?? '').toString();
+      if (anonDate > permDate) {
+        update.lastActivityDate = anon.lastActivityDate;
+      }
+    }
+
+    // Never copy isPremium, subscriptionStatus, gutScore, or authProvider.
+    // Premium is re-derived from RevenueCat on next launch.
+
     tx.set(permRef, update, { merge: true });
   });
 }
@@ -296,7 +322,10 @@ export const mergeAnonymousAccount = functions
     }
 
     // Verify the source really is (was) an anonymous account.
-    const anonUser = await admin.auth().getUser(anonymousUid).catch(() => null);
+    const anonUser = await admin.auth().getUser(anonymousUid).catch((error: unknown) => {
+      if ((error as { code?: string }).code === 'auth/user-not-found') return null;
+      throw error;
+    });
     if (anonUser && anonUser.providerData.length > 0) {
       throw new functions.https.HttpsError('failed-precondition', 'Source account is not anonymous.');
     }
@@ -310,7 +339,7 @@ export const mergeAnonymousAccount = functions
     const moved: Record<string, number> = {};
 
     // 1. Copy Storage files first so rewritten URLs resolve.
-    moved.files = anonUser ? await migrateStorage(anonymousUid, permanentUid) : 0;
+    moved.files = await migrateStorage(anonymousUid, permanentUid);
 
     // 2. Merge subcollections with mapping support
     const collectionsToMerge = [

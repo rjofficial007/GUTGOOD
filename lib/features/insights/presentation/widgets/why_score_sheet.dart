@@ -129,7 +129,7 @@ class WhyScoreSheet extends StatelessWidget {
                 decoration: BoxDecoration(color: badgeBg, shape: BoxShape.circle),
                 child: Center(
                   child: Text(
-                    hasScore ? '$score' : '—',
+                    hasScore ? '$score' : '0',
                     style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 18.sp, fontWeight: FontWeight.w800, color: badgeTextColor),
                   ),
                 ),

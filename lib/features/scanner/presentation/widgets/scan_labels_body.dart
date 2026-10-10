@@ -26,7 +26,7 @@ class _LabelsBody extends StatelessWidget {
             children: [
               Icon(AppIcons.globe, size: 14.sp, color: scheme.textMuted),
               Gap.w6,
-              Expanded(child: Text('Sold in: ${product.countries}', style: context.caption)),
+              Expanded(child: Text('Sold in: ${product.countries}', style: context.bodySm)),
             ],
           ),
         ],
@@ -53,7 +53,7 @@ class _LabelsBody extends StatelessWidget {
       children: [
         Icon(icon, size: 13.sp, color: scheme.textMuted),
         Gap.w4,
-        Text(text, style: context.captionTiny),
+        Text(text, style: context.bodySm.copyWith(color: scheme.textSecondary)),
       ],
     );
   }

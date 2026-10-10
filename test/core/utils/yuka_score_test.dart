@@ -110,21 +110,44 @@ void main() {
     });
   });
 
-  group('high-concern additive cap (published rule)', () {
-    test('any high-concern additive caps the score at 49, however good the nutrition', () {
+  group('high-concern additives', () {
+    test('high concern reduces the additive component without overriding the weights', () {
       final breakdown = YukaScore.evaluate(nutriscore: 'a', additiveConcerns: [concern(AdditiveConcernLevel.higher)], isOrganic: true);
 
-      expect(breakdown.score, 49);
-      expect(breakdown.scoreBeforeCap, greaterThan(49));
-      expect(breakdown.explanation, contains('49'));
+      expect(breakdown.score, greaterThan(49));
+      expect(breakdown.factors.map((factor) => factor.delta).reduce((a, b) => a + b), breakdown.score);
+      expect(breakdown.factors[1].label, contains('E999'));
+      expect(breakdown.factors[1].label, contains('7 lost'));
     });
+  });
 
-    test('the cap never raises a score that was already below it', () {
-      final breakdown = YukaScore.evaluate(nutriscore: 'e', additiveConcerns: [concern(AdditiveConcernLevel.higher)]);
+  group('additive evidence', () {
+    test('unknown additives are tracked but do not reduce the score', () {
+      final withoutUnknown = YukaScore.evaluate(nutriscore: 'b', additiveConcerns: const []);
+      final withUnknown = YukaScore.evaluate(nutriscore: 'b', additiveConcerns: [concern(AdditiveConcernLevel.unknown)]);
 
-      expect(breakdown.score, lessThanOrEqualTo(49));
-      expect(breakdown.scoreBeforeCap, isNull, reason: 'The product scored below the cap anyway.');
+      expect(withUnknown.additiveSubscore, 100);
+      expect(withUnknown.score, withoutUnknown.score);
+      expect(withUnknown.factors[1].label, contains('no deduction'));
     });
+  });
+
+  test('plain sparkling water with zero calories and sugar scores very highly', () {
+    final isWater = YukaScore.isPlainWater(productName: 'Saratoga Sparkling Water', category: 'en:sparkling-waters', energyKcal: 0, sugarG: 0);
+    final breakdown = YukaScore.evaluate(
+      energyKcal: 0,
+      sugarG: 0,
+      saturatedFatG: 0,
+      saltG: 0.01,
+      additiveConcerns: const [],
+      novaGroup: 1,
+      isBeverage: true,
+      isWater: isWater,
+    );
+
+    expect(isWater, isTrue);
+    expect(breakdown.grade, NutriScoreGrade.a);
+    expect(breakdown.score, 100);
   });
 
   group('missing data', () {

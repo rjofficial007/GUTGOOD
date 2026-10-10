@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:genz_insights/src/genz_demo_data.dart';
+import 'package:genz_insights/src/genz_theme.dart';
+import 'package:genz_insights/src/widgets/genz_primitives.dart';
+import 'package:genz_insights/src/widgets/genz_share.dart';
+import 'package:genz_insights/src/widgets/genz_tile.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../genz_demo_data.dart';
-import '../genz_theme.dart';
-import '../widgets/genz_primitives.dart';
-import '../widgets/genz_share.dart';
-import '../widgets/genz_tile.dart';
 
 class GenzDetailScreenView extends StatefulWidget {
   const GenzDetailScreenView({
@@ -50,8 +50,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
   }
 
   // 1. SCORE BREAKDOWN
-  Widget _buildScoreDetail(BuildContext context) {
-    return SingleChildScrollView(
+  Widget _buildScoreDetail(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +63,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
               art: Positioned(
                 right: -14,
                 top: 16,
-                child: Transform.rotate(angle: 0.14, child: GenzArt(asset: 'assets/images/a-gauge.webp', width: 150, height: 150)),
+                child: Transform.rotate(angle: 0.14, child: const GenzArt(asset: 'assets/images/a-gauge.webp', width: 150, height: 150)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,11 +126,9 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
         ],
       ),
     );
-  }
 
   // 2. SWAPS LIST
-  Widget _buildSwapsList(BuildContext context) {
-    return SingleChildScrollView(
+  Widget _buildSwapsList(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,7 +166,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
               top: 16,
               child: Transform.rotate(
                 angle: 0.14,
-                child: GenzArt(asset: 'assets/images/a-alert.webp', width: 130, height: 130),
+                child: const GenzArt(asset: 'assets/images/a-alert.webp', width: 130, height: 130),
               ),
             ),
             child: Column(
@@ -184,7 +181,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                 const SizedBox(height: 10),
                 SizedBox(
                   width: 210,
-                  child: Text('our strongest match from your logs.', style: TextStyle(color: GenzColors.ink.withOpacity(0.62), fontSize: 14.5, fontWeight: FontWeight.w600, fontFamily: GenzFonts.primary)),
+                  child: Text('our strongest match from your logs.', style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.62), fontSize: 14.5, fontWeight: FontWeight.w600, fontFamily: GenzFonts.primary)),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(width: 190, child: _buildDarkAction('see why')),
@@ -204,7 +201,6 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
         ],
       ),
     );
-  }
 
   // 3. OBSERVATION DETAILS
   Widget _buildObservationDetail(BuildContext context, {required bool isMilkTea}) {
@@ -244,7 +240,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
             art: Positioned(
               right: -4,
               top: 10,
-              child: Transform.rotate(angle: 0.17, child: GenzArt(asset: 'assets/images/a-bulb.webp', width: 118, height: 118)),
+              child: Transform.rotate(angle: 0.17, child: const GenzArt(asset: 'assets/images/a-bulb.webp', width: 118, height: 118)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,7 +253,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(count, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, fontFamily: GenzFonts.primary)),
-                    Text(confidence, style: TextStyle(color: Colors.white.withOpacity(0.66), fontSize: 13, fontWeight: FontWeight.w900, fontFamily: GenzFonts.primary)),
+                    Text(confidence, style: TextStyle(color: Colors.white.withValues(alpha: 0.66), fontSize: 13, fontWeight: FontWeight.w900, fontFamily: GenzFonts.primary)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -346,7 +342,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                           TextSpan(text: '${data.title}\n'),
                           TextSpan(
                             text: data.subtitle,
-                            style: TextStyle(color: data.tone == GenzTone.blue ? Colors.white.withOpacity(0.55) : GenzColors.ink.withOpacity(0.55)),
+                            style: TextStyle(color: data.tone == GenzTone.blue ? Colors.white.withValues(alpha: 0.55) : GenzColors.ink.withValues(alpha: 0.55)),
                           ),
                         ],
                       ),
@@ -358,7 +354,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                     child: Text(
                       data.trigger,
                       style: TextStyle(
-                        color: data.tone == GenzTone.blue ? Colors.white.withOpacity(0.78) : GenzColors.ink.withOpacity(0.62),
+                        color: data.tone == GenzTone.blue ? Colors.white.withValues(alpha: 0.78) : GenzColors.ink.withValues(alpha: 0.62),
                         fontSize: 14.5,
                         fontWeight: FontWeight.w600,
                         height: 1.35,
@@ -452,7 +448,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                 const SizedBox(height: 12),
                 Text(data.fromFood, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -1.5, fontFamily: GenzFonts.primary)),
                 const SizedBox(height: 8),
-                SizedBox(width: 200, child: Text(data.fromReason, style: TextStyle(color: GenzColors.ink.withOpacity(0.62), fontSize: 14.5, fontWeight: FontWeight.w600, height: 1.35, fontFamily: GenzFonts.primary))),
+                SizedBox(width: 200, child: Text(data.fromReason, style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.62), fontSize: 14.5, fontWeight: FontWeight.w600, height: 1.35, fontFamily: GenzFonts.primary))),
               ],
             ),
           ),
@@ -491,7 +487,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                   const SizedBox(height: 12),
                   Text(data.toFood, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -1.5, fontFamily: GenzFonts.primary)),
                   const SizedBox(height: 8),
-                  SizedBox(width: 200, child: Text(data.toReason, style: TextStyle(color: GenzColors.ink.withOpacity(0.62), fontSize: 14.5, fontWeight: FontWeight.w600, height: 1.35, fontFamily: GenzFonts.primary))),
+                  SizedBox(width: 200, child: Text(data.toReason, style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.62), fontSize: 14.5, fontWeight: FontWeight.w600, height: 1.35, fontFamily: GenzFonts.primary))),
                   const SizedBox(height: 12),
                   GenzSticker(text: data.benefit, angle: -0.035),
                 ],
@@ -621,7 +617,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                 const SizedBox(height: 14),
                 SizedBox(width: 200, child: Text(data.title, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: -1.5, height: 1, fontFamily: GenzFonts.primary))),
                 const SizedBox(height: 10),
-                SizedBox(width: 200, child: Text(data.summary, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, height: 1.35, fontFamily: GenzFonts.primary, color: data.tone == GenzTone.blue ? Colors.white.withOpacity(0.78) : GenzColors.ink.withOpacity(0.62)))),
+                SizedBox(width: 200, child: Text(data.summary, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, height: 1.35, fontFamily: GenzFonts.primary, color: data.tone == GenzTone.blue ? Colors.white.withValues(alpha: 0.78) : GenzColors.ink.withValues(alpha: 0.62)))),
               ],
             ),
           ),
@@ -679,8 +675,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
   }
 
   // 7. FOOD INTELLIGENCE
-  Widget _buildFoodIntel(BuildContext context) {
-    return SingleChildScrollView(
+  Widget _buildFoodIntel(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -736,7 +731,6 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
         ],
       ),
     );
-  }
 
   Widget _buildIntelSeg(int idx, String label) {
     final isSelected = _foodIntelSegment == idx;
@@ -788,8 +782,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
   }
 
   // 8. NEXT WEEK PLAN
-  Widget _buildPlanView(BuildContext context) {
-    return SingleChildScrollView(
+  Widget _buildPlanView(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -834,11 +827,9 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
         ],
       ),
     );
-  }
 
   // 9. HISTORY & HISTORY DETAIL
-  Widget _buildHistoryView(BuildContext context) {
-    return SingleChildScrollView(
+  Widget _buildHistoryView(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -873,7 +864,6 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
         ],
       ),
     );
-  }
 
   Widget _buildHistCard(BuildContext context, String title, String date, String score, String asset, Color ringColor, String target) {
     final scoreValue = int.parse(score);
@@ -927,8 +917,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
     );
   }
 
-  Widget _buildHistoryDetailView(BuildContext context) {
-    return SingleChildScrollView(
+  Widget _buildHistoryDetailView(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -957,17 +946,17 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
           GenzTile(
             tone: GenzTone.lilac,
             onTap: () => widget.onNavigate('score'),
-            art: Positioned(right: -12, top: 10, child: GenzArt(asset: 'assets/images/a-gauge.webp', width: 138, height: 138)),
+            art: const Positioned(right: -12, top: 10, child: GenzArt(asset: 'assets/images/a-gauge.webp', width: 138, height: 138)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('gut score', style: TextStyle(color: GenzColors.ink.withOpacity(0.62), fontFamily: GenzFonts.primary, fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                Text('gut score', style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.62), fontFamily: GenzFonts.primary, fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
                 const SizedBox(height: 10),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('66', style: GenzStyles.big),
-                    Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('/100', style: TextStyle(color: GenzColors.ink.withOpacity(0.6), fontSize: 24, fontWeight: FontWeight.w900, fontFamily: GenzFonts.primary))),
+                    Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('/100', style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.6), fontSize: 24, fontWeight: FontWeight.w900, fontFamily: GenzFonts.primary))),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -982,7 +971,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                   child: Container(
                     height: 36,
                     padding: const EdgeInsets.symmetric(horizontal: 13),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.55), borderRadius: BorderRadius.circular(100)),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(100)),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1002,7 +991,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
           GenzTile(
             tone: GenzTone.ink,
             onTap: () => showGenzToast(context, 'opens the saved observation'),
-            art: Positioned(right: -4, top: 10, child: Transform.rotate(angle: 0.14, child: GenzArt(asset: 'assets/images/a-sleep.webp', width: 110, height: 110))),
+            art: Positioned(right: -4, top: 10, child: Transform.rotate(angle: 0.14, child: const GenzArt(asset: 'assets/images/a-sleep.webp', width: 110, height: 110))),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1010,13 +999,13 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                 const SizedBox(height: 14),
                 const Text('late dinners might be messing with your sleep.', style: GenzStyles.title),
                 const SizedBox(height: 10),
-                Text('restless sleep followed dinners after 9 PM on 2 of 3 nights.', style: GenzStyles.caption.copyWith(color: Colors.white.withOpacity(0.66))),
+                Text('restless sleep followed dinners after 9 PM on 2 of 3 nights.', style: GenzStyles.caption.copyWith(color: Colors.white.withValues(alpha: 0.66))),
                 const SizedBox(height: 18),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('2 of 3 days', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, fontFamily: GenzFonts.primary)),
-                    Text('low confidence', style: TextStyle(color: Colors.white.withOpacity(0.66), fontSize: 13, fontWeight: FontWeight.w900, fontFamily: GenzFonts.primary)),
+                    Text('low confidence', style: TextStyle(color: Colors.white.withValues(alpha: 0.66), fontSize: 13, fontWeight: FontWeight.w900, fontFamily: GenzFonts.primary)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -1029,7 +1018,6 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
         ],
       ),
     );
-  }
 
   Widget _buildSnapshotEqualizer() {
     const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -1052,7 +1040,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                       decoration: BoxDecoration(
                         color: index == 5
                             ? GenzColors.ink
-                            : GenzColors.ink.withOpacity(index == 1 || index == 6 ? 0.1 : 0.2),
+                            : GenzColors.ink.withValues(alpha: index == 1 || index == 6 ? 0.1 : 0.2),
                         borderRadius: BorderRadius.circular(100),
                       ),
                     ),
@@ -1062,7 +1050,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w900,
-                        color: GenzColors.ink.withOpacity(0.75),
+                        color: GenzColors.ink.withValues(alpha: 0.75),
                         fontFamily: GenzFonts.primary,
                         fontFamilyFallback: GenzFonts.fallback,
                       ),
@@ -1076,8 +1064,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
     );
   }
 
-  Widget _buildSynergyDetail(BuildContext context) {
-    return SingleChildScrollView(
+  Widget _buildSynergyDetail(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1090,7 +1077,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
               top: 16,
               child: Transform.rotate(
                 angle: 0.14,
-                child: GenzArt(asset: 'assets/images/a-energy.webp', width: 150, height: 150),
+                child: const GenzArt(asset: 'assets/images/a-energy.webp', width: 150, height: 150),
               ),
             ),
             child: const Column(
@@ -1148,16 +1135,16 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
             ),
           ),
           const SizedBox(height: 14),
-          GenzTile(
+          const GenzTile(
             tone: GenzTone.butter,
-            padding: const EdgeInsets.all(18),
+            padding: EdgeInsets.all(18),
             borderRadius: 26,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const GenzSticker(text: 'your next step'),
-                const SizedBox(height: 12),
-                const Text('keep oats as your default breakfast this week.', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.8, fontFamily: GenzFonts.primary)),
+                GenzSticker(text: 'your next step'),
+                SizedBox(height: 12),
+                Text('keep oats as your default breakfast this week.', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.8, fontFamily: GenzFonts.primary)),
               ],
             ),
           ),
@@ -1166,7 +1153,6 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
         ],
       ),
     );
-  }
 
   // 10. MEAL RECEIPT DETAILS
   Widget _buildMealReceiptDetail(BuildContext context, String mealId) {
@@ -1202,7 +1188,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                 const SizedBox(height: 10),
                 SizedBox(
                   width: 210,
-                  child: Text(data.date.toLowerCase(), style: TextStyle(color: GenzColors.ink.withOpacity(0.62), fontSize: 14.5, fontWeight: FontWeight.w600, fontFamily: GenzFonts.primary)),
+                  child: Text(data.date.toLowerCase(), style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.62), fontSize: 14.5, fontWeight: FontWeight.w600, fontFamily: GenzFonts.primary)),
                 ),
               ],
             ),
@@ -1211,7 +1197,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
           _buildReceiptPaper([
             _buildReceiptHeader('what happened', 'from your log'),
             _buildMealTimelineRow(context, 'mid', data.date, data.mealName, 'Meal logged'),
-            GenzDashedDivider(color: GenzColors.ink.withOpacity(0.16), thickness: 2, dashWidth: 5, gap: 4),
+            GenzDashedDivider(color: GenzColors.ink.withValues(alpha: 0.16), thickness: 2, dashWidth: 5, gap: 4),
             _buildMealTimelineRow(context, data.reactionVibe, 'Afterwards', 'Reaction', data.reaction),
           ]),
           if (data.foodId != null) ...[
@@ -1253,13 +1239,13 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(date.toUpperCase(), style: TextStyle(color: GenzColors.ink.withOpacity(0.5), fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: 1, fontFamily: GenzFonts.primary)),
+                Text(date.toUpperCase(), style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.5), fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: 1, fontFamily: GenzFonts.primary)),
                 const SizedBox(height: 2),
                 Text(title, style: const TextStyle(color: GenzColors.ink, fontSize: 16, fontWeight: FontWeight.w900, fontFamily: GenzFonts.primary)),
                 if (description.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: Text(description, style: TextStyle(color: GenzColors.ink.withOpacity(0.62), fontSize: 13, fontWeight: FontWeight.w600, fontFamily: GenzFonts.primary)),
+                    child: Text(description, style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.62), fontSize: 13, fontWeight: FontWeight.w600, fontFamily: GenzFonts.primary)),
                   ),
               ],
             ),
@@ -1344,7 +1330,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                 height: 10,
                 margin: EdgeInsets.only(right: index == total - 1 ? 0 : 6),
                 decoration: BoxDecoration(
-                  color: index < filled ? GenzColors.lime : Colors.white.withOpacity(0.2),
+                  color: index < filled ? GenzColors.lime : Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
@@ -1429,7 +1415,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                 children: [
                   Text(title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900, letterSpacing: -0.8, fontFamily: GenzFonts.primary)),
                   const SizedBox(height: 4),
-                  Text(description, style: TextStyle(color: GenzColors.ink.withOpacity(0.62), fontSize: 13, fontWeight: FontWeight.w600, height: 1.35, fontFamily: GenzFonts.primary)),
+                  Text(description, style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.62), fontSize: 13, fontWeight: FontWeight.w600, height: 1.35, fontFamily: GenzFonts.primary)),
                 ],
               ),
             ),
@@ -1452,7 +1438,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(eyebrow, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.1, color: _detailToneForeground(tone).withOpacity(0.6), fontFamily: GenzFonts.primary)),
+                  Text(eyebrow, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.1, color: _detailToneForeground(tone).withValues(alpha: 0.6), fontFamily: GenzFonts.primary)),
                   const SizedBox(height: 2),
                   Text(title, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: -0.6, color: _detailToneForeground(tone), fontFamily: GenzFonts.primary)),
                 ],
@@ -1509,8 +1495,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
   Color _detailToneForeground(GenzTone tone) => tone == GenzTone.blue || tone == GenzTone.ink ? Colors.white : GenzColors.ink;
 
   // Shared presentation helpers.
-  Widget _buildSwapRow(BuildContext context, String badge, String title, String subtitle, String asset, String target, {bool best = false}) {
-    return GestureDetector(
+  Widget _buildSwapRow(BuildContext context, String badge, String title, String subtitle, String asset, String target, {bool best = false}) => GestureDetector(
       onTap: () => widget.onNavigate(target),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -1547,7 +1532,6 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
         ),
       ),
     );
-  }
 
   Widget _buildReceiptPaper(List<Widget> children) => PhysicalShape(
         clipper: const GenzReceiptClipper(),
@@ -1570,7 +1554,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
               ],
             ),
           ),
-          GenzDashedDivider(color: GenzColors.ink.withOpacity(0.25), thickness: 2, dashWidth: 5, gap: 4),
+          GenzDashedDivider(color: GenzColors.ink.withValues(alpha: 0.25), thickness: 2, dashWidth: 5, gap: 4),
         ],
       );
 
@@ -1610,7 +1594,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
             ),
           ),
         ),
-        if (!isLast) GenzDashedDivider(color: GenzColors.ink.withOpacity(0.16), thickness: 2, dashWidth: 5, gap: 4),
+        if (!isLast) GenzDashedDivider(color: GenzColors.ink.withValues(alpha: 0.16), thickness: 2, dashWidth: 5, gap: 4),
       ],
     );
   }
@@ -1646,7 +1630,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                   child: Container(
                     height: height,
                     decoration: BoxDecoration(
-                      color: isHi ? GenzColors.lime : Colors.white.withOpacity(isZero ? 0.1 : 0.28),
+                      color: isHi ? GenzColors.lime : Colors.white.withValues(alpha: isZero ? 0.1 : 0.28),
                       borderRadius: BorderRadius.circular(100),
                     ),
                   ),
@@ -1662,7 +1646,7 @@ class _GenzDetailScreenViewState extends State<GenzDetailScreenView> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white.withOpacity(0.75),
+                        color: Colors.white.withValues(alpha: 0.75),
                         fontFamily: GenzFonts.primary,
                       ),
                     ),

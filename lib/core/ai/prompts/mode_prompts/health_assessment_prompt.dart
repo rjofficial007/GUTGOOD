@@ -52,7 +52,7 @@ STRUCTURE (MANDATORY ORDER):
    Within this block, you MUST populate the "scan" object FULLY using the schema provided.
    - Even for home-cooked meals, ESTIMATE all fields including nutrients, nutrientLevels, ingredients (break down the dish), impactType, impact, and novaGroup.
    - scan.productName: The name of the overall dish.
-   - scan.brand: Use "GutGood".
+   - scan.brand: null unless a brand is supplied or legible.
    - scan.category: Use "meal".
    - scan.score: Calculate the GutGood 0-100 score.
    

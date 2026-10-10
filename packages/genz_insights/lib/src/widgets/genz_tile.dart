@@ -21,25 +21,21 @@ class GenzCssRadialTransform extends GradientTransform {
 
     final center = Alignment.topRight.withinRect(bounds);
     return Matrix4.identity()
-      ..translate(center.dx, center.dy)
-      ..scale(
+      ..translateByDouble(center.dx, center.dy, 0.0, 1.0)
+      ..scaleByDouble(
         bounds.width / shortestSide,
         (verticalRadius / 1.2) * bounds.height / shortestSide,
+        bounds.width / shortestSide,
+        1.0,
       )
-      ..translate(-center.dx, -center.dy);
+      ..translateByDouble(-center.dx, -center.dy, 0.0, 1.0);
   }
 }
 
 /// Applies the prototype's white cut-out stroke and soft drop shadow to
 /// transparent decorative assets.
 class GenzArt extends StatelessWidget {
-  const GenzArt({
-    super.key,
-    required this.asset,
-    required this.width,
-    required this.height,
-    this.fit = BoxFit.contain,
-  });
+  const GenzArt({super.key, required this.asset, required this.width, required this.height, this.fit = BoxFit.contain});
 
   final String asset;
   final double width;
@@ -47,48 +43,38 @@ class GenzArt extends StatelessWidget {
   final BoxFit fit;
 
   Widget _tinted(Color color) => ColorFiltered(
-        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-        child: Image.asset(asset, fit: fit, package: 'genz_insights'),
-      );
+    colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+    child: Image.asset(asset, fit: fit, package: 'genz_insights'),
+  );
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: width,
-        height: height,
-        child: Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              child: Transform.translate(
-                offset: const Offset(2, 12),
-                child: ImageFiltered(
-                  imageFilter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                  child: _tinted(Colors.black.withOpacity(0.28)),
-                ),
-              ),
-            ),
-            for (final offset in const [Offset(2, 0), Offset(-2, 0), Offset(0, 2), Offset(0, -2)])
-              Positioned.fill(
-                child: Transform.translate(offset: offset, child: _tinted(Colors.white)),
-              ),
-            Positioned.fill(child: Image.asset(asset, fit: fit, package: 'genz_insights')),
-          ],
+    width: width,
+    height: height,
+    child: Stack(
+      fit: StackFit.expand,
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: Transform.translate(
+            offset: const Offset(2, 12),
+            child: ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14), child: _tinted(Colors.black.withValues(alpha: 0.28))),
+          ),
         ),
-      );
+        for (final offset in const [Offset(2, 0), Offset(-2, 0), Offset(0, 2), Offset(0, -2)])
+          Positioned.fill(
+            child: Transform.translate(offset: offset, child: _tinted(Colors.white)),
+          ),
+        Positioned.fill(
+          child: Image.asset(asset, fit: fit, package: 'genz_insights'),
+        ),
+      ],
+    ),
+  );
 }
 
 class GenzTile extends StatelessWidget {
-  const GenzTile({
-    super.key,
-    required this.tone,
-    required this.child,
-    this.art,
-    this.height,
-    this.padding = const EdgeInsets.all(20),
-    this.borderRadius = 30,
-    this.onTap,
-  });
+  const GenzTile({super.key, required this.tone, required this.child, this.art, this.height, this.padding = const EdgeInsets.all(20), this.borderRadius = 30, this.onTap});
 
   final GenzTone tone;
   final Widget child;
@@ -131,20 +117,13 @@ class GenzTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final bgColor = _bgColor(context);
     return DefaultTextStyle(
-      style: TextStyle(
-        fontFamily: GenzFonts.primary,
-        fontFamilyFallback: GenzFonts.fallback,
-        color: _fgColor,
-      ),
+      style: TextStyle(fontFamily: GenzFonts.primary, fontFamilyFallback: GenzFonts.fallback, color: _fgColor),
       child: _GenzPressScale(
         onTap: onTap,
         child: Container(
           width: double.infinity,
           height: height,
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(borderRadius),
-          ),
+          decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(borderRadius)),
           clipBehavior: Clip.hardEdge,
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -160,7 +139,7 @@ class GenzTile extends StatelessWidget {
               fit: height != null ? StackFit.expand : StackFit.loose,
               clipBehavior: Clip.none,
               children: [
-                if (art != null) art!,
+                ?art,
                 Padding(padding: padding, child: child),
               ],
             ),
@@ -172,12 +151,7 @@ class GenzTile extends StatelessWidget {
 }
 
 class GenzSticker extends StatelessWidget {
-  const GenzSticker({
-    super.key,
-    required this.text,
-    this.tone,
-    this.angle = -0.05,
-  });
+  const GenzSticker({super.key, required this.text, this.tone, this.angle = -0.05});
 
   final String text;
   final GenzTone? tone;
@@ -228,11 +202,7 @@ class GenzSticker extends StatelessWidget {
 
 /// Mirrors the prototype's `[data-go]:active { transform: scale(.985) }`.
 class _GenzPressScale extends StatefulWidget {
-  const _GenzPressScale({
-    super.key,
-    required this.child,
-    required this.onTap,
-  });
+  const _GenzPressScale({required this.child, required this.onTap});
 
   final Widget child;
   final VoidCallback? onTap;
@@ -251,14 +221,11 @@ class _GenzPressScaleState extends State<_GenzPressScale> {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        onTapDown: widget.onTap == null ? null : (_) => _setPressed(true),
-        onTapUp: widget.onTap == null ? null : (_) => _setPressed(false),
-        onTapCancel: widget.onTap == null ? null : () => _setPressed(false),
-        child: Transform.scale(
-          scale: _pressed ? 0.985 : 1,
-          child: widget.child,
-        ),
-      );
+    behavior: HitTestBehavior.opaque,
+    onTap: widget.onTap,
+    onTapDown: widget.onTap == null ? null : (_) => _setPressed(true),
+    onTapUp: widget.onTap == null ? null : (_) => _setPressed(false),
+    onTapCancel: widget.onTap == null ? null : () => _setPressed(false),
+    child: Transform.scale(scale: _pressed ? 0.985 : 1, child: widget.child),
+  );
 }

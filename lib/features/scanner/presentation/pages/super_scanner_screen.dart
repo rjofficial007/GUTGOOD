@@ -19,6 +19,7 @@ import 'package:gutgood/core/utils/responsive.dart';
 import 'package:gutgood/core/widgets/gut_button.dart';
 import 'package:gutgood/features/auth/presentation/utils/quota_guard.dart';
 import 'package:gutgood/features/scanner/presentation/providers/scanner_notifier.dart';
+import 'package:gutgood/features/scanner/presentation/utils/scanner_capture_readiness.dart';
 import 'package:gutgood/features/scanner/presentation/widgets/scan_summary_sheet.dart';
 import 'package:gutgood/features/scanner/presentation/widgets/scanner_overlay.dart';
 import 'package:image_picker/image_picker.dart';

@@ -17,11 +17,10 @@ class PatternEngineServiceImpl implements PatternEngineService {
   final InsightFirestoreService _insightFirestoreService;
 
   /// P1-7: the analysis looks back a fixed TIME window (not just "last N
-  /// logs"), so heavy and light loggers get comparable statistics. The limit
-  /// stays as a cost guard. Range-on-createdAt needs no new Firestore index:
-  /// the existing (type ==, createdAt orderBy) composite already serves it.
+  /// logs"), so heavy and light loggers get comparable statistics. Range-on-
+  /// createdAt needs no new Firestore index: the existing (type ==, createdAt
+  /// orderBy) composite already serves it.
   static const _analysisWindowDays = 30;
-  static const _fetchLimit = 150;
   // Two repeats on separate days can surface as an early, low-confidence
   // signal. Medium confidence still requires three observations on three days.
   static const _minFrequency = 2;
@@ -39,12 +38,12 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final startedAt = DateTime.now();
     final stopwatch = Stopwatch()..start();
     AppLogger.insights(
-      '========== PATTERN GENERATION START ========== deviceTime=$startedAt (${startedAt.timeZoneName}, UTC${startedAt.timeZoneOffset}); windowDays=$_analysisWindowDays; fetchLimit=$_fetchLimit; minFrequency=$_minFrequency; mealSymptomWindows={bloating:$_bloatWindow, energy:$_energyWindow, headache:$_headacheWindow, digestion:$_digestionWindow, fullness:$_fullnessWindow}',
+      '========== PATTERN GENERATION START ========== deviceTime=$startedAt (${startedAt.timeZoneName}, UTC${startedAt.timeZoneOffset}); windowDays=$_analysisWindowDays; minFrequency=$_minFrequency; mealSymptomWindows={bloating:$_bloatWindow, energy:$_energyWindow, headache:$_headacheWindow, digestion:$_digestionWindow, fullness:$_fullnessWindow}',
     );
 
     final since = startedAt.subtract(const Duration(days: _analysisWindowDays));
-    final fetchedMeals = (mealData ?? (await _historyFirestoreService.getRecentMealLogs(limit: _fetchLimit, since: since, throwOnError: true))).take(_fetchLimit).toList();
-    final fetchedScans = (scanData ?? (await _historyFirestoreService.getRecentScans(limit: _fetchLimit, since: since, throwOnError: true))).take(_fetchLimit).toList();
+    final fetchedMeals = mealData ?? await _historyFirestoreService.getRecentMealLogs(since: since, throwOnError: true);
+    final fetchedScans = scanData ?? await _historyFirestoreService.getRecentScans(since: since, throwOnError: true);
     final candidateJournalMeals = fetchedMeals.where((meal) => !meal.createdAt.isAfter(startedAt) && !meal.eventTime.isAfter(startedAt) && !meal.createdAt.isBefore(since)).toList();
     final scanHistory = fetchedScans.where((scan) => !scan.createdAt.isAfter(startedAt) && !scan.createdAt.isBefore(since)).toList();
     final journalMeals = confirmedFoodMeals(meals: candidateJournalMeals, scans: scanHistory);
@@ -54,7 +53,7 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final scanMeals = standaloneScanRecords(meals: journalMeals, scans: scanHistory).map((s) => s.toMealLog()).toList();
     final meals = [...journalMeals, ...scanMeals];
 
-    final fetchedSymptoms = (symptomData ?? (await _historyFirestoreService.getRecentSymptomLogs(limit: _fetchLimit, since: since, throwOnError: true))).take(_fetchLimit).toList();
+    final fetchedSymptoms = symptomData ?? await _historyFirestoreService.getRecentSymptomLogs(since: since, throwOnError: true);
     final allSymptoms = fetchedSymptoms.where((symptom) => !symptom.createdAt.isAfter(startedAt) && !symptom.eventTime.isAfter(startedAt) && !symptom.createdAt.isBefore(since)).toList();
     // P2-4: keyword-guessed symptoms (no structured AI entry, no user numbers)
     // are excluded from corroboration until a confirmation flow exists. They
@@ -65,7 +64,6 @@ class PatternEngineServiceImpl implements PatternEngineService {
       'startedAtDeviceLocal': startedAt.toIso8601String(),
       'windowStart': since.toIso8601String(),
       'windowDays': _analysisWindowDays,
-      'fetchLimitPerCollection': _fetchLimit,
       'minimumFrequency': _minFrequency,
       'counts': {
         'journalMeals': journalMeals.length,
@@ -327,8 +325,8 @@ class PatternEngineServiceImpl implements PatternEngineService {
     final distinct = <BodyPattern>[];
     for (final pattern in collapsed) {
       final ids = pattern.occurrences.map((o) => o.mealId).whereType<String>().toSet();
-      // ponytail: O(n²), conservative 80% overlap suppression for at most 150
-      // meals; use explicit exposure groups if independent ingredient trials exist.
+      // ponytail: O(n²) overlap checks within the 30-day window; use indexed
+      // exposure sets if high-volume histories make refreshes slow.
       if (ids.isNotEmpty &&
           distinct.any(
             (p) =>

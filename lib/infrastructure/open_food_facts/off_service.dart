@@ -310,6 +310,14 @@ class OffServiceImpl implements OffService {
       saturatedFatG: nutrients.saturatedFat,
       additiveConcerns: AdditiveConcernDb.resolveAll(combinedAdditives),
       isOrganic: YukaScore.detectOrganic(labels),
+      novaGroup: int.tryParse(novaGroup?.toString() ?? ''),
+      isBeverage: YukaScore.isBeverageCategory('$categoryTag $category'),
+      isWater: YukaScore.isPlainWater(
+        productName: name,
+        category: '$categoryTag $category',
+        energyKcal: nutrients.calories,
+        sugarG: nutrients.sugars,
+      ),
     );
     final score = breakdown.hasData ? breakdown.score : null;
 

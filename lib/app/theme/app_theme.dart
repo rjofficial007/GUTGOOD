@@ -10,6 +10,7 @@ class AppTheme {
 
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,
+    materialTapTargetSize: MaterialTapTargetSize.padded,
     brightness: Brightness.light,
     scaffoldBackgroundColor: AppPalette.gray25,
     colorScheme: ColorScheme.fromSeed(
@@ -56,8 +57,12 @@ class AppTheme {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: AppPalette.black,
+        minimumSize: const Size(48, 44),
         textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(minimumSize: const Size(48, 48), tapTargetSize: MaterialTapTargetSize.padded),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -90,6 +95,7 @@ class AppTheme {
 
   static ThemeData get darkTheme => ThemeData(
     useMaterial3: true,
+    materialTapTargetSize: MaterialTapTargetSize.padded,
     brightness: Brightness.dark,
     scaffoldBackgroundColor: AppPalette.darkPrimary,
     colorScheme: const ColorScheme.dark(
@@ -134,8 +140,12 @@ class AppTheme {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: AppPalette.darkTextPrimary,
+        minimumSize: const Size(48, 44),
         textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(minimumSize: const Size(48, 48), tapTargetSize: MaterialTapTargetSize.padded),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,

@@ -379,7 +379,7 @@ class ChatHistoryNotifier with ChangeNotifier {
         final mealId = linkedMealId ?? nearestMealJournalEntryId(symptomTime: occurredAt, meals: recentMeals.where((meal) => meal.occurredAtProvenance == OccurrenceProvenance.user));
         final source = current.symptomLogs.where((item) => item.firestoreId == symptom.firestoreId).firstOrNull;
         if (source == null) return false;
-        final selectedMeal = recentMeals.where((meal) => (meal.journalEntryId ?? meal.firestoreId) == linkedMealId).firstOrNull;
+        final selectedMeal = recentMeals.where((meal) => (meal.journalEntryId ?? meal.firestoreId) == mealId).firstOrNull;
         final updated = source.copyWith(
           foodName: selectedMeal?.items.firstOrNull,
           occurredAt: occurredAt,

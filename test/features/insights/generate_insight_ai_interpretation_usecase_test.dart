@@ -1,8 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gutgood/core/ai/client/ai_client.dart';
 import 'package:gutgood/core/models/models.dart';
 import 'package:gutgood/features/insights/application/usecases/generate_insight_ai_interpretation_usecase.dart';
+import 'package:gutgood/features/insights/domain/repositories/insight_repository.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockAiClient extends Mock implements AiClient {}
+
+class MockInsightRepository extends Mock implements InsightRepository {}
 
 void main() {
+  test('returns today’s saved summary without making another AI request', () async {
+    final saved = InsightAiInterpretation(summary: 'Saved for today.', generatedAt: DateTime.now(), promptVersion: 2);
+    final insight = AIInsight(
+      firestoreId: 'rule_based_latest',
+      uid: 'user-1',
+      gutScore: 70,
+      detectedPatterns: const [],
+      updatedAt: DateTime.now(),
+      origin: AIInsight.originRuleBased,
+      aiInterpretation: saved,
+    );
+    final useCase = GenerateInsightAiInterpretationUseCase(aiClient: MockAiClient(), insightRepository: MockInsightRepository());
+
+    expect(await useCase.execute(insight), same(saved));
+  });
+
   group('GenerateInsightAiInterpretationUseCase eligibility', () {
     test('allows only a multi-area rule-based snapshot with repeated observations', () {
       final insight = _insight(patterns: [_pattern('bloating'), _pattern('sleep')]);

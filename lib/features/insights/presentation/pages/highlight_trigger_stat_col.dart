@@ -14,37 +14,40 @@ class _TriggerStatCol extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.insightTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 22.w,
-          height: 22.w,
-          decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-          alignment: Alignment.center,
-          child: Icon(icon, size: 11.w, color: iconColor),
-        ),
-        Gap.h4,
-        Text(
-          label,
-          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), fontWeight: FontWeight.w600),
-        ),
-        Gap.h2,
-        Text(
-          value,
-          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)), height: 1.15),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        Gap.h2,
-        Text(
-          subtext,
-          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, color: context.insightColor(const Color(0xFF64748B))),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+    return Container(
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2B191B) : const Color(0xFFFFF1EF),
+        borderRadius: BorderRadius.circular(14.w),
+        border: Border.all(color: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFECACA)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28.w,
+            height: 28.w,
+            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 14.w, color: iconColor),
+          ),
+          Gap.w8,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.45, color: theme.textTertiary)),
+                Gap.h4,
+                Text(value, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w800, height: 1.2, color: theme.textPrimary)),
+                Gap.h2,
+                Text(subtext, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, color: theme.textSecondary)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -30,17 +30,18 @@ class _TopFoodsScreenState extends State<TopFoodsScreen> {
               subtitle: 'Foods that appear to work well for you based on your logs.',
               onInfo: () => _showInfo(context),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Row(
-                children: [
-                  for (final filter in _filters) ...[
-                    if (filter != _filters.first) SizedBox(width: 6.w),
-                    Expanded(
-                      child: _TopFoodsFilterChip(label: filter, selected: filter == _selectedFilter, onTap: () => setState(() => _selectedFilter = filter)),
-                    ),
-                  ],
-                ],
+            SizedBox(
+              height: 38.w,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                physics: const BouncingScrollPhysics(),
+                itemCount: _filters.length,
+                separatorBuilder: (_, _) => SizedBox(width: 8.w),
+                itemBuilder: (context, index) {
+                  final filter = _filters[index];
+                  return _TopFoodsFilterChip(label: filter, selected: filter == _selectedFilter, onTap: () => setState(() => _selectedFilter = filter));
+                },
               ),
             ),
             Gap.h12,
@@ -273,7 +274,7 @@ class _TopFoodsFilterChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(100.w),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 9.h),
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 9.h),
           child: Text(
             label,
             maxLines: 1,
@@ -296,7 +297,7 @@ class _TopFoodInsightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.insightTheme;
-    final positive = item.isConfirmedPositive;
+    final positive = statusLabel == null ? item.isConfirmedPositive : statusLabel!.toLowerCase() != 'watch';
     final evidence = item.observations == 1 ? '1 observation' : '${item.observations} observations';
     final detail = item.negativeObservations > 0
         ? item.negativeObservations.toString() + (item.negativeObservations == 1 ? ' negative response reported' : ' negative responses reported')
@@ -382,7 +383,7 @@ class _TopFoodInsightCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            for (final effect in item.effects.take(3)) ...[_TopFoodEffectLine(effect: effect), Gap.h4],
+                            for (final effect in item.effects.take(3)) ...[_TopFoodEffectLine(effect: effect, positive: positive), Gap.h4],
                           ],
                         ),
                       ),
@@ -431,6 +432,7 @@ class _TopFoodDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.insightTheme;
+    final positive = statusLabel == null ? item.isConfirmedPositive : statusLabel!.toLowerCase() != 'watch';
     final image = DynamicFoodImage(
       keyword: item.name,
       imageUrl: item.imageUrl,
@@ -471,7 +473,7 @@ class _TopFoodDetailScreen extends StatelessWidget {
             Gap.h24,
             Text('Noted effects', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: theme.textPrimary)),
             Gap.h10,
-            for (final effect in item.effects) ...[_TopFoodEffectLine(effect: effect), Gap.h8],
+              for (final effect in item.effects) ...[_TopFoodEffectLine(effect: effect, positive: positive), Gap.h8],
           ],
           Gap.h24,
           Text('Your observations', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 15.sp, fontWeight: FontWeight.w800, color: theme.textPrimary)),
@@ -522,8 +524,8 @@ class _TopFoodStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = positive ? const Color(0xFF008451) : const Color(0xFF64748B);
-    final background = positive ? const Color(0xFFE2F8ED) : const Color(0xFFEEF1F7);
+    final color = positive ? const Color(0xFF008451) : const Color(0xFFB42318);
+    final background = positive ? const Color(0xFFE2F8ED) : const Color(0xFFFEF3F2);
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
@@ -537,7 +539,7 @@ class _TopFoodStatusBadge extends StatelessWidget {
               width: 17.w,
               height: 17.w,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: Icon(positive ? Icons.arrow_upward_rounded : Icons.bar_chart_rounded, size: 12.w, color: Colors.white),
+              child: Icon(positive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 12.w, color: Colors.white),
             ),
             Gap.w5,
             Text(
@@ -552,9 +554,10 @@ class _TopFoodStatusBadge extends StatelessWidget {
 }
 
 class _TopFoodEffectLine extends StatelessWidget {
-  const _TopFoodEffectLine({required this.effect});
+  const _TopFoodEffectLine({required this.effect, required this.positive});
 
   final String effect;
+  final bool positive;
 
   @override
   Widget build(BuildContext context) {
@@ -573,8 +576,8 @@ class _TopFoodEffectLine extends StatelessWidget {
         Container(
           width: 17.w,
           height: 17.w,
-          decoration: const BoxDecoration(color: Color(0xFFE4F9EE), shape: BoxShape.circle),
-          child: Icon(icon, size: 12.w, color: const Color(0xFF08A665)),
+          decoration: BoxDecoration(color: positive ? const Color(0xFFE4F9EE) : const Color(0xFFFEF3F2), shape: BoxShape.circle),
+          child: Icon(icon, size: 12.w, color: positive ? const Color(0xFF08A665) : const Color(0xFFB42318)),
         ),
         Gap.w5,
         Expanded(

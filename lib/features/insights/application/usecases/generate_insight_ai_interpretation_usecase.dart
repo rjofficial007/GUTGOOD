@@ -45,7 +45,7 @@ class GenerateInsightAiInterpretationUseCase {
 
   Future<InsightAiInterpretation> execute(AIInsight insight) async {
     final existing = insight.aiInterpretation;
-    if (existing != null) return existing;
+    if (existing != null && existing.wasGeneratedOn(DateTime.now())) return existing;
 
     if (!canExplain(insight)) {
       throw StateError('AI explanation requires rule-based observations from at least two different areas.');
@@ -93,14 +93,12 @@ class GenerateInsightAiInterpretationUseCase {
     }
 
     final summary = _boundedText(decoded['summary'], maxLength: 700);
-    final followUpQuestion = _boundedText(decoded['followUpQuestion'], maxLength: 220);
-    if (summary.isEmpty || followUpQuestion.isEmpty) {
-      throw const FormatException('The AI explanation was missing required content.');
+    if (summary.isEmpty) {
+      throw const FormatException('The pattern summary was missing required content.');
     }
 
     final interpretation = InsightAiInterpretation(
       summary: summary,
-      followUpQuestion: followUpQuestion,
       generatedAt: DateTime.now().toUtc(),
       promptVersion: AiVersions.insightInterpretationPromptVersion,
       model: _aiClient.lastServedModel,
@@ -122,10 +120,10 @@ class GenerateInsightAiInterpretationUseCase {
 
   static const String _systemInstruction = '''You are an evidence-grounded wellness explainer, not a clinician. The input contains observations detected by GutGood's deterministic rules from user logs; they are reported associations, not medically verified facts.
 
-Your only job is to write a short, cautious explanation of a possible connection across the supplied areas and one neutral follow-up question that could help the user log useful context next time. This synthesis is the only AI-generated part of the Insight.
+Your only job is to write a short, cautious explanation of possible connections across the supplied areas. This synthesis is the only generated part of the Insight.
 
 Never invent a pattern, food, symptom, count, timing, or user history. Do not change or recalculate rule results. Do not claim a food caused a symptom, infer an allergy or disease, diagnose, prescribe treatment, or recommend eliminating foods. Distinguish logged association from possibility. If the observations do not support a meaningful connection, say so plainly instead of forcing one.
 
-Return valid JSON only with exactly these string fields:
-{"summary":"Two or three concise sentences.","followUpQuestion":"One neutral, non-leading question."}''';
+Return valid JSON only with exactly this string field:
+{"summary":"Two or three concise sentences."}''';
 }

@@ -17,7 +17,7 @@ class _AdditivesBody extends StatelessWidget {
       children: [
         for (var i = 0; i < concerns.length; i++) ...[if (i > 0) Gap.h12, _additiveRow(context, concerns[i], scheme)],
         Gap.h8,
-        Text('Fewer additives usually means less ultra-processing.', style: context.captionMicro.copyWith(color: scheme.textMuted)),
+        Text('Fewer additives usually means less ultra-processing.', style: context.bodySm.copyWith(color: scheme.textMuted)),
       ],
     );
   }
@@ -36,8 +36,8 @@ class _AdditivesBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(c.displayTitle, style: context.captionBold.copyWith(color: scheme.textPrimary)),
-              if (c.name.isNotEmpty && c.name.toLowerCase() != c.displayTitle.toLowerCase()) Text(c.name, style: context.captionMicro, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(c.displayTitle, style: context.labelBold.copyWith(color: scheme.textPrimary, fontSize: 12.sp)),
+              if (c.name.isNotEmpty && c.name.toLowerCase() != c.displayTitle.toLowerCase()) Text(c.name, style: context.bodySm, maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -46,7 +46,7 @@ class _AdditivesBody extends StatelessWidget {
           decoration: BoxDecoration(color: colors.pillBackground, borderRadius: BorderRadius.circular(AppSizes.r100)),
           child: Text(
             c.level.label,
-            style: context.captionMicro.copyWith(color: colors.accent, fontWeight: FontWeight.w700),
+            style: context.labelBold.copyWith(color: colors.accent, fontSize: 11.5.sp, fontWeight: FontWeight.w700),
           ),
         ),
       ],

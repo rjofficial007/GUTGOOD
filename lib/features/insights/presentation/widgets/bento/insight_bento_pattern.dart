@@ -32,7 +32,7 @@ class InsightBentoPattern extends StatelessWidget {
             children: [
               _MetricCard(value: '${pattern.frequency}', label: 'MATCHED LOGS', color: accent),
               Gap.w10,
-              _MetricCard(value: pattern.totalSimilarMeals > 0 ? '${pattern.totalSimilarMeals}' : '—', label: 'MEALS LOGGED', color: accent),
+              _MetricCard(value: '${pattern.totalSimilarMeals}', label: 'MEALS LOGGED', color: accent),
               Gap.w10,
               _MetricCard(value: pattern.typicalDelay?.trim().isNotEmpty == true ? pattern.typicalDelay! : 'Not recorded', label: 'ONSET TIMING', color: accent),
             ],

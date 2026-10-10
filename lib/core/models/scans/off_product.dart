@@ -108,6 +108,14 @@ class OffProduct extends Equatable {
     saturatedFatG: nutrients?.saturatedFat,
     additiveConcerns: additiveConcerns,
     isOrganic: isOrganic,
+    novaGroup: novaGroup,
+    isBeverage: YukaScore.isBeverageCategory('$categoryTag $category'),
+    isWater: YukaScore.isPlainWater(
+      productName: productName,
+      category: '$categoryTag $category',
+      energyKcal: nutrients?.calories,
+      sugarG: nutrients?.sugars,
+    ),
   );
 
   /// Returns the deterministically calculated Gut Score (0-100) for this

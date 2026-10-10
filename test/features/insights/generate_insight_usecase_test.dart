@@ -167,6 +167,15 @@ void main() {
     verify(() => scoreStore.saveGutScore(any())).called(1);
   });
 
+  test('does not save an empty snapshot when an Insight history read fails', () async {
+    when(() => repository.getRecentMeals(any())).thenThrow(StateError('temporary Firestore failure'));
+    final useCase = await createUseCase();
+
+    await expectLater(useCase.execute(), throwsA(isA<StateError>()));
+
+    verifyNever(() => repository.saveInsight(any()));
+  });
+
   test('resolves a confirmed meal rating even when the product was scanned before the window', () async {
     meals = [
       MealLog(items: const ['Oats'], scanId: 'old-source', consumptionConfirmed: true, createdAt: now, occurredAt: now),

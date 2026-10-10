@@ -72,6 +72,7 @@ class _GutButtonState extends State<GutButton> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: double.infinity,
+            constraints: BoxConstraints(minHeight: widget.isSmall ? 44 : 56),
             padding: EdgeInsets.symmetric(
               vertical: widget.isSmall ? AppSizes.p12 : AppSizes.p18,
               horizontal: AppSizes.p24,
@@ -101,12 +102,16 @@ class _GutButtonState extends State<GutButton> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          widget.label.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: context.eyebrow.copyWith(
-                            color: effectiveTextColor,
-                            fontSize: widget.isSmall ? 10 : 12,
+                        Flexible(
+                          child: Text(
+                            widget.label.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.eyebrow.copyWith(
+                              color: effectiveTextColor,
+                              fontSize: widget.isSmall ? 10 : 12,
+                            ),
                           ),
                         ),
                         if (widget.suffixIcon != null) ...[
@@ -114,7 +119,7 @@ class _GutButtonState extends State<GutButton> {
                           Icon(
                             widget.suffixIcon,
                             color: effectiveTextColor,
-                            size: widget.isSmall ? 14 : 18,
+                            size: widget.isSmall ? 16 : 20,
                           ),
                         ],
                       ],

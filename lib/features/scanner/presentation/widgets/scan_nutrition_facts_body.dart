@@ -65,10 +65,10 @@ class _NutritionFactsBodyState extends State<_NutritionFactsBody> {
           Gap.h8,
           Text(
             _perServing && serving != null ? 'Per serving of ${product.servingSize ?? 'one portion'}.' : 'Per $perLabel, as declared on the pack.',
-            style: context.captionMicro.copyWith(color: scheme.textMuted),
+            style: context.bodySm.copyWith(color: scheme.textMuted),
           ),
         ] else
-          Text('Nutrition data not available for this product yet.', style: context.caption),
+          Text('Nutrition data not available for this product yet.', style: context.bodySm),
       ],
     );
   }
@@ -97,9 +97,9 @@ class _NutritionFactsBodyState extends State<_NutritionFactsBody> {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           Gap.w6,
-          Text(label, style: context.caption.copyWith(color: scheme.textPrimary)),
+          Text(label, style: context.bodySm.copyWith(color: scheme.textPrimary)),
           Gap.w4,
-          Text(level == 'unknown' ? '—' : level.toLowerCase(), style: context.captionBold.copyWith(color: color)),
+          Text(level == 'unknown' ? '—' : level.toLowerCase(), style: context.labelBold.copyWith(color: color, fontSize: 12.sp)),
         ],
       ),
     );
@@ -120,7 +120,7 @@ class _NutritionFactsBodyState extends State<_NutritionFactsBody> {
               style: emphasis
                   ? context.bodyBold.copyWith(fontWeight: FontWeight.w700)
                   : indent
-                  ? context.caption.copyWith(color: scheme.textSecondary)
+                  ? context.bodySm.copyWith(color: scheme.textSecondary)
                   : context.bodyBold.copyWith(color: scheme.textPrimary, fontWeight: FontWeight.w600),
             ),
           ),

@@ -169,6 +169,18 @@ service cloud.firestore {
         allow delete: if isOwnerWithProfile(userId);
       }
 
+      /** User-scoped AI swap cache; each source food has one context-versioned document. */
+      match /swap_recommendations/{foodKey} {
+        allow read: if isOwnerWithProfile(userId);
+        allow create, update: if isOwnerWithProfile(userId)
+          && request.resource.size() < 512 * 1024
+          && request.resource.data.get('sourceFoodName', '') is string
+          && request.resource.data.get('contextHash', '') is string
+          && request.resource.data.get('alternatives', []) is list
+          && request.resource.data.get('alternatives', []).size() <= 4;
+        allow delete: if isOwnerWithProfile(userId);
+      }
+
       /** Gut Scores: Deterministically calculated daily and weekly gut scores. */
       match /gut_scores/{docId} {
         allow read: if isOwnerWithProfile(userId);

@@ -32,17 +32,20 @@ extension HighlightHealingSections on HighlightDetailScreen {
 
     final cleanSeries = InsightValues.scores(series);
     final scoredSeries = scoreRecord?.scoredScores.map((score) => score.toDouble()).toList() ?? cleanSeries.where((score) => score > 0).toList(growable: false);
-    final hasScore = profileHasScore ?? scoreRecord?.hasScore ?? (insight?.hasGutScore == true || scoredSeries.isNotEmpty);
+    final hasScore = scoreRecord?.hasScore ?? profileHasScore ?? (insight?.hasGutScore == true || scoredSeries.isNotEmpty);
     final scoredDayCount = scoreRecord?.scoredDayCount ?? (scoredSeries.isEmpty && insight?.hasGutScore == true ? 1 : scoredSeries.length);
     final hasHistory = scoredSeries.length > 1;
-    final currentScore = profileScore ?? scoreRecord?.gutScore ?? (insight?.hasGutScore == true ? insight!.gutScore.clamp(0, 100).toInt() : (scoredSeries.isNotEmpty ? scoredSeries.last.round() : 0));
+    final currentScore = scoreRecord?.gutScore ?? profileScore ?? (insight?.hasGutScore == true ? insight!.gutScore.clamp(0, 100).toInt() : (scoredSeries.isNotEmpty ? scoredSeries.last.round() : 0));
 
     // A single score is a baseline regardless of scoreDiff. Do not turn a
     // persisted "+0" into a green progress state.
-    final diff = hasHistory ? scoredSeries.last.round() - scoredSeries.first.round() : 0;
+    final routedDiff = InsightFeedDerivations.parseScoreDelta(args.frequency);
+    final recordDiff = scoredSeries.length > 1 ? scoredSeries.last.round() - scoredSeries[scoredSeries.length - 2].round() : null;
+    final diff = hasHistory ? (recordDiff ?? routedDiff ?? scoredSeries.last.round() - scoredSeries.first.round()) : 0;
     final isImproving = hasHistory && diff > 0;
     final isDeclining = hasHistory && diff < 0;
     final isBaseline = !hasHistory;
+    final isEarlyProgress = isImproving && scoredDayCount <= 3;
 
     final accent = isBaseline
         ? theme.success
@@ -63,17 +66,27 @@ extension HighlightHealingSections on HighlightDetailScreen {
     final statusLabel = isBaseline
         ? 'FIRST BASELINE'
         : isImproving
-        ? 'IMPROVING'
+        ? isEarlyProgress
+              ? 'EARLY PROGRESS'
+              : 'IMPROVING'
         : isDeclining
         ? 'AREA TO WATCH'
         : 'STEADY';
-    final headline = isBaseline ? (hasScore ? 'Your starting point is here.' : 'Your baseline is taking shape.') : (args.title.isNotEmpty ? args.title : 'Your gut score is steady.');
+    final headline = isBaseline
+        ? (hasScore ? 'Your starting point is here.' : 'Your baseline is taking shape.')
+        : diff != 0
+        ? _scoreChangeHeadline(diff)
+        : isEarlyProgress
+        ? 'Your progress is beginning.'
+        : (args.title.isNotEmpty ? _neutralProgressCopy(args.title) : 'Your gut score is steady.');
     final body = isBaseline
         ? hasScore
               ? 'We have ${scoredDayCount == 1 ? 'one scored day' : '$scoredDayCount scored days'} so far. Keep logging to make the next comparison more useful.'
               : 'Log meals and symptoms to create your first meaningful baseline.'
-        : (args.body?.trim().isNotEmpty == true ? args.body! : 'Your score is now based on more than one recorded day.');
-    final rangeLabel = hasHistory ? '${scoredSeries.first.round()} → ${scoredSeries.last.round()}' : (hasScore ? '$currentScore/100' : '—');
+        : hasHistory && diff != 0
+        ? 'Keep logging to see if this trend continues.'
+        : (args.body?.trim().isNotEmpty == true ? _neutralProgressCopy(args.body!) : 'Your score is now based on more than one recorded day.');
+    final rangeLabel = hasHistory ? '${scoredSeries.reduce((a, b) => a < b ? a : b).round()} → ${scoredSeries.reduce((a, b) => a > b ? a : b).round()}' : (hasScore ? '$currentScore/100' : '0/100');
     final coverageLabel = scoredSeries.isEmpty ? '0 / 7' : '${scoredSeries.length} / 7';
     final coverageDetail = scoredDayCount == 1 ? '1 day scored' : '$scoredDayCount days scored';
     final scoreDetail = hasScore ? 'Current score' : 'Awaiting first score';
@@ -85,9 +98,11 @@ extension HighlightHealingSections on HighlightDetailScreen {
 
     final foods = _healingFoods(insight);
     final highlights = _progressHighlights(insight);
-    final nextSteps = [..._nextStepLabels(insight)];
+    final nextSteps = _nextStepLabels(insight).map(_neutralProgressCopy).where((step) => !step.toLowerCase().contains('keep the momentum going')).toList();
     if (isBaseline && nextSteps.isEmpty) {
       nextSteps.add(hasScore ? 'Log one more day of meals and symptoms to compare with this starting point.' : 'Log a full day of meals and symptoms to create your starting point.');
+    } else if (nextSteps.isEmpty && isImproving) {
+      nextSteps.add('Keep logging meals and symptoms to see whether this trend continues.');
     }
 
     return Scaffold(
@@ -120,12 +135,10 @@ extension HighlightHealingSections on HighlightDetailScreen {
                   accentSoft: accentSoft,
                 ),
                 Gap.h12,
-                _buildObservationStatusCard(context, insight: insight, isBaseline: isBaseline, scoredDayCount: scoredDayCount),
+                _buildObservationStatusCard(context, insight: insight, isBaseline: isBaseline, scoredDayCount: scoredDayCount, diff: diff),
                 if (foods.isNotEmpty) ...[Gap.h12, _buildWhatsContributingSection(context, foods)],
                 if (highlights.isNotEmpty) ...[Gap.h12, _buildProgressHighlightsSection(context, highlights)],
                 if (nextSteps.isNotEmpty) ...[Gap.h12, _buildNextStepsSection(context, nextSteps, isBaseline: isBaseline)],
-                Gap.h12,
-                _buildKeepGoingBanner(context, isBaseline: isBaseline),
               ]),
             ),
           ),
@@ -265,7 +278,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
     }
 
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    final scoreText = hasScore ? '$currentScore' : '—';
+    final scoreText = hasScore ? '$currentScore' : '0';
     final deltaText = hasHistory ? '${diff > 0 ? '+' : ''}$diff pts' : 'Baseline';
 
     return Container(
@@ -287,7 +300,17 @@ extension HighlightHealingSections on HighlightDetailScreen {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(hasHistory ? (diff < 0 ? LucideIcons.trendingDown : diff == 0 ? LucideIcons.minus : LucideIcons.trendingUp) : LucideIcons.sparkles, size: 13.w, color: accent),
+                    Icon(
+                      hasHistory
+                          ? (diff < 0
+                                ? LucideIcons.trendingDown
+                                : diff == 0
+                                ? LucideIcons.minus
+                                : LucideIcons.trendingUp)
+                          : LucideIcons.sparkles,
+                      size: 13.w,
+                      color: accent,
+                    ),
                     Gap.w5,
                     Text(
                       statusLabel,
@@ -368,22 +391,29 @@ extension HighlightHealingSections on HighlightDetailScreen {
           ),
           Gap.h12,
           Container(
-            padding: EdgeInsets.all(10.w),
+            padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
-              color: theme.cardSubtle,
-              borderRadius: BorderRadius.circular(14.w),
-              border: Border.all(color: theme.borderSubtle),
+              color: accentSoft.withValues(alpha: 0.42),
+              borderRadius: BorderRadius.circular(16.w),
+              border: Border.all(color: accent.withValues(alpha: 0.12)),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _BaselineMetric(label: 'WEEKLY COVERAGE', value: coverageLabel, detail: coverageDetail, color: accent),
-                ),
-                Container(width: 1.w, height: 30.w, color: theme.border),
-                Expanded(
-                  child: _BaselineMetric(label: 'SCORE RANGE', value: rangeLabel, detail: hasHistory ? 'This period' : 'Starting point', color: accent),
-                ),
-              ],
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _BaselineMetric(label: 'WEEKLY COVERAGE', value: coverageLabel, detail: coverageDetail, color: accent),
+                  ),
+                  Container(
+                    width: 1.w,
+                    margin: EdgeInsets.symmetric(vertical: 5.w),
+                    color: accent.withValues(alpha: 0.16),
+                  ),
+                  Expanded(
+                    child: _BaselineMetric(label: 'SCORE RANGE', value: rangeLabel, detail: hasHistory ? '7-day low to high' : 'Starting point', color: accent),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -391,24 +421,36 @@ extension HighlightHealingSections on HighlightDetailScreen {
     );
   }
 
-  Widget _buildObservationStatusCard(BuildContext context, {required AIInsight? insight, required bool isBaseline, required int scoredDayCount}) {
+  Widget _buildObservationStatusCard(BuildContext context, {required AIInsight? insight, required bool isBaseline, required int scoredDayCount, required int diff}) {
     final theme = context.insightTheme;
     final top = insight?.topInsight;
     final title = isBaseline
         ? 'No recurring pattern yet'
+        : diff != 0
+        ? (diff > 0 ? 'Progress signal' : 'Score change')
         : top?.title.trim().isNotEmpty == true
-        ? top!.title
+        ? _neutralProgressCopy(top!.title)
         : 'No recurring pattern yet';
     final description = isBaseline
         ? scoredDayCount == 0
               ? 'There is not enough logged evidence yet. Keep recording meals and symptoms so we can learn what is typical for you.'
               : 'One scored day gives us a starting point. More logs are needed before we can compare patterns.'
+        : diff != 0
+        ? _scoreChangeCopy(diff)
         : top?.description.trim().isNotEmpty == true
-        ? top!.description
-        : 'Your first logs are being used to learn what is typical for you.';
+        ? _neutralProgressCopy(top!.description)
+        : 'Your recent logs are helping reveal what is typical for you.';
     final observationCount = isBaseline ? scoredDayCount : (top?.frequency ?? 1);
-    final accent = isBaseline ? theme.success : theme.purple;
-    final accentSoft = isBaseline ? theme.successSoft : theme.purplePastel.withValues(alpha: 0.18);
+    final accent = isBaseline
+        ? theme.success
+        : diff < 0
+        ? theme.error
+        : theme.success;
+    final accentSoft = isBaseline
+        ? theme.successSoft
+        : diff < 0
+        ? theme.errorSoft
+        : theme.successSoft;
 
     return Container(
       padding: EdgeInsets.all(13.w),
@@ -504,7 +546,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
               final food = foods[index];
               return _ContributingCard(
                 title: food.name,
-                subtitle: food.effect?.trim().isNotEmpty == true ? food.effect! : 'Observed in your logs.',
+                subtitle: food.effect?.trim().isNotEmpty == true ? _neutralProgressCopy(food.effect!) : 'Observed in your logs.',
                 badgeText: 'Supportive observation',
                 badgeColor: theme.successSoft,
                 badgeTextColor: theme.success,
@@ -520,17 +562,66 @@ extension HighlightHealingSections on HighlightDetailScreen {
 
   Widget _buildProgressHighlightsSection(BuildContext context, List<String> highlights) {
     final theme = context.insightTheme;
+    final items = highlights.take(2).map(_neutralProgressCopy).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _BaselineSectionHeader(icon: LucideIcons.star, iconColor: theme.warning, iconBackground: theme.warningSoft, title: 'Progress highlights', subtitle: 'Signals from your recent logs.'),
-        Gap.h10,
-        for (var index = 0; index < highlights.length; index++) ...[
-          if (index > 0) Gap.h8,
-          _HighlightBox(icon: index == 0 ? LucideIcons.leaf : LucideIcons.sparkles, iconBg: theme.successSoft, iconColor: theme.success, title: highlights[index], subtitle: 'From your logs'),
+    return Container(
+      padding: EdgeInsets.all(13.w),
+      decoration: BoxDecoration(
+        color: theme.card,
+        borderRadius: BorderRadius.circular(20.w),
+        border: Border.all(color: theme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(color: theme.successSoft, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Icon(LucideIcons.sparkles, size: 18.w, color: theme.success),
+              ),
+              Gap.w10,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PROGRESS HIGHLIGHTS',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.65, color: theme.success),
+                    ),
+                    Gap.h3,
+                    Text(
+                      'Signals from your recent logs',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, height: 1.15, color: theme.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Gap.h10,
+          for (var index = 0; index < items.length; index++) ...[
+            if (index > 0) ...[Gap.h6, Divider(height: 1.w, color: theme.borderSubtle), Gap.h6],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(LucideIcons.circleCheck, size: 15.w, color: theme.success),
+                Gap.w8,
+                Expanded(
+                  child: Text(
+                    items[index],
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, height: 1.35, color: theme.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -539,62 +630,72 @@ extension HighlightHealingSections on HighlightDetailScreen {
     final accent = isBaseline ? theme.success : theme.purple;
     final accentSoft = isBaseline ? theme.successSoft : theme.purplePastel.withValues(alpha: 0.18);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _BaselineSectionHeader(
-          icon: LucideIcons.arrowUpRight,
-          iconColor: accent,
-          iconBackground: accentSoft,
-          title: 'Your next best step',
-          subtitle: 'One small log makes the next comparison stronger.',
-        ),
-        Gap.h10,
-        for (var index = 0; index < nextSteps.length && index < 2; index++) ...[
-          if (index > 0) Gap.h8,
-          _BaselineNextStepCard(number: index + 1, text: nextSteps[index], accent: accent, accentSoft: accentSoft),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildKeepGoingBanner(BuildContext context, {required bool isBaseline}) {
-    final theme = context.insightTheme;
-
+    final items = nextSteps.take(2).toList();
     return Container(
-      padding: EdgeInsets.all(15.w),
+      padding: EdgeInsets.all(13.w),
       decoration: BoxDecoration(
-        color: theme.successSoft,
+        color: theme.card,
         borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(color: theme.success.withValues(alpha: 0.18)),
+        border: Border.all(color: theme.border),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32.w,
-            height: 32.w,
-            decoration: BoxDecoration(color: theme.card.withValues(alpha: 0.72), shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Icon(LucideIcons.sprout, size: 17.w, color: theme.success),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(color: accentSoft, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Icon(LucideIcons.arrowUpRight, size: 18.w, color: accent),
+              ),
+              Gap.w10,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'YOUR NEXT BEST STEP',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.65, color: accent),
+                    ),
+                    Gap.h3,
+                    Text(
+                      'One small log makes the next comparison stronger.',
+                      style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, height: 1.15, color: theme.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Gap.w10,
-          Expanded(
-            child: Column(
+          Gap.h10,
+          for (var index = 0; index < items.length; index++) ...[
+            if (index > 0) ...[Gap.h6, Divider(height: 1.w, color: theme.borderSubtle), Gap.h6],
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  isBaseline ? 'Your baseline is taking shape' : 'Keep the momentum going',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 13.sp, fontWeight: FontWeight.w800, color: theme.success),
+                Container(
+                  width: 20.w,
+                  height: 20.w,
+                  decoration: BoxDecoration(color: accentSoft, shape: BoxShape.circle),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${index + 1}',
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w800, color: accent),
+                  ),
                 ),
-                Gap.h3,
-                Text(
-                  isBaseline ? 'Each meal and symptom log helps us make your next insight more useful.' : 'Consistent logging makes your progress easier to understand.',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 10.5.sp, height: 1.3, color: theme.textSecondary),
+                Gap.w8,
+                Expanded(
+                  child: Text(
+                    items[index],
+                    style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, height: 1.35, color: theme.textSecondary),
+                  ),
                 ),
               ],
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -635,7 +736,7 @@ extension HighlightHealingSections on HighlightDetailScreen {
                 ? item
                 : '',
           )
-          .where((text) => text.trim().isNotEmpty)
+          .where((text) => text.trim().isNotEmpty && !text.toLowerCase().contains('keep the momentum going'))
           .take(2)
           .toList() ??
       const [];
@@ -646,6 +747,14 @@ extension HighlightHealingSections on HighlightDetailScreen {
     if (actionLabels.isNotEmpty) return actionLabels;
     return insight.topInsight?.nextSteps.where((step) => step.trim().isNotEmpty).toList() ?? const [];
   }
+
+  String _scoreChangeCopy(int points) => points > 0
+      ? 'Your score increased $points ${points == 1 ? 'point' : 'points'} since your previous scored day — keep logging to see if this trend continues.'
+      : 'Your score decreased ${points.abs()} ${points.abs() == 1 ? 'point' : 'points'} since your previous scored day — keep logging to see if this trend continues.';
+
+  String _scoreChangeHeadline(int points) => 'Your score ${points > 0 ? 'increased' : 'decreased'} ${points.abs()} ${points.abs() == 1 ? 'point' : 'points'}';
+
+  String _neutralProgressCopy(String value) => value.replaceAll(RegExp('healing', caseSensitive: false), 'progress');
 }
 
 class _BaselineMetric extends StatelessWidget {
@@ -659,31 +768,37 @@ class _BaselineMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.insightTheme;
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.45, color: theme.textTertiary),
-          ),
-          Gap.h3,
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w900, color: color),
-          ),
-          Text(
-            detail,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, color: theme.textSecondary),
-          ),
-        ],
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 5.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.5.sp, fontWeight: FontWeight.w800, letterSpacing: 0.45, color: theme.textTertiary),
+            ),
+            Gap.h3,
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w900, color: color),
+            ),
+            Text(
+              detail,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, color: theme.textSecondary),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -755,50 +870,6 @@ class _BaselineSectionHeader extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _BaselineNextStepCard extends StatelessWidget {
-  const _BaselineNextStepCard({required this.number, required this.text, required this.accent, required this.accentSoft});
-
-  final int number;
-  final String text;
-  final Color accent;
-  final Color accentSoft;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.insightTheme;
-    return Container(
-      padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        color: theme.card,
-        borderRadius: BorderRadius.circular(18.w),
-        border: Border.all(color: theme.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28.w,
-            height: 28.w,
-            decoration: BoxDecoration(color: accentSoft, shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Text(
-              '$number',
-              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w900, color: accent),
-            ),
-          ),
-          Gap.w10,
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 12.sp, fontWeight: FontWeight.w700, height: 1.3, color: theme.textPrimary),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

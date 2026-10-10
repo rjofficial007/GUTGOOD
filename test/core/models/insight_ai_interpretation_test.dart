@@ -2,7 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gutgood/core/models/models.dart';
 
 void main() {
-  test('optional AI interpretation round-trips without replacing deterministic findings', () {
+  test('daily interpretation date follows the local calendar day', () {
+    final generatedAt = DateTime(2026, 10, 10, 23, 50).toUtc();
+    final interpretation = InsightAiInterpretation(summary: 'A saved summary.', generatedAt: generatedAt, promptVersion: 2);
+    final generatedLocalDate = generatedAt.toLocal();
+
+    expect(interpretation.wasGeneratedOn(generatedLocalDate), isTrue);
+    expect(interpretation.wasGeneratedOn(DateTime(generatedLocalDate.year, generatedLocalDate.month, generatedLocalDate.day + 1)), isFalse);
+  });
+
+  test('optional pattern interpretation round-trips without replacing deterministic findings', () {
     final generatedAt = DateTime.utc(2026, 6, 15, 10);
     final rulePattern = BodyPattern(
       type: BodyPattern.typeBloating,
@@ -22,7 +31,6 @@ void main() {
       origin: AIInsight.originRuleBased,
       aiInterpretation: InsightAiInterpretation(
         summary: 'These observations may share a timing context.',
-        followUpQuestion: 'Would you note the dinner time next time?',
         generatedAt: generatedAt,
         promptVersion: 1,
         model: 'gpt-4o-mini',
@@ -33,7 +41,6 @@ void main() {
 
     expect(restored.detectedPatterns, [rulePattern]);
     expect(restored.aiInterpretation?.summary, insight.aiInterpretation?.summary);
-    expect(restored.aiInterpretation?.followUpQuestion, insight.aiInterpretation?.followUpQuestion);
     expect(restored.aiInterpretation?.model, 'gpt-4o-mini');
   });
 }

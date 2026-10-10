@@ -8,6 +8,7 @@ import 'package:gutgood/infrastructure/firebase/firestore/food_image_firestore_s
 import 'package:gutgood/infrastructure/firebase/firestore/gut_score_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/history_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/insight_firestore_service.dart';
+import 'package:gutgood/infrastructure/firebase/firestore/swap_recommendation_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/firestore/usage_firestore_service.dart';
 import 'package:gutgood/infrastructure/firebase/notification_service.dart';
 import 'package:gutgood/infrastructure/firebase/remote_config_service.dart';
@@ -25,6 +26,9 @@ void initFirebaseDI({required NotificationNavigationPort notificationNavigation}
     ..registerLazySingleton<ChatFirestoreService>(() => ChatFirestoreServiceImpl(auth: sl(), db: sl()))
     ..registerLazySingleton<HistoryFirestoreService>(() => HistoryFirestoreServiceImpl(auth: sl(), db: sl(), foodImages: sl(), gutScoreService: sl()))
     ..registerLazySingleton<InsightFirestoreService>(() => InsightFirestoreServiceImpl(auth: sl(), db: sl()))
+    ..registerLazySingleton<SwapRecommendationFirestoreService>(
+      () => SwapRecommendationFirestoreServiceImpl(auth: sl(), db: sl()),
+    )
     ..registerLazySingleton<GutScoreFirestoreService>(() => GutScoreFirestoreServiceImpl(auth: sl(), db: sl()))
     ..registerLazySingleton<UsageFirestoreService>(() => UsageFirestoreServiceImpl(auth: sl(), db: sl()))
     ..registerLazySingleton<NotificationService>(

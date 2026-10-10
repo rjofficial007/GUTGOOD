@@ -104,10 +104,4 @@ Terms such as `v2` that remain in persisted schemas, API versions, or migration 
 
 ## 🧪 Validation
 
-Static repository validation covers package-local imports, relative imports, `part` relationships, feature-domain dependency direction, duplicate typed DI registrations, and stale compatibility-path references. Run it with:
-
-```bash
-python3 tool/check_architecture.py
-```
-
-Full analyzer, test, and platform-build validation must still be run in an environment with Dart and Flutter installed.
+Run `flutter analyze`, `flutter test`, and a platform build in a configured Flutter environment. The architecture-check script referenced by older documentation is not present in this repository.

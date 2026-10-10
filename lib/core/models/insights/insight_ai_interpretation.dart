@@ -7,7 +7,6 @@ import 'package:gutgood/core/utils/date_time_utils.dart';
 class InsightAiInterpretation extends Equatable {
   const InsightAiInterpretation({
     required this.summary,
-    required this.followUpQuestion,
     required this.generatedAt,
     required this.promptVersion,
     this.model,
@@ -15,7 +14,6 @@ class InsightAiInterpretation extends Equatable {
 
   factory InsightAiInterpretation.fromMap(Map<String, dynamic> map) => InsightAiInterpretation(
     summary: map['summary']?.toString() ?? '',
-    followUpQuestion: map['followUpQuestion']?.toString() ?? '',
     generatedAt: DateTimeUtils.parse(map['generatedAt']),
     promptVersion: (map['promptVersion'] as num?)?.toInt() ?? 1,
     model: map['model']?.toString(),
@@ -24,21 +22,22 @@ class InsightAiInterpretation extends Equatable {
   /// Cautious synthesis of multiple existing rule-based observations.
   final String summary;
 
-  /// One neutral question that could help the user add useful context to future logs.
-  final String followUpQuestion;
-
   final DateTime generatedAt;
   final int promptVersion;
   final String? model;
 
+  bool wasGeneratedOn(DateTime localDate) {
+    final generatedLocal = generatedAt.toLocal();
+    return generatedLocal.year == localDate.year && generatedLocal.month == localDate.month && generatedLocal.day == localDate.day;
+  }
+
   Map<String, dynamic> toMap() => {
     'summary': summary,
-    'followUpQuestion': followUpQuestion,
     'generatedAt': DateTimeUtils.toTimestamp(generatedAt),
     'promptVersion': promptVersion,
     'model': model,
   };
 
   @override
-  List<Object?> get props => [summary, followUpQuestion, generatedAt, promptVersion, model];
+  List<Object?> get props => [summary, generatedAt, promptVersion, model];
 }

@@ -66,21 +66,21 @@ class _ScoresBody extends StatelessWidget {
           ],
         ),
 
-        if ((product.comparedToCategory ?? '').isNotEmpty) ...[Gap.h12, Text('Nutri-Score compared with: ${product.comparedToCategory}', style: context.caption)],
+        if ((product.comparedToCategory ?? '').isNotEmpty) ...[Gap.h12, Text('Nutri-Score compared with: ${product.comparedToCategory}', style: context.bodySm)],
 
         if ((product.nutriscoreExplanation ?? '').isNotEmpty) ...[Gap.h12, Text(product.nutriscoreExplanation!, style: context.bodySm.copyWith(height: 1.5))],
 
         // Component table (which nutrients pushed the score)
         if (components.isNotEmpty) ...[
           Gap.h12,
-          Text('Components', style: context.captionBold),
+          Text('Components', style: context.labelBold.copyWith(fontSize: 12.sp)),
           Gap.h8,
           for (var i = 0; i < components.length; i++) ...[if (i > 0) Divider(height: AppSizes.p16, color: scheme.borderSubtle), _componentRow(context, components[i], scheme)],
           Gap.h8,
           Wrap(spacing: AppSizes.p16, children: [_legendDot(context, scheme.success, 'Supports'), _legendDot(context, scheme.warning, 'Neutral'), _legendDot(context, scheme.error, 'Limits')]),
         ],
 
-        if (product.unscorableReason != null) ...[Gap.h12, Text(product.unscorableReason!, style: context.captionMicro)],
+        if (product.unscorableReason != null) ...[Gap.h12, Text(product.unscorableReason!, style: context.bodySm.copyWith(color: scheme.textMuted))],
       ],
     );
   }
@@ -103,9 +103,9 @@ class _ScoresBody extends StatelessWidget {
         ),
         Gap.w12,
         Expanded(
-          child: Text(c.label, style: context.caption.copyWith(color: scheme.textPrimary)),
+          child: Text(c.label, style: context.bodySm.copyWith(color: scheme.textPrimary)),
         ),
-        Text(c.value, style: context.captionBold.copyWith(color: amountColor)),
+        Text(c.value, style: context.labelBold.copyWith(color: amountColor, fontSize: 12.sp)),
       ],
     );
   }
@@ -119,7 +119,7 @@ class _ScoresBody extends StatelessWidget {
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
       Gap.w4,
-      Text(label, style: context.captionMicro),
+      Text(label, style: context.bodySm.copyWith(color: context.appColorScheme.textMuted, fontSize: 11.5.sp)),
     ],
   );
 }

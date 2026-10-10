@@ -18,7 +18,7 @@ class _AllergensBody extends StatelessWidget {
             children: [
               Icon(AppIcons.alertTriangle, size: 14.sp, color: scheme.error),
               Gap.w6,
-              Text('Contains', style: context.captionBold),
+              Text('Contains', style: context.labelBold.copyWith(fontSize: 12.sp)),
             ],
           ),
           Gap.h8,
@@ -34,7 +34,7 @@ class _AllergensBody extends StatelessWidget {
             children: [
               Icon(AppIcons.info, size: 14.sp, color: scheme.warning),
               Gap.w6,
-              Text('May contain', style: context.captionBold),
+              Text('May contain', style: context.labelBold.copyWith(fontSize: 12.sp)),
             ],
           ),
           Gap.h8,

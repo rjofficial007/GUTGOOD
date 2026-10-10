@@ -13,6 +13,7 @@ class ScanScoreSection extends StatelessWidget {
 
     final recomputed = YukaScore.evaluate(
       nutriscore: scanData.nutriscore,
+      nutriscoreScore: scanData.nutriscoreScore,
       energyKcal: scanData.nutrients?.calories,
       fiberG: scanData.nutrients?.fiber,
       proteinG: scanData.nutrients?.proteins,
@@ -21,6 +22,14 @@ class ScanScoreSection extends StatelessWidget {
       saturatedFatG: scanData.nutrients?.saturatedFat,
       additiveConcerns: scanData.additiveConcerns,
       isOrganic: scanData.isOrganic,
+      novaGroup: int.tryParse(scanData.novaGroup ?? ''),
+      isBeverage: YukaScore.isBeverageCategory(scanData.category),
+      isWater: YukaScore.isPlainWater(
+        productName: scanData.productName,
+        category: scanData.category,
+        energyKcal: scanData.nutrients?.calories,
+        sugarG: scanData.nutrients?.sugars,
+      ),
     );
 
     final showBreakdown = recomputed.hasData;
@@ -29,7 +38,7 @@ class ScanScoreSection extends StatelessWidget {
     // Ensure the breakdown factors sum up to the actual displayed score
     final diff = scanData.score - recomputed.score;
     if (diff != 0 && showBreakdown) {
-      factors.add(ScoreFactor(label: 'AI Personalization · ${diff > 0 ? '+' : ''}$diff pts', delta: diff, phrase: 'personal gut profile adjustment'));
+      factors.add(ScoreFactor(label: 'Difference from current calculation · ${diff > 0 ? '+' : ''}$diff pts', delta: diff, phrase: 'recorded score differs from the current calculation'));
     }
 
     // Use the backend AI narrative explanation if provided, otherwise clean up recomputed text.

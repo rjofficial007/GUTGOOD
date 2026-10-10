@@ -234,7 +234,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
               style: context.title.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w900),
             ),
             const Spacer(),
-            if (subtitle != null) Text(subtitle, style: context.caption.copyWith(color: scheme.textMuted)),
+            if (subtitle != null) Text(subtitle, style: context.bodySm.copyWith(color: scheme.textMuted)),
           ],
         ),
         Gap.h12,
@@ -263,7 +263,7 @@ class _ScanSummarySheetState extends State<ScanSummarySheet> {
               Gap.w10,
               Text(
                 'HEALTH INTELLIGENCE',
-                style: context.captionBold.copyWith(color: scheme.info, fontSize: 10.sp, letterSpacing: 1.2, fontWeight: FontWeight.w900),
+                style: context.labelBold.copyWith(color: scheme.info, fontSize: 11.5.sp, letterSpacing: 1.0, fontWeight: FontWeight.w900),
               ),
             ],
           ),

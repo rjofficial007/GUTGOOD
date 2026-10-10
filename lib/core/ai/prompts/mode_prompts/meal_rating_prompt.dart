@@ -51,7 +51,7 @@ STRUCTURE (ABSOLUTELY MANDATORY ORDER):
    Within this block, you MUST populate the "scan" object FULLY.
    Estimate only fields supported by the image or user-provided data, following the shared schema rules.
    - scan.productName: The name of the dish.
-   - scan.brand: "GutGood".
+   - scan.brand: null unless a brand is supplied or legible.
    - scan.category: "meal".
    - scan.score: a 0-100 fallback; the app calculates and displays the final score.
    - scan.isOrganic: Explicitly set to true if the meal photo or user message clearly indicates organic ingredients/certification; use null when unknown.

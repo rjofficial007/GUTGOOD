@@ -61,10 +61,12 @@ class GutTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: inputStyle.copyWith(color: context.appColorScheme.textDisabled),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: AppSizes.icon18, color: context.appColorScheme.textMuted) : null,
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, size: AppSizes.icon20, color: context.appColorScheme.textMuted)
+            : null,
         filled: !borderless,
         fillColor: borderless ? AppPalette.transparent : context.appColorScheme.elevatedSurface,
-        contentPadding: contentPadding ?? EdgeInsets.symmetric(vertical: AppSizes.p16, horizontal: AppSizes.p16),
+        contentPadding: contentPadding ?? EdgeInsets.symmetric(vertical: AppSizes.p18, horizontal: AppSizes.p18),
         border: _buildBorder(context, AppPalette.transparent),
         enabledBorder: _buildBorder(context, context.appColorScheme.border),
         focusedBorder: _buildBorder(context, context.appColorScheme.textPrimary, width: 1.5),

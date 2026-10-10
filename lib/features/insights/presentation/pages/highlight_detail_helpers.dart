@@ -4,7 +4,7 @@ part of 'highlight_detail_screen.dart';
 
 AIInsight? _highlightInsightOf(BuildContext context) {
     try {
-      return context.read<InsightsNotifier>().latestInsight;
+      return context.watch<InsightsNotifier>().latestInsight;
     } on ProviderNotFoundException {
       return null;
     }

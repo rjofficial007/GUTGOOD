@@ -27,14 +27,14 @@ extension HighlightTriggerSections on HighlightDetailScreen {
         : 'Observed food and symptom timing';
     final bodyText = pattern == null || observationCount == 0
         ? 'There is not enough logged evidence to describe a food and symptom pattern yet.'
-        : 'Your logs contain $observationCount matched observations involving $loggedFoodName and ${reactionText.toLowerCase()}. This association does not establish cause; missing follow-ups are unknown.';
+        : 'Your logs show $observationCount matched ${observationCount == 1 ? 'observation' : 'observations'} of $loggedFoodName alongside ${reactionText.toLowerCase()}. Timing alone does not show cause.';
 
     return Scaffold(
       backgroundColor: theme.scaffold,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          GutSliverAppBar(title: 'FOOD & SYMPTOM DETAILS', centerTitle: true, showBrandingIcon: false, backgroundColor: theme.scaffold),
+          GutSliverAppBar(title: 'FOOD & SYMPTOM PATTERN', centerTitle: true, showBrandingIcon: false, backgroundColor: theme.scaffold),
 
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16.w, 4.w, 16.w, 24.w),
@@ -173,7 +173,7 @@ extension HighlightTriggerSections on HighlightDetailScreen {
                       // Subtitle / Body Description
                       Text(
                         bodyText,
-                        maxLines: 3,
+                        maxLines: 4,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.5.sp, fontWeight: FontWeight.w400, color: context.insightColor(const Color(0xFF475569)), height: 1.3),
                       ),
@@ -218,56 +218,26 @@ extension HighlightTriggerSections on HighlightDetailScreen {
             ),
           ),
 
-          // Bottom Stats Bar (4 columns)
+          // Evidence metrics in a readable two-column grid.
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.w),
+            padding: EdgeInsets.all(12.w),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: _TriggerStatCol(
-                    icon: LucideIcons.barChart2,
-                    iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
-                    iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                    label: 'Observations',
-                    value: frequencyText,
-                    subtext: pattern == null ? 'No matching pattern' : (pattern.timeframeDays > 0 ? 'Last ${pattern.timeframeDays} days' : 'Period unavailable'),
-                  ),
-                ),
-                Gap.w4,
-
-                Expanded(
-                  child: _TriggerStatCol(
-                    icon: LucideIcons.activity,
-                    iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
-                    iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                    label: 'Reaction',
-                    value: reactionText,
-                    subtext: pattern == null ? 'No matching pattern' : 'Observed symptom',
-                  ),
-                ),
-                Gap.w4,
-
-                Expanded(
-                  child: _TriggerStatCol(
-                    icon: LucideIcons.clock,
-                    iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
-                    iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                    label: 'Typical Delay',
-                    value: delayText,
-                    subtext: observationCount < 2 ? 'More logs needed' : 'Across observations',
-                  ),
-                ),
-                Gap.w4,
-
-                Expanded(
-                  child: _TriggerStatCol(
-                    icon: LucideIcons.leaf,
-                    iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2),
-                    iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                    label: 'Evidence tier',
-                    value: evidenceLabel,
-                    subtext: observationCount < 2 ? 'Early observation' : 'Repeated log entries',
+                  child: Column(
+                    children: [
+                      Row(children: [
+                        Expanded(child: _TriggerStatCol(icon: LucideIcons.barChart2, iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2), iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), label: 'Observations', value: frequencyText, subtext: pattern == null ? 'No matching pattern' : (pattern.timeframeDays > 0 ? 'Last ${pattern.timeframeDays} days' : 'Period unavailable'))),
+                        Gap.w8,
+                        Expanded(child: _TriggerStatCol(icon: LucideIcons.activity, iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2), iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), label: 'Reaction', value: reactionText, subtext: pattern == null ? 'No matching pattern' : 'Observed symptom')),
+                      ]),
+                      Gap.h8,
+                      Row(children: [
+                        Expanded(child: _TriggerStatCol(icon: LucideIcons.clock, iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2), iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), label: 'Typical delay', value: delayText, subtext: observationCount < 2 ? 'More logs needed' : 'Across observations')),
+                        Gap.w8,
+                        Expanded(child: _TriggerStatCol(icon: LucideIcons.leaf, iconBg: isDark ? const Color(0xFFEF4444).withValues(alpha: 0.18) : const Color(0xFFFEE2E2), iconColor: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), label: 'Evidence tier', value: evidenceLabel, subtext: observationCount < 2 ? 'Early observation' : 'Repeated log entries')),
+                      ]),
+                    ],
                   ),
                 ),
               ],
@@ -284,39 +254,35 @@ extension HighlightTriggerSections on HighlightDetailScreen {
       return const SizedBox.shrink();
     }
     final theme = context.insightTheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final latest = occurrences.first;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 28.w,
-                  height: 28.w,
-                  decoration: BoxDecoration(color: isDark ? theme.cardSubtle : const Color(0xFFF1F5F9), shape: BoxShape.circle),
-                  alignment: Alignment.center,
-                  child: Icon(LucideIcons.fileText, size: 14.w, color: theme.textPrimary),
-                ),
-                Gap.w8,
-                Text(
-                  'Latest Observation',
-                  style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: theme.textPrimary),
-                ),
-              ],
-            ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: theme.card,
+        borderRadius: BorderRadius.circular(20.w),
+        border: Border.all(color: theme.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const FoodImpactSectionHeader(
+            title: 'Latest Observation',
+            subtitle: 'Your latest logged food responses.',
+            icon: LucideIcons.clock,
+            iconColor: Color(0xFF2563EB),
+          ),
+          Gap.h10,
+          for (var i = 0; i < occurrences.take(3).length; i++) ...[
+            if (i > 0)
+              Padding(
+                padding: EdgeInsets.only(left: 56.w),
+                child: Divider(height: 14.w, color: theme.borderSubtle),
+              ),
+            _LatestObservationRow(occurrence: occurrences[i]),
           ],
-        ),
-        Gap.h10,
-        if (occurrences.length > 1)
-          for (final o in occurrences.take(3)) ...[OccurrenceTile(occurrence: o), Gap.h8]
-        else
-          OccurrenceTile(occurrence: latest),
-      ],
+        ],
+      ),
     );
   }
 
@@ -333,15 +299,11 @@ extension HighlightTriggerSections on HighlightDetailScreen {
         break;
       }
     }
-    final swapObj =
-        matchingSwap ??
-        (insight?.foodSwaps.isNotEmpty == true
-            ? insight!.foodSwaps.first
-            : FoodSwap(
-                id: 'swap_${foodName.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '_')}',
-                source: SwapSource(foodId: 'food_trigger', name: foodName),
-                alternatives: const [],
-              ));
+    final swapObj = matchingSwap ?? FoodSwap(
+      id: 'swap_${foodName.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '_')}',
+      source: SwapSource(foodId: 'food_trigger', name: foodName),
+      alternatives: const [],
+    );
 
     return InkWell(
       onTap: () {
@@ -386,6 +348,75 @@ extension HighlightTriggerSections on HighlightDetailScreen {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LatestObservationRow extends StatelessWidget {
+  const _LatestObservationRow({required this.occurrence});
+
+  final PatternOccurrence occurrence;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.insightTheme;
+    final reaction = occurrence.reaction.trim().isEmpty ? 'Symptom logged' : occurrence.reaction.trim();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final normalizedReaction = reaction.toLowerCase();
+    final isPositive = const ['good', 'great', 'energized', 'positive', 'improved'].any(normalizedReaction.contains);
+    final isNegative = const ['bloat', 'pain', 'cramp', 'reflux', 'headache', 'nausea', 'drop', 'tired', 'fog', 'negative', 'poor'].any(normalizedReaction.contains);
+    final statusColor = isPositive
+        ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))
+        : isNegative
+        ? (isDark ? const Color(0xFFF87171) : const Color(0xFFB42318))
+        : theme.textTertiary;
+    final statusIcon = isPositive ? LucideIcons.leaf : isNegative ? LucideIcons.triangleAlert : LucideIcons.info;
+    final statusLabel = isPositive ? 'Positive' : isNegative ? 'Negative' : 'Observed';
+    final date = occurrence.dateLabel?.trim().isNotEmpty == true ? occurrence.dateLabel!.trim() : occurrence.date;
+    final time = occurrence.mealTime?.trim().isNotEmpty == true ? occurrence.mealTime!.trim() : occurrence.mealType?.trim() ?? '';
+
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12.w),
+          child: InsightUiKit.foodImage(
+            occurrence.mealName,
+            imageUrl: occurrence.imageUrl,
+            width: 46.w,
+            height: 46.w,
+            fit: BoxFit.cover,
+            placeholder: Container(color: theme.cardSubtle),
+            errorWidget: Container(color: theme.cardSubtle, alignment: Alignment.center, child: Icon(LucideIcons.utensils, size: 18.w, color: theme.textTertiary)),
+          ),
+        ),
+        Gap.w10,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(occurrence.mealName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 11.sp, fontWeight: FontWeight.w800, color: theme.textPrimary)),
+              Text(time.isEmpty ? date : '$date • $time', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: theme.textSecondary)),
+            ],
+          ),
+        ),
+        SizedBox(
+          width: 96.w,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(statusIcon, size: 11.w, color: statusColor),
+                  Gap.w4,
+                  Flexible(child: Text(reaction, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, fontWeight: FontWeight.w600, color: theme.textPrimary))),
+                ],
+              ),
+              Text(statusLabel, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, fontWeight: FontWeight.w700, color: statusColor)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

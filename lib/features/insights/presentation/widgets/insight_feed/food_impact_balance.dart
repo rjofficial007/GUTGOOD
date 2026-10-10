@@ -49,40 +49,7 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 36.w,
-                height: 36.w,
-                decoration: BoxDecoration(color: _positive.withValues(alpha: 0.12), shape: BoxShape.circle),
-                child: Icon(LucideIcons.barChart, size: 18.w, color: const Color(0xFF14532D)),
-              ),
-              Gap.w10,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Food Impact So Far', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)))),
-                    Gap.h2,
-                    Text('Based on your logged meals and how you felt afterward.', maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.5.sp, color: secondary)),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: 'About food impact',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (dialogContext) => AlertDialog(
-                    title: const Text('About food impact'),
-                    content: const Text('These summaries compare foods you logged with symptoms and feelings you reported afterward. They show associations in your logs and do not prove that a food caused a reaction.'),
-                    actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Got it'))],
-                  ),
-                ),
-                icon: Icon(Icons.info_outline_rounded, size: 18.w, color: secondary),
-              ),
-            ],
-          ),
+          const FoodImpactSectionHeader(title: 'Food Impact So Far', subtitle: 'Based on your logged meals and how you felt afterward.'),
           Gap.h14,
           Row(
             children: [
@@ -90,7 +57,7 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
                 flex: 5,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final size = math.min(constraints.maxWidth, 116.w);
+                    final size = math.min(constraints.maxWidth, 120.w);
                     return SizedBox(
                       width: size,
                       height: size,
@@ -113,8 +80,15 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('$observations', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 22.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)))),
-                              Text('total\nobservations', textAlign: TextAlign.center, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, height: 1.15, color: secondary)),
+                              Text(
+                                '$observations',
+                                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 22.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+                              ),
+                              Text(
+                                'total\nobservations',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 9.sp, height: 1.15, color: secondary),
+                              ),
                             ],
                           ),
                         ],
@@ -130,17 +104,25 @@ class _FoodImpactBalanceHeroCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: _ImpactBalanceLegend(color: _positive, label: 'Positive Impact', value: positive, observations: counts['positive']!)),
+                        Expanded(
+                          child: _ImpactBalanceLegend(color: _positive, label: 'Positive Impact', value: positive, observations: counts['positive']!),
+                        ),
                         Gap.w8,
-                        Expanded(child: _ImpactBalanceLegend(color: _neutral, label: 'Neutral Impact', value: neutral, observations: counts['neutral']!)),
+                        Expanded(
+                          child: _ImpactBalanceLegend(color: _neutral, label: 'Neutral Impact', value: neutral, observations: counts['neutral']!),
+                        ),
                       ],
                     ),
                     Gap.h12,
                     Row(
                       children: [
-                        Expanded(child: _ImpactBalanceLegend(color: _negative, label: 'Negative Impact', value: negative, observations: counts['negative']!)),
+                        Expanded(
+                          child: _ImpactBalanceLegend(color: _negative, label: 'Negative Impact', value: negative, observations: counts['negative']!),
+                        ),
                         Gap.w8,
-                        Expanded(child: _ImpactBalanceLegend(color: _unknown, label: 'Not Enough Data', value: unknown, observations: counts['unknown']!)),
+                        Expanded(
+                          child: _ImpactBalanceLegend(color: _unknown, label: 'Not Enough Data', value: unknown, observations: counts['unknown']!),
+                        ),
                       ],
                     ),
                   ],
@@ -168,7 +150,11 @@ class _ImpactBalanceLegend extends StatelessWidget {
     children: [
       Row(
         children: [
-          Container(width: 8.w, height: 8.w, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Container(
+            width: 8.w,
+            height: 8.w,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
           Gap.w5,
           Expanded(
             child: Text(
@@ -182,11 +168,19 @@ class _ImpactBalanceLegend extends StatelessWidget {
       ),
       Padding(
         padding: EdgeInsets.only(left: 13.w, top: 2.w),
-        child: Text('$value%', style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A)))),
+        child: Text(
+          '$value%',
+          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 14.sp, fontWeight: FontWeight.w800, color: context.insightColor(const Color(0xFF0F172A))),
+        ),
       ),
       Padding(
         padding: EdgeInsets.only(left: 13.w),
-        child: Text('$observations observation${observations == 1 ? '' : 's'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, color: context.insightColor(const Color(0xFF64748B)))),
+        child: Text(
+          '$observations observation${observations == 1 ? '' : 's'}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontFamily: InsightTheme.fontFamily, fontSize: 8.sp, color: context.insightColor(const Color(0xFF64748B))),
+        ),
       ),
     ],
   );
@@ -215,11 +209,14 @@ class _FoodImpactDonutPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final strokeWidth = size.width * 0.22;
+    final strokeWidth = size.width * 0.18;
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (math.min(size.width, size.height) - strokeWidth) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = strokeWidth..strokeCap = StrokeCap.butt;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt;
     final total = positiveRatio + neutralRatio + negativeRatio + unknownRatio;
     if (total <= 0) {
       paint.color = unknownColor;

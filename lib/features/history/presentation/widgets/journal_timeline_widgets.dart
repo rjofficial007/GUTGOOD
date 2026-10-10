@@ -213,11 +213,12 @@ class JournalTimelineEntry extends StatelessWidget {
       case JournalEntryType.meal:
         final meal = entry.meal!;
         title = meal.items.isNotEmpty ? meal.items.first : (meal.mealType ?? AppStrings.meal);
-        subtitle = [if (meal.items.length > 1) meal.items.skip(1).join(', '), if (meal.notes != null && meal.notes!.isNotEmpty) meal.notes!].join(' • ');
-        type = AppStrings.meal;
-        source = meal.source?.toUpperCase() ?? AppStrings.labelLog;
+        final isSwapMeal = meal.source?.toLowerCase() == 'swap';
+        subtitle = [if (meal.items.length > 1) meal.items.skip(1).join(', '), if (!isSwapMeal && meal.notes != null && meal.notes!.isNotEmpty) meal.notes!].join(' • ');
+        type = isSwapMeal ? 'Meal logged' : AppStrings.meal;
+        source = isSwapMeal ? null : meal.source?.toUpperCase() ?? AppStrings.labelLog;
         imageUrl = meal.photoUrl;
-        typeColor = AppPalette.orange;
+        typeColor = isSwapMeal ? AppPalette.green500 : AppPalette.orange;
         fallbackIcon = AppIcons.utensils;
         break;
       case JournalEntryType.symptom:
@@ -236,7 +237,7 @@ class JournalTimelineEntry extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(AppSizes.p12),
+        padding: EdgeInsets.all(AppSizes.p14),
         decoration: BoxDecoration(
           color: context.appColorScheme.cardBackground,
           borderRadius: BorderRadius.circular(AppSizes.r16),
@@ -248,8 +249,8 @@ class JournalTimelineEntry extends StatelessWidget {
             // Image/Emoji placeholder
             if (entry.type == JournalEntryType.symptom)
               Container(
-                width: 48,
-                height: 48,
+                width: AppSizes.w52,
+                height: AppSizes.w52,
                 decoration: BoxDecoration(color: context.appColorScheme.errorSubtle, borderRadius: BorderRadius.circular(AppSizes.r12)),
                 child: Center(child: Text(_getSymptomEmoji(entry.symptom?.symptom), style: const TextStyle(fontSize: 24))),
               )
@@ -258,8 +259,8 @@ class JournalTimelineEntry extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSizes.r12),
                 child: CachedNetworkImage(
                   imageUrl: imageUrl,
-                  width: 48,
-                  height: 48,
+                  width: AppSizes.w52,
+                  height: AppSizes.w52,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(color: context.appColorScheme.borderSubtle),
                   errorWidget: (context, url, error) => Container(
@@ -270,8 +271,8 @@ class JournalTimelineEntry extends StatelessWidget {
               )
             else
               Container(
-                width: 48,
-                height: 48,
+                width: AppSizes.w52,
+                height: AppSizes.w52,
                 decoration: BoxDecoration(color: context.appColorScheme.borderSubtle, borderRadius: BorderRadius.circular(AppSizes.r12)),
                 child: Icon(fallbackIcon, color: context.appColorScheme.textPrimary, size: 20),
               ),

@@ -20,10 +20,10 @@ class BentoCard extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      padding: padding ?? const EdgeInsets.all(16),
+      padding: padding ?? const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: backgroundColor ?? scheme.cardBackground,
-        borderRadius: BorderRadius.circular(borderRadius ?? 12),
+        borderRadius: BorderRadius.circular(borderRadius ?? 16),
         border: borderColor != null ? Border.all(color: borderColor!) : null,
         boxShadow: showShadow
             ? [

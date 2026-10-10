@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:genz_insights/src/genz_theme.dart';
+import 'package:genz_insights/src/widgets/genz_primitives.dart';
+import 'package:genz_insights/src/widgets/genz_share.dart';
+import 'package:genz_insights/src/widgets/genz_tile.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../genz_theme.dart';
-import '../widgets/genz_primitives.dart';
-import '../widgets/genz_share.dart';
-import '../widgets/genz_tile.dart';
 
 class GenzFoodsTab extends StatefulWidget {
   const GenzFoodsTab({super.key, required this.onNavigate});
@@ -20,8 +20,7 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
   int get _completedQuests => _questDone.where((done) => done).length;
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
+  Widget build(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,7 +68,7 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
               top: 8,
               child: Transform.rotate(
                 angle: 0.14,
-                child: GenzArt(asset: 'assets/images/a-bowl.webp', width: 120, height: 120),
+                child: const GenzArt(asset: 'assets/images/a-bowl.webp', width: 120, height: 120),
               ),
             ),
             child: Column(
@@ -110,7 +109,7 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
                 Text(
                   '11 of 20 foods agreed with your gut.',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.66),
+                    color: Colors.white.withValues(alpha: 0.66),
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
                     fontFamily: GenzFonts.primary,
@@ -180,7 +179,7 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
                 Text(
                   'ginger tea → steadier energy. cold milk → bloating.',
                   style: TextStyle(
-                    color: GenzColors.ink.withOpacity(0.62),
+                    color: GenzColors.ink.withValues(alpha: 0.62),
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
                     fontFamily: GenzFonts.primary,
@@ -260,7 +259,6 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
         ],
       ),
     );
-  }
 
   Widget _buildSignalCard({
     required String title,
@@ -278,7 +276,7 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
             Text(title, style: const TextStyle(color: GenzColors.ink, fontSize: 21, fontWeight: FontWeight.w900, letterSpacing: -0.8, fontFamily: GenzFonts.primary)),
             const SizedBox(height: 12),
             for (final entry in entries) ...[
-              GenzDashedDivider(color: GenzColors.ink.withOpacity(0.25), thickness: 1.5, dashWidth: 5, gap: 4),
+              GenzDashedDivider(color: GenzColors.ink.withValues(alpha: 0.25), thickness: 1.5, dashWidth: 5, gap: 4),
               GestureDetector(
                 onTap: () => widget.onNavigate(entry.route),
                 child: Padding(
@@ -287,7 +285,7 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(entry.name, style: const TextStyle(color: GenzColors.ink, fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: -0.3, fontFamily: GenzFonts.primary)),
-                      Text(entry.effect, style: TextStyle(color: GenzColors.ink.withOpacity(0.68), fontSize: 12.5, fontWeight: FontWeight.w700, fontFamily: GenzFonts.primary)),
+                      Text(entry.effect, style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.68), fontSize: 12.5, fontWeight: FontWeight.w700, fontFamily: GenzFonts.primary)),
                     ],
                   ),
                 ),
@@ -362,17 +360,17 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 26),
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
+                children: [
                   Text('RECENT IMPACTS', style: TextStyle(color: GenzColors.ink, fontSize: 11.5, fontWeight: FontWeight.w900, letterSpacing: 1.4, fontFamily: GenzFonts.primary)),
                   Text('LAST 3 DAYS', style: TextStyle(color: GenzColors.ink, fontSize: 11.5, fontWeight: FontWeight.w900, letterSpacing: 1.4, fontFamily: GenzFonts.primary)),
                 ],
               ),
             ),
-            GenzDashedDivider(color: GenzColors.ink.withOpacity(0.25), thickness: 2, dashWidth: 5, gap: 4),
+            GenzDashedDivider(color: GenzColors.ink.withValues(alpha: 0.25), thickness: 2, dashWidth: 5, gap: 4),
             for (var index = 0; index < rows.length; index++)
               GestureDetector(
                 onTap: () => widget.onNavigate(rows[index].route),
@@ -389,11 +387,11 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(rows[index].date.toUpperCase(), style: TextStyle(color: GenzColors.ink.withOpacity(0.5), fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: 1, fontFamily: GenzFonts.primary)),
+                                Text(rows[index].date.toUpperCase(), style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.5), fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: 1, fontFamily: GenzFonts.primary)),
                                 const SizedBox(height: 2),
                                 Text(rows[index].food, style: const TextStyle(color: GenzColors.ink, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.4, fontFamily: GenzFonts.primary)),
                                 const SizedBox(height: 2),
-                                Text(rows[index].reaction, style: TextStyle(color: GenzColors.ink.withOpacity(0.62), fontSize: 13, fontWeight: FontWeight.w600, fontFamily: GenzFonts.primary)),
+                                Text(rows[index].reaction, style: TextStyle(color: GenzColors.ink.withValues(alpha: 0.62), fontSize: 13, fontWeight: FontWeight.w600, fontFamily: GenzFonts.primary)),
                               ],
                             ),
                           ),
@@ -401,7 +399,7 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
                       ),
                     ),
                     if (index < rows.length - 1)
-                      GenzDashedDivider(color: GenzColors.ink.withOpacity(0.16), thickness: 2, dashWidth: 5, gap: 4),
+                      GenzDashedDivider(color: GenzColors.ink.withValues(alpha: 0.16), thickness: 2, dashWidth: 5, gap: 4),
                   ],
                 ),
               ),
@@ -499,8 +497,7 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
     );
   }
 
-  Widget _buildLegendRow(BuildContext context, Color color, String label, String pct, String count) {
-    return Row(
+  Widget _buildLegendRow(BuildContext context, Color color, String label, String pct, String count) => Row(
       children: [
         Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
         const SizedBox(width: 8),
@@ -512,7 +509,6 @@ class _GenzFoodsTabState extends State<GenzFoodsTab> {
         ),
       ],
     );
-  }
 
   Widget _darkButton(String text) => Container(
         height: 54,
